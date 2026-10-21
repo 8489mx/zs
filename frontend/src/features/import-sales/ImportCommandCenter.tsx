@@ -95,6 +95,37 @@ export default function ImportCommandCenter() {
         </div>
       </div>
 
+            {/* Executive Operational Hubs Toolbar */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, flexWrap: 'wrap' }}>
+        {[
+          { label: 'المخلصين الجمركيين والعهد', path: '/import-sales/customs-brokers' },
+          { label: 'تأمينات الحاويات للخطوط', path: '/import-sales/container-deposits' },
+          { label: 'محفظة النقد الأجنبي (FX)', path: '/import-sales/fx-treasury' },
+          { label: 'مركز الرقابة والموافقات', path: '/import-sales/approvals' },
+          { label: 'مطابقة الاستيراد وتسوية الفروقات', path: '/import-sales/reconciliation' },
+          { label: 'مديونية الموردين والحوالات', path: '/import-sales/supplier-credit' },
+        ].map((hub) => (
+          <button
+            key={hub.path}
+            onClick={() => navigate(hub.path)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 8,
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#1e293b',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+            }}
+          >
+            {hub.label}
+          </button>
+        ))}
+      </div>
+
       {/* 2. Top KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
         {/* Card 1: Total Capital */}

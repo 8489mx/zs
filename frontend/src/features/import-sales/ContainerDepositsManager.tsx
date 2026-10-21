@@ -501,3 +501,5 @@ export function ContainerDepositsManager() {
     </div>
   );
 }
+
+export default ContainerDepositsManager;

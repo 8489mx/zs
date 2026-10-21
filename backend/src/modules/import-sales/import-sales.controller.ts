@@ -28,6 +28,7 @@ import {
   RecordContainerDepositDto,
   RecordContainerReturnRefundDto,
   CreateContainerPreorderDto,
+  ConvertPreorderToSaleDto,
   RecordFxAcquisitionDto,
   CreateImportDocumentDto,
   CreateApprovalRequestDto,
@@ -649,6 +650,22 @@ export class ImportSalesController {
   // ==========================================
 
   @RequireAnyPermission('reports', 'accounting', 'purchases')
+  
+  @RequireAnyPermission('sales', 'inventory', 'purchases')
+  @Post('preorders/:id/convert-to-sale')
+  async convertPreorderToSale(
+    @Req() req: RequestWithAuth,
+    @Param('id') preorderId: string,
+    @Body() dto: ConvertPreorderToSaleDto
+  ) {
+    return this.importSalesService.convertPreorderToSale(
+      req.authContext!.tenantId!,
+      req.authContext!.userId!,
+      preorderId,
+      dto
+    );
+  }
+
   @Get('shipments/:id/autopsy')
   async getContainerAutopsySheet(@Req() req: RequestWithAuth, @Param('id') shipmentId: string) {
     return this.importSalesService.getContainerAutopsySheet(req.authContext!.tenantId!, shipmentId);

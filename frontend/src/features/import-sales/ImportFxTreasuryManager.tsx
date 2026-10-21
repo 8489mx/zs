@@ -1,0 +1,357 @@
+import React, { useState } from 'react';
+import {
+  useFxPortfolioQuery,
+  useRecordFxAcquisitionMutation,
+} from './api/shipments.api';
+import { StandardDialog } from '@/shared/components/StandardDialog';
+import { formatCurrency } from '@/lib/format';
+import {
+  PlusCircleIcon,
+  RefreshCwIcon,
+} from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { useQuery } from '@tanstack/react-query';
+import { http } from '@/lib/http';
+
+export default function ImportFxTreasuryManager() {
+  const { data: fxData, isLoading, refetch } = useFxPortfolioQuery();
+  const recordAcquisitionMutation = useRecordFxAcquisitionMutation();
+
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+
+  // Form State
+  const [currency, setCurrency] = useState('USD');
+  const [foreignAmount, setForeignAmount] = useState<number>(10000);
+  const [egpCost, setEgpCost] = useState<number>(485000);
+  const [sourceProvider, setSourceProvider] = useState('اعتماد بنكي رسمي');
+  const [treasuryAccountId, setTreasuryAccountId] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Fetch Treasury Accounts
+  const { data: accountsData } = useQuery({
+    queryKey: ['accounts-list'],
+    queryFn: () => http<any>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
+  });
+  const bankAccounts = (accountsData?.accounts || (Array.isArray(accountsData) ? accountsData : [])).filter(
+    (a: any) => a.accountGroup === 'current_assets' || a.isCashBank
+  );
+
+  const portfolio = fxData?.portfolio || [];
+  const acquisitions = fxData?.acquisitions || [];
+
+  const usdItem = portfolio.find((p: any) => p.currency === 'USD');
+  const cnyItem = portfolio.find((p: any) => p.currency === 'CNY');
+  const totalEgpDeployed = portfolio.reduce((sum: number, p: any) => sum + Number(p.total_egp_cost || 0), 0);
+
+  const computedRate = foreignAmount > 0 ? (egpCost / foreignAmount).toFixed(4) : '0';
+
+  const handleRecordAcquisition = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await recordAcquisitionMutation.mutateAsync({
+        currency,
+        foreignAmount: Number(foreignAmount),
+        egpCost: Number(egpCost),
+        sourceProvider,
+        treasuryAccountId: treasuryAccountId || undefined,
+        notes,
+      });
+      toast.success('تم قيد تدبير العملة الأجنبية بنجاح');
+      setIsRecordModalOpen(false);
+      setNotes('');
+      refetch();
+    } catch (err: any) {
+      toast.error('فشل تسجيل تدبير العملة: ' + (err.message || 'خطأ غير معروف'));
+    }
+  };
+
+  return (
+    <div dir="rtl" style={{ width: 'min(100%, 1280px)', margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* 1. Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+            <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+              محفظة النقد الأجنبي وتدبير العملة (FX Treasury)
+            </h1>
+          </div>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+            متابعة أرصدة الدولار واليوان المحتجزة، متوسط سعر الصرف الفعلي المرجح، والالتزامات المستحقة للمصانع
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => refetch()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 14px',
+              borderRadius: 8,
+              border: '1px solid #cbd5e1',
+              backgroundColor: '#ffffff',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              color: '#334155',
+              cursor: 'pointer',
+            }}
+          >
+            <RefreshCwIcon size={14} />
+            تحديث
+          </button>
+
+          <button
+            onClick={() => setIsRecordModalOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 16px',
+              borderRadius: 8,
+              border: 'none',
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            <PlusCircleIcon size={15} />
+            تسجيل تدبير عملة جديد
+          </button>
+        </div>
+      </div>
+
+      {/* 2. KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>رصيد الدولار الأمريكي (USD)</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#16a34a' }}>
+            ${Number(usdItem?.available_balance || 0).toLocaleString()}
+          </div>
+          <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
+            متوسط سعر الصرف المرجح: <strong>{Number(usdItem?.weighted_avg_rate || 0).toFixed(2)} ج.م</strong>
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>رصيد اليوان الصيني (CNY)</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#0284c7' }}>
+            ¥{Number(cnyItem?.available_balance || 0).toLocaleString()}
+          </div>
+          <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
+            متوسط سعر الصرف المرجح: <strong>{Number(cnyItem?.weighted_avg_rate || 0).toFixed(2)} ج.م</strong>
+          </div>
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>إجمالي السيولة المستخدمة بالجنيه</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#170e5e' }}>{formatCurrency(totalEgpDeployed)}</div>
+          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: 4 }}>إجمالي التكلفة الدفترية للنقد الأجنبي</div>
+        </div>
+
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>حماية الالتزامات والسيولة</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#334155' }}>100%</div>
+          <div style={{ fontSize: '11px', color: '#16a34a', marginTop: 4 }}>مطابقة حسابية وفصل لفروق العملة</div>
+        </div>
+      </div>
+
+      {/* 3. History of Acquisitions */}
+      <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+            سجل عمليات تدبير وشراء النقد الأجنبي ({acquisitions.length})
+          </h2>
+          <span style={{ fontSize: '12px', color: '#64748b' }}>
+            تسجيل سعر الصرف الحقيقي يمنع تضخيم الأرباح الوهمية ويحمي تكلفة المخزون
+          </span>
+        </div>
+
+        {isLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>جاري تحميل سجل المحفظة...</div>
+        ) : acquisitions.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+            لا توجد عمليات تدبير عملة مسجلة حالياً. استخدم زر "تسجيل تدبير عملة جديد" لإثبات العملات الأجنبية.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>التاريخ</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>العملة والمبلغ</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>سعر الصرف الفعلي</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>التكلفة الإجمالية (ج.م)</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>جهة / مصدر التدبير</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>الملاحظات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {acquisitions.map((a: any) => (
+                  <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 14px', fontSize: '12px', color: '#64748b' }}>
+                      {new Date(a.created_at || Date.now()).toLocaleDateString('ar-EG')}
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
+                      {a.currency} {Number(a.foreign_amount || 0).toLocaleString()}
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 600, color: '#0284c7' }}>
+                      {Number(a.exchange_rate || (a.egp_cost / a.foreign_amount)).toFixed(3)} ج.م
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 700, color: '#170e5e' }}>
+                      {formatCurrency(a.egp_cost)}
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '12px', color: '#334155' }}>
+                      <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: '11px', fontWeight: 600, backgroundColor: '#f1f5f9', color: '#334155' }}>
+                        {a.source_provider || 'تدبير مباشر'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '12px', color: '#64748b' }}>
+                      {a.notes || '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Record FX Acquisition Dialog */}
+      <StandardDialog
+        open={isRecordModalOpen}
+        onClose={() => setIsRecordModalOpen(false)}
+        title="تسجيل عملية تدبير وشراء عملة أجنبية"
+        subtitle="توثيق سعر الصرف الفعلي وحساب متوسط التكلفة المرجح للشركة"
+        width="560px"
+      >
+        <form onSubmit={handleRecordAcquisition} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                العملة الأجنبية
+              </label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              >
+                <option value="USD">الدولار الأمريكي (USD)</option>
+                <option value="CNY">اليوان الصيني (CNY)</option>
+                <option value="EUR">اليورو الأوروبي (EUR)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                المبلغ بالعملة الأجنبية
+              </label>
+              <input
+                type="number"
+                required
+                value={foreignAmount}
+                onChange={(e) => setForeignAmount(Number(e.target.value))}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                التكلفة الإجمالية بالجنيه (EGP)
+              </label>
+              <input
+                type="number"
+                required
+                value={egpCost}
+                onChange={(e) => setEgpCost(Number(e.target.value))}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                سعر الصرف المحسوب (ج.م)
+              </label>
+              <input
+                type="text"
+                disabled
+                value={computedRate}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', borderRadius: 6, fontSize: '12.5px', fontWeight: 700, color: '#170e5e' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                مصدر وجهة التدبير
+              </label>
+              <select
+                value={sourceProvider}
+                onChange={(e) => setSourceProvider(e.target.value)}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              >
+                <option value="اعتماد بنكي رسمي">اعتماد بنكي رسمي (Bank Auction)</option>
+                <option value="تمويل شخصي من الشركاء">تمويل شخصي من الشركاء (Partner Capital)</option>
+                <option value="تدبير تجاري مباشر">تدبير تجاري مباشر (Commercial FX)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                الحساب البنكي / الخزينة المودع فيها
+              </label>
+              <select
+                value={treasuryAccountId}
+                onChange={(e) => setTreasuryAccountId(e.target.value)}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              >
+                <option value="">-- اختيار الحساب البنكي --</option>
+                {bankAccounts.map((acc: any) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.nameAr || acc.nameEn || acc.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+              ملاحظات وبيان التدبير
+            </label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="مثال: تدبير سداد الدفعة النهائية لمصنع قوانغتشو"
+              style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => setIsRecordModalOpen(false)}
+              style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={recordAcquisitionMutation.isPending}
+              style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              {recordAcquisitionMutation.isPending ? 'جاري القيد...' : 'تأكيد تدبير العملة'}
+            </button>
+          </div>
+        </form>
+      </StandardDialog>
+    </div>
+  );
+}

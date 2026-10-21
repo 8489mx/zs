@@ -3,6 +3,7 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import {
   useContainerPreordersQuery,
   useCreateContainerPreorderMutation,
+  useConvertPreorderToSaleMutation,
   ShipmentDetails,
 } from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
@@ -19,6 +20,9 @@ interface ContainerPreordersModalProps {
 export function ContainerPreordersModal({ isOpen, onClose, shipment }: ContainerPreordersModalProps) {
   const { data: preorders = [], refetch } = useContainerPreordersQuery(shipment.id);
   const createPreorderMutation = useCreateContainerPreorderMutation();
+  const convertPreorderMutation = useConvertPreorderToSaleMutation();
+  const [convertingPreorder, setConvertingPreorder] = useState<any | null>(null);
+  const [convertNotes, setConvertNotes] = useState('');
 
   const [customerId, setCustomerId] = useState('');
   const [productId, setProductId] = useState(shipment.items[0]?.product_id || '');
@@ -315,6 +319,7 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
                     <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600 }}>العربون</th>
                     <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600 }}>الحالة</th>
                     <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600 }}>التاريخ</th>
+                    <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600, textAlign: 'center' }}>الإجراء</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -355,6 +360,35 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
                       <td style={{ padding: '8px 10px', color: '#64748b' }}>
                         {new Date(po.created_at).toLocaleDateString('ar-EG')}
                       </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                        {po.status === 'invoiced' ? (
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#166534', backgroundColor: '#dcfce7', padding: '2px 8px', borderRadius: 4 }}>
+                            تمت الفوترة
+                          </span>
+                        ) : po.status === 'cancelled' ? (
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>ملغى</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConvertingPreorder(po);
+                              setConvertNotes('');
+                            }}
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                              border: '1px solid #170e5e',
+                              backgroundColor: '#ffffff',
+                              color: '#170e5e',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            تحويل لفاتورة بيع
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -363,6 +397,74 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
           </div>
         </div>
       </div>
+    
+      {/* Convert Preorder to Sale Dialog */}
+      <StandardDialog
+        open={Boolean(convertingPreorder)}
+        onClose={() => setConvertingPreorder(null)}
+        title="تحويل حجز الحاوية إلى فاتورة مبيعات نظامية"
+        subtitle="تسوية العربون المقبوض وخصم الكمية من باتش الحاوية المستلمة وإصدار فاتورة بيع نظامية"
+        width="560px"
+      >
+        {convertingPreorder && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: '12.5px' }}>
+                <div><span style={{ color: '#64748b' }}>العميل:</span> <strong>{convertingPreorder.customer_name || 'عميل حجز'}</strong></div>
+                <div><span style={{ color: '#64748b' }}>الكمية المحجوزة:</span> <strong>{convertingPreorder.reserved_quantity} وحدة</strong></div>
+                <div><span style={{ color: '#64748b' }}>سعر الوحدة:</span> <strong>{formatCurrency(convertingPreorder.unit_price_egp)}</strong></div>
+                <div><span style={{ color: '#64748b' }}>إجمالي الفاتورة:</span> <strong>{formatCurrency(convertingPreorder.reserved_quantity * convertingPreorder.unit_price_egp)}</strong></div>
+                <div><span style={{ color: '#64748b' }}>العربون المسدد (مسوّى):</span> <strong style={{ color: '#166534' }}>{formatCurrency(convertingPreorder.deposit_amount_egp)}</strong></div>
+                <div><span style={{ color: '#64748b' }}>المتبقي للتحصيل:</span> <strong style={{ color: '#170e5e' }}>{formatCurrency(Math.max(0, convertingPreorder.reserved_quantity * convertingPreorder.unit_price_egp - (convertingPreorder.deposit_amount_egp || 0)))}</strong></div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                ملاحظات الفاتورة والتسليم:
+              </label>
+              <input
+                type="text"
+                value={convertNotes}
+                onChange={(e) => setConvertNotes(e.target.value)}
+                placeholder="مثال: تسليم المستودع الرئيسي - تمت مطابقة الدفعة المقدمة"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setConvertingPreorder(null)}
+                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={convertPreorderMutation.isPending}
+                onClick={async () => {
+                  try {
+                    const res = await convertPreorderMutation.mutateAsync({
+                      preorderId: convertingPreorder.id,
+                      dto: { notes: convertNotes },
+                    });
+                    toast.success(`تم إصدار فاتورة المبيعات رقم ${res.docNo || res.saleId} وتسوية العربون وخصم المخزون بنجاح`);
+                    setConvertingPreorder(null);
+                    refetch();
+                  } catch (err: any) {
+                    toast.error('فشل تحويل الحجز لفاتورة: ' + (err.message || 'خطأ غير معروف'));
+                  }
+                }}
+                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                {convertPreorderMutation.isPending ? 'جاري الإصدار...' : 'تأكيد وإصدار الفاتورة'}
+              </button>
+            </div>
+          </div>
+        )}
+      </StandardDialog>
+
     </StandardDialog>
   );
 }
