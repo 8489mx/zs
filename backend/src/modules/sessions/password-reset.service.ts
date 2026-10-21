@@ -34,13 +34,23 @@ export function buildPasswordResetUrl(
   token: string,
   env: NodeJS.ProcessEnv = process.env,
 ): string | null {
-  for (const candidate of [env.APP_PUBLIC_URL, origin]) {
-    const base = String(candidate || '').trim().replace(/\/$/, '');
-    if (/^https?:\/\/[^\s/]+$/i.test(base)) {
-      return `${base}/reset-password#token=${encodeURIComponent(token)}`;
-    }
+  // A request-controlled forwarded host is never an acceptable password-reset destination.
+  // Only the operator-controlled public origin is trusted in cloud deployments.
+  const standalone = env.APP_MODE === 'SELF_CONTAINED' || env.IS_ELECTRON === 'true';
+  const configured = String(env.APP_PUBLIC_URL || '').trim();
+  const candidate = configured || (standalone ? String(origin || '').trim() : '');
+  if (!candidate) return null;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.username || parsed.password || parsed.search || parsed.hash || (parsed.pathname !== '/' && parsed.pathname !== '')) return null;
+    const isLoopback = ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname.toLowerCase());
+    if (parsed.protocol !== 'https:' && !(standalone && isLoopback && parsed.protocol === 'http:')) return null;
+    // A standalone fallback is restricted to loopback, never an untrusted forwarded public host.
+    if (!configured && !isLoopback) return null;
+    return `${parsed.origin}/reset-password#token=${encodeURIComponent(token)}`;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 type ResetCandidate = {
