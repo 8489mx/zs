@@ -1686,12 +1686,12 @@ export class ImportSalesService {
         expenseId = exp.id;
       }
 
-      // Durable document identity even for wholly capitalized late expenses (no COGS row).
-      const lateExpenseDocument = await trx.insertInto('expenses').values({
-        tenant_id: tenantId, account_id: String(cogsAccountId),
-        title: `${dto.title} (مستند مصروف استيراد متأخر) - حاوية ${shipment.container_number}`,
-        amount: 0, expense_date: new Date().toISOString().slice(0, 10),
-        created_by: userId, note: dto.note || '', branch_id: null, location_id: null,
+      // Every late expense has a proper source document, including inventory-only capitalization.
+      const lateExpenseDocument = await trx.insertInto('import_late_expense_events').values({
+        tenant_id: tenantId, shipment_id: shipmentId,
+        title: dto.title, total_amount_egp: dto.lateExpenseAmount,
+        inventory_amount_egp: totalLateInventory, cogs_amount_egp: totalLateCogs,
+        created_by: userId, journal_entry_id: null,
       }).returning('id').executeTakeFirstOrThrow();
       const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
       const lines: any[] = [];
@@ -1743,6 +1743,9 @@ export class ImportSalesService {
         postedBy: userId,
         lines,
       });
+
+      await trx.updateTable('import_late_expense_events').set({ journal_entry_id: journalEntryId })
+        .where('tenant_id', '=', tenantId).where('id', '=', lateExpenseDocument.id).execute();
 
       await trx
         .updateTable('import_shipments')

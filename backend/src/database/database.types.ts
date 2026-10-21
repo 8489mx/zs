@@ -5856,6 +5856,19 @@ export interface ImportBrokerExpenseTable {
   created_at: Generated<Date>;
 }
 
+export interface ImportLateExpenseEventTable {
+  id: Generated<number>;
+  tenant_id: string;
+  shipment_id: string;
+  title: string;
+  total_amount_egp: ImportNumeric;
+  inventory_amount_egp: ImportNumeric;
+  cogs_amount_egp: ImportNumeric;
+  journal_entry_id: number | null;
+  created_by: number | null;
+  created_at: Generated<Date>;
+}
+
 export interface ImportContainerRefundEventTable {
   id: Generated<string>;
   serial_id: Generated<number>;
@@ -6038,6 +6051,7 @@ export interface Database {
   import_broker_expenses: ImportBrokerExpenseTable;
   import_container_deposits: ImportContainerDepositTable;
   import_container_refund_events: ImportContainerRefundEventTable;
+  import_late_expense_events: ImportLateExpenseEventTable;
   import_container_preorders: ImportContainerPreorderTable;
   import_inventory_lots: ImportInventoryLotTable;
   import_sale_allocations: ImportSaleAllocationTable;
