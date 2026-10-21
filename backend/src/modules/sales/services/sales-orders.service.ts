@@ -232,8 +232,8 @@ export class SalesOrdersService {
       return { ok: true, message: 'أمر البيع مؤكد والمخزون محجوز بالفعل' };
     }
 
-    if (order.status === 'converted') {
-      throw new BadRequestException('لا يمكن تعديل أمر بيع تم تحويله إلى فاتورة بالفعل');
+    if (order.status !== 'draft') {
+      throw new BadRequestException('التأكيد مسموح فقط لأوامر البيع المسودة غير الملغاة');
     }
 
     const items = await this.db
@@ -414,6 +414,9 @@ export class SalesOrdersService {
 
     if (order.status === 'converted' && order.sale_id) {
       return { ok: true, message: 'تم تحويل أمر البيع مسبقاً إلى فاتورة', saleId: order.sale_id };
+    }
+    if (order.status !== 'confirmed') {
+      throw new BadRequestException('لا يمكن تحويل أمر بيع مسودة أو ملغي إلى فاتورة');
     }
 
     const items = await this.db
