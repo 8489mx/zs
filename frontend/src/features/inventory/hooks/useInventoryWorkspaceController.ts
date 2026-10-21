@@ -210,7 +210,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     : undefined;
   const postSelectedSessions = canAdjustInventory && state.selectedSessionIds.length
     ? () => {
-      const selected = stockCountSessions.filter((session) => state.selectedSessionIds.includes(String(session.id)) && session.status === 'draft');
+      const selected = stockCountSessions.filter((session) => state.selectedSessionIds.includes(String(session.id)) && (session.status === 'draft' || session.status === 'posting'));
       if (selected.length) state.setPostSessionConfirm({ sessionIds: selected.map((session) => String(session.id)) });
     }
     : undefined;
@@ -218,7 +218,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
   const deleteStockCountHandler = canAdjustInventory
     ? async (sessionId: string, docNo?: string) => {
       const session = stockCountSessions.find((s) => String(s.id) === String(sessionId));
-      if (session && session.status !== 'draft') {
+      if (session && session.status !== 'draft' && session.status !== 'posting') {
         toast.error('لا يمكن حذف أو إلغاء جلسة جرد معتمدة ومرحلة إلى المخازن والحسابات.');
         return;
       }

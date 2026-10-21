@@ -16,6 +16,7 @@ export type SessionVarianceSummary = {
 export function getSessionStatusLabel(status?: string | null) {
   const normalized = String(status || '').toLowerCase();
   if (normalized === 'draft') return 'مسودة / بانتظار المراجعة';
+  if (normalized === 'posting') return 'بانتظار استكمال الاعتماد';
   if (normalized === 'posted') return 'معتمد';
   if (normalized === 'cancelled' || normalized === 'canceled') return 'ملغي';
   return status || '—';
