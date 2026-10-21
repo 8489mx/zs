@@ -203,6 +203,24 @@ export class ForexRevaluationService {
     }
 
     return this.db.transaction().execute(async (trx) => {
+      // Transactional advisory lock to prevent concurrent revaluations for same tenant/period/currency (ZS-038)
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${tenantId} || ':forex:' || ${dto.periodDate} || ':' || ${dto.currencyCode}))`.execute(trx);
+
+      const existingRun = await trx
+        .selectFrom('forex_revaluation_runs')
+        .select(['id', 'status', 'journal_entry_no'])
+        .where('tenant_id', '=', tenantId)
+        .where('period_date', '=', dto.periodDate)
+        .where('currency_code', '=', dto.currencyCode)
+        .where('status', '=', 'posted')
+        .executeTakeFirst();
+
+      if (existingRun) {
+        throw new BadRequestException(
+          `تم إجراء إعادة تقييم عملة (${dto.currencyCode}) لهذه الفترة (${dto.periodDate}) مسبقاً برقم قيد [${existingRun.journal_entry_no || existingRun.id}].`
+        );
+      }
+
     if (hasRevaluation) {
       const entryLines: any[] = [];
 

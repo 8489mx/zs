@@ -38,6 +38,15 @@ class ReturnItemDto {
   @IsArray()
   @IsString({ each: true })
   serials?: string[];
+
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  batchId?: number;
 }
 
 export class CreateReturnDto {

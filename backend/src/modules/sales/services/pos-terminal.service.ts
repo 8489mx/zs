@@ -32,14 +32,18 @@ export interface PosTerminalInfo {
 
 export function isPrivateSubnetIp(ip: string): boolean {
   if (!ip) return false;
-  const clean = ip.trim().toLowerCase();
-  if (clean === '127.0.0.1' || clean === 'localhost') return true;
+  const clean = ip.trim().toLowerCase().replace(/^\[|\]$/g, '');
+  if (clean === 'localhost' || clean === '::1' || clean === '0.0.0.0') return true;
+  if (clean.startsWith('127.')) return true; // all loopback addresses
+  if (clean.startsWith('169.254.')) return true; // link-local & cloud metadata
   if (clean.startsWith('192.168.') || clean.startsWith('10.')) return true;
   const match172 = clean.match(/^172\.(\d+)\./);
   if (match172) {
     const octet = parseInt(match172[1], 10);
     return octet >= 16 && octet <= 31;
   }
+  // IPv6 loopback / link-local / unique local
+  if (clean.startsWith('fe80:') || clean.startsWith('fc00:') || clean.startsWith('fd00:')) return true;
   return false;
 }
 
@@ -1256,6 +1260,41 @@ export class PosTerminalService {
       };
     }
 
+    // SSRF Guard (ZS-084): Block loopback and link-local / cloud metadata unconditionally
+    const isLoopbackOrMetadata = cleanIp.startsWith('127.') ||
+      cleanIp === 'localhost' ||
+      cleanIp === '::1' ||
+      cleanIp.startsWith('169.254.') ||
+      cleanIp === '0.0.0.0';
+
+    if (isLoopbackOrMetadata) {
+      return {
+        reachable: false,
+        pingSucceeded: false,
+        portOpen: false,
+        ip: cleanIp,
+        port,
+        message: 'عنوان IP الماكينة غير مسموح به (Loopback / Cloud Metadata)',
+        details: 'لا يمكن اختبار الاتصال بعناوين الاسترجاع الداخلي أو عناوين بيانات السيرفر السحابي لحماية أمن النظام.',
+        provider,
+      };
+    }
+
+    const isPrivateSub = isPrivateSubnetIp(cleanIp);
+    const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
+    if (isCloudEnv && isPrivateSub) {
+      return {
+        reachable: false,
+        pingSucceeded: false,
+        portOpen: false,
+        ip: cleanIp,
+        port,
+        message: `تعذر الوصول لماكينة الدفع (${cleanIp}) من بيئة السيرفر السحابي (Cloud SaaS)`,
+        details: `العنوان ${cleanIp} يقع ضمن الشبكة المحلية (LAN) الخاصة بفرعك. السيرفر السحابي المعزول لا يستطيع الوصول للراوتر المحلي عبر الإنترنت العام. للربط المباشر مع ماكينات الشبكة المحلية، يرجى تشغيل تطبيق Z-Systems Desktop للكاشير على نفس الشبكة، أو استخدام وضع الربط السحابي مع المزود (مثل Geidea Cloud ECR بتعيين Terminal TID).`,
+        provider,
+      };
+    }
+
     // Execute Ping and TCP Port probe
     const [pingRes, tcpRes] = await Promise.all([
       this.pingHost(cleanIp, 2000),
@@ -1299,22 +1338,6 @@ export class PosTerminalService {
         latencyMs: pingRes.rttMs,
         message: `الماكينة متصلة بالشبكة (${pingText}) ولكن المنفذ ${port} غير مفتوح`,
         details: `الماكينة استجابت بنجاح على الشبكة المحلية، ولكن ${appName} لم يفتح منفذ ECR رقم ${port} بعد. يرجى الدخول لإعدادات التطبيق على الماكينة -> "إعدادات الربط / ECR" -> تفعيل الربط وتعيين المنفذ ${port}.`,
-        provider,
-      };
-    }
-
-    // Case 3: Completely unreachable
-    const isPrivateSub = isPrivateSubnetIp(cleanIp);
-    const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
-    if (isCloudEnv && isPrivateSub) {
-      return {
-        reachable: false,
-        pingSucceeded: false,
-        portOpen: false,
-        ip: cleanIp,
-        port,
-        message: `تعذر الوصول لماكينة الدفع (${cleanIp}) من بيئة السيرفر السحابي (Cloud SaaS)`,
-        details: `العنوان ${cleanIp} يقع ضمن الشبكة المحلية (LAN) الخاصة بفرعك. السيرفر السحابي المعزول لا يستطيع الوصول للراوتر المحلي عبر الإنترنت العام. للربط المباشر مع ماكينات الشبكة المحلية، يرجى تشغيل تطبيق Z-Systems Desktop للكاشير على نفس الشبكة، أو استخدام وضع الربط السحابي مع المزود (مثل Geidea Cloud ECR بتعيين Terminal TID).`,
         provider,
       };
     }
