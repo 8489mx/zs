@@ -28,6 +28,50 @@ export default function ImportCommandCenter() {
   const { data: metrics, isLoading, refetch } = useImportCommandCenterQuery();
   const { data: projects = [] } = useImportProjectsQuery();
   const { data: shipmentsData } = useShipmentsQuery();
+  const { data: fxData, refetch: refetchFx } = useFxPortfolioQuery();
+  const { data: reconExceptions = [], refetch: refetchRecon } = useReconciliationExceptionsQuery(false);
+  const { data: pendingApprovals = [] } = useApprovalRequestsQuery('pending');
+  const runScanMutation = useRunReconciliationScanMutation();
+  const recordFxMutation = useRecordFxAcquisitionMutation();
+
+  const [isRecordFxOpen, setIsRecordFxOpen] = useState(false);
+  const [fxCurrency, setFxCurrency] = useState('USD');
+  const [fxForeignAmount, setFxForeignAmount] = useState<number>(10000);
+  const [fxEgpCost, setFxEgpCost] = useState<number>(500000);
+  const [fxBankSource, setFxBankSource] = useState('البنك التجاري الدولي CIB');
+  const [isScanning, setIsScanning] = useState(false);
+
+  const handleRunReconciliation = async () => {
+    try {
+      setIsScanning(true);
+      const res = await runScanMutation.mutateAsync();
+      toast.success(`اكتمل فحص المطابقة المالية والتشغيلية بنجاح (${res.exceptionsFoundCount || 0} ملاحظة)`);
+      refetchRecon();
+      refetch();
+    } catch (err: any) {
+      toast.error('فشل تشغيل فحص المطابقة: ' + (err.message || 'خطأ'));
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleRecordFx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await recordFxMutation.mutateAsync({
+        currency: fxCurrency,
+        foreignAmount: Number(fxForeignAmount),
+        egpCost: Number(fxEgpCost),
+        source: fxBankSource,
+      });
+      toast.success('تم إثبات تدبير العملة الأجنبية وتحديث متوسط تكلفة المحفظة بنجاح');
+      setIsRecordFxOpen(false);
+      refetchFx();
+      refetch();
+    } catch (err: any) {
+      toast.error('فشل إثبات تدبير العملة: ' + (err.message || 'خطأ'));
+    }
+  };
 
   const shipments = shipmentsData?.rows || [];
 
@@ -280,7 +324,111 @@ export default function ImportCommandCenter() {
         </div>
       )}
 
-      {/* 4. Import Workflow Pipeline Funnel */}
+      {/* FX Treasury & Governance Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 14 }}>
+        {/* FX Treasury Portfolio Card */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                محفظة تدبير النقد الأجنبي (FX Treasury Desk)
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>متوسط تكلفة تدبير الدولار واليوان للتحويلات</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsRecordFxOpen(true)}
+              style={{
+                padding: '4px 10px',
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              + تدبير عملة
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, border: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي مشتريات الدولار ($)</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#0369a1', marginTop: 4 }}>
+                ${Number(fxData?.portfolio?.['USD']?.totalForeign || 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#475569', marginTop: 2 }}>
+                متوسط التكلفة: {Number(fxData?.portfolio?.['USD']?.weightedAvgRate || 50).toFixed(2)} ج.م/$
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, border: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>إجمالي التكلفة بالجنيه المصري</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#170e5e', marginTop: 4 }}>
+                {formatCurrency(Number(fxData?.portfolio?.['USD']?.totalEgp || 0))}
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#15803d', marginTop: 2 }}>
+                حوالات مسواة بدفتر الأستاذ
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Audit & Maker-Checker Card */}
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px 18px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                المطابقة الرقابية والحوكمة (Audit & Controls)
+              </div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>مطابقة أرصدة الدائنين والمخزون واعتماد الصرف</div>
+            </div>
+            <button
+              type="button"
+              disabled={isScanning}
+              onClick={handleRunReconciliation}
+              style={{
+                padding: '4px 10px',
+                backgroundColor: '#f1f5f9',
+                color: '#170e5e',
+                border: '1px solid #cbd5e1',
+                borderRadius: 6,
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {isScanning ? 'جاري الفحص...' : 'فحص المطابقة الآلي'}
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, border: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>طلبات الاعتماد المالي المعلقة</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: pendingApprovals.length > 0 ? '#b91c1c' : '#15803d', marginTop: 4 }}>
+                {pendingApprovals.length} طلبات
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#475569', marginTop: 2 }}>
+                نظام التحقق الثنائي (Maker-Checker)
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#f8fafc', padding: 10, borderRadius: 8, border: '1px solid #f1f5f9' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>فروق أو ملاحظات المطابقة</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: reconExceptions.length > 0 ? '#d97706' : '#15803d', marginTop: 4 }}>
+                {reconExceptions.length} ملاحظات
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#15803d', marginTop: 2 }}>
+                {reconExceptions.length === 0 ? 'الدفاتر متطابقة 100%' : 'تحت المراجعة'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+            {/* 4. Import Workflow Pipeline Funnel */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>

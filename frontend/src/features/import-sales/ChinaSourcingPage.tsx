@@ -7,6 +7,9 @@ import {
   ChinaSupplier,
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { ChinaQuotationsTab } from './components/ChinaQuotationsTab';
+import { ChinaSamplesTab } from './components/ChinaSamplesTab';
+import { ChinaProformasTab } from './components/ChinaProformasTab';
 import {
   ShieldAlertIcon,
   CheckCircleIcon,
@@ -26,7 +29,7 @@ export default function ChinaSourcingPage() {
   const upsertSupplierMetaMutation = useUpsertSupplierMetaMutation('');
   const createQcMutation = useCreateQcInspectionMutation();
 
-  const [activeTab, setActiveTab] = useState<'factories' | 'qc' | 'trips'>('factories');
+  const [activeTab, setActiveTab] = useState<'factories' | 'quotations' | 'samples' | 'proformas' | 'qc' | 'trips'>('factories');
   const [search, setSearch] = useState('');
 
   // Sourcing Meta Modal
@@ -197,6 +200,10 @@ export default function ChinaSourcingPage() {
           تقارير فحص الجودة والإنتاج ({qcInspections.length})
         </button>
       </div>
+
+      {activeTab === 'quotations' && <ChinaQuotationsTab />}
+      {activeTab === 'samples' && <ChinaSamplesTab />}
+      {activeTab === 'proformas' && <ChinaProformasTab />}
 
       {/* 3. Tab: Factories */}
       {activeTab === 'factories' && (

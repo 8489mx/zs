@@ -335,6 +335,10 @@ export class RecordForeignTransferDto {
   @IsOptional()
   @IsString()
   idempotencyKey?: string;
+
+  @IsOptional()
+  @IsString()
+  transferDate?: string;
 }
 
 export class CreateImportProjectDto {
@@ -724,4 +728,543 @@ export class VerifyBankDetailsDto {
   @IsOptional()
   @IsString()
   verificationNotes?: string;
+}
+
+
+export class CreateQuotationDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsString()
+  supplierId!: string;
+
+  @IsString()
+  quotationNo!: string;
+
+  @IsOptional()
+  @IsString()
+  inquiryDate?: string;
+
+  @IsOptional()
+  @IsString()
+  expiryDate?: string;
+
+  @IsOptional()
+  @IsString()
+  incoterm?: string;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsString()
+  itemName!: string;
+
+  @IsOptional()
+  @IsString()
+  productId?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  unitPriceForeign!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  moq?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  productionLeadDays?: number;
+
+  @IsOptional()
+  @IsString()
+  portOfLoading?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  estimatedFreightUsd?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  estimatedCustomsRatePercent?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class SelectQuotationDto {
+  @IsString()
+  selectionReason!: string;
+}
+
+export class CreateSampleOrderDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsString()
+  supplierId!: string;
+
+  @IsString()
+  sampleCode!: string;
+
+  @IsString()
+  itemName!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  sampleCostForeign?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  freightCostForeign?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @IsOptional()
+  @IsString()
+  requestDate?: string;
+
+  @IsOptional()
+  @IsString()
+  courierTrackingNo?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class UpdateSampleOrderInspectionDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  qualityScore?: number;
+
+  @IsOptional()
+  @IsIn(['pending', 'approved_reference', 'rejected', 'rework_requested'])
+  decision?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  referenceSampleApproved?: boolean;
+
+  @IsOptional()
+  @IsString()
+  defectAnalysis?: string;
+
+  @IsOptional()
+  @IsArray()
+  photoUrls?: string[];
+
+  @IsOptional()
+  @IsString()
+  receivedDate?: string;
+}
+
+export class ConvertFeasibilityToProjectDto {
+  @IsString()
+  projectId!: string;
+
+  @IsOptional()
+  @IsString()
+  supplierId?: string;
+
+  @IsOptional()
+  @IsString()
+  targetPort?: string;
+
+  @IsOptional()
+  @IsNumber()
+  advancePaymentPercentage?: number;
+}
+
+export class CreateProformaInvoiceDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsString()
+  supplierId!: string;
+
+  @IsString()
+  piNumber!: string;
+
+  @IsString()
+  piDate!: string;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  totalAmountForeign!: number;
+
+  @IsOptional()
+  @IsString()
+  incoterm?: string;
+
+  @IsOptional()
+  @IsString()
+  deliveryPort?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentTerms?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  exchangeRateContract?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  advancePercentage?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  balancePercentage?: number;
+
+  @IsOptional()
+  @IsArray()
+  items?: any[];
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateCustomsBrokerDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  licenseNo?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  email?: string;
+
+  @IsOptional()
+  @IsArray()
+  customsPorts?: string[];
+
+  @IsOptional()
+  @IsString()
+  taxNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  commercialRegistry?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class DisburseBrokerAdvanceDto {
+  @IsString()
+  brokerId!: string;
+
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  shipmentId?: string;
+
+  @IsString()
+  advanceNo!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  amountEgp!: number;
+
+  @IsOptional()
+  @IsString()
+  disbursementDate?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  treasuryAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class LiquidateBrokerExpenseDto {
+  @IsString()
+  brokerId!: string;
+
+  @IsOptional()
+  @IsString()
+  advanceId?: string;
+
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  shipmentId?: string;
+
+  @IsString()
+  receiptNo!: string;
+
+  @IsOptional()
+  @IsString()
+  expenseDate?: string;
+
+  @IsIn(['customs_duty', 'vat', 'port_fees', 'demurrage', 'inspection', 'broker_fee', 'transport', 'other'])
+  category!: 'customs_duty' | 'vat' | 'port_fees' | 'demurrage' | 'inspection' | 'broker_fee' | 'transport' | 'other';
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  amountEgp!: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isCapitalized?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isRefundableVat?: boolean;
+
+  @IsOptional()
+  @IsString()
+  attachmentUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class RecordContainerDepositDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsString()
+  shipmentId!: string;
+
+  @IsString()
+  containerNo!: string;
+
+  @IsString()
+  shippingLine!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  depositAmountEgp!: number;
+
+  @IsOptional()
+  @IsString()
+  paymentDate?: string;
+
+  @IsString()
+  expectedReturnDate!: string;
+
+  @IsOptional()
+  @IsString()
+  treasuryAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class RecordContainerReturnRefundDto {
+  @IsString()
+  actualReturnDate!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  refundedAmountEgp!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  deductionsAmountEgp?: number;
+
+  @IsOptional()
+  @IsString()
+  deductionReason?: string;
+
+  @IsOptional()
+  @IsString()
+  treasuryAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateContainerPreorderDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsString()
+  shipmentId!: string;
+
+  @IsString()
+  customerId!: string;
+
+  @IsString()
+  productId!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  reservedQuantity!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  unitPriceEgp!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  depositAmountEgp?: number;
+
+  @IsOptional()
+  @IsString()
+  depositTreasuryAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  expectedDeliveryDate?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class RecordFxAcquisitionDto {
+  @IsString()
+  currency!: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  foreignAmount!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  egpCost!: number;
+
+  @IsOptional()
+  @IsString()
+  acquisitionDate?: string;
+
+  @IsOptional()
+  @IsString()
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccountId?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateImportDocumentDto {
+  @IsOptional()
+  @IsString()
+  projectId?: string;
+
+  @IsOptional()
+  @IsString()
+  shipmentId?: string;
+
+  @IsString()
+  documentType!: string;
+
+  @IsString()
+  fileName!: string;
+
+  @IsString()
+  fileUrl!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  fileSizeBytes?: number;
+
+  @IsOptional()
+  @IsString()
+  mimeType?: string;
+
+  @IsOptional()
+  @IsString()
+  issueDate?: string;
+
+  @IsOptional()
+  @IsString()
+  expiryDate?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreateApprovalRequestDto {
+  @IsString()
+  actionType!: 'supplier_bank_change' | 'large_transfer' | 'broker_settlement' | 'partner_distribution' | 'project_closure';
+
+  @IsString()
+  referenceId!: string;
+
+  @IsOptional()
+  requestPayload?: any;
+}
+
+export class DecideApprovalRequestDto {
+  @IsIn(['approved', 'rejected'])
+  decision!: 'approved' | 'rejected';
+
+  @IsOptional()
+  @IsString()
+  rejectionReason?: string;
+}
+
+export class ResolveExceptionDto {
+  @IsString()
+  resolutionNotes!: string;
 }

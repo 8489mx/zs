@@ -623,3 +623,462 @@ export const useCloseProjectMutation = (projectId: string) => {
     },
   });
 };
+
+
+export interface ImportQuotation {
+  id: string;
+  project_id: string;
+  supplier_id: number;
+  quotation_no?: string;
+  incoterm: string;
+  currency: string;
+  total_amount_foreign: number;
+  exchange_rate_estimated: number;
+  shipping_cost_estimated_usd: number;
+  customs_duty_estimated_egp: number;
+  estimated_unit_cost_egp: number;
+  lead_time_days: number;
+  valid_until?: string;
+  status: 'draft' | 'under_review' | 'selected' | 'rejected';
+  selection_reason?: string;
+  selected_at?: string;
+  items?: any[];
+  supplier_name?: string;
+  created_at: string;
+}
+
+export const useQuotationsQuery = (projectId?: string, supplierId?: string) => {
+  return useQuery({
+    queryKey: ['import-quotations', projectId, supplierId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (projectId) params.set('projectId', projectId);
+      if (supplierId) params.set('supplierId', supplierId);
+      return await http<ImportQuotation[]>(`/api/import-sales/quotations?${params.toString()}`);
+    },
+  });
+};
+
+export const useCreateQuotationMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/quotations', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-quotations'] });
+    },
+  });
+};
+
+export const useSelectQuotationMutation = (id: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (selectionReason: string) => {
+      return await http(`/api/import-sales/quotations/${id}/select`, {
+        method: 'POST',
+        body: JSON.stringify({ selectionReason }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-quotations'] });
+    },
+  });
+};
+
+export interface ImportSampleOrder {
+  id: string;
+  project_id?: string;
+  supplier_id: number;
+  product_name: string;
+  specifications?: string;
+  sample_cost_usd: number;
+  courier_tracking_no?: string;
+  status: 'requested' | 'shipped' | 'received' | 'tested' | 'approved' | 'rejected';
+  inspection_score?: number;
+  inspection_notes?: string;
+  reference_sample_approved: boolean;
+  approval_date?: string;
+  created_at: string;
+  supplier_name?: string;
+}
+
+export const useSampleOrdersQuery = (projectId?: string, supplierId?: string) => {
+  return useQuery({
+    queryKey: ['import-samples', projectId, supplierId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (projectId) params.set('projectId', projectId);
+      if (supplierId) params.set('supplierId', supplierId);
+      return await http<ImportSampleOrder[]>(`/api/import-sales/samples?${params.toString()}`);
+    },
+  });
+};
+
+export const useCreateSampleOrderMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/samples', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-samples'] });
+    },
+  });
+};
+
+export const useUpdateSampleInspectionMutation = (id: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http(`/api/import-sales/samples/${id}/inspection`, {
+        method: 'PATCH',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-samples'] });
+    },
+  });
+};
+
+export const useConvertFeasibilityMutation = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: { targetRoiPercentage?: number; allocatedCapital?: number; supplierId?: number }) => {
+      return await http<any>(`/api/import-sales/projects/${projectId}/convert-feasibility`, {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['proforma-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useProformaInvoicesQuery = (projectId?: string) => {
+  return useQuery({
+    queryKey: ['proforma-invoices', projectId],
+    queryFn: async () => {
+      const url = projectId ? `/api/import-sales/proforma-invoices?projectId=${projectId}` : '/api/import-sales/proforma-invoices';
+      return await http<any[]>(url);
+    },
+  });
+};
+
+export const useGenerateInternationalPoMutation = (piId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      return await http<any>(`/api/import-sales/proforma-invoices/${piId}/generate-po`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proforma-invoices'] });
+    },
+  });
+};
+
+export interface CustomsBroker {
+  id: string;
+  name: string;
+  license_number?: string;
+  phone?: string;
+  email?: string;
+  port_name: string;
+  advance_account_id?: number;
+  is_active: boolean;
+  notes?: string;
+  total_advances_egp: number;
+  total_liquidated_egp: number;
+  unliquidated_balance_egp: number;
+  created_at: string;
+}
+
+export const useCustomsBrokersQuery = () => {
+  return useQuery({
+    queryKey: ['customs-brokers'],
+    queryFn: async () => {
+      return await http<CustomsBroker[]>('/api/import-sales/customs-brokers');
+    },
+  });
+};
+
+export const useCreateCustomsBrokerMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/customs-brokers', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customs-brokers'] });
+    },
+  });
+};
+
+export const useDisburseBrokerAdvanceMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/customs-brokers/advances', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customs-brokers'] });
+      queryClient.invalidateQueries({ queryKey: ['customs-broker-statement'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useLiquidateBrokerExpenseMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/customs-brokers/liquidate', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customs-brokers'] });
+      queryClient.invalidateQueries({ queryKey: ['customs-broker-statement'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useCustomsBrokerStatementQuery = (brokerId: string) => {
+  return useQuery({
+    queryKey: ['customs-broker-statement', brokerId],
+    queryFn: async () => {
+      return await http<any>(`/api/import-sales/customs-brokers/${brokerId}/statement`);
+    },
+    enabled: !!brokerId,
+  });
+};
+
+export const useContainerDepositsQuery = (projectId?: string, shipmentId?: string) => {
+  return useQuery({
+    queryKey: ['container-deposits', projectId, shipmentId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (projectId) params.set('projectId', projectId);
+      if (shipmentId) params.set('shipmentId', shipmentId);
+      return await http<any[]>(`/api/import-sales/container-deposits?${params.toString()}`);
+    },
+  });
+};
+
+export const useRecordContainerDepositMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/container-deposits', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['container-deposits'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useRefundContainerDepositMutation = (depositId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http(`/api/import-sales/container-deposits/${depositId}/return-refund`, {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['container-deposits'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useContainerPreordersQuery = (shipmentId?: string, projectId?: string) => {
+  return useQuery({
+    queryKey: ['container-preorders', shipmentId, projectId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (shipmentId) params.set('shipmentId', shipmentId);
+      if (projectId) params.set('projectId', projectId);
+      return await http<any[]>(`/api/import-sales/preorders?${params.toString()}`);
+    },
+  });
+};
+
+export const useCreateContainerPreorderMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/preorders', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['container-preorders'] });
+    },
+  });
+};
+
+export const useContainerAutopsyQuery = (shipmentId: string) => {
+  return useQuery({
+    queryKey: ['container-autopsy', shipmentId],
+    queryFn: async () => {
+      return await http<any>(`/api/import-sales/shipments/${shipmentId}/autopsy`);
+    },
+    enabled: !!shipmentId,
+  });
+};
+
+export const useFxPortfolioQuery = () => {
+  return useQuery({
+    queryKey: ['fx-portfolio'],
+    queryFn: async () => {
+      return await http<any>('/api/import-sales/fx-portfolio');
+    },
+  });
+};
+
+export const useRecordFxAcquisitionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/fx-acquisitions', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fx-portfolio'] });
+      queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
+    },
+  });
+};
+
+export const useApprovalRequestsQuery = (status?: string) => {
+  return useQuery({
+    queryKey: ['approval-requests', status],
+    queryFn: async () => {
+      const url = status ? `/api/import-sales/approvals?status=${status}` : '/api/import-sales/approvals';
+      return await http<any[]>(url);
+    },
+  });
+};
+
+export const useCreateApprovalRequestMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/approvals', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+    },
+  });
+};
+
+export const useDecideApprovalRequestMutation = (requestId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: { decision: 'approved' | 'rejected'; reviewNotes?: string }) => {
+      return await http(`/api/import-sales/approvals/${requestId}/decide`, {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approval-requests'] });
+    },
+  });
+};
+
+export const useImportDocumentsQuery = (projectId?: string, shipmentId?: string) => {
+  return useQuery({
+    queryKey: ['import-documents', projectId, shipmentId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (projectId) params.set('projectId', projectId);
+      if (shipmentId) params.set('shipmentId', shipmentId);
+      return await http<any[]>(`/api/import-sales/documents?${params.toString()}`);
+    },
+  });
+};
+
+export const useUploadImportDocumentMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http('/api/import-sales/documents', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-documents'] });
+    },
+  });
+};
+
+export const useReconciliationExceptionsQuery = (resolved?: boolean) => {
+  return useQuery({
+    queryKey: ['reconciliation-exceptions', resolved],
+    queryFn: async () => {
+      const url = resolved !== undefined ? `/api/import-sales/reconciliation/exceptions?resolved=${resolved}` : '/api/import-sales/reconciliation/exceptions';
+      return await http<any[]>(url);
+    },
+  });
+};
+
+export const useRunReconciliationScanMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      return await http<any>('/api/import-sales/reconciliation/scan', { method: 'POST' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-exceptions'] });
+    },
+  });
+};
+
+export const useResolveReconciliationExceptionMutation = (exceptionId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (resolutionNotes: string) => {
+      return await http(`/api/import-sales/reconciliation/exceptions/${exceptionId}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ resolutionNotes }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reconciliation-exceptions'] });
+    },
+  });
+};

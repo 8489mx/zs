@@ -20,6 +20,23 @@ import {
   CreateSourcingTripDto,
   ProcessLateExpenseDto,
   CalculateCustomsTaxDto,
+  CreateQuotationDto,
+  SelectQuotationDto,
+  CreateSampleOrderDto,
+  UpdateSampleOrderInspectionDto,
+  ConvertFeasibilityToProjectDto,
+  CreateProformaInvoiceDto,
+  CreateCustomsBrokerDto,
+  DisburseBrokerAdvanceDto,
+  LiquidateBrokerExpenseDto,
+  RecordContainerDepositDto,
+  RecordContainerReturnRefundDto,
+  CreateContainerPreorderDto,
+  RecordFxAcquisitionDto,
+  CreateImportDocumentDto,
+  CreateApprovalRequestDto,
+  DecideApprovalRequestDto,
+  ResolveExceptionDto,
 } from './dto/import-sales.dto';
 import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
@@ -1131,6 +1148,7 @@ export class ImportSalesService {
 
   /** Caller holds the shipment lock; status, costs, receipt and stock commit together. */
   private async postShipmentToInventory(trx: Transaction<Database>, tenantId: string, shipmentId: string, userId: number) {
+    const shipment = await trx.selectFrom('import_shipments').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipmentId).executeTakeFirstOrThrow();
     const items = await trx.selectFrom('import_shipment_items').selectAll()
       .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId).execute();
     if (!items.length) throw new BadRequestException('لا يمكن استلام شحنة بدون أصناف');
@@ -1183,6 +1201,40 @@ export class ImportSalesService {
         }).execute();
       }
     }
+
+    for (const item of items) {
+      const receivedQty = Number(item.received_quantity ?? item.quantity);
+      const landedCostTotal = Number(item.landed_cost_egp || 0);
+      const unitLandedCost = receivedQty > 0 ? Number((landedCostTotal / receivedQty).toFixed(4)) : 0;
+      const cleanContainer = (shipment.container_number || 'CONT').replace(/[^a-zA-Z0-9]/g, '');
+      const lotNumber = 'LOT-' + cleanContainer + '-' + item.product_id;
+
+      await trx
+        .insertInto('import_inventory_lots')
+        .values({
+          tenant_id: tenantId,
+          lot_number: lotNumber,
+          project_id: shipment.project_id || null,
+          shipment_id: shipmentId,
+          shipment_item_id: item.id,
+          product_id: Number(item.product_id),
+          location_id: null,
+          initial_quantity: receivedQty,
+          remaining_quantity: receivedQty,
+          unit_landed_cost_egp: unitLandedCost,
+          status: 'active',
+          receipt_date: new Date().toISOString().slice(0, 10),
+        } as any)
+        .execute();
+    }
+
+    await trx
+      .updateTable('import_container_preorders')
+      .set({ status: 'allocated' })
+      .where('tenant_id', '=', tenantId)
+      .where('shipment_id', '=', shipmentId)
+      .where('status', '=', 'reserved')
+      .execute();
   }
 
   async calculateLandedCost(tenantId: string, shipmentId: string) {
@@ -1902,6 +1954,7 @@ export class ImportSalesService {
             amount: cleanForeign,
             note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
             created_by: userId,
+            payment_date: (dto as any).transferDate || new Date().toISOString().slice(0, 10),
             currency: currency || 'USD',
             exchange_rate: actualEgp / cleanForeign,
             forex_variance_egp: forexVarianceEgp,
@@ -2649,5 +2702,1380 @@ export class ImportSalesService {
         closureData,
       };
     });
+  }
+
+  // -------------------------------------------------------------
+  // INTERNATIONAL RFQ & QUOTATIONS COMPARISON
+  // -------------------------------------------------------------
+  async createQuotation(tenantId: string, dto: CreateQuotationDto) {
+    const commRate = 50;
+    const estLanded =
+      Number(dto.unitPriceForeign) * commRate +
+      Number(dto.estimatedFreightUsd || 0) * commRate +
+      Number(dto.unitPriceForeign) * commRate * (Number(dto.estimatedCustomsRatePercent || 5) / 100);
+
+    return await this.db
+      .insertInto('import_quotations')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId ?? null,
+        supplier_id: Number(dto.supplierId),
+        quotation_no: dto.quotationNo,
+        inquiry_date: dto.inquiryDate || new Date().toISOString().slice(0, 10),
+        expiry_date: dto.expiryDate || null,
+        incoterm: dto.incoterm || 'FOB',
+        currency: dto.currency || 'USD',
+        item_name: dto.itemName,
+        product_id: dto.productId ? Number(dto.productId) : null,
+        unit_price_foreign: dto.unitPriceForeign,
+        moq: dto.moq || 1,
+        production_lead_days: dto.productionLeadDays || 30,
+        port_of_loading: dto.portOfLoading || null,
+        estimated_freight_usd: dto.estimatedFreightUsd || 0,
+        estimated_customs_rate_percent: dto.estimatedCustomsRatePercent || 5,
+        estimated_landed_cost_egp: Number(estLanded.toFixed(4)),
+        status: 'pending',
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async listQuotations(tenantId: string, projectId?: string, supplierId?: string) {
+    let q = this.db
+      .selectFrom('import_quotations as q')
+      .leftJoin('suppliers as s', 's.id', 'q.supplier_id')
+      .selectAll('q')
+      .select(['s.name as supplier_name'])
+      .where('q.tenant_id', '=', tenantId);
+    if (projectId) q = q.where('q.project_id', '=', projectId);
+    if (supplierId) q = q.where('q.supplier_id', '=', Number(supplierId));
+    return await q.orderBy('q.created_at', 'desc').execute();
+  }
+
+  async selectQuotation(tenantId: string, quotationId: string, dto: SelectQuotationDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const quote = await trx
+        .selectFrom('import_quotations')
+        .selectAll()
+        .where('id', '=', quotationId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirstOrThrow();
+
+      if (quote.project_id) {
+        await trx
+          .updateTable('import_quotations')
+          .set({ status: 'rejected' })
+          .where('tenant_id', '=', tenantId)
+          .where('project_id', '=', quote.project_id)
+          .where('item_name', '=', quote.item_name)
+          .where('id', '!=', quotationId)
+          .execute();
+      }
+
+      return await trx
+        .updateTable('import_quotations')
+        .set({
+          status: 'selected',
+          selection_reason: dto.selectionReason,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', quotationId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  }
+
+  // -------------------------------------------------------------
+  // PRODUCT SAMPLES & REFERENCE APPROVAL
+  // -------------------------------------------------------------
+  async createSampleOrder(tenantId: string, dto: CreateSampleOrderDto) {
+    return await this.db
+      .insertInto('import_sample_orders')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId ?? null,
+        supplier_id: Number(dto.supplierId),
+        sample_code: dto.sampleCode,
+        item_name: dto.itemName,
+        sample_cost_foreign: dto.sampleCostForeign || 0,
+        freight_cost_foreign: dto.freightCostForeign || 0,
+        currency: dto.currency || 'USD',
+        request_date: dto.requestDate || new Date().toISOString().slice(0, 10),
+        courier_tracking_no: dto.courierTrackingNo || null,
+        decision: 'pending',
+        reference_sample_approved: false,
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async listSampleOrders(tenantId: string, projectId?: string) {
+    let q = this.db
+      .selectFrom('import_sample_orders as s')
+      .leftJoin('suppliers as sup', 'sup.id', 's.supplier_id')
+      .selectAll('s')
+      .select(['sup.name as supplier_name'])
+      .where('s.tenant_id', '=', tenantId);
+    if (projectId) q = q.where('s.project_id', '=', projectId);
+    return await q.orderBy('s.created_at', 'desc').execute();
+  }
+
+  async updateSampleOrderInspection(tenantId: string, sampleId: string, dto: UpdateSampleOrderInspectionDto) {
+    const updates: any = { updated_at: sql`NOW()` };
+    if (dto.qualityScore !== undefined) updates.quality_score = dto.qualityScore;
+    if (dto.decision) updates.decision = dto.decision;
+    if (dto.referenceSampleApproved !== undefined) updates.reference_sample_approved = dto.referenceSampleApproved;
+    if (dto.defectAnalysis !== undefined) updates.defect_analysis = dto.defectAnalysis;
+    if (dto.photoUrls) updates.photo_urls = JSON.stringify(dto.photoUrls);
+    if (dto.receivedDate) updates.received_date = dto.receivedDate;
+
+    return await this.db
+      .updateTable('import_sample_orders')
+      .set(updates)
+      .where('id', '=', sampleId)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  // -------------------------------------------------------------
+  // FEASIBILITY CONVERSION & PROFORMA / PO LIFECYCLE
+  // -------------------------------------------------------------
+  async convertFeasibilityToProject(tenantId: string, projectId: string, dto: ConvertFeasibilityToProjectDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const project = await trx
+        .selectFrom('import_projects')
+        .selectAll()
+        .where('id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+
+      const feas = project.feasibility_data;
+      if (!feas || !feas.items || !feas.items.length) {
+        throw new BadRequestException('دراسة الجدوى لا تحتوي على أصناف صالحة للتحويل.');
+      }
+
+      const commRate = Number(feas.exchangeRateCommercial || 50);
+      const totalFactoryUsd = Number(feas.totalFactoryCostUsd || 0);
+      const advPercent = dto.advancePaymentPercentage || 30;
+      const balPercent = 100 - advPercent;
+      const advanceUsd = (totalFactoryUsd * advPercent) / 100;
+      const balanceUsd = (totalFactoryUsd * balPercent) / 100;
+
+      const cashFlowSchedule = [
+        {
+          stage: 'T0_Contract_Advance',
+          milestone: 'دفعة مقدمة للمصنع عند توقيع العقد (30%)',
+          amountUsd: advanceUsd,
+          amountEgp: advanceUsd * commRate,
+          dueDaysFromStart: 0,
+        },
+        {
+          stage: 'T1_Pre_Shipment_Balance',
+          milestone: 'سداد رصيد المصنع بعد فحص الجودة وقبل الشحن (70%)',
+          amountUsd: balanceUsd,
+          amountEgp: balanceUsd * commRate,
+          dueDaysFromStart: 30,
+        },
+        {
+          stage: 'T2_Freight_And_Insurance',
+          milestone: 'سداد نولون الشحن البحري والتأمين عند إصدار البوليصة',
+          amountUsd: Number(feas.internationalShippingUsd || 0) + Number(feas.insuranceUsd || 0),
+          amountEgp: (Number(feas.internationalShippingUsd || 0) + Number(feas.insuranceUsd || 0)) * commRate,
+          dueDaysFromStart: 40,
+        },
+        {
+          stage: 'T3_Customs_And_Clearance',
+          milestone: 'رسوم الجمارك والضريبة والتخليص بميناء الوصول',
+          amountUsd: 0,
+          amountEgp:
+            Number(feas.customsDutyEgp || 0) +
+            Number(feas.clearanceAndPortFeesEgp || 0) +
+            (feas.vatIsRefundable ? 0 : Number(feas.customsVatEgp || 0)),
+          dueDaysFromStart: 55,
+        },
+        {
+          stage: 'T4_Inland_Transport',
+          milestone: 'النولون البري ونقل الحاويات إلى المخازن',
+          amountUsd: 0,
+          amountEgp: Number(feas.internalTransportEgp || 0),
+          dueDaysFromStart: 60,
+        },
+      ];
+
+      let proformaId = null;
+      if (dto.supplierId) {
+        const piNumber = `PI-${project.project_no}-${Date.now().toString().slice(-4)}`;
+        const pi = await trx
+          .insertInto('import_proforma_invoices')
+          .values({
+            tenant_id: tenantId,
+            project_id: projectId,
+            supplier_id: Number(dto.supplierId),
+            pi_number: piNumber,
+            pi_date: new Date().toISOString().slice(0, 10),
+            currency: project.budget_currency || 'USD',
+            total_amount_foreign: totalFactoryUsd,
+            incoterm: 'FOB',
+            delivery_port: dto.targetPort || project.country_destination || 'Alexandria',
+            payment_terms: `${advPercent}% advance, ${balPercent}% against shipping documents`,
+            exchange_rate_contract: commRate,
+            status: 'draft',
+            advance_percentage: advPercent,
+            balance_percentage: balPercent,
+            items: JSON.stringify(feas.items),
+          })
+          .returning('id')
+          .executeTakeFirstOrThrow();
+        proformaId = pi.id;
+      }
+
+      await trx
+        .updateTable('import_projects')
+        .set({
+          status: 'sourcing',
+          feasibility_converted_at: sql`NOW()`,
+          cash_flow_schedule: JSON.stringify(cashFlowSchedule),
+          initial_po_id: proformaId,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', projectId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      return {
+        success: true,
+        projectId,
+        proformaId,
+        cashFlowSchedule,
+      };
+    });
+  }
+
+  async getProformaInvoices(tenantId: string, projectId?: string, supplierId?: string) {
+    let q = this.db
+      .selectFrom('import_proforma_invoices as p')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('import_projects as pr', 'pr.id', 'p.project_id')
+      .selectAll('p')
+      .select(['s.name as supplier_name', 'pr.title as project_title', 'pr.project_no'])
+      .where('p.tenant_id', '=', tenantId);
+    if (projectId) q = q.where('p.project_id', '=', projectId);
+    if (supplierId) q = q.where('p.supplier_id', '=', Number(supplierId));
+    return await q.orderBy('p.created_at', 'desc').execute();
+  }
+
+  async getProformaById(tenantId: string, id: string) {
+    return await this.db
+      .selectFrom('import_proforma_invoices as p')
+      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .selectAll('p')
+      .select(['s.name as supplier_name'])
+      .where('p.id', '=', id)
+      .where('p.tenant_id', '=', tenantId)
+      .executeTakeFirstOrThrow();
+  }
+
+  async createProformaInvoice(tenantId: string, dto: CreateProformaInvoiceDto) {
+    return await this.db
+      .insertInto('import_proforma_invoices')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId ?? null,
+        supplier_id: Number(dto.supplierId),
+        pi_number: dto.piNumber,
+        pi_date: dto.piDate,
+        currency: dto.currency || 'USD',
+        total_amount_foreign: dto.totalAmountForeign,
+        incoterm: dto.incoterm || 'FOB',
+        delivery_port: dto.deliveryPort || null,
+        payment_terms: dto.paymentTerms || null,
+        exchange_rate_contract: dto.exchangeRateContract || null,
+        advance_percentage: dto.advancePercentage || 30.0,
+        balance_percentage: dto.balancePercentage || 70.0,
+        status: 'draft',
+        payment_status: 'unpaid',
+        paid_amount_foreign: 0,
+        items: dto.items ? JSON.stringify(dto.items) : '[]',
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async updateProformaInvoice(tenantId: string, id: string, dto: Partial<CreateProformaInvoiceDto>) {
+    const updates: any = {};
+    if (dto.piNumber) updates.pi_number = dto.piNumber;
+    if (dto.piDate) updates.pi_date = dto.piDate;
+    if (dto.currency) updates.currency = dto.currency;
+    if (dto.totalAmountForeign !== undefined) updates.total_amount_foreign = dto.totalAmountForeign;
+    if (dto.incoterm) updates.incoterm = dto.incoterm;
+    if (dto.deliveryPort) updates.delivery_port = dto.deliveryPort;
+    if (dto.paymentTerms) updates.payment_terms = dto.paymentTerms;
+    if (dto.exchangeRateContract !== undefined) updates.exchange_rate_contract = dto.exchangeRateContract;
+    if (dto.advancePercentage !== undefined) updates.advance_percentage = dto.advancePercentage;
+    if (dto.balancePercentage !== undefined) updates.balance_percentage = dto.balancePercentage;
+    if (dto.items) updates.items = JSON.stringify(dto.items);
+    if (dto.notes !== undefined) updates.notes = dto.notes;
+
+    return await this.db
+      .updateTable('import_proforma_invoices')
+      .set(updates)
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async approveProformaInvoice(tenantId: string, userId: number, id: string) {
+    return await this.db
+      .updateTable('import_proforma_invoices')
+      .set({
+        status: 'approved',
+        approved_by: userId,
+        approved_at: sql`NOW()`,
+      })
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async generatePoFromProforma(tenantId: string, userId: number, id: string) {
+    return await this.db.transaction().execute(async (trx) => {
+      const pi = await trx
+        .selectFrom('import_proforma_invoices')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+
+      const poNumber = `IPO-${pi.pi_number}-${Date.now().toString().slice(-4)}`;
+      return await trx
+        .updateTable('import_proforma_invoices')
+        .set({
+          po_number: poNumber,
+          po_date: new Date().toISOString().slice(0, 10),
+          po_status: 'issued',
+        })
+        .where('id', '=', id)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  }
+
+  // -------------------------------------------------------------
+  // CUSTOMS BROKER REGISTRY & ADVANCE LIQUIDATION
+  // -------------------------------------------------------------
+  async listCustomsBrokers(tenantId: string) {
+    return await this.db
+      .selectFrom('import_customs_brokers')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .orderBy('name', 'asc')
+      .execute();
+  }
+
+  async createCustomsBroker(tenantId: string, dto: CreateCustomsBrokerDto) {
+    return await this.db
+      .insertInto('import_customs_brokers')
+      .values({
+        tenant_id: tenantId,
+        name: dto.name,
+        license_no: dto.licenseNo || null,
+        phone: dto.phone || null,
+        email: dto.email || null,
+        customs_ports: dto.customsPorts
+          ? JSON.stringify(dto.customsPorts)
+          : '["Alexandria", "Dekheila", "Ain Sokhna", "Port Said"]',
+        tax_number: dto.taxNumber || null,
+        commercial_registry: dto.commercialRegistry || null,
+        is_active: true,
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async updateCustomsBroker(tenantId: string, id: string, dto: Partial<CreateCustomsBrokerDto>) {
+    const updates: any = { updated_at: sql`NOW()` };
+    if (dto.name) updates.name = dto.name;
+    if (dto.licenseNo !== undefined) updates.license_no = dto.licenseNo;
+    if (dto.phone !== undefined) updates.phone = dto.phone;
+    if (dto.email !== undefined) updates.email = dto.email;
+    if (dto.customsPorts) updates.customs_ports = JSON.stringify(dto.customsPorts);
+    if (dto.taxNumber !== undefined) updates.tax_number = dto.taxNumber;
+    if (dto.commercialRegistry !== undefined) updates.commercial_registry = dto.commercialRegistry;
+    if (dto.notes !== undefined) updates.notes = dto.notes;
+
+    return await this.db
+      .updateTable('import_customs_brokers')
+      .set(updates)
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async disburseBrokerAdvance(tenantId: string, userId: number, dto: DisburseBrokerAdvanceDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const broker = await trx
+        .selectFrom('import_customs_brokers')
+        .selectAll()
+        .where('id', '=', dto.brokerId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirstOrThrow();
+
+      const advance = await trx
+        .insertInto('import_broker_advances')
+        .values({
+          tenant_id: tenantId,
+          broker_id: dto.brokerId,
+          project_id: dto.projectId ?? null,
+          shipment_id: dto.shipmentId ?? null,
+          advance_no: dto.advanceNo,
+          amount_egp: dto.amountEgp,
+          disbursement_date: dto.disbursementDate || new Date().toISOString().slice(0, 10),
+          payment_method: dto.paymentMethod || 'bank_transfer',
+          treasury_account_id: dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null,
+          status: 'active',
+          settled_amount_egp: 0,
+          remaining_amount_egp: dto.amountEgp,
+          notes: dto.notes || null,
+          created_by: userId,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      if (this.accountingPosting) {
+        const assetAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const bankAccId = await this.resolveTenantAccount(
+          trx,
+          tenantId,
+          'bank',
+          dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
+        );
+
+        await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'import_broker_advance',
+          sourceId: 0,
+          tenantId,
+          accountId: tenantId,
+          entryDate: advance.disbursement_date ? new Date(advance.disbursement_date as any) : new Date(),
+          description: `صرف عهدة تخليص جمركي للمخلص ${broker.name} - إذن #${dto.advanceNo}`,
+          branchId: null,
+          locationId: null,
+          createdBy: userId,
+          postedBy: userId,
+          lines: [
+            {
+              accountId: assetAccId,
+              debit: Number(dto.amountEgp),
+              credit: 0,
+              description: `عهدة تخليص جمركي - ${broker.name} - إذن #${dto.advanceNo}`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+            {
+              accountId: bankAccId,
+              debit: 0,
+              credit: Number(dto.amountEgp),
+              description: `صرف بنكي لعهدة مخلص جمركي #${dto.advanceNo}`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+          ],
+        });
+      }
+
+      return advance;
+    });
+  }
+
+  async liquidateBrokerExpenses(tenantId: string, userId: number, dto: LiquidateBrokerExpenseDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const expense = await trx
+        .insertInto('import_broker_expenses')
+        .values({
+          tenant_id: tenantId,
+          broker_id: dto.brokerId,
+          advance_id: dto.advanceId ?? null,
+          project_id: dto.projectId ?? null,
+          shipment_id: dto.shipmentId ?? null,
+          receipt_no: dto.receiptNo,
+          expense_date: dto.expenseDate || new Date().toISOString().slice(0, 10),
+          category: dto.category,
+          amount_egp: dto.amountEgp,
+          is_capitalized: dto.isCapitalized ?? true,
+          is_refundable_vat: dto.isRefundableVat ?? false,
+          attachment_url: dto.attachmentUrl || null,
+          is_verified: true,
+          verified_by: userId,
+          verified_at: new Date(),
+          notes: dto.notes || null,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      if (dto.advanceId) {
+        const adv = await trx
+          .selectFrom('import_broker_advances')
+          .selectAll()
+          .where('id', '=', dto.advanceId)
+          .where('tenant_id', '=', tenantId)
+          .forUpdate()
+          .executeTakeFirstOrThrow();
+
+        const newSettled = Number(adv.settled_amount_egp || 0) + Number(dto.amountEgp);
+        const newRemaining = Math.max(0, Number(adv.amount_egp) - newSettled);
+        const newStatus = newRemaining <= 0.01 ? 'settled' : 'partially_settled';
+
+        await trx
+          .updateTable('import_broker_advances')
+          .set({
+            settled_amount_egp: Number(newSettled.toFixed(2)),
+            remaining_amount_egp: Number(newRemaining.toFixed(2)),
+            status: newStatus,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', dto.advanceId)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+
+      if (this.accountingPosting) {
+        const creditAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const debitAccId = await this.resolveTenantAccount(
+          trx,
+          tenantId,
+          dto.isCapitalized ? 'inventory' : 'cogs'
+        );
+
+        await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'import_broker_expense',
+          sourceId: 0,
+          tenantId,
+          accountId: tenantId,
+          entryDate: expense.expense_date ? new Date(expense.expense_date as any) : new Date(),
+          description: `تسوية مصروف تخليص جمركي (${dto.category}) بإيصال #${dto.receiptNo}`,
+          branchId: null,
+          locationId: null,
+          createdBy: userId,
+          postedBy: userId,
+          lines: [
+            {
+              accountId: debitAccId,
+              debit: Number(dto.amountEgp),
+              credit: 0,
+              description: `تسوية مصاريف تخليص - إيصال #${dto.receiptNo} (${dto.category})`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+            {
+              accountId: creditAccId,
+              debit: 0,
+              credit: Number(dto.amountEgp),
+              description: `تخفيض عهدة المخلص الجمركي بإيصال #${dto.receiptNo}`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+          ],
+        });
+      }
+
+      return expense;
+    });
+  }
+
+  async getCustomsBrokerStatement(tenantId: string, brokerId: string) {
+    const broker = await this.db
+      .selectFrom('import_customs_brokers')
+      .selectAll()
+      .where('id', '=', brokerId)
+      .where('tenant_id', '=', tenantId)
+      .executeTakeFirstOrThrow();
+
+    const advances = await this.db
+      .selectFrom('import_broker_advances')
+      .selectAll()
+      .where('broker_id', '=', brokerId)
+      .where('tenant_id', '=', tenantId)
+      .orderBy('disbursement_date', 'asc')
+      .execute();
+
+    const expenses = await this.db
+      .selectFrom('import_broker_expenses')
+      .selectAll()
+      .where('broker_id', '=', brokerId)
+      .where('tenant_id', '=', tenantId)
+      .orderBy('expense_date', 'asc')
+      .execute();
+
+    const totalAdvances = advances.reduce((acc, a) => acc + Number(a.amount_egp || 0), 0);
+    const totalExpenses = expenses.reduce((acc, e) => acc + Number(e.amount_egp || 0), 0);
+    const netBalanceDue = totalAdvances - totalExpenses;
+
+    return {
+      broker,
+      advances,
+      expenses,
+      totalAdvances: Number(totalAdvances.toFixed(2)),
+      totalExpenses: Number(totalExpenses.toFixed(2)),
+      netBalanceDue: Number(netBalanceDue.toFixed(2)),
+    };
+  }
+
+  // -------------------------------------------------------------
+  // CONTAINER SECURITY DEPOSITS & RETURN
+  // -------------------------------------------------------------
+  async recordContainerDeposit(tenantId: string, userId: number, dto: RecordContainerDepositDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const deposit = await trx
+        .insertInto('import_container_deposits')
+        .values({
+          tenant_id: tenantId,
+          project_id: dto.projectId ?? null,
+          shipment_id: dto.shipmentId,
+          container_no: dto.containerNo,
+          shipping_line: dto.shippingLine,
+          deposit_amount_egp: dto.depositAmountEgp,
+          payment_date: dto.paymentDate || new Date().toISOString().slice(0, 10),
+          expected_return_date: dto.expectedReturnDate,
+          refund_status: 'pending',
+          refunded_amount_egp: 0,
+          deductions_amount_egp: 0,
+          treasury_account_id: dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null,
+          notes: dto.notes || null,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      if (this.accountingPosting) {
+        const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const bankAccId = await this.resolveTenantAccount(
+          trx,
+          tenantId,
+          'bank',
+          dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
+        );
+
+        await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'import_container_deposit',
+          sourceId: 0,
+          tenantId,
+          accountId: tenantId,
+          entryDate: deposit.payment_date ? new Date(deposit.payment_date as any) : new Date(),
+          description: `سداد تأمين حاوية #${dto.containerNo} للخط الملاحي ${dto.shippingLine}`,
+          branchId: null,
+          locationId: null,
+          createdBy: userId,
+          postedBy: userId,
+          lines: [
+            {
+              accountId: depositAssetAccId,
+              debit: Number(dto.depositAmountEgp),
+              credit: 0,
+              description: `تأمين حاوية مسترد - #${dto.containerNo}`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+            {
+              accountId: bankAccId,
+              debit: 0,
+              credit: Number(dto.depositAmountEgp),
+              description: `صرف تأمين حاوية للتوكيل الملاحي`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+          ],
+        });
+      }
+
+      return deposit;
+    });
+  }
+
+  async recordContainerReturnAndRefund(
+    tenantId: string,
+    userId: number,
+    depositId: string,
+    dto: RecordContainerReturnRefundDto
+  ) {
+    return await this.db.transaction().execute(async (trx) => {
+      const deposit = await trx
+        .selectFrom('import_container_deposits')
+        .selectAll()
+        .where('id', '=', depositId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+
+      const refundAmount = Number(dto.refundedAmountEgp);
+      const deductions = Number(dto.deductionsAmountEgp || 0);
+      const totalDeposit = Number(deposit.deposit_amount_egp);
+
+      let newStatus = 'refunded';
+      if (refundAmount + deductions < totalDeposit - 0.01) {
+        newStatus = 'partially_refunded';
+      } else if (refundAmount === 0 && deductions >= totalDeposit - 0.01) {
+        newStatus = 'forfeited';
+      }
+
+      const updated = await trx
+        .updateTable('import_container_deposits')
+        .set({
+          actual_return_date: dto.actualReturnDate,
+          refund_status: newStatus,
+          refunded_amount_egp: refundAmount,
+          deductions_amount_egp: deductions,
+          deduction_reason: dto.deductionReason || null,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', depositId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      await trx
+        .updateTable('import_shipments')
+        .set({
+          container_status: 'empty_returned',
+          empty_returned_date: dto.actualReturnDate,
+        })
+        .where('id', '=', deposit.shipment_id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      if (this.accountingPosting) {
+        const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+        const bankAccId = await this.resolveTenantAccount(
+          trx,
+          tenantId,
+          'bank',
+          dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
+        );
+        const expenseAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
+
+        const lines: any[] = [];
+        if (refundAmount > 0) {
+          lines.push({
+            accountId: bankAccId,
+            debit: refundAmount,
+            credit: 0,
+            description: `استرداد تأمين حاوية #${deposit.container_no}`,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: null,
+            locationId: null,
+          });
+        }
+        if (deductions > 0) {
+          lines.push({
+            accountId: expenseAccId,
+            debit: deductions,
+            credit: 0,
+            description: `غرامات تأخير/أضرار حاوية #${deposit.container_no} مخصومة من التأمين`,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: null,
+            locationId: null,
+          });
+        }
+        lines.push({
+          accountId: depositAssetAccId,
+          debit: 0,
+          credit: totalDeposit,
+          description: `إقفال تأمين حاوية مستردة #${deposit.container_no}`,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
+
+        await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'import_container_deposit',
+          sourceId: 0,
+          tenantId,
+          accountId: tenantId,
+          entryDate: new Date(dto.actualReturnDate as any),
+          description: `تسوية واسترداد تأمين حاوية #${deposit.container_no} من الخط الملاحي`,
+          branchId: null,
+          locationId: null,
+          createdBy: userId,
+          postedBy: userId,
+          lines,
+        });
+      }
+
+      return updated;
+    });
+  }
+
+  async listContainerDeposits(tenantId: string, shipmentId?: string) {
+    let q = this.db.selectFrom('import_container_deposits').selectAll().where('tenant_id', '=', tenantId);
+    if (shipmentId) q = q.where('shipment_id', '=', shipmentId);
+    return await q.orderBy('created_at', 'desc').execute();
+  }
+
+  // -------------------------------------------------------------
+  // IN-TRANSIT CONTAINER PRE-ORDERS (حجز البضاعة العايمة قبل الوصول)
+  // -------------------------------------------------------------
+  async createContainerPreorder(tenantId: string, userId: number, dto: CreateContainerPreorderDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const shipment = await trx
+        .selectFrom('import_shipments')
+        .selectAll()
+        .where('id', '=', dto.shipmentId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+
+      const item = await trx
+        .selectFrom('import_shipment_items')
+        .selectAll()
+        .where('shipment_id', '=', dto.shipmentId)
+        .where('product_id', '=', Number(dto.productId))
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      if (!item) {
+        throw new BadRequestException('هذا الصنف غير مدرج في هذه الشحنة.');
+      }
+
+      const blQuantity = Number(item.quantity);
+
+      const existingOrders = await trx
+        .selectFrom('import_container_preorders')
+        .select('reserved_quantity')
+        .where('shipment_id', '=', dto.shipmentId)
+        .where('product_id', '=', Number(dto.productId))
+        .where('tenant_id', '=', tenantId)
+        .where('status', 'in', ['reserved', 'allocated'])
+        .execute();
+
+      const alreadyReserved = existingOrders.reduce((acc, o) => acc + Number(o.reserved_quantity), 0);
+      const requested = Number(dto.reservedQuantity);
+
+      if (alreadyReserved + requested > blQuantity) {
+        const freeToReserve = Math.max(0, blQuantity - alreadyReserved);
+        throw new BadRequestException(
+          `لا يمكن تجاوز كمية البوليصة: المتاح للحجز فقط (${freeToReserve}) وحدة من إجمالي (${blQuantity})، والمطلوب (${requested}).`
+        );
+      }
+
+      const totalPrice = Number((requested * Number(dto.unitPriceEgp)).toFixed(2));
+      const depositAmount = Number(dto.depositAmountEgp || 0);
+
+      const preorder = await trx
+        .insertInto('import_container_preorders')
+        .values({
+          tenant_id: tenantId,
+          preorder_no: `PRE-${Date.now().toString().slice(-6)}`,
+          project_id: shipment.project_id ?? dto.projectId ?? null,
+          shipment_id: dto.shipmentId,
+          customer_id: Number(dto.customerId),
+          product_id: Number(dto.productId),
+          reserved_quantity: requested,
+          unit_price_egp: dto.unitPriceEgp,
+          total_price_egp: totalPrice,
+          deposit_amount_egp: depositAmount,
+          deposit_treasury_account_id: dto.depositTreasuryAccountId ? Number(dto.depositTreasuryAccountId) : null,
+          status: 'reserved',
+          expected_delivery_date: dto.expectedDeliveryDate || null,
+          notes: dto.notes || null,
+          created_by: userId,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      if (depositAmount > 0 && this.accountingPosting) {
+        const bankAccId = await this.resolveTenantAccount(
+          trx,
+          tenantId,
+          'bank',
+          dto.depositTreasuryAccountId ? Number(dto.depositTreasuryAccountId) : null
+        );
+        const unearnedRevAccId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+
+        await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'import_container_preorder',
+          sourceId: 0,
+          tenantId,
+          accountId: tenantId,
+          entryDate: new Date(),
+          description: `عربون حجز بضاعة عايمة للعميل #${dto.customerId} - حجز #${preorder.preorder_no}`,
+          branchId: null,
+          locationId: null,
+          createdBy: userId,
+          postedBy: userId,
+          lines: [
+            {
+              accountId: bankAccId,
+              debit: depositAmount,
+              credit: 0,
+              description: `تحصيل عربون حجز بضاعة شحنة #${dto.shipmentId}`,
+              partnerType: 'customer',
+              partnerId: Number(dto.customerId),
+              branchId: null,
+              locationId: null,
+            },
+            {
+              accountId: unearnedRevAccId,
+              debit: 0,
+              credit: depositAmount,
+              description: `أمانات/عربونات عملاء غير محققة - حجز #${preorder.preorder_no}`,
+              partnerType: 'customer',
+              partnerId: Number(dto.customerId),
+              branchId: null,
+              locationId: null,
+            },
+          ],
+        });
+      }
+
+      return preorder;
+    });
+  }
+
+  async listContainerPreorders(tenantId: string, shipmentId?: string, customerId?: string) {
+    let q = this.db
+      .selectFrom('import_container_preorders as po')
+      .leftJoin('customers as c', 'c.id', 'po.customer_id')
+      .leftJoin('products as p', 'p.id', 'po.product_id')
+      .selectAll('po')
+      .select(['c.name as customer_name', 'p.name as product_name'])
+      .where('po.tenant_id', '=', tenantId);
+    if (shipmentId) q = q.where('po.shipment_id', '=', shipmentId);
+    if (customerId) q = q.where('po.customer_id', '=', Number(customerId));
+    return await q.orderBy('po.created_at', 'desc').execute();
+  }
+
+  async cancelContainerPreorder(tenantId: string, preorderId: string, reason?: string) {
+    return await this.db.transaction().execute(async (trx) => {
+      const preorder = await trx
+        .selectFrom('import_container_preorders')
+        .selectAll()
+        .where('id', '=', preorderId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+
+      if (preorder.status === 'invoiced') {
+        throw new BadRequestException('لا يمكن إلغاء حجز تم إصدار فاتورة بيع فعلية له.');
+      }
+
+      return await trx
+        .updateTable('import_container_preorders')
+        .set({
+          status: 'cancelled',
+          notes: reason ? `${preorder.notes || ''} [سبب الإلغاء: ${reason}]` : preorder.notes,
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', preorderId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  }
+
+  // -------------------------------------------------------------
+  // SINGLE-CONTAINER EXECUTIVE AUTOPSY SHEET (كشف حساب وتشريح الحاوية P&L)
+  // -------------------------------------------------------------
+  async getContainerAutopsySheet(tenantId: string, shipmentId: string) {
+    const shipment = await this.db
+      .selectFrom('import_shipments as s')
+      .leftJoin('import_projects as p', 'p.id', 's.project_id')
+      .leftJoin('suppliers as sup', 'sup.id', 's.supplier_id')
+      .selectAll('s')
+      .select(['p.title as project_title', 'p.project_no', 'sup.name as supplier_name'])
+      .where('s.id', '=', shipmentId)
+      .where('s.tenant_id', '=', tenantId)
+      .executeTakeFirstOrThrow();
+
+    const items = await this.db
+      .selectFrom('import_shipment_items as i')
+      .leftJoin('products as pr', 'pr.id', 'i.product_id')
+      .selectAll('i')
+      .select(['pr.name as product_name', 'pr.sku', 'pr.barcode'])
+      .where('i.shipment_id', '=', shipmentId)
+      .where('i.tenant_id', '=', tenantId)
+      .execute();
+
+    const preorders = await this.db
+      .selectFrom('import_container_preorders as po')
+      .leftJoin('customers as c', 'c.id', 'po.customer_id')
+      .selectAll('po')
+      .select(['c.name as customer_name'])
+      .where('po.shipment_id', '=', shipmentId)
+      .where('po.tenant_id', '=', tenantId)
+      .execute();
+
+    const lots = await this.db
+      .selectFrom('import_inventory_lots')
+      .selectAll()
+      .where('shipment_id', '=', shipmentId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const brokerExpenses = await this.db
+      .selectFrom('import_broker_expenses')
+      .selectAll()
+      .where('shipment_id', '=', shipmentId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const deposits = await this.db
+      .selectFrom('import_container_deposits')
+      .selectAll()
+      .where('shipment_id', '=', shipmentId)
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const exRate = Number(shipment.exchange_rate_at_arrival || shipment.pricing_exchange_rate || 50);
+    const factoryTotalUsd = items.reduce((acc, i) => acc + Number(i.quantity) * Number(i.factory_unit_price_usd), 0);
+    const factoryTotalEgp = factoryTotalUsd * exRate;
+    const shippingEgp = Number(shipment.shipping_cost_usd || 0) * exRate;
+    const customsEgp = Number(shipment.customs_cost_egp || 0);
+    const transportEgp = Number(shipment.internal_transport_cost_egp || 0);
+    const demurrageEgp = Number(shipment.actual_demurrage_fees || 0);
+    const lateExpensesEgp = Number(shipment.late_expenses_total_egp || 0);
+
+    const totalLandedCostEgp =
+      factoryTotalEgp + shippingEgp + customsEgp + transportEgp + demurrageEgp + lateExpensesEgp;
+
+    const preordersTotalRevenue = preorders
+      .filter((p) => p.status !== 'cancelled')
+      .reduce((acc, p) => acc + Number(p.total_price_egp), 0);
+    const preordersDepositsCollected = preorders
+      .filter((p) => p.status !== 'cancelled')
+      .reduce((acc, p) => acc + Number(p.deposit_amount_egp), 0);
+
+    let totalUnitsShipped = 0;
+    let totalUnitsReceived = 0;
+    for (const item of items) {
+      totalUnitsShipped += Number(item.quantity);
+      totalUnitsReceived += Number(item.received_quantity ?? item.quantity);
+    }
+
+    const totalRemainingUnits = lots.reduce((acc, l) => acc + Number(l.remaining_quantity), 0);
+    const totalSoldUnits = totalUnitsReceived - totalRemainingUnits;
+
+    const unsoldStockLandedValueEgp = lots.reduce(
+      (acc, l) => acc + Number(l.remaining_quantity) * Number(l.unit_landed_cost_egp),
+      0
+    );
+
+    const avgCostPerUnit = totalUnitsReceived > 0 ? totalLandedCostEgp / totalUnitsReceived : 0;
+    const cogsSoldUnitsEgp = totalSoldUnits * avgCostPerUnit;
+    const realizedNetProfitEgp = preordersTotalRevenue - cogsSoldUnitsEgp;
+    const roiPercentage = totalLandedCostEgp > 0 ? (realizedNetProfitEgp / totalLandedCostEgp) * 100 : 0;
+
+    const pendingDeposits = deposits.filter((d) => d.refund_status === 'pending');
+    const totalPendingDepositEgp = pendingDeposits.reduce((acc, d) => acc + Number(d.deposit_amount_egp), 0);
+
+    return {
+      operational: {
+        shipmentId,
+        containerNumber: shipment.container_number,
+        billOfLading: shipment.bill_of_lading,
+        carrierName: shipment.carrier_name,
+        containerSize: shipment.container_size,
+        freightType: shipment.freight_type,
+        portOfLoading: shipment.port_of_loading,
+        portOfDischarge: shipment.port_of_discharge,
+        containerStatus: shipment.container_status || 'arrived',
+        arrivalDate: shipment.arrival_date,
+        unstuffingDate: shipment.unstuffing_date,
+        emptyReturnedDate: shipment.empty_returned_date,
+        projectTitle: shipment.project_title,
+        projectNo: shipment.project_no,
+        supplierName: shipment.supplier_name,
+        totalUnitsShipped,
+        totalUnitsReceived,
+        totalSoldUnits,
+        totalRemainingUnits,
+      },
+      landedCosts: {
+        exchangeRate: exRate,
+        factoryTotalUsd: Number(factoryTotalUsd.toFixed(2)),
+        factoryTotalEgp: Number(factoryTotalEgp.toFixed(2)),
+        shippingEgp: Number(shippingEgp.toFixed(2)),
+        customsEgp: Number(customsEgp.toFixed(2)),
+        transportEgp: Number(transportEgp.toFixed(2)),
+        demurrageEgp: Number(demurrageEgp.toFixed(2)),
+        lateExpensesEgp: Number(lateExpensesEgp.toFixed(2)),
+        totalLandedCostEgp: Number(totalLandedCostEgp.toFixed(2)),
+        avgCostPerUnitEgp: Number(avgCostPerUnit.toFixed(4)),
+      },
+      salesAndInventory: {
+        grossSalesEgp: Number(preordersTotalRevenue.toFixed(2)),
+        depositsCollectedEgp: Number(preordersDepositsCollected.toFixed(2)),
+        receivablesDueEgp: Number((preordersTotalRevenue - preordersDepositsCollected).toFixed(2)),
+        unsoldStockLandedValueEgp: Number(unsoldStockLandedValueEgp.toFixed(2)),
+        lotsCount: lots.length,
+      },
+      profitability: {
+        cogsSoldUnitsEgp: Number(cogsSoldUnitsEgp.toFixed(2)),
+        realizedNetProfitEgp: Number(realizedNetProfitEgp.toFixed(2)),
+        roiPercentage: Number(roiPercentage.toFixed(2)),
+      },
+      liabilities: {
+        pendingContainerDepositsCount: pendingDeposits.length,
+        totalPendingDepositEgp: Number(totalPendingDepositEgp.toFixed(2)),
+        brokerExpensesCount: brokerExpenses.length,
+      },
+      items,
+      lots,
+      preorders,
+    };
+  }
+
+  // -------------------------------------------------------------
+  // FX TREASURY DESK
+  // -------------------------------------------------------------
+  async recordFxAcquisition(tenantId: string, userId: number, dto: RecordFxAcquisitionDto) {
+    const effectiveRate = Number(dto.egpCost) / Number(dto.foreignAmount);
+    return await this.db
+      .insertInto('import_fx_acquisitions')
+      .values({
+        tenant_id: tenantId,
+        currency: dto.currency,
+        foreign_amount: dto.foreignAmount,
+        egp_cost: dto.egpCost,
+        effective_exchange_rate: Number(effectiveRate.toFixed(4)),
+        acquisition_date: dto.acquisitionDate || new Date().toISOString().slice(0, 10),
+        source: dto.source || 'bank',
+        bank_account_id: dto.bankAccountId ? Number(dto.bankAccountId) : null,
+        notes: dto.notes || null,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async getFxPortfolio(tenantId: string) {
+    const records = await this.db
+      .selectFrom('import_fx_acquisitions')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .orderBy('acquisition_date', 'desc')
+      .execute();
+
+    const byCurrency: Record<string, { totalForeign: number; totalEgp: number; weightedAvgRate: number }> = {};
+    for (const r of records) {
+      if (!byCurrency[r.currency]) {
+        byCurrency[r.currency] = { totalForeign: 0, totalEgp: 0, weightedAvgRate: 0 };
+      }
+      byCurrency[r.currency].totalForeign += Number(r.foreign_amount);
+      byCurrency[r.currency].totalEgp += Number(r.egp_cost);
+    }
+
+    for (const curr of Object.keys(byCurrency)) {
+      const data = byCurrency[curr];
+      data.weightedAvgRate = data.totalForeign > 0 ? Number((data.totalEgp / data.totalForeign).toFixed(4)) : 0;
+    }
+
+    return {
+      portfolio: byCurrency,
+      transactions: records,
+    };
+  }
+
+  // -------------------------------------------------------------
+  // UNIFIED DOCUMENT CENTER
+  // -------------------------------------------------------------
+  async createImportDocument(tenantId: string, userId: number, dto: CreateImportDocumentDto) {
+    return await this.db
+      .insertInto('import_documents')
+      .values({
+        tenant_id: tenantId,
+        project_id: dto.projectId ?? null,
+        shipment_id: dto.shipmentId ?? null,
+        document_type: dto.documentType,
+        file_name: dto.fileName,
+        file_url: dto.fileUrl,
+        file_size_bytes: dto.fileSizeBytes || 0,
+        mime_type: dto.mimeType || 'application/pdf',
+        issue_date: dto.issueDate || null,
+        expiry_date: dto.expiryDate || null,
+        is_verified: false,
+        notes: dto.notes || null,
+        created_by: userId,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async listImportDocuments(tenantId: string, projectId?: string, shipmentId?: string) {
+    let q = this.db.selectFrom('import_documents').selectAll().where('tenant_id', '=', tenantId);
+    if (projectId) q = q.where('project_id', '=', projectId);
+    if (shipmentId) q = q.where('shipment_id', '=', shipmentId);
+    return await q.orderBy('created_at', 'desc').execute();
+  }
+
+  // -------------------------------------------------------------
+  // MAKER-CHECKER GOVERNANCE WORKFLOW
+  // -------------------------------------------------------------
+  async createApprovalRequest(tenantId: string, userId: number, dto: CreateApprovalRequestDto) {
+    return await this.db
+      .insertInto('import_approval_requests')
+      .values({
+        tenant_id: tenantId,
+        module: 'import',
+        action_type: dto.actionType,
+        reference_id: dto.referenceId,
+        requested_by: userId,
+        status: 'pending',
+        request_payload: dto.requestPayload ? JSON.stringify(dto.requestPayload) : '{}',
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  }
+
+  async listApprovalRequests(tenantId: string, status?: string) {
+    let q = this.db.selectFrom('import_approval_requests').selectAll().where('tenant_id', '=', tenantId);
+    if (status) q = q.where('status', '=', status);
+    return await q.orderBy('created_at', 'desc').execute();
+  }
+
+  async decideApprovalRequest(tenantId: string, userId: number, requestId: string, dto: DecideApprovalRequestDto) {
+    return await this.db.transaction().execute(async (trx) => {
+      const req = await trx
+        .selectFrom('import_approval_requests')
+        .selectAll()
+        .where('id', '=', requestId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+
+      if (req.requested_by === userId) {
+        throw new BadRequestException('مبدأ الرقابة الثنائية (Maker-Checker): لا يجوز للمستخدم الذي أنشأ الطلب اعتماده بنفسه.');
+      }
+
+      if (req.status !== 'pending') {
+        throw new BadRequestException('تم البت في هذا الطلب مسبقاً.');
+      }
+
+      return await trx
+        .updateTable('import_approval_requests')
+        .set({
+          status: dto.decision,
+          approved_by: userId,
+          decided_at: new Date(),
+          rejection_reason: dto.rejectionReason || null,
+        })
+        .where('id', '=', requestId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  }
+
+  // -------------------------------------------------------------
+  // RECONCILIATION ENGINE & EXCEPTIONS CENTER
+  // -------------------------------------------------------------
+  async runImportReconciliationScan(tenantId: string) {
+    const exceptions: any[] = [];
+
+    const staleAdvances = await this.db
+      .selectFrom('import_broker_advances')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('status', '=', 'active')
+      .execute();
+
+    for (const adv of staleAdvances) {
+      if (Number(adv.remaining_amount_egp) > 0) {
+        exceptions.push({
+          tenant_id: tenantId,
+          exception_type: 'broker_advance_mismatch',
+          severity: 'high',
+          project_id: adv.project_id,
+          shipment_id: adv.shipment_id,
+          discrepancy_amount_egp: adv.remaining_amount_egp,
+          details: JSON.stringify({
+            advanceNo: adv.advance_no,
+            brokerId: adv.broker_id,
+            remaining: adv.remaining_amount_egp,
+          }),
+          status: 'open',
+        });
+      }
+    }
+
+    const pendingDeposits = await this.db
+      .selectFrom('import_container_deposits')
+      .selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('refund_status', '=', 'pending')
+      .execute();
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    for (const dep of pendingDeposits) {
+      if (dep.expected_return_date && (dep.expected_return_date as any) < todayStr) {
+        exceptions.push({
+          tenant_id: tenantId,
+          exception_type: 'unrecorded_customs_expense',
+          severity: 'critical',
+          project_id: dep.project_id,
+          shipment_id: dep.shipment_id,
+          discrepancy_amount_egp: dep.deposit_amount_egp,
+          details: JSON.stringify({
+            containerNo: dep.container_no,
+            shippingLine: dep.shipping_line,
+            expectedDate: dep.expected_return_date,
+          }),
+          status: 'open',
+        });
+      }
+    }
+
+    for (const ex of exceptions) {
+      await this.db.insertInto('import_reconciliation_exceptions').values(ex).execute();
+    }
+
+    return {
+      scannedAt: new Date(),
+      exceptionsFoundCount: exceptions.length,
+      exceptions,
+    };
+  }
+
+  async listReconciliationExceptions(tenantId: string, status?: string) {
+    let q = this.db.selectFrom('import_reconciliation_exceptions').selectAll().where('tenant_id', '=', tenantId);
+    if (status) q = q.where('status', '=', status);
+    return await q.orderBy('created_at', 'desc').execute();
+  }
+
+  async resolveReconciliationException(tenantId: string, userId: number, exceptionId: string, dto: ResolveExceptionDto) {
+    return await this.db
+      .updateTable('import_reconciliation_exceptions')
+      .set({
+        status: 'resolved',
+        resolved_by: userId,
+        resolution_notes: dto.resolutionNotes,
+        resolved_at: new Date(),
+      })
+      .where('id', '=', exceptionId)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
   }
 }

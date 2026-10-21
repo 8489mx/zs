@@ -5,6 +5,8 @@ import {
   useUpsertAciComplianceMutation,
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { CustomsBrokerManager } from './CustomsBrokerManager';
+import { ContainerDepositsManager } from './ContainerDepositsManager';
 import {
   FileTextIcon,
   SearchIcon,
@@ -23,6 +25,7 @@ export default function CustomsTariffCalculator() {
   const upsertAciMutation = useUpsertAciComplianceMutation();
 
   // Calculator State
+  const [activeTab, setActiveTab] = useState<'tariffs_aci' | 'customs_brokers' | 'container_deposits'>('tariffs_aci');
   const [selectedHsCode, setSelectedHsCode] = useState('8471.30');
   const [cifValueEgp, setCifValueEgp] = useState<number>(500000);
   const [calcResult, setCalcResult] = useState<any>(null);
@@ -121,7 +124,69 @@ export default function CustomsTariffCalculator() {
         </div>
       </div>
 
-      {/* 2. Customs Calculator Box */}
+      {/* Tab Switcher */}
+      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e2e8f0', paddingBottom: 10 }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('tariffs_aci')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 6,
+            border: '1px solid',
+            borderColor: activeTab === 'tariffs_aci' ? '#170e5e' : '#e2e8f0',
+            backgroundColor: activeTab === 'tariffs_aci' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'tariffs_aci' ? '#ffffff' : '#475569',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          التعريفة الجمركية ومنظومة ACI
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('customs_brokers')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 6,
+            border: '1px solid',
+            borderColor: activeTab === 'customs_brokers' ? '#170e5e' : '#e2e8f0',
+            backgroundColor: activeTab === 'customs_brokers' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'customs_brokers' ? '#ffffff' : '#475569',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          المخلصون الجمركيون والعهد النقدية
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('container_deposits')}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 6,
+            border: '1px solid',
+            borderColor: activeTab === 'container_deposits' ? '#170e5e' : '#e2e8f0',
+            backgroundColor: activeTab === 'container_deposits' ? '#170e5e' : '#ffffff',
+            color: activeTab === 'container_deposits' ? '#ffffff' : '#475569',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          تأمينات الحاويات وغرامات الخطوط (Demurrage)
+        </button>
+      </div>
+
+      {activeTab === 'customs_brokers' && <CustomsBrokerManager />}
+      {activeTab === 'container_deposits' && <ContainerDepositsManager />}
+
+      {activeTab === 'tariffs_aci' && (
+        <>
+          {/* 2. Customs Calculator Box */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px' }}>
         <h2 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a', margin: '0 0 14px' }}>
           حاسبة الرسوم الجمركية والضرائب على القيمة CIF (Official Egypt Duty Calculator)

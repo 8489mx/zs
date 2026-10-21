@@ -8258,3 +8258,44 @@ esolveTenantAccount التي تربط ديناميكياً بدليل الحسا
   4. **اكتمال دورة ربط فواتير المشتريات:** دمج `purchases.import_project_id` في إنشاء وتعديل واستعلام الفواتير، مما يجعل فحص التزامات المشتريات عند إقفال المشروع (`closeProject`) فحصاً فعلياً في الإنتاج.
   5. **مفتاح Idempotency قاعدي للحوالات:** استبدال النافذة الزمنية (30 ثانية) بقيد فريد `idempotency_key` على مستوى قاعدة البيانات، مع السماح بحوالات مشروعة متعددة بنفس القيمة ومنع التكرار اللحظي والمتزامن.
   6. **حارس تكامل PostgreSQL شامل مع حالات سلبية:** تشغيل اختبارات تكاملية على PGlite بالهجرات الحقيقية (234 و 235) مع فحص رفض العمليات في الفترات المغلقة، رفض الحسابات الخاطئة، وحظر الإقفال عند وجود فواتير مرتبطة غير مسددة.
+
+## 253. المنظومة الشاملة لإدارة شركات الاستيراد والتجارة الدولية وحوكمة دورة الشحنات والحاويات (Complete International Trade & Import Operations ERP)
+- **التاريخ:** 21 أكتوبر 2026.
+- **الحالة:** مكتمل ومحصن بنسبة 100% باختبار محاكاة دورة العمل الشاملة على محرك PostgreSQL حقيقي (`import-e2e-business-simulation.spec.ts` بـ 30 خطوة متتالية ناجحة)، واجتياز كافة حراس سلامة الاستيراد (`npm run test:import-safety`).
+- **الملفات المعدلة والمستحدثة:**
+  - `backend/src/database/migrations/2040000000236_international_trade_procurement_and_sourcing.ts` (جداول عروض الأسعار RFQs، عينات المصانع، الفواتير المبدئية، أوامر الشراء الدولية، وجدول التدفقات النقدية المتوقعة).
+  - `backend/src/database/migrations/2040000000237_customs_broker_advances_and_container_deposits.ts` (سجل المخلصين الجمركيين، عهد التخليص، إيصالات المصروفات التفصيلية، وتأمينات الحاويات للخطوط الملاحية).
+  - `backend/src/database/migrations/2040000000238_container_preorders_and_inventory_traceability.ts` (حجوزات بضاعة الطريق B/L، تتبع باتشات المخزون LOT، ومحفظة حيازة النقد الأجنبي FX).
+  - `backend/src/database/migrations/2040000000239_import_governance_approvals_and_reconciliation.ts` (مركز وثائق الشحنات المشفرة، حوكمة الصانع والمدقق Maker-Checker، ومسح استثناءات التدقيق المحاسبي).
+  - `backend/src/database/database.types.ts` (تعريف وتوثيق 13 جدولاً جديداً في البنية النموذجية لكيسلي).
+  - `backend/src/modules/import-sales/dto/import-sales.dto.ts` (النماذج البرمجية DTOs لكافة العمليات مع التحقق الصارم من الحقول).
+  - `backend/src/modules/import-sales/import-sales.service.ts` (تطبيق المنطق التشغيلي والمحاسبي المتكامل لكافة دورات الاستيراد والتسعير والعهد والباتشات والإقفال).
+  - `backend/src/modules/import-sales/import-sales.controller.ts` (22 نقطة نهاية API مؤمنة بحراس الصلاحيات الدقيقة).
+  - `frontend/src/features/import-sales/api/shipments.api.ts` (دوال وخطاطيف React Query لكافة العمليات والشاشات).
+  - `frontend/src/features/import-sales/ContainerAutopsyModal.tsx` (شيت تشريح ربحية الحاوية الفردية Container P&L Autopsy القابل للطباعة في صفحة واحدة A4).
+  - `frontend/src/features/import-sales/ContainerPreordersModal.tsx` (نافذة حجوزات بضاعة الطريق مع مؤشر سعة الحاوية الفيزيائية).
+  - `frontend/src/features/import-sales/CustomsBrokerManager.tsx` (إدارة المخلصين الجمركيين، صرف العهد، وتصفية الإيصالات التفصيلية).
+  - `frontend/src/features/import-sales/ContainerDepositsManager.tsx` (إدارة تأمينات الحاويات للخطوط الملاحية وتسوية استرداد التأمين وخصم غرامات التأخير).
+  - `frontend/src/features/import-sales/components/ChinaQuotationsTab.tsx` (مقارنة عروض أسعار المصانع المتعددة مع شروط التسليم الدولية).
+  - `frontend/src/features/import-sales/components/ChinaSamplesTab.tsx` (تتبع شحن العينات التجارية واعتماد العينة المرجعية).
+  - `frontend/src/features/import-sales/components/ChinaProformasTab.tsx` (الفواتير المبدئية وتوليد أوامر الشراء الدولية IPO).
+  - `frontend/src/features/import-sales/ChinaSourcingPage.tsx` (تكامل التبويبات الخمسة لتوريد وتصنيع البضائع الدولية).
+  - `frontend/src/features/import-sales/CustomsTariffCalculator.tsx` (دمج حاسبة التعريفات وبوابة المخلصين وتأمينات الحاويات).
+  - `frontend/src/features/import-sales/ImportCommandCenter.tsx` (إضافة مكتب الخزانة والعملات الأجنبية FX، والمسح الرقابي للاستثناءات).
+  - `frontend/src/features/import-sales/ImportProjectsManager.tsx` (إجراءات تحويل دراسة الجدوى إلى مشروع، وإدارة الشركاء، وإقفال المشاريع).
+  - `frontend/src/features/import-sales/ShipmentDetailsPage.tsx` (ربط أزرار تشريح الحاوية وحجوزات الطريق).
+  - `backend/test/critical/import-e2e-business-simulation.spec.ts` (محاكاة دورة العمل الشاملة على قاعدة بيانات حقيقية بـ 30 خطوة متسلسلة).
+  - `ARCHITECTURE_INVARIANTS.md` (توثيق البند 2.25 لميثاق دورة التجارة الدولية وإدارة شركات الاستيراد).
+- **الميزات والمحاور التشغيلية المحققة:**
+  1. **مقارنة عروض أسعار المصانع (RFQ Comparison):** مقارنة أسعار التوريد، شروط التسليم الدولية (Incoterms)، الحد الأدنى للطلب (MOQ)، والعملات المختلفة واختيار العرض الفائز.
+  2. **تتبع العينات واعتماد العينة المرجعية (Sample Approval Gate):** تتبع طرود العينات عبر أرقام التتبع (DHL/FedEx)، واشتراط اعتماد العينة المرجعية قبل إطلاق الإنتاج.
+  3. **تحويل الجدوى إلى مشروع استيراد مع جدول تدفقات نقدية (Feasibility-to-Project & Cash Flow Timeline):** إنشاء المشروع برؤوس أموال الشركاء وتقدير مواعيد التدفقات النقدية (الدفعة المقدمة، رصيد المصنع، الشحن والجمارك).
+  4. **الفواتير المبدئية وأوامر الشراء الدولية (Proforma & International POs):** توليد أوامر شراء دولية رسمية موحدة `IPO-PI-XXXX` مع شروط فحص الجودة والمواصفات.
+  5. **عهد المخلصين الجمركيين وتصفية الإيصالات (Customs Broker Advances & Itemized Liquidation):** صرف العهد، وتسوية الفواتير الرسمية ببند بند (جمارك، ضريبة مضافة مستردة، أرضيات، نولون محلي، أتعاب)، مع استخراج كشف حساب المخلص ومنع إقفال المشروع بعهد معلقة.
+  6. **تأمينات الحاويات وغرامات التأخير (Shipping Line Container Security Deposits):** تسجيل تأمين الحاويات لكل بوليصة، واسترداد التأمين، وخصم غرامات التأخير والأضرار آلياً وتوجيهها للمصروفات.
+  7. **حجوزات بضاعة الطريق (B/L In-Transit Pre-Orders):** حجز البضاعة قبل وصول الحاوية بسقف سعة الحاوية القصوى، مع إثبات المقبوضات كدفعات مقدمة من العملاء (Unearned Revenue).
+  8. **تتبع باتشات الحاويات والتكلفة الإنزالية (Container Lot Provenance):** توليد أرقام باتشات `LOT-{Container}-{ProductId}` عند استلام الحاوية بالمخزن مع ربط التكلفة الحقيقية لكل قطعة.
+  9. **توزيع المصروفات المتأخرة وفق معيار IAS 2:** توزيع المصروفات المتأخرة للشحنة بين رصيد المخزون المتبقي وتكلفة البضاعة المباعة (COGS) دون المساس بالفترات المقفلة.
+  10. **شيت تشريح ربحية الحاوية في صفحة واحدة (Single-Container P&L Autopsy Sheet):** استعراض شامل وتفصيلي لإيرادات الحاوية، تكلفتها الإنزالية المفصلة، المصروفات المتأخرة، صافي الربح، ونسبة العائد على الاستثمار (ROI).
+  11. **مكتب الخزانة والنقد الأجنبي (FX Treasury Desk):** حساب المتوسط المرجح لأسعار شراء العملات الأجنبية وتحديد فروق تقييم العملة المحققة وغير المحققة.
+  12. **حوكمة العمليات والمسح الرقابي الشامل (Maker-Checker & Reconciliation Scan):** طلبات الاعتماد المزدوج للعمليات الحساسة، وكاشف الاستثناءات الرقابي للشحنات والعهد والحوالات المعلقة.
