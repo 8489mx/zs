@@ -18,6 +18,7 @@ import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { detectDuplicateBills, normalizeBillNumber, type HistoricalPurchaseRecord } from '../engines/duplicate-bill-detector.engine';
+import { assertCustomerPaymentJobOwnership } from '../helpers/customer-payment-job-ownership';
 
 type PurchaseRepricingCandidate = {
   productId: number;
@@ -1122,7 +1123,7 @@ export class PurchasesWriteService {
       // Explicit payment-to-job linkage must be verified before the receipt or ledger is posted.
       // Auto-match jobs are also checked under the same lock, so concurrent receipts cannot
       // overwrite client_paid_total using a stale snapshot.
-      let verifiedJob: { id: string; job_number: string; customer_id: number | string; client_invoiced_total: number | string | null; client_paid_total: number | string | null } | null = null;
+      let verifiedJob: { job_number: string | null; client_invoiced_total: number | string | null; client_paid_total: number | string | null } | null = null;
 
       // Smart Auto-Match: If no explicit job specified, check if customer has exactly ONE active maritime job needing payment
       if (!targetJobId) {
@@ -1153,9 +1154,7 @@ export class PurchasesWriteService {
           .forUpdate()
           .executeTakeFirst();
         if (!job) throw new AppError('Maritime job not found', 'MARITIME_JOB_NOT_FOUND', 404);
-        if (Number(job.customer_id) !== Number(customer.id)) {
-          throw new AppError('Payment customer does not match maritime job customer', 'MARITIME_JOB_CUSTOMER_MISMATCH', 400);
-        }
+        assertCustomerPaymentJobOwnership(Number(customer.id), job.customer_id);
         verifiedJob = job;
       }
 
