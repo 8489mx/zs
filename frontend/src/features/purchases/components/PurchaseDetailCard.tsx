@@ -331,7 +331,7 @@ export function PurchaseDetailCard({ purchase, isLoading = false, onEdit, onCanc
           poDocNo={purchase.poDocNo || purchase.docNo}
           supplierId={Number(purchase.supplierId || 0)}
           supplierName={purchase.supplierName || t('purchases.purchase_detail_card.s47', "مورد عام")}
-          locationId={Number(purchase.locationId || 1)}
+          locationId={purchase.locationId ? Number(purchase.locationId) : undefined}
           initialItems={(purchase.items || []).map((item) => ({
             purchaseOrderItemId: item.purchaseOrderItemId ? Number(item.purchaseOrderItemId) : undefined,
             productId: Number(item.productId),

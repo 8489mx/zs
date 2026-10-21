@@ -40,7 +40,7 @@ export interface GoodsReceiptRecord {
 export interface CreateGoodsReceiptPayload {
   purchaseOrderId?: number | null;
   supplierId: number;
-  locationId: number;
+  locationId?: number;
   supplierDeliveryNoteRef?: string | null;
   receivedAt?: string;
   notes?: string | null;

@@ -95,9 +95,10 @@ export class CreateGoodsReceiptDto {
   @IsInt()
   supplierId!: number;
 
-  @Transform(({ value }) => Number(value))
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : undefined))
+  @IsOptional()
   @IsInt()
-  locationId!: number;
+  locationId?: number;
 
   @IsOptional()
   @IsDateString()

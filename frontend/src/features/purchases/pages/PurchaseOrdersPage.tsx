@@ -313,7 +313,7 @@ export function PurchaseOrdersPage() {
         poDocNo={selectedOrder?.order_number}
         supplierId={Number(selectedOrder?.supplier_id || 0)}
         supplierName={selectedOrder?.supplier_name || t('purchases.purchase_orders_page.s25', "مورد عام")}
-        locationId={Number(selectedOrder?.warehouse_id || 1)}
+        locationId={selectedOrder?.warehouse_id ? Number(selectedOrder.warehouse_id) : undefined}
         initialItems={(selectedOrder?.items || orderDetailsData?.items || []).map((it: any) => ({
           purchaseOrderItemId: it.id,
           productId: Number(it.product_id || it.productId),
