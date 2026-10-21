@@ -469,22 +469,31 @@ namespace ZSystems.HardwareBridge
             }
         }
 
+        private static bool IsTrustedBrowserOrigin(string origin)
+        {
+            if (string.IsNullOrEmpty(origin)) return true; // Native local clients send no Origin header
+            if (string.Equals(origin, "https://app.zsystemai.com", StringComparison.OrdinalIgnoreCase)) return true;
+            // Other verified deployments/development origins must be explicitly provisioned by the operator.
+            foreach (string trusted in (Environment.GetEnvironmentVariable("ZS_BRIDGE_ALLOWED_ORIGINS") ?? "").Split(','))
+            {
+                if (!string.IsNullOrWhiteSpace(trusted) && string.Equals(origin, trusted.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
         private static void SetCorsHeaders(HttpListenerContext context)
         {
             var res = context.Response;
             string origin = context.Request.Headers["Origin"];
-            if (!string.IsNullOrEmpty(origin))
+            if (!string.IsNullOrEmpty(origin) && IsTrustedBrowserOrigin(origin))
             {
                 res.Headers["Access-Control-Allow-Origin"] = origin;
                 res.Headers["Vary"] = "Origin";
+                res.Headers["Access-Control-Allow-Credentials"] = "true";
+                res.Headers["Access-Control-Allow-Private-Network"] = "true";
             }
-            else
-            {
-                res.Headers["Access-Control-Allow-Origin"] = "*";
-            }
-            res.Headers["Access-Control-Allow-Private-Network"] = "true";
-            res.Headers["Access-Control-Allow-Credentials"] = "true";
-            res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE";
+            res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
 
             string reqHeaders = context.Request.Headers["Access-Control-Request-Headers"];
             if (!string.IsNullOrEmpty(reqHeaders))
@@ -521,6 +530,11 @@ namespace ZSystems.HardwareBridge
             try
             {
                 SetCorsHeaders(context);
+                if (!IsTrustedBrowserOrigin(context.Request.Headers["Origin"]))
+                {
+                    SendJson(context, 403, new Dictionary<string, object> { { "success", false }, { "error", "Untrusted browser origin" } });
+                    return;
+                }
 
                 if (context.Request.HttpMethod == "OPTIONS")
                 {
@@ -589,27 +603,19 @@ namespace ZSystems.HardwareBridge
                     try { jsonBody = Serializer.Deserialize<Dictionary<string, object>>(body); } catch {}
                 }
 
-                // 3.5. Tenant & Cloud Sync
+                // Never let unauthenticated loopback clients repoint this bridge to an attacker server.
+                // Tenant/server changes are allowed only in the trusted native tray configuration.
                 if (path == "/api/tenant/sync" && context.Request.HttpMethod == "POST")
                 {
-                    if (jsonBody.ContainsKey("tenantId"))
+                    string claimedTenant = jsonBody.ContainsKey("tenantId") ? Convert.ToString(jsonBody["tenantId"]).Trim() : "";
+                    string claimedServer = jsonBody.ContainsKey("serverUrl") ? Convert.ToString(jsonBody["serverUrl"]).Trim() : CloudServerUrl;
+                    if (!string.Equals(claimedTenant, TenantId, StringComparison.Ordinal) ||
+                        !string.Equals(claimedServer.TrimEnd('/'), CloudServerUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
                     {
-                        string newTenant = Convert.ToString(jsonBody["tenantId"]).Trim();
-                        if (!string.IsNullOrEmpty(newTenant)) TenantId = newTenant;
+                        SendJson(context, 403, new Dictionary<string, object> { { "success", false }, { "error", "Configure cloud identity from the native Bridge tray" } });
+                        return;
                     }
-                    if (jsonBody.ContainsKey("serverUrl"))
-                    {
-                        string newServer = Convert.ToString(jsonBody["serverUrl"]).Trim();
-                        if (!string.IsNullOrEmpty(newServer)) CloudServerUrl = newServer;
-                    }
-                    SaveConfig();
-                    SendJson(context, 200, new Dictionary<string, object>
-                    {
-                        { "success", true },
-                        { "tenantId", TenantId },
-                        { "serverUrl", CloudServerUrl },
-                        { "cloudRelayConnected", IsCloudRelayConnected }
-                    });
+                    SendJson(context, 200, new Dictionary<string, object> { { "success", true }, { "tenantId", TenantId }, { "cloudRelayConnected", IsCloudRelayConnected } });
                     return;
                 }
 
