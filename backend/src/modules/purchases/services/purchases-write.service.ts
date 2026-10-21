@@ -1119,6 +1119,11 @@ export class PurchasesWriteService {
 
       let targetJobId: number | null = payload.jobId ? Number(payload.jobId) : null;
 
+      // Explicit payment-to-job linkage must be verified before the receipt or ledger is posted.
+      // Auto-match jobs are also checked under the same lock, so concurrent receipts cannot
+      // overwrite client_paid_total using a stale snapshot.
+      let verifiedJob: { id: string; job_number: string; customer_id: number | string; client_invoiced_total: number | string | null; client_paid_total: number | string | null } | null = null;
+
       // Smart Auto-Match: If no explicit job specified, check if customer has exactly ONE active maritime job needing payment
       if (!targetJobId) {
         try {
@@ -1137,6 +1142,21 @@ export class PurchasesWriteService {
         } catch {
           // Ignore if table not ready
         }
+      }
+
+      if (targetJobId) {
+        const job = await trx
+          .selectFrom('maritime_jobs')
+          .select(['id', 'job_number', 'customer_id', 'client_invoiced_total', 'client_paid_total'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', '=', String(targetJobId))
+          .forUpdate()
+          .executeTakeFirst();
+        if (!job) throw new AppError('Maritime job not found', 'MARITIME_JOB_NOT_FOUND', 404);
+        if (Number(job.customer_id) !== Number(customer.id)) {
+          throw new AppError('Payment customer does not match maritime job customer', 'MARITIME_JOB_CUSTOMER_MISMATCH', 400);
+        }
+        verifiedJob = job;
       }
 
       const insert = await trx
@@ -1174,50 +1194,38 @@ export class PurchasesWriteService {
       const docNo = await this.generateCustomerPaymentDocNo(trx, scope.tenantId, paymentId);
 
       let allocatedJobNumber: string | null = null;
-      if (targetJobId) {
-        try {
-          const job = await trx
-            .selectFrom('maritime_jobs')
-            .select(['id', 'job_number', 'client_invoiced_total', 'client_paid_total', 'payment_status'])
-            .where('tenant_id', '=', scope.tenantId)
-            .where('id', '=', String(targetJobId))
-            .executeTakeFirst();
+      if (verifiedJob && targetJobId) {
+        allocatedJobNumber = verifiedJob.job_number;
+        const currentPaid = Number(verifiedJob.client_paid_total || 0);
+        const newPaid = currentPaid + amount;
+        const invoiced = Number(verifiedJob.client_invoiced_total || 0);
+        const newPaymentStatus = (invoiced > 0 && newPaid >= invoiced) ? 'paid' : (newPaid > 0 ? 'partially_paid' : 'unpaid');
 
-          if (job) {
-            allocatedJobNumber = job.job_number;
-            const currentPaid = Number(job.client_paid_total || 0);
-            const newPaid = currentPaid + amount;
-            const invoiced = Number(job.client_invoiced_total || 0);
-            const newPaymentStatus = (invoiced > 0 && newPaid >= invoiced) ? 'paid' : (newPaid > 0 ? 'partially_paid' : 'unpaid');
+        await trx
+          .updateTable('maritime_jobs')
+          .set({
+            client_paid_total: newPaid,
+            payment_status: newPaymentStatus,
+            paid_at: newPaymentStatus === 'paid' ? sql`NOW()` : null,
+            updated_at: sql`NOW()`,
+          } as any)
+          .where('id', '=', String(targetJobId))
+          .where('tenant_id', '=', scope.tenantId)
+          .where('customer_id', '=', customer.id)
+          .execute();
 
-            await trx
-              .updateTable('maritime_jobs')
-              .set({
-                client_paid_total: newPaid,
-                payment_status: newPaymentStatus,
-                paid_at: newPaymentStatus === 'paid' ? sql`NOW()` : null,
-                updated_at: sql`NOW()`,
-              } as any)
-              .where('id', '=', String(targetJobId))
-              .where('tenant_id', '=', scope.tenantId)
-              .execute();
-
-            await trx
-              .insertInto('maritime_job_milestones')
-              .values({
-                tenant_id: scope.tenantId,
-                job_id: String(targetJobId),
-                milestone_key: 'PAYMENT',
-                milestone_title: `سداد مالي: سند قبض #${docNo} (${newPaymentStatus === 'paid' ? 'مسدد بالكامل' : 'سداد جزئي'})`,
-                location: 'الخزينة والحسابات',
-                notes: `تم ربط وتخصيص دفعة نقدية بقيمة ${amount} ج.م من سند القبض ${docNo} للشحنة ${job.job_number}`,
-                recorded_by: auth.userId ? Number(auth.userId) : null,
-              } as any)
-              .execute();
-          }
-        } catch {
-          // Ignore
-        }
+        await trx
+          .insertInto('maritime_job_milestones')
+          .values({
+            tenant_id: scope.tenantId,
+            job_id: String(targetJobId),
+            milestone_key: 'PAYMENT',
+            milestone_title: `سداد مالي: سند قبض #${docNo} (${newPaymentStatus === 'paid' ? 'مسدد بالكامل' : 'سداد جزئي'})`,
+            location: 'الخزينة والحسابات',
+            notes: `تم ربط وتخصيص دفعة نقدية بقيمة ${amount} ج.م من سند القبض ${docNo} للشحنة ${verifiedJob.job_number}`,
+            recorded_by: auth.userId ? Number(auth.userId) : null,
+          } as any)
+          .execute();
       }
 
       return {
