@@ -224,30 +224,109 @@ async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
     }
 
     // Reconcile ghost migration 2040000000200_logistics_couriers_and_cod_settlements
-    // which was superseded by 2040000000200_maritime_complete_enterprise_expansion
+    // DATA-PRESERVING VERSION-AWARE STRATEGY (CORE-002):
+    // Never drop tables or columns with CASCADE. Snapshot counts and sums before and after.
     const courierMigrationCheck = await sql<{ found: number }>`
       SELECT 1 AS found FROM ${sql.id(schema, 'kysely_migration')}
       WHERE name = '2040000000200_logistics_couriers_and_cod_settlements'
     `.execute(db);
 
     if (courierMigrationCheck.rows.length > 0) {
-      await sql`
-        ALTER TABLE IF EXISTS ${sql.id(schema, 'shipments')} 
-        DROP COLUMN IF EXISTS courier_id, 
-        DROP COLUMN IF EXISTS settlement_batch_id CASCADE
-      `.execute(db);
+      const checkTableExists = async (table: string): Promise<boolean> => {
+        const res = await sql<{ found: number }>`
+          SELECT 1 as found FROM information_schema.tables
+          WHERE table_schema = ${schema} AND table_name = ${table}
+        `.execute(db);
+        return res.rows.length > 0;
+      };
 
-      await sql`DROP TABLE IF EXISTS ${sql.id(schema, 'courier_settlement_lines')} CASCADE`.execute(db);
-      await sql`DROP TABLE IF EXISTS ${sql.id(schema, 'courier_settlement_batches')} CASCADE`.execute(db);
-      await sql`DROP TABLE IF EXISTS ${sql.id(schema, 'shipping_couriers')} CASCADE`.execute(db);
+      const checkColumnExists = async (table: string, column: string): Promise<boolean> => {
+        const res = await sql<{ found: number }>`
+          SELECT 1 as found FROM information_schema.columns
+          WHERE table_schema = ${schema} AND table_name = ${table} AND column_name = ${column}
+        `.execute(db);
+        return res.rows.length > 0;
+      };
 
+      const takeSnapshot = async () => {
+        let couriersCount = 0;
+        let batchesCount = 0;
+        let batchesTotalAmount = 0;
+        let linesCount = 0;
+        let linesCollectedAmount = 0;
+        let shipmentsWithCourierCount = 0;
+
+        if (await checkTableExists('shipping_couriers')) {
+          const res = await sql<{ cnt: string | number }>`SELECT count(*) as cnt FROM ${sql.id(schema, 'shipping_couriers')}`.execute(db);
+          couriersCount = Number(res.rows[0]?.cnt || 0);
+        }
+
+        if (await checkTableExists('courier_settlement_batches')) {
+          const res = await sql<{ cnt: string | number; total: string | number }>`
+            SELECT count(*) as cnt, COALESCE(sum(total_amount), 0) as total FROM ${sql.id(schema, 'courier_settlement_batches')}
+          `.execute(db);
+          batchesCount = Number(res.rows[0]?.cnt || 0);
+          batchesTotalAmount = Number(res.rows[0]?.total || 0);
+        }
+
+        if (await checkTableExists('courier_settlement_lines')) {
+          const res = await sql<{ cnt: string | number; total: string | number }>`
+            SELECT count(*) as cnt, COALESCE(sum(collected_amount), 0) as total FROM ${sql.id(schema, 'courier_settlement_lines')}
+          `.execute(db);
+          linesCount = Number(res.rows[0]?.cnt || 0);
+          linesCollectedAmount = Number(res.rows[0]?.total || 0);
+        }
+
+        if ((await checkTableExists('shipments')) && (await checkColumnExists('shipments', 'courier_id'))) {
+          const res = await sql<{ cnt: string | number }>`
+            SELECT count(*) as cnt FROM ${sql.id(schema, 'shipments')} WHERE courier_id IS NOT NULL
+          `.execute(db);
+          shipmentsWithCourierCount = Number(res.rows[0]?.cnt || 0);
+        }
+
+        return {
+          couriersCount,
+          batchesCount,
+          batchesTotalAmount,
+          linesCount,
+          linesCollectedAmount,
+          shipmentsWithCourierCount,
+        };
+      };
+
+      const preSnapshot = await takeSnapshot();
+
+      // Safe non-destructive reconciliation:
+      // In Kysely, rename the migration row to archived legacy prefix so it avoids conflict with maritime 200
+      // while STRICTLY preserving all courier and settlement tables, columns, and data rows intact.
       await sql`
-        DELETE FROM ${sql.id(schema, 'kysely_migration')}
+        UPDATE ${sql.id(schema, 'kysely_migration')}
+        SET name = '2040000000199_legacy_reconciled_couriers_and_cod_settlements'
         WHERE name = '2040000000200_logistics_couriers_and_cod_settlements'
       `.execute(db);
+
+      const postSnapshot = await takeSnapshot();
+
+      if (
+        preSnapshot.couriersCount !== postSnapshot.couriersCount ||
+        preSnapshot.batchesCount !== postSnapshot.batchesCount ||
+        preSnapshot.batchesTotalAmount !== postSnapshot.batchesTotalAmount ||
+        preSnapshot.linesCount !== postSnapshot.linesCount ||
+        preSnapshot.linesCollectedAmount !== postSnapshot.linesCollectedAmount ||
+        preSnapshot.shipmentsWithCourierCount !== postSnapshot.shipmentsWithCourierCount
+      ) {
+        throw new Error(
+          `Migration reconciliation integrity check failed: Courier/settlement data loss detected! ` +
+          `Pre: ${JSON.stringify(preSnapshot)}, Post: ${JSON.stringify(postSnapshot)}`
+        );
+      }
     }
-  } catch {
-    // Best-effort reconciliation; do not block migrations if schema inspection fails
+  } catch (err: any) {
+    if (err.message && err.message.includes('Migration reconciliation integrity check failed')) {
+      throw err;
+    }
+    // Fail closed on unexpected migration runner errors
+    throw err;
   }
 }
 
