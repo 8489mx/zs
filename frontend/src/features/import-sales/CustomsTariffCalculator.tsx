@@ -6,19 +6,15 @@ import {
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import {
-  FileTextIcon,
   SearchIcon,
-  CheckCircleIcon,
-  AlertTriangleIcon,
   RefreshCwIcon,
   PlusCircleIcon,
-  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
 export default function CustomsTariffCalculator() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: tariffs = [], isLoading, refetch } = useCustomsTariffsQuery(searchTerm);
+  const { data: tariffs = [], refetch } = useCustomsTariffsQuery(searchTerm);
   const calculateCustomsMutation = useCalculateCustomsMutation();
   const upsertAciMutation = useUpsertAciComplianceMutation();
 
@@ -358,6 +354,16 @@ export default function CustomsTariffCalculator() {
                 value={importerTaxNo}
                 onChange={(e) => setImporterTaxNo(e.target.value)}
                 placeholder="السجل الضريبي للمنشأة"
+                style={{ width: '100%', height: 36, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>معرف المصدر الأجنبي</label>
+              <input
+                type="text"
+                value={exporterId}
+                onChange={(e) => setExporterId(e.target.value)}
+                placeholder="رقم تسجيل المصدر في CargoX"
                 style={{ width: '100%', height: 36, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
               />
             </div>

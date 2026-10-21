@@ -44,10 +44,17 @@ export interface ShipmentDetails extends Shipment {
 
 export interface CreateShipmentDto {
   containerNumber: string;
+  projectId?: string;
   arrivalDate?: string;
   supplierId?: string;
   billOfLading?: string;
   shippingDate?: string;
+  freightType?: string;
+  containerSize?: string;
+  portOfLoading?: string;
+  portOfDischarge?: string;
+  freeDemurrageDays?: number;
+  costAllocationMethod?: string;
 }
 
 export interface UpdateShipmentCostsDto {

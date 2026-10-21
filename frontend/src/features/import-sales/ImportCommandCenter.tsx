@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useImportCommandCenterQuery,
@@ -7,20 +6,13 @@ import {
 } from './api/shipments.api';
 import {
   TrendingUpIcon,
-  PackageIcon,
   ShieldAlertIcon,
   DollarSignIcon,
-  ClockIcon,
-  ArrowRightIcon,
   TruckIcon,
-  FileTextIcon,
   CheckCircleIcon,
   AlertTriangleIcon,
   PlusCircleIcon,
   RefreshCwIcon,
-  SearchIcon,
-  ChevronRightIcon,
-  UsersIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export default function ImportCommandCenter() {

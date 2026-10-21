@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { useCreateShipmentMutation, useImportProjectsQuery } from './api/shipments.api';
@@ -12,7 +11,6 @@ interface NewShipmentDialogProps {
 }
 
 export function NewShipmentDialog({ open, onClose }: NewShipmentDialogProps) {
-  const { t } = useTranslation();
   const [containerNumber, setContainerNumber] = useState('');
   const [projectId, setProjectId] = useState('');
   const [arrivalDate, setArrivalDate] = useState('');

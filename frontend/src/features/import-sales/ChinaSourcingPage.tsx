@@ -8,20 +8,16 @@ import {
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import {
-  ShieldAlertIcon,
   CheckCircleIcon,
-  FileTextIcon,
   RefreshCwIcon,
   PlusCircleIcon,
   SearchIcon,
-  SlidersIcon,
-  UsersIcon,
   AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
 export default function ChinaSourcingPage() {
-  const { data: suppliers = [], isLoading, refetch } = useChinaSuppliersQuery();
+  const { data: suppliers = [], refetch } = useChinaSuppliersQuery();
   const { data: qcInspections = [], refetch: refetchQc } = useQcInspectionsQuery();
   const upsertSupplierMetaMutation = useUpsertSupplierMetaMutation('');
   const createQcMutation = useCreateQcInspectionMutation();
