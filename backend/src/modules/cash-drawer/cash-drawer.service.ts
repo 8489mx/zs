@@ -663,9 +663,16 @@ export class CashDrawerService {
   async openCashierShift(payload: { openingCash?: number; note?: string; branchId?: number | string | null; locationId?: number | string | null }, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(auth);
     const { openingCash, note, branchId, locationId } = normalizeShiftOpenPayload(payload);
+    if (!Number.isFinite(openingCash) || openingCash < 0 || openingCash > 1_000_000_000_000) {
+      throw new AppError('رصيد الافتتاح يجب أن يكون رقماً صالحاً وغير سالب', 'OPENING_CASH_INVALID', 400);
+    }
+    for (const id of [branchId, locationId]) {
+      if (id !== null && (!Number.isSafeInteger(id) || id <= 0)) throw new AppError('Invalid branch/location ID', 'SHIFT_SCOPE_INVALID', 400);
+    }
     await this.tx.runInTransaction(this.db, async (trx) => {
+      let resolvedBranchId = branchId;
       // Serialize opens for the same cashier before checking for an existing shift.
-      const user = await trx.selectFrom('users').select('id')
+      const user = await trx.selectFrom('users').select(['id', 'default_branch_id'])
         .where('id', '=', auth.userId).where('tenant_id', '=', scope.tenantId)
         .forUpdate().executeTakeFirst();
       if (!user) throw new AppError('المستخدم غير موجود في المنشأة', 'CASHIER_NOT_FOUND', 404);
@@ -680,12 +687,23 @@ export class CashDrawerService {
         if (!location || (branchId != null && Number(location.branch_id) !== Number(branchId))) {
           throw new AppError('المخزن لا يتبع الفرع المحدد', 'SHIFT_LOCATION_MISMATCH', 400);
         }
+        if (resolvedBranchId == null && location.branch_id != null) resolvedBranchId = Number(location.branch_id);
+      }
+      if (!['owner', 'admin', 'super_admin'].includes(auth.role)) {
+        if (resolvedBranchId == null) throw new AppError('يجب فتح وردية في فرع مسند للمستخدم', 'SHIFT_BRANCH_REQUIRED', 403);
+        const assigned = await trx.selectFrom('user_branches')
+          .select('branch_id').where('tenant_id', '=', scope.tenantId)
+          .where('user_id', '=', auth.userId).where('branch_id', '=', resolvedBranchId)
+          .executeTakeFirst();
+        if (!assigned && Number(user.default_branch_id) !== resolvedBranchId) {
+          throw new AppError('الفرع غير مسند لهذا الكاشير', 'SHIFT_BRANCH_FORBIDDEN', 403);
+        }
       }
       const active = await trx.selectFrom('cashier_shifts').select('id')
         .where('tenant_id', '=', scope.tenantId).where('opened_by', '=', auth.userId)
         .where('status', '=', 'open').executeTakeFirst();
       if (active) throw new AppError('يوجد وردية مفتوحة بالفعل لهذا المستخدم', 'SHIFT_ALREADY_OPEN', 400);
-      const inserted = await sql<{ id?: number }>`insert into cashier_shifts (doc_no, branch_id, location_id, opened_by, opening_cash, opening_note, status, expected_cash, tenant_id, account_id) values (null, ${branchId}, ${locationId}, ${auth.userId}, ${openingCash}, ${note}, 'open', ${openingCash}, ${scope.tenantId}, ${scope.accountId}) returning id`.execute(trx);
+      const inserted = await sql<{ id?: number }>`insert into cashier_shifts (doc_no, branch_id, location_id, opened_by, opening_cash, opening_note, status, expected_cash, tenant_id, account_id) values (null, ${resolvedBranchId}, ${locationId}, ${auth.userId}, ${openingCash}, ${note}, 'open', ${openingCash}, ${scope.tenantId}, ${scope.accountId}) returning id`.execute(trx);
       const shiftId = Number(inserted.rows?.[0]?.id || 0);
       if (!shiftId) throw new AppError('Could not open cashier shift', 'SHIFT_OPEN_FAILED', 400);
       await sql`update cashier_shifts set doc_no = ${buildCashDrawerShiftDocNo(shiftId)} where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
