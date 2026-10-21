@@ -1757,9 +1757,7 @@ export class HrService {
         hourlyWorkByEmployee.set(employeeId, work);
         baseSalMap.set(employeeId, work.baseWage);
       } else {
-        baseSalMap.set(employeeId, payFreq === 'monthly'
-          ? Number(e.base_salary || 0)
-          : prorateMonthlyWage(Number(e.base_salary || 0), range.from, range.to));
+        baseSalMap.set(employeeId, prorateMonthlyWage(Number(e.base_salary || 0), range.from, range.to));
       }
     }
     const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId);
@@ -1782,7 +1780,8 @@ export class HrService {
       
       if (isHourly) {
         baseSalary = hourlyWorkByEmployee.get(employeeId)?.baseWage || 0;
-      } else if (payFreq !== 'monthly') {
+      } else {
+        // Partial monthly pay periods also require a proportionate base salary.
         baseSalary = prorateMonthlyWage(baseSalary, range.from, range.to);
       }
       
@@ -3483,7 +3482,7 @@ export class HrService {
       let actualDuration = 0;
       if (checkInActualTime && checkOutActualTime) {
         actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
-        if (actualDuration < 0) actualDuration = 0;
+        if (actualDuration < 0) actualDuration += 1440; // Overnight checkout.
       }
       if (actualDuration > 0) {
         entries.push(this.buildAttendanceException('extra_hours', employeeId, attendanceId || null, workDate, actualDuration, null, null));
@@ -3494,7 +3493,7 @@ export class HrService {
       let actualDuration = 0;
       if (checkInActualTime && checkOutActualTime) {
         actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
-        if (actualDuration < 0) actualDuration = 0; // Cross midnight edge case, ignored for now
+        if (actualDuration < 0) actualDuration += 1440; // Overnight checkout. // Cross midnight edge case, ignored for now
       } else if (checkInActualTime || checkOutActualTime) {
         // Missing a punch
         entries.push(this.buildAttendanceException(checkInActualTime ? 'missing_check_out' : 'missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn || scheduledCheckOut, checkInActualTime || checkOutActualTime));
@@ -3535,8 +3534,10 @@ export class HrService {
         } else if (delta > 0) {
           let eligibleForOvertime = true;
           if (scheduledCheckIn && checkInActualTime) {
-            const expectedDuration = timeToMinutes(scheduledCheckOut) - timeToMinutes(scheduledCheckIn);
-            const actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
+            let expectedDuration = timeToMinutes(scheduledCheckOut) - timeToMinutes(scheduledCheckIn);
+            let actualDuration = timeToMinutes(checkOutActualTime) - timeToMinutes(checkInActualTime);
+            if (expectedDuration < 0) expectedDuration += 1440;
+            if (actualDuration < 0) actualDuration += 1440;
             if (actualDuration < expectedDuration) eligibleForOvertime = false;
           }
           if (eligibleForOvertime) {

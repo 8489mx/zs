@@ -51,6 +51,9 @@ export function QuickCashAdvanceModal() {
   const employees = employeesData?.employees || [];
   const shifts = shiftData?.cashierShifts || [];
   const activeShift = shifts.find(shift => String(shift.id) === selectedShiftId);
+  useEffect(() => {
+    if (isOpen && shifts.length === 1 && !selectedShiftId) setSelectedShiftId(String(shifts[0].id));
+  }, [isOpen, shiftData, selectedShiftId]);
 
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -81,7 +84,7 @@ export function QuickCashAdvanceModal() {
       setFormError('يرجى اختيار الموظف.');
       return;
     }
-    if (!amount || Number(amount) <= 0) {
+    if (!amount || !Number.isFinite(Number(amount)) || Number(amount) <= 0 || Math.abs(Number(amount) * 100 - Math.round(Number(amount) * 100)) > 0.000001) {
       setFormError('يرجى إدخال مبلغ صحيح.');
       return;
     }
@@ -121,7 +124,7 @@ export function QuickCashAdvanceModal() {
             
             <label className="field field-wide">
               <span>{t('hr.quick_cash_advance_modal.s4', "المبلغ *")}</span>
-              <input type="number" min="1" step="any" value={amount} onChange={e => setAmount(e.target.value)} required />
+              <input type="number" min="0.01" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required />
             </label>
 
             <label className="field field-wide">

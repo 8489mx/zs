@@ -62,9 +62,11 @@ export function HrAttendancePage() {
   const [manualPrompt, setManualPrompt] = useState<ManualAttendancePrompt>(null);
   const [manualTimeInput, setManualTimeInput] = useState('');
 
+  const rangeDays = Math.floor((Date.parse(rangeTo + 'T00:00:00Z') - Date.parse(rangeFrom + 'T00:00:00Z')) / 86400000);
+  const validRange = !isRange || (Boolean(rangeFrom && rangeTo) && rangeDays >= 0 && rangeDays <= 92);
   const attendance = useHrAttendance(isRange
     ? { from: rangeFrom, to: rangeTo, search, page: rangePage, pageSize: 100 }
-    : { date, search, page: 1, pageSize: 200 });
+    : { date, search, page: 1, pageSize: 200 }, { enabled: validRange });
   const exceptions = useHrAttendanceExceptions({ month: exceptionMonth, search, page: 1, pageSize: 200 });
   const rows = useMemo(() => (attendance.data?.rows || []) as HrAttendanceRecord[], [attendance.data?.rows]);
   const allExceptionRows = useMemo(() => (exceptions.data?.rows || []) as HrAttendanceException[], [exceptions.data?.rows]);
@@ -342,7 +344,9 @@ export function HrAttendancePage() {
           </div>
 
           {/* Active View Content */}
-          {activeTab === 'attendance' ? (
+          {activeTab === 'attendance' && !validRange ? (
+            <p className="error-box">اختر بداية ونهاية صحيحتين لفترة لا تزيد عن 93 يومًا.</p>
+          ) : activeTab === 'attendance' ? (
             <QueryFeedback
               isLoading={attendance.isLoading}
               isError={attendance.isError}

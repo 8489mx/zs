@@ -362,17 +362,15 @@ export function reconcilePayrollRunJournalTotals(items: PayrollLineItemOutput[])
   let otherIncomePenaltiesCredit = 0;
 
   for (const item of items) {
-    grossSalariesExpense = toMoney(grossSalariesExpense + item.grossPay);
+    grossSalariesExpense = toMoney(grossSalariesExpense + item.grossPay - item.attendanceDeduction - item.leaveDeduction - item.otherDeductions);
     employerInsuranceExpense = toMoney(employerInsuranceExpense + item.employerSocialInsurance);
     netPayable = toMoney(netPayable + item.netPay);
     employeeInsuranceTotal = toMoney(employeeInsuranceTotal + item.employeeSocialInsurance);
     incomeTaxPayable = toMoney(incomeTaxPayable + item.incomeTax);
     loanAdvancesCredit = toMoney(loanAdvancesCredit + item.appliedLoanDeduction);
 
-    const operationalDeductions = toMoney(
-      item.attendanceDeduction + item.leaveDeduction + item.assetRecoveryDeduction + item.otherDeductions
-    );
-    otherIncomePenaltiesCredit = toMoney(otherIncomePenaltiesCredit + operationalDeductions);
+    // Recoveries remain separate; attendance/leave wage reductions offset salary expense.
+    otherIncomePenaltiesCredit = toMoney(otherIncomePenaltiesCredit + item.assetRecoveryDeduction);
   }
 
   const socialInsurancePayable = toMoney(employeeInsuranceTotal + employerInsuranceExpense);

@@ -21,7 +21,7 @@ export function AttendanceRangeTable({ rows }: { rows: HrAttendanceRecord[] }) {
         { key: 'in', header: 'الحضور', cell: row => row.checkInAt?.slice(11, 16) || '—' },
         { key: 'out', header: 'الانصراف', cell: row => row.checkOutAt?.slice(11, 16) || '—' },
         { key: 'hours', header: 'ساعات التشغيل', cell: duration },
-        { key: 'payableHours', header: 'ساعات الأجر المبدئية', cell: row => row.compensationType === 'hourly' ? duration(row) : 'مرتب ثابت' },
+        { key: 'payableHours', header: 'ساعات الأجر المبدئية', cell: row => row.compensationType === 'hourly' ? duration(row) : 'راتب شهري' },
         { key: 'status', header: 'الحالة', cell: row => row.status || '—' },
       ]}
     />

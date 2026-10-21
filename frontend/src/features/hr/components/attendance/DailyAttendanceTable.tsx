@@ -20,6 +20,18 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
   onSaveRow,
 }) => {
   const { t } = useTranslation();
+  const workedHours = (row: HrAttendanceRecord) => {
+    const draft = draftByEmployeeId[String(row.employeeId)];
+    const checkIn = draft?.checkInAt || row.checkInAt?.slice(11, 16) || '';
+    const checkOut = draft?.checkOutAt || row.checkOutAt?.slice(11, 16) || '';
+    if (!checkIn || !checkOut) return '—';
+    const [ih, im] = checkIn.split(':').map(Number);
+    const [oh, om] = checkOut.split(':').map(Number);
+    if (![ih, im, oh, om].every(Number.isFinite)) return '—';
+    const start = ih * 60 + im, end = oh * 60 + om;
+    const minutes = end <= start ? end + 1440 - start : end - start;
+    return `${Math.floor(minutes / 60)} س ${minutes % 60} د`;
+  };
   return (
     <DataTable
       rows={rows}
@@ -59,23 +71,13 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
           key: 'duration',
           header: 'ساعات التشغيل',
           className: 'col-fit',
-          cell: row => {
-            const draft = draftByEmployeeId[String(row.employeeId)];
-            const checkIn = draft?.checkInAt || row.checkInAt?.slice(11, 16) || '';
-            const checkOut = draft?.checkOutAt || row.checkOutAt?.slice(11, 16) || '';
-            if (!checkIn || !checkOut) return '—';
-            const [ih, im] = checkIn.split(':').map(Number);
-            const [oh, om] = checkOut.split(':').map(Number);
-            const start = ih * 60 + im, end = oh * 60 + om;
-            const minutes = end <= start ? end + 1440 - start : end - start;
-            return `${Math.floor(minutes / 60)} س ${minutes % 60} د`;
-          },
+          cell: workedHours,
         },
         {
           key: 'paidHours',
           header: 'ساعات الأجر',
           className: 'col-fit',
-          cell: row => row.compensationType === 'hourly' ? 'حسب ساعات الحضور' : 'مرتب ثابت',
+          cell: row => row.compensationType === 'hourly' ? workedHours(row) : 'راتب شهري',
         },
         {
           key: 'status',
