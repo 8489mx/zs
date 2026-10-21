@@ -1316,6 +1316,29 @@ async function runTests() {
     }
     assert.ok(missingKeyRejected, 'Foreign transfer must require idempotency key');
 
+    // A zero-FX-variance transfer must not require either FX gain or FX loss accounts.
+    await db.updateTable('accounting_accounts')
+      .set({ is_active: false })
+      .where('tenant_id', '=', tenantId)
+      .where('code', 'in', ['5201', '4201']).execute();
+    const zeroFxTransfer = await service.recordForeignTransfer(tenantId, userId, {
+      supplierId: String(supplier.id),
+      amountForeign: 10,
+      amountEgp: 500,
+      currency: 'USD',
+      exchangeRateContract: 50,
+      idempotencyKey: 'INDEPENDENT-AUDIT-ZERO-FX',
+    });
+    assert.strictEqual(zeroFxTransfer.forexVarianceEgp, 0);
+    const zeroFxLines = await db.selectFrom('journal_entry_lines').selectAll()
+      .where('journal_entry_id', '=', zeroFxTransfer.journalEntryId).execute();
+    assert.strictEqual(zeroFxLines.length, 2, 'No realized FX journal when exchange variance is zero');
+    await db.updateTable('accounting_accounts')
+      .set({ is_active: true })
+      .where('tenant_id', '=', tenantId)
+      .where('code', 'in', ['5201', '4201']).execute();
+
+
     // Negative 7-C: Operation in locked accounting period rejected
     await db
       .updateTable('accounting_settings')

@@ -1946,9 +1946,10 @@ export class ImportSalesService {
       const bankScope = await trx.selectFrom('accounting_accounts')
         .select('account_id').where('tenant_id', '=', tenantId).where('id', '=', bankAccountId)
         .executeTakeFirstOrThrow();
-      const forexLossAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_loss');
-      const forexGainAccountId = await this.resolveTenantAccount(trx, tenantId, 'forex_gain');
-
+      // FX gain/loss COA roles are resolved only when the transaction actually
+      // produces that sign of variance; zero-variance payments do not require
+      // unused gain/loss accounts to exist.
+      
       // 4. Exact Base Currency (EGP) Accounting Entries without mixing foreign units
       const effectiveRateContract = exchangeRateContract && exchangeRateContract > 0
         ? exchangeRateContract
@@ -2062,7 +2063,7 @@ export class ImportSalesService {
       // Line 2: Realized Forex Variance in EGP (Debit if Loss, Credit if Gain)
       if (forexVarianceEgp > 0.001) {
         lines.push({
-          accountId: forexLossAccountId,
+          accountId: await this.resolveTenantAccount(trx, tenantId, 'forex_loss'),
           description: `فروق سعر صرف محققة (خسارة) على حوالة FT-${paymentId}`,
           debit: forexVarianceEgp,
           credit: 0,
@@ -2073,7 +2074,7 @@ export class ImportSalesService {
         });
       } else if (forexVarianceEgp < -0.001) {
         lines.push({
-          accountId: forexGainAccountId,
+          accountId: await this.resolveTenantAccount(trx, tenantId, 'forex_gain'),
           description: `فروق سعر صرف محققة (أرباح) على حوالة FT-${paymentId}`,
           debit: 0,
           credit: Math.abs(forexVarianceEgp),
