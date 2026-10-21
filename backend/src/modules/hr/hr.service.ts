@@ -1556,10 +1556,9 @@ export class HrService {
     return { runId: Number(row.run_id), runStatus: clean(row.run_status), itemStatus: clean(row.item_status) };
   }
 
-  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number, periodMonth: string, tenantId: string): Promise<{ amount: number; notes: string[] }> {
-    const normalizedMonth = normalizePayrollMonth(periodMonth);
-    if (!normalizedMonth) return { amount: 0, notes: ['Payroll month is invalid for loan deduction'] };
-    const range = monthRange(normalizedMonth);
+  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number, periodEndDate: string, tenantId: string): Promise<{ amount: number; notes: string[] }> {
+    const dueCutoff = normalizeDateOnly(periodEndDate);
+    if (!dueCutoff) throw new AppError('تاريخ نهاية فترة المسير غير صحيح', 'HR_PAYROLL_PERIOD_END_INVALID', 400);
     const result = await sql<Record<string, unknown>>`
       SELECT
         i.loan_id,
@@ -1574,7 +1573,7 @@ export class HrService {
         AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
         AND l.status IN ('paid', 'partially_repaid', 'disbursed')
         AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
-        AND COALESCE(i.due_date, l.first_due_date, l.salary_due_date) <= ${range.to}::date
+        AND COALESCE(i.due_date, l.first_due_date, l.salary_due_date) <= ${dueCutoff}::date
       ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC
     `.execute(db);
     let total = 0;
@@ -1790,7 +1789,7 @@ export class HrService {
       
       const compensationAllowance = money(employee.allowance_amount);
       const compensationDeduction = money(employee.deduction_amount);
-      const loanDeduction = await this.calculateLoanDeduction(db, employeeId, periodMonth, tenantId);
+      const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
         SELECT id, adjustment_type, amount_type, amount, accounting_category
@@ -1976,11 +1975,19 @@ export class HrService {
       GROUP BY employee_id
     `.execute(db);
 
+    // Restrict approved leave days to the payroll interval. Previously a
+    // leave spanning two months deducted its FULL days_count in both runs.
+    const leaveDaysInRange = sql<number>`
+      (COALESCE(lr.days_count, 0) * (
+        GREATEST(0, LEAST(lr.end_date, ${range.to}::date) - GREATEST(lr.start_date, ${range.from}::date) + 1)::numeric
+        / GREATEST(1, lr.end_date - lr.start_date + 1)
+      ))
+    `;
     const leaveResult = await sql<Record<string, unknown>>`
       SELECT
         lr.employee_id,
-        COALESCE(SUM(lr.days_count), 0) AS approved_leave_days,
-        COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN lr.days_count ELSE 0 END), 0) AS unpaid_leave_days
+        COALESCE(SUM(${leaveDaysInRange}), 0) AS approved_leave_days,
+        COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN ${leaveDaysInRange} ELSE 0 END), 0) AS unpaid_leave_days
       FROM hr_leave_requests lr
       LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id AND lt.tenant_id = lr.tenant_id
       WHERE lr.employee_id IN (${sql.join(employeeIds)}) AND lr.tenant_id = ${tenantId}
@@ -2368,56 +2375,71 @@ export class HrService {
   }
 
   async createPayrollRun(payload: CreatePayrollRunDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId } = requireTenantScope(auth);
     const periodMonth = normalizePayrollMonth(payload.periodMonth);
     if (!periodMonth) throw new AppError('Payroll month must use YYYY-MM format', 'HR_PAYROLL_MONTH_INVALID', 400);
-    
     const payFreq = clean(payload.payFrequency) || 'monthly';
-    const sDate = clean(payload.startDate) || `${periodMonth}-01`;
-    // If end_date is not provided, we calculate the last day of the month using sql, but for simplicity we can just rely on the frontend sending valid dates or handle it in the DB.
-    // Let's assume the frontend sends startDate and endDate. If not, default to the month range.
-    
+    if (!['daily', 'weekly', 'biweekly', 'monthly'].includes(payFreq)) {
+      throw new AppError('دورية صرف المرتب غير صحيحة', 'HR_PAYROLL_FREQUENCY_INVALID', 400);
+    }
+    const month = monthRange(periodMonth);
+    const startDate = payload.startDate ? normalizeDateOnly(payload.startDate) : month.from;
+    const endDate = payload.endDate ? normalizeDateOnly(payload.endDate) : month.to;
+    const periodLengthDays = Math.floor(
+      (Date.parse(endDate + 'T00:00:00Z') - Date.parse(startDate + 'T00:00:00Z')) / 86400000
+    );
+    if (!startDate || !endDate || !Number.isFinite(periodLengthDays) || periodLengthDays < 0 || periodLengthDays > 366) {
+      throw new AppError('اختر تاريخ بداية ونهاية صحيحين لفترة القبض', 'HR_PAYROLL_PERIOD_INVALID', 400);
+    }
+
     let runId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const existing = await sql<{ id: number; status: string }>`
-        SELECT id, status
+      // The old month-only uniqueness silently reused a WEEKLY run for every
+      // subsequent week. Serialize overlapping period checks within tenant/frequency.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId + ':' + payFreq}))`.execute(trx);
+      const overlapping = await sql<{
+        id: number; status: string; period_month: string;
+        start_date_text: string; end_date_text: string;
+      }>`
+        SELECT id, status, period_month,
+          to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
+          to_char(end_date, 'YYYY-MM-DD') AS end_date_text
         FROM hr_payroll_runs
-        WHERE tenant_id = ${auth.tenantId}
-          AND period_month = ${periodMonth}
-          AND status <> 'cancelled'
+        WHERE tenant_id = ${tenantId}
           AND pay_frequency = ${payFreq}
+          AND status <> 'cancelled'
+          AND start_date <= ${endDate}::date
+          AND end_date >= ${startDate}::date
         ORDER BY id DESC
-        LIMIT 1
+        FOR UPDATE
       `.execute(trx);
 
-      if (existing.rows.length > 0) {
-        const row = existing.rows[0];
-        if (row.status === 'paid') {
+      if (overlapping.rows.some(row => row.start_date_text !== startDate || row.end_date_text !== endDate)) {
+        throw new AppError('يوجد كشف مرتبات آخر يتداخل مع هذه الفترة. اختر فترة غير متداخلة لمنع تكرار الصرف.', 'HR_PAYROLL_PERIOD_OVERLAP', 409);
+      }
+      const existing = overlapping.rows[0];
+      if (existing) {
+        if (existing.period_month !== periodMonth) {
+          throw new AppError('هذه الفترة موجودة بالفعل تحت شهر مرتب مختلف', 'HR_PAYROLL_MONTH_CONFLICT', 409);
+        }
+        if (existing.status === 'paid') {
           throw new AppError('مسير الرواتب لهذه الفترة تم صرفه وإغلاقه بالفعل', 'HR_PAYROLL_ALREADY_PAID', 400);
         }
-        if (row.status === 'approved') {
-          throw new AppError('مسير الرواتب لهذه الفترة معتمد بالفعل وجاهز للصرف', 'HR_PAYROLL_ALREADY_APPROVED', 400);
+        if (existing.status === 'approved') {
+          throw new AppError('مسير الرواتب لهذه الفترة معتمد وجاهز للصرف', 'HR_PAYROLL_ALREADY_APPROVED', 400);
         }
-        runId = Number(row.id);
-      }
-
-      if (!runId) {
-        const eDate = clean(payload.endDate);
-        let finalEndDate = eDate;
-        if (!finalEndDate) {
-          const [y, m] = periodMonth.split('-');
-          const lastDay = new Date(Number(y), Number(m), 0).getDate();
-          finalEndDate = `${periodMonth}-${String(lastDay).padStart(2, '0')}`;
-        }
+        runId = Number(existing.id);
+      } else {
         const inserted = await sql<{ id: number }>`
           INSERT INTO hr_payroll_runs (tenant_id, account_id, period_month, start_date, end_date, pay_frequency, status, notes, created_by)
-          VALUES (${auth.tenantId}, ${auth.accountId}, ${periodMonth}, ${sDate}, ${finalEndDate}, ${payFreq}, 'draft', ${clean(payload.notes)}, ${auth.userId})
+          VALUES (${tenantId}, ${auth.accountId}, ${periodMonth}, ${startDate}::date, ${endDate}::date, ${payFreq}, 'draft', ${clean(payload.notes)}, ${auth.userId})
           RETURNING id
         `.execute(trx);
         runId = Number(inserted.rows[0]?.id || 0);
-        await this.rebuildPayrollRunItems(trx, runId, 'draft', auth.tenantId || '');
+        await this.rebuildPayrollRunItems(trx, runId, 'draft', tenantId);
       }
     });
-    await this.audit.log('Create HR payroll run', `Payroll run ${periodMonth} prepared by ${auth.username}`, auth);
+    await this.audit.log('Create HR payroll run', `Payroll ${periodMonth} [${startDate}..${endDate}] prepared by ${auth.username}`, auth);
     return this.getPayrollRun(runId, auth);
   }
 
