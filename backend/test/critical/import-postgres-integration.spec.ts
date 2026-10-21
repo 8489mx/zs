@@ -730,6 +730,27 @@ async function runTests() {
   const service = new ImportSalesService(db as any);
   const tenantId = 'tenant-audit-1';
   const userId = 101;
+  // Permission enforcement must precede other closure checks.
+  let missingClosureApprovalRejected = false;
+  try {
+    await service.closeProject(tenantId, userId, '00000000-0000-0000-0000-000000000001');
+  } catch (err: any) {
+    missingClosureApprovalRejected = true;
+    assert.ok(String(err.message).includes('Maker-Checker'), 'Expected missing project-closure approval, not a missing-project error');
+  }
+  assert.ok(missingClosureApprovalRejected, 'Project closure is never allowed without an approved token');
+  let incompletePartnerApprovalRejected = false;
+  try {
+    await service.createApprovalRequest(tenantId, userId, {
+      actionType: 'partner_distribution',
+      referenceId: '00000000-0000-0000-0000-000000000002',
+      requestPayload: { amount: 15000 },
+    });
+  } catch (err: any) {
+    incompletePartnerApprovalRejected = true;
+    assert.ok(String(err.message).includes('partnerId'), 'Approval request should fail because project/partner identity is missing');
+  }
+  assert.ok(incompletePartnerApprovalRejected, 'An incomplete maker-checker payload must never be accepted');
   await (db as any).insertInto('users').values([
     { id: 101, tenant_id: tenantId, username: 'audit_maker', password_hash: 'test', role: 'admin' },
     { id: 102, tenant_id: tenantId, username: 'audit_checker', password_hash: 'test', role: 'admin' },
@@ -1176,6 +1197,21 @@ async function runTests() {
     // 60 units sold (60%) -> 6,000 COGS, 40 units on hand (40%) -> 4,000 Inventory
     assert.strictEqual(res.allocation.lateCogsAdjustmentEgp, 6000);
     assert.strictEqual(res.allocation.lateInventoryAdjustmentEgp, 4000);
+    const lateDocuments = await db.selectFrom('import_late_expense_documents').selectAll()
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipment.id).execute();
+    assert.strictEqual(lateDocuments.length, 1, 'Each late expense has one immutable source document');
+    assert.ok(Number(lateDocuments[0].serial_id) > 0, 'Never post a zero-valued journal source');
+    const lateGl = await db.selectFrom('journal_entries').selectAll()
+      .where('tenant_id', '=', tenantId).where('source_type', '=', 'import_late_expense')
+      .where('source_id', '=', Number(lateDocuments[0].serial_id)).executeTakeFirstOrThrow();
+    assert.strictEqual(Number(lateDocuments[0].journal_entry_id), Number(lateGl.id));
+    const lateRetry = await service.processLateShipmentExpense(tenantId, userId, shipment.id, {
+      idempotencyKey: 'AUDIT-LATE-0-1', title: 'Late Detention & Terminal Charges', lateExpenseAmount: 10000,
+    });
+    assert.ok('replayed' in lateRetry && lateRetry.replayed === true, 'Same key must not capitalize the same expense twice');
+    const lateDocsAfterReplay = await db.selectFrom('import_late_expense_documents').select('id')
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipment.id).execute();
+    assert.strictEqual(lateDocsAfterReplay.length, 1);
 
     // Verify journal entry lines created with dynamically resolved accounts
     const je = await db
@@ -1205,6 +1241,28 @@ async function runTests() {
     assert.strictEqual(Number(lineAp.account_id), accounts['2110'], 'Payable account must match dynamic resolution');
 
     console.log('PASS: Late shipment expense dynamic COA resolution and IAS 2 split verified.');
+
+    // Regression: fully-capitalized expense creates NO operating-expense row,
+    // but MUST have a durable nonzero journal source instead of sourceId: 0.
+    await db.updateTable('import_shipment_items')
+      .set({ received_quantity: 40 })
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipment.id).execute();
+    const fullyCapitalized = await service.processLateShipmentExpense(tenantId, userId, shipment.id, {
+      idempotencyKey: 'AUDIT-LATE-0-ALL-INVENTORY',
+      title: 'Post-receipt expense fully attributed to on-hand inventory',
+      lateExpenseAmount: 1000,
+    });
+    assert.strictEqual(fullyCapitalized.allocation.lateCogsAdjustmentEgp, 0);
+    assert.strictEqual(fullyCapitalized.allocation.lateInventoryAdjustmentEgp, 1000);
+    const allInventoryDoc = await db.selectFrom('import_late_expense_documents').selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('idempotency_key', '=', 'AUDIT-LATE-0-ALL-INVENTORY').executeTakeFirstOrThrow();
+    assert.ok(Number(allInventoryDoc.serial_id) > 0);
+    const allInventoryJournal = await db.selectFrom('journal_entries').selectAll()
+      .where('tenant_id', '=', tenantId).where('source_type', '=', 'import_late_expense')
+      .where('source_id', '=', Number(allInventoryDoc.serial_id)).executeTakeFirstOrThrow();
+    assert.ok(Number(allInventoryJournal.id) > 0);
+
   }
 
   // -------------------------------------------------------------
@@ -1688,6 +1746,25 @@ async function runTests() {
     const remaining2 = Number(depRow2.deposit_amount_egp) - Number(depRow2.refunded_amount_egp) - Number(depRow2.deductions_amount_egp);
     assert.strictEqual(remaining2, 0);
     assert.strictEqual(depRow2.refund_status, 'refunded');
+    const refundEvents = await db.selectFrom('import_container_refund_events').selectAll()
+      .where('tenant_id', '=', tenantId).where('deposit_id', '=', depositId)
+      .orderBy('serial_id', 'asc').execute();
+    assert.strictEqual(refundEvents.length, 2, 'Two partial refunds create exactly two immutable events');
+    assert.notStrictEqual(Number(refundEvents[0].serial_id), Number(refundEvents[1].serial_id),
+      'Each partial refund must have its own journal source identity');
+    assert.notStrictEqual(Number(refundEvents[0].journal_entry_id), Number(refundEvents[1].journal_entry_id),
+      'Each partial refund must post a separate balanced journal');
+    assert.ok(Number(refundEvents[0].treasury_transaction_id) > 0);
+    assert.ok(Number(refundEvents[1].treasury_transaction_id) > 0);
+
+    const duplicateRetry = await service.recordContainerReturnAndRefund(tenantId, userId, depositId, {
+      idempotencyKey: 'AUDIT-REFUND-0-3', actualReturnDate: '2026-03-14',
+      refundedAmountEgp: 15000, deductionsAmountEgp: 0,
+    });
+    assert.ok('replayed' in duplicateRetry && duplicateRetry.replayed === true, 'Retry after full refund must replay, not post another journal');
+    const refundEventsAfterReplay = await db.selectFrom('import_container_refund_events').select('id')
+      .where('tenant_id', '=', tenantId).where('deposit_id', '=', depositId).execute();
+    assert.strictEqual(refundEventsAfterReplay.length, 2);
 
     // Negative: attempting to refund on fully refunded deposit
     let duplicateRefundBlocked = false;

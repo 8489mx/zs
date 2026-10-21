@@ -2022,6 +2022,32 @@ export class ImportSalesService {
       returnCost = Number(returnData?.return_cost || 0);
     }
 
+    if (projectId) {
+      // Legacy NULL-location lots have no defensible sale-to-warehouse provenance.
+      // NEVER certify distributable profit from a guessed source.
+      const missingWarehouse = await qb.selectFrom('import_inventory_lots')
+        .select('id').where('tenant_id', '=', tenantId)
+        .where('project_id', '=', projectId)
+        .where('location_id', 'is', null).executeTakeFirst();
+      if (missingWarehouse) {
+        profitAttributionVerified = false;
+        attributionStatus = 'UNRECONCILED_LEGACY_WAREHOUSE';
+      } else if (attributionStatus === 'NO_SALES_RECORDED' && projectProductIds.length > 0) {
+        // A shared SKU may have been sold without an import allocation. Do not
+        // call this verified 'zero sales' if there is an unattributed candidate.
+        const possibleSale = await qb.selectFrom('sales')
+          .innerJoin('sale_items', 'sale_items.sale_id', 'sales.id')
+          .select('sales.id').where('sales.tenant_id', '=', tenantId)
+          .where('sales.status', '!=', 'cancelled')
+          .where('sales.created_at', '>=', start).where('sales.created_at', '<=', end)
+          .where('sale_items.product_id', 'in', projectProductIds).executeTakeFirst();
+        if (possibleSale) {
+          profitAttributionVerified = false;
+          attributionStatus = 'UNATTRIBUTED_SHARED_SKU_SALES';
+        }
+      }
+    }
+
     const netSalesRevenue = totalRevenue - totalDiscounts - returnRevenue;
     const netCogs = totalCost - returnCost;
     const grossProfit = netSalesRevenue - netCogs;
@@ -3238,10 +3264,7 @@ export class ImportSalesService {
       const startDate = project.created_at || new Date('2020-01-01');
       const profitReport = await this.generatePeriodProfitReport(tenantId, startDate, new Date(), projectId, trx);
 
-      if (
-        !profitReport.data.profitAttributionVerified &&
-        (profitReport.data.grossSalesRevenue > 0 || profitReport.data.salesReturnsRevenue > 0)
-      ) {
+      if (!profitReport.data.profitAttributionVerified) {
         throw new UnprocessableEntityException(
           'لا يمكن اعتماد إقفال مالي نهائي لمشروع لديه مبيعات قبل إثبات مصدر الكميات المباعة وتسوية ربحية الشحنة.'
         );
