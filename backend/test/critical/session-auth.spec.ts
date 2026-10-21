@@ -72,6 +72,13 @@ class FakeDb {
     public userBranches: UserBranchRow[] = [],
   ) {}
 
+  // Password changes update the password record and revoke other sessions atomically.
+  // Model that transaction boundary in the fake DB instead of removing the production
+  // transaction to satisfy a test double.
+  transaction() {
+    return { execute: async <T>(callback: (trx: FakeDb) => Promise<T>): Promise<T> => callback(this) };
+  }
+
   selectFrom(table: string) {
     if (table === 'users') return new UsersSelectBuilder(this);
     if (table === 'settings') return new SettingsSelectBuilder(this);
