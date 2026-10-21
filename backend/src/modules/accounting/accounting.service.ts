@@ -730,7 +730,7 @@ export class AccountingService {
     }
   }
 
-  async createManualJournalEntry(dto: CreateManualJournalEntryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async createManualJournalEntry(dto: CreateManualJournalEntryDto, auth: AuthContext, externalTrx?: Kysely<Database>): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
     await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
@@ -837,7 +837,7 @@ export class AccountingService {
     const userId = Number(auth.userId) || null;
     const branchId = dto.branchId ? Number(dto.branchId) : null;
 
-    const result = await this.db.transaction().execute(async (trx) => {
+    const writeJournal = async (trx: Kysely<Database>) => {
       const tempEntryNo = `JE-MANUAL-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
       const inserted = await trx
         .insertInto('journal_entries')
@@ -894,7 +894,8 @@ export class AccountingService {
         totalDebit,
         totalCredit,
       };
-    });
+    };
+    const result = externalTrx ? await writeJournal(externalTrx) : await this.db.transaction().execute(writeJournal);
 
     return {
       ok: true,
@@ -3128,8 +3129,10 @@ export class AccountingService {
 
   async reconcileMatch(dto: ReconcileMatchDto, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);
+    return this.db.transaction().execute((trx) => this.reconcileMatchInTransaction(trx, dto, auth));
+  }
 
-    return this.db.transaction().execute(async (trx: any) => {
+  private async reconcileMatchInTransaction(trx: any, dto: ReconcileMatchDto, auth: AuthContext): Promise<any> {
       // 1. Lock and fetch statement line
       const sLine = await trx
         .selectFrom('bank_statement_lines as bsl')
@@ -3220,7 +3223,6 @@ export class AccountingService {
         .execute();
 
       return { success: true, message: 'تمت مطابقة السطر البنكي مع القيد المحاسبي بنجاح.' };
-    });
   }
 
   async unreconcileMatch(statementLineId: number, auth: AuthContext): Promise<any> {
@@ -3273,61 +3275,53 @@ export class AccountingService {
 
   async createBankFeeAdjustment(dto: CreateBankFeeAdjustmentDto, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    return this.db.transaction().execute(async (trx) => {
+      const sLine = await (trx as any)
+        .selectFrom('bank_statement_lines as bsl')
+        .innerJoin('bank_statements as bs', 'bs.id', 'bsl.statement_id')
+        .where('bsl.id', '=', dto.statementLineId)
+        .where(this.tenantPredicate(auth, 'bsl'))
+        .where(this.tenantPredicate(auth, 'bs'))
+        .select(['bsl.id', 'bsl.amount', 'bsl.line_date', 'bsl.description', 'bsl.is_reconciled', 'bs.account_id'])
+        .forUpdate().executeTakeFirst();
 
-    const sLine = await (this.db as any)
-      .selectFrom('bank_statement_lines as bsl')
-      .innerJoin('bank_statements as bs', 'bs.id', 'bsl.statement_id')
-      .where('bsl.id', '=', dto.statementLineId)
-      .where(this.tenantPredicate(auth, 'bsl'))
-      .select(['bsl.id', 'bsl.amount', 'bsl.line_date', 'bsl.description', 'bs.account_id'])
-      .executeTakeFirst();
+      if (!sLine) throw new NotFoundException('سطر كشف الحساب غير موجود.');
+      if (sLine.is_reconciled) throw new BadRequestException('سطر كشف الحساب مطابق بالفعل.');
+      const signedAmount = Number(sLine.amount);
+      if (!Number.isFinite(signedAmount) || signedAmount >= 0) {
+        throw new BadRequestException('عمولة البنك يجب أن تكون حركة خصم سالبة.');
+      }
+      const feeAmount = this.toMoney(Math.abs(signedAmount));
+      if (feeAmount <= 0) throw new BadRequestException('مبلغ العمولة غير صالح.');
 
-    if (!sLine) throw new NotFoundException('سطر كشف الحساب غير موجود.');
-
-    const feeAmount = Math.abs(Number(sLine.amount));
-    if (feeAmount <= 0) throw new BadRequestException('مبلغ العمولة أو المصروف يجب أن يكون أكبر من صفر.');
-
-    // Create journal entry: Debit Expense, Credit Bank
-    const entryResult = await this.createManualJournalEntry({
-      entryDate: String(sLine.line_date).slice(0, 10),
-      description: dto.description || `مصاريف وعمولات بنكية - كشف حساب (${sLine.description})`,
-      lines: [
-        {
-          accountId: dto.expenseAccountId,
-          description: dto.description || 'مصاريف وعمولات بنكية',
-          debit: feeAmount,
-          credit: 0,
-        },
-        {
-          accountId: Number(sLine.account_id),
-          description: dto.description || 'مصاريف وعمولات بنكية خصماً من الحساب',
-          debit: 0,
-          credit: feeAmount,
-        },
-      ],
-    }, auth);
-
-    // Find the bank credit line in the newly created entry
-    const entryId = Number((entryResult as any)?.entry?.id);
-    const createdBankLine = await (this.db as any)
-      .selectFrom('journal_entry_lines')
-      .select(['id'])
-      .where('journal_entry_id', '=', entryId)
-      .where('tenant_id', '=', requireTenantScope(auth).tenantId)
-      .where('account_id', '=', Number(sLine.account_id))
-      .executeTakeFirst();
-
-    if (createdBankLine) {
-      await this.reconcileMatch({
+      const entryResult = await this.createManualJournalEntry({
+        entryDate: String(sLine.line_date).slice(0, 10),
+        description: dto.description || `مصاريف وعمولات بنكية - كشف حساب (${sLine.description})`,
+        lines: [
+          { accountId: dto.expenseAccountId, description: dto.description || 'مصاريف وعمولات بنكية', debit: feeAmount, credit: 0 },
+          { accountId: Number(sLine.account_id), description: dto.description || 'مصاريف وعمولات بنكية خصماً من الحساب', debit: 0, credit: feeAmount },
+        ],
+      }, auth, trx);
+      const entryId = Number((entryResult as any)?.entry?.id);
+      const bankCreditLine = await trx.selectFrom('journal_entry_lines')
+        .select(['id'])
+        .where('journal_entry_id', '=', entryId)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', Number(sLine.account_id))
+        .where('credit', '=', feeAmount)
+        .executeTakeFirst();
+      if (!bankCreditLine) throw new BadRequestException('لم يتم إنشاء سطر بنك صالح لقيد العمولة.');
+      // Both writes rollback together on any reconciliation error; no orphan journal.
+      await this.reconcileMatchInTransaction(trx, {
         statementLineId: dto.statementLineId,
-        journalLineId: Number(createdBankLine.id),
+        journalLineId: Number(bankCreditLine.id),
       }, auth);
-    }
-
-    return {
-      success: true,
-      message: 'تم إنشاء قيد المصاريف البنكية ومطابقته فورياً.',
-      journalEntryId: entryId,
-    };
+      return {
+        success: true,
+        message: 'تم إنشاء قيد المصاريف البنكية ومطابقته فورياً.',
+        journalEntryId: entryId,
+      };
+    });
   }
 }
