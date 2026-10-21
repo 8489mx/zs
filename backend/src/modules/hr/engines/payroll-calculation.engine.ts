@@ -255,6 +255,9 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
 
   // 1. Statutory deductions
   const statutoryTotal = toMoney(employeeSocialInsurance + incomeTax);
+  if (!Number.isFinite(grossPay) || !Number.isFinite(statutoryTotal) || statutoryTotal > grossPay) {
+    throw new RangeError(`Payroll employee #${input.employeeId}: statutory deductions exceed gross earnings; fix insurance/tax configuration`);
+  }
 
   // 2. Deduction ceiling rule (Labor Law 50% cap or policy cap)
   const maxDeductionCapPct = input.maxDeductionPct && input.maxDeductionPct > 0 ? input.maxDeductionPct : 0.50;

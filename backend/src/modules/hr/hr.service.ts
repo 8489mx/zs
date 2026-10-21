@@ -1846,6 +1846,11 @@ export class HrService {
       const employerSocialInsurance = Number(review?.suggestedEmployerInsuranceAmount || 0);
       const incomeTax = Number(review?.suggestedIncomeTaxDeductionAmount || 0);
 
+      // A zero/low wage must not silently absorb statutory deductions then
+      // create an unbalanced GL entry when the payroll is approved.
+      if (employeeSocialInsurance + incomeTax > baseSalary + compensationAllowance + adjustments.allowance + empAdjAllowance + overtimeAllowance + commissionAllowance + 0.005) {
+        throw new AppError(`تأمينات وضريبة الموظف #${employeeId} أكبر من إجمالي الأجر في الفترة؛ راجع بيانات التأمين والضريبة`, 'HR_PAYROLL_STATUTORY_EXCEEDS_GROSS', 400);
+      }
       const lineOutput = calculateEmployeePayrollLine({
         employeeId,
         baseSalary,
@@ -4207,9 +4212,11 @@ export class HrService {
       SELECT
         le.*,
         e.display_name AS employee_name,
+        actor.username AS recorded_by_name,
         to_char(le.created_at, 'YYYY-MM-DD HH24:MI') AS movement_at_text
       FROM hr_employee_ledger le
       JOIN hr_employees e ON e.id = le.employee_id AND e.tenant_id = le.tenant_id
+      LEFT JOIN users actor ON actor.id = le.created_by AND actor.tenant_id = le.tenant_id
       WHERE le.employee_id = ${employeeId} AND le.tenant_id = ${tenantId}
         AND le.entry_type = 'loan_repayment'
       ORDER BY le.id DESC
@@ -4224,7 +4231,9 @@ export class HrService {
       const paidAt = clean(row.paid_at_text) || (row.paid_at ? String(row.paid_at).replace('T', ' ').slice(0, 16) : '') || (row.latest_paid_at ? String(row.latest_paid_at).replace('T', ' ').slice(0, 16) : '');
 
       if (['paid', 'disbursed', 'partially_repaid', 'repaid'].includes(status)) {
-        return paidAt || disbursedAt || issueDateTime || createdAt;
+        // Repayment dates must NOT replace the original disbursement date.
+        // Otherwise old withdrawals jump between months when installments are paid.
+        return disbursedAt || createdAt || issueDateTime;
       }
 
       return issueDateTime || createdAt;
@@ -4278,6 +4287,7 @@ export class HrService {
         status: 'recorded',
         remainingAmount: Number(row.balance_after || 0),
         note: clean(row.note),
+        recordedByName: clean(row.recorded_by_name),
       };
     });
 
@@ -4306,10 +4316,11 @@ export class HrService {
       .reduce((sum, row) => sum + Number(row.amount || 0), 0)
       .toFixed(2));
     const totalRemaining = Number(allLoanRows
+      .filter(row => ['paid', 'disbursed', 'partially_repaid'].includes(row.status))
       .reduce((sum, row) => sum + Number(row.remainingAmount || 0), 0)
       .toFixed(2));
     const totalSalaryDeductionDue = Number(allLoanRows
-      .filter((row) => row.repaymentMode !== 'manual_cash')
+      .filter((row) => ['paid', 'disbursed', 'partially_repaid'].includes(row.status) && row.repaymentMode !== 'manual_cash')
       .reduce((sum, row) => sum + Number(row.remainingAmount || 0), 0)
       .toFixed(2));
     const openLoanCount = allLoanRows.filter((row) => ['paid', 'disbursed', 'partially_repaid'].includes(String(row.status || '')) && Number(row.remainingAmount || 0) > 0).length;
@@ -4492,7 +4503,9 @@ export class HrService {
     const employeeId = Number(payload.employeeId);
     const amount = Number(payload.amount);
     if (!employeeId || employeeId <= 0) throw new AppError('Employee ID is required', 'HR_EMPLOYEE_ID_REQUIRED', 400);
-    if (!amount || amount <= 0) throw new AppError('Amount must be positive', 'HR_AMOUNT_INVALID', 400);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
+      throw new AppError('مبلغ السلفة يجب أن يكون موجبًا وبحد أقصى خانتين عشريتين', 'HR_AMOUNT_INVALID', 400);
+    }
 
     const reason = clean(payload.notes);
     if (!reason) throw new AppError('تفاصيل المسحوب وسبب الصرف مطلوبة', 'HR_ADVANCE_REASON_REQUIRED', 400);
@@ -4536,7 +4549,7 @@ export class HrService {
         );
       }
 
-      const tempNo = `LOAN-TMP-${Date.now()}`;
+      const tempNo = `LOAN-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const loanRes = await sql<{ id: number }>`
         INSERT INTO hr_employee_loans (
           tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, remaining_amount, 

@@ -7,6 +7,7 @@ import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 import { AppError } from '../../common/errors/app-error';
 import { calculateSalesReturnCost } from './engines/sales-return-cost.engine';
+import { allocatePayrollAccrual } from '../hr/engines/payroll-accrual-allocation.engine';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -2948,30 +2949,39 @@ export class AccountingPostingService {
     const employerInsurance = this.toMoney(totals?.employer_social_insurance || 0);
     const incomeTax = this.toMoney(totals?.income_tax || 0);
 
-    const salaryExpenseAmount = grossPay > 0
-      ? grossPay
-      : this.toMoney(netPay + loanDeductions + assetRecoveryDeductions + employeeInsurance + incomeTax);
-
-    if (salaryExpenseAmount <= 0 && netPay <= 0 && loanDeductions <= 0 && assetRecoveryDeductions <= 0) {
-       throw new AppError('Cannot accrue payroll with zero financial value', 'HR_PAYROLL_ZERO_VALUE', 400);
+    if (grossPay <= 0 && netPay <= 0 && loanDeductions <= 0 && assetRecoveryDeductions <= 0) {
+      throw new AppError('Cannot accrue payroll with zero financial value', 'HR_PAYROLL_ZERO_VALUE', 400);
+    }
+    let allocation: ReturnType<typeof allocatePayrollAccrual>;
+    try {
+      allocation = allocatePayrollAccrual({
+        grossPay, netPay, loanDeductions, assetRecoveryDeductions,
+        employeeInsurance, employerInsurance, incomeTax,
+      });
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : 'Payroll totals cannot be reconciled',
+        'HR_PAYROLL_ACCOUNTING_MISMATCH', 400,
+      );
     }
 
     const expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6200'); // Salaries and Wages
     const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
     const advancesAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1160'); // Employee Advances
-    const otherIncomeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100'); // Other Income / Penalties
+    const recoveryAccountId = assetRecoveryDeductions > 0
+      ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100')
+      : null; // Recovery of lost/damaged custody assets, NOT absenteeism income.
 
     const totalGosiPayable = this.toMoney(employeeInsurance + employerInsurance);
-    const totalSpecificCredits = this.toMoney(netPay + loanDeductions + employeeInsurance + incomeTax);
-    const operationalAndPenaltyDeductions = Math.max(0, this.toMoney(salaryExpenseAmount - totalSpecificCredits));
 
     const lines: JournalLineDraft[] = [];
 
-    // 1. Debit: Gross Salaries & Wages Expense
+    // 1. Debit: actual salary expense after attendance/leave/other wage reductions.
+    // Attendance deductions are NOT unrelated operating revenue.
     this.addLine(lines, {
       accountId: expenseAccountId,
-      description: `استحقاق رواتب مسير #${runId}`,
-      debit: salaryExpenseAmount,
+      description: `استحقاق رواتب مسير #${runId} (خصومات الأجور ${allocation.wageReduction})`,
+      debit: allocation.salaryExpense,
       credit: 0,
       partnerType: 'none',
       partnerId: null,
@@ -3052,13 +3062,14 @@ export class AccountingPostingService {
       });
     }
 
-    // 7. Credit: Other Income (Penalties, Absences, Asset recoveries)
-    if (operationalAndPenaltyDeductions > 0) {
+    // 7. Credit: asset loss/custody recovery only; the wage reductions are
+    // already reflected in the debit to the salary expense account above.
+    if (assetRecoveryDeductions > 0 && recoveryAccountId) {
       this.addLine(lines, {
-        accountId: otherIncomeAccountId,
-        description: `استقطاعات غياب وجزاءات واسترداد عهد لمسير #${runId}`,
+        accountId: recoveryAccountId,
+        description: `تحصيل تعويضات عهد مفقودة / تالفة من الرواتب - مسير #${runId}`,
         debit: 0,
-        credit: operationalAndPenaltyDeductions,
+        credit: allocation.assetRecoveryCredit,
         partnerType: 'none',
         partnerId: null,
         branchId: null,
