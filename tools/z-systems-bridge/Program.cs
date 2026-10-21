@@ -25,6 +25,7 @@ namespace ZSystems.HardwareBridge
         private static readonly string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bridge-config.json");
         private static string CloudServerUrl = "https://app.zsystemai.com";
         private static string TenantId = "dev-tenant";
+        private static string BridgeKey = "";
         private static bool IsCloudRelayConnected = false;
         private static MenuItem _tenantMenuItem;
         private static MenuItem _relayStatusMenuItem;
@@ -43,6 +44,8 @@ namespace ZSystems.HardwareBridge
                             CloudServerUrl = Convert.ToString(data["serverUrl"]).Trim();
                         if (data.ContainsKey("tenantId") && !string.IsNullOrEmpty(Convert.ToString(data["tenantId"])))
                             TenantId = Convert.ToString(data["tenantId"]).Trim();
+                        if (data.ContainsKey("bridgeKey"))
+                            BridgeKey = Convert.ToString(data["bridgeKey"]).Trim();
                     }
                 }
                 else
@@ -61,6 +64,7 @@ namespace ZSystems.HardwareBridge
                 {
                     { "serverUrl", CloudServerUrl },
                     { "tenantId", TenantId },
+                    { "bridgeKey", BridgeKey },
                     { "updatedAt", DateTime.UtcNow.ToString("o") }
                 };
                 File.WriteAllText(ConfigPath, Serializer.Serialize(data), Encoding.UTF8);
@@ -92,7 +96,7 @@ namespace ZSystems.HardwareBridge
             form.RightToLeft = RightToLeft.Yes;
             form.RightToLeftLayout = true;
             form.Width = 480;
-            form.Height = 280;
+            form.Height = 340;
             form.FormBorderStyle = FormBorderStyle.FixedDialog;
             form.StartPosition = FormStartPosition.CenterScreen;
             form.MaximizeBox = false;
@@ -104,13 +108,17 @@ namespace ZSystems.HardwareBridge
             Label lblTenant = new Label { Text = "معرّف المنشأة (Tenant ID) أو كود الربط:", Left = 20, Top = 85, Width = 420 };
             TextBox txtTenant = new TextBox { Text = TenantId, Left = 20, Top = 110, Width = 420 };
 
-            Button btnSave = new Button { Text = "حفظ وتوصيل", Left = 160, Top = 165, Width = 150, Height = 36 };
+            Label lblBridgeKey = new Label { Text = "مفتاح الربط الآمن (Tenant Bridge Key):", Left = 20, Top = 150, Width = 420 };
+            TextBox txtBridgeKey = new TextBox { Text = BridgeKey, Left = 20, Top = 175, Width = 420, UseSystemPasswordChar = true };
+
+            Button btnSave = new Button { Text = "حفظ وتوصيل", Left = 160, Top = 225, Width = 150, Height = 36 };
             btnSave.Click += (s, e) =>
             {
                 string newServer = txtServer.Text.Trim();
                 string newTenant = txtTenant.Text.Trim();
                 if (!string.IsNullOrEmpty(newServer)) CloudServerUrl = newServer;
                 TenantId = newTenant;
+                BridgeKey = txtBridgeKey.Text.Trim();
                 SaveConfig();
                 MessageBox.Show("تم حفظ إعدادات الربط بنجاح. سيتم الاتصال بالسيرفر فوراً.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 form.Close();
@@ -120,6 +128,8 @@ namespace ZSystems.HardwareBridge
             form.Controls.Add(txtServer);
             form.Controls.Add(lblTenant);
             form.Controls.Add(txtTenant);
+            form.Controls.Add(lblBridgeKey);
+            form.Controls.Add(txtBridgeKey);
             form.Controls.Add(btnSave);
             form.ShowDialog();
         }
@@ -135,8 +145,8 @@ namespace ZSystems.HardwareBridge
         {
             try
             {
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
-                ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                // Keep normal Windows certificate validation; never accept invalid HTTPS peers.
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             }
             catch {}
 
@@ -144,7 +154,9 @@ namespace ZSystems.HardwareBridge
             {
                 try
                 {
-                    if (!string.IsNullOrEmpty(CloudServerUrl) && !string.IsNullOrEmpty(TenantId))
+                    if (Uri.IsWellFormedUriString(CloudServerUrl, UriKind.Absolute) &&
+                        CloudServerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+                        !string.IsNullOrEmpty(TenantId) && BridgeKey.Length == 64)
                     {
                         PollCloudJob();
                     }
@@ -170,6 +182,7 @@ namespace ZSystems.HardwareBridge
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(pollUrl);
             req.Method = "POST";
             req.ContentType = "application/json";
+            req.Headers["X-ZS-Bridge-Key"] = BridgeKey;
             req.Timeout = 30000;
 
             var pollPayload = new Dictionary<string, object>
@@ -252,6 +265,7 @@ namespace ZSystems.HardwareBridge
                     HttpWebRequest req = (HttpWebRequest)WebRequest.Create(callbackUrl);
                     req.Method = "POST";
                     req.ContentType = "application/json";
+                    req.Headers["X-ZS-Bridge-Key"] = BridgeKey;
                     req.Timeout = 15000;
 
                     var callbackPayload = new Dictionary<string, object>
