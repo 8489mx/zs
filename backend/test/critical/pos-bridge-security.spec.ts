@@ -35,6 +35,31 @@ async function run(): Promise<void> {
   assert.equal(await service.handleBridgeCallback('tenant-a', {
     jobId: 'job-1', status: 'approved', authCode: 'AUTH123', rrn: 'RRN123',
   }), false, 'approval replay cannot overwrite finalized status');
+  (service as any).activeSessions.set('bank-approved', {
+    tenantId: 'tenant-a', transactionId: 'bank-approved', terminalId: 't1',
+    status: 'approved', isSimulated: false, createdAt: Date.now(), updatedAt: Date.now(),
+  });
+  await assert.rejects(service.cancelPayment('tenant-a', 'bank-approved'),
+    'bank-approved payments require a separate verified refund/void');
+  assert.equal((service as any).activeSessions.get('bank-approved').status, 'approved');
+
+  (service as any).activeSessions.set('bank-processing', {
+    tenantId: 'tenant-a', transactionId: 'bank-processing', terminalId: 't1',
+    status: 'processing', isSimulated: false, createdAt: Date.now(), updatedAt: Date.now(),
+  });
+  (service as any).getTerminals = async () => [];
+  const ambiguousCancel = await service.cancelPayment('tenant-a', 'bank-processing');
+  assert.equal(ambiguousCancel.status, 'processing', 'network-ambiguous cancellation must not assert bank refund');
+
+  (service as any).activeSessions.set('not-dispatched', {
+    tenantId: 'tenant-a', transactionId: 'not-dispatched', terminalId: 't1',
+    status: 'processing', isSimulated: false, createdAt: Date.now(), updatedAt: Date.now(),
+  });
+  (service as any).pendingBridgeJobs.set('tenant-a', [{ jobId: 'not-dispatched' }]);
+  const safeCancel = await service.cancelPayment('tenant-a', 'not-dispatched');
+  assert.equal(safeCancel.status, 'cancelled', 'undispatched job may be cancelled');
+  assert.equal((service as any).pendingBridgeJobs.get('tenant-a').length, 0);
+
   const oldMode = process.env.APP_MODE;
   try {
     process.env.APP_MODE = 'CLOUD_SAAS';
