@@ -268,24 +268,26 @@ export class ImportSalesService {
       );
     }
 
+    if (expectedDetails && !req.request_payload) throw new BadRequestException('بيانات الموافقة التفصيلية إلزامية.');
     if (req.request_payload) {
       const payload = typeof req.request_payload === 'string'
         ? JSON.parse(req.request_payload || '{}')
         : req.request_payload;
 
-      if (expectedDetails?.partnerId && payload.partnerId && payload.partnerId !== expectedDetails.partnerId) {
+      if (expectedDetails?.partnerId && payload.partnerId !== expectedDetails.partnerId) {
         throw new BadRequestException(
           `طلب الاعتماد مخصص للشريك (${payload.partnerId}) ولا يطابق الشريك المطلوب (${expectedDetails.partnerId}).`
         );
       }
 
-      if (expectedDetails?.projectId && payload.projectId && payload.projectId !== expectedDetails.projectId) {
+      if (expectedDetails?.projectId && payload.projectId !== expectedDetails.projectId) {
         throw new BadRequestException(
           `طلب الاعتماد مخصص للمشروع (${payload.projectId}) ولا يطابق المشروع (${expectedDetails.projectId}).`
         );
       }
 
-      if (expectedDetails?.amount !== undefined && payload.amount !== undefined && payload.amount !== null) {
+      if (expectedDetails?.amount !== undefined) {
+        if (!Number.isFinite(Number(payload.amount)) || Number(payload.amount) <= 0) throw new BadRequestException('الموافقة لا تحتوي على سقف مبلغ صالح.');
         const approvedAmount = Number(payload.amount);
         if (expectedDetails.amount > approvedAmount + 0.01) {
           throw new BadRequestException(
@@ -1335,14 +1337,21 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId).where('id', '=', shipmentId).returningAll().executeTakeFirstOrThrow() : shipment;
       if (!receipt) {
         await this.calculateLandedCostInTransaction(trx, updated);
-        if (dto.status === 'Arrived') await this.postShipmentToInventory(trx, tenantId, shipmentId, userId);
+        if (dto.status === 'Arrived') await this.postShipmentToInventory(trx, tenantId, shipmentId, userId, dto.receiptLocationId);
       }
     });
     return this.getShipmentById(tenantId, shipmentId);
   }
 
   /** Caller holds the shipment lock; status, costs, receipt and stock commit together. */
-  private async postShipmentToInventory(trx: Transaction<Database>, tenantId: string, shipmentId: string, userId: number) {
+  private async postShipmentToInventory(trx: Transaction<Database>, tenantId: string, shipmentId: string, userId: number, receiptLocationId?: number) {
+    // No warehouse can be inferred safely from an unlocated import receipt.
+    if (!Number.isSafeInteger(receiptLocationId) || Number(receiptLocationId) <= 0) {
+      throw new BadRequestException('يجب تحديد مخزن الاستلام الحقيقي (receiptLocationId) قبل ترحيل الحاوية؛ يمنع إنشاء باتشات بلا موقع.');
+    }
+    const receivingLocation = await trx.selectFrom('stock_locations').select(['id', 'tenant_id'])
+      .where('id', '=', Number(receiptLocationId)).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!receivingLocation) throw new BadRequestException('مخزن استلام الحاوية غير موجود في المنشأة.');
     const shipment = await trx.selectFrom('import_shipments').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipmentId).executeTakeFirstOrThrow();
     const items = await trx.selectFrom('import_shipment_items').selectAll()
       .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId).execute();
@@ -1370,6 +1379,7 @@ export class ImportSalesService {
           .where('id', '=', group.productId).executeTakeFirstOrThrow();
         const stock = await applyStockDelta(trx, {
           tenantId, accountId, productId: group.productId, delta: group.quantity, allowNegative: true,
+          locationId: Number(receiptLocationId),
         });
         // globalBefore is a cached product counter. globalAfter is reconciled by the ledger
         // from locked location balances (including its legacy unassigned-stock policy).
@@ -1383,7 +1393,7 @@ export class ImportSalesService {
           unit_cost: Number((group.value / group.quantity).toFixed(6)), total_cost: Number(group.value.toFixed(4)),
           reason: 'استلام شحنة استيراد', note: `شحنة استيراد #${shipmentId}`,
           reference_type: 'import_inventory_receipt', reference_id: receipt.id, import_receipt_id: receipt.id,
-          created_by: userId, branch_id: null, location_id: null,
+          created_by: userId, branch_id: null, location_id: Number(receiptLocationId),
         }).execute();
       }
       if (group.shortageExpense > 0) {
@@ -1412,7 +1422,7 @@ export class ImportSalesService {
           shipment_id: shipmentId,
           shipment_item_id: item.id,
           product_id: Number(item.product_id),
-          location_id: null,
+          location_id: Number(receiptLocationId),
           initial_quantity: receivedQty,
           remaining_quantity: receivedQty,
           unit_landed_cost_egp: unitLandedCost,
@@ -1676,6 +1686,13 @@ export class ImportSalesService {
         expenseId = exp.id;
       }
 
+      // Durable document identity even for wholly capitalized late expenses (no COGS row).
+      const lateExpenseDocument = await trx.insertInto('expenses').values({
+        tenant_id: tenantId, account_id: String(cogsAccountId),
+        title: `${dto.title} (مستند مصروف استيراد متأخر) - حاوية ${shipment.container_number}`,
+        amount: 0, expense_date: new Date().toISOString().slice(0, 10),
+        created_by: userId, note: dto.note || '', branch_id: null, location_id: null,
+      }).returning('id').executeTakeFirstOrThrow();
       const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
       const lines: any[] = [];
       if (totalLateCogs > 0) {
@@ -1715,7 +1732,7 @@ export class ImportSalesService {
 
       const journalEntryId = await postingService.postDomainJournal(trx, {
         sourceType: 'import_late_expense',
-        sourceId: expenseId || 0,
+        sourceId: Number(lateExpenseDocument.id),
         tenantId,
         accountId: tenantId,
         entryDate: new Date(),
@@ -3090,16 +3107,9 @@ export class ImportSalesService {
   }
 
   async closeProject(tenantId: string, userId: number, projectId: string, approvalRequestId?: string) {
+    if (!approvalRequestId) throw new BadRequestException('إقفال مشروع الاستيراد يتطلب موافقة Maker-Checker معتمدة.');
     return await this.db.transaction().execute(async (trx) => {
-      if (approvalRequestId) {
-        await this.verifyAndConsumeApprovalRequest(
-          trx,
-          tenantId,
-          'project_closure',
-          projectId,
-          approvalRequestId
-        );
-      }
+      await this.verifyAndConsumeApprovalRequest(trx, tenantId, 'project_closure', projectId, approvalRequestId);
 
       const project = await trx
         .selectFrom('import_projects')
@@ -4567,6 +4577,12 @@ export class ImportSalesService {
   // MAKER-CHECKER GOVERNANCE WORKFLOW
   // -------------------------------------------------------------
   async createApprovalRequest(tenantId: string, userId: number, dto: CreateApprovalRequestDto) {
+    if (dto.actionType === 'partner_distribution') {
+      const payload = dto.requestPayload;
+      if (!payload || payload.partnerId !== dto.referenceId || !payload.projectId || !Number.isFinite(Number(payload.amount)) || Number(payload.amount) <= 0) {
+        throw new BadRequestException('اعتماد صرف الأرباح يتطلب الشريك والمشروع وسقف مبلغ موجب ومطابقة المرجع.');
+      }
+    }
     return await this.db
       .insertInto('import_approval_requests')
       .values({

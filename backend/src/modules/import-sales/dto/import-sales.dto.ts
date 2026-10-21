@@ -160,6 +160,12 @@ export class UpdateShipmentCostsDto {
   projectId?: string;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  receiptLocationId?: number;
+
+  @IsOptional()
   @IsString()
   freightType?: string;
 
@@ -1257,6 +1263,12 @@ export class CreateApprovalRequestDto {
 
   @IsOptional()
   requestPayload?: any;
+}
+
+export class CloseImportProjectDto {
+  @IsString()
+  @IsNotEmpty()
+  approvalRequestId!: string;
 }
 
 export class DecideApprovalRequestDto {

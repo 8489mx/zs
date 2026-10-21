@@ -43,14 +43,9 @@ export async function allocateSaleFromImportLots(
       .where('remaining_quantity', '>', 0);
 
     const targetLocId = item.locationId !== undefined ? item.locationId : params.locationId;
-    if (targetLocId !== undefined && targetLocId !== null) {
-      lotQuery = lotQuery.where((eb) =>
-        eb.or([
-          eb('location_id', '=', targetLocId),
-          eb('location_id', 'is', null),
-        ])
-      );
-    }
+    // Unlocated legacy lots cannot be assigned to a sale from an arbitrary store.
+    if (!Number.isSafeInteger(targetLocId) || Number(targetLocId) <= 0) continue;
+    lotQuery = lotQuery.where('location_id', '=', Number(targetLocId));
 
     const lots = await lotQuery
       .orderBy('receipt_date', 'asc')
