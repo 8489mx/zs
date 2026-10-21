@@ -690,6 +690,10 @@ export class CreateSourcingTripDto {
 }
 
 export class ProcessLateExpenseDto {
+  @IsString()
+  @IsNotEmpty()
+  idempotencyKey!: string;
+
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
@@ -1113,6 +1117,10 @@ export class RecordContainerDepositDto {
 }
 
 export class RecordContainerReturnRefundDto {
+  @IsString()
+  @IsNotEmpty()
+  idempotencyKey!: string;
+
   @IsString()
   actualReturnDate!: string;
 

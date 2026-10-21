@@ -1501,9 +1501,28 @@ export class ImportSalesService {
     shipmentId: string,
     dto: ProcessLateExpenseDto
   ) {
+    const lateKey = String(dto.idempotencyKey || '').trim();
+    if (!lateKey || lateKey.length > 128) {
+      throw new BadRequestException('مفتاح منع تكرار المصروف المتأخر إلزامي (حتى 128 حرفاً).');
+    }
     return await this.inventoryDb.transaction().execute(async (trx) => {
       const state = await this.lockShipment(trx, tenantId, shipmentId);
       const { shipment, receipt } = state;
+      const previouslyPosted = await trx.selectFrom('import_late_expense_documents')
+        .selectAll().where('tenant_id', '=', tenantId)
+        .where('idempotency_key', '=', lateKey).executeTakeFirst();
+      if (previouslyPosted) {
+        if (previouslyPosted.shipment_id !== shipmentId ||
+            Number(previouslyPosted.amount_egp) !== Number(dto.lateExpenseAmount) ||
+            previouslyPosted.title !== dto.title) {
+          throw new BadRequestException('مفتاح المصروف المتأخر مستخدم لمستند مختلف.');
+        }
+        return { success: true, replayed: true, documentId: previouslyPosted.id,
+          journalEntryId: previouslyPosted.journal_entry_id,
+          allocation: { lateExpenseAmount: Number(previouslyPosted.amount_egp),
+            lateCogsAdjustmentEgp: Number(previouslyPosted.cogs_adjustment_egp),
+            lateInventoryAdjustmentEgp: Number(previouslyPosted.inventory_adjustment_egp) } };
+      }
       if (!receipt || receipt.state !== 'posted') {
         throw new BadRequestException('لا يمكن تسجيل مصروفات متأخرة إلا بعد استلام الشحنة وترحيل المخزون.');
       }
@@ -1650,6 +1669,15 @@ export class ImportSalesService {
       totalLateCogs = Number(totalLateCogs.toFixed(2));
       totalLateInventory = Number(totalLateInventory.toFixed(2));
 
+      const lateDocument = await trx.insertInto('import_late_expense_documents')
+        .values({
+          tenant_id: tenantId, shipment_id: shipmentId, title: dto.title,
+          idempotency_key: lateKey, amount_egp: Number(dto.lateExpenseAmount),
+          cogs_adjustment_egp: totalLateCogs,
+          inventory_adjustment_egp: totalLateInventory,
+          journal_entry_id: null, created_by: userId,
+        }).returning(['id', 'serial_id']).executeTakeFirstOrThrow();
+
       // Resolve accounts dynamically from COA / Accounting Settings
       const cogsAccountId = await this.resolveTenantAccount(trx, tenantId, 'cogs', dto.accountId ? Number(dto.accountId) : null);
       const inventoryAccountId = await this.resolveTenantAccount(trx, tenantId, 'inventory');
@@ -1714,7 +1742,7 @@ export class ImportSalesService {
 
       const journalEntryId = await postingService.postDomainJournal(trx, {
         sourceType: 'import_late_expense',
-        sourceId: expenseId || 0,
+        sourceId: Number(lateDocument.serial_id),
         tenantId,
         accountId: tenantId,
         entryDate: new Date(),
@@ -1725,6 +1753,10 @@ export class ImportSalesService {
         postedBy: userId,
         lines,
       });
+
+      await trx.updateTable('import_late_expense_documents')
+        .set({ journal_entry_id: journalEntryId })
+        .where('id', '=', lateDocument.id).where('tenant_id', '=', tenantId).execute();
 
       await trx
         .updateTable('import_shipments')
@@ -3994,6 +4026,10 @@ export class ImportSalesService {
     depositId: string,
     dto: RecordContainerReturnRefundDto
   ) {
+    const refundKey = String(dto.idempotencyKey || '').trim();
+    if (!refundKey || refundKey.length > 128) {
+      throw new BadRequestException('مفتاح منع تكرار استرداد التأمين إلزامي (حتى 128 حرفاً).');
+    }
     return await this.db.transaction().execute(async (trx) => {
       const deposit = await trx
         .selectFrom('import_container_deposits')
@@ -4002,6 +4038,18 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId)
         .forUpdate()
         .executeTakeFirstOrThrow();
+
+      const priorEvent = await trx.selectFrom('import_container_refund_events')
+        .selectAll().where('tenant_id', '=', tenantId)
+        .where('idempotency_key', '=', refundKey).executeTakeFirst();
+      if (priorEvent) {
+        if (priorEvent.deposit_id !== depositId ||
+            Number(priorEvent.refunded_amount_egp) !== Number(dto.refundedAmountEgp) ||
+            Number(priorEvent.deductions_amount_egp) !== Number(dto.deductionsAmountEgp || 0)) {
+          throw new BadRequestException('مفتاح استرداد التأمين مستخدم لعملية مختلفة.');
+        }
+        return { ...deposit, replayed: true, refundEventId: priorEvent.id };
+      }
 
       const prevRefunded = Number(deposit.refunded_amount_egp || 0);
       const prevDeductions = Number(deposit.deductions_amount_egp || 0);
@@ -4015,6 +4063,12 @@ export class ImportSalesService {
       const currentRefund = Number(dto.refundedAmountEgp);
       const currentDeductions = Number(dto.deductionsAmountEgp || 0);
       const callSettled = Number((currentRefund + currentDeductions).toFixed(2));
+      if (!Number.isFinite(currentRefund) || !Number.isFinite(currentDeductions) ||
+          currentRefund < 0 || currentDeductions < 0 ||
+          currentRefund !== Number(currentRefund.toFixed(2)) ||
+          currentDeductions !== Number(currentDeductions.toFixed(2))) {
+        throw new BadRequestException('مبلغ استرداد/خصم التأمين غير صالح أو يتجاوز دقة القرش.');
+      }
 
       if (callSettled <= 0) {
         throw new BadRequestException('يجب تحديد مبلغ استرداد أو خصم أكبر من الصفر لتسوية التأمين.');
@@ -4025,6 +4079,14 @@ export class ImportSalesService {
           `مجموع الاسترداد والخصومات (${callSettled.toFixed(2)}) يتجاوز الرصيد المتبقي من التأمين الأصلي (${remainingDeposit.toFixed(2)}).`
         );
       }
+
+      const refundEvent = await trx.insertInto('import_container_refund_events')
+        .values({
+          tenant_id: tenantId, deposit_id: depositId, idempotency_key: refundKey,
+          refunded_amount_egp: currentRefund, deductions_amount_egp: currentDeductions,
+          actual_return_date: dto.actualReturnDate, treasury_transaction_id: null,
+          journal_entry_id: null, created_by: userId,
+        }).returning(['id', 'serial_id']).executeTakeFirstOrThrow();
 
       const newTotalRefunded = Number((prevRefunded + currentRefund).toFixed(2));
       const newTotalDeductions = Number((prevDeductions + currentDeductions).toFixed(2));
@@ -4068,6 +4130,21 @@ export class ImportSalesService {
         dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
       );
       const expenseAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
+      const cashAccount = await trx.selectFrom('accounting_accounts')
+        .select('account_id').where('tenant_id', '=', tenantId)
+        .where('id', '=', bankAccId).executeTakeFirstOrThrow();
+
+      let treasuryRefundId: number | null = null;
+      if (currentRefund > 0) {
+        const cashMove = await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: cashAccount.account_id,
+          txn_type: 'import_container_refund', amount: currentRefund,
+          note: `استرداد تأمين حاوية #${deposit.container_no}، سند استرداد #${refundEvent.serial_id}`,
+          reference_type: 'import_container_refund',
+          reference_id: Number(refundEvent.serial_id), created_by: userId,
+        }).returning('id').executeTakeFirstOrThrow();
+        treasuryRefundId = Number(cashMove.id);
+      }
 
       const lines: any[] = [];
       if (currentRefund > 0) {
@@ -4108,9 +4185,9 @@ export class ImportSalesService {
       }
 
       const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
-      await postingService.postDomainJournal(trx, {
-        sourceType: 'import_container_deposit',
-        sourceId: Number(deposit.serial_id),
+      const refundJournalId = await postingService.postDomainJournal(trx, {
+        sourceType: 'import_container_refund',
+        sourceId: Number(refundEvent.serial_id),
         tenantId,
         accountId: tenantId,
         entryDate: new Date(dto.actualReturnDate as any),
@@ -4122,7 +4199,11 @@ export class ImportSalesService {
         lines,
       });
 
-      return updated;
+      await trx.updateTable('import_container_refund_events')
+        .set({ journal_entry_id: refundJournalId, treasury_transaction_id: treasuryRefundId })
+        .where('tenant_id', '=', tenantId).where('id', '=', refundEvent.id).execute();
+
+      return { ...updated, refundEventId: refundEvent.id, journalEntryId: refundJournalId, treasuryTransactionId: treasuryRefundId };
     });
   }
 

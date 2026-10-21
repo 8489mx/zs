@@ -21,6 +21,7 @@ export interface Shipment {
   supplier_name?: string;
   bill_of_lading?: string;
   pricing_exchange_rate?: string;
+  receipt_location_id?: number | null;
 }
 
 export interface ShipmentItem {
