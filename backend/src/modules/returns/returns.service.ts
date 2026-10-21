@@ -691,10 +691,11 @@ export class ReturnsService {
 
       // Cumulative returns calculation so repeated partial returns never over-reconcile
       const previousReturns = await trx
-        .selectFrom('sales_returns')
+        .selectFrom('return_documents')
         .select(sql<number>`COALESCE(SUM(total), 0)`.as('returned_sum'))
-        .where('sale_id', '=', Number(sale.id))
-        .where('status', '=', 'completed')
+        .where('return_type', '=', 'sale')
+        .where('invoice_id', '=', Number(sale.id))
+        .where('id', '!=', returnDocumentId)
         .where(this.tenantPredicate(auth))
         .executeTakeFirst();
       const cumulativeReturned = Number(previousReturns?.returned_sum || 0) + total;

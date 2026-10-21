@@ -3081,7 +3081,7 @@ export interface CustomerLoyaltyLogTable {
   customer_id: number;
   points_change: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   balance_after: ColumnType<number | string, number | string | undefined, number | string | undefined>;
-  action_type: 'earn' | 'redeem' | 'manual_adjust' | 'return_clawback' | 'return_refund';
+  action_type: 'earn' | 'redeem' | 'manual_adjust' | 'return_clawback' | 'return_refund' | 'cancel_clawback' | 'edit_clawback' | 'cancel_refund' | 'edit_refund';
   sale_id: number | null;
   notes: string | null;
   created_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
