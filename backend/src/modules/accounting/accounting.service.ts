@@ -2981,46 +2981,52 @@ export class AccountingService {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
 
-    const account = await this.db
-      .selectFrom('accounting_accounts')
-      .select(['id', 'code', 'name_ar', 'is_cash_bank'])
-      .where('id', '=', dto.accountId)
-      .where(this.tenantPredicate(auth))
-      .executeTakeFirst();
+    // Header, lines and account eligibility must be validated and committed together.
+    // Otherwise a failed line insert leaves a draft bank statement without its lines.
+    const statementId = await this.db.transaction().execute(async (trx) => {
+      const account = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id', 'is_cash_bank'])
+        .where('id', '=', dto.accountId)
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst();
 
-    if (!account) {
-      throw new BadRequestException('الحساب المالي المحدد غير موجود.');
-    }
+      if (!account) throw new BadRequestException('الحساب المالي المحدد غير موجود.');
+      if (!account.is_cash_bank) {
+        throw new BadRequestException('كشف الحساب البنكي يتطلب حساب خزينة أو بنك.');
+      }
 
-    const insertedStatement = await (this.db as any)
-      .insertInto('bank_statements')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: dto.accountId,
-        statement_no: dto.statementNo,
-        statement_date: dto.statementDate,
-        starting_balance: dto.startingBalance || 0,
-        ending_balance: dto.endingBalance || 0,
-        status: 'draft',
-        notes: dto.notes || null,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+      const statement = await (trx as any)
+        .insertInto('bank_statements')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: dto.accountId,
+          statement_no: dto.statementNo,
+          statement_date: dto.statementDate,
+          starting_balance: dto.startingBalance || 0,
+          ending_balance: dto.endingBalance || 0,
+          status: 'draft',
+          notes: dto.notes || null,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
-    if (dto.lines && dto.lines.length > 0) {
-      const lineRows = dto.lines.map((line) => ({
-        tenant_id: scope.tenantId,
-        statement_id: insertedStatement.id,
-        line_date: line.lineDate,
-        description: line.description,
-        reference: line.reference || null,
-        amount: line.amount,
-        is_reconciled: false,
-      }));
-      await (this.db as any).insertInto('bank_statement_lines').values(lineRows).execute();
-    }
+      if (dto.lines && dto.lines.length > 0) {
+        const lineRows = dto.lines.map((line) => ({
+          tenant_id: scope.tenantId,
+          statement_id: statement.id,
+          line_date: line.lineDate,
+          description: line.description,
+          reference: line.reference || null,
+          amount: line.amount,
+          is_reconciled: false,
+        }));
+        await (trx as any).insertInto('bank_statement_lines').values(lineRows).execute();
+      }
+      return Number(statement.id);
+    });
 
-    return this.getBankStatement(insertedStatement.id, auth);
+    return this.getBankStatement(statementId, auth);
   }
 
   async getBankReconciliationWorkspace(statementId: number, auth: AuthContext): Promise<any> {
