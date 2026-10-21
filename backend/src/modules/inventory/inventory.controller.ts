@@ -57,7 +57,7 @@ export class InventoryController {
   }
 
   @Post('locations/:id/assign-products')
-  @RequirePermissions('inventory')
+  @RequirePermissions('canAdjustInventory')
   assignProductsToLocation(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { productIds: number[] },
@@ -67,7 +67,7 @@ export class InventoryController {
   }
 
   @Delete('locations/:id/products/:productId')
-  @RequirePermissions('inventory')
+  @RequirePermissions('canAdjustInventory')
   removeProductFromLocation(
     @Param('id', ParseIntPipe) id: number,
     @Param('productId', ParseIntPipe) productId: number,

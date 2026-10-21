@@ -7,11 +7,20 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 import { AccountingPostingService } from '../accounting-posting.service';
 
+/** A string DTO body is not runtime validation; PostgreSQL numeric accepts 'NaN'. */
+export function validateForexClosingRate(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) {
+    throw new BadRequestException('A finite, positive closing FX rate is required');
+  }
+  return raw;
+}
+
 export interface ExecuteForexRevaluationDto {
   periodDate: string;
   currencyCode: string;
   closingRate: number;
   notes?: string;
+  items?: Array<{ accountId: number; foreignBalance?: number }>;
 }
 
 @Injectable()
@@ -55,13 +64,13 @@ export class ForexRevaluationService {
     return { run, lines };
   }
 
-  async previewRevaluation(dto: { periodDate: string; currencyCode: string; closingRate: number }, auth: AuthContext) {
+  async previewRevaluation(dto: ExecuteForexRevaluationDto, auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
     const currencyCode = String(dto.currencyCode || '').trim().toUpperCase();
-    const closingRate = Number(dto.closingRate || 0);
+    const closingRate = validateForexClosingRate(dto.closingRate);
 
     if (!currencyCode) throw new BadRequestException('رمز العملة مطلوب.');
-    if (closingRate <= 0) throw new BadRequestException('سعر الإقفال للعملة يجب أن يكون أكبر من الصفر.');
+    // The validated rate is shared by preview and actual execution.
 
     // Fetch current book rate
     const currentRateRow = await this.db
@@ -72,6 +81,7 @@ export class ForexRevaluationService {
       .executeTakeFirst();
 
     const bookRate = Number(currentRateRow?.exchange_rate || closingRate);
+    if (!Number.isFinite(bookRate) || bookRate <= 0) throw new BadRequestException('Stored FX book rate is invalid; correct it before revaluation');
 
     // IAS 21 §23: retranslate MONETARY items only, and only those denominated in this currency.
     // The previous selection matched on a `name` column and a `type` column that do not exist on
@@ -107,12 +117,16 @@ export class ForexRevaluationService {
     const lines: any[] = [];
     let totalForeign = 0;
     let totalUnrealizedGainLoss = 0;
+    const userItemMap = new Map((dto.items || []).map((it: { accountId: number; foreignBalance?: number }) => [Number(it.accountId), Number(it.foreignBalance || 0)]));
 
     for (const acc of accounts) {
       const localBalance = balanceByAccount.get(Number(acc.id)) || 0;
       if (Math.abs(localBalance) > 0.01) {
-        // Approximate foreign balance based on bookRate
-        const foreignBalance = Math.round((localBalance / bookRate) * 100) / 100;
+        // Use explicitly supplied foreign currency balance if present, otherwise derive from bookRate (ZS-039)
+        const userForeign = userItemMap.get(Number(acc.id));
+        const foreignBalance = userForeign !== undefined && Number.isFinite(userForeign) && userForeign !== 0
+          ? Math.round(Number(userForeign) * 100) / 100
+          : Math.round((localBalance / bookRate) * 100) / 100;
         const revaluedLocal = Math.round(foreignBalance * closingRate * 100) / 100;
         const diff = Math.round((revaluedLocal - localBalance) * 100) / 100;
 
@@ -194,6 +208,24 @@ export class ForexRevaluationService {
     }
 
     return this.db.transaction().execute(async (trx) => {
+      // Transactional advisory lock to prevent concurrent revaluations for same tenant/period/currency (ZS-038)
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${tenantId} || ':forex:' || ${dto.periodDate} || ':' || ${dto.currencyCode}))`.execute(trx);
+
+      const existingRun = await trx
+        .selectFrom('forex_revaluation_runs')
+        .select(['id', 'status', 'journal_entry_no'])
+        .where('tenant_id', '=', tenantId)
+        .where('period_date', '=', dto.periodDate)
+        .where('currency_code', '=', dto.currencyCode)
+        .where('status', '=', 'posted')
+        .executeTakeFirst();
+
+      if (existingRun) {
+        throw new BadRequestException(
+          `تم إجراء إعادة تقييم عملة (${dto.currencyCode}) لهذه الفترة (${dto.periodDate}) مسبقاً برقم قيد [${existingRun.journal_entry_no || existingRun.id}].`
+        );
+      }
+
     if (hasRevaluation) {
       const entryLines: any[] = [];
 

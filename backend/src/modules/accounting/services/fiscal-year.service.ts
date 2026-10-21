@@ -43,6 +43,34 @@ export interface ProposedClosingLine {
   description: string;
 }
 
+/** Shared classification for preview and the locked, live closing check. */
+export function fiscalProfitAndLossCategory(account: { code: string; account_type: string }): 'revenue' | 'expense' | null {
+  const code = String(account.code || '');
+  const type = String(account.account_type || '').toLowerCase();
+  if (type === 'revenue' || type === 'contra_revenue' || code.startsWith('4') || code.startsWith('71')) return 'revenue';
+  if (type === 'expense' || type === 'operating_expenses' || type === 'cogs' ||
+      code.startsWith('5') || code.startsWith('6') || code.startsWith('72')) return 'expense';
+  return null;
+}
+
+/** Retain the P&L accounts and redirect only the retained-earnings line. */
+export function resolveClosingJournalAccounts(
+  proposed: ProposedClosingLine[],
+  defaultRetainedId: number | null,
+  selectedRetainedId: number,
+): ProposedClosingLine[] {
+  if (!Number.isSafeInteger(selectedRetainedId) || selectedRetainedId <= 0) {
+    throw new BadRequestException('حساب الأرباح المحتجزة غير صالح.');
+  }
+  return proposed.map((line) => (
+    defaultRetainedId != null &&
+    line.accountId === defaultRetainedId &&
+    line.description.includes('الأرباح المحتجزة')
+      ? { ...line, accountId: selectedRetainedId }
+      : line
+  ));
+}
+
 export interface FiscalYearPreviewResult {
   fiscalYear: any;
   unpostedEntriesCount: number;
@@ -340,27 +368,10 @@ export class FiscalYearService {
     let totalExpense = 0;
 
     for (const acc of accounts) {
-      const code = String(acc.code || '');
-      const type = String(acc.account_type || '').toLowerCase();
+      const category = fiscalProfitAndLossCategory(acc);
       const b = balanceMap.get(Number(acc.id)) || { debit: 0, credit: 0 };
 
-      // Revenue classification (4xxx or 71xx or account_type = 'revenue' or 'contra_revenue')
-      const isRevenue =
-        type === 'revenue' ||
-        type === 'contra_revenue' ||
-        code.startsWith('4') ||
-        code.startsWith('71');
-
-      // Expense classification (5xxx or 6xxx or 72xx or account_type = 'expense' or 'operating_expenses' or 'cogs')
-      const isExpense =
-        type === 'expense' ||
-        type === 'operating_expenses' ||
-        type === 'cogs' ||
-        code.startsWith('5') ||
-        code.startsWith('6') ||
-        code.startsWith('72');
-
-      if (isRevenue) {
+      if (category === 'revenue') {
         // Normal balance for Revenue is Credit: net = credit - debit
         const net = this.toMoney(b.credit - b.debit);
         if (net !== 0) {
@@ -377,7 +388,7 @@ export class FiscalYearService {
             closingCredit: net < 0 ? Math.abs(net) : 0,
           });
         }
-      } else if (isExpense) {
+      } else if (category === 'expense') {
         // Normal balance for Expense is Debit: net = debit - credit
         const net = this.toMoney(b.debit - b.credit);
         if (net !== 0) {
@@ -532,8 +543,8 @@ export class FiscalYearService {
       .where('id', '=', retainedEarningsAccountId)
       .executeTakeFirst();
 
-    if (!retainedAccount || !retainedAccount.is_active) {
-      throw new BadRequestException('حساب الأرباح المحتجزة غير صالح أو غير نشط.');
+    if (!retainedAccount || !retainedAccount.is_active || retainedAccount.account_type !== 'equity') {
+      throw new BadRequestException('حساب الأرباح المحتجزة يجب أن يكون حساب حقوق ملكية نشطاً.');
     }
 
     // 2. Execute within transaction
@@ -554,30 +565,46 @@ export class FiscalYearService {
       if (lockedFy.status === 'closed') throw new BadRequestException('هذه السنة المالية مقفلة بالفعل.');
 
       const startDateStr = this.formatDate(fy.start_date);
-      const verify = await (trx as any)
+      // Compare balances for EACH profit/loss account, not just the aggregate;
+      // the same account classifier is used for preview and final posting.
+      const liveRows = await (trx as any)
         .selectFrom('journal_entry_lines as jel')
         .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
         .innerJoin('accounting_accounts as a', 'a.id', 'jel.account_id')
         .select([
-          sql<number>`COALESCE(SUM(CASE WHEN a.account_type = 'revenue' THEN jel.credit - jel.debit ELSE 0 END), 0)`.as('revenue'),
-          sql<number>`COALESCE(SUM(CASE WHEN a.account_type = 'expense' THEN jel.debit - jel.credit ELSE 0 END), 0)`.as('expense'),
+          'jel.account_id', 'a.account_type', 'a.code',
+          sql<number>`COALESCE(SUM(jel.debit), 0)`.as('total_debit'),
+          sql<number>`COALESCE(SUM(jel.credit), 0)`.as('total_credit'),
         ])
         .where('je.tenant_id', '=', tenantId)
+        .where('jel.tenant_id', '=', tenantId)
+        .where('a.tenant_id', '=', tenantId)
+        .where('a.is_active', '=', true)
         .where('je.status', '=', 'posted')
         .where('je.source_type', '!=', 'fiscal_year_closing')
         .where('je.entry_date', '>=', startDateStr as any)
         .where('je.entry_date', '<=', endDate as any)
-        .executeTakeFirst();
+        .groupBy(['jel.account_id', 'a.account_type', 'a.code'])
+        .execute();
 
-      const liveRevenue = this.toMoney(verify?.revenue || 0);
-      const liveExpense = this.toMoney(verify?.expense || 0);
-
-      if (
-        Math.abs(liveRevenue - this.toMoney(preview.totalRevenue)) > 0.01 ||
-        Math.abs(liveExpense - this.toMoney(preview.totalExpense)) > 0.01
-      ) {
+      const expectedBalances = new Map<number, number>();
+      for (const account of preview.revenueAccounts) expectedBalances.set(account.id, account.balance);
+      for (const account of preview.expenseAccounts) expectedBalances.set(account.id, account.balance);
+      const actualBalances = new Map<number, number>();
+      for (const row of liveRows) {
+        const category = fiscalProfitAndLossCategory(row);
+        if (!category) continue;
+        const debit = this.toMoney(row.total_debit);
+        const credit = this.toMoney(row.total_credit);
+        const net = this.toMoney(category === 'revenue' ? credit - debit : debit - credit);
+        if (net !== 0) actualBalances.set(Number(row.account_id), net);
+      }
+      if (expectedBalances.size !== actualBalances.size ||
+          [...expectedBalances].some(([accountId, balance]) =>
+            !actualBalances.has(accountId) ||
+            Math.abs(balance - (actualBalances.get(accountId) || 0)) > 0.009)) {
         throw new BadRequestException(
-          'تم ترحيل حركات مالية داخل هذه السنة بعد إعداد المعاينة، فأصبحت أرقام الإقفال غير محدّثة. يرجى إعادة المعاينة ثم الإقفال.',
+          'تغير رصيد واحد أو أكثر من حسابات الأرباح والخسائر بعد المعاينة؛ يجب تحديث المعاينة قبل الإقفال.',
         );
       }
 
@@ -605,7 +632,9 @@ export class FiscalYearService {
           sourceType: 'fiscal_year_closing', sourceId: fy.id, tenantId,
           accountId: auth.accountId || tenantId, entryDate: new Date(endDate),
           description, createdBy: userId,
-          lines: preview.proposedClosingLines.map((line) => ({
+          lines: resolveClosingJournalAccounts(
+            preview.proposedClosingLines, preview.retainedEarningsAccount?.id ?? null, retainedEarningsAccountId,
+          ).map((line) => ({
             accountId: line.accountId, description: line.description,
             debit: line.debit, credit: line.credit,
             partnerType: 'none' as const, partnerId: null, branchId: null, locationId: null,
@@ -763,64 +792,102 @@ export class FiscalYearService {
     }
 
     await this.db.transaction().execute(async (trx) => {
-      // 1. Remove closing journal entry if exists
-      if (fy.closing_entry_id) {
-        await trx
-          .deleteFrom('journal_entry_lines')
-          .where('journal_entry_id', '=', fy.closing_entry_id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-
-        await trx
-          .deleteFrom('journal_entries')
-          .where('id', '=', fy.closing_entry_id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
+      const lockedFy = await trx.selectFrom('accounting_fiscal_years')
+        .select(['id', 'status', 'closing_entry_id', 'start_date'])
+        .where('id', '=', id).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!lockedFy || lockedFy.status !== 'closed') {
+        throw new BadRequestException('السنة المالية تغيرت حالتها؛ يرجى إعادة التحميل.');
       }
 
-      // 2. Update fiscal year status back to open
+      // 1. Post immutable reversal of closing journal entry if exists (ZS-042)
+      if (lockedFy.closing_entry_id != null) {
+        const closingEntry = await trx
+          .selectFrom('journal_entries')
+          .select(['id', 'entry_no', 'entry_date', 'description'])
+          .where('id', '=', lockedFy.closing_entry_id)
+          .where('tenant_id', '=', tenantId)
+          .executeTakeFirst();
+
+        if (closingEntry) {
+          const originalLines = await trx
+            .selectFrom('journal_entry_lines')
+            .selectAll()
+            .where('journal_entry_id', '=', closingEntry.id)
+            .where('tenant_id', '=', tenantId)
+            .execute();
+
+          if (originalLines.length > 0) {
+            const reversalLines = originalLines.map((l) => ({
+              accountId: Number(l.account_id),
+              description: `عكس قيد إقفال السنة المالية: ${fy.name} - [${l.description || ''}]`,
+              debit: Number(l.credit) || 0,
+              credit: Number(l.debit) || 0,
+              partnerType: 'none' as const,
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            }));
+
+            const reversalEntryId = await this.accountingPosting.postDomainJournal(trx, {
+              sourceType: 'fiscal_year_reopen',
+              sourceId: fy.id,
+              tenantId,
+              accountId: auth.accountId || tenantId,
+              entryDate: new Date(),
+              description: `عكس قيد إقفال السنة المالية [${fy.name}] بسبب إعادة الفتح: ${reason}`,
+              createdBy: auth.userId,
+              lines: reversalLines,
+            });
+
+            const reversalEntryNo = `REV-CLOSE-${fy.code || new Date().getFullYear()}-${String(reversalEntryId).padStart(6, '0')}`;
+            await trx
+              .updateTable('journal_entries')
+              .set({
+                entry_no: reversalEntryNo,
+                updated_at: sql`NOW()` as any,
+              } as any)
+              .where('id', '=', reversalEntryId)
+              .where('tenant_id', '=', tenantId)
+              .execute();
+          }
+
+          // Mark closing entry as cancelled while preserving immutable ledger record
+          await trx
+            .updateTable('journal_entries')
+            .set({
+              status: 'cancelled',
+              updated_at: sql`NOW()` as any,
+            } as any)
+            .where('id', '=', closingEntry.id)
+            .where('tenant_id', '=', tenantId)
+            .execute();
+        }
+      }
+
+      const later = await trx.selectFrom('accounting_fiscal_years')
+        .select('id').where('tenant_id', '=', tenantId)
+        .where('status', '=', 'closed')
+        .where('start_date', '>', lockedFy.start_date)
+        .executeTakeFirst();
+      if (later) throw new BadRequestException('يجب إعادة فتح السنوات المالية بالترتيب الزمني العكسي.');
+
       const reopenLog = `\n[أعيد فتحها بتاريخ ${new Date().toISOString().substring(0, 10)} بواسطة مستخدم #${auth.userId} - السبب: ${reason}]`;
-      await trx
-        .updateTable('accounting_fiscal_years')
+      await trx.updateTable('accounting_fiscal_years')
         .set({
-          status: 'open',
-          closing_entry_id: null,
-          closed_at: null,
-          closed_by: null,
+          status: 'open', closing_entry_id: null, closed_at: null, closed_by: null,
           closing_notes: sql`CONCAT(COALESCE(closing_notes, ''), ${reopenLog})` as any,
           updated_at: sql`NOW()` as any,
         })
-        .where('id', '=', fy.id)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
-      // 3. Adjust lock date in accounting_settings
-      // Find the latest remaining closed fiscal year (if any)
-      const prevClosed = await trx
-        .selectFrom('accounting_fiscal_years')
-        .select(['end_date'])
-        .where('tenant_id', '=', tenantId)
-        .where('status', '=', 'closed')
-        .where('id', '!=', fy.id)
-        .orderBy('end_date', 'desc')
-        .executeTakeFirst();
-
-      const newLockDate = prevClosed ? this.formatDate(prevClosed.end_date) : null;
-
-      await trx
-        .updateTable('accounting_settings')
-        .set({
-          lock_date_all: newLockDate as any,
-          updated_at: sql`NOW()` as any,
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('id', '=', 1)
-        .execute();
+        .where('id', '=', id).where('tenant_id', '=', tenantId).execute();
+      // Do not alter accounting_settings.lock_date_all. It may contain a manual
+      // administrative lock stricter than fiscal close; release requires a separate
+      // explicit authorized workflow.
     });
 
     return {
       success: true,
-      message: `تم إعادة فتح السنة المالية [${fy.name}] بنجاح وإلغاء قيد الإقفال وتعديل تاريخ القفل.`,
+      message: `تم إعادة فتح السنة المالية [${fy.name}] دون حذف قيود أو تغيير الأقفال الإدارية؛ يمكن تعديل القفل عبر الإعدادات المخولة.`,
     };
   }
 

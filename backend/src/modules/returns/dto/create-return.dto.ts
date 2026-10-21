@@ -27,10 +27,21 @@ class ReturnItemDto {
   @Min(1)
   purchaseItemId?: number;
 
+  // Required for ambiguous pharmacy purchase returns; single-batch returns can auto-resolve.
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  batchId?: number;
+
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   serials?: string[];
+
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
 }
 
 export class CreateReturnDto {

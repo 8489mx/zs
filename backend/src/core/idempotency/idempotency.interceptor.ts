@@ -18,9 +18,16 @@ export class IdempotencyInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    const method = (request.method || '').toUpperCase();
+    // Non-mutating read-only HTTP methods must not reserve idempotency operations
+    if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      return next.handle();
+    }
+
     const { tenantId, accountId } = request.authContext;
-    const operationType = `${request.method}:${request.route.path}`;
-    const requestHash = this.idempotencyService.generateRequestHash(request.body);
+    const routePath = request.route?.path || request.path || '';
+    const operationType = `${request.method}:${routePath}`;
+    const requestHash = this.idempotencyService.generateRequestHash(request.body, request.params);
 
     const reservation = {
       tenantId: tenantId || '',
@@ -54,6 +61,15 @@ export class IdempotencyInterceptor implements NestInterceptor {
             { idempotencyKey, operationType, accountId: reservation.accountId },
             () => {
               next.handle().pipe(
+                tap({
+                  next: async (res) => {
+                    try {
+                      await this.idempotencyService.finalizeIfStillProcessing(reservation, res);
+                    } catch {
+                      // Finalization in background must not disrupt caller
+                    }
+                  },
+                }),
                 catchError((err) => {
                   if (err instanceof HttpException || err.status || err.name === 'AppError') {
                     return from(

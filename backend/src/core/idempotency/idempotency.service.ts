@@ -25,12 +25,17 @@ export class IdempotencyService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
 
   /**
-   * Generates a deterministic hash of the payload, ignoring volatile fields.
+   * Generates a deterministic hash of the payload, including path parameters and ignoring volatile fields.
    */
-  generateRequestHash(payload: any): string {
+  generateRequestHash(payload: any, pathParams?: any): string {
     const cleanPayload = this.stripVolatileFields(payload || {});
+    const cleanParams = pathParams && typeof pathParams === 'object' && Object.keys(pathParams).length > 0
+      ? this.sortKeysRecursively(pathParams)
+      : undefined;
+
+    const dataToHash = cleanParams ? { body: cleanPayload, params: cleanParams } : cleanPayload;
     // Sort keys recursively for deterministic serialization regardless of insertion order
-    const serialized = JSON.stringify(this.sortKeysRecursively(cleanPayload)) || '{}';
+    const serialized = JSON.stringify(this.sortKeysRecursively(dataToHash)) || '{}';
     return crypto.createHash('sha256').update(serialized).digest('hex');
   }
 
@@ -66,6 +71,48 @@ export class IdempotencyService {
    * If it successfully reserves, it returns void, and the caller must proceed with the business transaction.
    */
   async reserveOperation(params: IdempotencyReservation): Promise<IdempotencyResult | null> {
+    const existingAny = await this.db
+      .selectFrom('operation_executions')
+      .selectAll()
+      .where('tenant_id', '=', params.tenantId)
+      .where('account_id', '=', params.accountId)
+      .where('idempotency_key', '=', params.idempotencyKey)
+      .execute();
+
+    if (existingAny.length > 0) {
+      const matchingOp = existingAny.find((r) => r.operation_type === params.operationType);
+      if (!matchingOp) {
+        throw new AppError(
+          'Idempotency key reused for a different business operation',
+          'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_OPERATION',
+          400
+        );
+      }
+
+      if (matchingOp.request_hash !== params.requestHash) {
+        throw new AppError(
+          'Idempotency key reused with different payload',
+          'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD',
+          400
+        );
+      }
+
+      if (matchingOp.status === 'processing') {
+        const ageMs = Date.now() - new Date(matchingOp.updated_at).getTime();
+        if (ageMs > 60000) {
+          return { status: 'recovery_required' };
+        }
+        return { status: 'processing' };
+      }
+
+      return {
+        status: matchingOp.status as any,
+        responsePayload: matchingOp.response_payload ? JSON.parse(matchingOp.response_payload) : undefined,
+        errorCode: matchingOp.error_code || undefined,
+        documentId: matchingOp.document_id || undefined,
+      };
+    }
+
     try {
       await this.db
         .insertInto('operation_executions')
@@ -83,7 +130,7 @@ export class IdempotencyService {
 
       return null; // Reservation successful
     } catch (error: any) {
-      // Catch unique constraint violation
+      // Catch unique constraint violation in race conditions
       if (error.code === '23505' || error.message?.includes('UNIQUE') || error.message?.includes('duplicate key')) {
         const existing = await this.db
           .selectFrom('operation_executions')
@@ -91,31 +138,38 @@ export class IdempotencyService {
           .where('tenant_id', '=', params.tenantId)
           .where('account_id', '=', params.accountId)
           .where('idempotency_key', '=', params.idempotencyKey)
-          .where('operation_type', '=', params.operationType)
-          .executeTakeFirst();
+          .execute();
 
-        if (!existing) {
-          throw new AppError('Idempotency collision but record not found', 'IDEMPOTENCY_COLLISION_NOT_FOUND', 500);
+        const match = existing.find((r) => r.operation_type === params.operationType);
+        if (!match) {
+          throw new AppError(
+            'Idempotency key reused for a different business operation',
+            'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_OPERATION',
+            400
+          );
         }
 
-        if (existing.request_hash !== params.requestHash) {
-          throw new AppError('Idempotency key reused with different payload', 'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD', 400);
+        if (match.request_hash !== params.requestHash) {
+          throw new AppError(
+            'Idempotency key reused with different payload',
+            'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD',
+            400
+          );
         }
 
-        if (existing.status === 'processing') {
-          // Check for stale processing
-          const ageMs = Date.now() - new Date(existing.updated_at).getTime();
-          if (ageMs > 60000) { // 60 seconds threshold for stale processing
+        if (match.status === 'processing') {
+          const ageMs = Date.now() - new Date(match.updated_at).getTime();
+          if (ageMs > 60000) {
             return { status: 'recovery_required' };
           }
           return { status: 'processing' };
         }
 
         return {
-          status: existing.status as any,
-          responsePayload: existing.response_payload ? JSON.parse(existing.response_payload) : undefined,
-          errorCode: existing.error_code || undefined,
-          documentId: existing.document_id || undefined,
+          status: match.status as any,
+          responsePayload: match.response_payload ? JSON.parse(match.response_payload) : undefined,
+          errorCode: match.error_code || undefined,
+          documentId: match.document_id || undefined,
         };
       }
       throw error;
@@ -172,16 +226,50 @@ export class IdempotencyService {
   }
 
   /**
-   * Checks if an operation is already processed.
+   * Finalizes an operation if it is still marked 'processing'.
+   * Used by interceptor to guarantee handlers that never called commitOperation
+   * do not leave a permanent 'processing' reservation.
    */
-  async check(idempotencyKey: string, scope: { tenantId: string; accountId: string }): Promise<{ response: any } | null> {
-    const record = await this.db
+  async finalizeIfStillProcessing(
+    params: Pick<IdempotencyReservation, 'tenantId' | 'accountId' | 'idempotencyKey' | 'operationType'>,
+    responsePayload: any
+  ): Promise<void> {
+    await this.db
+      .updateTable('operation_executions')
+      .set({
+        status: 'committed',
+        response_payload: JSON.stringify(responsePayload ?? null),
+        updated_at: sql`CURRENT_TIMESTAMP`,
+        completed_at: sql`CURRENT_TIMESTAMP`,
+      })
+      .where('tenant_id', '=', params.tenantId)
+      .where('account_id', '=', params.accountId)
+      .where('idempotency_key', '=', params.idempotencyKey)
+      .where('operation_type', '=', params.operationType)
+      .where('status', '=', 'processing')
+      .execute();
+  }
+
+  /**
+   * Checks if an operation is already processed for this specific operation type.
+   */
+  async check(
+    idempotencyKey: string,
+    scope: { tenantId: string; accountId: string },
+    operationType?: string
+  ): Promise<{ response: any } | null> {
+    let query = this.db
       .selectFrom('operation_executions')
       .selectAll()
       .where('idempotency_key', '=', idempotencyKey)
       .where('tenant_id', '=', scope.tenantId)
-      .where('account_id', '=', scope.accountId)
-      .executeTakeFirst();
+      .where('account_id', '=', scope.accountId);
+
+    if (operationType) {
+      query = query.where('operation_type', '=', operationType);
+    }
+
+    const record = await query.executeTakeFirst();
 
     if (record && record.status === 'committed') {
       return { response: record.response_payload ? JSON.parse(record.response_payload) : null };

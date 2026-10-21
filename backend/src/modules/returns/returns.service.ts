@@ -22,6 +22,8 @@ import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.se
 import { allocateRefundTenders, type RefundTender } from './engines/refund-tender.engine';
 import { allocateInvoiceDiscount } from '../sales/engines/invoice-discount.engine';
 import { settlePosExchange } from '../sales/engines/pos-exchange.engine';
+import { selectPurchaseReturnSerials, selectPurchaseReturnBatch } from './helpers/purchase-return-traceability.helper';
+import { restoreImportLotsFromSalesReturn } from '../import-sales/helpers/import-lot-allocation.helper';
 
 export interface ExchangeReturnContext {
   returnId: number;
@@ -32,7 +34,7 @@ export interface ExchangeReturnContext {
   refundBase: Omit<Parameters<typeof allocateRefundTenders>[0], 'amount' | 'requested'>;
 }
 
-type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; serials?: string[] };
+type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; batchId?: number; serials?: string[] };
 type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null; refundAllocations?: Array<{ tender: RefundTender; amount: number }> };
 
 @Injectable()
@@ -309,21 +311,35 @@ export class ReturnsService {
       approvedByName = await this.verifyManagerAuthorization(this.db, payload.managerPin || '', auth);
     }
 
-    const returnIds = await this.tx.runInTransaction(this.db, async (trx) => {
+    const result = await this.tx.runInTransaction(this.db, async (trx) => {
       const normalizedItems = normalizeReturnItems(payload);
-      if (payload.type === 'sale') return this.createSaleReturn(trx, payload, normalizedItems, auth, approvedByName);
-      return this.createPurchaseReturn(trx, payload, normalizedItems, auth);
+      const returnIds = payload.type === 'sale'
+        ? await this.createSaleReturn(trx, payload, normalizedItems, auth, approvedByName)
+        : await this.createPurchaseReturn(trx, payload, normalizedItems, auth);
+
+      const res = { ok: true, createdIds: returnIds, id: returnIds[0], returnDocumentId: returnIds[0] };
+
+      // Idempotency: commit inside the EXACT SAME business transaction (CORE-004)
+      if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: scope.tenantId, accountId: idemCtx.accountId || scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          res,
+          String(returnIds[0])
+        );
+      }
+
+      return res;
     });
 
+    const returnIds = result.createdIds;
     const label = payload.type === 'purchase' ? 'purchase return' : 'sale return';
     const auditText = approvedByName
       ? `Created ${label} by ${auth.username} (Approved by: ${approvedByName})`
       : `Created ${label} by ${auth.username}`;
     await this.audit.log('إنشاء مرتجع', auditText, auth);
 
-    const result = { ok: true, createdIds: returnIds, id: returnIds[0], returnDocumentId: returnIds[0] };
-
-    // WhatsApp refund notification to owner
+    // WhatsApp refund notification to owner (post-commit reliable notification)
     if (payload.type === 'sale' && this.whatsappService && returnIds[0]) {
       void (async () => {
         try {
@@ -344,15 +360,6 @@ export class ReturnsService {
           }
         } catch {}
       })();
-    }
-
-    // Idempotency: commit the response so future duplicate requests return it
-    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
-      await this.idempotency.commitOperation(
-        this.db,
-        { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
-        result
-      );
     }
 
     return result;
@@ -554,6 +561,13 @@ export class ReturnsService {
       ) * Number(saleItem.unit_multiplier || 1));
       await this.restoreReturnedPharmacyBatches(trx, Number(sale.id), saleLineId, requestItem.productId,
         previouslyReturnedBaseQty, preparedLine.stockDelta, auth);
+      await restoreImportLotsFromSalesReturn(trx as any, {
+        tenantId: scope.tenantId,
+        saleId: Number(sale.id),
+        saleItemId: saleLineId,
+        productId: requestItem.productId,
+        returnQty: preparedLine.stockDelta,
+      });
 
       const originalSerials = typeof saleItem.serials === 'string'
         ? JSON.parse(saleItem.serials || '[]') as unknown : saleItem.serials;
@@ -671,10 +685,21 @@ export class ReturnsService {
       else if (allocation.tender === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -allocation.amount, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
     }
 
-    // Reconcile Customer Loyalty Points on Return
+    // Reconcile Customer Loyalty Points on Return (ZS-070)
     if (customerId) {
       const originalSaleTotal = Number(sale.total) || 1;
-      const returnRatio = Math.min(1, Math.max(0, total / originalSaleTotal));
+
+      // Cumulative returns calculation so repeated partial returns never over-reconcile
+      const previousReturns = await trx
+        .selectFrom('return_documents')
+        .select(sql<number>`COALESCE(SUM(total), 0)`.as('returned_sum'))
+        .where('return_type', '=', 'sale')
+        .where('invoice_id', '=', Number(sale.id))
+        .where('id', '!=', returnDocumentId)
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst();
+      const cumulativeReturned = Number(previousReturns?.returned_sum || 0) + total;
+      const cumulativeRatio = Math.min(1, Math.max(0, cumulativeReturned / originalSaleTotal));
 
       // 1. Clawback earned loyalty points proportionally
       const earnLog = await trx
@@ -687,7 +712,18 @@ export class ReturnsService {
 
       if (earnLog && Number(earnLog.points_change) > 0) {
         const earnedPoints = Number(earnLog.points_change);
-        const clawbackPoints = Math.min(earnedPoints, Math.round(earnedPoints * returnRatio));
+        const previousClawbacks = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(sql<number>`COALESCE(SUM(ABS(points_change)), 0)`.as('total_clawed'))
+          .where('sale_id', '=', Number(sale.id))
+          .where('action_type', '=', 'return_clawback')
+          .where(this.tenantPredicate(auth))
+          .executeTakeFirst();
+        const alreadyClawed = Number(previousClawbacks?.total_clawed || 0);
+
+        const targetClawback = Math.min(earnedPoints, Math.round(earnedPoints * cumulativeRatio));
+        const clawbackPoints = Math.max(0, Math.min(targetClawback - alreadyClawed, earnedPoints - alreadyClawed));
+
         if (clawbackPoints > 0) {
           const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirst();
           const currentBal = Number(cust?.loyalty_points || 0);
@@ -728,7 +764,18 @@ export class ReturnsService {
 
       if (redeemLog && Number(redeemLog.points_change) < 0) {
         const totalRedeemed = Math.abs(Number(redeemLog.points_change));
-        const refundPoints = Math.min(totalRedeemed, Math.round(totalRedeemed * returnRatio));
+        const previousRefunds = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(sql<number>`COALESCE(SUM(points_change), 0)`.as('total_refunded'))
+          .where('sale_id', '=', Number(sale.id))
+          .where('action_type', '=', 'return_refund')
+          .where(this.tenantPredicate(auth))
+          .executeTakeFirst();
+        const alreadyRefunded = Number(previousRefunds?.total_refunded || 0);
+
+        const targetRefund = Math.min(totalRedeemed, Math.round(totalRedeemed * cumulativeRatio));
+        const refundPoints = Math.max(0, Math.min(targetRefund - alreadyRefunded, totalRedeemed - alreadyRefunded));
+
         if (refundPoints > 0) {
           const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(this.tenantPredicate(auth)).executeTakeFirst();
           const currentBal = Number(cust?.loyalty_points || 0);
@@ -842,9 +889,49 @@ export class ReturnsService {
       pendingQtyByLine.set(purchaseLineId, (pendingQtyByLine.get(purchaseLineId) || 0) + requestItem.qty);
 
       const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials'])
+        .where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem);
+
+      // The serial ledger and general stock ledger must leave the warehouse together.
+      const purchaseSerials = await trx.selectFrom('product_serials')
+        .select(['id', 'serial_number', 'imei_2', 'status'])
+        .where('tenant_id', '=', scope.tenantId).where('product_id', '=', requestItem.productId)
+        .where('purchase_id', '=', Number(purchase.id)).where('purchase_item_id', '=', purchaseLineId)
+        .where('status', '=', 'in_stock')
+        .orderBy('id', 'asc').forUpdate().execute();
+      if (product.track_serials === true || purchaseSerials.length > 0) {
+        const chosen = selectPurchaseReturnSerials(purchaseSerials, requestItem.serials, preparedLine.stockDelta);
+        await trx.updateTable('product_serials')
+          .set({ status: 'returned', updated_at: sql`NOW()` })
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', 'in', chosen.map(row => row.id)).execute();
+      } else if (requestItem.serials?.length) {
+        throw new AppError('لا توجد سيريالات مرتبطة بسطر فاتورة الشراء', 'PURCHASE_RETURN_SERIAL_NOT_AVAILABLE', 400);
+      }
+
+      // Drug lots are a separate quantity ledger. Never deduct product stock without
+      // deducting the corresponding unexpired/held lot from the same location.
+      const drug = await trx.selectFrom('pharmacy_drugs').select('id')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('product_id', '=', requestItem.productId).executeTakeFirst();
+      if (drug) {
+        const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
+        let batchQuery = trx.selectFrom('pharmacy_batches').select(['id', 'quantity'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('product_id', '=', requestItem.productId);
+        batchQuery = itemLocationId == null ? batchQuery.where('location_id', 'is', null)
+          : batchQuery.where('location_id', '=', itemLocationId);
+        const batches = await batchQuery.orderBy('id', 'asc').forUpdate().execute();
+        const batch = selectPurchaseReturnBatch(batches, requestItem.batchId, preparedLine.stockDelta);
+        await trx.updateTable('pharmacy_batches')
+          .set({ quantity: Number((Number(batch.quantity) - preparedLine.stockDelta).toFixed(3)), updated_at: sql`NOW()` })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', batch.id).execute();
+      } else if (requestItem.batchId) {
+        throw new AppError('الصنف ليس دواءً مسجلاً بتشغيلة', 'PURCHASE_RETURN_BATCH_NOT_APPLICABLE', 400);
+      }
+
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
       await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: purchase.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, purchaseItemId: purchaseLineId });

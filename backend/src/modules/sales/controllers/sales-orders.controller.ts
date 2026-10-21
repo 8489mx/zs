@@ -1,11 +1,14 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
+import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { SalesOrdersService } from '../services/sales-orders.service';
 import { CreateSalesOrderDto } from '../dto/sales-order.dto';
 
 @Controller('api/sales-orders')
-@UseGuards(SessionAuthGuard)
+@UseGuards(SessionAuthGuard, PermissionsGuard)
+@RequirePermissions('sales')
 export class SalesOrdersController {
   constructor(private readonly salesOrdersService: SalesOrdersService) {}
 

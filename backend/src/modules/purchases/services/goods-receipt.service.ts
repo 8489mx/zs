@@ -153,10 +153,13 @@ export class GoodsReceiptService {
       if (quarantineLocations.length !== quarantineIds.length) throw new NotFoundException('مكان الحجر لا يتبع المنشأة.');
     }
     if (dto.purchaseOrderId) {
-      const order = await this.db.selectFrom('purchase_orders').select(['id', 'supplier_id'])
+      const order = await this.db.selectFrom('purchase_orders').select(['id', 'supplier_id', 'status'])
         .where('id', '=', dto.purchaseOrderId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
       if (!order || Number(order.supplier_id) !== Number(dto.supplierId)) {
         throw new BadRequestException('أمر الشراء لا يتبع المورد المحدد في المنشأة.');
+      }
+      if (!['confirmed', 'partially_received', 'received', 'converted_to_bill'].includes(String(order.status))) {
+        throw new BadRequestException('لا يجوز الاستلام على أمر شراء ملغي أو غير معتمد');
       }
       const orderItemIds = [...new Set(dto.lines.map((line) => Number(line.purchaseOrderItemId || 0)).filter((id) => id > 0))];
       if (orderItemIds.length) {
@@ -393,9 +396,12 @@ export class GoodsReceiptService {
         .executeTakeFirst();
       if (!receiptLink) throw new NotFoundException(`إذن الاستلام رقم ${id} غير موجود.`);
       if (receiptLink.purchase_order_id) {
-        await trx.selectFrom('purchase_orders').select('id')
+        const lockedOrder = await trx.selectFrom('purchase_orders').select(['id', 'status'])
           .where('id', '=', Number(receiptLink.purchase_order_id))
           .where('tenant_id', '=', scope.tenantId).forUpdate().executeTakeFirstOrThrow();
+        if (!['confirmed', 'partially_received', 'received', 'converted_to_bill'].includes(String(lockedOrder.status))) {
+          throw new BadRequestException('تم رفض ترحيل الاستلام: أمر الشراء غير معتمد أو ملغي');
+        }
       }
       // 1. Pessimistic lock on GRN header to prevent concurrent double-posting
       const grnRow = await trx

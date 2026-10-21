@@ -124,10 +124,43 @@ export class AccountingRecoveryService implements OnApplicationBootstrap, OnModu
         const auth = this.systemAuthFor(String(row.tenant_id), String(row.account_id));
         try {
           await this.db.transaction().execute(async (trx) => {
-            if (row.source_type === 'sale') {
-              await this.posting.postSale(trx, Number(row.source_id), auth);
-            } else {
-              throw new Error(`No retry handler for source type "${row.source_type}"`);
+            switch (row.source_type) {
+              case 'sale':
+                await this.posting.postSale(trx, Number(row.source_id), auth);
+                break;
+              case 'purchase':
+                await this.posting.postPurchase(trx, Number(row.source_id), auth);
+                break;
+              case 'sales_return':
+              case 'sale_return':
+                await this.posting.postSalesReturn(trx, Number(row.source_id), auth);
+                break;
+              case 'purchase_return':
+                await this.posting.postPurchaseReturn(trx, Number(row.source_id), auth);
+                break;
+              case 'expense':
+                await this.posting.postExpense(trx, Number(row.source_id), auth);
+                break;
+              case 'customer_payment':
+                await this.posting.postCustomerPayment(trx, Number(row.source_id), auth);
+                break;
+              case 'supplier_payment':
+                await this.posting.postSupplierPayment(trx, Number(row.source_id), auth);
+                break;
+              case 'stock_count':
+                await this.posting.postStockCount(trx, Number(row.source_id), auth);
+                break;
+              case 'inventory_adjustment':
+                await this.posting.postInventoryAdjustment(trx, Number(row.source_id), auth);
+                break;
+              case 'damaged_stock':
+                await this.posting.postDamagedStock(trx, Number(row.source_id), auth);
+                break;
+              case 'shift_variance':
+                await this.posting.postCashierShiftVariance(trx, Number(row.source_id), auth);
+                break;
+              default:
+                throw new Error(`No retry handler for source type "${row.source_type}"`);
             }
             await sql`
               UPDATE accounting_posting_failures

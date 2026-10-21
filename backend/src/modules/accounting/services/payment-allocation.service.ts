@@ -39,6 +39,35 @@ export interface AllocatePaymentDto {
   notes?: string;
 }
 
+/** The API must not create an apparent invoice settlement without a funded voucher. */
+export function validatePaymentAllocationRequest(dto: AllocatePaymentDto): { totalAllocating: number; allocations: AllocateItemInput[] } {
+  if (!dto || !['customer', 'supplier'].includes(dto.partnerType) || !Number.isSafeInteger(dto.partnerId) || dto.partnerId <= 0) {
+    throw new BadRequestException('Invalid payment partner');
+  }
+  const expectedType = dto.partnerType === 'customer' ? 'customer_payment' : 'supplier_payment';
+  if (dto.paymentType !== expectedType || typeof dto.paymentId !== 'number' || !Number.isSafeInteger(dto.paymentId) || dto.paymentId <= 0) {
+    throw new BadRequestException('Allocation requires a real customer/supplier payment voucher; unfunded direct allocation is forbidden');
+  }
+  if (!Array.isArray(dto.allocations) || dto.allocations.length === 0) {
+    throw new BadRequestException('At least one invoice allocation is required');
+  }
+  const seen = new Set<number>();
+  let cents = 0;
+  for (const row of dto.allocations) {
+    if (!row || !Number.isSafeInteger(row.invoiceId) || row.invoiceId <= 0 || seen.has(row.invoiceId)) {
+      throw new BadRequestException('Invalid or repeated invoice ID');
+    }
+    seen.add(row.invoiceId);
+    if (typeof row.amount !== 'number' || !Number.isFinite(row.amount) || row.amount <= 0 ||
+        Math.abs(row.amount * 100 - Math.round(row.amount * 100)) > 1e-7) {
+      throw new BadRequestException('Every allocated amount must be positive, finite and accurate to cents');
+    }
+    cents += Math.round(row.amount * 100);
+    if (!Number.isSafeInteger(cents)) throw new BadRequestException('Allocation total is too large');
+  }
+  return { totalAllocating: cents / 100, allocations: [...dto.allocations].sort((a, b) => a.invoiceId - b.invoiceId) };
+}
+
 @Injectable()
 export class PaymentAllocationService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>) {}
@@ -198,17 +227,7 @@ export class PaymentAllocationService {
     const scope = requireTenantScope(auth);
     const userId = Number(auth.userId || 0) || null;
 
-    if (!dto.allocations || !dto.allocations.length) {
-      throw new BadRequestException('يجب تحديد فاتورة واحدة على الأقل للتخصيص');
-    }
-
-    const totalAllocating = Number(
-      dto.allocations.reduce((sum, a) => sum + Number(a.amount || 0), 0).toFixed(2)
-    );
-
-    if (totalAllocating <= 0) {
-      throw new BadRequestException('إجمالي المبلغ المراد تخصيصه يجب أن يكون أكبر من صفر');
-    }
+    const { totalAllocating, allocations } = validatePaymentAllocationRequest(dto);
 
     return await this.db.transaction().execute(async (trx) => {
       // 1. If paymentId is specified, verify available unallocated amount
@@ -216,13 +235,14 @@ export class PaymentAllocationService {
         if (dto.paymentType === 'customer_payment') {
           const payment = await trx
             .selectFrom('customer_payments')
-            .select(['id', 'amount'])
+            .select(['id', 'amount', 'customer_id'])
             .where('id', '=', dto.paymentId)
             .where('tenant_id', '=', scope.tenantId)
             .forUpdate()
             .executeTakeFirst();
 
           if (!payment) throw new NotFoundException('سند التحصيل غير موجود');
+          if (Number(payment.customer_id) !== dto.partnerId) throw new BadRequestException('Payment voucher customer mismatch');
 
           const existingAlloc = await trx
             .selectFrom('payment_allocations')
@@ -233,7 +253,7 @@ export class PaymentAllocationService {
             .executeTakeFirst();
 
           const unallocated = Number(payment.amount) - Number(existingAlloc?.allocated || 0);
-          if (totalAllocating > unallocated + 0.01) {
+          if (totalAllocating > Number(unallocated.toFixed(2))) {
             throw new BadRequestException(
               `المبلغ المطلوب تخصيصه (${totalAllocating}) يتجاوز الرصيد المتبقي غير المخصص من السند (${unallocated.toFixed(2)})`
             );
@@ -241,13 +261,14 @@ export class PaymentAllocationService {
         } else if (dto.paymentType === 'supplier_payment') {
           const payment = await trx
             .selectFrom('supplier_payments')
-            .select(['id', 'amount'])
+            .select(['id', 'amount', 'supplier_id'])
             .where('id', '=', dto.paymentId)
             .where('tenant_id', '=', scope.tenantId)
             .forUpdate()
             .executeTakeFirst();
 
           if (!payment) throw new NotFoundException('سند السداد غير موجود');
+          if (Number(payment.supplier_id) !== dto.partnerId) throw new BadRequestException('Payment voucher supplier mismatch');
 
           const existingAlloc = await trx
             .selectFrom('payment_allocations')
@@ -258,7 +279,7 @@ export class PaymentAllocationService {
             .executeTakeFirst();
 
           const unallocated = Number(payment.amount) - Number(existingAlloc?.allocated || 0);
-          if (totalAllocating > unallocated + 0.01) {
+          if (totalAllocating > Number(unallocated.toFixed(2))) {
             throw new BadRequestException(
               `المبلغ المطلوب تخصيصه (${totalAllocating}) يتجاوز الرصيد المتبقي غير المخصص من السند (${unallocated.toFixed(2)})`
             );
@@ -269,26 +290,26 @@ export class PaymentAllocationService {
       // 2. Validate and apply allocations to each invoice
       const invoiceType = dto.partnerType === 'customer' ? 'sale' : 'purchase';
 
-      for (const item of dto.allocations) {
-        const allocAmount = Number(Number(item.amount).toFixed(2));
-        if (allocAmount <= 0) continue;
+      for (const item of allocations) {
+        const allocAmount = item.amount;
 
         if (invoiceType === 'sale') {
           const sale = await trx
             .selectFrom('sales')
-            .select(['id', 'total', 'paid_amount'])
+            .select(['id', 'total', 'paid_amount', 'customer_id', 'status'])
             .where('id', '=', item.invoiceId)
             .where('tenant_id', '=', scope.tenantId)
             .forUpdate()
             .executeTakeFirst();
 
           if (!sale) throw new NotFoundException(`فاتورة المبيعات ${item.invoiceId} غير موجودة`);
+          if (Number(sale.customer_id) !== dto.partnerId || sale.status === 'cancelled') throw new BadRequestException('Invoice does not belong to customer or is cancelled');
 
           const currentPaid = Number(sale.paid_amount || 0);
           const total = Number(sale.total || 0);
           const remaining = total - currentPaid;
 
-          if (allocAmount > remaining + 0.01) {
+          if (allocAmount > Number(remaining.toFixed(2))) {
             throw new BadRequestException(
               `المبلغ المخصص (${allocAmount}) أكبر من الرصيد المتبقي على الفاتورة (${remaining.toFixed(2)})`
             );
@@ -304,19 +325,20 @@ export class PaymentAllocationService {
         } else {
           const purchase = await trx
             .selectFrom('purchases')
-            .select(['id', 'total', 'paid_amount'])
+            .select(['id', 'total', 'paid_amount', 'supplier_id', 'status'])
             .where('id', '=', item.invoiceId)
             .where('tenant_id', '=', scope.tenantId)
             .forUpdate()
             .executeTakeFirst();
 
           if (!purchase) throw new NotFoundException(`فاتورة المشتريات ${item.invoiceId} غير موجودة`);
+          if (Number(purchase.supplier_id) !== dto.partnerId || purchase.status === 'cancelled') throw new BadRequestException('Invoice does not belong to supplier or is cancelled');
 
           const currentPaid = Number(purchase.paid_amount || 0);
           const total = Number(purchase.total || 0);
           const remaining = total - currentPaid;
 
-          if (allocAmount > remaining + 0.01) {
+          if (allocAmount > Number(remaining.toFixed(2))) {
             throw new BadRequestException(
               `المبلغ المخصص (${allocAmount}) أكبر من الرصيد المتبقي على فاتورة الشراء (${remaining.toFixed(2)})`
             );
@@ -354,7 +376,7 @@ export class PaymentAllocationService {
       return {
         success: true,
         totalAllocated: totalAllocating,
-        count: dto.allocations.length,
+        count: allocations.length,
       };
     });
   }

@@ -646,6 +646,34 @@ export class PdcChequesService {
           nextJournalId = postRes.journalEntryId;
           updateFields.journal_entry_id = nextJournalId;
         }
+      } else if (actionDto.action === 'cancel' || actionDto.action === 'return') {
+        // Reverse earlier posted receipt/issue journal (ZS-047)
+        if (existing.journal_entry_id) {
+          const postRes = await this.accountingPostingService.postPdcChequeCancelOrReturn(
+            trx,
+            id,
+            actionDto.action,
+            authContext,
+          );
+          if (postRes.posted && postRes.journalEntryId) {
+            nextJournalId = postRes.journalEntryId;
+            updateFields.journal_entry_id = nextJournalId;
+          }
+        }
+      } else if (actionDto.action === 'restore_to_safe') {
+        // Reverse earlier bounce effect if restoring from bounced status (ZS-048)
+        if (existing.status === 'bounced') {
+          const postRes = await this.accountingPostingService.postPdcChequeRestore(
+            trx,
+            id,
+            existing.status,
+            authContext,
+          );
+          if (postRes.posted && postRes.journalEntryId) {
+            nextJournalId = postRes.journalEntryId;
+            updateFields.journal_entry_id = nextJournalId;
+          }
+        }
       }
 
       const updated = await trx

@@ -220,7 +220,7 @@ export class SupplierPaymentSchedulesService {
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const db = this.scheduleDb(trx);
       
-      const existingRows = await db.selectFrom('supplier_payment_schedules').select(['amount', 'paid_amount']).where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where('status', '!=', 'cancelled').where(this.tenantPredicate(auth)).execute();
+      const existingRows = await db.selectFrom('supplier_payment_schedules').select(['amount', 'paid_amount']).where('supplier_id', '=', supplierId).where('status', '!=', 'cancelled').where(this.tenantPredicate(auth)).execute();
       const existingUnpaid = existingRows.reduce((sum, r) => sum + (Number(r.amount) - Number(r.paid_amount)), 0);
       
       const balance = this.roundCurrency(Number(supplier.balance || 0));

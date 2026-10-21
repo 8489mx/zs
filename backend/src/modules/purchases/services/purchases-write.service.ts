@@ -18,6 +18,7 @@ import { PurchasesFinanceService } from './purchases-finance.service';
 import { PurchasesQueryService } from './purchases-query.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { detectDuplicateBills, normalizeBillNumber, type HistoricalPurchaseRecord } from '../engines/duplicate-bill-detector.engine';
+import { assertCustomerPaymentJobOwnership } from '../helpers/customer-payment-job-ownership';
 
 type PurchaseRepricingCandidate = {
   productId: number;
@@ -351,6 +352,18 @@ export class PurchasesWriteService {
         );
       }
 
+      if (payload.importProjectId) {
+        const imp = await trx
+          .selectFrom('import_projects')
+          .select('id')
+          .where('id', '=', payload.importProjectId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        if (!imp) {
+          throw new AppError('مشروع الاستيراد المحدد غير موجود أو لا ينتمي لهذه المنشأة.', 'IMPORT_PROJECT_NOT_FOUND', 400);
+        }
+      }
+
       const insert = await trx
         .insertInto('purchases')
         .values({
@@ -380,6 +393,7 @@ export class PurchasesWriteService {
           shipping_address_id: payload.shippingAddressId || null,
           cost_center_id: payload.costCenterId || null,
           project_id: payload.projectId || null,
+          import_project_id: payload.importProjectId || null,
           terms_template: payload.termsTemplate || '',
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
@@ -632,6 +646,16 @@ export class PurchasesWriteService {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
+      // Posted GL journals are immutable. Do not mutate invoice stock/supplier balances without a
+      // balancing correction document and journal.
+      if (purchase.status === 'posted') {
+        throw new AppError('لا يمكن تعديل فاتورة مشتريات مرحلة؛ استخدم مستند تصحيح أو مرتجعاً رسمياً', 'POSTED_PURCHASE_EDIT_FORBIDDEN', 422);
+      }
+      // This legacy edit flow reverses physical movements unconditionally; purchase-order-only
+      // drafts have never posted stock/treasury, so edits need a separate metadata-only command.
+      if (purchase.lifecycle_status === 'purchase_order' || purchase.status === 'draft') {
+        throw new AppError('مسودة المشتريات تحتاج مسار تعديل منفصل دون عكس حركة مخزون أو قيد', 'PURCHASE_DRAFT_EDIT_UNSUPPORTED', 422);
+      }
       if (purchase.lifecycle_status === 'grn_bill') throw new AppError('فاتورة GRN مرحّلة؛ يلزم إشعار دائن محاسبي للتعديل', 'GRNI_BILL_IMMUTABLE', 422);
 
       const oldItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
@@ -918,6 +942,18 @@ export class PurchasesWriteService {
         );
       }
 
+      if (payload.importProjectId) {
+        const imp = await trx
+          .selectFrom('import_projects')
+          .select('id')
+          .where('id', '=', payload.importProjectId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        if (!imp) {
+          throw new AppError('مشروع الاستيراد المحدد غير موجود أو لا ينتمي لهذه المنشأة.', 'IMPORT_PROJECT_NOT_FOUND', 400);
+        }
+      }
+
       await trx.updateTable('purchases').set({
         supplier_id: supplier.id,
         payment_type: paymentType,
@@ -940,6 +976,7 @@ export class PurchasesWriteService {
         shipping_address_id: payload.shippingAddressId || null,
         cost_center_id: payload.costCenterId || null,
         project_id: payload.projectId || null,
+        import_project_id: payload.importProjectId !== undefined ? (payload.importProjectId || null) : undefined,
         terms_template: payload.termsTemplate || '',
         updated_at: sql`NOW()`,
       }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
@@ -959,6 +996,17 @@ export class PurchasesWriteService {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Purchase already cancelled', 'PURCHASE_ALREADY_CANCELLED', 400);
+      if (purchase.lifecycle_status === 'purchase_order' || purchase.status === 'draft') {
+        // No stock/treasury/journal was posted by an unreceived draft: only cancel the document.
+        await trx.updateTable('purchases').set({
+          status: 'cancelled',
+          cancel_reason: String(reason || '').trim(),
+          cancelled_by: auth.userId,
+          cancelled_at: sql`NOW()`,
+          updated_at: sql`NOW()`,
+        }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+        return;
+      }
       if (purchase.lifecycle_status === 'grn_bill') throw new AppError('لا يمكن إلغاء فاتورة GRN بعد تسوية الاستحقاق؛ يلزم إشعار دائن محاسبي', 'GRNI_BILL_IMMUTABLE', 422);
 
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
@@ -1119,6 +1167,11 @@ export class PurchasesWriteService {
 
       let targetJobId: number | null = payload.jobId ? Number(payload.jobId) : null;
 
+      // Explicit payment-to-job linkage must be verified before the receipt or ledger is posted.
+      // Auto-match jobs are also checked under the same lock, so concurrent receipts cannot
+      // overwrite client_paid_total using a stale snapshot.
+      let verifiedJob: { job_number: string | null; client_invoiced_total: number | string | null; client_paid_total: number | string | null } | null = null;
+
       // Smart Auto-Match: If no explicit job specified, check if customer has exactly ONE active maritime job needing payment
       if (!targetJobId) {
         try {
@@ -1137,6 +1190,19 @@ export class PurchasesWriteService {
         } catch {
           // Ignore if table not ready
         }
+      }
+
+      if (targetJobId) {
+        const job = await trx
+          .selectFrom('maritime_jobs')
+          .select(['id', 'job_number', 'customer_id', 'client_invoiced_total', 'client_paid_total'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('id', '=', String(targetJobId))
+          .forUpdate()
+          .executeTakeFirst();
+        if (!job) throw new AppError('Maritime job not found', 'MARITIME_JOB_NOT_FOUND', 404);
+        assertCustomerPaymentJobOwnership(Number(customer.id), job.customer_id);
+        verifiedJob = job;
       }
 
       const insert = await trx
@@ -1174,50 +1240,38 @@ export class PurchasesWriteService {
       const docNo = await this.generateCustomerPaymentDocNo(trx, scope.tenantId, paymentId);
 
       let allocatedJobNumber: string | null = null;
-      if (targetJobId) {
-        try {
-          const job = await trx
-            .selectFrom('maritime_jobs')
-            .select(['id', 'job_number', 'client_invoiced_total', 'client_paid_total', 'payment_status'])
-            .where('tenant_id', '=', scope.tenantId)
-            .where('id', '=', String(targetJobId))
-            .executeTakeFirst();
+      if (verifiedJob && targetJobId) {
+        allocatedJobNumber = verifiedJob.job_number;
+        const currentPaid = Number(verifiedJob.client_paid_total || 0);
+        const newPaid = currentPaid + amount;
+        const invoiced = Number(verifiedJob.client_invoiced_total || 0);
+        const newPaymentStatus = (invoiced > 0 && newPaid >= invoiced) ? 'paid' : (newPaid > 0 ? 'partially_paid' : 'unpaid');
 
-          if (job) {
-            allocatedJobNumber = job.job_number;
-            const currentPaid = Number(job.client_paid_total || 0);
-            const newPaid = currentPaid + amount;
-            const invoiced = Number(job.client_invoiced_total || 0);
-            const newPaymentStatus = (invoiced > 0 && newPaid >= invoiced) ? 'paid' : (newPaid > 0 ? 'partially_paid' : 'unpaid');
+        await trx
+          .updateTable('maritime_jobs')
+          .set({
+            client_paid_total: newPaid,
+            payment_status: newPaymentStatus,
+            paid_at: newPaymentStatus === 'paid' ? sql`NOW()` : null,
+            updated_at: sql`NOW()`,
+          } as any)
+          .where('id', '=', String(targetJobId))
+          .where('tenant_id', '=', scope.tenantId)
+          .where('customer_id', '=', customer.id)
+          .execute();
 
-            await trx
-              .updateTable('maritime_jobs')
-              .set({
-                client_paid_total: newPaid,
-                payment_status: newPaymentStatus,
-                paid_at: newPaymentStatus === 'paid' ? sql`NOW()` : null,
-                updated_at: sql`NOW()`,
-              } as any)
-              .where('id', '=', String(targetJobId))
-              .where('tenant_id', '=', scope.tenantId)
-              .execute();
-
-            await trx
-              .insertInto('maritime_job_milestones')
-              .values({
-                tenant_id: scope.tenantId,
-                job_id: String(targetJobId),
-                milestone_key: 'PAYMENT',
-                milestone_title: `سداد مالي: سند قبض #${docNo} (${newPaymentStatus === 'paid' ? 'مسدد بالكامل' : 'سداد جزئي'})`,
-                location: 'الخزينة والحسابات',
-                notes: `تم ربط وتخصيص دفعة نقدية بقيمة ${amount} ج.م من سند القبض ${docNo} للشحنة ${job.job_number}`,
-                recorded_by: auth.userId ? Number(auth.userId) : null,
-              } as any)
-              .execute();
-          }
-        } catch {
-          // Ignore
-        }
+        await trx
+          .insertInto('maritime_job_milestones')
+          .values({
+            tenant_id: scope.tenantId,
+            job_id: String(targetJobId),
+            milestone_key: 'PAYMENT',
+            milestone_title: `سداد مالي: سند قبض #${docNo} (${newPaymentStatus === 'paid' ? 'مسدد بالكامل' : 'سداد جزئي'})`,
+            location: 'الخزينة والحسابات',
+            notes: `تم ربط وتخصيص دفعة نقدية بقيمة ${amount} ج.م من سند القبض ${docNo} للشحنة ${verifiedJob.job_number}`,
+            recorded_by: auth.userId ? Number(auth.userId) : null,
+          } as any)
+          .execute();
       }
 
       return {
@@ -1422,9 +1476,10 @@ export class PurchasesWriteService {
               account_id: scope.accountId,
               product_id: item.product_id,
               serial_number: serialNumber,
-              imei2,
+              imei_2: imei2,
+              branch_id: purchase.branch_id ?? null,
               location_id: item.location_id ?? purchase.location_id,
-              status: 'available',
+              status: 'in_stock' as const,
               cost_price: Number(item.unit_cost || 0),
               purchase_id: purchaseId,
               purchase_item_id: item.id,

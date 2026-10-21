@@ -6,8 +6,10 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { CreateSalesOrderDto, UpdateSalesOrderDto } from '../dto/sales-order.dto';
 import { SalesWriteService } from './sales-write.service';
-import { getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
+import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
+import { randomUUID } from 'node:crypto';
 import { reserveLocationStock, releaseLocationStock } from '../../../common/utils/location-stock-ledger';
+import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 
 @Injectable()
 export class SalesOrdersService {
@@ -121,31 +123,38 @@ export class SalesOrdersService {
 
   async createOrder(dto: CreateSalesOrderDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const prefix = getDailyDocumentPrefix('SO');
-    const countResult = await this.db
-      .selectFrom('sales_orders')
-      .select([sql<number>`count(*)::int`.as('count')])
-      .where('tenant_id', '=', scope.tenantId)
-      .where('order_number', 'like', `${prefix}%`)
-      .executeTakeFirst();
-    const seq = (countResult?.count || 0) + 1;
-    const orderNumber = `${prefix}${String(seq).padStart(4, '0')}`;
     const now = new Date();
     const shouldReserve = dto.autoReserve !== false;
+    if (!Array.isArray(dto.items) || dto.items.length === 0 || dto.items.some(item =>
+      !Number.isFinite(item.quantity) || item.quantity <= 0 || !Number.isFinite(item.unitPrice) || item.unitPrice < 0)) {
+      throw new BadRequestException('أمر البيع يحتاج بنوداً بكميات وأسعار صالحة');
+    }
     const initialStatus = shouldReserve ? 'confirmed' : 'draft';
 
     const result = await this.db.transaction().execute(async (trx) => {
+      let resolvedBranchId = dto.branchId || null;
+      let resolvedLocationId: number | null = null;
+      if (shouldReserve) {
+        const branch = await trx.selectFrom('branches').select(['id', 'default_stock_location_id'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId)
+          .$if(resolvedBranchId !== null, qb => qb.where('id', '=', resolvedBranchId!))
+          .orderBy('id', 'asc').executeTakeFirst();
+        if (!branch) throw new BadRequestException('لا يوجد فرع مسموح لحجز البضاعة');
+        resolvedBranchId = Number(branch.id);
+        resolvedLocationId = branch.default_stock_location_id ? Number(branch.default_stock_location_id) : null;
+      }
       const order = await trx
         .insertInto('sales_orders')
         .values({
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-          order_number: orderNumber,
+          order_number: `SO-TMP-${randomUUID()}`,
           customer_id: dto.customerId || null,
           customer_name: dto.customerName.trim(),
           customer_phone: dto.customerPhone?.trim() || null,
           customer_address: dto.customerAddress?.trim() || null,
-          branch_id: dto.branchId || null,
+          branch_id: resolvedBranchId,
           subtotal: dto.subtotal,
           discount_amount: dto.discountAmount || 0,
           tax_amount: dto.taxAmount || 0,
@@ -162,6 +171,9 @@ export class SalesOrdersService {
         })
         .returningAll()
         .executeTakeFirstOrThrow();
+      await trx.updateTable('sales_orders')
+        .set({ order_number: formatDailyDocumentNumber('SO', Number(order.id)) })
+        .where('id', '=', order.id).where('tenant_id', '=', scope.tenantId).execute();
 
       if (dto.items && dto.items.length > 0) {
         for (const item of dto.items) {
@@ -188,21 +200,21 @@ export class SalesOrdersService {
             })
             .execute();
 
-          // If reserving, increment reserved_qty on product
-          if (shouldReserve && qty > 0) {
-            await trx
-              .updateTable('products')
-              .set((eb) => ({
-                reserved_qty: eb('reserved_qty', '+', qty),
-              }))
-              .where('id', '=', item.productId)
-              .where('tenant_id', '=', scope.tenantId)
-              .execute();
-          }
+
         }
       }
 
-      return order;
+      if (shouldReserve) {
+        await reserveLocationStock(trx, {
+          branchId: resolvedBranchId,
+          locationId: resolvedLocationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          items: dto.items.map(item => ({ productId: item.productId, qty: Number(item.quantity) })),
+        });
+      }
+
+      return { ...order, order_number: formatDailyDocumentNumber('SO', Number(order.id)) };
     });
 
     return {
@@ -232,8 +244,8 @@ export class SalesOrdersService {
       return { ok: true, message: 'أمر البيع مؤكد والمخزون محجوز بالفعل' };
     }
 
-    if (order.status === 'converted') {
-      throw new BadRequestException('لا يمكن تعديل أمر بيع تم تحويله إلى فاتورة بالفعل');
+    if (order.status !== 'draft') {
+      throw new BadRequestException('التأكيد مسموح فقط لأوامر البيع المسودة غير الملغاة');
     }
 
     const items = await this.db
@@ -315,35 +327,37 @@ export class SalesOrdersService {
 
   async cancelOrder(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    const order = await this.db
-      .selectFrom('sales_orders')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .where('account_id', '=', scope.accountId)
-      .executeTakeFirst();
 
-    if (!order) {
-      throw new NotFoundException('أمر البيع غير موجود');
-    }
+    return this.db.transaction().execute(async (trx) => {
+      const order = await trx
+        .selectFrom('sales_orders')
+        .selectAll()
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .forUpdate()
+        .executeTakeFirst();
 
-    if (order.status === 'cancelled') {
-      return { ok: true, message: 'أمر البيع ملغي بالفعل' };
-    }
+      if (!order) {
+        throw new NotFoundException('أمر البيع غير موجود');
+      }
 
-    if (order.status === 'converted') {
-      throw new BadRequestException('لا يمكن إلغاء أمر بيع تم تحويله إلى فاتورة؛ يجب إلغاء الفاتورة من شاشة المبيعات أولاً');
-    }
+      if (order.status === 'cancelled') {
+        return { ok: true, message: 'أمر البيع ملغي بالفعل' };
+      }
 
-    const items = await this.db
-      .selectFrom('sales_order_items')
-      .selectAll()
-      .where('sales_order_id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .where('account_id', '=', scope.accountId)
-      .execute();
+      if (order.status === 'converted') {
+        throw new BadRequestException('لا يمكن إلغاء أمر بيع تم تحويله إلى فاتورة؛ يجب إلغاء الفاتورة من شاشة المبيعات أولاً');
+      }
 
-    await this.db.transaction().execute(async (trx) => {
+      const items = await trx
+        .selectFrom('sales_order_items')
+        .selectAll()
+        .where('sales_order_id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .execute();
+
       // Release any reserved quantities
       const releaseItems: Array<{ productId: number; qty: number }> = [];
       for (const item of items) {
@@ -393,13 +407,14 @@ export class SalesOrdersService {
         .where('id', '=', id)
         .where('tenant_id', '=', scope.tenantId)
         .execute();
-    });
 
-    return { ok: true, message: 'تم إلغاء أمر البيع وإلغاء حجز المخزون بنجاح' };
+      return { ok: true, message: 'تم إلغاء أمر البيع وإلغاء حجز المخزون بنجاح' };
+    });
   }
 
   async convertToSale(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+
     const order = await this.db
       .selectFrom('sales_orders')
       .selectAll()
@@ -415,6 +430,32 @@ export class SalesOrdersService {
     if (order.status === 'converted' && order.sale_id) {
       return { ok: true, message: 'تم تحويل أمر البيع مسبقاً إلى فاتورة', saleId: order.sale_id };
     }
+    if (order.status !== 'confirmed') {
+      throw new BadRequestException('لا يمكن تحويل أمر بيع مسودة أو ملغي إلى فاتورة');
+    }
+
+    // Atomic state transition: confirmed -> converting to prevent concurrent duplicate conversion (ZS-075)
+    const locked = await this.db
+      .updateTable('sales_orders')
+      .set({ status: 'converting', updated_at: new Date() } as any)
+      .where('id', '=', id)
+      .where('status', '=', 'confirmed')
+      .where('tenant_id', '=', scope.tenantId)
+      .returningAll()
+      .executeTakeFirst();
+
+    if (!locked) {
+      const current = await this.db
+        .selectFrom('sales_orders')
+        .select(['status', 'sale_id'])
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      if (current?.status === 'converted' && current.sale_id) {
+        return { ok: true, message: 'تم تحويل أمر البيع مسبقاً إلى فاتورة', saleId: current.sale_id };
+      }
+      throw new BadRequestException('أمر البيع قيد التحويل حالياً أو تم تغيير حالته');
+    }
 
     const items = await this.db
       .selectFrom('sales_order_items')
@@ -425,6 +466,12 @@ export class SalesOrdersService {
       .execute();
 
     if (items.length === 0) {
+      await this.db
+        .updateTable('sales_orders')
+        .set({ status: 'confirmed', updated_at: new Date() })
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
       throw new BadRequestException('لا يمكن تحويل أمر بيع فارغ إلى فاتورة');
     }
 
@@ -452,6 +499,7 @@ export class SalesOrdersService {
       }
     }
 
+    let locationId: number | null = null;
     if (releaseItems.length > 0) {
       const branchRow = await this.db
         .selectFrom('branches')
@@ -459,7 +507,7 @@ export class SalesOrdersService {
         .where('id', '=', branchId)
         .where('tenant_id', '=', scope.tenantId)
         .executeTakeFirst();
-      const locationId = branchRow?.default_stock_location_id ? Number(branchRow.default_stock_location_id) : null;
+      locationId = branchRow?.default_stock_location_id ? Number(branchRow.default_stock_location_id) : null;
 
       await releaseLocationStock(this.db, {
         branchId: order.branch_id,
@@ -500,39 +548,66 @@ export class SalesOrdersService {
       ],
     };
 
-    const saleResult: any = await this.salesWrite.createSale(salePayload, auth);
-    const saleId = Number(saleResult?.sale?.id || saleResult?.id);
+    try {
+      const idemKey = `so_convert_${scope.tenantId}_${id}`;
+      const saleResult: any = await idempotencyStorage.run(
+        { idempotencyKey: idemKey, operationType: 'sale', accountId: scope.accountId },
+        () => this.salesWrite.createSale(salePayload, auth),
+      );
+      const saleId = Number(saleResult?.sale?.id || saleResult?.id);
 
-    // Mark sales order as converted
-    await this.db
-      .updateTable('sales_orders')
-      .set({
-        status: 'converted',
-        sale_id: saleId,
-        updated_at: new Date(),
-      })
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
+      // Mark sales order as converted
+      await this.db
+        .updateTable('sales_orders')
+        .set({
+          status: 'converted',
+          sale_id: saleId,
+          updated_at: new Date(),
+        })
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
 
-    // Mark items as delivered
-    await this.db
-      .updateTable('sales_order_items')
-      .set((eb) => ({
-        delivered_quantity: eb.ref('quantity'),
-        reserved_quantity: 0,
-      }))
-      .where('sales_order_id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
+      // Mark items as delivered
+      await this.db
+        .updateTable('sales_order_items')
+        .set((eb) => ({
+          delivered_quantity: eb.ref('quantity'),
+          reserved_quantity: 0,
+        }))
+        .where('sales_order_id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
 
-    return {
-      ok: true,
-      message: 'تم تحويل أمر البيع إلى فاتورة بيع بنجاح وتحديث المخزون الفعلي',
-      orderId: id,
-      saleId,
-      sale: saleResult?.sale || saleResult,
-    };
+      return {
+        ok: true,
+        message: 'تم تحويل أمر البيع إلى فاتورة بيع بنجاح وتحديث المخزون الفعلي',
+        orderId: id,
+        saleId,
+        sale: saleResult?.sale || saleResult,
+      };
+    } catch (error) {
+      // Revert status to confirmed and re-reserve stock if release was performed
+      await this.db
+        .updateTable('sales_orders')
+        .set({ status: 'confirmed', updated_at: new Date() })
+        .where('id', '=', id)
+        .where('status', '=', 'converting')
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      if (releaseItems.length > 0) {
+        await reserveLocationStock(this.db, {
+          branchId: order.branch_id,
+          locationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          items: releaseItems,
+        }).catch(() => undefined);
+      }
+
+      throw error;
+    }
   }
 
   async deleteOrder(id: number, auth: AuthContext): Promise<Record<string, unknown>> {

@@ -38,9 +38,9 @@ export class InventoryTransferService {
     return inserted.id;
   }
 
-  async listStockTransfers(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+  async listStockTransfers(query: Record<string, unknown>, auth: AuthContext, executor: Kysely<Database> = this.db): Promise<Record<string, unknown>> {
     if (!auth.permissions.includes('inventory') && !auth.permissions.includes('canAdjustInventory')) throw new ForbiddenException('Missing required permissions');
-    let transfersQuery = this.db
+    let transfersQuery = executor
       .selectFrom('stock_transfers as t')
       .leftJoin('stock_locations as fl', (join) => join.onRef('fl.id', '=', 't.from_location_id').onRef('fl.tenant_id', '=', 't.tenant_id'))
       .leftJoin('stock_locations as tl', (join) => join.onRef('tl.id', '=', 't.to_location_id').onRef('tl.tenant_id', '=', 't.tenant_id'))
@@ -60,7 +60,7 @@ export class InventoryTransferService {
     const transfers = await transfersQuery.orderBy('t.id', 'desc').execute();
 
     const transferIds = transfers.map((t) => Number(t.id || 0)).filter((id) => id > 0);
-    const items = transferIds.length ? await this.db
+    const items = transferIds.length ? await executor
       .selectFrom('stock_transfer_items')
       .select(['id', 'transfer_id', 'product_id', 'product_name', 'qty'])
       .where('transfer_id', 'in', transferIds)
@@ -76,7 +76,7 @@ export class InventoryTransferService {
     }
 
     let rows = transfers.map((t) => ({ id: String(t.id), docNo: t.doc_no || `TR-${t.id}`, fromLocationId: String(t.from_location_id), toLocationId: t.to_location_id ? String(t.to_location_id) : '', fromBranchId: t.from_branch_id ? String(t.from_branch_id) : '', toBranchId: t.to_branch_id ? String(t.to_branch_id) : '', fromLocationName: t.from_location_name || '', toLocationName: t.to_location_name || '', fromBranchName: t.from_branch_name || '', toBranchName: t.to_branch_name || '', status: t.status || 'sent', note: t.note || '', recipientName: t.recipient_name || '', receivedAt: t.received_at || '', cancelledAt: t.cancelled_at || '', createdBy: t.created_by_name || '', receivedBy: t.received_by_name || '', cancelledBy: t.cancelled_by_name || '', date: t.created_at, items: byTransfer.get(String(t.id)) || [] }));
-    rows = await this.scope.filterByScope(rows, auth);
+    rows = await this.scope.filterByScope(rows, auth, executor);
     const search = String(query.search || query.q || '').toLowerCase();
     const filter = String(query.filter || query.view || 'all').toLowerCase();
     const filtered = rows.filter((row) => (filter === 'all' || String(row.status).toLowerCase() === filter) && (!search || [row.docNo, row.note, row.fromLocationName, row.toLocationName].some((val) => String(val).toLowerCase().includes(search))));
@@ -155,7 +155,7 @@ export class InventoryTransferService {
       const destinationName = to ? to.name : (payload.toBranchId ? 'الفرع' : 'غير معروف');
       await this.audit.logWithExecutor(trx, 'إنشاء تحويل مخزون', `تم إنشاء تحويل TR-${id} من ${from.name} إلى ${destinationName}`, auth);
 
-      const responsePayload = { ok: true, transferId: String(id), stockTransfers: (await this.listStockTransfers({}, auth)).stockTransfers };
+      const responsePayload = { ok: true, transferId: String(id), stockTransfers: (await this.listStockTransfers({}, auth, trx)).stockTransfers };
 
       const idemCtx = idempotencyStorage.getStore();
       if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
@@ -265,7 +265,7 @@ export class InventoryTransferService {
 
       await this.audit.logWithExecutor(trx, 'استلام تحويل مخزون', `تم استلام التحويل TR-${transferId}`, auth);
 
-      const responsePayload = { ok: true, stockTransfers: (await this.listStockTransfers({}, auth)).stockTransfers };
+      const responsePayload = { ok: true, stockTransfers: (await this.listStockTransfers({}, auth, trx)).stockTransfers };
 
       const idemCtx = idempotencyStorage.getStore();
       if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
@@ -312,7 +312,7 @@ export class InventoryTransferService {
 
       await this.audit.logWithExecutor(trx, 'إلغاء تحويل مخزون', `تم إلغاء التحويل TR-${transferId}`, auth);
 
-      const responsePayload = { ok: true, stockTransfers: (await this.listStockTransfers({}, auth)).stockTransfers };
+      const responsePayload = { ok: true, stockTransfers: (await this.listStockTransfers({}, auth, trx)).stockTransfers };
 
       const idemCtx = idempotencyStorage.getStore();
       if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {

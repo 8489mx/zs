@@ -25,6 +25,7 @@ namespace ZSystems.HardwareBridge
         private static readonly string ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bridge-config.json");
         private static string CloudServerUrl = "https://app.zsystemai.com";
         private static string TenantId = "dev-tenant";
+        private static string BridgeKey = "";
         private static bool IsCloudRelayConnected = false;
         private static MenuItem _tenantMenuItem;
         private static MenuItem _relayStatusMenuItem;
@@ -43,6 +44,8 @@ namespace ZSystems.HardwareBridge
                             CloudServerUrl = Convert.ToString(data["serverUrl"]).Trim();
                         if (data.ContainsKey("tenantId") && !string.IsNullOrEmpty(Convert.ToString(data["tenantId"])))
                             TenantId = Convert.ToString(data["tenantId"]).Trim();
+                        if (data.ContainsKey("bridgeKey"))
+                            BridgeKey = Convert.ToString(data["bridgeKey"]).Trim();
                     }
                 }
                 else
@@ -61,6 +64,7 @@ namespace ZSystems.HardwareBridge
                 {
                     { "serverUrl", CloudServerUrl },
                     { "tenantId", TenantId },
+                    { "bridgeKey", BridgeKey },
                     { "updatedAt", DateTime.UtcNow.ToString("o") }
                 };
                 File.WriteAllText(ConfigPath, Serializer.Serialize(data), Encoding.UTF8);
@@ -92,7 +96,7 @@ namespace ZSystems.HardwareBridge
             form.RightToLeft = RightToLeft.Yes;
             form.RightToLeftLayout = true;
             form.Width = 480;
-            form.Height = 280;
+            form.Height = 340;
             form.FormBorderStyle = FormBorderStyle.FixedDialog;
             form.StartPosition = FormStartPosition.CenterScreen;
             form.MaximizeBox = false;
@@ -104,13 +108,17 @@ namespace ZSystems.HardwareBridge
             Label lblTenant = new Label { Text = "معرّف المنشأة (Tenant ID) أو كود الربط:", Left = 20, Top = 85, Width = 420 };
             TextBox txtTenant = new TextBox { Text = TenantId, Left = 20, Top = 110, Width = 420 };
 
-            Button btnSave = new Button { Text = "حفظ وتوصيل", Left = 160, Top = 165, Width = 150, Height = 36 };
+            Label lblBridgeKey = new Label { Text = "مفتاح الربط الآمن (Tenant Bridge Key):", Left = 20, Top = 150, Width = 420 };
+            TextBox txtBridgeKey = new TextBox { Text = BridgeKey, Left = 20, Top = 175, Width = 420, UseSystemPasswordChar = true };
+
+            Button btnSave = new Button { Text = "حفظ وتوصيل", Left = 160, Top = 225, Width = 150, Height = 36 };
             btnSave.Click += (s, e) =>
             {
                 string newServer = txtServer.Text.Trim();
                 string newTenant = txtTenant.Text.Trim();
                 if (!string.IsNullOrEmpty(newServer)) CloudServerUrl = newServer;
                 TenantId = newTenant;
+                BridgeKey = txtBridgeKey.Text.Trim();
                 SaveConfig();
                 MessageBox.Show("تم حفظ إعدادات الربط بنجاح. سيتم الاتصال بالسيرفر فوراً.", "نجاح", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 form.Close();
@@ -120,6 +128,8 @@ namespace ZSystems.HardwareBridge
             form.Controls.Add(txtServer);
             form.Controls.Add(lblTenant);
             form.Controls.Add(txtTenant);
+            form.Controls.Add(lblBridgeKey);
+            form.Controls.Add(txtBridgeKey);
             form.Controls.Add(btnSave);
             form.ShowDialog();
         }
@@ -135,8 +145,8 @@ namespace ZSystems.HardwareBridge
         {
             try
             {
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
-                ServicePointManager.ServerCertificateValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+                // Keep normal Windows certificate validation; never accept invalid HTTPS peers.
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             }
             catch {}
 
@@ -144,7 +154,9 @@ namespace ZSystems.HardwareBridge
             {
                 try
                 {
-                    if (!string.IsNullOrEmpty(CloudServerUrl) && !string.IsNullOrEmpty(TenantId))
+                    if (Uri.IsWellFormedUriString(CloudServerUrl, UriKind.Absolute) &&
+                        CloudServerUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+                        !string.IsNullOrEmpty(TenantId) && BridgeKey.Length == 64)
                     {
                         PollCloudJob();
                     }
@@ -170,6 +182,7 @@ namespace ZSystems.HardwareBridge
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(pollUrl);
             req.Method = "POST";
             req.ContentType = "application/json";
+            req.Headers["X-ZS-Bridge-Key"] = BridgeKey;
             req.Timeout = 30000;
 
             var pollPayload = new Dictionary<string, object>
@@ -252,6 +265,7 @@ namespace ZSystems.HardwareBridge
                     HttpWebRequest req = (HttpWebRequest)WebRequest.Create(callbackUrl);
                     req.Method = "POST";
                     req.ContentType = "application/json";
+                    req.Headers["X-ZS-Bridge-Key"] = BridgeKey;
                     req.Timeout = 15000;
 
                     var callbackPayload = new Dictionary<string, object>
@@ -455,22 +469,31 @@ namespace ZSystems.HardwareBridge
             }
         }
 
+        private static bool IsTrustedBrowserOrigin(string origin)
+        {
+            if (string.IsNullOrEmpty(origin)) return true; // Native local clients send no Origin header
+            if (string.Equals(origin, "https://app.zsystemai.com", StringComparison.OrdinalIgnoreCase)) return true;
+            // Other verified deployments/development origins must be explicitly provisioned by the operator.
+            foreach (string trusted in (Environment.GetEnvironmentVariable("ZS_BRIDGE_ALLOWED_ORIGINS") ?? "").Split(','))
+            {
+                if (!string.IsNullOrWhiteSpace(trusted) && string.Equals(origin, trusted.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
         private static void SetCorsHeaders(HttpListenerContext context)
         {
             var res = context.Response;
             string origin = context.Request.Headers["Origin"];
-            if (!string.IsNullOrEmpty(origin))
+            if (!string.IsNullOrEmpty(origin) && IsTrustedBrowserOrigin(origin))
             {
                 res.Headers["Access-Control-Allow-Origin"] = origin;
                 res.Headers["Vary"] = "Origin";
+                res.Headers["Access-Control-Allow-Credentials"] = "true";
+                res.Headers["Access-Control-Allow-Private-Network"] = "true";
             }
-            else
-            {
-                res.Headers["Access-Control-Allow-Origin"] = "*";
-            }
-            res.Headers["Access-Control-Allow-Private-Network"] = "true";
-            res.Headers["Access-Control-Allow-Credentials"] = "true";
-            res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE";
+            res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
 
             string reqHeaders = context.Request.Headers["Access-Control-Request-Headers"];
             if (!string.IsNullOrEmpty(reqHeaders))
@@ -507,12 +530,28 @@ namespace ZSystems.HardwareBridge
             try
             {
                 SetCorsHeaders(context);
+                if (!IsTrustedBrowserOrigin(context.Request.Headers["Origin"]))
+                {
+                    SendJson(context, 403, new Dictionary<string, object> { { "success", false }, { "error", "Untrusted browser origin" } });
+                    return;
+                }
 
                 if (context.Request.HttpMethod == "OPTIONS")
                 {
                     context.Response.StatusCode = 204;
                     context.Response.ContentLength64 = 0;
                     context.Response.OutputStream.Close();
+                    return;
+                }
+
+                string origin = context.Request.Headers["Origin"];
+                if (!string.IsNullOrEmpty(origin) && !IsTrustedBrowserOrigin(origin))
+                {
+                    SendJson(context, 403, new Dictionary<string, object>
+                    {
+                        { "success", false },
+                        { "error", "Cross-origin access from untrusted domain is forbidden" }
+                    });
                     return;
                 }
 
@@ -575,27 +614,19 @@ namespace ZSystems.HardwareBridge
                     try { jsonBody = Serializer.Deserialize<Dictionary<string, object>>(body); } catch {}
                 }
 
-                // 3.5. Tenant & Cloud Sync
+                // Never let unauthenticated loopback clients repoint this bridge to an attacker server.
+                // Tenant/server changes are allowed only in the trusted native tray configuration.
                 if (path == "/api/tenant/sync" && context.Request.HttpMethod == "POST")
                 {
-                    if (jsonBody.ContainsKey("tenantId"))
+                    string claimedTenant = jsonBody.ContainsKey("tenantId") ? Convert.ToString(jsonBody["tenantId"]).Trim() : "";
+                    string claimedServer = jsonBody.ContainsKey("serverUrl") ? Convert.ToString(jsonBody["serverUrl"]).Trim() : CloudServerUrl;
+                    if (!string.Equals(claimedTenant, TenantId, StringComparison.Ordinal) ||
+                        !string.Equals(claimedServer.TrimEnd('/'), CloudServerUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
                     {
-                        string newTenant = Convert.ToString(jsonBody["tenantId"]).Trim();
-                        if (!string.IsNullOrEmpty(newTenant)) TenantId = newTenant;
+                        SendJson(context, 403, new Dictionary<string, object> { { "success", false }, { "error", "Configure cloud identity from the native Bridge tray" } });
+                        return;
                     }
-                    if (jsonBody.ContainsKey("serverUrl"))
-                    {
-                        string newServer = Convert.ToString(jsonBody["serverUrl"]).Trim();
-                        if (!string.IsNullOrEmpty(newServer)) CloudServerUrl = newServer;
-                    }
-                    SaveConfig();
-                    SendJson(context, 200, new Dictionary<string, object>
-                    {
-                        { "success", true },
-                        { "tenantId", TenantId },
-                        { "serverUrl", CloudServerUrl },
-                        { "cloudRelayConnected", IsCloudRelayConnected }
-                    });
+                    SendJson(context, 200, new Dictionary<string, object> { { "success", true }, { "tenantId", TenantId }, { "cloudRelayConnected", IsCloudRelayConnected } });
                     return;
                 }
 

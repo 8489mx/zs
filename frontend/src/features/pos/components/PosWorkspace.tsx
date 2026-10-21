@@ -1,4 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PosWorkspaceHeader } from '@/features/pos/components/pos-workspace/PosWorkspaceHeader';
 import { PosWorkspaceConfirmDialogs } from '@/features/pos/components/pos-workspace/PosWorkspaceConfirmDialogs';
 import { PosSaleSuccessDialog } from '@/features/pos/components/pos-workspace/PosSaleSuccessDialog';
@@ -50,6 +51,7 @@ import { toast } from '@/shared/components/system-alert';
 const LazyPosEditProductModal = lazy(() => import('@/features/pos/components/pos-workspace/PosEditProductModal').then((m) => ({ default: m.PosEditProductModal })));
 
 export function PosWorkspace() {
+  const navigate = useNavigate();
   const pos = usePosWorkspace();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const lastScannerSubmitRef = useRef<{ code: string; at: number }>({ code: '', at: 0 });
@@ -1088,9 +1090,7 @@ export function PosWorkspace() {
         onOpenReturns={(targetSale) => {
           setScannedSaleModalOpen(false);
           setScannedSale(null);
-          if (typeof window !== 'undefined') {
-            window.location.hash = `#/returns?invoiceId=${targetSale.id}&docNo=${encodeURIComponent(targetSale.docNo || '')}`;
-          }
+          navigate(`/returns?invoiceId=${targetSale.id}&docNo=${encodeURIComponent(targetSale.docNo || '')}`);
         }}
       />
 

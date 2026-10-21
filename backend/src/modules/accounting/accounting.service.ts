@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { KYSELY_DB } from '../../database/database.constants';
@@ -22,6 +22,7 @@ import {
   CreateBankFeeAdjustmentDto,
 } from './dto/accounting.dto';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
+import { AccountingPostingService } from './accounting-posting.service';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -70,6 +71,7 @@ export class AccountingService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly accountingTenantFoundation: AccountingTenantFoundationService,
+    @Optional() private readonly accountingPosting?: AccountingPostingService,
   ) {}
 
   private assertAccountingAccess(auth: AuthContext): void {
@@ -730,7 +732,7 @@ export class AccountingService {
     }
   }
 
-  async createManualJournalEntry(dto: CreateManualJournalEntryDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async createManualJournalEntry(dto: CreateManualJournalEntryDto, auth: AuthContext, externalTrx?: Kysely<Database>): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
     await this.accountingTenantFoundation.ensureForAuth(this.db, auth);
@@ -837,7 +839,7 @@ export class AccountingService {
     const userId = Number(auth.userId) || null;
     const branchId = dto.branchId ? Number(dto.branchId) : null;
 
-    const result = await this.db.transaction().execute(async (trx) => {
+    const writeJournal = async (trx: Kysely<Database>) => {
       const tempEntryNo = `JE-MANUAL-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
       const inserted = await trx
         .insertInto('journal_entries')
@@ -894,7 +896,8 @@ export class AccountingService {
         totalDebit,
         totalCredit,
       };
-    });
+    };
+    const result = externalTrx ? await writeJournal(externalTrx) : await this.db.transaction().execute(writeJournal);
 
     return {
       ok: true,
@@ -2271,72 +2274,124 @@ export class AccountingService {
       // 1. Resolve Accounts
       const accounts = await this.ensureDepreciationAccounts(trx, scope.tenantId, scope.accountId);
 
-      // 2. Insert Balanced Journal Entry
+      // Check if already depreciated in the same month to prevent duplicate posting (ZS-056)
       const entryDate = new Date();
-      const tempEntryNo = `JE-TMP-depr-${scope.tenantId}-${Date.now()}`;
+      const startOfMonth = new Date(entryDate.getFullYear(), entryDate.getMonth(), 1);
+      const existingInMonth = await trx
+        .selectFrom('asset_depreciation_logs')
+        .select(['id', 'period_date', 'depreciation_amount'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('asset_id', '=', id)
+        .where('period_date', '>=', startOfMonth)
+        .executeTakeFirst();
+
+      if (existingInMonth && (body as any)?.allowDuplicateInSameMonth !== true && months <= 1) {
+        throw new BadRequestException(`تم بالفعل إهلاك هذا الأصل خلال هذا الشهر (${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}).`);
+      }
+
+      // 2. Insert Balanced Journal Entry (ZS-055)
       const entryDesc = body.note
         ? `إهلاك الأصل ${asset.name} (${asset.code}): ${body.note}`
         : `إهلاك الأصل ${asset.name} (${asset.code}) - ${method === 'declining_balance' ? 'قسط متناقص' : 'قسط ثابت'}`;
 
-      const insertedJe = await trx
-        .insertInto('journal_entries')
-        .values({
-          entry_no: tempEntryNo,
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-          entry_date: entryDate,
+      let journalEntryId: number;
+      let finalEntryNo: string;
+
+      if (this.accountingPosting) {
+        journalEntryId = await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'depreciation',
+          sourceId: id,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          entryDate,
           description: entryDesc,
-          source_type: 'depreciation',
-          source_id: id,
-          status: 'posted',
-          branch_id: null,
-          location_id: null,
-          created_by: actor.userId,
-          posted_by: actor.userId,
-          posted_at: sql`NOW()`,
-        } as any)
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      const journalEntryId = Number(insertedJe.id);
-      const finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
-      await trx
-        .updateTable('journal_entries')
-        .set({ entry_no: finalEntryNo, updated_at: sql`NOW()` } as any)
-        .where('id', '=', journalEntryId)
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
-
-      // 3. Insert Journal Lines (Debit Expense, Credit Accumulated)
-      await trx
-        .insertInto('journal_entry_lines')
-        .values([
-          {
-            journal_entry_id: journalEntryId,
+          createdBy: actor.userId,
+          lines: [
+            {
+              accountId: accounts.deprExpenseAccountId,
+              description: `مصروف إهلاك الأصل - ${asset.name}`,
+              debit: depreciationAmount,
+              credit: 0,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+            {
+              accountId: accounts.accumDeprAccountId,
+              description: `مجمع إهلاك الأصل - ${asset.name}`,
+              debit: 0,
+              credit: depreciationAmount,
+              partnerType: 'none',
+              partnerId: null,
+              branchId: null,
+              locationId: null,
+            },
+          ],
+        });
+        finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
+      } else {
+        const tempEntryNo = `JE-TMP-depr-${scope.tenantId}-${Date.now()}`;
+        const insertedJe = await trx
+          .insertInto('journal_entries')
+          .values({
+            entry_no: tempEntryNo,
             tenant_id: scope.tenantId,
-            account_id: accounts.deprExpenseAccountId,
-            description: `مصروف إهلاك الأصل - ${asset.name}`,
-            debit: depreciationAmount,
-            credit: 0,
-            partner_type: 'none',
-            partner_id: null,
+            account_id: scope.accountId,
+            entry_date: entryDate,
+            description: entryDesc,
+            source_type: 'depreciation',
+            source_id: id,
+            status: 'posted',
             branch_id: null,
             location_id: null,
-          } as any,
-          {
-            journal_entry_id: journalEntryId,
-            tenant_id: scope.tenantId,
-            account_id: accounts.accumDeprAccountId,
-            description: `مجمع إهلاك الأصل - ${asset.name}`,
-            debit: 0,
-            credit: depreciationAmount,
-            partner_type: 'none',
-            partner_id: null,
-            branch_id: null,
-            location_id: null,
-          } as any,
-        ])
-        .execute();
+            created_by: actor.userId,
+            posted_by: actor.userId,
+            posted_at: sql`NOW()`,
+          } as any)
+          .returning('id')
+          .executeTakeFirstOrThrow();
+
+        journalEntryId = Number(insertedJe.id);
+        finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
+        await trx
+          .updateTable('journal_entries')
+          .set({ entry_no: finalEntryNo, updated_at: sql`NOW()` } as any)
+          .where('id', '=', journalEntryId)
+          .where('tenant_id', '=', scope.tenantId)
+          .execute();
+
+        // 3. Insert Journal Lines (Debit Expense, Credit Accumulated)
+        await trx
+          .insertInto('journal_entry_lines')
+          .values([
+            {
+              journal_entry_id: journalEntryId,
+              tenant_id: scope.tenantId,
+              account_id: accounts.deprExpenseAccountId,
+              description: `مصروف إهلاك الأصل - ${asset.name}`,
+              debit: depreciationAmount,
+              credit: 0,
+              partner_type: 'none',
+              partner_id: null,
+              branch_id: null,
+              location_id: null,
+            } as any,
+            {
+              journal_entry_id: journalEntryId,
+              tenant_id: scope.tenantId,
+              account_id: accounts.accumDeprAccountId,
+              description: `مجمع إهلاك الأصل - ${asset.name}`,
+              debit: 0,
+              credit: depreciationAmount,
+              partner_type: 'none',
+              partner_id: null,
+              branch_id: null,
+              location_id: null,
+            } as any,
+          ])
+          .execute();
+      }
 
       // 4. Update Fixed Asset Record
       await trx
@@ -2981,46 +3036,52 @@ export class AccountingService {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
 
-    const account = await this.db
-      .selectFrom('accounting_accounts')
-      .select(['id', 'code', 'name_ar', 'is_cash_bank'])
-      .where('id', '=', dto.accountId)
-      .where(this.tenantPredicate(auth))
-      .executeTakeFirst();
+    // Header, lines and account eligibility must be validated and committed together.
+    // Otherwise a failed line insert leaves a draft bank statement without its lines.
+    const statementId = await this.db.transaction().execute(async (trx) => {
+      const account = await trx
+        .selectFrom('accounting_accounts')
+        .select(['id', 'is_cash_bank'])
+        .where('id', '=', dto.accountId)
+        .where(this.tenantPredicate(auth))
+        .executeTakeFirst();
 
-    if (!account) {
-      throw new BadRequestException('الحساب المالي المحدد غير موجود.');
-    }
+      if (!account) throw new BadRequestException('الحساب المالي المحدد غير موجود.');
+      if (!account.is_cash_bank) {
+        throw new BadRequestException('كشف الحساب البنكي يتطلب حساب خزينة أو بنك.');
+      }
 
-    const insertedStatement = await (this.db as any)
-      .insertInto('bank_statements')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: dto.accountId,
-        statement_no: dto.statementNo,
-        statement_date: dto.statementDate,
-        starting_balance: dto.startingBalance || 0,
-        ending_balance: dto.endingBalance || 0,
-        status: 'draft',
-        notes: dto.notes || null,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+      const statement = await (trx as any)
+        .insertInto('bank_statements')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: dto.accountId,
+          statement_no: dto.statementNo,
+          statement_date: dto.statementDate,
+          starting_balance: dto.startingBalance || 0,
+          ending_balance: dto.endingBalance || 0,
+          status: 'draft',
+          notes: dto.notes || null,
+        })
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
-    if (dto.lines && dto.lines.length > 0) {
-      const lineRows = dto.lines.map((line) => ({
-        tenant_id: scope.tenantId,
-        statement_id: insertedStatement.id,
-        line_date: line.lineDate,
-        description: line.description,
-        reference: line.reference || null,
-        amount: line.amount,
-        is_reconciled: false,
-      }));
-      await (this.db as any).insertInto('bank_statement_lines').values(lineRows).execute();
-    }
+      if (dto.lines && dto.lines.length > 0) {
+        const lineRows = dto.lines.map((line) => ({
+          tenant_id: scope.tenantId,
+          statement_id: statement.id,
+          line_date: line.lineDate,
+          description: line.description,
+          reference: line.reference || null,
+          amount: line.amount,
+          is_reconciled: false,
+        }));
+        await (trx as any).insertInto('bank_statement_lines').values(lineRows).execute();
+      }
+      return Number(statement.id);
+    });
 
-    return this.getBankStatement(insertedStatement.id, auth);
+    return this.getBankStatement(statementId, auth);
   }
 
   async getBankReconciliationWorkspace(statementId: number, auth: AuthContext): Promise<any> {
@@ -3122,8 +3183,10 @@ export class AccountingService {
 
   async reconcileMatch(dto: ReconcileMatchDto, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);
+    return this.db.transaction().execute((trx) => this.reconcileMatchInTransaction(trx, dto, auth));
+  }
 
-    return this.db.transaction().execute(async (trx: any) => {
+  private async reconcileMatchInTransaction(trx: any, dto: ReconcileMatchDto, auth: AuthContext): Promise<any> {
       // 1. Lock and fetch statement line
       const sLine = await trx
         .selectFrom('bank_statement_lines as bsl')
@@ -3214,7 +3277,6 @@ export class AccountingService {
         .execute();
 
       return { success: true, message: 'تمت مطابقة السطر البنكي مع القيد المحاسبي بنجاح.' };
-    });
   }
 
   async unreconcileMatch(statementLineId: number, auth: AuthContext): Promise<any> {
@@ -3267,61 +3329,53 @@ export class AccountingService {
 
   async createBankFeeAdjustment(dto: CreateBankFeeAdjustmentDto, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);
+    const scope = requireTenantScope(auth);
+    return this.db.transaction().execute(async (trx) => {
+      const sLine = await (trx as any)
+        .selectFrom('bank_statement_lines as bsl')
+        .innerJoin('bank_statements as bs', 'bs.id', 'bsl.statement_id')
+        .where('bsl.id', '=', dto.statementLineId)
+        .where(this.tenantPredicate(auth, 'bsl'))
+        .where(this.tenantPredicate(auth, 'bs'))
+        .select(['bsl.id', 'bsl.amount', 'bsl.line_date', 'bsl.description', 'bsl.is_reconciled', 'bs.account_id'])
+        .forUpdate().executeTakeFirst();
 
-    const sLine = await (this.db as any)
-      .selectFrom('bank_statement_lines as bsl')
-      .innerJoin('bank_statements as bs', 'bs.id', 'bsl.statement_id')
-      .where('bsl.id', '=', dto.statementLineId)
-      .where(this.tenantPredicate(auth, 'bsl'))
-      .select(['bsl.id', 'bsl.amount', 'bsl.line_date', 'bsl.description', 'bs.account_id'])
-      .executeTakeFirst();
+      if (!sLine) throw new NotFoundException('سطر كشف الحساب غير موجود.');
+      if (sLine.is_reconciled) throw new BadRequestException('سطر كشف الحساب مطابق بالفعل.');
+      const signedAmount = Number(sLine.amount);
+      if (!Number.isFinite(signedAmount) || signedAmount >= 0) {
+        throw new BadRequestException('عمولة البنك يجب أن تكون حركة خصم سالبة.');
+      }
+      const feeAmount = this.toMoney(Math.abs(signedAmount));
+      if (feeAmount <= 0) throw new BadRequestException('مبلغ العمولة غير صالح.');
 
-    if (!sLine) throw new NotFoundException('سطر كشف الحساب غير موجود.');
-
-    const feeAmount = Math.abs(Number(sLine.amount));
-    if (feeAmount <= 0) throw new BadRequestException('مبلغ العمولة أو المصروف يجب أن يكون أكبر من صفر.');
-
-    // Create journal entry: Debit Expense, Credit Bank
-    const entryResult = await this.createManualJournalEntry({
-      entryDate: String(sLine.line_date).slice(0, 10),
-      description: dto.description || `مصاريف وعمولات بنكية - كشف حساب (${sLine.description})`,
-      lines: [
-        {
-          accountId: dto.expenseAccountId,
-          description: dto.description || 'مصاريف وعمولات بنكية',
-          debit: feeAmount,
-          credit: 0,
-        },
-        {
-          accountId: Number(sLine.account_id),
-          description: dto.description || 'مصاريف وعمولات بنكية خصماً من الحساب',
-          debit: 0,
-          credit: feeAmount,
-        },
-      ],
-    }, auth);
-
-    // Find the bank credit line in the newly created entry
-    const entryId = Number((entryResult as any)?.entry?.id);
-    const createdBankLine = await (this.db as any)
-      .selectFrom('journal_entry_lines')
-      .select(['id'])
-      .where('journal_entry_id', '=', entryId)
-      .where('tenant_id', '=', requireTenantScope(auth).tenantId)
-      .where('account_id', '=', Number(sLine.account_id))
-      .executeTakeFirst();
-
-    if (createdBankLine) {
-      await this.reconcileMatch({
+      const entryResult = await this.createManualJournalEntry({
+        entryDate: String(sLine.line_date).slice(0, 10),
+        description: dto.description || `مصاريف وعمولات بنكية - كشف حساب (${sLine.description})`,
+        lines: [
+          { accountId: dto.expenseAccountId, description: dto.description || 'مصاريف وعمولات بنكية', debit: feeAmount, credit: 0 },
+          { accountId: Number(sLine.account_id), description: dto.description || 'مصاريف وعمولات بنكية خصماً من الحساب', debit: 0, credit: feeAmount },
+        ],
+      }, auth, trx);
+      const entryId = Number((entryResult as any)?.entry?.id);
+      const bankCreditLine = await trx.selectFrom('journal_entry_lines')
+        .select(['id'])
+        .where('journal_entry_id', '=', entryId)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', Number(sLine.account_id))
+        .where('credit', '=', feeAmount)
+        .executeTakeFirst();
+      if (!bankCreditLine) throw new BadRequestException('لم يتم إنشاء سطر بنك صالح لقيد العمولة.');
+      // Both writes rollback together on any reconciliation error; no orphan journal.
+      await this.reconcileMatchInTransaction(trx, {
         statementLineId: dto.statementLineId,
-        journalLineId: Number(createdBankLine.id),
+        journalLineId: Number(bankCreditLine.id),
       }, auth);
-    }
-
-    return {
-      success: true,
-      message: 'تم إنشاء قيد المصاريف البنكية ومطابقته فورياً.',
-      journalEntryId: entryId,
-    };
+      return {
+        success: true,
+        message: 'تم إنشاء قيد المصاريف البنكية ومطابقته فورياً.',
+        journalEntryId: entryId,
+      };
+    });
   }
 }

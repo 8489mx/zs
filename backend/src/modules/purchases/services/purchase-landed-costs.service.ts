@@ -6,6 +6,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 import { ApplyPurchaseLandedCostsDto } from '../dto/purchase-landed-cost.dto';
+import { allocateLandedCosts } from '../engines/landed-cost-allocation.engine';
 
 @Injectable()
 export class PurchaseLandedCostsService {
@@ -194,12 +195,15 @@ export class PurchaseLandedCostsService {
         throw new BadRequestException('الفاتورة لا تحتوي على أي بنود لتحميل التكلفة عليها.');
       }
 
-      const totalLandedCost = dto.costs.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+      if (!Array.isArray(dto.costs) || !dto.costs.length ||
+          dto.costs.some(c => !Number.isFinite(c.amount) || c.amount <= 0 ||
+            Math.abs(c.amount * 100 - Math.round(c.amount * 100)) > 0.000001)) {
+        throw new BadRequestException('مبالغ التكاليف الإضافية يجب أن تكون موجبة وصالحة وبمنزلتين عشريتين.');
+      }
+      const totalLandedCost = dto.costs.reduce((sum, c) => sum + c.amount, 0);
       // Split of the allocation between inventory still held and units already sold.
       let totalCapitalisedLandedCost = 0;
       let totalCogsLandedCost = 0;
-      const totalPurchaseValue = items.reduce((sum: number, it: any) => sum + Number(it.line_total || 0), 0);
-      const totalPurchaseQty = items.reduce((sum: number, it: any) => sum + Number(it.qty || 0), 0);
 
       // 1. Delete previous landed costs for this purchase
       await trx
@@ -222,21 +226,17 @@ export class PurchaseLandedCostsService {
         await trx.insertInto('purchase_landed_costs').values(costRows).execute();
       }
 
-      // 3. Allocate across items with Weighted Average Cost (WAC) protection
-      for (const item of items) {
+      // 3. Distribute the exact total over items in cents; individual rounding used
+      // to silently lose pennies and misclassify residuals as COGS.
+      const weights = items.map((item: any) => {
+        if (dto.allocationMethod === 'value') return Math.max(0, Number(item.line_total || 0));
+        if (dto.allocationMethod === 'qty') return Math.max(0, Number(item.qty || 0));
+        return 1;
+      });
+      const allocatedCosts = allocateLandedCosts(Number(totalLandedCost.toFixed(2)), weights);
+      for (const [index, item] of items.entries()) {
         const itemQty = Number(item.qty || 1);
-        const itemValue = Number(item.line_total || 0);
-
-        let ratio = 0;
-        if (dto.allocationMethod === 'value') {
-          ratio = totalPurchaseValue > 0 ? itemValue / totalPurchaseValue : 1 / items.length;
-        } else if (dto.allocationMethod === 'qty') {
-          ratio = totalPurchaseQty > 0 ? itemQty / totalPurchaseQty : 1 / items.length;
-        } else {
-          ratio = 1 / items.length;
-        }
-
-        const allocatedCost = Number((totalLandedCost * ratio).toFixed(2));
+        const allocatedCost = allocatedCosts[index];
         const baseUnitCost = Number(item.unit_cost || 0);
         const landedUnitCost = Number((baseUnitCost + (itemQty > 0 ? allocatedCost / itemQty : 0)).toFixed(2));
 

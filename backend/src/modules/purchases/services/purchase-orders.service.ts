@@ -10,6 +10,7 @@ import { CreatePurchaseOrderDto, UpdatePurchaseOrderDto } from '../dto/purchase-
 import { PurchasesWriteService } from './purchases-write.service';
 import { ApprovalWorkflowService } from '../../approvals/approval-workflow.service';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
+import { calculatePurchaseOrderTotals } from '../engines/purchase-order-totals.engine';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -130,6 +131,7 @@ export class PurchaseOrdersService {
     if (!payload.items || payload.items.length === 0) {
       throw new BadRequestException('يجب إضافة صنف واحد على الأقل في أمر الشراء');
     }
+    const totals = calculatePurchaseOrderTotals(payload.items, payload.discountAmount);
 
     return this.db.transaction().execute(async (trx) => {
     const insertedOrder = await trx
@@ -143,10 +145,10 @@ export class PurchaseOrdersService {
         supplier_phone: payload.supplierPhone || null,
         warehouse_id: payload.warehouseId || null,
         warehouse_name: payload.warehouseName || null,
-        subtotal: payload.subtotal || 0,
-        tax_amount: payload.taxAmount || 0,
-        discount_amount: payload.discountAmount || 0,
-        total_amount: payload.totalAmount || 0,
+        subtotal: totals.subtotal,
+        tax_amount: totals.taxAmount,
+        discount_amount: totals.discountAmount,
+        total_amount: totals.totalAmount,
         status: 'draft',
         expected_delivery_date: payload.expectedDeliveryDate || null,
         notes: payload.notes || null,
@@ -161,7 +163,7 @@ export class PurchaseOrdersService {
     await trx.updateTable('purchase_orders').set({ order_number: orderNumber })
       .where('id', '=', orderId).where('tenant_id', '=', scope.tenantId).execute();
 
-    for (const item of payload.items) {
+    for (const [index, item] of payload.items.entries()) {
       await trx
         .insertInto('purchase_order_items')
         .values({
@@ -176,7 +178,7 @@ export class PurchaseOrdersService {
           unit_cost: item.unitCost,
           tax_rate: item.taxRate || 0,
           discount: item.discount || 0,
-          total: item.total,
+          total: totals.lineTotals[index],
           notes: item.notes || null,
         })
         .execute();
@@ -211,6 +213,18 @@ export class PurchaseOrdersService {
         throw new BadRequestException('يمكن تعديل أمر الشراء في حالة المسودة فقط');
       }
       if (payload.status && payload.status !== 'draft') throw new BadRequestException('تغيير حالة أمر الشراء يتم عبر مسار الاعتماد فقط');
+      if (payload.items && !payload.items.length) throw new BadRequestException('أمر الشراء يحتاج بنداً واحداً على الأقل.');
+      const itemsForTotals = payload.items || await trx.selectFrom('purchase_order_items')
+        .select(['quantity', 'unit_cost', 'tax_rate'])
+        .where('purchase_order_id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .execute().then(rows => rows.map(item => ({
+          quantity: Number(item.quantity), unitCost: Number(item.unit_cost),
+          taxRate: Number(item.tax_rate || 0),
+        })));
+      if (!itemsForTotals) throw new BadRequestException('أمر الشراء يحتاج بنداً واحداً على الأقل.');
+      const totals = calculatePurchaseOrderTotals(itemsForTotals, payload.discountAmount ?? Number(order.discount_amount || 0));
 
       const updated = await trx
         .updateTable('purchase_orders')
@@ -220,10 +234,10 @@ export class PurchaseOrdersService {
           supplier_phone: payload.supplierPhone !== undefined ? payload.supplierPhone : order.supplier_phone,
           warehouse_id: payload.warehouseId !== undefined ? payload.warehouseId : order.warehouse_id,
           warehouse_name: payload.warehouseName !== undefined ? payload.warehouseName : order.warehouse_name,
-          subtotal: payload.subtotal !== undefined ? payload.subtotal : order.subtotal,
-          tax_amount: payload.taxAmount !== undefined ? payload.taxAmount : order.tax_amount,
-          discount_amount: payload.discountAmount !== undefined ? payload.discountAmount : order.discount_amount,
-          total_amount: payload.totalAmount !== undefined ? payload.totalAmount : order.total_amount,
+          subtotal: totals.subtotal,
+          tax_amount: totals.taxAmount,
+          discount_amount: totals.discountAmount,
+          total_amount: totals.totalAmount,
           expected_delivery_date: payload.expectedDeliveryDate ? (payload.expectedDeliveryDate as any) : order.expected_delivery_date,
           notes: payload.notes !== undefined ? payload.notes : order.notes,
           terms_conditions: payload.termsConditions !== undefined ? payload.termsConditions : order.terms_conditions,
@@ -239,7 +253,7 @@ export class PurchaseOrdersService {
 
       if (payload.items && payload.items.length > 0) {
         await trx.deleteFrom('purchase_order_items').where('purchase_order_id', '=', id).where('tenant_id', '=', scope.tenantId).execute();
-        for (const item of payload.items) {
+        for (const [index, item] of payload.items.entries()) {
           await trx
             .insertInto('purchase_order_items')
             .values({
@@ -250,11 +264,11 @@ export class PurchaseOrdersService {
               product_name: item.productName,
               unit_name: item.unitName || null,
               quantity: item.quantity,
-              received_quantity: item.receivedQuantity || 0,
+              received_quantity: 0,
               unit_cost: item.unitCost,
               tax_rate: item.taxRate || 0,
               discount: item.discount || 0,
-              total: item.total,
+              total: totals.lineTotals[index],
               notes: item.notes || null,
             })
             .execute();
@@ -363,29 +377,38 @@ export class PurchaseOrdersService {
     const createdPurchaseId = Number((res as any)?.purchaseId || (res as any)?.purchase?.id || 0);
     if (!createdPurchaseId) throw new BadRequestException('لم يتم إنشاء فاتورة مشتريات صالحة');
 
-    await this.db.transaction().execute(async (trx) => {
-      const linked = await trx.updateTable('purchases').set({ po_id: id })
-        .where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
-        .where('account_id', '=', scope.accountId).execute();
-      if (Number(linked[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('فاتورة المشتريات غير موجودة للربط');
-      const billItems = await trx.selectFrom('purchase_items').select(['id', 'product_id'])
-        .where('purchase_id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
-        .orderBy('id', 'asc').execute();
-      if (billItems.length !== items.length) throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
-      for (const [index, billItem] of billItems.entries()) {
-        const source = items[index];
-        if (!source || Number(source.product_id) !== Number(billItem.product_id)) {
-          throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+    try {
+      await this.db.transaction().execute(async (trx) => {
+        const linked = await trx.updateTable('purchases').set({ po_id: id })
+          .where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId).execute();
+        if (Number(linked[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('فاتورة المشتريات غير موجودة للربط');
+        const billItems = await trx.selectFrom('purchase_items').select(['id', 'product_id'])
+          .where('purchase_id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
+          .orderBy('id', 'asc').execute();
+        if (billItems.length !== items.length) throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+        for (const [index, billItem] of billItems.entries()) {
+          const source = items[index];
+          if (!source || Number(source.product_id) !== Number(billItem.product_id)) {
+            throw new BadRequestException('تعذر ربط بنود الفاتورة بأمر الشراء');
+          }
+          await trx.updateTable('purchase_items').set({ po_item_id: source.id })
+            .where('id', '=', billItem.id).where('tenant_id', '=', scope.tenantId).execute();
         }
-        await trx.updateTable('purchase_items').set({ po_item_id: source.id })
-          .where('id', '=', billItem.id).where('tenant_id', '=', scope.tenantId).execute();
-      }
-      const converted = await trx.updateTable('purchase_orders').set({
-        status: 'converted_to_bill', converted_purchase_id: createdPurchaseId, updated_at: new Date(),
-      }).where('id', '=', id).where('tenant_id', '=', scope.tenantId)
-        .where('account_id', '=', scope.accountId).where('status', '=', order.status).execute();
-      if (Number(converted[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('تغيرت حالة أمر الشراء أثناء التحويل');
-    });
+        const converted = await trx.updateTable('purchase_orders').set({
+          status: 'converted_to_bill', converted_purchase_id: createdPurchaseId, updated_at: new Date(),
+        }).where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId).where('status', '=', order.status).execute();
+        if (Number(converted[0]?.numUpdatedRows || 0) !== 1) throw new BadRequestException('تغيرت حالة أمر الشراء أثناء التحويل');
+      });
+    } catch (error) {
+      // Clean up orphaned draft purchase if linking failed (ZS-062)
+      await this.db.transaction().execute(async (trx) => {
+        await trx.deleteFrom('purchase_items').where('purchase_id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId).execute();
+        await trx.deleteFrom('purchases').where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId).execute();
+      }).catch(() => undefined);
+      throw error;
+    }
 
     return {
       success: true,

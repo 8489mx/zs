@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Req, UseGuards, Headers, BadRequestException } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 import { RequirePermissions, RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
@@ -70,10 +70,9 @@ export class PosTerminalController {
   // --- Hardware Bridge Outbound Relay Endpoints ---
 
   @Post('bridge/poll')
-  async pollBridge(@Body() body: { tenantId: string; machineName?: string; bridgeVersion?: string }) {
-    if (!body?.tenantId) {
-      return { success: false, error: 'tenantId is required' };
-    }
+  async pollBridge(@Body() body: { tenantId: string; machineName?: string; bridgeVersion?: string }, @Headers('x-zs-bridge-key') bridgeKey?: string) {
+    if (!body?.tenantId) throw new BadRequestException('tenantId is required');
+    this.terminalService.assertBridgeAuthenticated(String(body.tenantId).trim(), bridgeKey);
     const result = await this.terminalService.pollBridge(String(body.tenantId).trim());
     return {
       success: true,
@@ -91,10 +90,9 @@ export class PosTerminalController {
     cardScheme?: string;
     cardLastFour?: string;
     message?: string;
-  }) {
-    if (!body?.jobId || !body?.tenantId) {
-      return { success: false, error: 'jobId and tenantId are required' };
-    }
+  }, @Headers('x-zs-bridge-key') bridgeKey?: string) {
+    if (!body?.jobId || !body?.tenantId) throw new BadRequestException('jobId and tenantId are required');
+    this.terminalService.assertBridgeAuthenticated(String(body.tenantId).trim(), bridgeKey);
     const success = await this.terminalService.handleBridgeCallback(String(body.tenantId).trim(), body);
     return {
       success,

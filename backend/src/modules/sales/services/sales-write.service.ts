@@ -31,6 +31,7 @@ import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway
 import { CashierFraudRadarService } from './cashier-fraud-radar.service';
 import { PlanFeatureService } from '../../../core/auth/services/plan-feature.service';
 import { ReturnsService, type ExchangeReturnContext } from '../../returns/returns.service';
+import { allocateSaleFromImportLots, restoreImportLotsFromCancelledSale } from '../../import-sales/helpers/import-lot-allocation.helper';
 
 /**
  * Pre-approved commercial terms for a sale created by the system on behalf of a merchant user
@@ -1667,6 +1668,20 @@ export class SalesWriteService {
         }
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, id, saleLineId);
+        for (const alloc of allocations) {
+          await allocateSaleFromImportLots(trx, {
+            tenantId: scope.tenantId,
+            saleId: id,
+            locationId: alloc.locationId ?? normalized.locationId,
+            items: [{
+              itemId: saleLineId,
+              productId: item.productId,
+              qty: alloc.qty,
+              netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
+              locationId: alloc.locationId ?? normalized.locationId,
+            }],
+          });
+        }
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
@@ -2271,10 +2286,114 @@ export class SalesWriteService {
         }
       }
 
+      // Reconcile Customer Loyalty Points on Edit (ZS-078)
+      if (sale.customer_id) {
+        const customerId = Number(sale.customer_id);
+
+        const earnLog = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(['points_change'])
+          .where('sale_id', '=', saleId)
+          .where('action_type', '=', 'earn')
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        if (earnLog && Number(earnLog.points_change) > 0) {
+          const earnedPoints = Number(earnLog.points_change);
+          const previousClawbacks = await trx
+            .selectFrom('customer_loyalty_logs')
+            .select(sql<number>`COALESCE(SUM(ABS(points_change)), 0)`.as('total_clawed'))
+            .where('sale_id', '=', saleId)
+            .where('action_type', 'in', ['return_clawback', 'cancel_clawback', 'edit_clawback'])
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .executeTakeFirst();
+          const alreadyClawed = Number(previousClawbacks?.total_clawed || 0);
+          const clawbackDelta = Math.max(0, earnedPoints - alreadyClawed);
+
+          if (clawbackDelta > 0) {
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const currentBal = Number(cust?.loyalty_points || 0);
+            const balanceAfter = Math.max(0, Number((currentBal - clawbackDelta).toFixed(2)));
+
+            await trx
+              .updateTable('customers')
+              .set({ loyalty_points: balanceAfter, updated_at: sql`NOW()` } as any)
+              .where('id', '=', customerId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .execute();
+
+            await trx
+              .insertInto('customer_loyalty_logs')
+              .values({
+                tenant_id: scope.tenantId,
+                account_id: scope.accountId,
+                customer_id: customerId,
+                points_change: -clawbackDelta,
+                balance_after: balanceAfter,
+                action_type: 'edit_clawback',
+                sale_id: saleId,
+                notes: `عكس ${clawbackDelta} نقطة ولاء مكتسبة بسبب تعديل الفاتورة S-${saleId}`,
+                created_at: sql`NOW()`,
+              } as any)
+              .execute();
+          }
+        }
+
+        const redeemLog = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(['points_change'])
+          .where('sale_id', '=', saleId)
+          .where('action_type', '=', 'redeem')
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        if (redeemLog && Number(redeemLog.points_change) < 0) {
+          const totalRedeemed = Math.abs(Number(redeemLog.points_change));
+          const previousRefunds = await trx
+            .selectFrom('customer_loyalty_logs')
+            .select(sql<number>`COALESCE(SUM(points_change), 0)`.as('total_refunded'))
+            .where('sale_id', '=', saleId)
+            .where('action_type', 'in', ['return_refund', 'cancel_refund', 'edit_refund'])
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .executeTakeFirst();
+          const alreadyRefunded = Number(previousRefunds?.total_refunded || 0);
+          const refundDelta = Math.max(0, totalRedeemed - alreadyRefunded);
+
+          if (refundDelta > 0) {
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const currentBal = Number(cust?.loyalty_points || 0);
+            const balanceAfter = Number((currentBal + refundDelta).toFixed(2));
+
+            await trx
+              .updateTable('customers')
+              .set({ loyalty_points: balanceAfter, updated_at: sql`NOW()` } as any)
+              .where('id', '=', customerId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .execute();
+
+            await trx
+              .insertInto('customer_loyalty_logs')
+              .values({
+                tenant_id: scope.tenantId,
+                account_id: scope.accountId,
+                customer_id: customerId,
+                points_change: refundDelta,
+                balance_after: balanceAfter,
+                action_type: 'edit_refund',
+                sale_id: saleId,
+                notes: `رد ${refundDelta} نقطة ولاء مستبدلة سابقاً بسبب تعديل الفاتورة S-${saleId}`,
+                created_at: sql`NOW()`,
+              } as any)
+              .execute();
+          }
+        }
+      }
+
       await this.accountingPosting.reverseSaleJournal(trx, saleId, `تعديل فاتورة: ${editReason}`, auth);
 
       await trx.deleteFrom('sale_payments').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.releaseSaleSerials(trx, saleId, scope.tenantId);
+      await restoreImportLotsFromCancelledSale(trx, { tenantId: scope.tenantId, saleId });
       await trx.deleteFrom('sale_items').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       const customer = normalized.customerId
@@ -2559,6 +2678,20 @@ export class SalesWriteService {
         }
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, saleId, saleLineId);
+        for (const alloc of allocations) {
+          await allocateSaleFromImportLots(trx, {
+            tenantId: scope.tenantId,
+            saleId: saleId,
+            locationId: alloc.locationId ?? normalized.locationId,
+            items: [{
+              itemId: saleLineId,
+              productId: item.productId,
+              qty: alloc.qty,
+              netUnitPrice: allocationByItem.get(item)!.netUnitPrice,
+              locationId: alloc.locationId ?? normalized.locationId,
+            }],
+          });
+        }
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
@@ -2700,6 +2833,7 @@ export class SalesWriteService {
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.lockSaleStockRows(trx, scope, items);
       await this.restoreSalePharmacyBatches(trx, saleId, items, scope, false);
+      await restoreImportLotsFromCancelledSale(trx, { tenantId: scope.tenantId, saleId });
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
@@ -2802,6 +2936,111 @@ export class SalesWriteService {
         const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
         if (customer) {
           await trx.updateTable('customers').set({ store_credit_balance: Number((Number(customer.store_credit_balance || 0) + Number(sale.store_credit_used || 0)).toFixed(2)), updated_at: sql`NOW()` }).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+        }
+      }
+
+      // Reconcile Customer Loyalty Points on Cancellation (ZS-078)
+      if (sale.customer_id) {
+        const customerId = Number(sale.customer_id);
+
+        // 1. Claw back earned points
+        const earnLog = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(['points_change'])
+          .where('sale_id', '=', saleId)
+          .where('action_type', '=', 'earn')
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        if (earnLog && Number(earnLog.points_change) > 0) {
+          const earnedPoints = Number(earnLog.points_change);
+          const previousClawbacks = await trx
+            .selectFrom('customer_loyalty_logs')
+            .select(sql<number>`COALESCE(SUM(ABS(points_change)), 0)`.as('total_clawed'))
+            .where('sale_id', '=', saleId)
+            .where('action_type', 'in', ['return_clawback', 'cancel_clawback'])
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .executeTakeFirst();
+          const alreadyClawed = Number(previousClawbacks?.total_clawed || 0);
+          const clawbackDelta = Math.max(0, earnedPoints - alreadyClawed);
+
+          if (clawbackDelta > 0) {
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const currentBal = Number(cust?.loyalty_points || 0);
+            const balanceAfter = Math.max(0, Number((currentBal - clawbackDelta).toFixed(2)));
+
+            await trx
+              .updateTable('customers')
+              .set({ loyalty_points: balanceAfter, updated_at: sql`NOW()` } as any)
+              .where('id', '=', customerId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .execute();
+
+            await trx
+              .insertInto('customer_loyalty_logs')
+              .values({
+                tenant_id: scope.tenantId,
+                account_id: scope.accountId,
+                customer_id: customerId,
+                points_change: -clawbackDelta,
+                balance_after: balanceAfter,
+                action_type: 'cancel_clawback',
+                sale_id: saleId,
+                notes: `خصم ${clawbackDelta} نقطة ولاء مكتسبة بسبب إلغاء الفاتورة S-${saleId}`,
+                created_at: sql`NOW()`,
+              } as any)
+              .execute();
+          }
+        }
+
+        // 2. Refund redeemed points
+        const redeemLog = await trx
+          .selectFrom('customer_loyalty_logs')
+          .select(['points_change'])
+          .where('sale_id', '=', saleId)
+          .where('action_type', '=', 'redeem')
+          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+          .executeTakeFirst();
+
+        if (redeemLog && Number(redeemLog.points_change) < 0) {
+          const totalRedeemed = Math.abs(Number(redeemLog.points_change));
+          const previousRefunds = await trx
+            .selectFrom('customer_loyalty_logs')
+            .select(sql<number>`COALESCE(SUM(points_change), 0)`.as('total_refunded'))
+            .where('sale_id', '=', saleId)
+            .where('action_type', 'in', ['return_refund', 'cancel_refund'])
+            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+            .executeTakeFirst();
+          const alreadyRefunded = Number(previousRefunds?.total_refunded || 0);
+          const refundDelta = Math.max(0, totalRedeemed - alreadyRefunded);
+
+          if (refundDelta > 0) {
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const currentBal = Number(cust?.loyalty_points || 0);
+            const balanceAfter = Number((currentBal + refundDelta).toFixed(2));
+
+            await trx
+              .updateTable('customers')
+              .set({ loyalty_points: balanceAfter, updated_at: sql`NOW()` } as any)
+              .where('id', '=', customerId)
+              .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+              .execute();
+
+            await trx
+              .insertInto('customer_loyalty_logs')
+              .values({
+                tenant_id: scope.tenantId,
+                account_id: scope.accountId,
+                customer_id: customerId,
+                points_change: refundDelta,
+                balance_after: balanceAfter,
+                action_type: 'cancel_refund',
+                sale_id: saleId,
+                notes: `رد ${refundDelta} نقطة ولاء مستبدلة سابقاً بسبب إلغاء الفاتورة S-${saleId}`,
+                created_at: sql`NOW()`,
+              } as any)
+              .execute();
+          }
         }
       }
 

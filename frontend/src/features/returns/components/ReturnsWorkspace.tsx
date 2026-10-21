@@ -86,7 +86,7 @@ export function ReturnsWorkspace() {
       : rawPurchases.filter((purchase) => purchase.status === 'posted');
   }, [form.type, purchasesQuery.data, salesQuery.data]);
 
-  const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId)) as Sale | Purchase | undefined;
+  const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId) || (Boolean(row.docNo) && String(row.docNo).toLowerCase() === String(form.invoiceId).toLowerCase())) as Sale | Purchase | undefined;
   const rows = useMemo(() => query.data?.returns || [], [query.data?.returns]);
   const invoiceItems = useMemo(() => (selectedInvoice?.items || []) as Array<SaleItem | PurchaseItem>, [selectedInvoice?.items]);
   const returnedQtyByProduct = useMemo(() => {
@@ -145,7 +145,7 @@ export function ReturnsWorkspace() {
   }, [isPurchaseMode]);
 
   useEffect(() => {
-    const targetInvoiceId = searchParams.get('invoiceId');
+    const targetInvoiceId = searchParams.get('invoiceId') || searchParams.get('docNo');
     if (targetInvoiceId) {
       setForm((current) => ({
         ...current,
@@ -156,10 +156,19 @@ export function ReturnsWorkspace() {
     }
   }, [searchParams, isPurchaseMode]);
 
+  useEffect(() => {
+    if (selectedInvoice && form.invoiceId !== String(selectedInvoice.id)) {
+      setForm((current) => ({
+        ...current,
+        invoiceId: String(selectedInvoice.id),
+      }));
+    }
+  }, [selectedInvoice, form.invoiceId]);
+
   const createMutation = useMutation({
     mutationFn: ({ managerPin, reason }: { managerPin?: string; reason: string }) => returnsApi.create({
       type: form.type,
-      invoiceId: form.invoiceId,
+      invoiceId: Number(selectedInvoice?.id || form.invoiceId),
       items: selectedReturnItems.map(({ item, qty }) => ({ 
         productId: Number(item.productId || 0), 
         productName: item.name, 

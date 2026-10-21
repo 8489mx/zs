@@ -27,7 +27,7 @@ export function ManagePartnersDialog({ open, onClose }: { open: boolean, onClose
     queryKey: ['accounts-list'],
     queryFn: () => http<{ accounts: any[] }>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
-  const treasuryAccounts = (accountsData?.accounts || []).filter((a: any) => a.accountGroup === 'current_assets' || a.flags?.isCashBank);
+  const treasuryAccounts = (accountsData?.accounts || []).filter((a: any) => a.flags?.isCashBank === true);
 
   // Modals state
   const [txPartner, setTxPartner] = useState<{ partner: Partner, type: 'DEPOSIT' | 'WITHDRAWAL' } | null>(null);

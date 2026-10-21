@@ -16,6 +16,22 @@ export function generateReleasePasscode(version: string): string {
   return `ZS-UPD-${clean || '100'}-${h.substring(0, 4)}-${h.substring(4, 8)}`;
 }
 
+/** Operator-approved package SHA256: update packages must be pinned out-of-band, never trusted because
+ * a user supplied a manifest/passcode in the package itself. */
+export function assertTrustedOfflineUpdatePackage(buffer: Buffer, expectedDigest: string | undefined): void {
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0 || buffer.length > 128 * 1024 * 1024) {
+    throw new BadRequestException('Update package size exceeds 128 MiB or is empty');
+  }
+  if (!expectedDigest || !/^[a-f0-9]{64}$/i.test(expectedDigest)) {
+    throw new BadRequestException('The trusted update SHA256 must be provisioned on the device');
+  }
+  const expected = Buffer.from(expectedDigest, 'hex');
+  const received = crypto.createHash('sha256').update(buffer).digest();
+  if (!crypto.timingSafeEqual(expected, received)) {
+    throw new BadRequestException('Update package SHA256 does not match the operator-approved release');
+  }
+}
+
 export function compareSemver(v1: string, v2: string): number {
   const p1 = (v1 || '0.0.0').replace(/^[vV]/, '').split('.').map(Number);
   const p2 = (v2 || '0.0.0').replace(/^[vV]/, '').split('.').map(Number);
@@ -813,22 +829,31 @@ export class OfflineReleasesService implements OnModuleInit {
     if (!file || !file.buffer) {
       throw new BadRequestException('ملف التحديث غير موجود');
     }
+    assertTrustedOfflineUpdatePackage(file.buffer, process.env.ZS_TRUSTED_OFFLINE_UPDATE_SHA256);
 
     // Verify zip structure and security
     let version = 'manual';
     try {
       const zip = new AdmZip(file.buffer);
       const entries = zip.getEntries();
-      
+      if (entries.length > 3000) throw new BadRequestException('Update archive contains too many entries');
+      let totalExpanded = 0;
+
       let manifestEntry = null;
 
       for (const entry of entries) {
         const name = entry.entryName.replace(/\\/g, '/');
-        
-        // 1. Path Traversal Protection
-        if (name.includes('../') || name.startsWith('/') || /^[a-zA-Z]:\//.test(name) || name.includes('\0')) {
+        // Apply a strict path policy before downstream PowerShell extracts the archive.
+        if (!name || name.startsWith('/') || /^[a-zA-Z]:/.test(name) ||
+            name.split('/').some((part) => part === '..' || part === '.') ||
+            name.includes('\0') || name.includes('//')) {
           throw new Error('مسار غير آمن في الملف (Path Traversal)');
         }
+        const size = Number(entry.header?.size || 0);
+        if (!Number.isFinite(size) || size < 0) throw new Error('Invalid ZIP entry size');
+        totalExpanded += size;
+        if (totalExpanded > 512 * 1024 * 1024) throw new Error('ZIP exceeds maximum expanded size');
+
 
         if (name === 'update-manifest.json') manifestEntry = entry;
       }

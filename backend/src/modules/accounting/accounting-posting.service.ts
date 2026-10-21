@@ -541,7 +541,7 @@ export class AccountingPostingService {
       if (settings.lock_date_non_adviser) {
         const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
         if (dateStr <= lockNonAdvStr) {
-          const operationalSources = ['sale', 'sale_edit', 'sale_cancel', 'sale_reversal', 'sales_return', 'return', 'purchase', 'purchase_cancel', 'purchase_reversal', 'supplier_payment', 'customer_payment', 'expense', 'treasury_expense'];
+          const operationalSources = ['sale', 'sale_edit', 'sale_cancel', 'sale_reversal', 'sales_return', 'return', 'purchase', 'purchase_cancel', 'purchase_reversal', 'supplier_payment', 'customer_payment', 'expense', 'treasury_expense', 'import_late_expense', 'import_partner_capital', 'import_partner_payout', 'import_container_deposit', 'import_container_refund', 'import_broker_advance', 'import_broker_expense', 'import_container_preorder'];
           if (operationalSources.includes(params.sourceType)) {
             throw new AppError(
               `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`,
@@ -4465,6 +4465,168 @@ export class AccountingPostingService {
       }
       throw e;
     }
+  }
+
+  async postPdcChequeCancelOrReturn(
+    queryable: DbOrTx,
+    chequeId: number,
+    action: 'cancel' | 'return',
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque || !cheque.journal_entry_id) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    const lines: JournalLineDraft[] = [];
+
+    if (cheque.type === 'receivable') {
+      let customerArId = Number(settings?.customer_receivable_account_id || 0);
+      if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+      const safeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+
+      this.addLine(lines, {
+        accountId: customerArId,
+        description: `إلغاء/رد ورقة قبض #${cheque.cheque_number} - إعادة المديونية للعميل ${cheque.partner_name}`,
+        debit: amount,
+        credit: 0,
+        partnerType: cheque.partner_id ? 'customer' : 'none',
+        partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: safeAccountId,
+        description: `إلغاء/رد ورقة قبض #${cheque.cheque_number}`,
+        debit: 0,
+        credit: amount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    } else {
+      let supplierApId = Number(settings?.supplier_payable_account_id || 0);
+      if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
+      const payablePdcId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2120');
+
+      this.addLine(lines, {
+        accountId: payablePdcId,
+        description: `إلغاء/رد ورقة دفع #${cheque.cheque_number}`,
+        debit: amount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: supplierApId,
+        description: `إلغاء/رد ورقة دفع #${cheque.cheque_number} - إعادة التزام المورد ${cheque.partner_name}`,
+        debit: 0,
+        credit: amount,
+        partnerType: cheque.partner_id ? 'supplier' : 'none',
+        partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    const actionText = action === 'cancel' ? 'إلغاء' : 'رد';
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: `pdc_cheque_${action}`,
+      sourceId: chequeId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد ${actionText} شيك #${cheque.cheque_number} (${cheque.type === 'receivable' ? 'قبض' : 'دفع'}) لـ ${cheque.partner_name}`,
+      branchId: null,
+      locationId: null,
+      createdBy: auth.userId,
+      postedBy: auth.userId,
+      lines,
+    });
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  async postPdcChequeRestore(
+    queryable: DbOrTx,
+    chequeId: number,
+    previousStatus: string,
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const cheque = await queryable
+      .selectFrom('accounting_cheques')
+      .selectAll()
+      .where('id', '=', chequeId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!cheque) return { posted: false, journalEntryId: null };
+    const amount = this.toMoney(cheque.amount);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    const lines: JournalLineDraft[] = [];
+
+    if (cheque.type === 'receivable' && previousStatus === 'bounced') {
+      let customerArId = Number(settings?.customer_receivable_account_id || 0);
+      if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+      const safeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+
+      this.addLine(lines, {
+        accountId: safeAccountId,
+        description: `إعادة إيداع شيك مرتد في الخزينة #${cheque.cheque_number}`,
+        debit: amount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: customerArId,
+        description: `تسوية مديونية العميل ${cheque.partner_name} بعد استعادة الشيك للخزينة #${cheque.cheque_number}`,
+        debit: 0,
+        credit: amount,
+        partnerType: cheque.partner_id ? 'customer' : 'none',
+        partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+        branchId: null,
+        locationId: null,
+      });
+
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'pdc_cheque_restore',
+        sourceId: chequeId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد استعادة شيك مرتد #${cheque.cheque_number} إلى الخزينة`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    }
+
+    return { posted: false, journalEntryId: null };
   }
 
   async postWithholdingTaxRemittance(queryable: DbOrTx, transactionId: number, paymentMethod: 'bank' | 'cash', auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {

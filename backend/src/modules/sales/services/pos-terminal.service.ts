@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger, BadRequestException, Optional } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { Inject, Injectable, Logger, BadRequestException, Optional, UnauthorizedException } from '@nestjs/common';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import * as net from 'node:net';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -8,6 +8,15 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
 const execAsync = promisify(exec);
+
+/**
+ * One different bridge credential per tenant. Provision the derived credential to the
+ * trusted Windows bridge; NEVER disclose the master secret to clients.
+ */
+export function derivePosBridgeKey(masterSecret: string, tenantId: string): string {
+  if (masterSecret.length < 32 || !tenantId.trim()) throw new Error('POS bridge master secret/tenant not provisioned');
+  return createHmac('sha256', masterSecret).update('zs-pos-bridge:v1:' + tenantId.trim()).digest('hex');
+}
 
 export interface PosTerminalInfo {
   id: string;
@@ -23,14 +32,18 @@ export interface PosTerminalInfo {
 
 export function isPrivateSubnetIp(ip: string): boolean {
   if (!ip) return false;
-  const clean = ip.trim().toLowerCase();
-  if (clean === '127.0.0.1' || clean === 'localhost') return true;
+  const clean = ip.trim().toLowerCase().replace(/^\[|\]$/g, '');
+  if (clean === 'localhost' || clean === '::1' || clean === '0.0.0.0') return true;
+  if (clean.startsWith('127.')) return true; // all loopback addresses
+  if (clean.startsWith('169.254.')) return true; // link-local & cloud metadata
   if (clean.startsWith('192.168.') || clean.startsWith('10.')) return true;
   const match172 = clean.match(/^172\.(\d+)\./);
   if (match172) {
     const octet = parseInt(match172[1], 10);
     return octet >= 16 && octet <= 31;
   }
+  // IPv6 loopback / link-local / unique local
+  if (clean.startsWith('fe80:') || clean.startsWith('fc00:') || clean.startsWith('fd00:')) return true;
   return false;
 }
 
@@ -180,6 +193,19 @@ export class PosTerminalService {
 
   constructor(@Optional() @Inject(KYSELY_DB) private readonly db?: Kysely<Database>) {}
 
+  /** The external bridge API intentionally has no user session; authenticate the device instead. */
+  assertBridgeAuthenticated(tenantId: string, suppliedKey?: string): void {
+    const master = process.env.POS_BRIDGE_MASTER_SECRET || '';
+    if (master.length < 32 || !tenantId?.trim() || typeof suppliedKey !== 'string' || !/^[0-9a-f]{64}$/i.test(suppliedKey)) {
+      throw new UnauthorizedException('POS bridge credentials are missing or invalid');
+    }
+    const expected = Buffer.from(derivePosBridgeKey(master, tenantId), 'hex');
+    const provided = Buffer.from(suppliedKey, 'hex');
+    if (!timingSafeEqual(expected, provided)) {
+      throw new UnauthorizedException('POS bridge credentials are missing or invalid');
+    }
+  }
+
   /**
    * Hardware Bridge long-poll endpoint.
    * Holds request up to 25s waiting for a payment job for the given tenant.
@@ -234,14 +260,18 @@ export class PosTerminalService {
     this.pruneExpiredSessions();
 
     const session = this.activeSessions.get(payload.jobId);
-    if (!session) {
-      this.logger.warn(`Bridge callback for unknown or expired session ${payload.jobId}`);
+    if (!session || session.tenantId !== cleanTenant || !['pending', 'processing'].includes(session.status)) {
+      this.logger.warn('Bridge callback rejected: session not pending or tenant mismatch');
       return false;
     }
 
     const isApproved = payload.status === 'approved' || payload.status === 'APPROVED';
+    if (isApproved && (!payload.authCode?.trim() || !payload.rrn?.trim())) {
+      this.logger.warn('Bridge approval rejected: missing bank authorization or RRN');
+      return false;
+    }
     session.status = isApproved ? 'approved' : (payload.status === 'cancelled' ? 'cancelled' : 'declined');
-    session.approvalCode = payload.authCode || (isApproved ? `AUTH-${Math.floor(100000 + Math.random() * 900000)}` : undefined);
+    session.approvalCode = isApproved ? payload.authCode : undefined;
     session.rrn = payload.rrn || session.transactionId;
     session.cardScheme = payload.cardScheme || 'Visa';
     session.cardLastFour = payload.cardLastFour || '';
@@ -457,6 +487,13 @@ export class PosTerminalService {
 
     // Determine if session should run in simulation / sandbox mode
     const isMock = prov.includes('mock') || prov.includes('sandbox');
+    if (isMock && (process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production')) {
+      throw new BadRequestException('محاكي الدفع غير مسموح به في بيئة الإنتاج');
+    }
+    // Simulated bank approvals are strictly a development-only feature.
+    if (isMock && (process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production')) {
+      throw new BadRequestException('Mock POS terminal provider is forbidden in production');
+    }
 
     const tenantCurrency = request.currency
       ? String(request.currency).trim().toUpperCase()
@@ -540,6 +577,13 @@ export class PosTerminalService {
       throw new BadRequestException('معاملة الدفع غير موجودة أو منتهية الصلاحية');
     }
 
+    if (session.isSimulated && (process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production')) {
+      session.status = 'declined';
+      session.message = 'المحاكاة البنكية غير متاحة في الإنتاج';
+      session.updatedAt = Date.now();
+      return session;
+    }
+
     // Only apply timer simulation if the session was explicitly marked as simulated
     if (session.isSimulated) {
       const elapsedMs = Date.now() - session.createdAt;
@@ -583,24 +627,39 @@ export class PosTerminalService {
     if (!session || session.tenantId !== tenantId) {
       throw new BadRequestException('معاملة الدفع غير موجودة');
     }
+    if (session.status === 'approved') {
+      throw new BadRequestException('لا يمكن إلغاء تحصيل بنكي معتمد محلياً؛ يلزم إجراء Void/Refund موثق من البنك');
+    }
+    if (session.status === 'declined' || session.status === 'cancelled') return session;
 
-    session.status = 'cancelled';
-    session.message = 'تم إلغاء عملية الدفع بواسطة الكاشير';
-    session.updatedAt = Date.now();
-
-    // If real device, dispatch remote cancel best-effort
-    if (!session.isSimulated) {
-      const terminals = await this.getTerminals(tenantId).catch(() => []);
-      const term = terminals.find(t => t.id === session.terminalId);
-      if (term?.ipAddress) {
-        const { host: cleanIp, port } = parseTerminalHostAndPort(term.ipAddress, 8080);
-        const prov = (term.provider || '').toLowerCase();
-        if (cleanIp) {
-          this.dispatchTerminalCancel(cleanIp, port, prov, transactionId).catch(() => {});
-        }
-      }
+    // A simulated/unsent job may be cancelled locally without a bank operation.
+    if (session.isSimulated) {
+      session.status = 'cancelled';
+      session.message = 'تم إلغاء العملية التجريبية';
+      session.updatedAt = Date.now();
+      return session;
+    }
+    const pending = this.pendingBridgeJobs.get(tenantId) || [];
+    if (pending.some(job => job.jobId === transactionId)) {
+      this.pendingBridgeJobs.set(tenantId, pending.filter(job => job.jobId !== transactionId));
+      session.status = 'cancelled';
+      session.message = 'أُلغي الطلب قبل إرساله إلى ماكينة البنك';
+      session.updatedAt = Date.now();
+      return session;
     }
 
+    // The bank may already have debited the card. Never report "cancelled" based on
+    // a best-effort network request; keep status unsettled until reliable confirmation.
+    const terminals = await this.getTerminals(tenantId).catch(() => []);
+    const term = terminals.find(t => t.id === session.terminalId);
+    if (term?.ipAddress) {
+      const { host, port } = parseTerminalHostAndPort(term.ipAddress, 8080);
+      if (host) {
+        await this.dispatchTerminalCancel(host, port, (term.provider || '').toLowerCase(), transactionId);
+      }
+    }
+    session.message = 'تمت محاولة إرسال طلب الإلغاء؛ راجع حالة البنك قبل إعادة التحصيل';
+    session.updatedAt = Date.now();
     return session;
   }
 
@@ -1201,6 +1260,41 @@ export class PosTerminalService {
       };
     }
 
+    // SSRF Guard (ZS-084): Block loopback and link-local / cloud metadata unconditionally
+    const isLoopbackOrMetadata = cleanIp.startsWith('127.') ||
+      cleanIp === 'localhost' ||
+      cleanIp === '::1' ||
+      cleanIp.startsWith('169.254.') ||
+      cleanIp === '0.0.0.0';
+
+    if (isLoopbackOrMetadata) {
+      return {
+        reachable: false,
+        pingSucceeded: false,
+        portOpen: false,
+        ip: cleanIp,
+        port,
+        message: 'عنوان IP الماكينة غير مسموح به (Loopback / Cloud Metadata)',
+        details: 'لا يمكن اختبار الاتصال بعناوين الاسترجاع الداخلي أو عناوين بيانات السيرفر السحابي لحماية أمن النظام.',
+        provider,
+      };
+    }
+
+    const isPrivateSub = isPrivateSubnetIp(cleanIp);
+    const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
+    if (isCloudEnv && isPrivateSub) {
+      return {
+        reachable: false,
+        pingSucceeded: false,
+        portOpen: false,
+        ip: cleanIp,
+        port,
+        message: `تعذر الوصول لماكينة الدفع (${cleanIp}) من بيئة السيرفر السحابي (Cloud SaaS)`,
+        details: `العنوان ${cleanIp} يقع ضمن الشبكة المحلية (LAN) الخاصة بفرعك. السيرفر السحابي المعزول لا يستطيع الوصول للراوتر المحلي عبر الإنترنت العام. للربط المباشر مع ماكينات الشبكة المحلية، يرجى تشغيل تطبيق Z-Systems Desktop للكاشير على نفس الشبكة، أو استخدام وضع الربط السحابي مع المزود (مثل Geidea Cloud ECR بتعيين Terminal TID).`,
+        provider,
+      };
+    }
+
     // Execute Ping and TCP Port probe
     const [pingRes, tcpRes] = await Promise.all([
       this.pingHost(cleanIp, 2000),
@@ -1244,22 +1338,6 @@ export class PosTerminalService {
         latencyMs: pingRes.rttMs,
         message: `الماكينة متصلة بالشبكة (${pingText}) ولكن المنفذ ${port} غير مفتوح`,
         details: `الماكينة استجابت بنجاح على الشبكة المحلية، ولكن ${appName} لم يفتح منفذ ECR رقم ${port} بعد. يرجى الدخول لإعدادات التطبيق على الماكينة -> "إعدادات الربط / ECR" -> تفعيل الربط وتعيين المنفذ ${port}.`,
-        provider,
-      };
-    }
-
-    // Case 3: Completely unreachable
-    const isPrivateSub = isPrivateSubnetIp(cleanIp);
-    const isCloudEnv = process.env.APP_MODE === 'CLOUD_SAAS' || process.env.NODE_ENV === 'production';
-    if (isCloudEnv && isPrivateSub) {
-      return {
-        reachable: false,
-        pingSucceeded: false,
-        portOpen: false,
-        ip: cleanIp,
-        port,
-        message: `تعذر الوصول لماكينة الدفع (${cleanIp}) من بيئة السيرفر السحابي (Cloud SaaS)`,
-        details: `العنوان ${cleanIp} يقع ضمن الشبكة المحلية (LAN) الخاصة بفرعك. السيرفر السحابي المعزول لا يستطيع الوصول للراوتر المحلي عبر الإنترنت العام. للربط المباشر مع ماكينات الشبكة المحلية، يرجى تشغيل تطبيق Z-Systems Desktop للكاشير على نفس الشبكة، أو استخدام وضع الربط السحابي مع المزود (مثل Geidea Cloud ECR بتعيين Terminal TID).`,
         provider,
       };
     }
