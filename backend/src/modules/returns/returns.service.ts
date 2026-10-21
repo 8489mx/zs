@@ -309,21 +309,35 @@ export class ReturnsService {
       approvedByName = await this.verifyManagerAuthorization(this.db, payload.managerPin || '', auth);
     }
 
-    const returnIds = await this.tx.runInTransaction(this.db, async (trx) => {
+    const result = await this.tx.runInTransaction(this.db, async (trx) => {
       const normalizedItems = normalizeReturnItems(payload);
-      if (payload.type === 'sale') return this.createSaleReturn(trx, payload, normalizedItems, auth, approvedByName);
-      return this.createPurchaseReturn(trx, payload, normalizedItems, auth);
+      const returnIds = payload.type === 'sale'
+        ? await this.createSaleReturn(trx, payload, normalizedItems, auth, approvedByName)
+        : await this.createPurchaseReturn(trx, payload, normalizedItems, auth);
+
+      const res = { ok: true, createdIds: returnIds, id: returnIds[0], returnDocumentId: returnIds[0] };
+
+      // Idempotency: commit inside the EXACT SAME business transaction (CORE-004)
+      if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(
+          trx,
+          { tenantId: scope.tenantId, accountId: idemCtx.accountId || scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
+          res,
+          String(returnIds[0])
+        );
+      }
+
+      return res;
     });
 
+    const returnIds = result.createdIds;
     const label = payload.type === 'purchase' ? 'purchase return' : 'sale return';
     const auditText = approvedByName
       ? `Created ${label} by ${auth.username} (Approved by: ${approvedByName})`
       : `Created ${label} by ${auth.username}`;
     await this.audit.log('إنشاء مرتجع', auditText, auth);
 
-    const result = { ok: true, createdIds: returnIds, id: returnIds[0], returnDocumentId: returnIds[0] };
-
-    // WhatsApp refund notification to owner
+    // WhatsApp refund notification to owner (post-commit reliable notification)
     if (payload.type === 'sale' && this.whatsappService && returnIds[0]) {
       void (async () => {
         try {
@@ -344,15 +358,6 @@ export class ReturnsService {
           }
         } catch {}
       })();
-    }
-
-    // Idempotency: commit the response so future duplicate requests return it
-    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
-      await this.idempotency.commitOperation(
-        this.db,
-        { tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType },
-        result
-      );
     }
 
     return result;
