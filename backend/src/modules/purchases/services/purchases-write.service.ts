@@ -633,6 +633,16 @@ export class PurchasesWriteService {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
+      // Posted GL journals are immutable. Do not mutate invoice stock/supplier balances without a
+      // balancing correction document and journal.
+      if (purchase.status === 'posted') {
+        throw new AppError('لا يمكن تعديل فاتورة مشتريات مرحلة؛ استخدم مستند تصحيح أو مرتجعاً رسمياً', 'POSTED_PURCHASE_EDIT_FORBIDDEN', 422);
+      }
+      // This legacy edit flow reverses physical movements unconditionally; purchase-order-only
+      // drafts have never posted stock/treasury, so edits need a separate metadata-only command.
+      if (purchase.lifecycle_status === 'purchase_order' || purchase.status === 'draft') {
+        throw new AppError('مسودة المشتريات تحتاج مسار تعديل منفصل دون عكس حركة مخزون أو قيد', 'PURCHASE_DRAFT_EDIT_UNSUPPORTED', 422);
+      }
       if (purchase.lifecycle_status === 'grn_bill') throw new AppError('فاتورة GRN مرحّلة؛ يلزم إشعار دائن محاسبي للتعديل', 'GRNI_BILL_IMMUTABLE', 422);
 
       const oldItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
@@ -960,6 +970,17 @@ export class PurchasesWriteService {
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Purchase already cancelled', 'PURCHASE_ALREADY_CANCELLED', 400);
+      if (purchase.lifecycle_status === 'purchase_order' || purchase.status === 'draft') {
+        // No stock/treasury/journal was posted by an unreceived draft: only cancel the document.
+        await trx.updateTable('purchases').set({
+          status: 'cancelled',
+          cancel_reason: String(reason || '').trim(),
+          cancelled_by: auth.userId,
+          cancelled_at: sql`NOW()`,
+          updated_at: sql`NOW()`,
+        }).where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+        return;
+      }
       if (purchase.lifecycle_status === 'grn_bill') throw new AppError('لا يمكن إلغاء فاتورة GRN بعد تسوية الاستحقاق؛ يلزم إشعار دائن محاسبي', 'GRNI_BILL_IMMUTABLE', 422);
 
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
