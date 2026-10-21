@@ -234,7 +234,7 @@ export class InventoryScopeService {
     if (!this.canAccessEveryBranch(auth) && !branchScope.length) return { locations: [], totalGlobalValue: 0 };
     
     const locationsRaw = await this.db.selectFrom('stock_locations as l')
-      .select(['l.id', 'l.name', 'l.is_active'])
+      .select(['l.id', 'l.name', 'l.is_active', 'l.branch_id'])
       .where((eb) => eb.or([
         eb('l.is_active', '=', true),
         eb.exists(
