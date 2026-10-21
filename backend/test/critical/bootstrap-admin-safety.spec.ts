@@ -80,7 +80,15 @@ class FakeDb {
 }
 
 class FakeBootstrapDb {
-  constructor(private readonly hasUsers = false) {}
+  constructor(private readonly hasUsers = false, private readonly existingZsUser: any = null) {}
+
+  getExecutor() {
+    return {
+      transformQuery: (args: any) => args.node,
+      compileQuery: () => ({ sql: '', parameters: [] }),
+      executeQuery: async () => ({ rows: [] }),
+    };
+  }
 
   insertInto() {
     return {
@@ -91,13 +99,29 @@ class FakeBootstrapDb {
     };
   }
 
-  selectFrom() {
+  updateTable() {
     return {
-      select: () => ({
-        where: () => ({ limit: () => ({ executeTakeFirst: async () => undefined }) }),
-        limit: () => ({ executeTakeFirst: async () => (this.hasUsers ? { id: 1 } : undefined) }),
+      set: () => ({
+        where: () => ({
+          execute: async () => ({}),
+        }),
       }),
     };
+  }
+
+  selectFrom(table: string) {
+    const builder = {
+      select: () => builder,
+      where: () => builder,
+      limit: () => builder,
+      executeTakeFirst: async () => {
+        if (table === 'users') {
+          return this.existingZsUser || (this.hasUsers ? { id: 1 } : undefined);
+        }
+        return undefined;
+      },
+    };
+    return builder;
   }
 }
 
@@ -175,6 +199,37 @@ async function runBootstrapGuardrails(): Promise<void> {
       await service.onApplicationBootstrap();
     },
     /blocked in production/,
+  );
+
+  await assert.rejects(
+    async () => {
+      const service = new BootstrapAdminService(
+        baseDb,
+        new FakeConfigService({
+          ENABLE_BOOTSTRAP_ADMIN: true,
+          DEFAULT_ADMIN_USERNAME: 'admin',
+          DEFAULT_ADMIN_PASSWORD: 'ZsAdmin2026',
+          NODE_ENV: 'development',
+          ALLOW_BOOTSTRAP_ADMIN_IN_PRODUCTION: false,
+        }) as any,
+      );
+      await service.onApplicationBootstrap();
+    },
+    /refuses to start with the default administrator password/,
+  );
+
+  await assert.rejects(
+    async () => {
+      const service = new BootstrapAdminService(
+        baseDb,
+        new FakeConfigService({
+          PLATFORM_SUPERADMIN_PASSWORD: 'ZsAdmin2026',
+          NODE_ENV: 'development',
+        }) as any,
+      );
+      await service.onApplicationBootstrap();
+    },
+    /Platform super-admin provisioning refuses to use published/,
   );
 
   const service = new BootstrapAdminService(
