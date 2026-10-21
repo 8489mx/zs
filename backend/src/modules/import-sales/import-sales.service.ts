@@ -3109,8 +3109,6 @@ export class ImportSalesService {
   async closeProject(tenantId: string, userId: number, projectId: string, approvalRequestId?: string) {
     if (!approvalRequestId) throw new BadRequestException('إقفال مشروع الاستيراد يتطلب موافقة Maker-Checker معتمدة.');
     return await this.db.transaction().execute(async (trx) => {
-      await this.verifyAndConsumeApprovalRequest(trx, tenantId, 'project_closure', projectId, approvalRequestId);
-
       const project = await trx
         .selectFrom('import_projects')
         .selectAll()
@@ -3122,6 +3120,7 @@ export class ImportSalesService {
       if (project.status === 'closed') {
         throw new BadRequestException('المشروع مقفل بالفعل.');
       }
+      await this.verifyAndConsumeApprovalRequest(trx, tenantId, 'project_closure', projectId, approvalRequestId);
 
       const shipments = await trx
         .selectFrom('import_shipments')

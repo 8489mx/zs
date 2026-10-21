@@ -34,6 +34,7 @@ import {
   DecideApprovalRequestDto,
   ResolveExceptionDto,
   RecordPartnerPayoutDto,
+  CloseImportProjectDto,
 } from './dto/import-sales.dto';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
@@ -109,7 +110,7 @@ export class ImportSalesController {
 
   @RequireAnyPermission('accounting')
   @Post('projects/:id/close')
-  async closeProject(@Req() req: RequestWithAuth, @Param('id') projectId: string, @Body() dto: { approvalRequestId: string }) {
+  async closeProject(@Req() req: RequestWithAuth, @Param('id') projectId: string, @Body() dto: CloseImportProjectDto {
     return this.importSalesService.closeProject(req.authContext!.tenantId!, req.authContext!.userId!, projectId, dto?.approvalRequestId);
   }
 

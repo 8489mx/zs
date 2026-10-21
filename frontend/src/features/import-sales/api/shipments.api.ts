@@ -58,6 +58,7 @@ export interface CreateShipmentDto {
 }
 
 export interface UpdateShipmentCostsDto {
+  receiptLocationId?: number;
   shippingCostUsd?: number;
   shippingAccountId?: string;
   customsCostEgp?: number;
@@ -642,8 +643,10 @@ export const useCalculateCustomsMutation = () => {
 export const useCloseProjectMutation = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
-      return await http(`/api/import-sales/projects/${projectId}/close`, { method: 'POST' });
+    mutationFn: async (approvalRequestId: string) => {
+      return await http(`/api/import-sales/projects/${projectId}/close`, {
+        method: 'POST', body: JSON.stringify({ approvalRequestId }),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import-projects'] });

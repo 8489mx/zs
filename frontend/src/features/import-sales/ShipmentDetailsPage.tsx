@@ -18,6 +18,7 @@ import { ContainerAutopsyModal } from './ContainerAutopsyModal';
 import { ContainerPreordersModal } from './ContainerPreordersModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
+import { referenceDataApi } from '@/services/reference-data.api';
 
 function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate }: { item: ShipmentItem, shipmentId: string, arrivalRate: number, pricingRate: number }) {
   const { t } = useTranslation();
@@ -128,6 +129,7 @@ export default function ShipmentDetailsPage() {
   const [exchangeRate, setExchangeRate] = useState('');
   const [pricingExchangeRate, setPricingExchangeRate] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [receiptLocationId, setReceiptLocationId] = useState<string>('');
   
   // Dates
   const [shippedDate, setShippedDate] = useState('');
@@ -160,6 +162,7 @@ export default function ShipmentDetailsPage() {
     queryFn: () => http<any>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
   const treasuryAccounts = (accountsData?.accounts || (Array.isArray(accountsData) ? accountsData : [])).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
+  const { data: warehouseLocations = [] } = useQuery({ queryKey: ['locations'], queryFn: referenceDataApi.locations });
 
   if (isLoading) return <div style={{ padding: '2rem' }}>{t('import_sales.shipment_details_page.s3', "جاري التحميل...")}</div>;
   if (!data) return <div style={{ padding: '2rem' }}>{t('import_sales.shipment_details_page.s4', "الحاوية غير موجودة")}</div>;
@@ -176,6 +179,7 @@ export default function ShipmentDetailsPage() {
       exchangeRateAtArrival: exchangeRate ? Number(exchangeRate) : undefined,
       pricingExchangeRate: pricingExchangeRate ? Number(pricingExchangeRate) : undefined,
       status: status ? status : undefined,
+      receiptLocationId: status === 'Arrived' && receiptLocationId ? Number(receiptLocationId) : undefined,
       shippedDate: shippedDate || undefined,
       etaDate: etaDate || undefined,
       clearanceDate: clearanceDate || undefined,
@@ -329,6 +333,17 @@ export default function ShipmentDetailsPage() {
               </select>
             </div>
 
+            {status === 'Arrived' && data.status !== 'Arrived' && (
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label>مخزن استلام الحاوية (إلزامي عند الوصول)</label>
+                <select className="input" required value={receiptLocationId} onChange={e => setReceiptLocationId(e.target.value)}>
+                  <option value="">اختر مخزنًا فعليًا مسجلًا للشركة</option>
+                  {warehouseLocations.map((loc: any) => (
+                    <option key={loc.id} value={loc.id}>{loc.name || loc.nameAr || `مخزن ${loc.id}`}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="actions" style={{ gridColumn: 'span 2' }}>
               <Button type="submit" variant="primary" disabled={updateCostsMutation.isPending}>{t('import_sales.shipment_details_page.s28', "تحديث البيانات والتكاليف وإعادة الحساب")}</Button>
             </div>
