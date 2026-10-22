@@ -353,12 +353,15 @@ export class InventoryCountService {
             throw new AppError(`Stock count item ${item.id} is stale; reconcile this item before resuming`, 'STOCK_COUNT_STALE', 409);
           }
           const variance = Number(item.variance_qty || 0);
-          if (Math.abs(variance) >= 0.001) {
+          const serialData = typeof item.counted_serials === 'string' ? JSON.parse(item.counted_serials) : item.counted_serials;
+          const batchData = typeof item.batch_counts === 'string' ? JSON.parse(item.batch_counts) : item.batch_counts;
+          const hasTrace = (Array.isArray(serialData) && serialData.length > 0) ||
+            (Array.isArray(batchData) && batchData.length > 0);
+          if (Math.abs(variance) >= 0.001 || hasTrace) {
             const product = await trx.selectFrom('products').select('cost_price')
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
             const rawCost = Number(product.cost_price || 0);
             const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-            const totalCost = Number((Math.abs(variance) * unitCost).toFixed(2));
             if (!(Number(session.location_id) > 0)) {
               throw new AppError('الجرد المتتبع يحتاج مخزناً محدداً', 'STOCK_COUNT_LOCATION_REQUIRED', 409);
             }
@@ -366,8 +369,15 @@ export class InventoryCountService {
               itemId: Number(item.id), sessionId, productId: Number(item.product_id),
               branchId: session.branch_id, locationId: Number(session.location_id),
               expectedQty, countedQty: Number(item.counted_qty || 0), unitCost,
-              countedSerials: item.counted_serials, batchCounts: item.batch_counts,
+              countedSerials: serialData, batchCounts: batchData,
             });
+          }
+          if (Math.abs(variance) >= 0.001) {
+            const product = await trx.selectFrom('products').select('cost_price')
+              .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
+            const rawCost = Number(product.cost_price || 0);
+            const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
+            const totalCost = Number((Math.abs(variance) * unitCost).toFixed(2));
             const stockChange = await setScopedStockQty(trx, {
               productId: Number(item.product_id), nextQty: Number(item.counted_qty || 0),
               branchId: session.branch_id, locationId: session.location_id,
