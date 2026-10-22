@@ -77,6 +77,8 @@ export interface StockCountItem {
   expectedQty: number;
   countedQty: number | string;
   varianceQty: number;
+  countedSerials?: string[];
+  batchCountsText?: string;
   isCounted?: boolean;
   reason?: string;
   note?: string;
