@@ -1168,7 +1168,7 @@ async function runTests() {
       .execute();
 
     // 100 units total received (40 on hand -> 60 sold)
-    await db
+    const lateItem = await db
       .insertInto('import_shipment_items')
       .values({
         tenant_id: tenantId,
@@ -1179,7 +1179,14 @@ async function runTests() {
         factory_unit_price_usd: 8.00,
         landed_cost_egp: 400,
       })
-      .execute();
+      .returning('id').executeTakeFirstOrThrow();
+    await db.insertInto('import_inventory_lots').values({
+      tenant_id: tenantId, lot_number: 'EXP-LOT-01',
+      shipment_id: shipment.id, shipment_item_id: lateItem.id,
+      product_id: product.id, location_id: null,
+      initial_quantity: 100, remaining_quantity: 40,
+      unit_landed_cost_egp: 400, status: 'active',
+    } as any).execute();
 
     const res = await service.processLateShipmentExpense(tenantId, userId, shipment.id, {
       title: 'Late Detention & Terminal Charges',
@@ -1329,7 +1336,17 @@ async function runTests() {
       .executeTakeFirstOrThrow();
 
     await db.insertInto('product_location_stock').values({ tenant_id: tenantId, product_id: product.id, qty: 10, reserved_qty: 0 }).execute();
-    await db.insertInto('import_shipment_items').values({ tenant_id: tenantId, shipment_id: shipment.id, product_id: product.id, quantity: 10, received_quantity: 10, factory_unit_price_usd: 5, landed_cost_egp: 50 }).execute();
+    const negativeItem = await db.insertInto('import_shipment_items').values({
+      tenant_id: tenantId, shipment_id: shipment.id, product_id: product.id,
+      quantity: 10, received_quantity: 10, factory_unit_price_usd: 5, landed_cost_egp: 50,
+    }).returning('id').executeTakeFirstOrThrow();
+    await db.insertInto('import_inventory_lots').values({
+      tenant_id: tenantId, lot_number: 'NEG-LOT-01',
+      shipment_id: shipment.id, shipment_item_id: negativeItem.id,
+      product_id: product.id, location_id: null,
+      initial_quantity: 10, remaining_quantity: 10,
+      unit_landed_cost_egp: 50, status: 'active',
+    } as any).execute();
 
     // Negative 7-A: Supplier ID passed as GL account rejected
     let supplierAsGlRejected = false;
