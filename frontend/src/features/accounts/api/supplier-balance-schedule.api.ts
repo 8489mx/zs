@@ -40,6 +40,7 @@ export interface CreateSupplierBalanceSchedulePayload {
 
 export interface SettleSupplierPaymentSchedulePayload {
   amount?: number;
+  paymentChannel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note?: string;
   branchId?: number;
   locationId?: number;
