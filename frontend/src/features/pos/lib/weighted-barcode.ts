@@ -124,7 +124,9 @@ export function matchProductByWeightedCode(products: Product[], rawProductCode: 
 
   const preferredUnits = matches.filter((entry) => entry.kind === 'unit');
   const pool = preferredUnits.length ? preferredUnits : matches;
-  const uniqueProductIds = Array.from(new Set(pool.map((entry) => String(entry.product.id))));
+  // Never prefer a unit match on one product over a product/barcode match
+  // on a different product. That would silently sell the wrong stock item.
+  const uniqueProductIds = Array.from(new Set(matches.map((entry) => String(entry.product.id))));
   if (uniqueProductIds.length > 1 || preferredUnits.length > 1) {
     return { status: 'ambiguous', productCode, matches: pool };
   }
