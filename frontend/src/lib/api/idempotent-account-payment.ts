@@ -100,3 +100,56 @@ export async function postIdempotentAccountPayment(path: '/api/customer-payments
   }
   return response;
 }
+
+/**
+ * Supplier installment retry uses a stable per-installment key. The server
+ * commits supplier ledger, treasury, journal and key atomically.
+ */
+export async function postIdempotentSupplierInstallment(
+  scheduleId: string,
+  supplierId: string,
+  payload: unknown,
+): Promise<unknown> {
+  const auth = useAuthStore.getState();
+  const tenantId = String(auth.tenant?.id || auth.user?.tenantId || '');
+  const accountId = String(auth.tenant?.accountId || auth.user?.accountId || '');
+  if (!tenantId || !accountId || !/^\d+$/.test(scheduleId) || !/^\d+$/.test(supplierId)) {
+    throw new Error('بيانات المنشأة أو القسط غير صحيحة');
+  }
+  const path = `/api/supplier-payment-schedules/${scheduleId}/settle`;
+  const keyName = `zs:payment-attempt:${tenantId}:${accountId}:${path}`;
+  const body = JSON.stringify(payload);
+  let recorded: { body: string; key: string } | null = null;
+  try {
+    const stored = localStorage.getItem(keyName);
+    if (stored) recorded = JSON.parse(stored);
+  } catch { throw new Error('تعذر قراءة بيانات محاولة سداد القسط السابقة'); }
+  if (recorded && recorded.body !== body) {
+    throw new Error('توجد محاولة سداد قسط غير محسومة؛ استخدم نفس المبلغ ووسيلة الدفع حتى تتأكد من نتيجتها');
+  }
+  if (!recorded) {
+    if (typeof crypto?.randomUUID !== 'function') throw new Error('تعذر إصدار مفتاح آمن لسداد القسط');
+    recorded = { body, key: crypto.randomUUID() };
+    localStorage.setItem(keyName, JSON.stringify(recorded));
+  }
+  const statusPath = `/api/operations/supplier_schedule_settlement/${encodeURIComponent(recorded.key)}/status`;
+  if (localStorage.getItem(keyName) && recorded) {
+    const status = await http<{ status: string; documentId?: string | null }>(statusPath);
+    if (status.status === 'committed' || status.documentId) {
+      localStorage.removeItem(keyName);
+      return http(`/api/suppliers/${supplierId}/payment-schedule`);
+    }
+    if (!['not_found', 'failed'].includes(status.status)) {
+      throw new Error('سداد القسط قيد التنفيذ أو يحتاج مصالحة؛ لا تعاود سداد المبلغ الآن');
+    }
+    if (status.status === 'failed') {
+      localStorage.removeItem(keyName);
+      throw new Error('فشل السداد السابق ولم يتم ترحيله؛ أصلح البيانات قبل محاولة جديدة');
+    }
+  }
+  const result = await http(path, {
+    method: 'POST', body, headers: { 'x-idempotency-key': recorded.key },
+  });
+  localStorage.removeItem(keyName);
+  return result;
+}
