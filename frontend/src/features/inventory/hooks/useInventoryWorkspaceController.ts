@@ -191,12 +191,17 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
           ? Boolean(damagedSummary.totalItems)
           : Boolean(stockMovements.length);
 
-  async function confirmTransferAction() {
+  async function confirmTransferAction(receiptItems?: Record<string, Array<{
+    itemId: number; receivedQty: number; receivedSerials?: string[];
+    batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }>;
+  }>>) {
     if (!state.transferActionConfirm) return;
-    try {
-      await mutations.transferActionMutation.mutateAsync({ transferIds: state.transferActionConfirm.transfers.map((entry) => String(entry.id)), action: state.transferActionConfirm.action });
-      state.setTransferActionConfirm(null);
-    } catch {}
+    await mutations.transferActionMutation.mutateAsync({
+      transferIds: state.transferActionConfirm.transfers.map((entry) => String(entry.id)),
+      action: state.transferActionConfirm.action,
+      receiptItems,
+    });
+    state.setTransferActionConfirm(null);
   }
 
   async function confirmPostSessionAction(context?: { managerPin?: string }) {
