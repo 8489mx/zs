@@ -62,7 +62,7 @@ export async function reconcileStockCountTrace(
     for (const serial of newSerials) {
       const occupied = await trx.selectFrom('product_serials').select('id')
         .where('tenant_id', '=', scope.tenantId)
-        .where('serial_number', '=', serial).limit(1).executeTakeFirst();
+        .where(sql<boolean>`lower(serial_number) = lower(${serial})`).limit(1).executeTakeFirst();
       if (occupied) throw new AppError('السيريال موجود في سجل سابق؛ يلزم تسوية مكانه قبل إضافته',
         'COUNT_SERIAL_DUPLICATE', 409);
     }
@@ -92,7 +92,10 @@ export async function reconcileStockCountTrace(
       throw new AppError('يجب إدخال الرصيد الفعلي لكل تشغيلة بحيث يساوي الكمية المعدودة', 'COUNT_BATCH_COUNTS_REQUIRED', 422);
     }
     const ids = batchCounts.filter(row => row.batchId != null).map(row => Number(row.batchId));
-    if (new Set(ids).size !== ids.length) throw new AppError('التشغيلة مكررة في الجرد', 'COUNT_BATCH_DUPLICATE', 400);
+    const newNames = batchCounts.filter(row => row.batchId == null).map(row => String(row.batchNumber || '').trim().toLowerCase());
+    if (new Set(ids).size !== ids.length || new Set(newNames).size !== newNames.length) {
+      throw new AppError('التشغيلة مكررة في الجرد', 'COUNT_BATCH_DUPLICATE', 400);
+    }
     const stored = await trx.selectFrom('pharmacy_batches').selectAll()
       .where('tenant_id', '=', scope.tenantId).where('product_id', '=', input.productId)
       .where('location_id', '=', input.locationId).orderBy('id', 'asc').forUpdate().execute();
