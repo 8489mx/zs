@@ -10,7 +10,7 @@ let retryCount = 0;
 const RETRY_INTERVALS = [30000, 60000, 120000, 120000, 120000];
 let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
-type StaleSaleResolution = 'committed' | 'safe_to_retry' | 'needs_manual_review';
+type StaleSaleResolution = 'committed' | 'safe_to_retry' | 'still_processing' | 'needs_manual_review';
 
 /**
  * A stale idempotency reservation means the first attempt may or may not have posted the invoice.
@@ -22,6 +22,7 @@ async function resolveStaleOfflineSale(idempotencyKey: string): Promise<StaleSal
     const status = String(result?.status || '');
     // Already posted server-side, or a document was produced: the queue entry is done.
     if (status === 'committed' || result?.documentId) return 'committed';
+    if (status === 'processing') return 'still_processing';
     // The server never recorded the attempt, or recorded it as failed: resending is safe.
     // A persisted server-side failure is terminal for this idempotency key.
     // Only an operation that was never reserved can be safely submitted anew.
@@ -70,6 +71,10 @@ export function usePosOfflineSync() {
               removeOfflineSale(sale.id);
               continue;
             }
+            if (result === 'still_processing') {
+              updateOfflineSaleStatus(sale.id, 'pending', 'الفاتورة قيد الترحيل على الخادم؛ سيُعاد التحقق من حالتها');
+              continue;
+            }
             if (result !== 'safe_to_retry') {
               updateOfflineSaleStatus(sale.id, 'failed', 'فاتورة تعطل ترحيلها: تعذر التحقق من حالة الخادم؛ راجع الفاتورة قبل إعادة الإرسال');
               continue;
@@ -89,10 +94,14 @@ export function usePosOfflineSync() {
             // NEVER mint a fresh idempotency key for the same offline sale. sale.id IS the stable
             // idempotency key; replacing it makes the server treat the retry as a brand-new sale and
             // the invoice is posted twice (stock deducted twice, revenue and cash doubled).
-            const isProcessing =
-              initialError?.status === 409 || String(initialError?.message || '').includes('processing');
-            const needsRecovery =
-              initialError?.status === 422 || String(initialError?.message || '').includes('manual recovery');
+            const errorMessage = String(initialError?.message || '').toLowerCase();
+            // Not every HTTP 409 is an idempotency reservation in progress:
+            // a business conflict (stock, credit limit, duplicate offline reference)
+            // must surface to the cashier rather than retry forever.
+            const isProcessing = errorMessage.includes('processing') ||
+              errorMessage.includes('operation in progress');
+            const needsRecovery = errorMessage.includes('manual recovery') ||
+              errorMessage.includes('recovery_required');
 
             if (isProcessing) {
               // The original request for this key is still executing server-side. Leave it queued and
@@ -108,6 +117,8 @@ export function usePosOfflineSync() {
               } else if (resolved === 'safe_to_retry') {
                 await posApi.createSale(payload, legacyPayload, minimalPayload, { 'x-idempotency-key': sale.id });
                 removeOfflineSale(sale.id);
+              } else if (resolved === 'still_processing') {
+                updateOfflineSaleStatus(sale.id, 'pending', 'الفاتورة ما زالت قيد الترحيل على الخادم');
               } else {
                 updateOfflineSaleStatus(
                   sale.id,
@@ -121,7 +132,7 @@ export function usePosOfflineSync() {
           }
         } catch (error: any) {
           const errMsg = error?.message || 'تعذر ترحيل الفاتورة إلى الخادم';
-          if (error?.status === 400 || error?.status === 403 || error?.status === 422) {
+          if (error?.status === 400 || error?.status === 403 || error?.status === 409 || error?.status === 422) {
             updateOfflineSaleStatus(sale.id, 'failed', errMsg);
           } else {
             updateOfflineSaleStatus(sale.id, 'pending', errMsg);
