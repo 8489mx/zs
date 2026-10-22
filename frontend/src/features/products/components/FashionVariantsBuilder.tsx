@@ -224,7 +224,7 @@ export function FashionVariantsBuilder({
   }
 
   function updateRow(index: number, patch: Partial<FashionVariantDraft>) {
-    onRowsChange(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch, isManual: row.isManual || 'color' in patch || 'size' in patch } : row)));
+    onRowsChange(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch, isManual: true } : row)));
   }
 
   function deleteRow(index: number) {
