@@ -89,6 +89,7 @@ function hasExactCodeMatch(products: Product[], query: string) {
   if (!normalized) return false;
   return products.some((product) => 
     product.barcode?.trim().toLowerCase() === normalized || 
+    product.sku?.trim().toLowerCase() === normalized || 
     product.units?.some((unit) => unit.barcode?.trim().toLowerCase() === normalized)
   );
 }
