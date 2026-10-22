@@ -2927,9 +2927,15 @@ export class SalesWriteService {
       if (sale.customer_id && remainingDebt > 0) {
         await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -remainingDebt, `عكس فاتورة بيع S-${saleId}`, saleId, auth);
       }
-      for (const payment of originalPayments) {
-        if (payment.payment_channel !== 'cash') continue;
-        await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
+      if (originalPayments.length === 0 && originalPaid > 0 && sale.payment_channel === 'mixed') {
+        throw new AppError('فاتورة قديمة بمدفوعات مختلطة دون تفاصيل تحتاج تسوية قبل الإلغاء', 'SALE_CANCEL_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
+      const cashRefundTotal = originalPayments.length > 0
+        ? originalPayments.filter((payment) => payment.payment_channel === 'cash')
+          .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+        : sale.payment_channel === 'cash' ? originalPaid : 0;
+      if (cashRefundTotal > 0) {
+        await this.finance.addTreasuryTransaction(trx, -Number(cashRefundTotal.toFixed(2)), `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
       }
 
       if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {

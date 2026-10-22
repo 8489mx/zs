@@ -1019,6 +1019,20 @@ export class PurchasesWriteService {
       }
       if (purchase.lifecycle_status === 'grn_bill') throw new AppError('لا يمكن إلغاء فاتورة GRN بعد تسوية الاستحقاق؛ يلزم إشعار دائن محاسبي', 'GRNI_BILL_IMMUTABLE', 422);
 
+      // Cancellation reverses the *entire* invoice. Once its cost is capitalised,
+      // some debt is settled, or any line has been returned, that reversal would
+      // double-reverse stock or supplier balances. Require adjustment documents.
+      const existingReturn = await trx.selectFrom('return_documents').select('id')
+        .where('return_type', '=', 'purchase').where('invoice_id', '=', purchaseId)
+        .where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
+      if (existingReturn) throw new AppError('لا يمكن إلغاء فاتورة مشتريات لها مرتجعات؛ استخدم تسوية محاسبية', 'PURCHASE_CANCEL_HAS_RETURNS', 422);
+      if (purchase.landed_cost_applied_at || Number(purchase.landed_cost_total || 0) > 0) {
+        throw new AppError('لا يمكن إلغاء فاتورة مشتريات عليها مصاريف شراء محملة؛ يلزم مستند تصحيح', 'PURCHASE_CANCEL_HAS_LANDED_COST', 422);
+      }
+      if (purchase.payment_type === 'credit' && Number(purchase.paid_amount || 0) > 0.001) {
+        throw new AppError('لا يمكن إلغاء فاتورة مشتريات آجل مسددة جزئياً أو كلياً؛ يلزم مستند تصحيح', 'PURCHASE_CANCEL_PARTIALLY_PAID', 422);
+      }
+
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
@@ -1057,6 +1071,12 @@ export class PurchasesWriteService {
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select(['balance'])
+          .where('id', '=', purchase.supplier_id).where('tenant_id', '=', scope.tenantId)
+          .forUpdate().executeTakeFirstOrThrow();
+        if (Number(supplier.balance || 0) + 0.001 < Number(purchase.total || 0)) {
+          throw new AppError('رصيد المورد لا يغطي عكس فاتورة الشراء بالكامل؛ راجع التسويات والمدفوعات', 'PURCHASE_CANCEL_SUPPLIER_BALANCE', 422);
+        }
         await this.financeService.addSupplierLedgerEntry(trx, purchase.supplier_id, -Number(purchase.total || 0), 'purchase_cancel', buildPurchaseReferenceNote('إلغاء فاتورة شراء', purchase), 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
       } else {
         await this.financeService.addTreasuryTransaction(trx, 'purchase_cancel', Number(purchase.total || 0), buildPurchaseReferenceNote('إلغاء فاتورة شراء', purchase), 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
