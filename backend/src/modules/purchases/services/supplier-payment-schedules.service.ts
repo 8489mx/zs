@@ -288,8 +288,12 @@ export class SupplierPaymentSchedulesService {
       }
       supplierId = Number(supplier.id);
       const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0));
-      const amount = this.roundCurrency(Number(payload.amount || remaining));
-      if (!(amount > 0)) throw new AppError('Payment amount must be greater than zero', 'INVALID_AMOUNT', 400);
+      const rawAmount = payload.amount == null ? remaining : Number(payload.amount);
+      if (!Number.isFinite(rawAmount) || rawAmount <= 0 ||
+        Math.abs(rawAmount * 100 - Math.round(rawAmount * 100)) > 0.000001) {
+        throw new AppError('Supplier installment payment must be positive and have cent precision', 'INVALID_AMOUNT', 400);
+      }
+      const amount = this.roundCurrency(rawAmount);
       if (amount > remaining + 0.0001) throw new AppError('Payment exceeds installment remaining amount', 'INSTALLMENT_OVERPAYMENT', 400);
       if (amount > Number(supplier.balance || 0) + 0.0001) throw new AppError('Payment exceeds supplier payable balance', 'SUPPLIER_OVERPAYMENT', 400);
       const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount);

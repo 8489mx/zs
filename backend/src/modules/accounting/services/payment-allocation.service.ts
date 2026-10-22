@@ -95,7 +95,9 @@ export class PaymentAllocationService {
         : creditInvoiceIds.has(id) ? Math.round(Number(row.total || 0) * 100) : 0;
       cents.set(id, (cents.get(id) || 0) + amountCents);
     }
-    return new Map([...cents].map(([id, value]) => [id, value / 100]));
+    const reductions = new Map<number, number>();
+    for (const [id, value] of cents) reductions.set(id, value / 100);
+    return reductions;
   }
 
   async getOpenInvoices(partnerType: 'customer' | 'supplier', partnerId: number, auth: AuthContext): Promise<OpenInvoiceItem[]> {
@@ -108,7 +110,7 @@ export class PaymentAllocationService {
         .select(['id', 'doc_no', 'total', 'paid_amount', 'store_credit_used', 'payment_type', 'status', 'created_at'])
         .where('tenant_id', '=', scope.tenantId)
         .where('customer_id', '=', partnerId)
-        .where('status', '!=', 'cancelled')
+        .where('status', '=', 'posted')
         .orderBy('id', 'asc')
         .execute();
 
@@ -141,7 +143,7 @@ export class PaymentAllocationService {
         .select(['id', 'doc_no', 'total', 'paid_amount', 'payment_type', 'status', 'created_at'])
         .where('tenant_id', '=', scope.tenantId)
         .where('supplier_id', '=', partnerId)
-        .where('status', '!=', 'cancelled')
+        .where('status', '=', 'posted')
         .orderBy('id', 'asc')
         .execute();
 
@@ -336,7 +338,7 @@ export class PaymentAllocationService {
             .executeTakeFirst();
 
           if (!sale) throw new NotFoundException(`فاتورة المبيعات ${item.invoiceId} غير موجودة`);
-          if (Number(sale.customer_id) !== dto.partnerId || sale.status === 'cancelled') throw new BadRequestException('Invoice does not belong to customer or is cancelled');
+          if (Number(sale.customer_id) !== dto.partnerId || sale.status !== 'posted') throw new BadRequestException('Invoice does not belong to customer or is cancelled');
 
           const currentPaid = Number(sale.paid_amount || 0);
           const total = Number(sale.total || 0);
@@ -372,7 +374,7 @@ export class PaymentAllocationService {
             .executeTakeFirst();
 
           if (!purchase) throw new NotFoundException(`فاتورة المشتريات ${item.invoiceId} غير موجودة`);
-          if (Number(purchase.supplier_id) !== dto.partnerId || purchase.status === 'cancelled') throw new BadRequestException('Invoice does not belong to supplier or is cancelled');
+          if (Number(purchase.supplier_id) !== dto.partnerId || purchase.status !== 'posted') throw new BadRequestException('Invoice does not belong to supplier or is cancelled');
 
           const currentPaid = Number(purchase.paid_amount || 0);
           const total = Number(purchase.total || 0);
