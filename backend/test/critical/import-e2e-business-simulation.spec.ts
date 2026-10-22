@@ -493,6 +493,45 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE purchase_orders (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      order_number VARCHAR(60) NOT NULL,
+      supplier_id INTEGER,
+      supplier_name TEXT NOT NULL,
+      supplier_phone TEXT,
+      warehouse_id INTEGER,
+      warehouse_name TEXT,
+      subtotal NUMERIC(14,3) NOT NULL DEFAULT 0,
+      tax_amount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      discount_amount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      total_amount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'draft',
+      expected_delivery_date DATE,
+      notes TEXT,
+      terms_conditions TEXT,
+      created_by INTEGER,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE purchase_order_items (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      purchase_order_id BIGINT NOT NULL REFERENCES purchase_orders(id),
+      product_id BIGINT NOT NULL,
+      product_name TEXT NOT NULL,
+      unit_name TEXT,
+      quantity NUMERIC(14,3) NOT NULL,
+      received_quantity NUMERIC(14,3) NOT NULL DEFAULT 0,
+      unit_cost NUMERIC(14,3) NOT NULL DEFAULT 0,
+      tax_rate NUMERIC(8,2) NOT NULL DEFAULT 0,
+      discount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      total NUMERIC(14,3) NOT NULL DEFAULT 0,
+      notes TEXT
+    );
+
     CREATE TABLE import_partner_project_payouts (
       id BIGSERIAL PRIMARY KEY,
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
@@ -921,10 +960,16 @@ async function runBusinessSimulation() {
   // -------------------------------------------------------------
   console.log('Step 6: Approving Proforma Invoice & Generating International PO...');
   await importService.approveProformaInvoice(tenantId, userId, conversionResult.proformaId!);
-  const issuedPo = await importService.generatePoFromProforma(tenantId, userId, conversionResult.proformaId!);
-  assert.ok(issuedPo.po_number?.startsWith('IPO-'), 'PO Number must follow international format');
-  assert.equal(issuedPo.po_status, 'issued');
-  console.log(`PASS: PO Generated: ${issuedPo.po_number}`);
+  // A Proforma without product catalog links MUST NOT fabricate a purchase order.
+  let unlinkedProformaRejected = false;
+  try {
+    await importService.generatePoFromProforma(tenantId, userId, conversionResult.proformaId!);
+  } catch (err: any) {
+    unlinkedProformaRejected = true;
+    assert.match(err.message, /صنف|ربط كل بند/);
+  }
+  assert.ok(unlinkedProformaRejected, 'Unlinked Proforma must never create a fake purchase order');
+  console.log('PASS: Unlinked Proforma cannot create an unaudited purchase order.');
 
   // -------------------------------------------------------------
   // STEP 7: FOREIGN TRANSFER (ADVANCE PAYMENT TO CHINA FACTORY)
@@ -1028,6 +1073,20 @@ async function runBusinessSimulation() {
     })
     .returningAll()
     .executeTakeFirstOrThrow();
+
+  // Link approved Proforma items to the concrete product catalog and create a real PO.
+  await importService.updateProformaInvoice(tenantId, conversionResult.proformaId!, {
+    items: [
+      { productId: Number(productA.id), qty: 1000, factoryPriceUsd: 25 },
+      { productId: Number(productB.id), qty: 500, factoryPriceUsd: 40 },
+    ],
+  } as any);
+  const issuedPo = await importService.generatePoFromProforma(tenantId, userId, conversionResult.proformaId!);
+  assert.ok(issuedPo.po_number?.startsWith('PO-'), 'Order must be a real purchasing PO');
+  assert.equal(issuedPo.po_status, 'issued');
+  const poItems = await (db as any).selectFrom('purchase_order_items').selectAll().execute();
+  assert.equal(poItems.length, 2, 'Real purchase order has two mapped stock lines');
+  console.log(`PASS: Actual purchasing PO generated with 2 stock lines: ${issuedPo.po_number}`);
 
   const shipment = await importService.createShipment(tenantId, {
     containerNumber: 'MSCU-9482019',
