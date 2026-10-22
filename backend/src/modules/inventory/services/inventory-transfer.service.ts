@@ -100,8 +100,11 @@ export class InventoryTransferService {
         .where('id', '=', payload.toBranchId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
       if (!branch) throw new AppError('Destination branch not found', 'DESTINATION_BRANCH_NOT_FOUND', 404);
     }
-    if (!(payload.items || []).length || payload.items.some((item) => !Number.isFinite(Number(item.qty)) || Number(item.qty) <= 0)) {
-      throw new AppError('Transfer requires positive quantities', 'INVALID_TRANSFER_QUANTITY', 400);
+    if (!(payload.items || []).length || payload.items.some((item) =>
+      !Number.isSafeInteger(Number(item.productId)) || Number(item.productId) <= 0 ||
+      !Number.isFinite(Number(item.qty)) || Number(item.qty) <= 0 ||
+      Math.abs(Number(item.qty) * 1000 - Math.round(Number(item.qty) * 1000)) > 0.000001)) {
+      throw new AppError('Transfer items require valid product IDs and positive quantities with at most three decimal places', 'INVALID_TRANSFER_QUANTITY', 400);
     }
 
     const transferId = await this.tx.runInTransaction(this.db, async (trx) => {
@@ -191,7 +194,8 @@ export class InventoryTransferService {
         const itemId = Number(r?.itemId);
         const receivedQty = Number(r?.receivedQty);
         if (!dispatchedByItemId.has(itemId) || receivedByItemId.has(itemId) || !Number.isFinite(receivedQty)
-          || receivedQty < 0 || receivedQty > dispatchedByItemId.get(itemId)! + 0.0001) {
+          || receivedQty < 0 || receivedQty > dispatchedByItemId.get(itemId)! + 0.0000001
+          || Math.abs(receivedQty * 1000 - Math.round(receivedQty * 1000)) > 0.000001) {
           throw new AppError('كمية أو بند استلام التحويل غير صالح', 'TRANSFER_RECEIPT_INVALID', 400);
         }
         receivedByItemId.set(itemId, receivedQty);
@@ -392,6 +396,12 @@ export class InventoryTransferService {
   async internalTransferProducts(payload: { items: { productId: number; qty: number }[]; fromLocationId: number; toLocationId: number; note?: string }, auth: AuthContext): Promise<Record<string, unknown>> {
     if (payload.fromLocationId === payload.toLocationId) throw new AppError('Source and destination locations must be different', 'INVALID_TRANSFER', 400);
     ensureUniqueFlowItems(payload.items || [], 'TRANSFER_DUPLICATE_PRODUCT', 'Transfer must not contain duplicate product rows');
+    if (!(payload.items || []).length || payload.items.some((item) =>
+      !Number.isSafeInteger(Number(item.productId)) || Number(item.productId) <= 0 ||
+      !Number.isFinite(Number(item.qty)) || Number(item.qty) <= 0 ||
+      Math.abs(Number(item.qty) * 1000 - Math.round(Number(item.qty) * 1000)) > 0.000001)) {
+      throw new AppError('Internal transfer quantities must use at most three decimal places', 'INVALID_TRANSFER_QUANTITY', 400);
+    }
     const scope = this.tenantScope(auth);
     const isUnassignedLink = payload.fromLocationId === -1;
     const from = isUnassignedLink
