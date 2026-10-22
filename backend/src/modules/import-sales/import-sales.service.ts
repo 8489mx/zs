@@ -1138,6 +1138,16 @@ export class ImportSalesService {
   }
 
   async createShipment(tenantId: string, dto: CreateShipmentDto) {
+    if (dto.supplierId) {
+      const supplier = await this.db.selectFrom('suppliers').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', Number(dto.supplierId)).executeTakeFirst();
+      if (!supplier) throw new BadRequestException('المورد لا ينتمي لهذه المنشأة.');
+    }
+    if (dto.projectId) {
+      const project = await this.db.selectFrom('import_projects').select(['id', 'status'])
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+      if (!project || project.status === 'closed') throw new BadRequestException('مشروع الاستيراد غير متاح لهذه المنشأة.');
+    }
     const result = await this.db
       .insertInto('import_shipments')
       .values({
@@ -1268,7 +1278,14 @@ export class ImportSalesService {
       if (dto.shippedDate !== undefined) payload.shipped_date = dto.shippedDate;
       if (dto.etaDate !== undefined) payload.eta_date = dto.etaDate;
       if (dto.clearanceDate !== undefined) payload.clearance_date = dto.clearanceDate;
-      if (dto.projectId !== undefined) payload.project_id = dto.projectId;
+      if (dto.projectId !== undefined) {
+        if (dto.projectId) {
+          const matchingProject = await trx.selectFrom('import_projects').select('id')
+            .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+          if (!matchingProject) throw new BadRequestException('مشروع الاستيراد غير موجود في هذه المنشأة.');
+        }
+        payload.project_id = dto.projectId || null;
+      }
       if (dto.freightType !== undefined) payload.freight_type = dto.freightType;
       if (dto.containerSize !== undefined) payload.container_size = dto.containerSize;
       if (dto.portOfLoading !== undefined) payload.port_of_loading = dto.portOfLoading;
@@ -4319,6 +4336,12 @@ export class ImportSalesService {
         throw new BadRequestException('هذا الصنف غير مدرج في هذه الشحنة.');
       }
       // The same SKU can be represented by several distinct shipment lines.
+      const customer = await trx.selectFrom('customers').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', Number(dto.customerId)).executeTakeFirst();
+      if (!customer) throw new BadRequestException('العميل المحدد لا ينتمي لهذه المنشأة.');
+      if (dto.projectId && shipment.project_id && dto.projectId !== shipment.project_id) {
+        throw new BadRequestException('مشروع الحجز لا يطابق مشروع الشحنة.');
+      }
       const blQuantity = itemRows.reduce((sum, row) => sum + Number(row.received_quantity ?? row.quantity), 0);
 
       const existingOrders = await trx
