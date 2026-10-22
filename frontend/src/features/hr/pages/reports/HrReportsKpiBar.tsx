@@ -38,37 +38,61 @@ export const HrReportsKpiBar: React.FC<HrReportsKpiBarProps> = ({
   ];
 
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-        <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.reports.hr_reports_kpi_bar.s0', "لوحة المؤشرات المختصرة للموارد البشرية")}</span>
+    <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 18px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.reports.hr_reports_kpi_bar.s0', "لوحة المؤشرات المختصرة للموارد البشرية")}</span>
+        </div>
         <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.reports.hr_reports_kpi_bar.s1', "اضغط على أي مؤشر لتصفية نوع التقرير فوراً")}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
         {stats.map((stat, idx) => (
           <div
             key={idx}
             onClick={stat.onClick}
             style={{
-              background: stat.active ? '#eff6ff' : '#ffffff',
-              border: `1px solid ${stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0'}`,
-              borderRadius: '6px',
-              padding: '8px 10px',
+              background: stat.active ? '#170e5e' : '#f8fafc',
+              border: `1px solid ${stat.active ? '#170e5e' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              padding: '8px 12px',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               gap: '2px',
-              transition: 'all 0.15s ease',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              transition: 'none',
+              boxShadow: stat.active ? '0 2px 4px rgba(23,14,94,0.15)' : 'none',
               minWidth: 0,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#94a3b8')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = stat.active ? '#3b82f6' : stat.isAlert ? '#fca5a5' : '#e2e8f0')}
+            onMouseEnter={(e) => {
+              if (!stat.active) e.currentTarget.style.borderColor = '#170e5e';
+            }}
+            onMouseLeave={(e) => {
+              if (!stat.active) e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
           >
-            <span style={{ fontSize: '0.725rem', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={stat.label}>
+            <span
+              style={{
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                color: stat.active ? 'rgba(255,255,255,0.85)' : '#64748b',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+              title={stat.label}
+            >
               {stat.label}
             </span>
-            <strong style={{ fontSize: '1.05rem', fontWeight: 800, color: stat.isAlert ? '#dc2626' : stat.active ? '#1d4ed8' : '#0f172a', lineHeight: 1.2 }}>
+            <strong
+              style={{
+                fontSize: '1.15rem',
+                fontWeight: 800,
+                color: stat.active ? '#ffffff' : stat.isAlert ? '#dc2626' : '#0f172a',
+                lineHeight: 1.2,
+              }}
+            >
               {stat.value}
             </strong>
           </div>
