@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { strict as assert } from 'node:assert';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import type { Database } from '../../src/database/database.types';
@@ -1246,6 +1246,44 @@ async function runBusinessSimulation() {
   }
   assert.ok(oversellRejected, 'Overselling container pre-orders beyond BL quantity must be strictly rejected!');
   console.log('PASS: Overselling negative test correctly blocked by capacity gate.');
+
+  // A separate cancellable booking verifies complete/partial idempotent advance refunds.
+  const returnable = await importService.createContainerPreorder(tenantId, userId, {
+    projectId: project.id,
+    shipmentId: shipment.id,
+    customerId: String(customer.id),
+    productId: String(productB.id),
+    reservedQuantity: 5,
+    unitPriceEgp: 2000,
+    depositAmountEgp: 1000,
+    depositTreasuryAccountId: String(accounts['1120']),
+  });
+  let prematureCancelBlocked = false;
+  try {
+    await importService.cancelContainerPreorder(tenantId, returnable.id, 'طلب العميل');
+  } catch { prematureCancelBlocked = true; }
+  assert.equal(prematureCancelBlocked, true, 'Unsettled customer liability cannot be silently cancelled.');
+  const partialRefund = await importService.refundContainerPreorder(tenantId, userId, returnable.id, {
+    amountEgp: 400, idempotencyKey: 'test-booking-refund-partial-01',
+  });
+  assert.equal(partialRefund.success, true);
+  await assert.rejects(
+    () => importService.refundContainerPreorder(tenantId, userId, returnable.id, {
+      amountEgp: 400, idempotencyKey: 'test-booking-refund-partial-01',
+    }),
+    /مفتاح|مسجل بالفعل/,
+  );
+  await importService.refundContainerPreorder(tenantId, userId, returnable.id, {
+    amountEgp: 600, idempotencyKey: 'test-booking-refund-final-02',
+  });
+  await importService.cancelContainerPreorder(tenantId, returnable.id, 'تم رد العربون بالكامل');
+  const customerRefundTotal = await db.selectFrom('treasury_transactions')
+    .select([sql<number>`coalesce(sum(amount),0)`.as('total')])
+    .where('tenant_id','=',tenantId)
+    .where('txn_type','=','import_customer_advance_refund')
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(customerRefundTotal.total), -1000);
+  console.log('PASS: Customer advances refunded in two reconciled, idempotent transactions.');
 
   // -------------------------------------------------------------
   // STEP 14: CONTAINER ARRIVAL, WAREHOUSE RECEIPT & LOT CREATION
