@@ -201,6 +201,7 @@ export class CashDrawerService {
       where tt.tenant_id = ${scope.tenantId}
         and tt.reference_type = 'cashier_shift'
         and tt.reference_id = ${shiftId}
+        and coalesce(tt.payment_channel,'cash') = 'cash'
         and (tt.return_document_id is null or tt.txn_type = 'purchase_return_refund')
         and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
     `.execute(queryable ?? this.db);
@@ -223,7 +224,8 @@ export class CashDrawerService {
         coalesce((
           select sum(sp.amount)
           from supplier_payments sp
-          where sp.tenant_id = ${scope.tenantId} and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
+          where sp.tenant_id = ${scope.tenantId} and coalesce(sp.payment_channel,'cash') = 'cash'
+            and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
             and (${shift.closed_at || null}::timestamptz is null or sp.payment_date <= ${shift.closed_at || null})
             and (${shift.branch_id || null}::int is null or sp.branch_id is null or sp.branch_id = ${Number(shift.branch_id || 0) || null})
             and (${shift.location_id || null}::int is null or sp.location_id is null or sp.location_id = ${Number(shift.location_id || 0) || null})
@@ -234,6 +236,7 @@ export class CashDrawerService {
           from treasury_transactions tt
           where tt.tenant_id = ${scope.tenantId}
             and tt.txn_type in ('supplier_payment_schedule', 'supplier_payment')
+            and coalesce(tt.payment_channel,'cash') = 'cash'
             and tt.reference_type = 'cashier_shift'
             and tt.reference_id = ${shiftId}
         ), 0)
@@ -397,7 +400,7 @@ export class CashDrawerService {
     const result = await sql<{ total: string | number }>`
       select coalesce(sum(cp.amount), 0) as total
       from customer_payments cp
-      where cp.tenant_id = ${scope.tenantId} and cp.created_by = ${openerId}
+      where cp.tenant_id = ${scope.tenantId} and coalesce(cp.payment_channel,'cash') = 'cash' and cp.created_by = ${openerId}
         and cp.created_at >= ${shift.created_at}
         and (${shift.closed_at || null}::timestamptz is null or cp.created_at <= ${shift.closed_at || null})
         and (${shift.branch_id || null}::int is null or cp.branch_id is null or cp.branch_id = ${Number(shift.branch_id || 0) || null})
@@ -485,6 +488,7 @@ export class CashDrawerService {
       where tt.tenant_id = ${scope.tenantId}
         and tt.reference_type = 'cashier_shift'
         and tt.reference_id = ${shiftId}
+        and coalesce(tt.payment_channel,'cash') = 'cash'
         and (tt.return_document_id is null or tt.txn_type = 'purchase_return_refund')
         and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
       order by tt.id asc
@@ -569,7 +573,7 @@ export class CashDrawerService {
       const customerRows = await sql<{ id: number; amount: number | string; note?: string | null; created_at?: string | Date | null }>`
         select cp.id, cp.amount, cp.note, cp.created_at
         from customer_payments cp
-        where cp.tenant_id = ${scope.tenantId} and cp.created_by = ${openerId}
+        where cp.tenant_id = ${scope.tenantId} and coalesce(cp.payment_channel,'cash') = 'cash' and cp.created_by = ${openerId}
           and cp.created_at >= ${shift.created_at}
           and (${shift.closed_at || null}::timestamptz is null or cp.created_at <= ${shift.closed_at || null})
           and (${shift.branch_id || null}::int is null or cp.branch_id is null or cp.branch_id = ${Number(shift.branch_id || 0) || null})
