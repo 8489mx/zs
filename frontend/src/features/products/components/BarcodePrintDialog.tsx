@@ -101,7 +101,8 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
     if (!open) return;
     setFamily('thermal');
     setPresetId(DEFAULT_BARCODE_PRINT_PRESET_ID);
-    setCopies(8);
+    const defaultProductCopies = product && Number(product.stock) > 0 ? Number(product.stock) : 8;
+    setCopies(defaultProductCopies);
     setStartOffset(1);
     setPreviewMode('sheet');
     setStoreName(currentStoreName || '');
@@ -128,7 +129,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
       setBatchItems(items.map((it) => ({ ...it, copies: Math.max(1, Number(it.copies || 1)) })));
       setActiveItemIndex(0);
     } else if (product) {
-      setBatchItems([{ product, unit, copies: 8 }]);
+      setBatchItems([{ product, unit, copies: defaultProductCopies }]);
       setActiveItemIndex(0);
     } else {
       setBatchItems([]);
@@ -272,6 +273,12 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
     setBatchItems((current) => current.map((it) => ({ ...it, copies: Math.max(1, qty) })));
   };
 
+  const setAllCopiesByStock = () => {
+    setBatchItems((current) =>
+      current.map((it) => ({ ...it, copies: Math.max(1, Number(it.product?.stock || 1)) }))
+    );
+  };
+
   const adjustAllCopies = (delta: number) => {
     setBatchItems((current) =>
       current.map((it) => ({ ...it, copies: Math.max(1, (it.copies || 1) + delta) }))
@@ -385,14 +392,37 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
 
               {!isBatchMode && (
                 <Field label={family === 'thermal' ? t('products.barcode_print_dialog.s9', "عدد الملصقات المطلوب طباعتها") : t('products.barcode_print_dialog.s10', "إجمالي عدد النسخ")}>
-                  <input
-                    type="number"
-                    min="1"
-                    max="500"
-                    value={copies}
-                    onChange={(event) => setCopies(Math.max(1, Number(event.target.value || 1)))}
-                    style={{ height: '32px', fontSize: '0.82rem' }}
-                  />
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={copies}
+                      onChange={(event) => setCopies(Math.max(1, Number(event.target.value || 1)))}
+                      style={{ height: '32px', fontSize: '0.82rem', flex: 1 }}
+                    />
+                    {activeProduct && Number(activeProduct.stock) > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCopies(Math.max(1, Number(activeProduct.stock)))}
+                        style={{
+                          height: '32px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          padding: '0 8px',
+                          whiteSpace: 'nowrap',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          background: '#eff6ff',
+                          color: '#170e5e',
+                          cursor: 'pointer'
+                        }}
+                        title={`ضبط الكمية لتطابق رصيد المخزن الحالي (${activeProduct.stock} قطعة)`}
+                      >
+                        حسب رصيد المخزن ({activeProduct.stock})
+                      </button>
+                    )}
+                  </div>
                 </Field>
               )}
 
@@ -458,6 +488,14 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                   <div style={{ display: 'flex', gap: '4px' }}>
                     <button
                       type="button"
+                      onClick={setAllCopiesByStock}
+                      style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', border: '1px solid #170e5e', borderRadius: '4px', background: '#eff6ff', color: '#170e5e', cursor: 'pointer' }}
+                      title="ضبط عدد الملصقات لكل صنف ليطابق رصيده الفعلي في المخزن"
+                    >
+                      حسب رصيد المخزن
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setAllCopies(1)}
                       style={{ fontSize: '0.7rem', padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', cursor: 'pointer' }}
                       title={t('products.barcode_print_dialog.s19', "نسخة واحدة لكل صنف (ملصقات الرف)")}
@@ -506,6 +544,11 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                           {item.product.name}
                         </span>
                         <span style={{ fontSize: '0.68rem', color: '#64748b' }}>({item.unit?.name || t('products.barcode_print_dialog.s25', "قطعة")})</span>
+                        {item.product.stock != null && (
+                          <span style={{ fontSize: '0.65rem', padding: '1px 5px', borderRadius: '4px', background: '#e2e8f0', color: '#1e293b', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            رصيد: {item.product.stock}
+                          </span>
+                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                         <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{t('products.barcode_print_dialog.s26', "الكمية:")}</span>

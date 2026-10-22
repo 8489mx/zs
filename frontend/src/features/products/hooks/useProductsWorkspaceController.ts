@@ -259,7 +259,7 @@ export function useProductsWorkspaceController() {
     const items: BarcodePrintItem[] = products.map((p) => ({
       product: p,
       unit: resolveBarcodeUnit(p),
-      copies: 1,
+      copies: Math.max(1, Number(p.stock || 1)),
     }));
     setPrintDialogState({ items });
   }, []);
