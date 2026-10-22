@@ -33,6 +33,7 @@ import {
   RecordContainerDepositDto,
   RecordContainerReturnRefundDto,
   CreateContainerPreorderDto,
+  RefundImportPreorderDto,
   RecordFxAcquisitionDto,
   CreateImportDocumentDto,
   CreateApprovalRequestDto,
@@ -4489,6 +4490,65 @@ export class ImportSalesService {
     return await q.orderBy('po.created_at', 'desc').execute();
   }
 
+  /** Refunds are append-only GL source events; original deposits remain immutable. */
+  async refundContainerPreorder(tenantId: string, userId: number, preorderId: string, dto: RefundImportPreorderDto) {
+    return this.db.transaction().execute(async (trx) => {
+      const preorder = await trx.selectFrom('import_container_preorders').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', preorderId).forUpdate().executeTakeFirstOrThrow();
+      if (preorder.status === 'invoiced' || preorder.status === 'cancelled') {
+        throw new BadRequestException('لا يجوز رد عربون حجز مفوتر أو ملغى.');
+      }
+      const requestKey = String(dto.idempotencyKey || '').trim();
+      if (!requestKey || requestKey.length > 128) throw new BadRequestException('مفتاح عدم تكرار الرد إلزامي.');
+      const existing = await trx.selectFrom('import_preorder_refund_events').select('id')
+        .where('tenant_id', '=', tenantId).where('preorder_id', '=', preorderId)
+        .where('idempotency_key', '=', requestKey).executeTakeFirst();
+      if (existing) throw new ConflictException('رد العربون بنفس المفتاح مسجل بالفعل.');
+      const amount = Number(dto.amountEgp);
+      const remaining = Number((Number(preorder.deposit_amount_egp || 0) - Number(preorder.refunded_amount_egp || 0)).toFixed(2));
+      if (!Number.isFinite(amount) || amount <= 0 || Number(amount.toFixed(2)) !== amount || amount > remaining + 0.001) {
+        throw new BadRequestException('مبلغ الرد أكبر من العربون المتبقي أو غير صالح.');
+      }
+      const preferred = Number(dto.treasuryAccountId || preorder.deposit_treasury_account_id || 0);
+      const bankAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank', preferred || undefined);
+      const liabilityAccountId = await this.resolveTenantAccount(trx, tenantId, 'customer_advance');
+      const bankScope = await trx.selectFrom('accounting_accounts').select('account_id')
+        .where('tenant_id', '=', tenantId).where('id', '=', bankAccountId).executeTakeFirstOrThrow();
+      const event = await trx.insertInto('import_preorder_refund_events').values({
+        tenant_id: tenantId, preorder_id: preorderId, idempotency_key: requestKey,
+        amount_egp: amount, treasury_account_id: bankAccountId, created_by: userId,
+      }).returning(['id', 'serial_id']).executeTakeFirstOrThrow();
+      await trx.insertInto('treasury_transactions').values({
+        tenant_id: tenantId, account_id: bankScope.account_id,
+        txn_type: 'import_customer_advance_refund', amount: -amount,
+        note: `رد عربون حجز ${preorder.preorder_no}`,
+        reference_type: 'import_preorder_refund', reference_id: Number(event.serial_id), created_by: userId,
+      }).execute();
+      const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+      const journalId = await posting.postDomainJournal(trx, {
+        sourceType: 'import_preorder_refund', sourceId: Number(event.serial_id),
+        tenantId, accountId: bankScope.account_id,
+        entryDate: new Date(), description: `رد عربون حجز ${preorder.preorder_no}`,
+        branchId: null, locationId: null, createdBy: userId, postedBy: userId,
+        lines: [
+          { accountId: liabilityAccountId, debit: amount, credit: 0,
+            description: 'تخفيض التزام العربون المسترد', partnerType: 'customer',
+            partnerId: Number(preorder.customer_id), branchId: null, locationId: null },
+          { accountId: bankAccountId, debit: 0, credit: amount,
+            description: 'صرف رد عربون للعميل', partnerType: 'customer',
+            partnerId: Number(preorder.customer_id), branchId: null, locationId: null },
+        ],
+      });
+      await trx.updateTable('import_preorder_refund_events').set({ journal_entry_id: journalId })
+        .where('tenant_id', '=', tenantId).where('id', '=', event.id).execute();
+      const updated = await trx.updateTable('import_container_preorders').set({
+        refunded_amount_egp: Number((Number(preorder.refunded_amount_egp || 0) + amount).toFixed(2)),
+        updated_at: sql`NOW()`,
+      }).where('tenant_id', '=', tenantId).where('id', '=', preorderId).returningAll().executeTakeFirstOrThrow();
+      return { success: true, preorder: updated, refundEventId: event.id, journalEntryId: journalId };
+    });
+  }
+
   async cancelContainerPreorder(tenantId: string, preorderId: string, reason?: string) {
     return await this.db.transaction().execute(async (trx) => {
       const preorder = await trx
@@ -4502,7 +4562,7 @@ export class ImportSalesService {
       if (preorder.status === 'invoiced' || preorder.status === 'cancelled') {
         throw new BadRequestException('الحجز مفوتر أو ملغى بالفعل.');
       }
-      if (Number(preorder.deposit_amount_egp || 0) > 0) {
+      if (Number(preorder.deposit_amount_egp || 0) - Number(preorder.refunded_amount_egp || 0) > 0.001) {
         throw new BadRequestException('لا يمكن إلغاء حجز بعربون قبل رد المبلغ وتسوية التزام العميل محاسبياً.');
       }
 

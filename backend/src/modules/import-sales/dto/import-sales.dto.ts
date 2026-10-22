@@ -1187,6 +1187,21 @@ export class CreateContainerPreorderDto {
   notes?: string;
 }
 
+export class RefundImportPreorderDto {
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  amountEgp!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  idempotencyKey!: string;
+
+  @IsOptional()
+  @IsString()
+  treasuryAccountId?: string;
+}
+
 export class RecordFxAcquisitionDto {
   @IsString()
   currency!: string;
