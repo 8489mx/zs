@@ -113,8 +113,8 @@
     async function loadCurrentConfig() {
       try {
         const config = await window.electronRuntime.getRuntimeConfig();
-        if (config && config.lanServerUrl) {
-          document.getElementById('serverUrl').value = config.lanServerUrl;
+        if (config && config.serverUrl) {
+          document.getElementById('serverUrl').value = config.serverUrl;
         }
       } catch (err) {}
     }
@@ -129,12 +129,10 @@
       btn.innerText = 'جاري التحقق...';
       btn.disabled = true;
 
-      setTimeout(() => {
-        connectToServer().finally(() => {
-          btn.innerText = originalBtnText;
-          btn.disabled = false;
-        });
-      }, 500);
+      loadCurrentConfig().then(() => connectToServer()).finally(() => {
+        btn.innerText = originalBtnText;
+        btn.disabled = false;
+      });
     }
 
     function resetToStandalone() {

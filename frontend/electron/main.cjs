@@ -6,7 +6,7 @@ try {
   }
 } catch {}
 
-const { app, BrowserWindow, ipcMain, dialog, session, Menu, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, Menu, screen, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec, execSync } = require('child_process');
@@ -275,23 +275,27 @@ const createMainWindow = (customLoadHandler, autoLoad = true) => {
 
   mainWindow.setMenuBarVisibility(false);
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    return {
-      action: 'allow',
-      overrideBrowserWindowOptions: {
-        width: 1280,
-        height: 800,
-        backgroundColor: '#ffffff',
-        icon: path.join(__dirname, '../public/logo_cropped.png'),
-        autoHideMenuBar: true,
-        webPreferences: {
-          preload: path.join(__dirname, 'preload.cjs'),
-          nodeIntegration: false,
-          contextIsolation: true,
-          additionalArguments: [`--electron-runtime-config=${JSON.stringify(currentConfig)}`]
-        }
+  // Never give untrusted windows our privileged preload bridge.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url === 'about:blank') {
+      return { action: 'allow', overrideBrowserWindowOptions: {
+        webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true }
+      } };
+    }
+    if (/^https?:\/\//i.test(url)) {
+      shell.openExternal(url).catch((error) => console.error('Cannot open external URL:', error));
+    }
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const isDevNavigation = process.env.NODE_ENV === 'development' && /^http:\/\/localhost:5173(?:\/|$)/.test(url);
+    const isAppNavigation = url.startsWith('file://') && url.split('#')[0] === mainWindow.webContents.getURL().split('#')[0];
+    if (!isDevNavigation && !isAppNavigation) {
+      event.preventDefault();
+      if (/^https?:\/\//i.test(url)) {
+        shell.openExternal(url).catch((error) => console.error('Cannot open external URL:', error));
       }
-    };
+    }
   });
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
@@ -405,26 +409,6 @@ app.on('second-instance', () => {
   }
 });
 
-function freePortIfStale(port) {
-  if (process.platform !== 'win32') return;
-  try {
-    const output = execSync(`netstat -ano -p tcp | findstr :${port}`, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] });
-    const lines = output.trim().split('\n');
-    for (const line of lines) {
-      if (!line.toUpperCase().includes('LISTENING')) continue;
-      const parts = line.trim().split(/\s+/);
-      const pid = parts[parts.length - 1];
-      if (pid && pid !== '0' && pid !== String(process.pid)) {
-        console.log(`[ELECTRON] Releasing stale process holding port ${port} (PID: ${pid})...`);
-        try {
-          execSync(`taskkill /pid ${pid} /T /F`, { stdio: 'ignore' });
-        } catch (e) {}
-      }
-    }
-  } catch (e) {
-    // Port is free
-  }
-}
 
 app.whenReady().then(async () => {
   runtimeConfigInstance = new RuntimeConfig(app.getPath('userData'));
@@ -434,7 +418,6 @@ app.whenReady().then(async () => {
   // Ensure port 3001 isn't locked by an orphan process from a previous crash/abrupt close
   if (currentConfig.runtimeMode !== 'lan_client') {
     const targetPort = currentConfig.port || 3001;
-    freePortIfStale(targetPort);
 
     const net = require('net');
     const findFreePort = (port) => {
@@ -451,7 +434,13 @@ app.whenReady().then(async () => {
     };
     const freePort = await findFreePort(targetPort);
     if (freePort !== targetPort) {
-      console.log(`[ELECTRON] Port ${targetPort} is busy. Dynamically assigned port ${freePort} for backend.`);
+      if (currentConfig.runtimeMode === 'lan_server') {
+        dialog.showErrorBox('منفذ الشبكة المحلية مشغول',
+          `المنفذ ${targetPort} مستخدم بالفعل. أغلق الخدمة التي تستخدمه أو غيّر إعداد الشبكة قبل التشغيل.`);
+        app.quit();
+        return;
+      }
+      console.log(`[ELECTRON] Port ${targetPort} is busy. Using ${freePort} for standalone backend.`);
       currentConfig.port = freePort;
     }
   }
@@ -719,6 +708,10 @@ app.whenReady().then(async () => {
       await pgManager.setupAndStart();
     } catch (err) {
       console.error('Failed to start Postgres runtime:', err);
+      dialog.showErrorBox('قاعدة البيانات المحلية لم تبدأ',
+        'تعذر تشغيل قاعدة البيانات. لن يتم فتح البرنامج حتى لا يتم تسجيل بيانات بشكل خاطئ.\\n' + String(err.message || err));
+      app.quit();
+      return;
     }
   }
 
@@ -869,7 +862,7 @@ app.whenReady().then(async () => {
         }
         dialog.showErrorBox(
           'فشل تشغيل السيرفر الداخلي',
-          'حدث خطأ غير متوقع أدى إلى توقف السيرفر المحلي. النظام سيعمل الآن في وضع الأوفلاين.\n\n' +
+          'حدث خطأ أدى إلى توقف السيرفر المحلي، وبالتالي لا يمكن تسجيل فواتير حتى يعود للعمل.\n\n' +
           'السبب المحتمل:\n' +
           lastBackendError.trim() + '\n\n' +
           'للمزيد من التفاصيل، راجع ملف backend.log الموجود في مجلد logs.'
@@ -880,16 +873,11 @@ app.whenReady().then(async () => {
 
   // Ensure backend shuts down cleanly when Electron closes
   const cleanShutdown = () => {
+    if (isQuitting) return;
     isQuitting = true;
-    if (backendProcess && backendProcess.pid) {
-      try {
-        if (process.platform === 'win32') {
-          execSync(`taskkill /pid ${backendProcess.pid} /T /F`, { stdio: 'ignore' });
-        } else {
-          backendProcess.kill('SIGKILL');
-        }
-      } catch (e) {
-        try { backendProcess.kill(); } catch (err) {}
+    if (backendProcess && backendProcess.pid && !backendProcess.killed) {
+      try { backendProcess.kill(); } catch (err) {
+        console.error('[ELECTRON] Backend graceful shutdown failed:', err);
       }
     }
     try {
@@ -1094,9 +1082,9 @@ app.whenReady().then(async () => {
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 1000);
-            const res = await electronNet.fetch(`${currentConfig.lanServerUrl}/api/runtime/health`, { signal: controller.signal });
+            const res = await electronNet.fetch(`${currentConfig.serverUrl}/api/runtime/health`, { signal: controller.signal });
             clearTimeout(timeoutId);
-            if (res.ok) return resolve(true);
+            if (res.ok && (await res.json()).runtimeMode === 'lan_server') return resolve(true);
           } catch (err) {}
           setTimeout(pingLan, 1000);
         };
@@ -1112,14 +1100,16 @@ app.whenReady().then(async () => {
           return resolve(true);
         }
         attempts++;
-        if (attempts > 300) {
-          return resolve(true); 
+        if (attempts > 600) {
+          return resolve(false);
         }
         const socket = new net.Socket();
         socket.setTimeout(800);
         socket.once('connect', () => {
           socket.destroy();
-          resolve(true);
+          // Only the forked backend's IPC message confirms migrations completed.
+          if (backendSignaledReady) return resolve(true);
+          setTimeout(ping, 100);
         });
         socket.once('error', () => {
           socket.destroy();
@@ -1139,8 +1129,8 @@ app.whenReady().then(async () => {
 
   const backendReady = await waitForBackend();
 
-  // Write version marker after successful startup (migrations ran or were skipped)
-  try {
+  // Never write a successful version marker for a failed backend bootstrap.
+  if (backendReady) try {
     if (!fsLib.existsSync(dataDir)) {
       fsLib.mkdirSync(dataDir, { recursive: true });
     }
@@ -1150,8 +1140,14 @@ app.whenReady().then(async () => {
     console.error('Error writing version marker:', err);
   }
 
-  // Handover to main app once backend is ready
+  // Error screens must still be displayed; failed standalone startup must not load the POS.
   isBackendReady = true;
+  if (!backendReady && currentConfig.runtimeMode !== 'lan_client' && currentConfig.runtimeMode !== 'invalid') {
+    dialog.showErrorBox('فشل تشغيل السيرفر الداخلي',
+      'لم يتم التأكد من جاهزية السيرفر المحلي وقاعدة البيانات. أعد تشغيل البرنامج وافحص backend.log.');
+    app.quit();
+    return;
+  }
 
   if (currentConfig.runtimeMode === 'invalid') {
     if (mainWindow && !mainWindow.isDestroyed()) {
