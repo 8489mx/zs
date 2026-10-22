@@ -789,6 +789,7 @@ app.whenReady().then(async () => {
     CORS_ORIGINS: `http://localhost:${currentConfig.port || 3001},http://127.0.0.1:${currentConfig.port || 3001},file://`,
     ALLOW_SESSION_ID_HEADER: 'true',
     ELECTRON_EXE_PATH: process.execPath,
+    ELECTRON_MAIN_PID: String(process.pid),
     SKIP_MIGRATIONS: 'false',
     ELECTRON_RUNTIME_MODE: currentConfig.runtimeMode,
     DEVELOPER_MASTER_PASSWORD: developerMasterPassword,
@@ -855,7 +856,10 @@ app.whenReady().then(async () => {
     backendProcess.on('exit', (code, signal) => {
       if (code === 0 && !signal && !isQuitting) {
         console.log('[ELECTRON] Backend exited cleanly — closing Electron for update restart...');
-        isQuitting = true;
+        // The main-window close handler normally shows a confirmation dialog.
+        // An update is a controlled shutdown: bypass that dialog and let the
+        // before-quit handler actually stop bundled PostgreSQL.
+        isForceClosing = true;
         app.quit();
       } else if (code !== 0 && !isQuitting) {
         backendStartupFailed = true;
@@ -883,10 +887,12 @@ app.whenReady().then(async () => {
         console.error('[ELECTRON] Backend graceful shutdown failed:', err);
       }
     }
-    try {
-      pgManager.stopServer();
-    } catch (err) {
-      console.error('Failed to stop postgres on quit', err);
+    if (currentConfig.runtimeMode !== 'lan_client' && currentConfig.runtimeMode !== 'invalid') {
+      try {
+        pgManager.stopServer();
+      } catch (err) {
+        console.error('Failed to stop postgres on quit', err);
+      }
     }
   };
 
