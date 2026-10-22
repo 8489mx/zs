@@ -1150,6 +1150,20 @@ export class PurchasesWriteService {
       const currentBalance = Number(supplier.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Supplier has no outstanding balance', 'SUPPLIER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Supplier payment cannot exceed outstanding balance', 'SUPPLIER_OVERPAYMENT', 400);
+      // Amounts reserved by active installment schedules are not free supplier
+      // debt. Otherwise an ordinary payment can settle the same payable while
+      // its installment remains outstanding, leaving duplicate obligations.
+      const reservedSchedules = await trx.selectFrom('supplier_payment_schedules')
+        .select(sql<number>`coalesce(sum(greatest(amount - paid_amount, 0)), 0)`.as('reserved'))
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .where('supplier_id', '=', supplier.id)
+        .where('status', '!=', 'cancelled').executeTakeFirst();
+      const unrestrictedBalance = Math.max(0, Math.round((currentBalance - Number(reservedSchedules?.reserved || 0)) * 100) / 100);
+      if (amount > unrestrictedBalance + 0.0001) {
+        throw new AppError('جزء من رصيد المورد محجوز في أقساط؛ سددها من جدول الأقساط أو استخدم الرصيد غير المجدول',
+          'SUPPLIER_PAYMENT_SCHEDULE_RESERVED', 409);
+      }
 
       // Gateway: three-way match must not be blocking.
       // The match previously only wrote a status label on the invoice; nothing consulted it, so an
