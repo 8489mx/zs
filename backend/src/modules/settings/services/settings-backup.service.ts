@@ -13,7 +13,7 @@ import AdmZip from 'adm-zip';
 import { findOrphanedReferences, listTenantTables } from '../../../core/tenant-transfer/tenant-package';
 import { encryptBundle } from '../../../core/tenant-transfer/backup-bundle';
 
-type BackupTableName = Exclude<keyof Database, 'backup_snapshots'>;
+type BackupTableName = Exclude<keyof Database, 'backup_snapshots'> | (string & {});
 
 interface BackupManifest { formatVersion: string; appVersion: string; createdAt: string; backupType: string; includesDatabase: boolean; includesFiles: boolean; databaseChecksumSha256: string; backupSchemaVersion?: string; legacyFormat?: boolean; }
 interface BackupEnvelope { meta: { version: string; exportedAt: string; source: string; tenantId?: string; accountId?: string }; tables: Partial<Record<BackupTableName, unknown[]>> }
@@ -230,7 +230,19 @@ export class SettingsBackupService {
   }
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
   private assertRestoreConfirmation(payload: unknown): void { const confirmation = isObjectRecord(payload) ? String(payload.confirmation || payload.restoreConfirmation || '').trim() : ''; if (confirmation !== RESTORE_CONFIRMATION_TEXT) throw new AppError(`Type ${RESTORE_CONFIRMATION_TEXT} to confirm backup restore`, 'BACKUP_RESTORE_CONFIRMATION_REQUIRED', 400); }
-  private normalizeEnvelope(payload: unknown): BackupEnvelope { if (!isObjectRecord(payload)) throw new AppError('Backup payload must be an object', 'BACKUP_INVALID', 400); const meta = isObjectRecord(payload.meta) ? { version: String(payload.meta.version || '1.0.0'), exportedAt: String(payload.meta.exportedAt || payload.meta.exported_at || ''), source: String(payload.meta.source || 'manual'), tenantId: String(payload.meta.tenantId || ''), accountId: String(payload.meta.accountId || '') } : { version: '1.0.0', exportedAt: '', source: 'manual' }; const tablesRaw = isObjectRecord(payload.tables) ? payload.tables : {}; const tables: Partial<Record<BackupTableName, unknown[]>> = {}; for (const table of BACKUP_TABLES) tables[table] = Array.isArray(tablesRaw[table]) ? tablesRaw[table] as unknown[] : []; return { meta, tables }; }
+  private normalizeEnvelope(payload: unknown): BackupEnvelope {
+    if (!isObjectRecord(payload)) throw new AppError('Backup payload must be an object', 'BACKUP_INVALID', 400);
+    const meta = isObjectRecord(payload.meta)
+      ? { version: String(payload.meta.version || '1.0.0'), exportedAt: String(payload.meta.exportedAt || payload.meta.exported_at || ''), source: String(payload.meta.source || 'manual'), tenantId: String(payload.meta.tenantId || ''), accountId: String(payload.meta.accountId || '') }
+      : { version: '1.0.0', exportedAt: '', source: 'manual' };
+    const raw = isObjectRecord(payload.tables) ? payload.tables : {};
+    const tables: Partial<Record<BackupTableName, unknown[]>> = {};
+    for (const [name, rows] of Object.entries(raw)) {
+      if (/^[a-z][a-z0-9_]*$/.test(name) && Array.isArray(rows)) tables[name] = rows;
+    }
+    for (const name of BACKUP_TABLES) if (!tables[name]) tables[name] = [];
+    return { meta, tables };
+  }
   private normalizeFolderPath(value: unknown): string {
     const candidate = String(value || '').trim();
     if (!candidate || candidate === '\\\\?' || candidate === '\\?' || /[?*<>"|]/.test(candidate)) {
@@ -355,7 +367,18 @@ export class SettingsBackupService {
   async testBackupFolder(payload: unknown, actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const input = isObjectRecord(payload) ? payload : {}; const folderPath = this.normalizeFolderPath(input.folderPath); try { await this.ensureWritableFolder(folderPath); return { ok: true, success: true, folderPath, message: `تم اختبار المسار بنجاح: ${folderPath}` }; } catch (error) { return { ok: false, success: false, folderPath, message: error instanceof Error ? error.message : 'تعذر الوصول إلى المجلد المحدد' }; } }
   async saveBackupToConfiguredFolder(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const state = await this.getBackupConfigState(actor); const result = await this.saveBackupToFolder(state.folderPath, 'manual-save-to-folder', actor); state.automation.lastAttemptAt = new Date().toISOString(); state.automation.lastAttemptStatus = 'success'; state.automation.lastError = ''; state.automation.lastSuccessAt = state.automation.lastAttemptAt; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي إلى مجلد', `تم حفظ نسخة احتياطية في ${result.filePath} بواسطة ${actor.username}`, actor).catch(() => undefined); return { ok: true, folderPath: state.folderPath, fileName: result.fileName, filePath: result.filePath, message: `تم حفظ النسخة في: ${result.filePath}` }; }
 
-  async exportBackup(actor: AuthContext): Promise<{ zipBuffer: Buffer; manifest: BackupManifest; envelope: BackupEnvelope }> { this.assertAdmin(actor); const scope = this.scope(actor); const tables = {} as Partial<Record<BackupTableName, unknown[]>>; for (const table of BACKUP_TABLES) { const tableName = String(table); const exists = await this.tableExists(tableName); if (!exists) { tables[table] = []; continue; } const hasTenant = await this.tableHasColumn(tableName, 'tenant_id'); if (!hasTenant) { tables[table] = []; continue; } const baseQuery = (this.db).selectFrom(table).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`); const hasId = await this.tableHasColumn(tableName, 'id'); const hasCreatedAt = !hasId && await this.tableHasColumn(tableName, 'created_at'); if (hasId) { tables[table] = await baseQuery.orderBy('id', 'asc').execute(); } else if (hasCreatedAt) { tables[table] = await baseQuery.orderBy('created_at', 'asc').execute(); } else { tables[table] = await baseQuery.execute(); } } const envelope: BackupEnvelope = { meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId }, tables }; const dbJson = JSON.stringify(envelope); const hash = crypto.createHash('sha256').update(dbJson).digest('hex'); const manifest: BackupManifest = { formatVersion: '1.0', appVersion: process.env.npm_package_version || '1.0.0', createdAt: new Date().toISOString(), backupType: 'full', includesDatabase: true, includesFiles: false, databaseChecksumSha256: hash, backupSchemaVersion: '1.2.0' }; const zip = new AdmZip(); zip.addFile('database.json', Buffer.from(dbJson, 'utf8')); zip.addFile('backup-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8')); return { zipBuffer: zip.toBuffer(), manifest, envelope }; }
+  /** Include new tenant-owned module tables without having to remember a hard-coded list. */
+  private async getAllTenantBackupTables(): Promise<BackupTableName[]> {
+    const discovered = await sql<{ table_name: string }>`
+      SELECT DISTINCT table_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND column_name = 'tenant_id'
+        AND table_name <> 'backup_snapshots'
+      ORDER BY table_name
+    `.execute(this.db);
+    return [...new Set<BackupTableName>([...BACKUP_TABLES, ...discovered.rows.map((r) => r.table_name)])];
+  }
+
+  async exportBackup(actor: AuthContext): Promise<{ zipBuffer: Buffer; manifest: BackupManifest; envelope: BackupEnvelope }> { this.assertAdmin(actor); const scope = this.scope(actor); const tables = {} as Partial<Record<BackupTableName, unknown[]>>; for (const table of await this.getAllTenantBackupTables()) { const tableName = String(table); const exists = await this.tableExists(tableName); if (!exists) { tables[table] = []; continue; } const hasTenant = await this.tableHasColumn(tableName, 'tenant_id'); if (!hasTenant) { tables[table] = []; continue; } const baseQuery = (this.db as Kysely<any>).selectFrom(table).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`); const hasId = await this.tableHasColumn(tableName, 'id'); const hasCreatedAt = !hasId && await this.tableHasColumn(tableName, 'created_at'); if (hasId) { tables[table] = await baseQuery.orderBy('id', 'asc').execute(); } else if (hasCreatedAt) { tables[table] = await baseQuery.orderBy('created_at', 'asc').execute(); } else { tables[table] = await baseQuery.execute(); } } const envelope: BackupEnvelope = { meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId }, tables }; const dbJson = JSON.stringify(envelope); const hash = crypto.createHash('sha256').update(dbJson).digest('hex'); const manifest: BackupManifest = { formatVersion: '1.0', appVersion: process.env.npm_package_version || '1.0.0', createdAt: new Date().toISOString(), backupType: 'full', includesDatabase: true, includesFiles: false, databaseChecksumSha256: hash, backupSchemaVersion: '1.2.0' }; const zip = new AdmZip(); zip.addFile('database.json', Buffer.from(dbJson, 'utf8')); zip.addFile('backup-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8')); return { zipBuffer: zip.toBuffer(), manifest, envelope }; }
   async listSnapshots(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); const scope = this.scope(actor); const result = await sql<{ id: number; created_at: string; label: string; source: string; payload_json: unknown }>`select id, created_at, label, source, payload_json from backup_snapshots where tenant_id = ${scope.tenantId} order by created_at desc, id desc limit 20`.execute(this.db); return { snapshots: result.rows.map((row) => ({ id: String(row.id), createdAt: row.created_at, reason: row.label || row.source || '', payload: row.payload_json })), scope }; }
   
   private async parseAndVerifyPayload(fileOrPayload: unknown): Promise<{ envelope: BackupEnvelope; manifest: BackupManifest }> {
@@ -414,7 +437,7 @@ export class SettingsBackupService {
     return { envelope: this.normalizeEnvelope(rawEnvelope), manifest };
   }
 
-  async verifyBackup(payload: unknown): Promise<Record<string, unknown>> { const { envelope, manifest } = await this.parseAndVerifyPayload(payload);  const summary: Record<string, unknown> = { version: envelope.meta.version, exportedAt: envelope.meta.exportedAt || 'unknown', source: envelope.meta.source, tenantId: envelope.meta.tenantId || '' }; for (const table of BACKUP_TABLES) summary[table] = Array.isArray(envelope.tables[table]) ? envelope.tables[table]!.length : 0; return { ok: true, summary, manifest, tablesPresent: BACKUP_TABLES.filter((table) => Array.isArray(envelope.tables[table]) && (envelope.tables[table]?.length || 0) > 0).length }; }
+  async verifyBackup(payload: unknown): Promise<Record<string, unknown>> { const { envelope, manifest } = await this.parseAndVerifyPayload(payload);  const summary: Record<string, unknown> = { version: envelope.meta.version, exportedAt: envelope.meta.exportedAt || 'unknown', source: envelope.meta.source, tenantId: envelope.meta.tenantId || '' }; for (const table of Object.keys(envelope.tables)) summary[table] = Array.isArray(envelope.tables[table]) ? envelope.tables[table]!.length : 0; return { ok: true, summary, manifest, tablesPresent: Object.keys(envelope.tables).filter((table) => Array.isArray(envelope.tables[table]) && (envelope.tables[table]?.length || 0) > 0).length }; }
   private async tableHasId(trx: Kysely<Database>, table: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = 'id') as exists`.execute(trx); return Boolean(result.rows[0]?.exists); }
   private async resetIdentity(trx: Kysely<Database>, table: string): Promise<void> { const hasId = await this.tableHasId(trx, table); if (!hasId) return; const seqResult = await sql<{ seq_name: string | null }>`select pg_get_serial_sequence(${table}, 'id') as seq_name`.execute(trx).catch(() => ({ rows: [{ seq_name: null }] } as { rows: { seq_name: string | null }[] })); const seqName = seqResult.rows[0]?.seq_name; if (!seqName) return; await sql`select setval(${seqName}, coalesce((select max(id)::bigint from ${sql.table(table)}), 0) + 1, false)`.execute(trx).catch(() => undefined); }
   private async getTableColumns(trx: Kysely<Database>, table: string): Promise<Map<string, { data_type: string, column_default: string | null, identity_generation: string | null }>> { const result = await sql<{ column_name: string, data_type: string, column_default: string | null, identity_generation: string | null }>`select column_name, data_type, column_default, identity_generation from information_schema.columns where table_schema = 'public' and table_name = ${table}`.execute(trx); return new Map(result.rows.map(r => [r.column_name, r])); }
@@ -422,7 +445,7 @@ export class SettingsBackupService {
 
   // Runs after the tenant's rows were cleared, so any id still present belongs to another tenant.
   private async canKeepOriginalIds(trx: Kysely<Database>, envelope: BackupEnvelope): Promise<boolean> {
-    for (const table of BACKUP_TABLES) {
+    for (const table of Object.keys(envelope.tables)) {
       if (String(table) === 'sessions') continue;
       const tableName = String(table);
       const rows = (envelope.tables[table] || []).filter(isObjectRecord);
@@ -527,7 +550,7 @@ export class SettingsBackupService {
         const restoredTables: string[] = [];
         const pendingBranchDefaultLocations = new Map<string, string>();
 
-        for (const table of BACKUP_TABLES) {
+        for (const table of [...new Set([...BACKUP_TABLES, ...Object.keys(envelope.tables)])]) {
           if (String(table) === 'sessions' || String(table) === 'tenants') continue;
           const tableName = String(table);
           if (!(await this.tableExists(tableName))) continue;
