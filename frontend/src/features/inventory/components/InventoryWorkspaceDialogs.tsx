@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { toast } from '@/shared/components/system-alert';
 import type { StockCountSession, StockTransfer } from '@/types/domain';
 import { useAuthStore, isAdminUser } from '@/stores/auth-store';
 
@@ -116,7 +117,15 @@ export function InventoryTransferActionDialog({
       confirmVariant={action?.action === 'receive' ? 'success' : 'danger'}
       isBusy={isBusy}
       onCancel={onCancel}
-      onConfirm={() => action?.action === 'receive' ? onConfirm(receiptRowsFromDraft(action.transfers, receiptDraft)) : onConfirm()}
+      onConfirm={() => {
+        if (!action) return;
+        if (action.action !== 'receive') return onConfirm();
+        try {
+          return onConfirm(receiptRowsFromDraft(action.transfers, receiptDraft));
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'تعذر قراءة كميات استلام التحويل');
+        }
+      }}
     />
   );
 }
