@@ -1888,12 +1888,17 @@ async function runBusinessSimulation() {
     .returningAll()
     .executeTakeFirstOrThrow();
 
+  const sharedSaleItem = await (db as any).insertInto('sale_items').values({
+    tenant_id: tenantId, account_id: 'tenant-e2e', sale_id: Number(p1Sale.id),
+    product_id: Number(productA.id), product_name: productA.name,
+    qty: 100, unit_price: 1850, line_total: 185000, cost_price: 1250,
+  }).returning('id').executeTakeFirstOrThrow();
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
       locationId: 1,
       saleId: Number(p1Sale.id),
-      items: [{ productId: Number(productA.id), qty: 100, netUnitPrice: 1850 }],
+      items: [{ itemId: Number(sharedSaleItem.id), productId: Number(productA.id), qty: 100, netUnitPrice: 1850 }],
     });
   });
 
@@ -1977,14 +1982,20 @@ async function runBusinessSimulation() {
     ])
     .execute();
 
+  const bulkSaleLines = await (db as any).selectFrom('sale_items')
+    .select(['id', 'product_id']).where('tenant_id', '=', tenantId)
+    .where('sale_id', '=', Number(bulkClearanceSale.id)).execute();
+  const bulkItemA = bulkSaleLines.find((line: any) => Number(line.product_id) === Number(productA.id));
+  const bulkItemB = bulkSaleLines.find((line: any) => Number(line.product_id) === Number(productB.id));
+  assert.ok(bulkItemA && bulkItemB, 'Each imported sale must have a real sale line for source attribution');
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
       locationId: 1,
       saleId: Number(bulkClearanceSale.id),
       items: [
-        { productId: Number(productA.id), qty: 460, netUnitPrice: 1850 },
-        { productId: Number(productB.id), qty: 500, netUnitPrice: 2950 },
+        { itemId: Number(bulkItemA.id), productId: Number(productA.id), qty: 460, netUnitPrice: 1850 },
+        { itemId: Number(bulkItemB.id), productId: Number(productB.id), qty: 500, netUnitPrice: 2950 },
       ],
     });
   });
