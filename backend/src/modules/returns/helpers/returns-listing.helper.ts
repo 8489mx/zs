@@ -22,6 +22,11 @@ export type ReturnListRow = {
   items?: Array<{ productId: string; productName: string; qty: number; total: number; }>;
 };
 
+function returnDateKey(value: unknown): string {
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.toISOString().slice(0, 10) : '';
+  return String(value || '').slice(0, 10);
+}
+
 export function mapReturnRows(rows: Array<Record<string, unknown>>): ReturnListRow[] {
   const docMap = new Map<string, ReturnListRow>();
   
@@ -86,7 +91,7 @@ export function filterReturnRows(rows: ReturnListRow[], query: Record<string, un
   return rows.filter((row) => {
     if (filter === 'sales' && row.returnType !== 'sale') return false;
     if (filter === 'purchase' && row.returnType !== 'purchase') return false;
-    if (filter === 'today' && String(row.createdAt || '').slice(0, 10) !== today) return false;
+    if (filter === 'today' && returnDateKey(row.createdAt) !== today) return false;
     if (employee && !String(row.createdByName || '').toLowerCase().includes(employee)) return false;
     if (!q) return true;
     return [row.docNo, row.productName, row.note, row.returnType, row.createdByName].some((value) => String(value || '').toLowerCase().includes(q));
@@ -99,7 +104,7 @@ export function summarizeReturnRows(rows: ReturnListRow[], today: string) {
     totalAmount: Number(rows.reduce((sum, row) => sum + Number(row.total || 0), 0).toFixed(2)),
     salesReturns: new Set(rows.filter((row) => row.returnType === 'sale').map((row) => row.id)).size,
     purchaseReturns: new Set(rows.filter((row) => row.returnType === 'purchase').map((row) => row.id)).size,
-    todayCount: new Set(rows.filter((row) => String(row.createdAt || '').slice(0, 10) === today).map((row) => row.id)).size,
+    todayCount: new Set(rows.filter((row) => returnDateKey(row.createdAt) === today).map((row) => row.id)).size,
     latestDocNo: rows[0]?.docNo || '',
   };
 }

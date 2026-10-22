@@ -408,6 +408,10 @@ export class PurchasesWriteService {
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
       for (const item of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const itemSerials = Array.isArray(item.serials) ? item.serials : [];
+        // Recoverable input VAT is a separate asset, not inventory/COGS cost.
+        const netPurchaseUnitCost = payload.pricesIncludeTax
+          ? item.effectiveUnitCost / (1 + Number(payload.taxRate || 0) / 100)
+          : item.effectiveUnitCost;
         const insertedItem = await trx.insertInto('purchase_items').values({
           purchase_id: id,
           product_id: item.productId,
@@ -440,7 +444,7 @@ export class PurchasesWriteService {
               status: 'in_stock' as const,
               branch_id: branchId || null,
               location_id: itemLocationId || null,
-              cost_price: item.effectiveUnitCost / item.unitMultiplier,
+              cost_price: netPurchaseUnitCost / item.unitMultiplier,
               purchase_id: id,
               purchase_item_id: insertedItem ? Number(insertedItem.id) : null,
               warranty_end_date: null,
@@ -470,7 +474,7 @@ export class PurchasesWriteService {
           const oldCost = Number(currentProduct.cost_price || 0);
           const totalQty = oldQty + increasedQty;
           // Inventory cost is per base stock unit, not per purchased carton.
-          const baseUnitCost = item.effectiveUnitCost / item.unitMultiplier;
+          const baseUnitCost = netPurchaseUnitCost / item.unitMultiplier;
           const newCost = (increasedQty > 0 && totalQty > 0.00001) 
             ? ((oldQty * oldCost) + (increasedQty * baseUnitCost)) / totalQty
             : oldCost;
@@ -530,7 +534,7 @@ export class PurchasesWriteService {
                   .updateTable('pharmacy_batches')
                   .set({
                     quantity: updatedQty,
-                    unit_cost: item.effectiveUnitCost / item.unitMultiplier,
+                    unit_cost: netPurchaseUnitCost / item.unitMultiplier,
                     status: 'active',
                     expiry_date: expiryDate,
                     updated_at: sql`NOW()`,
@@ -549,7 +553,7 @@ export class PurchasesWriteService {
                     batch_number: batchNo,
                     expiry_date: expiryDate,
                     quantity: increasedQty,
-                    unit_cost: item.effectiveUnitCost / item.unitMultiplier,
+                    unit_cost: netPurchaseUnitCost / item.unitMultiplier,
                     location_id: itemLocationId || null,
                     supplier_name: supplier?.name || null,
                     status: 'active',
@@ -800,6 +804,9 @@ export class PurchasesWriteService {
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
       for (const normalizedItem of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const repricedCost = Number(normalizedItem.effectiveUnitCost || 0);
+        const netRepricedCost = payload.pricesIncludeTax
+          ? repricedCost / (1 + Number(payload.taxRate || 0) / 100)
+          : repricedCost;
 
         await trx.insertInto('purchase_items').values({
           purchase_id: purchaseId,
@@ -832,7 +839,7 @@ export class PurchasesWriteService {
           .where('id', '=', normalizedItem.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
         const oldCost = Number(currentProduct.cost_price || 0);
         const totalQty = oldQty + increaseQty;
-        const baseUnitCost = repricedCost / normalizedItem.unitMultiplier;
+        const baseUnitCost = netRepricedCost / normalizedItem.unitMultiplier;
         const newCost = (increaseQty > 0 && totalQty > 0.00001) 
           ? ((oldQty * oldCost) + (increaseQty * baseUnitCost)) / totalQty
           : oldCost;
