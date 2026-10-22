@@ -77,8 +77,8 @@ async function main() {
     ],
   }, 201);
   const beforeFashion = expectArray((await client.get(`/api/products?q=${encodeURIComponent(styleCode)}`)).products, 'fashion variants');
-  const red = beforeFashion.find((item) => item.color === 'أحمر');
-  const blue = beforeFashion.find((item) => item.color === 'أزرق');
+  const red = beforeFashion.find((item) => item.color === 'احمر');
+  const blue = beforeFashion.find((item) => item.color === 'ازرق');
   assert.ok(red && blue, 'Expected red and blue clothing variants');
   assert.equal(red.sku, redSku, 'Variant SKU must persist');
 
