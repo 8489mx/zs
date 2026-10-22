@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { posApi } from '@/features/pos/api/pos.api';
 import {
   saveCatalogToStorage,
+  clearCatalogStorage,
   getCatalogVersionFromStorage,
   getCatalogCountFromStorage,
   getLastSyncedAtFromStorage,
@@ -46,6 +47,17 @@ export function usePosCatalogWarmup({ branchId, locationId, enabled = true }: Po
       setCatalogVersion(storedVersion);
       setTotalCached(storedCount);
       setLastSyncedAt(storedLastSync);
+
+      // If remote has 0 products, purge local storage immediately
+      if (remote.totalCount === 0) {
+        await clearCatalogStorage();
+        try {
+          localStorage.removeItem('zsystems_pos_catalog_cache');
+        } catch {}
+        setCatalogVersion(remote.version);
+        setTotalCached(0);
+        return;
+      }
 
       // PERF-9: re-download only when the catalog really changed, tenant changed, or the offline copy is > 1 hour old.
       if (!shouldDownloadFullCatalog({

@@ -156,3 +156,15 @@ export function persistLastSale(lastSale: Sale | null) {
   }
   writeEnvelope(POS_LAST_SALE_STORAGE_KEY, lastSale);
 }
+
+export function clearPosWorkspaceStorage() {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.removeItem(POS_DRAFT_STORAGE_KEY);
+  storage.removeItem(POS_HELD_STORAGE_KEY);
+  storage.removeItem(POS_RECENT_STORAGE_KEY);
+  storage.removeItem(POS_LAST_SALE_STORAGE_KEY);
+  storage.removeItem('zs_pos_online_order_id');
+  storage.removeItem('zs_pos_online_order_number');
+  storage.removeItem('zsystems_pos_catalog_cache');
+}

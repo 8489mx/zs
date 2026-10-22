@@ -53,8 +53,16 @@ function storeCatalog(products: Product[]) {
   }
 }
 
+export function clearStoredCatalog() {
+  try {
+    localStorage.removeItem(CATALOG_PERSIST_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export function usePosCatalog(search: string, branchId: string, locationId: string, productFilter: string = 'all') {
-  const [productCache, setProductCache] = useState<Product[]>(() => getStoredCatalog());
+  const [productCache, setProductCache] = useState<Product[]>([]);
   const parsedSearch = parseQuantityPrefixQuery(search);
   const trimmedSearch = parsedSearch.cleanQuery;
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
@@ -74,6 +82,10 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
         });
         if (res && res.length > 0) {
           storeCatalog(res);
+        } else if (lookupMode === 'browse' && Array.isArray(res) && res.length === 0) {
+          // If browse query returned 0 products from server, purge stale local cache
+          clearStoredCatalog();
+          void clearCatalogStorage();
         }
         return res;
       } catch {
@@ -127,9 +139,16 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
   }, [locationId, branchId]);
 
   useEffect(() => {
-    if (!productsQuery.data?.length) return;
-    setProductCache((current) => mergeLookupProducts(productsQuery.data, current).slice(0, POS_PRODUCT_CACHE_LIMIT));
-  }, [productsQuery.data]);
+    if (!productsQuery.data) return;
+    if (productsQuery.data.length === 0 && lookupMode === 'browse') {
+      setProductCache([]);
+      clearStoredCatalog();
+      return;
+    }
+    if (productsQuery.data.length > 0) {
+      setProductCache((current) => mergeLookupProducts(productsQuery.data, current).slice(0, POS_PRODUCT_CACHE_LIMIT));
+    }
+  }, [productsQuery.data, lookupMode]);
 
   const saleProducts = useMemo(
     () => getAvailableSaleProducts(productsQuery.data || [], '', productFilter),

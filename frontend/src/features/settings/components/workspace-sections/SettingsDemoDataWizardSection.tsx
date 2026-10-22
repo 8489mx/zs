@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { demoDataApi, type SeedDemoDataResult } from '@/features/settings/api/demo-data.api';
+import { clearPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
+import { clearCatalogStorage } from '@/features/pos/lib/pos-catalog-storage';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { useAuthStore } from '@/stores/auth-store';
@@ -115,6 +117,8 @@ export function SettingsDemoDataWizardSection() {
       setShowClearModal(false);
       setClearPassword('');
       setNotification({ kind: 'success', message: data.message });
+      clearPosWorkspaceStorage();
+      void clearCatalogStorage();
       queryClient.invalidateQueries({ queryKey: ['demo-data'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['catalog'] });

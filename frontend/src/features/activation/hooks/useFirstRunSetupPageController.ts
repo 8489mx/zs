@@ -6,6 +6,8 @@ import { useAuthStore } from '@/stores/auth-store';
 import { applyDocumentLanguage, getStoredUiLanguage, normalizeUiLanguage, persistUiLanguage } from '@/shared/locale/locale-preference';
 
 import { buildSettingsFromIndustry, type IndustryPresetId } from '@/features/settings/components/modular-configurator/modular-presets';
+import { clearPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
+import { clearCatalogStorage } from '@/features/pos/lib/pos-catalog-storage';
 
 const INITIAL_STATE = {
   uiLanguage: getStoredUiLanguage(),
@@ -53,6 +55,8 @@ export function useFirstRunSetupPageController() {
         payload.initialSettings = buildSettingsFromIndustry(extra.industry as IndustryPresetId);
       }
       await activationApi.initialize(payload);
+      clearPosWorkspaceStorage();
+      void clearCatalogStorage();
       setAppGate('login');
       navigate('/login?setup=done', { replace: true });
       return true;
