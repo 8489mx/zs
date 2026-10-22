@@ -4,7 +4,6 @@ import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
-import { assertUntrackedStockMutation } from '../inventory/helpers/inventory-tracked-stock.helper';
 import { paginateRows } from '../../common/utils/pagination';
 import { ensureReturnQtyWithinLimit } from '../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../common/utils/location-stock-ledger';
@@ -954,6 +953,8 @@ export class ReturnsService {
         .where('status', '=', 'in_stock');
       serialQuery = itemLocationId == null ? serialQuery.where('location_id', 'is', null)
         : serialQuery.where('location_id', '=', itemLocationId);
+      serialQuery = purchase.branch_id == null ? serialQuery.where('branch_id', 'is', null)
+        : serialQuery.where('branch_id', '=', purchase.branch_id);
       const purchaseSerials = await serialQuery.orderBy('id', 'asc').forUpdate().execute();
       // Legacy products may have existing serial rows without track_serials set.
       // Do not silently treat their remaining stock as untracked.
