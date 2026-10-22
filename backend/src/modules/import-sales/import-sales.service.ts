@@ -2185,7 +2185,7 @@ export class ImportSalesService {
         .execute();
     }
 
-    if (partners.length === 0) {
+    if (!projectId && partners.length === 0) {
       partners = await qb
         .selectFrom('import_partners')
         .selectAll()
@@ -4450,7 +4450,7 @@ export class ImportSalesService {
         .where('shipment_id', '=', dto.shipmentId)
         .where('product_id', '=', Number(dto.productId))
         .where('tenant_id', '=', tenantId)
-        .where('status', 'in', ['reserved', 'allocated'])
+        .where('status', 'in', ['reserved', 'allocated', 'invoiced'])
         .execute();
 
       const alreadyReserved = existingOrders.reduce((acc, o) => acc + Number(o.reserved_quantity), 0);
@@ -4742,12 +4742,15 @@ export class ImportSalesService {
       actualAllocatedCogsEgp += effectiveQty * unitCost;
     }
 
-    const preordersTotalRevenue = preorders
-      .filter((p) => p.status !== 'cancelled')
+    // Invoiced bookings are already included in invoiced sales. Refunded deposits are
+    // not liabilities, and cancelled/refunded bookings must not inflate cash held.
+    const openBookings = preorders.filter((p) => p.status === 'reserved' || p.status === 'allocated');
+    const preordersTotalRevenue = openBookings
       .reduce((acc, p) => acc + Number(p.total_price_egp), 0);
-    const preordersDepositsCollected = preorders
-      .filter((p) => p.status !== 'cancelled')
-      .reduce((acc, p) => acc + Number(p.deposit_amount_egp), 0);
+    const preordersDepositsCollected = openBookings
+      .reduce((acc, p) => acc + Math.max(0, Number(p.deposit_amount_egp) - Number(p.refunded_amount_egp || 0)), 0);
+    const preordersDepositsRefunded = preorders
+      .reduce((acc, p) => acc + Number(p.refunded_amount_egp || 0), 0);
 
     let totalUnitsShipped = 0;
     let totalUnitsReceived = 0;
@@ -4811,6 +4814,7 @@ export class ImportSalesService {
         grossSalesEgp: Number(actualInvoicedSalesEgp.toFixed(2)),
         inTransitPreordersRevenue: Number(preordersTotalRevenue.toFixed(2)),
         depositsCollectedEgp: Number(preordersDepositsCollected.toFixed(2)),
+        refundedPreorderDepositsEgp: Number(preordersDepositsRefunded.toFixed(2)),
         unearnedPreorderLiabilityEgp: Number(preordersDepositsCollected.toFixed(2)),
         unsoldStockLandedValueEgp: Number(unsoldStockLandedValueEgp.toFixed(2)),
         lotsCount: lots.length,
