@@ -85,7 +85,13 @@ export function PosOfflineQueueModal({
             <button
               type="button"
               disabled={isSyncing || offlineQueue.length === 0}
-              onClick={() => onRetrySync()}
+              onClick={() => {
+                const failed = offlineQueue.filter((sale) => sale.status === 'failed').length;
+                if (failed > 0 && !window.confirm(
+                  `يوجد ${failed} فاتورة فشل ترحيلها. ستتم مراجعة حالة العمليات أولاً على الخادم قبل أي محاولة جديدة. هل تريد المتابعة؟`
+                )) return;
+                void onRetrySync();
+              }
               style={{
                 background: '#170e5e',
                 color: '#ffffff',
@@ -174,7 +180,7 @@ export function PosOfflineQueueModal({
               } else if (item.status === 'failed') {
                 statusBg = '#fee2e2';
                 statusColor = '#991b1b';
-                statusLabel = t('pos.pos_workspace.pos_offline_queue_modal.s10', "فشلت المزامنة مؤقتاً");
+                statusLabel = t('pos.pos_workspace.pos_offline_queue_modal.s10', "تحتاج مراجعة قبل إعادة المحاولة");
               }
 
               return (

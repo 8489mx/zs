@@ -49,7 +49,7 @@ export function usePosOfflineSync() {
     return () => window.removeEventListener('pos-offline-queue-updated', refreshQueue);
   }, [refreshQueue]);
 
-  const syncOfflineSales = useCallback(async () => {
+  const syncOfflineSales = useCallback(async (retryFailed = false) => {
     if (isSyncInProgress) return;
     isSyncInProgress = true;
 
@@ -57,7 +57,7 @@ export function usePosOfflineSync() {
       const queue = getOfflineSalesQueue();
       // A crash/reload may leave a durable entry in 'syncing'. Never strand it:
       // reconcile its idempotency key with the server before any new send.
-      const pendingSales = queue;
+      const pendingSales = queue.filter((sale) => retryFailed || sale.status !== 'failed');
       
       if (pendingSales.length === 0) return;
       
@@ -65,7 +65,7 @@ export function usePosOfflineSync() {
       
       for (const sale of pendingSales) {
         try {
-          if (sale.status === 'syncing') {
+          if (sale.status === 'syncing' || sale.status === 'failed') {
             const result = await resolveStaleOfflineSale(sale.id);
             if (result === 'committed') {
               removeOfflineSale(sale.id);
@@ -193,7 +193,7 @@ export function usePosOfflineSync() {
   return {
     offlineQueue,
     isSyncing,
-    syncOfflineSales,
+    syncOfflineSales: () => syncOfflineSales(true),
     hasPendingSales: offlineQueue.length > 0,
     hasFailedSales: offlineQueue.some(item => item.status === 'failed'),
   };
