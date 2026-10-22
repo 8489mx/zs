@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { useAuthStore } from '@/stores/auth-store';
 
 /**
  * A financial payment attempt is durable before sending the HTTP request.
@@ -13,7 +14,11 @@ export async function postIdempotentAccountPayment(path: '/api/customer-payments
     throw new Error('Payment requires a valid partner');
   }
 
-  const keyName = `zs:payment-attempt:${path}:${partnerId}`;
+  const auth = useAuthStore.getState();
+  const tenantId = String(auth.tenant?.id || auth.user?.tenantId || '');
+  const accountId = String(auth.tenant?.accountId || auth.user?.accountId || '');
+  if (!tenantId || !accountId) throw new Error('تعذر تحديد المنشأة الحالية لسند الدفع');
+  const keyName = `zs:payment-attempt:${tenantId}:${accountId}:${path}:${partnerId}`;
   let existing: { body: string; key: string } | null = null;
   try {
     const stored = sessionStorage.getItem(keyName);
