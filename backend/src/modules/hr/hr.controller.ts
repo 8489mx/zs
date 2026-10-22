@@ -295,73 +295,73 @@ export class HrController {
   }
 
   @Get('departments')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees', 'hrAttendance')
   listDepartments(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.listMasterData('departments', query, req.authContext!);
   }
 
   @Post('departments')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   createDepartment(@Body() payload: UpsertHrMasterDataDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertMasterData('departments', null, payload, req.authContext!);
   }
 
   @Put('departments/:id')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   updateDepartment(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertHrMasterDataDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertMasterData('departments', id, payload, req.authContext!);
   }
 
   @Delete('departments/:id')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   deactivateDepartment(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.hr.deactivateMasterData('departments', id, req.authContext!);
   }
 
   @Get('job-titles')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   listJobTitles(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.listMasterData('job-titles', query, req.authContext!);
   }
 
   @Post('job-titles')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   createJobTitle(@Body() payload: UpsertHrMasterDataDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertMasterData('job-titles', null, payload, req.authContext!);
   }
 
   @Put('job-titles/:id')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   updateJobTitle(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertHrMasterDataDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertMasterData('job-titles', id, payload, req.authContext!);
   }
 
   @Delete('job-titles/:id')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   deactivateJobTitle(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.hr.deactivateMasterData('job-titles', id, req.authContext!);
   }
 
   @Get('positions')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   listPositions(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth) {
     return this.hr.listMasterData('positions', query, req.authContext!);
   }
 
   @Post('positions')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   createPosition(@Body() payload: UpsertHrMasterDataDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertMasterData('positions', null, payload, req.authContext!);
   }
 
   @Put('positions/:id')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   updatePosition(@Param('id', ParseIntPipe) id: number, @Body() payload: UpsertHrMasterDataDto, @Req() req: RequestWithAuth) {
     return this.hr.upsertMasterData('positions', id, payload, req.authContext!);
   }
 
   @Delete('positions/:id')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hr', 'hrEmployees')
   deactivatePosition(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
     return this.hr.deactivateMasterData('positions', id, req.authContext!);
   }
@@ -539,6 +539,16 @@ export class HrController {
   @RequirePermissions('hrLoans')
   listLedger(@Param('employeeId', ParseIntPipe) employeeId: number, @Req() req: RequestWithAuth) {
     return this.hr.listLedger(employeeId, req.authContext!);
+  }
+
+  @Get('employees/:id/financial-statement')
+  @RequireAnyPermission('hrLoans', 'hrPayrollView', 'hrSalaryView', 'hrEmployees')
+  getEmployeeFinancialStatement(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: Record<string, unknown>,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.hr.getEmployeeFinancialStatement(id, query, req.authContext!);
   }
 
   @Get('holidays')

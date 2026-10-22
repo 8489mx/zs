@@ -260,12 +260,12 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
   }
 
   // 2. Deduction ceiling rule (Labor Law 50% cap or policy cap)
-  const maxDeductionCapPct = input.maxDeductionPct && input.maxDeductionPct > 0 ? input.maxDeductionPct : 0.50;
+  const maxDeductionCapPct = input.maxDeductionPct && input.maxDeductionPct > 0 ? input.maxDeductionPct : 1.0;
   const maxAllowableTotalDeductions = toMoney(grossPay * maxDeductionCapPct);
 
   // Pay pool available for non-statutory deductions
   let pool = Math.max(0, toMoney(grossPay - statutoryTotal));
-  if (input.maxDeductionPct) {
+  if (input.maxDeductionPct && input.maxDeductionPct < 1.0) {
     pool = Math.min(pool, Math.max(0, toMoney(maxAllowableTotalDeductions - statutoryTotal)));
   }
 

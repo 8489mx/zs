@@ -49,6 +49,8 @@ import {
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
 import { summarizeHourlyAttendance, prorateMonthlyWage } from './engines/hourly-attendance-pay.engine';
+import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
+import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
@@ -246,7 +248,7 @@ export class HrService {
       hrSocialInsuranceEmployeePct: 11,
       hrSocialInsuranceEmployerPct: 18.75,
       hrIncomeTaxEnabled: false,
-      maxDeductionPct: 0.50,
+      maxDeductionPct: 1.0,
     };
     if (result.rows.length === 0) return defaults;
     try {
@@ -437,6 +439,7 @@ export class HrService {
 
   async upsertMasterData(kind: MasterKind, id: number | null, payload: UpsertHrMasterDataDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const config = masterConfig[kind];
+    let insertedId: number | string | undefined;
     await this.tx.runInTransaction(this.db, async (trx) => {
       if (kind === 'positions') {
         if (id) {
@@ -449,10 +452,12 @@ export class HrService {
             WHERE id = ${id} AND tenant_id = ${auth.tenantId}
           `.execute(trx);
         } else {
-          await sql`
+          const insertRes = await sql<{ id: number }>`
             INSERT INTO hr_positions (tenant_id, account_id, name, code, description, department_id, job_title_id, branch_id, location_id, is_active, created_by, updated_by)
             VALUES (${auth.tenantId}, ${auth.accountId}, ${clean(payload.name)}, ${clean(payload.code)}, ${clean(payload.description)}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${payload.isActive !== false}, ${auth.userId}, ${auth.userId})
+            RETURNING id
           `.execute(trx);
+          insertedId = insertRes.rows[0]?.id;
         }
       } else {
         const table = sql.table(config.table);
@@ -464,15 +469,21 @@ export class HrService {
             WHERE id = ${id} AND tenant_id = ${auth.tenantId}
           `.execute(trx);
         } else {
-          await sql`
+          const insertRes = await sql<{ id: number }>`
             INSERT INTO ${table} (tenant_id, account_id, name, code, description, is_active, created_by, updated_by)
             VALUES (${auth.tenantId}, ${auth.accountId}, ${clean(payload.name)}, ${clean(payload.code)}, ${clean(payload.description)}, ${payload.isActive !== false}, ${auth.userId}, ${auth.userId})
+            RETURNING id
           `.execute(trx);
+          insertedId = insertRes.rows[0]?.id;
         }
       }
     });
     await this.audit.log(`${id ? 'Update' : 'Create'} ${config.auditName}`, `${config.auditName} saved by ${auth.username}`, auth);
-    return { ok: true, ...(await this.listMasterData(kind, {}, auth)) };
+    const list = await this.listMasterData(kind, {}, auth);
+    const finalId = String(insertedId || id || '');
+    const rows = (list && Array.isArray((list as any).rows) ? (list as any).rows : []) as any[];
+    const foundItem = rows.find((r) => String(r.id) === finalId) || rows[0];
+    return { ok: true, id: finalId, item: foundItem, ...(list as any) };
   }
 
   async deactivateMasterData(kind: MasterKind, id: number, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -1162,15 +1173,70 @@ export class HrService {
         const key = Number(row.loan_id || 0);
         if (!(key > 0)) return acc;
         const bucket = acc.get(key) || [];
+        const amount = Number(row.amount || 0);
+        const paidAmount = Number(row.paid_amount || 0);
+        const remainingAmount = Math.max(0, Number((amount - paidAmount).toFixed(2)));
         bucket.push({
           id: String(row.id),
           loanId: String(row.loan_id),
           installmentNumber: Number(row.installment_no || 0),
           dueDate: clean(row.due_date_text),
-          amount: Number(row.amount || 0),
-          paidAmount: Number(row.paid_amount || 0),
+          amount,
+          paidAmount,
+          remainingAmount,
           status: clean(row.status) || 'pending',
           paidAt: clean(row.paid_at_text),
+        });
+        acc.set(key, bucket);
+        return acc;
+      }, new Map<number, Array<Record<string, unknown>>>());
+    }
+
+    let repaymentsByLoanId = new Map<number, Array<Record<string, unknown>>>();
+    if (loanIds.length > 0) {
+      const repaymentsResult = await sql<Record<string, unknown>>`
+        SELECT
+          l.id,
+          COALESCE(alloc.loan_id, CASE WHEN l.reference_type = 'hr_employee_loan' THEN l.reference_id END) AS loan_id,
+          l.entry_type,
+          l.amount,
+          l.balance_after,
+          l.repayment_method,
+          l.note,
+          to_char(l.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
+          u.id AS received_by_id,
+          u.username AS received_by_username,
+          COALESCE(NULLIF(u.display_name, ''), u.username, 'النظام') AS received_by_name
+        FROM hr_employee_ledger l
+        LEFT JOIN hr_payroll_loan_deduction_allocations alloc 
+          ON l.reference_type = 'hr_payroll_loan_deduction' AND l.reference_id = alloc.id
+        LEFT JOIN users u ON u.id = l.created_by
+        WHERE l.tenant_id = ${tenantId}
+          AND l.entry_type IN ('loan_repayment', 'loan_disbursement')
+          AND (
+            (l.reference_type = 'hr_employee_loan' AND l.reference_id IN (${sql.join(loanIds)}))
+            OR
+            (l.reference_type = 'hr_payroll_loan_deduction' AND alloc.loan_id IN (${sql.join(loanIds)}))
+          )
+        ORDER BY l.id DESC
+      `.execute(this.db);
+
+      repaymentsByLoanId = repaymentsResult.rows.reduce((acc, row) => {
+        const key = Number(row.loan_id || 0);
+        if (!(key > 0)) return acc;
+        const bucket = acc.get(key) || [];
+        bucket.push({
+          id: String(row.id),
+          loanId: String(row.loan_id),
+          entryType: clean(row.entry_type),
+          amount: Math.abs(Number(row.amount || 0)),
+          balanceAfter: Number(row.balance_after || 0),
+          repaymentMethod: clean(row.repayment_method) || (clean(row.entry_type) === 'loan_repayment' ? 'manual_cash' : 'disbursement'),
+          note: clean(row.note),
+          createdAt: clean(row.created_at_text),
+          receivedById: row.received_by_id ? String(row.received_by_id) : '',
+          receivedByUsername: clean(row.received_by_username),
+          receivedByName: clean(row.received_by_name),
         });
         acc.set(key, bucket);
         return acc;
@@ -1213,6 +1279,7 @@ export class HrService {
       return {
         ...row,
         installments: installmentsByLoanId.get(loanId) || [],
+        repayments: repaymentsByLoanId.get(loanId) || [],
         dueInstallmentsCount: dueSummary?.dueInstallmentsCount || 0,
         dueInstallmentsAmount: dueSummary?.dueInstallmentsAmount || 0,
       };
@@ -1244,7 +1311,7 @@ export class HrService {
     }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const employee = await trx.selectFrom('hr_employees').select(['id', 'status'])
+      const employee = await trx.selectFrom('hr_employees').select(['id', 'status', 'display_name', 'first_name'])
         .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId)
         .executeTakeFirst();
       if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
@@ -1295,6 +1362,29 @@ export class HrService {
           ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
           : plan.installmentAmount;
         await sql`INSERT INTO hr_employee_loan_installments (tenant_id, account_id, loan_id, installment_no, due_date, amount) VALUES (${auth.tenantId}, ${auth.accountId}, ${loanId}, ${i}, ${dueDate}, ${installmentValue})`.execute(trx);
+      }
+
+      if (payload.autoDisburse) {
+        await sql`
+          UPDATE hr_employee_loans
+          SET status = 'paid',
+              approved_by = ${auth.userId},
+              approved_at = NOW(),
+              disbursed_by = ${auth.userId},
+              disbursed_at = NOW(),
+              updated_by = ${auth.userId},
+              updated_at = NOW()
+          WHERE id = ${loanId} AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+
+        await sql`
+          INSERT INTO hr_employee_ledger (employee_id, entry_type, amount, balance_after, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id)
+          VALUES (${employeeId}, 'loan_disbursement', ${amount}, ${amount}, 'Employee advance/loan disbursed immediately upon creation', 'hr_employee_loan', ${loanId}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${auth.userId}, ${this.scope(auth).tenantId}, ${this.scope(auth).accountId})
+        `.execute(trx);
+
+        const empName = clean(employee.display_name || employee.first_name);
+        await this.treasury.recordLoanDisbursement(trx, { id: loanId, amount, employeeName: empName, branchId: toId(payload.branchId), locationId: toId(payload.locationId) }, auth);
+        await this.accountingPosting.postEmployeeLoanDisbursement(trx, loanId, auth);
       }
     });
     await this.audit.log('Create HR employee loan', `Employee loan created by ${auth.username}`, auth);
@@ -1352,8 +1442,8 @@ export class HrService {
     if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
     if (loan.status !== 'draft') throw new AppError('Only draft loans can be approved', 'HR_LOAN_STATUS_INVALID', 400);
 
-    // Maker-Checker: A creator cannot approve their own loan unless they are super_admin
-    if (String(loan.created_by) === String(auth.userId) && auth.role !== 'super_admin') {
+    // Maker-Checker: A creator cannot approve their own loan unless they are super_admin or admin
+    if (String(loan.created_by) === String(auth.userId) && auth.role !== 'super_admin' && auth.role !== 'admin') {
       throw new AppError('لا يجوز لمنشئ طلب السلفة اعتماده بنفسه (مبدأ فصل المهام الرقابي)', 'HR_LOAN_MAKER_CHECKER_VIOLATION', 403);
     }
 
@@ -1373,7 +1463,7 @@ export class HrService {
       await sql`UPDATE hr_employee_loans SET status = 'paid', disbursed_by = ${auth.userId}, disbursed_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
       const ledger = await sql<{ id: number }>`
         INSERT INTO hr_employee_ledger (employee_id, entry_type, amount, balance_after, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id)
-        VALUES (${loan.employee_id}, 'loan_disbursement', ${Number(loan.principal_amount || 0)}, ${Number(loan.remaining_amount || 0)}, 'Employee advance/loan disbursed', 'hr_employee_loan', ${id}, ${toId(loan.branch_id)}, ${toId(loan.location_id)}, ${auth.userId}, ${this.scope(auth).tenantId}, ${this.scope(auth).accountId})
+        VALUES (${loan.employee_id}, 'loan_disbursement', ${Number(loan.principal_amount || 0)}, ${Number(loan.remaining_amount || 0)}, 'صرف السلفة للموظف', 'hr_employee_loan', ${id}, ${toId(loan.branch_id)}, ${toId(loan.location_id)}, ${auth.userId}, ${this.scope(auth).tenantId}, ${this.scope(auth).accountId})
         RETURNING id
       `.execute(trx);
       void ledger;
@@ -1432,7 +1522,7 @@ export class HrService {
       }
       const ledger = await sql<{ id: number }>`
         INSERT INTO hr_employee_ledger (employee_id, entry_type, amount, balance_after, note, repayment_method, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id)
-        VALUES (${loan.employee_id}, 'loan_repayment', ${-amount}, ${remaining}, ${clean(payload.note) || 'Employee loan repayment'}, ${repaymentMethod}, 'hr_employee_loan', ${id}, ${toId(loan.branch_id)}, ${toId(loan.location_id)}, ${auth.userId}, ${this.scope(auth).tenantId}, ${this.scope(auth).accountId})
+        VALUES (${loan.employee_id}, 'loan_repayment', ${-amount}, ${remaining}, ${clean(payload.note) || 'سداد دفعة من السلفة'}, ${repaymentMethod}, 'hr_employee_loan', ${id}, ${toId(loan.branch_id)}, ${toId(loan.location_id)}, ${auth.userId}, ${this.scope(auth).tenantId}, ${this.scope(auth).accountId})
         RETURNING id
       `.execute(trx);
       const ledgerId = Number(ledger.rows[0]?.id || 0);
@@ -1453,6 +1543,143 @@ export class HrService {
       ORDER BY id DESC
     `.execute(this.db);
     return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), entryType: clean(row.entry_type), amount: Number(row.amount || 0), balanceAfter: Number(row.balance_after || 0), note: clean(row.note), repaymentMethod: clean(row.repayment_method), referenceType: clean(row.reference_type), referenceId: row.reference_id ? String(row.reference_id) : '', createdAt: String(row.created_at) })) };
+  }
+
+  async getEmployeeFinancialStatement(employeeId: number, query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const { tenantId } = requireTenantScope(auth);
+
+    const empRes = await sql<Record<string, unknown>>`
+      SELECT e.*, d.name AS department_name, j.name AS job_title_name
+      FROM hr_employees e
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+      WHERE e.id = ${employeeId} AND e.tenant_id = ${tenantId}
+      LIMIT 1
+    `.execute(this.db);
+    const empRow = empRes.rows[0];
+    if (!empRow) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
+
+    const contractRes = await sql<{ base_salary: string }>`
+      SELECT base_salary FROM hr_employment_contracts
+      WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId} AND status = 'active'
+      ORDER BY id DESC LIMIT 1
+    `.execute(this.db);
+    const baseSalary = Number(contractRes.rows[0]?.base_salary || 0);
+
+    const payrollRes = await sql<Record<string, unknown>>`
+      SELECT i.*, r.period_month, r.status AS run_status, to_char(r.paid_at, 'YYYY-MM-DD HH24:MI:SS') AS paid_at_text,
+             r.payment_channel, u.username AS paid_by_name
+      FROM hr_payroll_run_items i
+      JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+      LEFT JOIN users u ON u.id = r.paid_by AND u.tenant_id = r.tenant_id
+      WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
+      ORDER BY r.period_month ASC, i.id ASC
+    `.execute(this.db);
+
+    const loansRes = await sql<Record<string, unknown>>`
+      SELECT l.*, to_char(l.created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at_text,
+             to_char(l.disbursed_at, 'YYYY-MM-DD HH24:MI:SS') AS disbursed_at_text,
+             u.username AS created_by_name
+      FROM hr_employee_loans l
+      LEFT JOIN users u ON u.id = l.created_by AND u.tenant_id = l.tenant_id
+      WHERE l.employee_id = ${employeeId} AND l.tenant_id = ${tenantId}
+      ORDER BY l.id ASC
+    `.execute(this.db);
+
+    const adjRes = await sql<Record<string, unknown>>`
+      SELECT a.*, to_char(a.date, 'YYYY-MM-DD') AS date_text, u.username AS created_by_name
+      FROM hr_employee_adjustments a
+      LEFT JOIN users u ON u.id = a.created_by AND u.tenant_id = a.tenant_id
+      WHERE a.employee_id = ${employeeId} AND a.tenant_id = ${tenantId}
+      ORDER BY a.date ASC, a.id ASC
+    `.execute(this.db);
+
+    const ledgerRes = await sql<Record<string, unknown>>`
+      SELECT le.*, to_char(le.created_at, 'YYYY-MM-DD HH24:MI:SS') AS created_at_text,
+             u.username AS created_by_name
+      FROM hr_employee_ledger le
+      LEFT JOIN users u ON u.id = le.created_by AND u.tenant_id = le.tenant_id
+      WHERE le.employee_id = ${employeeId} AND le.tenant_id = ${tenantId}
+      ORDER BY le.id ASC
+    `.execute(this.db);
+
+    const result = buildEmployeeFinancialStatement({
+      employee: {
+        id: String(empRow.id),
+        employeeNo: clean(empRow.employee_no),
+        displayName: clean(empRow.display_name) || `${clean(empRow.first_name)} ${clean(empRow.last_name)}`.trim(),
+        hireDate: empRow.hire_date ? String(empRow.hire_date).slice(0, 10) : undefined,
+        status: clean(empRow.status) || 'active',
+        compensationType: clean(empRow.compensation_type) || 'monthly',
+        baseSalary,
+        hourlyRate: empRow.hourly_rate != null ? Number(empRow.hourly_rate) : undefined,
+        departmentName: clean(empRow.department_name),
+        jobTitleName: clean(empRow.job_title_name),
+      },
+      payrollItems: payrollRes.rows.map((row) => ({
+        id: String(row.id),
+        runId: String(row.run_id),
+        periodMonth: clean(row.period_month),
+        runStatus: clean(row.run_status),
+        baseSalary: Number(row.base_salary || 0),
+        allowanceAmount: Number(row.allowance_amount || 0),
+        grossPay: Number(row.gross_pay || 0),
+        deductionAmount: Number(row.deduction_amount || 0),
+        penaltyDeduction: Number(row.penalty_deduction || 0),
+        loanDeductionAmount: Number(row.loan_deduction_amount || 0),
+        netPay: Number(row.net_pay || 0),
+        itemStatus: clean(row.status),
+        paidAt: clean(row.paid_at_text),
+        paymentChannel: clean(row.payment_channel),
+        paidByName: clean(row.paid_by_name),
+      })),
+      loans: loansRes.rows.map((row) => ({
+        id: String(row.id),
+        loanNo: clean(row.loan_no),
+        loanType: clean(row.loan_type) || 'advance',
+        principalAmount: Number(row.principal_amount || 0),
+        paidAmount: Number(row.paid_amount || 0),
+        remainingAmount: Number(row.remaining_amount || 0),
+        status: clean(row.status) || 'draft',
+        notes: clean(row.notes),
+        repaymentMode: clean(row.repayment_mode),
+        issueDate: row.issue_date ? String(row.issue_date).slice(0, 10) : undefined,
+        disbursedAt: clean(row.disbursed_at_text),
+        createdAt: clean(row.created_at_text),
+        createdByName: clean(row.created_by_name),
+      })),
+      adjustments: adjRes.rows.map((row) => ({
+        id: String(row.id),
+        adjustmentType: clean(row.adjustment_type),
+        amountType: clean(row.amount_type),
+        amount: Number(row.amount || 0),
+        date: clean(row.date_text),
+        reason: clean(row.reason),
+        status: clean(row.status) || 'pending',
+        appliedInRunId: row.applied_in_run_id ? Number(row.applied_in_run_id) : null,
+        createdByName: clean(row.created_by_name),
+      })),
+      ledger: ledgerRes.rows.map((row) => ({
+        id: String(row.id),
+        entryType: clean(row.entry_type),
+        amount: Number(row.amount || 0),
+        balanceAfter: Number(row.balance_after || 0),
+        note: clean(row.note),
+        repaymentMethod: clean(row.repayment_method),
+        referenceType: clean(row.reference_type),
+        referenceId: row.reference_id ? String(row.reference_id) : undefined,
+        createdAt: clean(row.created_at_text),
+        createdByName: clean(row.created_by_name),
+      })),
+      filter: {
+        from: clean(query.from),
+        to: clean(query.to),
+        month: clean(query.month),
+      },
+    });
+
+    return result as unknown as Record<string, unknown>;
   }
 
   private mapPayrollRun(row: Record<string, unknown>): Record<string, unknown> {
@@ -1573,7 +1800,10 @@ export class HrService {
         AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
         AND l.status IN ('paid', 'partially_repaid', 'disbursed')
         AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
-        AND COALESCE(i.due_date, l.first_due_date, l.salary_due_date) <= ${dueCutoff}::date
+        AND (
+          l.repayment_mode = 'deduct_next_salary'
+          OR COALESCE(i.due_date, l.first_due_date, l.salary_due_date) <= ${dueCutoff}::date
+        )
       ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC
     `.execute(db);
     let total = 0;
@@ -1630,6 +1860,8 @@ export class HrService {
     const penaltyDeduction = Number(item.penalty_deduction || 0);
     const assetRecoveryDeduction = Number(item.asset_recovery_deduction_amount || 0);
     const scheduledLoanDeduction = money(item.loan_deduction_amount);
+    const policies = await this.getPayrollPolicies(db, tenantId);
+    const maxDeductionPct = policies.maxDeductionPct !== undefined ? Number(policies.maxDeductionPct) : 1.0;
 
     const lineOutput = calculateEmployeePayrollLine({
       employeeId: Number(item.employee_id),
@@ -1645,7 +1877,7 @@ export class HrService {
       assetRecoveryDeduction,
       otherDeductions: Number((money(item.compensation_deduction) + adjustments.deduction).toFixed(2)),
       scheduledLoanDeduction,
-      maxDeductionPct: 0.50,
+      maxDeductionPct,
     });
 
     const totalAllowance = Number((lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount).toFixed(2));
@@ -1654,7 +1886,16 @@ export class HrService {
     const extraNotes = [
       ...lineOutput.notes,
     ].filter(Boolean);
-    const notes = extraNotes.length ? combineNotes(clean(item.notes), ...extraNotes) : clean(item.notes);
+    const existingCleanNotes = clean(item.notes)
+      .split('|')
+      .map(s => s.trim())
+      .filter(s => {
+        if (!s) return false;
+        if (lineOutput.deferredLoanDeduction === 0 && s.includes('تم تأجيل') && s.includes('قسط السلفة')) return false;
+        return true;
+      })
+      .join(' | ');
+    const notes = extraNotes.length ? combineNotes(existingCleanNotes, ...extraNotes) : existingCleanNotes;
     await sql`
       UPDATE hr_payroll_run_items
       SET allowance_amount = ${totalAllowance},
@@ -1726,7 +1967,8 @@ export class HrService {
         ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
         LIMIT 1
       ) cp ON TRUE
-      WHERE e.status = 'active' AND e.tenant_id = ${tenantId} AND e.pay_frequency = ${payFreq}
+      WHERE e.status = 'active' AND e.tenant_id = ${tenantId}
+        ${payFreq === 'all' ? sql`` : sql`AND COALESCE(e.pay_frequency, 'monthly') = ${payFreq}`}
       ORDER BY e.id ASC
     `.execute(db);
 
@@ -1763,6 +2005,8 @@ export class HrService {
       }
     }
     const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary);
+    const policies = await this.getPayrollPolicies(db, tenantId);
+    const maxDeductionPct = policies.maxDeductionPct !== undefined ? Number(policies.maxDeductionPct) : 1.0;
 
     for (const employee of employees.rows) {
       const employeeId = Number(employee.employee_id || 0);
@@ -1866,7 +2110,7 @@ export class HrService {
         assetRecoveryDeduction: Number(empAdjAssetRecoveryDeduction.toFixed(2)),
         otherDeductions: Number((compensationDeduction + adjustments.deduction + empAdjDeduction).toFixed(2)),
         scheduledLoanDeduction: Number(loanDeduction.amount || 0),
-        maxDeductionPct: 0.50,
+        maxDeductionPct,
       });
 
       const totalAllowance = Number((lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount).toFixed(2));
@@ -1882,7 +2126,16 @@ export class HrService {
         ...loanDeduction.notes,
         ...lineOutput.notes,
       ].filter(Boolean);
-      const notes = combineNotes(clean(existingItem?.notes), ...generatedNotes);
+      const existingCleanNotes = clean(existingItem?.notes)
+        .split('|')
+        .map(s => s.trim())
+        .filter(s => {
+          if (!s) return false;
+          if (lineOutput.deferredLoanDeduction === 0 && s.includes('تم تأجيل') && s.includes('قسط السلفة')) return false;
+          return true;
+        })
+        .join(' | ');
+      const notes = combineNotes(existingCleanNotes, ...generatedNotes);
 
       if (itemId > 0) {
         await sql`
@@ -2142,6 +2395,9 @@ export class HrService {
       } else if (delayPolicyMode === 'standard') {
         // Standard: just exact minutes translated to money
         delayDeduction = Number(((calculatedHourlyRate * (lateMinutes + earlyLeaveMinutes) / 60)).toFixed(2));
+      } else if (delayPolicyMode === 'strict') {
+        // Strict: half-day deduction per incident
+        delayDeduction = Number((dailyRate * 0.5 * totalIncidents).toFixed(2));
       } else {
         // disabled
         delayDeduction = 0;
@@ -2379,7 +2635,7 @@ export class HrService {
     const periodMonth = normalizePayrollMonth(payload.periodMonth);
     if (!periodMonth) throw new AppError('Payroll month must use YYYY-MM format', 'HR_PAYROLL_MONTH_INVALID', 400);
     const payFreq = clean(payload.payFrequency) || 'monthly';
-    if (!['daily', 'weekly', 'biweekly', 'monthly'].includes(payFreq)) {
+    if (!['daily', 'weekly', 'biweekly', 'monthly', 'all'].includes(payFreq)) {
       throw new AppError('دورية صرف المرتب غير صحيحة', 'HR_PAYROLL_FREQUENCY_INVALID', 400);
     }
     const month = monthRange(periodMonth);
@@ -2834,10 +3090,20 @@ export class HrService {
     const startDate = clean(run.start_date_text) || `${periodMonth}-01`;
     const endDate = clean(run.end_date_text) || `${periodMonth}-28`;
 
-    const payerCrNo = clean(payload.payerCrNo) || '7000000000';
-    const payerBankRoutingCode = clean(payload.payerBankRoutingCode) || 'RIBL';
-    const payerName = clean(payload.payerName) || clean(auth.tenantId) || 'COMPANY';
-    const currency = clean(payload.currency) || 'SAR';
+    const settingsRows = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('tenant_id', '=', auth.tenantId || '')
+      .execute();
+    const tenantSettings: Record<string, any> = {};
+    for (const row of settingsRows) {
+      try { tenantSettings[row.key] = JSON.parse(row.value); } catch { tenantSettings[row.key] = row.value; }
+    }
+
+    const currency = clean(payload.currency) || clean(tenantSettings.currency) || 'EGP';
+    const payerName = clean(payload.payerName) || clean(tenantSettings.companyName) || clean(auth.tenantId) || 'COMPANY';
+    const payerCrNo = clean(payload.payerCrNo) || clean(tenantSettings.crNumber) || '0000000000';
+    const payerBankRoutingCode = clean(payload.payerBankRoutingCode) || (currency === 'SAR' ? 'RIBL' : currency === 'EGP' ? 'NBE' : 'BANK');
 
     let totalNetPay = 0;
     let totalBaseSalary = 0;
@@ -2988,6 +3254,7 @@ export class HrService {
     if (!workDate) throw new AppError('Attendance date is required', 'HR_ATTENDANCE_DATE_REQUIRED', 400);
     const search = clean(query.search).toLowerCase();
     const requestedEmployeeId = toId(query.employeeId);
+    const requestedDepartmentId = toId(query.departmentId);
     const rangeFrom = normalizeDateOnly(query.from);
     const rangeTo = normalizeDateOnly(query.to);
     if (rangeFrom || rangeTo) {
@@ -3017,6 +3284,7 @@ export class HrService {
         WHERE a.tenant_id = ${auth.tenantId}
           AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
           AND (${requestedEmployeeId}::BIGINT IS NULL OR a.employee_id = ${requestedEmployeeId})
+          AND (${requestedDepartmentId}::BIGINT IS NULL OR e.department_id = ${requestedDepartmentId})
           AND (${search} = '' OR LOWER(e.display_name) LIKE ${match} OR LOWER(e.employee_no) LIKE ${match} OR LOWER(COALESCE(d.name, '')) LIKE ${match})
       `.execute(this.db);
       const totalItems = Number(count.rows[0]?.total || 0);
@@ -3029,7 +3297,8 @@ export class HrService {
           to_char(a.work_date, 'YYYY-MM-DD') AS work_date_text, a.status,
           to_char(a.check_in_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
           to_char(a.check_out_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
-          a.source, a.notes
+          a.source, a.notes,
+          e.scheduled_check_in_time, e.scheduled_check_out_time, e.grace_minutes, e.department_id
         FROM hr_attendance_records a
         JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
         LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
@@ -3037,6 +3306,7 @@ export class HrService {
         WHERE a.tenant_id = ${auth.tenantId}
           AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
           AND (${requestedEmployeeId}::BIGINT IS NULL OR a.employee_id = ${requestedEmployeeId})
+          AND (${requestedDepartmentId}::BIGINT IS NULL OR e.department_id = ${requestedDepartmentId})
           AND (${search} = '' OR LOWER(e.display_name) LIKE ${match} OR LOWER(e.employee_no) LIKE ${match} OR LOWER(COALESCE(d.name, '')) LIKE ${match})
         ORDER BY a.work_date DESC, e.display_name ASC, a.id DESC
         LIMIT ${pageSize} OFFSET ${(safePage - 1) * pageSize}
@@ -3050,6 +3320,10 @@ export class HrService {
           workDate: clean(row.work_date_text), status: clean(row.status),
           checkInAt: clean(row.check_in_at_text), checkOutAt: clean(row.check_out_at_text),
           source: normalizeAttendanceSource(row.source), notes: clean(row.notes),
+          scheduledCheckInTime: clean(row.scheduled_check_in_time),
+          scheduledCheckOutTime: clean(row.scheduled_check_out_time),
+          graceMinutes: Number(row.grace_minutes || 0),
+          departmentId: row.department_id ? String(row.department_id) : "",
         })),
         pagination: { page: safePage, pageSize, totalItems, totalPages },
         summary: { totalItems, presentCount: Number(count.rows[0]?.present || 0),
@@ -3075,13 +3349,19 @@ export class HrService {
         to_char(a.check_in_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
         to_char(a.check_out_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
         a.source,
-        a.notes
+        a.notes,
+        e.scheduled_check_in_time,
+        e.scheduled_check_out_time,
+        e.grace_minutes,
+        e.department_id
       FROM hr_employees e
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
       LEFT JOIN hr_attendance_records a ON a.employee_id = e.id AND a.work_date = ${workDate}::date
       WHERE ${this.tenantPredicate(auth, 'e')}
         AND e.status IN ('active', 'inactive')
+        AND (${requestedEmployeeId}::BIGINT IS NULL OR e.id = ${requestedEmployeeId})
+        AND (${requestedDepartmentId}::BIGINT IS NULL OR e.department_id = ${requestedDepartmentId})
       ORDER BY e.display_name ASC, e.id ASC
     `.execute(this.db);
 
@@ -3101,6 +3381,10 @@ export class HrService {
         checkOutAt: clean(row.check_out_at_text),
         source: normalizeAttendanceSource(row.source),
         notes: clean(row.notes),
+        scheduledCheckInTime: clean(row.scheduled_check_in_time),
+        scheduledCheckOutTime: clean(row.scheduled_check_out_time),
+        graceMinutes: Number(row.grace_minutes || 0),
+        departmentId: row.department_id ? String(row.department_id) : "",
       };
     });
 
@@ -3424,10 +3708,12 @@ export class HrService {
     durationMinutes: number,
     scheduledTime?: string | null,
     actualTime?: string | null,
+    note?: string | null,
   ) {
     if (!(durationMinutes > 0) && type !== 'unscheduled_time') return null;
-    const autoCalculated = type === 'late_check_in' || type === 'early_check_out' || type === 'short_hours';
-    const needsReview = type === 'unscheduled_time';
+    const isMissing = type === 'missing_check_in' || type === 'missing_check_out';
+    const isDelayOrEarlyOut = type === 'late_check_in' || type === 'early_check_out' || type === 'short_hours';
+    const needsReview = type === 'unscheduled_time' || isMissing;
     return {
       employeeId,
       attendanceRecordId,
@@ -3436,9 +3722,9 @@ export class HrService {
       scheduledTime: scheduledTime || null,
       actualTime: actualTime || null,
       durationMinutes: Math.floor(durationMinutes),
-      status: (autoCalculated ? 'auto_calculated' : (needsReview ? 'needs_review' : 'pending')) as AttendanceExceptionStatus,
-      approvedDurationMinutes: autoCalculated ? Math.floor(durationMinutes) : null,
-      note: null as string | null,
+      status: (needsReview ? 'needs_review' : 'pending') as AttendanceExceptionStatus,
+      approvedDurationMinutes: isDelayOrEarlyOut ? Math.floor(durationMinutes) : null,
+      note: note || null,
     };
   }
 
@@ -3536,7 +3822,16 @@ export class HrService {
       if (actualDuration > 0) {
         entries.push(this.buildAttendanceException('extra_hours', employeeId, attendanceId || null, workDate, actualDuration, null, null));
       } else {
-        entries.push(this.buildAttendanceException(checkInActualTime ? 'missing_check_out' : 'missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn || scheduledCheckOut, checkInActualTime || checkOutActualTime));
+        entries.push(this.buildAttendanceException(
+          checkInActualTime ? 'missing_check_out' : 'missing_check_in',
+          employeeId,
+          attendanceId || null,
+          workDate,
+          expectedDailyHours * 60,
+          scheduledCheckIn || scheduledCheckOut,
+          null,
+          checkInActualTime ? `حضر في ${checkInActualTime} ولم يسجل انصراف` : `انصرف في ${checkOutActualTime} ولم يسجل حضور`
+        ));
       }
     } else if (attendancePolicy === 'flexible') {
       let actualDuration = 0;
@@ -3545,7 +3840,16 @@ export class HrService {
         if (actualDuration < 0) actualDuration += 1440; // Overnight checkout. // Cross midnight edge case, ignored for now
       } else if (checkInActualTime || checkOutActualTime) {
         // Missing a punch
-        entries.push(this.buildAttendanceException(checkInActualTime ? 'missing_check_out' : 'missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn || scheduledCheckOut, checkInActualTime || checkOutActualTime));
+        entries.push(this.buildAttendanceException(
+          checkInActualTime ? 'missing_check_out' : 'missing_check_in',
+          employeeId,
+          attendanceId || null,
+          workDate,
+          expectedDailyHours * 60,
+          scheduledCheckIn || scheduledCheckOut,
+          null,
+          checkInActualTime ? `حضر في ${checkInActualTime} ولم يسجل انصراف` : `انصرف في ${checkOutActualTime} ولم يسجل حضور`
+        ));
       }
 
       if (checkInActualTime && checkOutActualTime) {
@@ -3573,7 +3877,7 @@ export class HrService {
           entries.push(this.buildAttendanceException('late_check_in', employeeId, attendanceId || null, workDate, delta - graceMinutes, scheduledCheckIn, checkInActualTime));
         }
       } else if (!checkInActualTime && checkOutActualTime) {
-        entries.push(this.buildAttendanceException('missing_check_in', employeeId, attendanceId || null, workDate, 1, scheduledCheckIn, checkOutActualTime));
+        entries.push(this.buildAttendanceException('missing_check_in', employeeId, attendanceId || null, workDate, expectedDailyHours * 60, scheduledCheckIn, null, `انصرف في ${checkOutActualTime} ولم يسجل حضور`));
       }
 
       if (scheduledCheckOut && checkOutActualTime) {
@@ -3594,13 +3898,28 @@ export class HrService {
           }
         }
       } else if (checkInActualTime && !checkOutActualTime) {
-        entries.push(this.buildAttendanceException('missing_check_out', employeeId, attendanceId || null, workDate, 1, scheduledCheckOut, checkInActualTime));
+        entries.push(this.buildAttendanceException('missing_check_out', employeeId, attendanceId || null, workDate, expectedDailyHours * 60, scheduledCheckOut, null, `حضر في ${checkInActualTime} ولم يسجل انصراف`));
       }
     }
+
+    const existingExceptions = await sql<{ exception_type: string; status: string; note: string; approved_duration_minutes: number | null }>`
+      SELECT exception_type, status, note, approved_duration_minutes FROM hr_attendance_exceptions
+      WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND (tenant_id = ${tenantId} OR tenant_id = '')
+    `.execute(db);
+    const existingMap = new Map(existingExceptions.rows.map(r => [r.exception_type, r]));
 
     await sql`DELETE FROM hr_attendance_exceptions WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND (tenant_id = ${tenantId} OR tenant_id = '')`.execute(db);
     for (const entry of entries) {
       if (!entry) continue;
+      const existing = existingMap.get(entry.exceptionType);
+      let statusToInsert = entry.status;
+      let approvedDuration = entry.approvedDurationMinutes;
+      let noteToInsert = entry.note;
+      if (existing && (existing.status === 'approved' || existing.status === 'skipped')) {
+        statusToInsert = existing.status as AttendanceExceptionStatus;
+        approvedDuration = existing.approved_duration_minutes;
+        noteToInsert = existing.note || entry.note;
+      }
       await sql`
         INSERT INTO hr_attendance_exceptions (
           tenant_id, account_id,
@@ -3611,26 +3930,32 @@ export class HrService {
           ${tenantId}, ${accountId},
           ${entry.employeeId}, ${entry.attendanceRecordId}, ${entry.workDate}::date, ${entry.exceptionType},
           ${entry.scheduledTime || null}, ${entry.actualTime || null},
-          ${entry.durationMinutes}, ${entry.status}, ${entry.approvedDurationMinutes}, ${entry.note}, NOW(), NOW()
+          ${entry.durationMinutes}, ${statusToInsert}, ${approvedDuration}, ${noteToInsert}, NOW(), NOW()
         )
       `.execute(db);
     }
   }
 
   async listAttendanceExceptions(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId } = requireTenantScope(auth);
     const workDate = normalizeDateOnly(query.date) || normalizeDateOnly(query.workDate);
     const month = clean(query.month);
     const status = clean(query.status).toLowerCase();
     const search = clean(query.search).toLowerCase();
+    const employeeId = query.employeeId ? Number(query.employeeId) : null;
+    const departmentId = query.departmentId ? Number(query.departmentId) : null;
 
     let monthCondition = sql`1=1`;
     if (month) {
       const range = monthRange(month);
       monthCondition = sql`ex.work_date >= ${range.from}::date AND ex.work_date <= ${range.to}::date`;
     }
+    const employeeCondition = employeeId && !isNaN(employeeId) ? sql`ex.employee_id = ${employeeId}` : sql`1=1`;
+    const departmentCondition = departmentId && !isNaN(departmentId) ? sql`e.department_id = ${departmentId}` : sql`1=1`;
 
     try {
+      const globalPolicies = await this.getPayrollPolicies(this.db, tenantId);
+
       const result = await sql<Record<string, unknown>>`
         SELECT
           ex.id,
@@ -3646,31 +3971,79 @@ export class HrService {
           ex.note,
           e.employee_no,
           e.display_name AS employee_name,
+          e.department_id,
+          e.compensation_type,
+          e.hourly_rate,
+          e.expected_daily_hours,
+          e.delay_policy,
+          e.attendance_policy,
+          e.grace_minutes,
+          c.base_salary,
           to_char(ex.work_date, 'YYYY-MM-DD') AS work_date_text,
           ex.scheduled_time AS scheduled_time_text,
-          ex.actual_time AS actual_time_text
+          ex.actual_time AS actual_time_text,
+          ROW_NUMBER() OVER (
+            PARTITION BY ex.employee_id, to_char(ex.work_date, 'YYYY-MM'),
+              CASE WHEN ex.exception_type IN ('late_check_in', 'early_check_out') THEN 'late_early' ELSE ex.exception_type END
+            ORDER BY ex.work_date ASC, ex.id ASC
+          ) AS incident_index_in_month
         FROM hr_attendance_exceptions ex
         JOIN hr_employees e ON e.id = ex.employee_id
+        LEFT JOIN LATERAL (
+          SELECT c.base_salary, c.status
+          FROM hr_employment_contracts c
+          WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
+          ORDER BY CASE WHEN c.status = 'active' THEN 1 ELSE 2 END, c.id DESC
+          LIMIT 1
+        ) c ON TRUE
         WHERE ${this.tenantPredicate(auth, 'e')}
           AND (${workDate || ''} = '' OR ex.work_date = ${workDate || null}::date)
           AND ${monthCondition}
+          AND ${employeeCondition}
+          AND ${departmentCondition}
         ORDER BY ex.work_date DESC, e.display_name ASC, ex.id DESC
       `.execute(this.db);
 
-      let rows = result.rows.map((row) => ({
-        id: String(row.id),
-        employeeId: String(row.employee_id),
-        employeeNo: clean(row.employee_no),
-        employeeName: clean(row.employee_name),
-        workDate: clean(row.work_date_text),
-        exceptionType: clean(row.exception_type),
-        scheduledTime: clean(row.scheduled_time_text),
-        actualTime: clean(row.actual_time_text),
-        durationMinutes: Number(row.duration_minutes || 0),
-        approvedDurationMinutes: row.approved_duration_minutes == null ? null : Number(row.approved_duration_minutes),
-        status: clean(row.status),
-        note: clean(row.note),
-      }));
+      let rows = result.rows.map((row) => {
+        const penalty = calculateAttendancePenalty({
+          exceptionType: clean(row.exception_type),
+          durationMinutes: Number(row.duration_minutes || 0),
+          compensationType: clean(row.compensation_type),
+          baseSalary: Number(row.base_salary || 0),
+          hourlyRate: Number(row.hourly_rate || 0),
+          expectedDailyHours: Number(row.expected_daily_hours || 8) || 8,
+          delayPolicy: clean(row.delay_policy) || 'inherit',
+          incidentIndexInMonth: Number(row.incident_index_in_month || 1),
+          globalDelayPolicyEnabled: globalPolicies.hrDelayPolicyEnabled === true,
+          globalFirstTimeDeduction: Number(globalPolicies.hrDelayPolicyFirstTimeDeduction || 0.25),
+          globalSecondTimeDeduction: Number(globalPolicies.hrDelayPolicySecondTimeDeduction || 0.50),
+          globalThirdTimeDeduction: Number(globalPolicies.hrDelayPolicyThirdTimeDeduction || 1.00),
+          globalFourthTimeDeduction: Number(globalPolicies.hrDelayPolicyFourthTimeDeduction || 1.00),
+          graceMinutes: Number(row.grace_minutes || 0),
+          overtimeMultiplier: Number(globalPolicies.overtimeMultiplier || 1.5) || 1.5,
+        });
+
+        return {
+          id: String(row.id),
+          employeeId: String(row.employee_id),
+          departmentId: row.department_id ? String(row.department_id) : undefined,
+          employeeNo: clean(row.employee_no),
+          employeeName: clean(row.employee_name),
+          workDate: clean(row.work_date_text),
+          exceptionType: clean(row.exception_type),
+          scheduledTime: clean(row.scheduled_time_text),
+          actualTime: clean(row.actual_time_text),
+          durationMinutes: Number(row.duration_minutes || 0),
+          approvedDurationMinutes: row.approved_duration_minutes == null ? null : Number(row.approved_duration_minutes),
+          status: clean(row.status),
+          note: clean(row.note),
+          estimatedAmount: penalty.estimatedAmount,
+          hourlyRate: penalty.hourlyRate,
+          dailyRate: penalty.dailyRate,
+          policyDescription: penalty.policyDescription,
+          delayPolicy: clean(row.delay_policy) || 'inherit',
+        };
+      });
 
       if (status) rows = rows.filter((row) => row.status === status);
       if (search) {
@@ -3690,10 +4063,6 @@ export class HrService {
     const currentResult = await sql<Record<string, unknown>>`SELECT * FROM hr_attendance_exceptions WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
     const current = currentResult.rows[0];
     if (!current) throw new AppError('Attendance exception not found', 'HR_ATTENDANCE_EXCEPTION_NOT_FOUND', 404);
-    const currentStatus = clean(current.status);
-    if (currentStatus === 'auto_calculated' || currentStatus === 'needs_review') {
-      throw new AppError('This exception is informational and cannot be approved or skipped', 'HR_ATTENDANCE_EXCEPTION_LOCKED', 400);
-    }
     const approvedDurationMinutes = status === 'approved'
       ? Math.max(0, Math.floor(Number(payload.approvedDurationMinutes ?? current.duration_minutes ?? 0)))
       : null;
@@ -4239,7 +4608,7 @@ export class HrService {
       SELECT
         l.*,
         e.display_name AS employee_name,
-        actor.username AS recorded_by_name,
+        COALESCE(NULLIF(actor.display_name, ''), actor.username, 'النظام') AS recorded_by_name,
         latest_paid.latest_paid_at,
         to_char(l.issue_date, 'YYYY-MM-DD') AS issue_date_text,
         to_char(l.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text,
@@ -4262,7 +4631,7 @@ export class HrService {
       SELECT
         le.*,
         e.display_name AS employee_name,
-        actor.username AS recorded_by_name,
+        COALESCE(NULLIF(actor.display_name, ''), actor.username, 'النظام') AS recorded_by_name,
         to_char(le.created_at, 'YYYY-MM-DD HH24:MI') AS movement_at_text
       FROM hr_employee_ledger le
       JOIN hr_employees e ON e.id = le.employee_id AND e.tenant_id = le.tenant_id

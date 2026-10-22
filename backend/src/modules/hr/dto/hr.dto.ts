@@ -407,6 +407,10 @@ export class UpsertEmployeeLoanDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  autoDisburse?: boolean;
 }
 
 export class LoanRepaymentDto {
