@@ -713,6 +713,8 @@ export interface StockCountItemTable {
   expected_qty: number;
   counted_qty: number;
   variance_qty: number;
+  counted_serials?: ColumnType<any, any, any>;
+  batch_counts?: ColumnType<any, any, any>;
   reason: string;
   note: string;
   posted_at?: Date | null;
