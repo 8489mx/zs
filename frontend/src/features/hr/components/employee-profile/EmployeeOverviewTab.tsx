@@ -82,51 +82,51 @@ export function EmployeeOverviewTab({
             </Button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', flex: 1 }}>
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>تاريخ التعيين</span>
-              <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>{fallbackText(employee?.hireDate)}</strong>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px 16px', flex: 1, padding: '4px 0' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>تاريخ التعيين</span>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.hireDate)}</strong>
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>الفرع والموقع</span>
-              <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>{fallbackText(employee?.branchName || employee?.locationName)}</strong>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>الفرع والموقع</span>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.branchName || employee?.locationName)}</strong>
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>ساعات العمل اليومية</span>
-              <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>ساعات العمل اليومية</span>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
                 {employee?.expectedDailyHours ? `${employee.expectedDailyHours} ساعات` : 'غير محدد'}
               </strong>
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>فترة السماح للتأخير</span>
-              <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>فترة السماح للتأخير</span>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
                 {employee?.graceMinutes != null ? `${employee.graceMinutes} دقيقة` : 'غير محدد'}
               </strong>
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>موعد الحضور المقرر</span>
-              <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>{fallbackText(employee?.scheduledCheckInTime)}</strong>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>موعد الحضور المقرر</span>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.scheduledCheckInTime)}</strong>
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>موعد الانصراف المقرر</span>
-              <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>{fallbackText(employee?.scheduledCheckOutTime)}</strong>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>موعد الانصراف المقرر</span>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.scheduledCheckOutTime)}</strong>
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>رصيد الإجازات السنوية</span>
-              <strong style={{ fontSize: '0.825rem', color: '#15803d' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>رصيد الإجازات السنوية</span>
+              <strong style={{ fontSize: '0.85rem', color: '#15803d' }}>
                 {remainingLeaves} يوم متبقي <span style={{ color: '#64748b', fontSize: '0.72rem', fontWeight: 500 }}>(من {annualBalance})</span>
               </strong>
             </div>
 
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px' }}>
-              <span style={{ display: 'block', fontSize: '0.7rem', color: '#64748b' }}>سياسة الحضور</span>
-              <strong style={{ fontSize: '0.825rem', color: '#0f172a' }}>
+            <div>
+              <span style={{ display: 'block', fontSize: '0.725rem', color: '#64748b', marginBottom: '2px', fontWeight: 500 }}>سياسة الحضور</span>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
                 {employee?.attendancePolicy === 'flexible' ? 'حضور مرن' : 'دوام صارم'}
               </strong>
             </div>

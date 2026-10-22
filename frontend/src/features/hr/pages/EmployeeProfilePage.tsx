@@ -330,25 +330,25 @@ export function EmployeeProfilePage() {
                 onClick={() => setActiveSection('loans')}
                 style={{
                   backgroundColor: '#ffffff',
-                  border: `1px solid ${openLoansRemaining > 0 ? '#fed7aa' : '#e2e8f0'}`,
+                  border: '1px solid #e2e8f0',
                   borderRadius: '10px',
                   padding: '12px 16px',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   cursor: 'pointer',
                   transition: 'border-color 0.15s ease',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = openLoansRemaining > 0 ? '#c2410c' : '#170e5e')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = openLoansRemaining > 0 ? '#fed7aa' : '#e2e8f0')}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#170e5e')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.725rem', color: openLoansRemaining > 0 ? '#9a3412' : '#64748b', fontWeight: 600 }}>رصيد السلف القائم</span>
+                  <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600 }}>رصيد السلف القائم</span>
                   {openLoansCount > 0 ? (
-                    <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#ffedd5', color: '#9a3412', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700, border: '1px solid #e2e8f0' }}>
                       {openLoansCount} سلفة
                     </span>
                   ) : null}
                 </div>
-                <strong style={{ fontSize: '1.15rem', color: openLoansRemaining > 0 ? '#c2410c' : '#0f172a', marginTop: '2px', display: 'block' }}>
+                <strong style={{ fontSize: '1.15rem', color: '#0f172a', marginTop: '2px', display: 'block' }}>
                   {canViewLoans ? `${money(openLoansRemaining)}` : '—'}
                 </strong>
                 <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
@@ -361,25 +361,25 @@ export function EmployeeProfilePage() {
                 onClick={() => setActiveSection('leaves')}
                 style={{
                   backgroundColor: '#ffffff',
-                  border: `1px solid ${pendingLeavesCount > 0 ? '#fef3c7' : '#e2e8f0'}`,
+                  border: '1px solid #e2e8f0',
                   borderRadius: '10px',
                   padding: '12px 16px',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                   cursor: 'pointer',
                   transition: 'border-color 0.15s ease',
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = pendingLeavesCount > 0 ? '#b45309' : '#170e5e')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = pendingLeavesCount > 0 ? '#fef3c7' : '#e2e8f0')}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#170e5e')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#e2e8f0')}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.725rem', color: pendingLeavesCount > 0 ? '#b45309' : '#64748b', fontWeight: 600 }}>طلبات الإجازات</span>
+                  <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600 }}>طلبات الإجازات</span>
                   {pendingLeavesCount > 0 ? (
-                    <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#fef3c7', color: '#b45309', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.68rem', padding: '1px 6px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 700, border: '1px solid #e2e8f0' }}>
                       معلق
                     </span>
                   ) : null}
                 </div>
-                <strong style={{ fontSize: '1.15rem', color: pendingLeavesCount > 0 ? '#b45309' : '#0f172a', marginTop: '2px', display: 'block' }}>
+                <strong style={{ fontSize: '1.15rem', color: '#0f172a', marginTop: '2px', display: 'block' }}>
                   {pendingLeavesCount > 0 ? `${pendingLeavesCount} طلب معلق` : `${leaveRequests.length} إجازة مسجلة`}
                 </strong>
                 <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
@@ -473,8 +473,9 @@ export function EmployeeProfilePage() {
                       padding: '1px 6px',
                       borderRadius: '10px',
                       fontWeight: 700,
-                      background: isActive ? '#ffffff' : isAlert ? '#fee2e2' : '#f1f5f9',
-                      color: isActive ? '#170e5e' : isAlert ? '#b91c1c' : '#334155',
+                      background: isActive ? '#ffffff' : '#f1f5f9',
+                      color: isActive ? '#170e5e' : '#475569',
+                      border: isActive ? 'none' : '1px solid #e2e8f0',
                       lineHeight: 1.2,
                     }}>
                       {badge}
@@ -592,15 +593,15 @@ export function EmployeeProfilePage() {
                     {canViewLoans ? money(loans.reduce((acc, l) => acc + (l.principalAmount || 0), 0)) : '—'}
                   </strong>
                 </div>
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#166534', display: 'block' }}>إجمالي المسدد</span>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>إجمالي المسدد</span>
                   <strong style={{ fontSize: '1.1rem', color: '#15803d' }}>
                     {canViewLoans ? money(loans.reduce((acc, l) => acc + (l.paidAmount || 0), 0)) : '—'}
                   </strong>
                 </div>
-                <div style={{ background: openLoansRemaining > 0 ? '#fff7ed' : '#f8fafc', border: `1px solid ${openLoansRemaining > 0 ? '#fed7aa' : '#e2e8f0'}`, borderRadius: '8px', padding: '10px 14px' }}>
-                  <span style={{ fontSize: '0.7rem', color: openLoansRemaining > 0 ? '#9a3412' : '#64748b', display: 'block' }}>الرصيد المتبقي القائم</span>
-                  <strong style={{ fontSize: '1.1rem', color: openLoansRemaining > 0 ? '#c2410c' : '#0f172a' }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الرصيد المتبقي القائم</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>
                     {canViewLoans ? money(openLoansRemaining) : '—'}
                   </strong>
                 </div>
@@ -669,17 +670,17 @@ export function EmployeeProfilePage() {
                 </div>
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                   <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الأيام المستهلكة</span>
-                  <strong style={{ fontSize: '1.1rem', color: '#c2410c' }}>{Number(employee?.usedAnnualLeaves || 0)} يوم</strong>
+                  <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>{Number(employee?.usedAnnualLeaves || 0)} يوم</strong>
                 </div>
-                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 14px' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#166534', display: 'block' }}>المتبقي المتاح</span>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>المتبقي المتاح</span>
                   <strong style={{ fontSize: '1.1rem', color: '#15803d' }}>
                     {Math.max(0, Number(employee?.annualLeaveBalance || 21) - Number(employee?.usedAnnualLeaves || 0))} يوم
                   </strong>
                 </div>
-                <div style={{ background: pendingLeavesCount > 0 ? '#fefce8' : '#f8fafc', border: `1px solid ${pendingLeavesCount > 0 ? '#fef08a' : '#e2e8f0'}`, borderRadius: '8px', padding: '10px 14px' }}>
-                  <span style={{ fontSize: '0.7rem', color: pendingLeavesCount > 0 ? '#854d0e' : '#64748b', display: 'block' }}>طلبات قيد المراجعة</span>
-                  <strong style={{ fontSize: '1.1rem', color: pendingLeavesCount > 0 ? '#b45309' : '#0f172a' }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>طلبات قيد المراجعة</span>
+                  <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>
                     {pendingLeavesCount} طلب
                   </strong>
                 </div>

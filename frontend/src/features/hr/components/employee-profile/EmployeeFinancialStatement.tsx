@@ -65,19 +65,19 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
   const getCategoryBadge = (category: string) => {
     switch (category) {
       case 'withdrawal':
-        return { label: 'سلفة / مسحوب نقدي', bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' };
+        return { label: 'سلفة / مسحوب نقدي', bg: '#f8fafc', color: '#334155', border: '#e2e8f0' };
       case 'salary_payout':
-        return { label: 'قبض وصرف راتب', bg: '#e0e7ff', color: '#3730a3', border: '#c7d2fe' };
+        return { label: 'صرف راتب', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' };
       case 'salary_entitlement':
-        return { label: 'استحقاق راتب', bg: '#ecfdf5', color: '#065f46', border: '#a7f3d0' };
+        return { label: 'استحقاق راتب', bg: '#f8fafc', color: '#0f172a', border: '#e2e8f0' };
       case 'loan_repayment':
         return { label: 'سداد سلفة نقدي', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' };
       case 'penalty':
-        return { label: 'جزاء / خصم إداري', bg: '#fef3c7', color: '#92400e', border: '#fde68a' };
+        return { label: 'جزاء / خصم إداري', bg: '#fffbeb', color: '#92400e', border: '#fef3c7' };
       case 'allowance':
-        return { label: 'مكافأة / بدل إضافي', bg: '#f5f3ff', color: '#5b21b6', border: '#ddd6fe' };
+        return { label: 'مكافأة / بدل إضافي', bg: '#faf5ff', color: '#6b21a8', border: '#f3e8ff' };
       default:
-        return { label: 'حركة مالية', bg: '#f1f5f9', color: '#334155', border: '#cbd5e1' };
+        return { label: 'حركة مالية', bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
     }
   };
 
@@ -250,42 +250,43 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
             </div>
 
             {/* Card 3: Total Withdrawals from Cashier */}
-            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '12px', padding: '14px' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#9a3412', display: 'block', marginBottom: '4px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 إجمالي المسحوبات والسلف (الكاشير)
               </span>
-              <strong style={{ fontSize: '1.15rem', color: '#c2410c', display: 'block' }}>
+              <strong style={{ fontSize: '1.15rem', color: '#0f172a', display: 'block' }}>
                 {egyptMoney(summary.totalWithdrawals)}
               </strong>
-              <span style={{ fontSize: '0.7rem', color: '#9a3412' }}>
-                المتبقي كمديونية سلف قائمة: <strong>{egyptMoney(summary.remainingLoanDebt)}</strong>
+              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                المتبقي كمديونية سلف قائمة: <strong style={{ color: '#0f172a' }}>{egyptMoney(summary.remainingLoanDebt)}</strong>
               </span>
             </div>
 
             {/* Card 4: Penalties and Deductions */}
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '14px' }}>
-              <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#991b1b', display: 'block', marginBottom: '4px' }}>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px' }}>
+              <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
                 الجزاءات والخصومات الإدارية
               </span>
-              <strong style={{ fontSize: '1.15rem', color: '#dc2626', display: 'block' }}>
+              <strong style={{ fontSize: '1.15rem', color: '#0f172a', display: 'block' }}>
                 {egyptMoney(summary.totalPenalties)}
               </strong>
-              <span style={{ fontSize: '0.7rem', color: '#991b1b' }}>
+              <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
                 خصومات تأخير وغياب وجزاءات
               </span>
             </div>
 
             {/* Card 5: Net Balance (Final Position) */}
             <div style={{
-              background: summary.balanceStatus === 'credit' ? '#f0fdf4' : summary.balanceStatus === 'debit' ? '#fef2f2' : '#f8fafc',
-              border: `1px solid ${summary.balanceStatus === 'credit' ? '#86efac' : summary.balanceStatus === 'debit' ? '#fca5a5' : '#cbd5e1'}`,
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
               borderRadius: '12px',
               padding: '14px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
             }}>
               <span style={{
                 fontSize: '0.74rem',
-                fontWeight: 800,
-                color: summary.balanceStatus === 'credit' ? '#166534' : summary.balanceStatus === 'debit' ? '#991b1b' : '#334155',
+                fontWeight: 700,
+                color: '#475569',
                 display: 'block',
                 marginBottom: '4px',
               }}>
@@ -293,15 +294,21 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
               </span>
               <strong style={{
                 fontSize: '1.25rem',
-                color: summary.balanceStatus === 'credit' ? '#15803d' : summary.balanceStatus === 'debit' ? '#b91c1c' : '#0f172a',
+                color: '#0f172a',
                 display: 'block',
               }}>
                 {egyptMoney(Math.abs(summary.netFinancialBalance))}
               </strong>
               <span style={{
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                color: summary.balanceStatus === 'credit' ? '#166534' : summary.balanceStatus === 'debit' ? '#991b1b' : '#475569',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                display: 'inline-block',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                marginTop: '4px',
+                background: summary.balanceStatus === 'credit' ? '#f0fdf4' : summary.balanceStatus === 'debit' ? '#f8fafc' : '#f1f5f9',
+                color: summary.balanceStatus === 'credit' ? '#166534' : summary.balanceStatus === 'debit' ? '#334155' : '#64748b',
+                border: `1px solid ${summary.balanceStatus === 'credit' ? '#bbf7d0' : '#e2e8f0'}`,
               }}>
                 {summary.balanceStatus === 'credit'
                   ? 'رصيد دائن للموظف (له مستحقات باقية)'
@@ -404,20 +411,30 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                             <td style={{ fontSize: '0.78rem', color: '#475569' }}>
                               {tx.actorName || '—'}
                             </td>
-                            <td style={{ textAlign: 'left', fontWeight: tx.debit > 0 ? 700 : 400, color: tx.debit > 0 ? '#b91c1c' : '#94a3b8', fontSize: '0.82rem' }}>
+                            <td style={{ textAlign: 'left', fontWeight: tx.debit > 0 ? 600 : 400, color: tx.debit > 0 ? '#0f172a' : '#94a3b8', fontSize: '0.82rem' }}>
                               {tx.debit > 0 ? egyptMoney(tx.debit) : '—'}
                             </td>
-                            <td style={{ textAlign: 'left', fontWeight: tx.credit > 0 ? 700 : 400, color: tx.credit > 0 ? '#15803d' : '#94a3b8', fontSize: '0.82rem' }}>
+                            <td style={{ textAlign: 'left', fontWeight: tx.credit > 0 ? 600 : 400, color: tx.credit > 0 ? '#15803d' : '#94a3b8', fontSize: '0.82rem' }}>
                               {tx.credit > 0 ? egyptMoney(tx.credit) : '—'}
                             </td>
                             <td style={{
                               textAlign: 'left',
-                              fontWeight: 800,
+                              fontWeight: 700,
                               fontSize: '0.82rem',
-                              color: tx.runningBalance > 0 ? '#15803d' : tx.runningBalance < 0 ? '#b91c1c' : '#475569',
+                              color: '#0f172a',
                             }}>
                               {egyptMoney(Math.abs(tx.runningBalance))}
-                              <span style={{ fontSize: '0.68rem', display: 'block', color: '#64748b', fontWeight: 500 }}>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                display: 'inline-block',
+                                marginTop: '2px',
+                                padding: '1px 5px',
+                                borderRadius: '4px',
+                                background: tx.runningBalance > 0 ? '#f0fdf4' : tx.runningBalance < 0 ? '#f8fafc' : '#f1f5f9',
+                                color: tx.runningBalance > 0 ? '#15803d' : tx.runningBalance < 0 ? '#475569' : '#64748b',
+                                border: `1px solid ${tx.runningBalance > 0 ? '#bbf7d0' : '#e2e8f0'}`,
+                                fontWeight: 600,
+                              }}>
                                 {tx.runningBalance > 0 ? 'دائن (له)' : tx.runningBalance < 0 ? 'مدين (عليه)' : 'خالص'}
                               </span>
                             </td>

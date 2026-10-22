@@ -40,208 +40,135 @@ export function EmployeeDetailsTab({
   const usedLeaves = Number(employee?.usedAnnualLeaves || 0);
   const remainingLeaves = Math.max(0, annualBalance - usedLeaves);
 
+  // Field renderer helper for visual consistency and clean key-value hierarchy
+  const renderField = (label: string, value: React.ReactNode, hint?: string) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+      <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 500 }}>{label}</span>
+      <div style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 600 }}>
+        {value}
+      </div>
+      {hint ? <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{hint}</span> : null}
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {/* 1. البيانات الأساسية والوظيفية */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 22px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>البيانات الأساسية والوظيفية للموظف</strong>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الاسم بالكامل</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{employeeName(employee)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>كود الموظف</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.employeeNo)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الحالة الوظيفية</span>
-            <strong style={{ fontSize: '0.85rem', color: employee?.status === 'active' ? '#15803d' : '#b91c1c' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px 20px' }}>
+          {renderField('الاسم بالكامل', employeeName(employee))}
+          {renderField('كود الموظف', fallbackText(employee?.employeeNo))}
+          {renderField('الحالة الوظيفية', (
+            <span style={{
+              display: 'inline-block',
+              padding: '1px 8px',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              backgroundColor: employee?.status === 'active' ? '#f0fdf4' : '#f8fafc',
+              color: employee?.status === 'active' ? '#15803d' : '#64748b',
+              border: `1px solid ${employee?.status === 'active' ? '#bbf7d0' : '#e2e8f0'}`,
+            }}>
               {statusLabel(employee?.status)}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>القسم الإداري</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.departmentName)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>المسمى الوظيفي</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.jobTitleName)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الوظيفة / المنصب</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.positionName)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>تاريخ التعيين</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.hireDate)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الرقم القومي</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a', direction: 'ltr', display: 'inline-block' }}>
-              {nationalIdMasked}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الفرع التشغيلي</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.branchName)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>المستودع / الموقع</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.locationName)}</strong>
-          </div>
+            </span>
+          ))}
+          {renderField('القسم الإداري', fallbackText(employee?.departmentName))}
+          {renderField('المسمى الوظيفي', fallbackText(employee?.jobTitleName))}
+          {renderField('الوظيفة / المنصب', fallbackText(employee?.positionName))}
+          {renderField('تاريخ التعيين', fallbackText(employee?.hireDate))}
+          {renderField('الرقم القومي', <span style={{ direction: 'ltr', display: 'inline-block' }}>{nationalIdMasked}</span>)}
+          {renderField('الفرع التشغيلي', fallbackText(employee?.branchName))}
+          {renderField('المستودع / الموقع', fallbackText(employee?.locationName))}
         </div>
       </div>
 
       {/* 2. بيانات الدوام ومواعيد العمل والأجر */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 22px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>بيانات الدوام والأجر والسياسات</strong>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>نظام الأجر</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {normalizeText(employee?.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري'}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>أجر الساعة</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {normalizeText(employee?.compensationType) === 'hourly' ? money(Number(employee?.hourlyRate || 0)) : 'غير متاح'}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>ساعات اليوم المتوقعة</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {employee?.expectedDailyHours != null ? `${employee.expectedDailyHours} ساعات` : 'غير محدد'}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>موعد الحضور المقرر</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {fallbackText(employee?.scheduledCheckInTime)}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>موعد الانصراف المقرر</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {fallbackText(employee?.scheduledCheckOutTime)}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>فترة السماح للتأخير</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {employee?.graceMinutes != null ? `${employee.graceMinutes} دقيقة` : 'غير محدد'}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>سياسة الحضور</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {employee?.attendancePolicy === 'flexible' ? 'حضور مرن' : 'دوام صارم'}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>سياسة العمل الإضافي</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {employee?.overtimePolicy === 'auto_approved' ? 'اعتماد تلقائي' : employee?.overtimePolicy === 'disabled' ? 'معطل' : 'يتطلب مراجعة'}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>سياسة التأخير والجزاءات</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-              {employee?.delayPolicy ? fallbackText(employee.delayPolicy) : 'حسب لائحة العمل'}
-            </strong>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px 20px' }}>
+          {renderField('نظام الأجر', normalizeText(employee?.compensationType) === 'hourly' ? 'أجر بالساعة' : 'راتب شهري')}
+          {renderField('أجر الساعة', normalizeText(employee?.compensationType) === 'hourly' ? money(Number(employee?.hourlyRate || 0)) : '—')}
+          {renderField('ساعات اليوم المتوقعة', employee?.expectedDailyHours != null ? `${employee.expectedDailyHours} ساعات` : '—')}
+          {renderField('موعد الحضور المقرر', fallbackText(employee?.scheduledCheckInTime))}
+          {renderField('موعد الانصراف المقرر', fallbackText(employee?.scheduledCheckOutTime))}
+          {renderField('فترة السماح للتأخير', employee?.graceMinutes != null ? `${employee.graceMinutes} دقيقة` : '—')}
+          {renderField('سياسة الحضور', employee?.attendancePolicy === 'flexible' ? 'حضور مرن' : 'دوام صارم')}
+          {renderField('سياسة العمل الإضافي', employee?.overtimePolicy === 'auto_approved' ? 'اعتماد تلقائي' : employee?.overtimePolicy === 'disabled' ? 'معطل' : 'يتطلب مراجعة')}
+          {renderField('سياسة التأخير والجزاءات', employee?.delayPolicy ? fallbackText(employee.delayPolicy) : 'حسب لائحة العمل')}
         </div>
       </div>
 
       {/* 3. الحساب البنكي والبيانات المالية */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 22px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>البيانات البنكية وطريقة التحويل المالي</strong>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>اسم البنك</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(employee?.bankName)}</strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>رقم الحساب البنكي</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a', direction: 'ltr', display: 'inline-block' }}>
-              {fallbackText(employee?.bankAccountNumber)}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الآيبان (IBAN)</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a', direction: 'ltr', display: 'inline-block' }}>
-              {fallbackText(employee?.iban)}
-            </strong>
-          </div>
-          <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>كود السويفت (SWIFT)</span>
-            <strong style={{ fontSize: '0.85rem', color: '#0f172a', direction: 'ltr', display: 'inline-block' }}>
-              {fallbackText(employee?.bankSwiftCode)}
-            </strong>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px 20px' }}>
+          {renderField('اسم البنك', fallbackText(employee?.bankName))}
+          {renderField('رقم الحساب البنكي', <span style={{ direction: 'ltr', display: 'inline-block' }}>{fallbackText(employee?.bankAccountNumber)}</span>)}
+          {renderField('الآيبان (IBAN)', <span style={{ direction: 'ltr', display: 'inline-block' }}>{fallbackText(employee?.iban)}</span>)}
+          {renderField('كود السويفت (SWIFT)', <span style={{ direction: 'ltr', display: 'inline-block' }}>{fallbackText(employee?.bankSwiftCode)}</span>)}
         </div>
       </div>
 
       {/* 4. التأمينات الاجتماعية والضرائب ورصيد الإجازات */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '14px' }}>
         {/* التأمينات والضرائب */}
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 22px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
             <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>التأمينات الاجتماعية والضرائب</strong>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>التأمين الاجتماعي</span>
-              <strong style={{ fontSize: '0.85rem', color: employee?.hasSocialInsurance ? '#15803d' : '#64748b' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 20px' }}>
+            {renderField('التأمين الاجتماعي', (
+              <span style={{
+                display: 'inline-block',
+                padding: '1px 8px',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                backgroundColor: employee?.hasSocialInsurance ? '#f0fdf4' : '#f8fafc',
+                color: employee?.hasSocialInsurance ? '#15803d' : '#64748b',
+                border: `1px solid ${employee?.hasSocialInsurance ? '#bbf7d0' : '#e2e8f0'}`,
+              }}>
                 {employee?.hasSocialInsurance ? 'مؤمن عليه' : 'غير مؤمن'}
-              </strong>
-            </div>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الأجر التأميني</span>
-              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-                {employee?.insuranceSalary != null ? money(employee.insuranceSalary) : 'غير محدد'}
-              </strong>
-            </div>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', gridColumn: 'span 2' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>ضريبة كسب العمل</span>
-              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>
-                {employee?.hasIncomeTax ? 'خاضع لضريبة كسب العمل' : 'معفى / غير خاضع'}
-              </strong>
+              </span>
+            ))}
+            {renderField('الأجر التأميني', employee?.insuranceSalary != null ? money(employee.insuranceSalary) : '—')}
+            <div style={{ gridColumn: 'span 2' }}>
+              {renderField('ضريبة كسب العمل', employee?.hasIncomeTax ? 'خاضع لضريبة كسب العمل' : 'معفى / غير خاضع')}
             </div>
           </div>
         </div>
 
         {/* رصيد الإجازات السنوية */}
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 22px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
             <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
             <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>رصيد الإجازات السنوية</strong>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الرصيد الكلي</span>
-              <strong style={{ fontSize: '1.1rem', color: '#0f172a', marginTop: '2px', display: 'block' }}>{annualBalance}</strong>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', textAlign: 'center' }}>
+            <div>
+              <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block', marginBottom: '3px' }}>الرصيد الكلي</span>
+              <strong style={{ fontSize: '1.25rem', color: '#0f172a', display: 'block', fontWeight: 800 }}>{annualBalance}</strong>
               <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>يوم سنوي</span>
             </div>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>المستهلك</span>
-              <strong style={{ fontSize: '1.1rem', color: '#c2410c', marginTop: '2px', display: 'block' }}>{usedLeaves}</strong>
+            <div>
+              <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block', marginBottom: '3px' }}>المستهلك</span>
+              <strong style={{ fontSize: '1.25rem', color: '#0f172a', display: 'block', fontWeight: 800 }}>{usedLeaves}</strong>
               <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>يوم مستهلك</span>
             </div>
-            <div style={{ background: '#f0fdf4', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.7rem', color: '#166534', display: 'block' }}>المتبقي الصافي</span>
-              <strong style={{ fontSize: '1.1rem', color: '#15803d', marginTop: '2px', display: 'block' }}>{remainingLeaves}</strong>
+            <div>
+              <span style={{ fontSize: '0.725rem', color: '#166534', display: 'block', marginBottom: '3px', fontWeight: 600 }}>المتبقي الصافي</span>
+              <strong style={{ fontSize: '1.25rem', color: '#15803d', display: 'block', fontWeight: 800 }}>{remainingLeaves}</strong>
               <span style={{ fontSize: '0.68rem', color: '#166534' }}>يوم متاح</span>
             </div>
           </div>
@@ -249,8 +176,8 @@ export function EmployeeDetailsTab({
       </div>
 
       {/* 5. بيانات التواصل وأرقام الطوارئ */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 22px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
           <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>بيانات التواصل وأرقام الطوارئ</strong>
         </div>
@@ -258,8 +185,8 @@ export function EmployeeDetailsTab({
       </div>
 
       {/* 6. العقد والراتب التعاقدي */}
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '18px 22px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
             <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>العقد والراتب التعاقدي</strong>
@@ -284,23 +211,24 @@ export function EmployeeDetailsTab({
         {!canViewSalary ? (
           <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا تملك صلاحية عرض هذه البيانات.</p>
         ) : latestContract ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>نوع التعاقد</span>
-              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(latestContract.contractType)}</strong>
-            </div>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>حالة العقد</span>
-              <strong style={{ fontSize: '0.85rem', color: '#15803d' }}>{statusLabel(latestContract.status)}</strong>
-            </div>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>تاريخ بداية العقد</span>
-              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{fallbackText(latestContract.startDate)}</strong>
-            </div>
-            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>الراتب الأساسي التعاقدي</span>
-              <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{money(latestContract.baseSalary)}</strong>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px 20px' }}>
+            {renderField('نوع التعاقد', fallbackText(latestContract.contractType))}
+            {renderField('حالة العقد', (
+              <span style={{
+                display: 'inline-block',
+                padding: '1px 8px',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                backgroundColor: '#f0fdf4',
+                color: '#15803d',
+                border: '1px solid #bbf7d0',
+              }}>
+                {statusLabel(latestContract.status)}
+              </span>
+            ))}
+            {renderField('تاريخ بداية العقد', fallbackText(latestContract.startDate))}
+            {renderField('الراتب الأساسي التعاقدي', <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{money(latestContract.baseSalary)}</strong>)}
           </div>
         ) : (
           <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>لا يوجد عقد أو راتب مسجل.</p>
