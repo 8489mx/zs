@@ -122,6 +122,9 @@ jobs:
           cat /tmp/backend.log
           exit 1
         working-directory: backend
+      - name: Import module financial and PostgreSQL regression
+        run: npm run test:import-safety
+        working-directory: backend
       - name: Run backend E2E
         run: npm run test:e2e
         working-directory: backend

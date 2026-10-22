@@ -208,8 +208,8 @@ export function calculateDemurrageRisk(input: {
   totalEstimatedDemurrageFeesEgp: number;
   estimatedFeesEgp: number;
 } {
-  const freeDays = Math.max(0, Number(input.freeDays) || 14);
-  const rateUsd = Math.max(0, Number(input.ratePerDayUsd) || 50);
+  const freeDays = Math.max(0, Number(input.freeDays ?? 14));
+  const rateUsd = Math.max(0, Number(input.ratePerDayUsd ?? 50));
   const exchangeRate = Math.max(0.0001, Number(input.exchangeRate) || 1);
 
   const status = (input.status || '').trim().toLowerCase();
