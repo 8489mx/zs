@@ -371,6 +371,15 @@ export class InventoryCountService {
               expectedQty, countedQty: Number(item.counted_qty || 0), unitCost,
               countedSerials: serialData, batchCounts: batchData,
             });
+            // Swapping physical serial identities or lot allocations can leave
+            // quantity unchanged. It still needs a durable actor/line trace even
+            // though no monetary journal is appropriate for a zero-net movement.
+            if (hasTrace && Math.abs(variance) < 0.001) {
+              await this.audit.logWithExecutor(trx, 'مطابقة سيريالات وتشغيلات جرد بلا فرق كمي',
+                JSON.stringify({ sessionId, itemId: item.id, productId: item.product_id,
+                  locationId: session.location_id, quantity: item.counted_qty,
+                  countedSerials: serialData, batchCounts: batchData }), auth);
+            }
           }
           if (Math.abs(variance) >= 0.001) {
             const product = await trx.selectFrom('products').select('cost_price')
