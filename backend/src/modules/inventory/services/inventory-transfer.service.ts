@@ -66,7 +66,7 @@ export class InventoryTransferService {
     const transferIds = transfers.map((t) => Number(t.id || 0)).filter((id) => id > 0);
     const items = transferIds.length ? await executor
       .selectFrom('stock_transfer_items')
-      .select(['id', 'transfer_id', 'product_id', 'product_name', 'qty'])
+      .select(['id', 'transfer_id', 'product_id', 'product_name', 'qty', 'serial_tracking', 'batch_tracking'])
       .where('transfer_id', 'in', transferIds)
       .where(this.tenantPredicate(auth))
       .orderBy('transfer_id', 'asc')
@@ -76,7 +76,14 @@ export class InventoryTransferService {
     for (const item of items) {
       const key = String(item.transfer_id);
       if (!byTransfer.has(key)) byTransfer.set(key, []);
-      byTransfer.get(key)!.push({ id: String(item.id), productId: String(item.product_id), productName: item.product_name || '', qty: Number(item.qty || 0) });
+      const serialTracking: unknown = typeof item.serial_tracking === 'string' ? JSON.parse(item.serial_tracking) : item.serial_tracking;
+      const batchTracking: unknown = typeof item.batch_tracking === 'string' ? JSON.parse(item.batch_tracking) : item.batch_tracking;
+      byTransfer.get(key)!.push({
+        id: String(item.id), productId: String(item.product_id),
+        productName: item.product_name || '', qty: Number(item.qty || 0),
+        serialTracking: Array.isArray(serialTracking) ? serialTracking : [],
+        batchTracking: Array.isArray(batchTracking) ? batchTracking : [],
+      });
     }
 
     let rows = transfers.map((t) => ({ id: String(t.id), docNo: t.doc_no || `TR-${t.id}`, fromLocationId: String(t.from_location_id), toLocationId: t.to_location_id ? String(t.to_location_id) : '', fromBranchId: t.from_branch_id ? String(t.from_branch_id) : '', toBranchId: t.to_branch_id ? String(t.to_branch_id) : '', fromLocationName: t.from_location_name || '', toLocationName: t.to_location_name || '', fromBranchName: t.from_branch_name || '', toBranchName: t.to_branch_name || '', status: t.status || 'sent', note: t.note || '', recipientName: t.recipient_name || '', receivedAt: t.received_at || '', cancelledAt: t.cancelled_at || '', createdBy: t.created_by_name || '', receivedBy: t.received_by_name || '', cancelledBy: t.cancelled_by_name || '', date: t.created_at, items: byTransfer.get(String(t.id)) || [] }));
@@ -258,7 +265,10 @@ export class InventoryTransferService {
       }
 
       if (!effectiveToLocationId) throw new AppError('مخزن الاستلام غير محدد', 'TRANSFER_DESTINATION_MISSING', 409);
-      await this.scope.assertLocationScope(Number(effectiveToLocationId), auth, false, 'write');
+      const verifiedDestination = await this.scope.assertLocationScope(Number(effectiveToLocationId), auth, false, 'write');
+      if (transfer.to_branch_id != null && Number(verifiedDestination.branchId) !== Number(transfer.to_branch_id)) {
+        throw new AppError('فرع وجهة التحويل لا يطابق موقع الاستلام', 'TRANSFER_DESTINATION_BRANCH_MISMATCH', 409);
+      }
       let anyVariance = false;
 
       if (effectiveToLocationId) {
@@ -272,7 +282,7 @@ export class InventoryTransferService {
           const traceReceipt = receiptDetails.get(Number(item.id)) || { itemId: Number(item.id), receivedQty: received };
           const reconciledBatches = await receiveTrackedStock(
             trx, scope, item, traceReceipt, Number(inTransitLocationId),
-            Number(effectiveToLocationId), transfer.to_branch_id, transferId,
+            Number(effectiveToLocationId), verifiedDestination.branchId, transferId,
           );
 
           if (inTransitLocationId && received > 0) {
