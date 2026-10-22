@@ -34,7 +34,24 @@ describe('POS stock handling', () => {
     expect(cart[0].qty).toBe(4);
     expect(cart[0].stockLimit).toBe(4);
     expect(cart[0].unitMultiplier).toBe(0.5);
+    expect(cart[0].price).toBe(5);
     expect(() => addPosItem(cart, halfUnitProduct, { priceType: 'retail', quantity: 1 })).toThrow();
+  });
+
+  it('charges the correct retail and wholesale amount for a carton instead of one piece', () => {
+    const carton: Product = {
+      ...product,
+      stock: 24,
+      retailPrice: 10,
+      wholesalePrice: 8,
+      units: [{ ...product.units[0], name: 'كرتونة', multiplier: 12 }],
+    };
+    const retail = addPosItem([], carton, { priceType: 'retail', quantity: 2 });
+    const wholesale = addPosItem([], carton, { priceType: 'wholesale', quantity: 1 });
+    expect(retail[0].unitMultiplier).toBe(12);
+    expect(retail[0].price).toBe(120);
+    expect(retail[0].qty * retail[0].price).toBe(240);
+    expect(wholesale[0].price).toBe(96);
   });
 
   it('reports unavailable products without mutating the cart when negative stock sales are disabled', () => {
