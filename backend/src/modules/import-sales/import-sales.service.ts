@@ -1217,8 +1217,8 @@ export class ImportSalesService {
     const demurrageRisk = calculateDemurrageRisk({
       arrivalDate: shipment.arrival_date,
       demurrageStartDate: shipment.demurrage_start_date,
-      freeDays: Number(shipment.free_demurrage_days || 14),
-      ratePerDayUsd: Number(shipment.demurrage_rate_per_day || 50),
+      freeDays: Number(shipment.free_demurrage_days ?? 14),
+      ratePerDayUsd: Number(shipment.demurrage_rate_per_day ?? 50),
       exchangeRate: Number(shipment.exchange_rate_at_arrival || 1),
       status: shipment.container_status === 'empty_returned' ? 'empty_returned' : (shipment.status || 'Pending'),
     });
@@ -3048,8 +3048,8 @@ export class ImportSalesService {
       const risk = calculateDemurrageRisk({
         arrivalDate: s.arrival_date,
         demurrageStartDate: s.demurrage_start_date,
-        freeDays: Number(s.free_demurrage_days || 14),
-        ratePerDayUsd: Number(s.demurrage_rate_per_day || 50),
+        freeDays: Number(s.free_demurrage_days ?? 14),
+        ratePerDayUsd: Number(s.demurrage_rate_per_day ?? 50),
         exchangeRate: Number(s.exchange_rate_at_arrival || 1),
         status: s.container_status === 'empty_returned' ? 'empty_returned' : (s.status || 'Pending'),
       });
