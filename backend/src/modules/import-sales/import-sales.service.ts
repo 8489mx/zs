@@ -1321,7 +1321,12 @@ export class ImportSalesService {
           ['customsDeclarationNo','customs_declaration_no'], ['isConsolidated','is_consolidated'],
         ];
         for (const [input, column] of frozenFields) {
-          if (dto[input] !== undefined && String(dto[input] ?? '') !== String(shipment[column] ?? '')) {
+          const submitted = dto[input];
+          const stored = shipment[column];
+          const unchanged = typeof submitted === 'number' && Number.isFinite(Number(stored))
+            ? submitted === Number(stored)
+            : String(submitted ?? '') === String(stored ?? '');
+          if (submitted !== undefined && !unchanged) {
             this.assertShipmentEditable(state);
           }
           delete (payload as any)[column];
