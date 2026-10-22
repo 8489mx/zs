@@ -211,6 +211,9 @@ jobs:
               throw "PowerShell parse errors in $file"
             }
           }
+      - name: Electron update lifecycle regression guard
+        shell: pwsh
+        run: node scripts/test-electron-update-lifecycle.cjs
       - name: LAN URL security regression
         shell: pwsh
         run: |
