@@ -1163,6 +1163,7 @@ export class PurchasesWriteService {
         .values({
           supplier_id: supplier.id,
           amount,
+          payment_channel: payload.paymentChannel || 'cash',
           note: normalizeOptionalNote(payload.note),
           branch_id: branchId,
           location_id: locationId,
@@ -1178,7 +1179,7 @@ export class PurchasesWriteService {
       await trx.updateTable('supplier_payments').set({ doc_no: docNo }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       const paymentNote = normalizeOptionalNote(payload.note);
       await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId, payload.paymentChannel || 'cash');
       const posting = await this.accountingPosting.postSupplierPayment(trx, id, auth);
       if (!posting.journalEntryId) throw new AppError(`Supplier payment ${id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
       if (idempotencyKey) {
@@ -1287,6 +1288,7 @@ export class PurchasesWriteService {
         .values({
           customer_id: customer.id,
           amount,
+          payment_channel: payload.paymentChannel || 'cash',
           note: normalizeOptionalNote(payload.note),
           branch_id: branchId,
           location_id: locationId,
@@ -1310,7 +1312,7 @@ export class PurchasesWriteService {
 
       const fullDesc = `${descPrefix}${paymentNote ? ` - ${paymentNote}` : ''}`;
       await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId, payload.paymentChannel || 'cash');
       const posting = await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
       if (!posting.journalEntryId) throw new AppError(`Customer payment ${paymentId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
 
