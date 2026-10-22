@@ -2854,7 +2854,7 @@ export class SalesWriteService {
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
-        if (!product) continue;
+        if (!product) throw new AppError('لا يمكن إلغاء البيع: الصنف الأصلي مفقود ويحتاج تسوية مخزون', 'SALE_CANCEL_PRODUCT_RECONCILIATION_REQUIRED', 409);
         const { restoreQty } = calculateRestoredStockQuantity(product.stock_qty, item.qty, item.unit_multiplier);
 
         const allocations = await trx.selectFrom('sale_line_stock_allocations')
@@ -2868,8 +2868,11 @@ export class SalesWriteService {
              const qtyToRestore = Number(alloc.quantity || 0);
 
              // Find branch for this location
-             const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
-             const branchId = locData?.branch_id || sale.branch_id;
+             const locData = await trx.selectFrom('stock_locations').select('branch_id')
+               .where('id', '=', alloc.location_id).where('tenant_id', '=', scope.tenantId)
+               .executeTakeFirst();
+             if (!locData) throw new AppError('مخزن الفاتورة لم يعد صالحاً؛ يلزم تسوية قبل الإلغاء', 'SALE_CANCEL_LOCATION_RECONCILIATION_REQUIRED', 409);
+             const branchId = locData.branch_id ?? sale.branch_id;
 
              const stockChange = await applyStockDelta(trx, {
                productId: alloc.product_id,
