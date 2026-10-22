@@ -236,10 +236,9 @@ export class CatalogProductService {
         for (const row of maxResult) {
           if (!row.style_code) continue;
           const parsed = parseInt(row.style_code.trim(), 10);
-          if (!isNaN(parsed) && parsed.toString() === row.style_code.trim()) {
-            if (parsed > maxNumeric) {
-              maxNumeric = parsed;
-            }
+          // Exclude legacy timestamp-like codes: the counter column is an INTEGER.
+          if (Number.isSafeInteger(parsed) && parsed <= 2_000_000_000 && parsed.toString() === row.style_code.trim()) {
+            if (parsed > maxNumeric) maxNumeric = parsed;
           }
         }
         
@@ -263,11 +262,18 @@ export class CatalogProductService {
           .executeTakeFirst();
       }
 
-      let allocated = counter!.next_value;
-      if (allocated <= 1000) {
-        allocated = 1001;
+      let allocated = Math.max(1001, Number(counter!.next_value));
+      // Manual product codes can be created after the counter was seeded.
+      // Never suggest a style code that is already in use by this tenant.
+      while (allocated <= 2_000_000_000) {
+        const taken = await trx.selectFrom('products').select('id')
+          .where('style_code', '=', String(allocated))
+          .where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+        if (!taken) break;
+        allocated++;
       }
-      
+      if (allocated > 2_000_000_000) throw new AppError('نفدت أكواد الموديلات المتاحة', 'STYLE_CODE_EXHAUSTED', 409);
+
       await trx
         .updateTable('style_code_counters')
         .set({ next_value: allocated + 1 })
