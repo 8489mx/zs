@@ -52,7 +52,8 @@ function normalizeSaleQuantity(value: number, isWeighted?: boolean) {
 }
 
 function getResolvedStockLimit(product: Product, unit: ProductUnit, allowDecimal: boolean) {
-  const multiplier = Math.max(Number(unit.multiplier || 1), 1);
+  const candidate = Number(unit.multiplier);
+  const multiplier = Number.isFinite(candidate) && candidate > 0 ? candidate : 1;
   const rawLimit = Number(product.stock || 0) / multiplier;
   return allowDecimal ? roundQuantity(rawLimit) : Math.floor(rawLimit);
 }
