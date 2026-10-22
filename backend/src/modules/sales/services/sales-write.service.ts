@@ -2952,7 +2952,22 @@ export class SalesWriteService {
           .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
         : sale.payment_channel === 'cash' ? originalPaid : 0;
       if (cashRefundTotal > 0) {
-        await this.finance.addTreasuryTransaction(trx, -Number(cashRefundTotal.toFixed(2)), `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
+        // Cash refunds belong to the shift that ACTUALLY pays the customer,
+        // not the original checkout shift. Without this link, cross-shift
+        // cancellation silently understates cash withdrawn today.
+        const refundShiftQuery = trx.selectFrom('cashier_shifts').select('id')
+          .where('opened_by', '=', auth.userId).where('status', '=', 'open')
+          .where('tenant_id', '=', scope.tenantId);
+        const refundShift = await (sale.branch_id == null
+          ? refundShiftQuery.where('branch_id', 'is', null)
+          : refundShiftQuery.where('branch_id', '=', sale.branch_id))
+          .orderBy('id', 'desc').forUpdate().executeTakeFirst();
+        if (!refundShift && !['admin', 'super_admin'].includes(auth.role)) {
+          throw new AppError('يجب فتح وردية على الفرع قبل رد نقدية فاتورة ملغاة', 'OPEN_SHIFT_REQUIRED', 400);
+        }
+        await this.finance.addTreasuryTransaction(trx, -Number(cashRefundTotal.toFixed(2)),
+          `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id,
+          refundShift?.id || null);
       }
 
       if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {
