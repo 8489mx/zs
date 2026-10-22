@@ -90,6 +90,16 @@ if ($pending.PSObject.Properties['electronExePath'] -and $pending.electronExePat
 $isElectronMode = (-not [string]::IsNullOrWhiteSpace($electronExePath)) -and (Test-Path $electronExePath)
 Write-Log "Mode: $(if ($isElectronMode) { 'Electron' } else { 'Portable' })"
 
+function Abort-BeforeApply([string]$Message) {
+  Write-Log "Update cancelled before changing application files: $Message"
+  Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
+  if ($isElectronMode -and (Test-Path $electronExePath)) {
+    Write-Log 'Reopening the previous, unchanged Electron application.'
+    Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal | Out-Null
+  }
+  exit 1
+}
+
 # ── Build path map ────────────────────────────────────────────────────────────
 if ($isElectronMode) {
   $unpackedBase = Join-Path $PortableRoot 'resources\app.asar.unpacked'
@@ -119,8 +129,7 @@ if ($isElectronMode) {
 
 # ── Validate patch source ─────────────────────────────────────────────────────
 if ([string]::IsNullOrWhiteSpace($patchUrl) -and [string]::IsNullOrWhiteSpace($localPatchPath)) {
-  Write-Log 'ERROR: Both patchUrl and localPatchPath are empty. Aborting.'
-  exit 1
+  Abort-BeforeApply 'No patch URL or local patch source was supplied'
 }
 
 Write-Log "Applying update to v$version"
@@ -141,13 +150,11 @@ if ([string]::IsNullOrWhiteSpace($localPatchPath)) {
     $patchUrl = $trustedUrl
     $expectedSha256 = ([string]$trusted.sha256).Trim().ToLowerInvariant()
   } catch {
-    Write-Log "ERROR: Official GitHub release manifest could not be authenticated: $($_.Exception.Message)"
-    exit 1
+    Abort-BeforeApply "Official GitHub release manifest verification failed: $($_.Exception.Message)"
   }
 }
 if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') {
-  Write-Log 'ERROR: A trusted SHA256 digest is required; old version was not touched.'
-  exit 1
+  Abort-BeforeApply 'No trusted SHA256 digest was supplied'
 }
 
 # ── Pre-Update Backup ─────────────────────────────────────────────────────────
@@ -217,8 +224,7 @@ try {
 
   Write-Log 'Pre-update backup completed.'
 } catch {
-  Write-Log "ERROR: Pre-update backup failed: $($_.Exception.Message). Aborting."
-  exit 1
+  Abort-BeforeApply "Pre-update backup failed: $($_.Exception.Message)"
 }
 
 # ── Staging ───────────────────────────────────────────────────────────────────
@@ -290,18 +296,18 @@ if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localP
     } else {
       Write-Log "ERROR: No patch archive found (download failed and no local patch available)."
       Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-      exit 1
+      Abort-BeforeApply 'Release could not be downloaded or found locally'
     }
   }
 }
 
 # Validate every byte before extracting any executable or applying any migration.
-if (-not (Test-Path $zipPath)) { Write-Log 'ERROR: Release ZIP missing'; exit 1 }
+if (-not (Test-Path $zipPath)) { Abort-BeforeApply 'Release ZIP missing' }
 $receivedSha256 = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($receivedSha256 -ne $expectedSha256) {
   Write-Log "ERROR: SHA256 mismatch. Expected $expectedSha256 but got $receivedSha256."
   Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-  exit 1
+  Abort-BeforeApply 'Release SHA256 mismatch'
 }
 Write-Log 'SHA256 of downloaded release verified.'
 
@@ -487,13 +493,15 @@ if (-not $applySuccess) {
   Write-Log "Initiating Rollback from $backupDir ..."
   try {
     if (Test-Path (Join-Path $backupDir 'backend\dist')) {
-       robocopy (Join-Path $backupDir 'backend\dist') (Join-Path $pathMap.AppBackendDir 'dist') /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+       robocopy (Join-Path $backupDir 'backend\dist') (Join-Path $pathMap.AppBackendDir 'dist') /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+       if ($LASTEXITCODE -ge 8) { throw "Backend rollback failed ($LASTEXITCODE)" }
     }
     if (Test-Path (Join-Path $backupDir 'backend\package.json')) {
        Copy-Item (Join-Path $backupDir 'backend\package.json') (Join-Path $pathMap.AppBackendDir 'package.json') -Force
     }
     if (Test-Path (Join-Path $backupDir 'frontend\dist')) {
-       robocopy (Join-Path $backupDir 'frontend\dist') $pathMap.AppFrontendDir /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+       robocopy (Join-Path $backupDir 'frontend\dist') $pathMap.AppFrontendDir /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+       if ($LASTEXITCODE -ge 8) { throw "Frontend rollback failed ($LASTEXITCODE)" }
     }
     if ($isElectronMode) {
       $clusterBackup = Join-Path $backupDir 'postgres-data'
