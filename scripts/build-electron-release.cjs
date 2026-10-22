@@ -43,7 +43,7 @@ async function main() {
     if (!fs.existsSync(sourceDir)) {
       console.warn(`[build-electron-release] Source directory not found: ${sourceDir}`);
       console.warn('[build-electron-release] Please verify if electron-builder configuration is outputting to win-unpacked.');
-      process.exit(0); // Exit gracefully as it might have built an installer instead of a directory
+      throw new Error('Electron output win-unpacked missing: refusing to report a successful release');
     }
 
     // Clean up target directory if it exists from a previous build
