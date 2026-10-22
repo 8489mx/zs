@@ -2092,38 +2092,45 @@ export class CatalogProductService {
   }
 
   async toggleProductArchive(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const product = await this.db
-      .selectFrom('products')
-      .select(['id', 'name', 'is_active'])
-      .where('id', '=', id)
-      .where(this.tenantPredicate(actor))
-      .executeTakeFirst();
-    if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-
-    const nextActive = !Boolean(product.is_active);
-    await this.db
-      .updateTable('products')
-      .set({
-        is_active: nextActive,
-        catalog_updated_at: sql`NOW()`,
-        updated_at: sql`NOW()`,
-      } as any)
-      .where('id', '=', id)
-      .where(this.tenantPredicate(actor))
-      .execute();
-
+    const result = await this.db.transaction().execute(async (trx) => {
+      const product = await trx.selectFrom('products').selectAll()
+        .where('id', '=', id).where(this.tenantPredicate(actor)).forUpdate().executeTakeFirst();
+      if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      const nextActive = !Boolean(product.is_active);
+      if (!nextActive && (Math.abs(Number(product.stock_qty || 0)) > 0.0001 || Number(product.reserved_qty || 0) > 0)) {
+        throw new AppError('لا يمكن أرشفة صنف عليه مخزون أو كميات محجوزة. صفّر رصيده أولاً.', 'PRODUCT_HAS_STOCK', 409);
+      }
+      if (nextActive) {
+        // Re-activating a historic variant must not collide with a newer active item.
+        const taken = await trx.selectFrom('products').select('id')
+          .where('id', '!=', id).where('is_active', '=', true)
+          .where(this.tenantPredicate(actor)).where((eb) => eb.or([
+            sql<boolean>`LOWER(name) = ${String(product.name || '').toLowerCase()}`,
+            ...(product.barcode ? [sql<boolean>`LOWER(barcode) = ${String(product.barcode).toLowerCase()}`] : []),
+            ...(product.sku ? [sql<boolean>`LOWER(sku) = ${String(product.sku).toLowerCase()}`] : []),
+          ])).executeTakeFirst();
+        if (taken) throw new AppError('لا يمكن إعادة تنشيط الصنف: الاسم أو الباركود أو SKU مستخدم بالفعل', 'PRODUCT_IDENTITY_CONFLICT', 409);
+        if (product.item_kind === 'fashion' && product.style_code) {
+          const duplicate = await trx.selectFrom('products').select('id')
+            .where('id', '!=', id).where('style_code', '=', product.style_code)
+            .where('item_kind', '=', 'fashion').where('is_active', '=', true)
+            .where(this.tenantPredicate(actor))
+            .where(sql`LOWER(COALESCE(color, ''))`, '=', String(product.color || '').toLowerCase())
+            .where(sql`LOWER(COALESCE(size, ''))`, '=', String(product.size || '').toLowerCase()).executeTakeFirst();
+          if (duplicate) throw new AppError('اللون والمقاس موجودان بالفعل في هذا الموديل', 'VARIANT_EXISTS', 409);
+        }
+      }
+      await trx.updateTable('products')
+        .set({ is_active: nextActive, catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
+        .where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      return { name: product.name, nextActive };
+    });
     (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
-    const actionLabel = nextActive ? 'تنشيط صنف' : 'أرشفة صنف';
-    const auditDetail = nextActive
-      ? `تم إلغاء أرشفة وتنشيط الصنف ${product.name} (#${id}) بواسطة ${actor.username}`
-      : `تم تعطيل وأرشفة الصنف ${product.name} (#${id}) بواسطة ${actor.username}`;
-    await this.audit.log(actionLabel, auditDetail, actor);
-
+    const actionLabel = result.nextActive ? 'تنشيط صنف' : 'أرشفة صنف';
+    await this.audit.log(actionLabel, `${result.nextActive ? 'تم تنشيط' : 'تم أرشفة'} الصنف ${result.name} (#${id}) بواسطة ${actor.username}`, actor);
     return {
-      ok: true,
-      id,
-      isActive: nextActive,
-      message: nextActive ? 'تم تنشيط الصنف بنجاح وإعادته لدليل الأصناف النشطة' : 'تم أرشفة وتعطيل الصنف بنجاح',
+      ok: true, id, isActive: result.nextActive,
+      message: result.nextActive ? 'تم تنشيط الصنف بنجاح وإعادته لدليل الأصناف النشطة' : 'تم أرشفة وتعطيل الصنف بنجاح',
     };
   }
 
