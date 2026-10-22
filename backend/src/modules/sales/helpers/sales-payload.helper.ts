@@ -127,6 +127,16 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
         modifiers: item.modifiers || [],
         serials: Array.isArray(item.serials) ? item.serials : undefined,
       }))
-      .filter((item) => item.productId > 0 && item.qty > 0),
+      .map((item) => {
+        // Never silently drop a sales line: that would book a partial invoice and
+        // deduct stock for fewer items than the cashier/customer submitted.
+        if (!Number.isInteger(item.productId) || item.productId <= 0 ||
+            !Number.isFinite(item.qty) || item.qty <= 0 ||
+            !Number.isFinite(item.price) || item.price < 0 ||
+            !Number.isFinite(item.unitMultiplier) || item.unitMultiplier <= 0) {
+          throw new AppError('تحتوي الفاتورة على صنف أو كمية أو سعر غير صالح', 'SALE_ITEM_INVALID', 400);
+        }
+        return item;
+      }),
   };
 }

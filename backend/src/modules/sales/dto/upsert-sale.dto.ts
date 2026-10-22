@@ -23,6 +23,7 @@ class SaleItemDto {
 
   @Type(() => Number)
   @IsNumber()
+  @Min(0.001)
   qty!: number;
 
   @IsOptional()
