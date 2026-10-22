@@ -10,6 +10,7 @@ import { SupplierBalanceScheduleCard } from '@/features/accounts/components/Supp
 import { CustomerBalanceInvoicesCard } from '@/features/accounts/components/CustomerBalanceInvoicesCard';
 import type { Customer, Supplier } from '@/types/domain';
 import { XIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
+import { DialogShell } from '@/shared/components/dialog-shell';
 
 function BuildingOfficeIcon({ size = 16, style }: { size?: number; style?: React.CSSProperties }) {
   return (
@@ -253,21 +254,21 @@ export function SupplierQuickPaymentDialog() {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="dialog-overlay supplier-quick-payment-dialog-overlay"
-      role="presentation"
-      onClick={(e) => { if (e.target === e.currentTarget) closeDialog(); }}
+    <DialogShell
+      open={isOpen}
+      onClose={closeDialog}
+      width="min(1060px, calc(100vw - 32px))"
+      maxHeight="min(92vh, 860px)"
+      shellClassName="supplier-quick-payment-shell"
+      ariaLabel={t('accounts.supplier_quick_payment_dialog.s0', "التحصيل والدفع السريع")}
     >
-      <div
-        className="dialog-shell supplier-payment-dialog supplier-quick-payment-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('accounts.supplier_quick_payment_dialog.s0', "التحصيل والدفع السريع")}
-      >
-        <div className="dialog-card supplier-payment-dialog-card supplier-quick-payment-card">
+      <div className="supplier-quick-payment-content" style={{ padding: '22px 24px' }}>
           <div className="quick-payment-dialog-header">
             <div className="quick-payment-header-content">
-              <h3>{t('accounts.supplier_quick_payment_dialog.s1', "نافذة التحصيل والدفع السريع")}</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ width: '3px', height: '16px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{t('accounts.supplier_quick_payment_dialog.s1', "نافذة التحصيل والدفع السريع")}</h3>
+              </div>
               <p className="muted">
                 {activeTab === 'suppliers'
                   ? t('accounts.supplier_quick_payment_dialog.s2', "سداد وجدولة مستحقات الموردين ومتابعة كشف الحساب الفوري.")
@@ -669,7 +670,6 @@ export function SupplierQuickPaymentDialog() {
             <Button type="button" variant="secondary" onClick={closeDialog}>{t('accounts.supplier_quick_payment_dialog.s28', "إغلاق النافذة")}</Button>
           </div>
         </div>
-      </div>
-    </div>
+    </DialogShell>
   );
 }
