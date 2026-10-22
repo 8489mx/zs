@@ -1,5 +1,17 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
+
+class DamagedBatchAllocationDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  batchId!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.001)
+  qty!: number;
+}
 
 export class CreateDamagedStockDto {
   @Type(() => Number)
@@ -11,6 +23,17 @@ export class CreateDamagedStockDto {
   @IsNumber()
   @Min(0.001)
   qty!: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  serials?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DamagedBatchAllocationDto)
+  batchAllocations?: DamagedBatchAllocationDto[];
 
   @IsOptional()
   @Type(() => Number)
