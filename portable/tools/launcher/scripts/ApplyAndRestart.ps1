@@ -124,6 +124,31 @@ if ([string]::IsNullOrWhiteSpace($patchUrl) -and [string]::IsNullOrWhiteSpace($l
 
 Write-Log "Applying update to v$version"
 
+# Releases are pinned by the VERSION-SPECIFIC manifest in the trusted GitHub repository.
+# Uploaded ZIP files are checked against the operator provisioned digest by NestJS.
+$expectedSha256 = ''
+if ($pending.PSObject.Properties['expectedSha256'] -and $pending.expectedSha256) {
+  $expectedSha256 = ([string]$pending.expectedSha256).Trim().ToLowerInvariant()
+}
+if ([string]::IsNullOrWhiteSpace($localPatchPath)) {
+  try {
+    $trusted = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/8489mx/zs/main/releases/manifest-$version.json" -TimeoutSec 20
+    if ([string]$trusted.version -ne [string]$version) { throw 'Trusted version mismatch' }
+    $trustedUrl = [string]$trusted.patchUrl
+    if ($trustedUrl -notmatch '^https://github[.]com/8489mx/zs/releases/download/') { throw 'Untrusted release URL' }
+    if ($patchUrl -and $patchUrl -ne $trustedUrl) { throw 'Release URL mismatch' }
+    $patchUrl = $trustedUrl
+    $expectedSha256 = ([string]$trusted.sha256).Trim().ToLowerInvariant()
+  } catch {
+    Write-Log "ERROR: Official GitHub release manifest could not be authenticated: $($_.Exception.Message)"
+    exit 1
+  }
+}
+if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') {
+  Write-Log 'ERROR: A trusted SHA256 digest is required; old version was not touched.'
+  exit 1
+}
+
 # ── Pre-Update Backup ─────────────────────────────────────────────────────────
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $backupDir = Join-Path $pathMap.RuntimeDir "backups\pre-update-v$version-$timestamp"
@@ -151,8 +176,26 @@ try {
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist (exit $LASTEXITCODE)" }
   }
 
-  # Database backup — portable mode only (Electron: postgres is stopped before this script runs)
-  if (-not $isElectronMode) {
+  # A stopped PostgreSQL cluster can be snapshotted and restored across schema migrations.
+  # Protect EVERY table and WAL file, not just the SQL export subset.
+  if ($isElectronMode) {
+    $dataDir = Join-Path $pathMap.RuntimeDir 'data'
+    $pgCtl = Join-Path $pathMap.PostgresBinDir 'pg_ctl.exe'
+    if (-not (Test-Path (Join-Path $dataDir 'PG_VERSION')) -or -not (Test-Path $pgCtl)) {
+      throw 'PostgreSQL cluster or pg_ctl missing; cannot safely update'
+    }
+    & $pgCtl -D $dataDir status *> $null
+    if ($LASTEXITCODE -eq 0) {
+      & $pgCtl -D $dataDir stop -m fast -w *> $null
+      if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL did not stop for snapshot' }
+    }
+    $clusterBackup = Join-Path $backupDir 'postgres-data'
+    robocopy $dataDir $clusterBackup /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8 -or -not (Test-Path (Join-Path $clusterBackup 'PG_VERSION'))) {
+      throw "Database snapshot could not be verified (robocopy $LASTEXITCODE)"
+    }
+    Write-Log 'Complete cold PostgreSQL backup verified.'
+  } else {
     $pgDump = Join-Path $pathMap.PostgresBinDir 'pg_dump.exe'
     if (Test-Path $pgDump) {
       $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
@@ -169,8 +212,6 @@ try {
         Write-Log 'Database backup completed.'
       }
     }
-  } else {
-    Write-Log 'Skipping database backup in Electron mode (postgres already stopped).'
   }
 
   Write-Log 'Pre-update backup completed.'
@@ -253,6 +294,16 @@ if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localP
   }
 }
 
+# Validate every byte before extracting any executable or applying any migration.
+if (-not (Test-Path $zipPath)) { Write-Log 'ERROR: Release ZIP missing'; exit 1 }
+$receivedSha256 = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($receivedSha256 -ne $expectedSha256) {
+  Write-Log "ERROR: SHA256 mismatch. Expected $expectedSha256 but got $receivedSha256."
+  Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+  exit 1
+}
+Write-Log 'SHA256 of downloaded release verified.'
+
 # ── Extract and Apply ─────────────────────────────────────────────────────────
 $applySuccess = $false
 try {
@@ -261,22 +312,30 @@ try {
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
   Write-Log 'Extraction complete.'
 
-  # ── Validate update-manifest.json / package.json ──────────────────────────────
-  $manifestPath = Join-Path $extractDir 'update-manifest.json'
-  if (Test-Path $manifestPath) {
-    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-    if ($manifest.version) {
-      $version = $manifest.version
-    }
-  } else {
-    Write-Log 'Notice: update-manifest.json not present in patch; reading backend/package.json'
-    $pkgPath = Join-Path $extractDir 'backend\package.json'
-    if (Test-Path $pkgPath) {
-      $pkgJson = Get-Content $pkgPath -Raw | ConvertFrom-Json
-      if ($pkgJson.version) { $version = $pkgJson.version }
+  # Check the release's own file list, layout, and path traversal before copying.
+  $manifestFile = Join-Path $extractDir 'update-manifest.json'
+  if (-not (Test-Path $manifestFile)) { throw 'update-manifest.json missing' }
+  $manifest = Get-Content $manifestFile -Raw | ConvertFrom-Json
+  if ([string]$manifest.version -ne [string]$version) { throw 'ZIP version differs from release' }
+  if (-not $manifest.files -or $manifest.files.Count -lt 3) { throw 'ZIP manifest contains no file hashes' }
+  $safeRoot = [IO.Path]::GetFullPath($extractDir).TrimEnd('\') + '\'
+  foreach ($f in $manifest.files) {
+    $rel = [string]$f.path
+    if (-not $rel -or $rel -match '(^[\\/]|^[A-Za-z]:|(^|[\\/])[.][.]([\\/]|$))') { throw "Unsafe archive path: $rel" }
+    $filePath = [IO.Path]::GetFullPath((Join-Path $extractDir ($rel -replace '/', '\')))
+    if (-not $filePath.StartsWith($safeRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "Path traversal: $rel" }
+    if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) { throw "Missing patch file: $rel" }
+    if ((Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne ([string]$f.sha256).ToLowerInvariant()) {
+      throw "Patch checksum mismatch: $rel"
     }
   }
-  
+  if (-not (Test-Path (Join-Path $extractDir 'backend\dist\main.js')) -or
+      -not (Test-Path (Join-Path $extractDir 'frontend\dist\index.html')) -or
+      -not (Test-Path (Join-Path $extractDir 'backend\package.json'))) {
+    throw 'The patch is missing the backend or frontend executable'
+  }
+  Write-Log 'Complete update manifest verified.'
+
   # ── Copy backend/dist ─────────────────────────────────────────────────────────
   $srcBackend = $null
   $candidates = @(
@@ -290,7 +349,7 @@ try {
   if ($srcBackend) {
     $destBackend = Join-Path $pathMap.AppBackendDir 'dist'
     Write-Log "Copying backend/dist -> $destBackend"
-    robocopy $srcBackend $destBackend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    robocopy $srcBackend $destBackend /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for backend dist (exit $LASTEXITCODE)" }
     Write-Log 'backend/dist applied.'
   } else {
@@ -328,7 +387,7 @@ try {
   if ($srcFrontend) {
     $destFrontend = $pathMap.AppFrontendDir
     Write-Log "Copying frontend/dist -> $destFrontend"
-    robocopy $srcFrontend $destFrontend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    robocopy $srcFrontend $destFrontend /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist (exit $LASTEXITCODE)" }
     Write-Log 'frontend/dist applied.'
 
