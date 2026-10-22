@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
-import type { FormEvent } from 'react';
+import React, { type FormEvent } from 'react';
 import { money, reviewStatusOptions, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { CustomSelect } from '@/shared/ui/custom-select';
+import type { PayrollDraft } from '@/features/hr/components/payroll/CreatePayrollRunModal';
 
 type Summary = {
   totalEmployees: number;
@@ -14,7 +15,7 @@ type Summary = {
 
 type Row = { id: string | number; employeeNo?: string; employeeName?: string; loanDeductionAmount?: number };
 
-type Draft = { periodMonth: string; payFrequency: 'monthly' | 'weekly' | 'biweekly' | 'daily'; startDate: string; endDate: string; notes: string };
+type Draft = PayrollDraft;
 
 export type HrPayrollTopSectionProps = {
   monthFilter: string;
@@ -40,7 +41,7 @@ export type HrPayrollTopSectionProps = {
   onDepartmentFilterChange: (value: string) => void;
   onReviewStatusFilterChange: (value: PayrollReviewStatus) => void;
   onRunStatusFilterChange: (value: string) => void;
-  onDraftChange: (updater: (current: Draft) => Draft) => void;
+  onDraftChange: React.Dispatch<React.SetStateAction<PayrollDraft>> | ((updater: (current: Draft) => Draft) => void);
   onCreateRun: (event: FormEvent<HTMLFormElement>) => void;
 };
 
@@ -48,7 +49,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
   const { t } = useTranslation();
   const {
     monthFilter,
-    search,
+    search: _search,
     selectedEmployeeId,
     onSelectedEmployeeChange,
     employeeOptions,
@@ -60,7 +61,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     summary,
     canViewSalaryAmounts,
     onMonthFilterChange,
-    onSearchChange,
+    onSearchChange: _onSearchChange,
     onDepartmentFilterChange,
     onReviewStatusFilterChange,
     onRunStatusFilterChange,

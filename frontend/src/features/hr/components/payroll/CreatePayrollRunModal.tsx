@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React, { useEffect, useMemo } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
-import { XIcon, CalendarIcon, UsersIcon, CheckCircleIcon, AlertCircleIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, CheckCircleIcon, AlertCircleIcon } from '@/shared/components/icons/AppIcons';
 
 export interface PayrollDraft {
   periodMonth: string;

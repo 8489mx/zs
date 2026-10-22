@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { fallbackText, money } from '@/features/hr/utils/employee-profile.helpers';
 import type { HrEmployee } from '@/types/domain';
@@ -29,10 +28,10 @@ interface EmployeeOverviewTabProps {
 
 export function EmployeeOverviewTab({
   employee,
-  primaryPhone,
+  primaryPhone: _primaryPhone,
   canManageEmployees,
   canViewLoans,
-  canViewSalary,
+  canViewSalary: _canViewSalary,
   onOpenPinModal,
   reviewAlerts,
   documentsCount,
@@ -45,8 +44,6 @@ export function EmployeeOverviewTab({
   completenessText,
   onNavigateSection,
 }: EmployeeOverviewTabProps) {
-  const { t } = useTranslation();
-
   const annualBalance = Number(employee?.annualLeaveBalance || 21);
   const usedLeaves = Number(employee?.usedAnnualLeaves || 0);
   const remainingLeaves = Math.max(0, annualBalance - usedLeaves);

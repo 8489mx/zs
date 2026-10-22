@@ -7,14 +7,13 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
-import { getErrorMessage } from '@/lib/errors';
 import type { HrContact, HrContract, HrDocument, HrEmployee, HrEmployeeAsset, HrLedgerEntry, HrLeaveRequest, HrLoan } from '@/types/domain';
 import { useHrEmployeeAssets, useHrLeaveRequests, useHrMutations, useHrProfile, useHrEmployeeAdjustments } from '@/features/hr/hooks/useHr';
-import { LedgerSection } from '@/features/hr/components/employee-profile/EmployeeProfileSections';
 import { EndOfServiceModal } from '../components/employee-profile/EndOfServiceModal';
 import { EmployeeAdjustmentsSection } from '@/features/hr/components/employee-profile/EmployeeAdjustmentsSection';
 import { buildEmployeeProfileDerivedData } from '@/features/hr/components/employee-profile/employee-profile.derived';
 import { mobilePunchApi } from '@/features/hr/api/mobile-punch.api';
+import { getErrorMessage } from '@/lib/errors';
 import { systemAlert } from '@/shared/components/system-alert';
 import { EmployeePinModal } from '../components/employee-profile/EmployeePinModal';
 import { EmployeeOverviewTab } from '../components/employee-profile/EmployeeOverviewTab';
@@ -318,7 +317,7 @@ export function EmployeeProfilePage() {
               >
                 <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 600, display: 'block' }}>الراتب الأساسي التعاقدي</span>
                 <strong style={{ fontSize: '1.15rem', color: '#0f172a', marginTop: '2px', display: 'block' }}>
-                  {canViewSalary ? `${money(latestContract?.baseSalary || employee.baseSalary || 0)}` : '—'}
+                  {canViewSalary ? `${money(latestContract?.baseSalary || (employee as any)?.baseSalary || 0)}` : '—'}
                 </strong>
                 <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
                   {normalizeText(employee.compensationType) === 'hourly' ? `أجر الساعة: ${money(employee.hourlyRate || 0)}` : (latestContract?.contractType ? `عقد ${latestContract.contractType}` : 'عقد شهري')}
@@ -427,18 +426,14 @@ export function EmployeeProfilePage() {
             {PROFILE_SECTIONS.map((section) => {
               const isActive = activeSection === section.key;
               let badge: string | number | null = null;
-              let isAlert = false;
               if (section.key === 'loans' && openLoansCount > 0) {
                 badge = openLoansCount;
-                isAlert = openLoansRemaining > 0;
               } else if (section.key === 'leaves' && pendingLeavesCount > 0) {
                 badge = pendingLeavesCount;
-                isAlert = true;
               } else if (section.key === 'assets' && openAssetsCount > 0) {
                 badge = openAssetsCount;
               } else if (section.key === 'documents' && documents.length > 0) {
                 badge = documents.length;
-                isAlert = expiredOrNearDocumentsCount > 0;
               } else if (section.key === 'ledger' && ledger.length > 0) {
                 badge = ledger.length;
               }
@@ -540,7 +535,7 @@ export function EmployeeProfilePage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', marginBottom: '14px' }}>
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>الراتب الأساسي</span>
-                    <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{canViewSalary ? money(latestContract?.baseSalary || employee?.baseSalary || 0) : '—'}</strong>
+                    <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{canViewSalary ? money(latestContract?.baseSalary || (employee as any)?.baseSalary || 0) : '—'}</strong>
                   </div>
                   <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px' }}>
                     <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block' }}>نظام الأجر</span>

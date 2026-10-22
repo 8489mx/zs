@@ -9,7 +9,6 @@ import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { DataTable } from '@/shared/ui/data-table';
 import type { HrEmployee, HrLoan, HrLoanInstallment } from '@/types/domain';
 import { getErrorMessage } from '@/lib/errors';
-import { toast } from '@/shared/components/system-alert';
 import { useHrMutations, useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { HrLoanCreateForm } from '@/features/hr/pages/loans/HrLoanCreateForm';
 import { HrLoanRepaymentForm } from '@/features/hr/pages/loans/HrLoanRepaymentForm';

@@ -149,7 +149,7 @@ export function HrAttendancePage() {
     }
   }, [searchParams]);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('');
-  const [search, setSearch] = useState('');
+  const [search, _setSearch] = useState('');
   const [attendanceFilter, setAttendanceFilter] = useState<'all' | 'unmarked' | 'recorded'>('all');
 
   // Exceptions and drafts
@@ -1006,10 +1006,10 @@ export function HrAttendancePage() {
             {/* Employee Period Summary Card */}
             {(isRange || selectedEmployeeId) && activeTab === 'attendance' && (
               <EmployeePeriodSummaryCard
-                employee={selectedEmployee}
+                employee={selectedEmployee as any}
                 from={isRange ? rangeFrom : date}
                 to={isRange ? rangeTo : date}
-                summary={attendance.data?.summary}
+                summary={attendance.data?.summary as any}
                 rows={filteredAttendanceRows}
               />
             )}

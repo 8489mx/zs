@@ -3,8 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { hrApi } from '@/features/hr/api/hr.api';
 import { Button } from '@/shared/ui/button';
-import { DataTable } from '@/shared/ui/data-table';
-import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 
 interface Props {
   employeeId: string;
@@ -60,7 +58,6 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
 
   const transactions = data?.transactions || [];
   const monthlyBreakdown = data?.monthlyBreakdown || [];
-  const employee = data?.employee;
 
   const getCategoryBadge = (category: string) => {
     switch (category) {

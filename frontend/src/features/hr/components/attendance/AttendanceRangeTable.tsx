@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';

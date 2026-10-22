@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
-import { CheckIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon } from '@/shared/components/icons/AppIcons';
 import { text, money, statusLabel, normalize } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import type { HrPayrollRun } from '@/types/domain';
 

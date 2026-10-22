@@ -194,7 +194,7 @@ function formatLedgerNote(note?: string, type?: string, isEn = false): string {
 }
 
 export function LedgerSection({ ledger }: LedgerSectionProps) {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isEn = i18n.language === 'en';
 
   return (

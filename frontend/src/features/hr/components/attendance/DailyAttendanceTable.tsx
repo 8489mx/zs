@@ -1,10 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { DataTable } from '@/shared/ui/data-table';
-import { Button } from '@/shared/ui/button';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import type { HrAttendanceRecord } from '@/types/domain';
-import { DraftRow, normalizeTime } from './attendance-types';
+import { DraftRow } from './attendance-types';
 import { TimeAmPmInput } from './TimeAmPmInput';
 
 const STATUS_CONFIG: Record<string, { label: string; dot: string; color: string; bg: string }> = {
@@ -287,8 +286,7 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
                   <CustomSelect
                     value={currentStatus}
                     onChange={(val) => onUpdateDraft(String(row.employeeId), { status: val })}
-                    background={cfg.bg}
-                    border={`1px solid ${cfg.dot}`}
+                    style={{ background: cfg.bg, border: `1px solid ${cfg.dot}` }}
                     options={[
                       {
                         value: '',

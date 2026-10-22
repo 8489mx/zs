@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import React from 'react';
 import { Button } from '@/shared/ui/button';
 import { employeeName, fallbackText, statusLabel, normalizeText, money } from '@/features/hr/utils/employee-profile.helpers';
@@ -34,8 +33,6 @@ export function EmployeeDetailsTab({
   handleSaveContract,
   isSavingContract,
 }: EmployeeDetailsTabProps) {
-  const { t } = useTranslation();
-
   const annualBalance = Number(employee?.annualLeaveBalance || 21);
   const usedLeaves = Number(employee?.usedAnnualLeaves || 0);
   const remainingLeaves = Math.max(0, annualBalance - usedLeaves);

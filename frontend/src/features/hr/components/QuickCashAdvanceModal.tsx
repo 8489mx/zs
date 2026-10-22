@@ -15,7 +15,7 @@ export function QuickCashAdvanceModal() {
   const [employeeId, setEmployeeId] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
-  const [selectedShiftId, setSelectedShiftId] = useState('');
+  const [_selectedShiftId, setSelectedShiftId] = useState('');
   const [formError, setFormError] = useState('');
   
   const queryClient = useQueryClient();
@@ -214,7 +214,7 @@ export function QuickCashAdvanceModal() {
                         {activeShift.docNo ? `${activeShift.docNo} (#${activeShift.id})` : `وردية كاشير #${activeShift.id}`}
                       </strong>
                       <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        {t('hr.quick_cash_advance_modal.responsible_cashier', "المسؤول عن الدرج:")} {String(activeShift.openedByName || activeShift.opened_by_name || currentUser?.name || currentUser?.username)}
+                        {t('hr.quick_cash_advance_modal.responsible_cashier', "المسؤول عن الدرج:")} {String(activeShift.openedByName || activeShift.opened_by_name || (currentUser as any)?.name || currentUser?.username)}
                       </span>
                     </div>
                   </div>
