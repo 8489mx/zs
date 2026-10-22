@@ -17,6 +17,7 @@ import { IdempotencyService } from '../../../core/idempotency/idempotency.servic
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
+import { dispatchTrackedStock, receiveTrackedStock, cancelTrackedStock, type TransferReceiptTraceRequest } from '../helpers/stock-transfer-trace.helper';
 
 @Injectable()
 export class InventoryTransferService {
@@ -139,14 +140,18 @@ export class InventoryTransferService {
       for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        await assertUntrackedStockMutation(trx, scope, Number(item.productId));
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
 
         // Ensure quantity is available in this specific location ONLY
         const availableAtSource = await previewAssignedLocationStockQty(trx, stockScope);
         ensureNonNegativeStock(Number(availableAtSource || 0) - Number(item.qty || 0), 'INSUFFICIENT_LOCATION_STOCK', `الكمية غير كافية في مخزن ${from.name} للصنف ${product.name}. المتاح: ${availableAtSource || 0}`);
 
-        await trx.insertInto('stock_transfer_items').values({ transfer_id: id, product_id: item.productId, product_name: product.name || '', qty: item.qty, ...this.tenantFields(auth) }).execute();
+        const trace = await dispatchTrackedStock(trx, scope, item, from.id, from.branchId, inTransitLocationId, id);
+        await trx.insertInto('stock_transfer_items').values({
+          transfer_id: id, product_id: item.productId, product_name: product.name || '', qty: item.qty,
+          serial_tracking: JSON.stringify(trace.serialTracking), batch_tracking: JSON.stringify(trace.batchTracking),
+          ...this.tenantFields(auth),
+        } as any).execute();
 
         // Deduct from source. Only reduce global stock if final_issue (inTransitLocationId is null)
         const stockChange = await applyStockDelta(trx, { ...stockScope, delta: -Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, disableAutoDrain: true, errorCode: 'INSUFFICIENT_LOCATION_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
@@ -206,25 +211,28 @@ export class InventoryTransferService {
     return transferId as Record<string, unknown>;
   }
 
-  async receiveStockTransfer(transferId: number, auth: AuthContext, receiptPayload?: { items?: Array<{ itemId: number; receivedQty: number }> }): Promise<Record<string, unknown>> {
+  async receiveStockTransfer(transferId: number, auth: AuthContext, receiptPayload?: { items?: TransferReceiptTraceRequest[] }): Promise<Record<string, unknown>> {
     const scope = this.tenantScope(auth);
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if ((transfer.status || 'sent') !== 'sent') throw new AppError('Only sent transfers can be received', 'TRANSFER_STATUS_INVALID', 400);
-      const items = await trx.selectFrom('stock_transfer_items').select(['id', 'product_id', 'qty', 'dispatched_qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
+      const items = await trx.selectFrom('stock_transfer_items').select(['id', 'product_id', 'qty', 'dispatched_qty', 'serial_tracking', 'batch_tracking']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
-      // This includes transfers created before tracked-stock safeguards existed.
-      // Receiving or cancelling an old transfer must not move quantities while
-      // leaving the serial and batch register in its previous warehouse.
+      // Old transfers without trace snapshots may only be quantity-only goods.
       for (const item of items) {
-        await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
+        const hasTrace = (Array.isArray(item.serial_tracking) && item.serial_tracking.length > 0) ||
+          (Array.isArray(item.batch_tracking) && item.batch_tracking.length > 0);
+        if (!hasTrace) await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
       }
 
       // Transit loss: the destination may receive less than was dispatched. Anything short is
       // written off from the in-transit location instead of being stranded there forever, which is
       // what happened when the item carried a single `qty` and receiving had to match it exactly.
       const receivedByItemId = new Map<number, number>();
+      const receiptDetails = new Map<number, TransferReceiptTraceRequest>(
+        (receiptPayload?.items || []).map(row => [Number(row.itemId), row]),
+      );
       const dispatchedByItemId = new Map(items.map((item) => [Number(item.id), Number(item.dispatched_qty ?? item.qty ?? 0)]));
       for (const r of receiptPayload?.items || []) {
         const itemId = Number(r?.itemId);
@@ -249,6 +257,8 @@ export class InventoryTransferService {
         else throw new AppError('No branch stock location found for destination branch', 'DESTINATION_LOCATION_NOT_FOUND', 400);
       }
 
+      if (!effectiveToLocationId) throw new AppError('مخزن الاستلام غير محدد', 'TRANSFER_DESTINATION_MISSING', 409);
+      await this.scope.assertLocationScope(Number(effectiveToLocationId), auth, false, 'write');
       let anyVariance = false;
 
       if (effectiveToLocationId) {
@@ -259,6 +269,11 @@ export class InventoryTransferService {
             : dispatched;
           const shortfall = Number((dispatched - received).toFixed(3));
           if (shortfall > 0.0001) anyVariance = true;
+          const traceReceipt = receiptDetails.get(Number(item.id)) || { itemId: Number(item.id), receivedQty: received };
+          const reconciledBatches = await receiveTrackedStock(
+            trx, scope, item, traceReceipt, Number(inTransitLocationId),
+            Number(effectiveToLocationId), transfer.to_branch_id, transferId,
+          );
 
           if (inTransitLocationId && received > 0) {
             // Move only what actually arrived from transit to the destination.
@@ -323,7 +338,7 @@ export class InventoryTransferService {
 
           await trx
             .updateTable('stock_transfer_items')
-            .set({ dispatched_qty: dispatched, received_qty: received, variance_qty: shortfall } as any)
+            .set({ dispatched_qty: dispatched, received_qty: received, variance_qty: shortfall, batch_tracking: JSON.stringify(reconciledBatches) } as any)
             .where('id', '=', Number(item.id))
             .where(this.tenantPredicate(auth))
             .execute();
@@ -355,13 +370,13 @@ export class InventoryTransferService {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if (!['sent'].includes(transfer.status || 'sent')) throw new AppError('Only sent transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
-      const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
+      await this.scope.assertLocationScope(Number(transfer.from_location_id), auth, true, 'write');
+      const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty', 'serial_tracking', 'batch_tracking']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
-      // This includes transfers created before tracked-stock safeguards existed.
-      // Receiving or cancelling an old transfer must not move quantities while
-      // leaving the serial and batch register in its previous warehouse.
       for (const item of items) {
-        await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
+        const hasTrace = (Array.isArray(item.serial_tracking) && item.serial_tracking.length > 0) ||
+          (Array.isArray(item.batch_tracking) && item.batch_tracking.length > 0);
+        if (!hasTrace) await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
       }
 
       let inTransitLocationId: number | null = null;
@@ -373,6 +388,7 @@ export class InventoryTransferService {
 
       for (const item of items) {
         if (inTransitLocationId) {
+          await cancelTrackedStock(trx, scope, item, Number(transfer.from_location_id), transfer.from_branch_id, inTransitLocationId, transferId);
           const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), locationId: inTransitLocationId, branchId: null };
           const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -Number(item.qty || 0), skipGlobalUpdate: true, disableAutoDrain: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
           await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_cancel', qty: -Number(item.qty || 0), before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_cancel', note: `Cancel transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
