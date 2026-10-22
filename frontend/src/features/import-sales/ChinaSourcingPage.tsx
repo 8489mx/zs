@@ -15,6 +15,10 @@ import {
   AlertTriangleIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { ChinaQuotationsTab } from './components/ChinaQuotationsTab';
+import { ChinaSamplesTab } from './components/ChinaSamplesTab';
+import { ChinaProformasTab } from './components/ChinaProformasTab';
+import { useSourcingTripsQuery, useCreateSourcingTripMutation } from './api/shipments.api';
 
 export default function ChinaSourcingPage() {
   const { data: suppliers = [], refetch } = useChinaSuppliersQuery();
@@ -22,7 +26,16 @@ export default function ChinaSourcingPage() {
   const upsertSupplierMetaMutation = useUpsertSupplierMetaMutation('');
   const createQcMutation = useCreateQcInspectionMutation();
 
-  const [activeTab, setActiveTab] = useState<'factories' | 'qc' | 'trips'>('factories');
+  const [activeTab, setActiveTab] = useState<'factories' | 'quotations' | 'samples' | 'proformas' | 'qc' | 'trips'>('factories');
+  const { data: sourcingTrips = [], refetch: refetchTrips } = useSourcingTripsQuery();
+  const createTripMutation = useCreateSourcingTripMutation();
+  const [isTripModalOpen, setIsTripModalOpen] = useState(false);
+  const [tripTitle, setTripTitle] = useState('');
+  const [tripDestination, setTripDestination] = useState('Guangzhou / Yiwu, China');
+  const [tripStartDate, setTripStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [tripEndDate, setTripEndDate] = useState('');
+  const [tripBudgetEgp, setTripBudgetEgp] = useState<number>(75000);
+  const [tripObjectives, setTripObjectives] = useState('');
   const [search, setSearch] = useState('');
 
   // Sourcing Meta Modal
@@ -195,6 +208,78 @@ export default function ChinaSourcingPage() {
       </div>
 
       {/* 3. Tab: Factories */}
+      {activeTab === 'quotations' && <ChinaQuotationsTab />}
+
+      {activeTab === 'samples' && <ChinaSamplesTab />}
+
+      {activeTab === 'proformas' && <ChinaProformasTab />}
+
+      {activeTab === 'trips' && (
+        <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+              سجل رحلات وزيارات المصانع بالصين ({sourcingTrips.length})
+            </h2>
+            <button
+              onClick={() => setIsTripModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                borderRadius: 8,
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <PlusCircleIcon size={15} />
+              تسجيل رحلة مصانع جديدة
+            </button>
+          </div>
+
+          {sourcingTrips.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b', fontSize: '13px' }}>
+              لا توجد رحلات مصانع مسجلة حالياً. قم بتسجيل زيارات المعارض والمصانع لتوثيق المصاريف والنتائج.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>عنوان الرحلة / المعرض</th>
+                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>الوجهة والمدن</th>
+                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>تاريخ البدء والانتهاء</th>
+                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>الميزانية المقدرة</th>
+                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>المصروف الفعلي</th>
+                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sourcingTrips.map((t: any) => (
+                    <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '10px 12px', fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>{t.title}</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', color: '#475569' }}>{t.destination}</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', color: '#64748b' }}>{t.start_date || '—'} إلى {t.end_date || 'مستمر'}</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>{Number(t.budget_egp || 0).toLocaleString()} ج.م</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>{Number(t.actual_expenses_egp || 0).toLocaleString()} ج.م</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px' }}>
+                        <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: '11px', fontWeight: 600, backgroundColor: '#e0f2fe', color: '#0369a1' }}>
+                          {t.status || 'مخططة'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {activeTab === 'factories' && (
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -367,6 +452,136 @@ export default function ChinaSourcingPage() {
           )}
         </div>
       )}
+
+      {/* Sourcing Trip Modal */}
+      <StandardDialog
+        open={isTripModalOpen}
+        onClose={() => setIsTripModalOpen(false)}
+        title="تسجيل رحلة عمل وزيارة مصانع بالصين"
+        subtitle="توثيق زيارات معارض الصين (كانتون فير / إيوو) وحساب ميزانية السفر والمصروفات"
+        width="600px"
+      >
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            try {
+              await createTripMutation.mutateAsync({
+                title: tripTitle,
+                destination: tripDestination,
+                startDate: tripStartDate,
+                endDate: tripEndDate || undefined,
+                budgetEgp: Number(tripBudgetEgp),
+                objectives: tripObjectives,
+              });
+              toast.success('تم تسجيل رحلة المصانع بنجاح');
+              setIsTripModalOpen(false);
+              setTripTitle('');
+              refetchTrips();
+            } catch (err: any) {
+              toast.error('فشل حفظ الرحلة: ' + (err.message || 'خطأ غير معروف'));
+            }
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+        >
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+              عنوان الرحلة أو المعرض
+            </label>
+            <input
+              type="text"
+              required
+              value={tripTitle}
+              onChange={(e) => setTripTitle(e.target.value)}
+              placeholder="مثال: زيارة معرض كانتون فير دورة الخريف 2026 - قوانغتشو"
+              style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                المدينة / الوجهة
+              </label>
+              <input
+                type="text"
+                required
+                value={tripDestination}
+                onChange={(e) => setTripDestination(e.target.value)}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                الميزانية المقدرة (ج.م)
+              </label>
+              <input
+                type="number"
+                value={tripBudgetEgp}
+                onChange={(e) => setTripBudgetEgp(Number(e.target.value))}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                تاريخ السفر والبدء
+              </label>
+              <input
+                type="date"
+                required
+                value={tripStartDate}
+                onChange={(e) => setTripStartDate(e.target.value)}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                تاريخ العودة المتوقع
+              </label>
+              <input
+                type="date"
+                value={tripEndDate}
+                onChange={(e) => setTripEndDate(e.target.value)}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+              أهداف الرحلة والأصناف المستهدفة
+            </label>
+            <textarea
+              rows={3}
+              value={tripObjectives}
+              onChange={(e) => setTripObjectives(e.target.value)}
+              placeholder="مثال: فحص خطوط إنتاج أدوات المطبخ والتعاقد على 3 حاويات للأصناف الجديدة..."
+              style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={() => setIsTripModalOpen(false)}
+              style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={createTripMutation.isPending}
+              style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
+            >
+              {createTripMutation.isPending ? 'جاري الحفظ...' : 'حفظ الرحلة'}
+            </button>
+          </div>
+        </form>
+      </StandardDialog>
 
       {/* 5. Sourcing Metadata Dialog */}
       <StandardDialog

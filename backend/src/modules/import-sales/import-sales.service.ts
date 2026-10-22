@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Injectable, NotFoundException, BadRequestException, ConflictException, UnprocessableEntityException, Inject, Optional } from '@nestjs/common';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
@@ -32,6 +33,7 @@ import {
   RecordContainerDepositDto,
   RecordContainerReturnRefundDto,
   CreateContainerPreorderDto,
+  RefundImportPreorderDto,
   RecordFxAcquisitionDto,
   CreateImportDocumentDto,
   CreateApprovalRequestDto,
@@ -1137,6 +1139,16 @@ export class ImportSalesService {
   }
 
   async createShipment(tenantId: string, dto: CreateShipmentDto) {
+    if (dto.supplierId) {
+      const supplier = await this.db.selectFrom('suppliers').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', Number(dto.supplierId)).executeTakeFirst();
+      if (!supplier) throw new BadRequestException('المورد لا ينتمي لهذه المنشأة.');
+    }
+    if (dto.projectId) {
+      const project = await this.db.selectFrom('import_projects').select(['id', 'status'])
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+      if (!project || project.status === 'closed') throw new BadRequestException('مشروع الاستيراد غير متاح لهذه المنشأة.');
+    }
     const result = await this.db
       .insertInto('import_shipments')
       .values({
@@ -1206,10 +1218,10 @@ export class ImportSalesService {
     const demurrageRisk = calculateDemurrageRisk({
       arrivalDate: shipment.arrival_date,
       demurrageStartDate: shipment.demurrage_start_date,
-      freeDays: Number(shipment.free_demurrage_days || 14),
-      ratePerDayUsd: Number(shipment.demurrage_rate_per_day || 50),
+      freeDays: Number(shipment.free_demurrage_days ?? 14),
+      ratePerDayUsd: Number(shipment.demurrage_rate_per_day ?? 50),
       exchangeRate: Number(shipment.exchange_rate_at_arrival || 1),
-      status: shipment.status || 'Pending',
+      status: shipment.container_status === 'empty_returned' ? 'empty_returned' : (shipment.status || 'Pending'),
     });
 
     return { ...shipment, items, inventory_receipt: receipt ?? null, demurrageRisk };
@@ -1230,6 +1242,8 @@ export class ImportSalesService {
       const item = await trx.insertInto('import_shipment_items').values({
         tenant_id: tenantId, shipment_id: shipmentId, product_id: productId,
         quantity: dto.quantity, factory_unit_price_usd: dto.factoryUnitPriceUsd,
+        gross_weight_kg_unit: requireImportNumber(dto.unitWeightKg ?? 0, 'وزن الوحدة'),
+        cbm_unit: requireImportNumber(dto.unitCbm ?? 0, 'حجم الوحدة'),
       }).returningAll().executeTakeFirstOrThrow();
       await this.calculateLandedCostInTransaction(trx, state.shipment);
       return trx.selectFrom('import_shipment_items').selectAll()
@@ -1265,7 +1279,14 @@ export class ImportSalesService {
       if (dto.shippedDate !== undefined) payload.shipped_date = dto.shippedDate;
       if (dto.etaDate !== undefined) payload.eta_date = dto.etaDate;
       if (dto.clearanceDate !== undefined) payload.clearance_date = dto.clearanceDate;
-      if (dto.projectId !== undefined) payload.project_id = dto.projectId;
+      if (dto.projectId !== undefined) {
+        if (dto.projectId) {
+          const matchingProject = await trx.selectFrom('import_projects').select('id')
+            .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+          if (!matchingProject) throw new BadRequestException('مشروع الاستيراد غير موجود في هذه المنشأة.');
+        }
+        payload.project_id = dto.projectId || null;
+      }
       if (dto.freightType !== undefined) payload.freight_type = dto.freightType;
       if (dto.containerSize !== undefined) payload.container_size = dto.containerSize;
       if (dto.portOfLoading !== undefined) payload.port_of_loading = dto.portOfLoading;
@@ -1289,6 +1310,28 @@ export class ImportSalesService {
       ] as const;
       // Replaying an identical posted request is a no-op, including its expense selections.
       if (receipt?.state === 'posted') {
+        // Valuation and provenance become immutable when the inventory receipt is posted.
+        const frozenFields: Array<[keyof UpdateShipmentCostsDto, keyof ImportShipmentTable]> = [
+          ['actualDemurrageFees','actual_demurrage_fees'], ['vatRefundableEgp','vat_refundable_egp'],
+          ['costAllocationMethod','cost_allocation_method'], ['projectId','project_id'],
+          ['freightType','freight_type'], ['containerSize','container_size'],
+          ['portOfLoading','port_of_loading'], ['portOfDischarge','port_of_discharge'],
+          ['cbmVolume','cbm_volume'], ['grossWeightKg','gross_weight_kg'],
+          ['carrierName','carrier_name'], ['freeDemurrageDays','free_demurrage_days'],
+          ['demurrageStartDate','demurrage_start_date'], ['demurrageRatePerDay','demurrage_rate_per_day'],
+          ['customsDeclarationNo','customs_declaration_no'], ['isConsolidated','is_consolidated'],
+        ];
+        for (const [input, column] of frozenFields) {
+          const submitted = dto[input];
+          const stored = shipment[column];
+          const unchanged = typeof submitted === 'number' && Number.isFinite(Number(stored))
+            ? submitted === Number(stored)
+            : String(submitted ?? '') === String(stored ?? '');
+          if (submitted !== undefined && !unchanged) {
+            this.assertShipmentEditable(state);
+          }
+          delete (payload as any)[column];
+        }
         for (const [accountId, expenseId, cost] of expenseInputs) {
           if (accountId === undefined) continue;
           if (expenseId === null && Number(cost) === 0) continue;
@@ -1356,6 +1399,27 @@ export class ImportSalesService {
     const items = await trx.selectFrom('import_shipment_items').selectAll()
       .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId).execute();
     if (!items.length) throw new BadRequestException('لا يمكن استلام شحنة بدون أصناف');
+    // Never silently allocate more pre-sold stock than the physically received quantity.
+    const receivedByProduct = new Map<number, number>();
+    for (const item of items) {
+      const id = Number(item.product_id);
+      const received = Number(item.received_quantity ?? item.quantity);
+      receivedByProduct.set(id, (receivedByProduct.get(id) || 0) + received);
+    }
+    const reserved = await trx.selectFrom('import_container_preorders')
+      .select(['product_id', 'reserved_quantity'])
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId)
+      .where('status', '=', 'reserved').execute();
+    const bookedByProduct = new Map<number, number>();
+    for (const booking of reserved) {
+      const id = Number(booking.product_id);
+      bookedByProduct.set(id, (bookedByProduct.get(id) || 0) + Number(booking.reserved_quantity));
+    }
+    for (const [id, qty] of bookedByProduct) {
+      if (qty > (receivedByProduct.get(id) || 0) + 0.0001) {
+        throw new BadRequestException(`الحجز المسبق للصنف ${id} يتجاوز الكمية المستلمة فعلياً، يجب معالجة العجز والحجوزات قبل الترحيل.`);
+      }
+    }
     const groups = groupImportReceipts(items.map((item) => ({ ...this.costLine(item), landedCost: Number(item.landed_cost_egp) })));
     const products = await trx.selectFrom('products').select(['id', 'account_id'])
       .where('tenant_id', '=', tenantId).where('id', 'in', groups.map((group) => group.productId))
@@ -1411,7 +1475,7 @@ export class ImportSalesService {
       const receivedQty = Number(item.received_quantity ?? item.quantity);
       const unitLandedCost = Number(Number(item.landed_cost_egp || 0).toFixed(4));
       const cleanContainer = (shipment.container_number || 'CONT').replace(/[^a-zA-Z0-9]/g, '');
-      const lotNumber = 'LOT-' + cleanContainer + '-' + item.product_id;
+      const lotNumber = 'LOT-' + cleanContainer.slice(0, 25) + '-' + item.product_id + '-' + item.id;
 
       await trx
         .insertInto('import_inventory_lots')
@@ -1467,6 +1531,12 @@ export class ImportSalesService {
     const rate = requireImportNumber(shipment.exchange_rate_at_arrival, 'سعر الصرف', Number.MIN_VALUE);
     const method = (shipment.cost_allocation_method as 'value' | 'weight' | 'cbm') || 'value';
 
+    if (method === 'weight' && items.some((item) => Number(item.gross_weight_kg_unit || 0) <= 0)) {
+      throw new BadRequestException('يلزم تحديد وزن الوحدة لكل صنف قبل التوزيع بالوزن.');
+    }
+    if (method === 'cbm' && items.some((item) => Number(item.cbm_unit || 0) <= 0)) {
+      throw new BadRequestException('يلزم تحديد CBM الوحدة لكل صنف قبل التوزيع بالحجم.');
+    }
     const breakdown = calculateLandedCostBreakdown({
       items: items.map((item) => ({
         id: item.id,
@@ -1474,6 +1544,8 @@ export class ImportSalesService {
         quantity: Number(item.quantity),
         receivedQuantity: item.received_quantity !== null && item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity),
         factoryUnitPriceUsd: Number(item.factory_unit_price_usd),
+        unitWeightKg: Number(item.gross_weight_kg_unit || 0),
+        unitCbm: Number(item.cbm_unit || 0),
         shortageHandlingMethod: (item.shortage_handling_method as any) || 'capitalize',
       })),
       exchangeRate: rate,
@@ -1563,7 +1635,10 @@ export class ImportSalesService {
       for (let idx = 0; idx < items.length; idx++) {
         const item = items[idx];
         const pId = Number(item.product_id);
-        const itemReceivedQty = Math.max(1, Number(item.received_quantity ?? item.quantity));
+        const itemReceivedQty = Number(item.received_quantity ?? item.quantity);
+        if (!Number.isFinite(itemReceivedQty) || itemReceivedQty <= 0) {
+          throw new UnprocessableEntityException('لا يمكن تحميل مصروف متأخر على بند ليس له كمية مستلمة.');
+        }
 
         // Query remaining stock specifically for this shipment's lots (IAS 2 compliance)
         const lotRow = await trx
@@ -1574,22 +1649,14 @@ export class ImportSalesService {
           ])
           .where('tenant_id', '=', tenantId)
           .where('shipment_id', '=', shipmentId)
-          .where('product_id', '=', pId)
+          .where('shipment_item_id', '=', item.id)
           .executeTakeFirst();
 
         let itemOnHandQty = 0;
         if (lotRow && Number(lotRow.lot_count) > 0) {
           itemOnHandQty = Math.min(itemReceivedQty, Math.max(0, Number(lotRow.total_remaining)));
         } else {
-          // Fallback to location stock if no lots exist for this shipment
-          const stockRow = await trx
-            .selectFrom('product_location_stock')
-            .select([sql<number>`coalesce(sum(qty), 0)`.as('total_qty')])
-            .where('tenant_id', '=', tenantId)
-            .where('product_id', '=', pId)
-            .executeTakeFirst();
-          const currentStock = Math.max(0, Number(stockRow?.total_qty || 0));
-          itemOnHandQty = Math.min(itemReceivedQty, currentStock);
+          throw new UnprocessableEntityException('لا يمكن تسوية المصروف المتأخر دون باتش استيراد موثق للبند.');
         }
 
         const itemSoldQty = Math.max(0, itemReceivedQty - itemOnHandQty);
@@ -1644,7 +1711,7 @@ export class ImportSalesService {
             }))
             .where('tenant_id', '=', tenantId)
             .where('shipment_id', '=', shipmentId)
-            .where('product_id', '=', pId)
+            .where('shipment_item_id', '=', item.id)
             .execute();
         }
 
@@ -1659,7 +1726,7 @@ export class ImportSalesService {
       }
 
       totalLateCogs = Number(totalLateCogs.toFixed(2));
-      totalLateInventory = Number(totalLateInventory.toFixed(2));
+      totalLateInventory = Number((dto.lateExpenseAmount - totalLateCogs).toFixed(2));
 
       // Resolve accounts dynamically from COA / Accounting Settings
       const cogsAccountId = await this.resolveTenantAccount(trx, tenantId, 'cogs', dto.accountId ? Number(dto.accountId) : null);
@@ -1866,17 +1933,44 @@ export class ImportSalesService {
         }
         totalRevenue = grossRevenue - cancelledRevenue;
         totalCost = grossCost - cancelledCost;
-        profitAttributionVerified = true;
-        attributionStatus = 'VERIFIED_LOT_ALLOCATIONS';
+        // A partial set of lot allocations is not proof that every sale has provenance.
+        const candidateLines = projectProductIds.length
+          ? await qb.selectFrom('sale_items as si').innerJoin('sales as sa', 'sa.id', 'si.sale_id')
+              .select(['si.id', 'si.qty']).where('sa.tenant_id', '=', tenantId)
+              .where('sa.status', '!=', 'cancelled')
+              .where('sa.created_at', '>=', start).where('sa.created_at', '<=', end)
+              .where('si.product_id', 'in', projectProductIds).execute()
+          : [];
+        const saleItemIds = candidateLines.map((l) => Number(l.id));
+        const allSaleAllocations = saleItemIds.length
+          ? await qb.selectFrom('import_sale_allocations')
+              .select(['sale_item_id', 'quantity'])
+              .where('tenant_id', '=', tenantId).where('allocation_type', '=', 'sale')
+              .where('sale_item_id', 'in', saleItemIds).execute()
+          : [];
+        const allocated = new Map<number, number>();
+        for (const al of allSaleAllocations) {
+          const key = Number(al.sale_item_id);
+          allocated.set(key, (allocated.get(key) || 0) + Number(al.quantity));
+        }
+        const incomplete = candidateLines.some((l) => (allocated.get(Number(l.id)) || 0) + 0.0001 < Number(l.qty));
+        profitAttributionVerified = !incomplete;
+        attributionStatus = incomplete ? 'INCOMPLETE_SALE_LOT_ALLOCATION' : 'VERIFIED_LOT_ALLOCATIONS';
       } else if (hasLots) {
-        // Project uses lot tracking and has 0 sales allocations; sales are strictly 0.
-        // Never steal sales belonging to other projects sharing the same product catalog item!
+        // Zero allocation records are not proof of zero POS sales.
+        const possibleSale = projectProductIds.length
+          ? await qb.selectFrom('sale_items as si').innerJoin('sales as sa', 'sa.id', 'si.sale_id')
+              .select('si.sale_id').where('sa.tenant_id', '=', tenantId)
+              .where('sa.status', '!=', 'cancelled')
+              .where('sa.created_at', '>=', start).where('sa.created_at', '<=', end)
+              .where('si.product_id', 'in', projectProductIds).executeTakeFirst()
+          : null;
         totalRevenue = 0;
         totalCost = 0;
         returnRevenue = 0;
         returnCost = 0;
-        profitAttributionVerified = true;
-        attributionStatus = 'NO_SALES_RECORDED';
+        profitAttributionVerified = !possibleSale;
+        attributionStatus = possibleSale ? 'UNVERIFIED_SOURCE' : 'NO_SALES_RECORDED';
       } else {
         // Fallback: Check if project items have any provisional sales (legacy non-lotted projects only)
         const projectItems = projectShipmentIds.length > 0
@@ -2023,14 +2117,18 @@ export class ImportSalesService {
         .select([sql<number>`coalesce(sum(actual_cost_egp), 0)`.as('total_sourcing')])
         .where('tenant_id', '=', tenantId)
         .where('project_id', '=', projectId)
+        .where('start_date', '>=', start.toISOString().slice(0, 10))
+        .where('start_date', '<=', end.toISOString().slice(0, 10))
         .executeTakeFirst();
 
-      const lateCogsExp = await qb
-        .selectFrom('import_shipments')
-        .select([sql<number>`coalesce(sum(late_cogs_adjustment_egp), 0)`.as('total_late_cogs')])
-        .where('tenant_id', '=', tenantId)
-        .where('project_id', '=', projectId)
-        .executeTakeFirst();
+      const lateCogsExp = projectShipmentIds.length
+        ? await qb.selectFrom('import_late_expense_events')
+            .select([sql<number>`coalesce(sum(cogs_amount_egp), 0)`.as('total_late_cogs')])
+            .where('tenant_id', '=', tenantId)
+            .where('shipment_id', 'in', projectShipmentIds)
+            .where('created_at', '>=', start).where('created_at', '<=', end)
+            .executeTakeFirst()
+        : null;
 
       totalExpenses = Number(sourcingExpenses?.total_sourcing || 0) + Number(lateCogsExp?.total_late_cogs || 0);
     } else {
@@ -2087,7 +2185,7 @@ export class ImportSalesService {
         .execute();
     }
 
-    if (partners.length === 0) {
+    if (!projectId && partners.length === 0) {
       partners = await qb
         .selectFrom('import_partners')
         .selectAll()
@@ -2095,10 +2193,17 @@ export class ImportSalesService {
         .execute();
     }
 
+    const paidForProject = projectId
+      ? await qb.selectFrom('import_partner_project_payouts')
+          .select(['partner_id', sql<number>`coalesce(sum(amount_egp), 0)`.as('paid')])
+          .where('tenant_id', '=', tenantId).where('project_id', '=', projectId)
+          .groupBy('partner_id').execute()
+      : [];
+    const payoutMap = new Map(paidForProject.map((v) => [String(v.partner_id), Number(v.paid)]));
     const partnerShares = partners.map((p) => {
       const percentage = Number(p.profit_share_percentage) || 0;
       const shareAmount = netProfitPool > 0 ? (netProfitPool * percentage) / 100 : 0;
-      const withdrawn = Number(p.withdrawn_profit) || 0;
+      const withdrawn = projectId ? (payoutMap.get(String(p.id)) || 0) : (Number(p.withdrawn_profit) || 0);
       return {
         partnerId: p.id,
         name: p.name,
@@ -2542,7 +2647,13 @@ export class ImportSalesService {
       }
       const partnerShare = profitReport.data.partnerShares.find((p: any) => p.partnerId === partnerId);
       const totalEntitled = Number(partnerShare?.shareAmount || 0);
-      const withdrawn = Number(partner.withdrawn_profit || 0);
+      const allAttributed = await trx.selectFrom('import_partner_project_payouts')
+        .select(sql<number>`coalesce(sum(amount_egp), 0)`.as('total'))
+        .where('tenant_id', '=', tenantId).where('partner_id', '=', partnerId).executeTakeFirst();
+      if (Number(partner.withdrawn_profit || 0) > Number(allAttributed?.total || 0) + 0.01) {
+        throw new UnprocessableEntityException('توجد توزيعات تاريخية غير مرتبطة بمشروع؛ يجب تسويتها قبل صرف أرباح إضافية.');
+      }
+      const withdrawn = Number(partnerShare?.withdrawnProfit || 0);
       const maxAvailable = Math.max(0, totalEntitled - withdrawn);
 
       if (cleanAmount > maxAvailable) {
@@ -2582,6 +2693,11 @@ export class ImportSalesService {
         .returning('id')
         .executeTakeFirstOrThrow();
 
+      await trx.insertInto('import_partner_project_payouts').values({
+        tenant_id: tenantId, partner_id: partnerId, project_id: targetProjectId,
+        treasury_transaction_id: postedTreasury.id, amount_egp: cleanAmount,
+        created_by: userId,
+      }).execute();
       await trx
         .updateTable('import_partners')
         .set((eb) => ({
@@ -2750,11 +2866,14 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId).where('shipment_id', '=', parent.shipment_id)
         .where('id', '=', itemId).executeTakeFirstOrThrow();
       const payload: Updateable<ImportShipmentItemTable> = {};
-      const stockEdit = dto.receivedQuantity !== undefined || dto.shortageHandlingMethod !== undefined;
+      const stockEdit = dto.receivedQuantity !== undefined || dto.shortageHandlingMethod !== undefined ||
+        dto.unitWeightKg !== undefined || dto.unitCbm !== undefined;
       if (stockEdit) {
         this.assertShipmentEditable(state);
         if (dto.receivedQuantity !== undefined) payload.received_quantity = requireImportNumber(dto.receivedQuantity, 'الكمية المستلمة');
         if (dto.shortageHandlingMethod !== undefined) payload.shortage_handling_method = dto.shortageHandlingMethod;
+        if (dto.unitWeightKg !== undefined) payload.gross_weight_kg_unit = requireImportNumber(dto.unitWeightKg, 'وزن الوحدة');
+        if (dto.unitCbm !== undefined) payload.cbm_unit = requireImportNumber(dto.unitCbm, 'حجم الوحدة');
       }
       if (dto.targetRetailMargin !== undefined) payload.target_retail_margin = requireImportNumber(dto.targetRetailMargin, 'هامش التجزئة');
       if (dto.targetWholesaleMargin !== undefined) payload.target_wholesale_margin = requireImportNumber(dto.targetWholesaleMargin, 'هامش الجملة');
@@ -2930,10 +3049,10 @@ export class ImportSalesService {
       const risk = calculateDemurrageRisk({
         arrivalDate: s.arrival_date,
         demurrageStartDate: s.demurrage_start_date,
-        freeDays: Number(s.free_demurrage_days || 14),
-        ratePerDayUsd: Number(s.demurrage_rate_per_day || 50),
+        freeDays: Number(s.free_demurrage_days ?? 14),
+        ratePerDayUsd: Number(s.demurrage_rate_per_day ?? 50),
         exchangeRate: Number(s.exchange_rate_at_arrival || 1),
-        status: s.status || 'Pending',
+        status: s.container_status === 'empty_returned' ? 'empty_returned' : (s.status || 'Pending'),
       });
       if (risk.isOverdue || (risk.daysRemaining !== null && risk.daysRemaining <= 3)) {
         demurrageAlerts.push({
@@ -3225,12 +3344,11 @@ export class ImportSalesService {
       const startDate = project.created_at || new Date('2020-01-01');
       const profitReport = await this.generatePeriodProfitReport(tenantId, startDate, new Date(), projectId, trx);
 
-      if (
-        !profitReport.data.profitAttributionVerified &&
-        (profitReport.data.grossSalesRevenue > 0 || profitReport.data.salesReturnsRevenue > 0)
-      ) {
+      if (!profitReport.data.profitAttributionVerified) {
+        // An unverified report may show zero sales precisely because allocation is missing.
+        // Never treat that synthetic zero as safe to close.
         throw new UnprocessableEntityException(
-          'لا يمكن اعتماد إقفال مالي نهائي لمشروع لديه مبيعات قبل إثبات مصدر الكميات المباعة وتسوية ربحية الشحنة.'
+          'لا يمكن إقفال المشروع قبل اعتماد تتبع مصدر المبيعات وكميات المخزون بالكامل.'
         );
       }
 
@@ -3641,27 +3759,69 @@ export class ImportSalesService {
   }
 
   async generatePoFromProforma(tenantId: string, userId: number, id: string) {
-    return await this.db.transaction().execute(async (trx) => {
-      const pi = await trx
-        .selectFrom('import_proforma_invoices')
-        .selectAll()
-        .where('id', '=', id)
-        .where('tenant_id', '=', tenantId)
-        .forUpdate()
-        .executeTakeFirstOrThrow();
-
-      const poNumber = `IPO-${pi.pi_number}-${Date.now().toString().slice(-4)}`;
-      return await trx
-        .updateTable('import_proforma_invoices')
-        .set({
-          po_number: poNumber,
-          po_date: new Date().toISOString().slice(0, 10),
-          po_status: 'issued',
-        })
-        .where('id', '=', id)
-        .where('tenant_id', '=', tenantId)
-        .returningAll()
-        .executeTakeFirstOrThrow();
+    // A Proforma is not an order: create the REAL purchasing PO and its stock lines atomically.
+    return this.db.transaction().execute(async (trx) => {
+      const pi = await trx.selectFrom('import_proforma_invoices').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirstOrThrow();
+      if (pi.po_status === 'issued' && pi.po_number) return pi;
+      if (pi.status !== 'approved') throw new BadRequestException('يجب اعتماد الفاتورة المبدئية قبل إصدار أمر شراء.');
+      const raw = typeof pi.items === 'string' ? JSON.parse(pi.items) : pi.items;
+      if (!Array.isArray(raw) || !raw.length) throw new BadRequestException('الفاتورة المبدئية لا تحتوي على أصناف قابلة للشراء.');
+      const exchangeRate = (pi.currency || 'USD').toUpperCase() === 'EGP'
+        ? 1 : Number(pi.exchange_rate_contract);
+      if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+        throw new BadRequestException('سعر صرف العقد إلزامي قبل تحويل فاتورة أجنبية إلى أمر شراء محلي.');
+      }
+      const supplier = await trx.selectFrom('suppliers')
+        .select(['id', 'name', 'account_id']).where('tenant_id', '=', tenantId)
+        .where('id', '=', pi.supplier_id).executeTakeFirstOrThrow();
+      const scopeAccountId = supplier.account_id || tenantId;
+      const lines: Array<{productId: number; name: string; quantity: number; unitCost: number; total: number}> = [];
+      let foreignTotal = 0;
+      for (const item of raw) {
+        const productId = Number(item.productId ?? item.product_id);
+        const qty = Number(item.quantity ?? item.qty);
+        const foreignUnitCost = Number(item.unitPriceForeign ?? item.factoryPriceUsd ?? item.unitPriceUsd);
+        if (!Number.isSafeInteger(productId) || productId <= 0 || !Number.isFinite(qty) || qty <= 0 ||
+          !Number.isFinite(foreignUnitCost) || foreignUnitCost < 0) {
+          throw new BadRequestException('يجب ربط كل بند من الـ Proforma بصنف حقيقي وتحديد الكمية وسعر الوحدة الأجنبي.');
+        }
+        const product = await trx.selectFrom('products').select(['id', 'name'])
+          .where('tenant_id', '=', tenantId).where('id', '=', productId).executeTakeFirst();
+        if (!product) throw new BadRequestException('صنف Proforma غير موجود ضمن أصناف المنشأة.');
+        const unitCost = Number((foreignUnitCost * exchangeRate).toFixed(3));
+        const total = Number((qty * unitCost).toFixed(3));
+        lines.push({ productId, name: product.name, quantity: qty, unitCost, total });
+        foreignTotal += qty * foreignUnitCost;
+      }
+      if (Math.abs(foreignTotal - Number(pi.total_amount_foreign)) > 0.02) {
+        throw new BadRequestException('إجمالي بنود Proforma لا يطابق القيمة الأجنبية المعتمدة.');
+      }
+      const subtotal = Number(lines.reduce((sum, item) => sum + item.total, 0).toFixed(3));
+      const inserted = await trx.insertInto('purchase_orders').values({
+        tenant_id: tenantId, account_id: scopeAccountId,
+        order_number: `PO-TMP-${randomUUID()}`,
+        supplier_id: supplier.id, supplier_name: supplier.name,
+        subtotal, tax_amount: 0, discount_amount: 0, total_amount: subtotal,
+        status: 'draft', notes: `أمر شراء وارد من Proforma ${pi.pi_number} - ${pi.currency} بسعر صرف ${exchangeRate}`,
+        created_by: userId,
+      }).returning('id').executeTakeFirstOrThrow();
+      const orderNumber = formatDailyDocumentNumber('PO', inserted.id);
+      await trx.updateTable('purchase_orders').set({ order_number: orderNumber })
+        .where('tenant_id', '=', tenantId).where('id', '=', inserted.id).execute();
+      for (const item of lines) {
+        await trx.insertInto('purchase_order_items').values({
+          tenant_id: tenantId, account_id: scopeAccountId,
+          purchase_order_id: inserted.id, product_id: item.productId,
+          product_name: item.name, quantity: item.quantity, received_quantity: 0,
+          unit_cost: item.unitCost, tax_rate: 0, discount: 0, total: item.total,
+        }).execute();
+      }
+      return trx.updateTable('import_proforma_invoices').set({
+        po_number: orderNumber, po_date: new Date().toISOString().slice(0, 10), po_status: 'issued',
+      }).where('id', '=', id).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirstOrThrow();
     });
   }
 
@@ -3719,7 +3879,22 @@ export class ImportSalesService {
   }
 
   async disburseBrokerAdvance(tenantId: string, userId: number, dto: DisburseBrokerAdvanceDto) {
+    if (!Number.isFinite(Number(dto.amountEgp)) || Number(dto.amountEgp) <= 0) {
+      throw new BadRequestException('مبلغ عهدة المخلص يجب أن يكون رقمًا موجبًا.');
+    }
     return await this.db.transaction().execute(async (trx) => {
+      if (dto.projectId) {
+        const project = await trx.selectFrom('import_projects').select('id')
+          .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+        if (!project) throw new BadRequestException('مشروع عهدة المخلص غير تابع للمنشأة.');
+      }
+      if (dto.shipmentId) {
+        const shipment = await trx.selectFrom('import_shipments').select('project_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', dto.shipmentId).executeTakeFirst();
+        if (!shipment || (dto.projectId && shipment.project_id && shipment.project_id !== dto.projectId)) {
+          throw new BadRequestException('شحنة عهدة المخلص لا تطابق مشروع الاستيراد.');
+        }
+      }
       const broker = await trx
         .selectFrom('import_customs_brokers')
         .selectAll()
@@ -3748,7 +3923,7 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (this.accountingPosting) {
+      {
         const assetAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
         const bankAccId = await this.resolveTenantAccount(
           trx,
@@ -3757,7 +3932,17 @@ export class ImportSalesService {
           dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
         );
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const bankScope = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', bankAccId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: bankScope.account_id,
+          txn_type: 'import_broker_advance', amount: -Number(dto.amountEgp),
+          note: `عهدة مخلص جمركي ${broker.name} - #${dto.advanceNo}`,
+          reference_type: 'import_broker_advance', reference_id: Number(advance.serial_id),
+          created_by: userId,
+        }).execute();
+        const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await posting.postDomainJournal(trx, {
           sourceType: 'import_broker_advance',
           sourceId: Number(advance.serial_id),
           tenantId,
@@ -3798,15 +3983,39 @@ export class ImportSalesService {
   }
 
   async liquidateBrokerExpenses(tenantId: string, userId: number, dto: LiquidateBrokerExpenseDto) {
+    if (!dto.advanceId) throw new BadRequestException('تسوية مصروف مخلص تتطلب عهدة أصلية موثقة.');
+    if (!Number.isFinite(Number(dto.amountEgp)) || Number(dto.amountEgp) <= 0) {
+      throw new BadRequestException('قيمة إيصال المخلص يجب أن تكون مبلغاً موجباً.');
+    }
     return await this.db.transaction().execute(async (trx) => {
+      // Serialize receipts for a single broker and reject duplicate evidence.
+      const broker = await trx.selectFrom('import_customs_brokers').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.brokerId)
+        .forUpdate().executeTakeFirst();
+      if (!broker) throw new BadRequestException('المخلص الجمركي غير تابع للمنشأة.');
+      const repeatedReceipt = await trx.selectFrom('import_broker_expenses').select('id')
+        .where('tenant_id', '=', tenantId).where('broker_id', '=', dto.brokerId)
+        .where('receipt_no', '=', dto.receiptNo).executeTakeFirst();
+      if (repeatedReceipt) throw new ConflictException('تم تسجيل رقم إيصال المخلص مسبقًا.');
+      const advanceForValidation = await trx.selectFrom('import_broker_advances').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.advanceId)
+        .forUpdate().executeTakeFirstOrThrow();
+      if (advanceForValidation.broker_id !== dto.brokerId ||
+          (advanceForValidation.project_id && dto.projectId && advanceForValidation.project_id !== dto.projectId) ||
+          (advanceForValidation.shipment_id && dto.shipmentId && advanceForValidation.shipment_id !== dto.shipmentId)) {
+        throw new BadRequestException('العهدة لا تتبع نفس المخلص أو مشروع / شحنة الإيصال.');
+      }
+      if (Number(dto.amountEgp) > Number(advanceForValidation.remaining_amount_egp || 0) + 0.001) {
+        throw new BadRequestException('قيمة تسوية المخلص تتجاوز الرصيد المتبقي من العهدة.');
+      }
       const expense = await trx
         .insertInto('import_broker_expenses')
         .values({
           tenant_id: tenantId,
           broker_id: dto.brokerId,
           advance_id: dto.advanceId ?? null,
-          project_id: dto.projectId ?? null,
-          shipment_id: dto.shipmentId ?? null,
+          project_id: dto.projectId ?? advanceForValidation.project_id ?? null,
+          shipment_id: dto.shipmentId ?? advanceForValidation.shipment_id ?? null,
           receipt_no: dto.receiptNo,
           expense_date: dto.expenseDate || new Date().toISOString().slice(0, 10),
           category: dto.category,
@@ -3848,14 +4057,15 @@ export class ImportSalesService {
           .execute();
       }
 
-      if (this.accountingPosting) {
+      {
         const creditAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
         let debitRole: 'vat_receivable' | 'inventory' | 'cogs' = 'cogs';
         if (dto.isRefundableVat) debitRole = 'vat_receivable';
         else if (dto.isCapitalized) debitRole = 'inventory';
         const debitAccId = await this.resolveTenantAccount(trx, tenantId, debitRole);
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await posting.postDomainJournal(trx, {
           sourceType: 'import_broker_expense',
           sourceId: Number(expense.serial_id),
           tenantId,
@@ -3937,7 +4147,20 @@ export class ImportSalesService {
   // CONTAINER SECURITY DEPOSITS & RETURN
   // -------------------------------------------------------------
   async recordContainerDeposit(tenantId: string, userId: number, dto: RecordContainerDepositDto) {
+    if (!Number.isFinite(Number(dto.depositAmountEgp)) || Number(dto.depositAmountEgp) <= 0) {
+      throw new BadRequestException('تأمين الحاوية يجب أن يكون مبلغاً موجباً.');
+    }
     return await this.db.transaction().execute(async (trx) => {
+      const shipment = await trx.selectFrom('import_shipments').select('project_id')
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.shipmentId).executeTakeFirst();
+      if (dto.projectId) {
+        const project = await trx.selectFrom('import_projects').select('id')
+          .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+        if (!project) throw new BadRequestException('مشروع تأمين الحاوية غير تابع للمنشأة.');
+      }
+      if (!shipment || (dto.projectId && shipment.project_id && shipment.project_id !== dto.projectId)) {
+        throw new BadRequestException('حاوية التأمين لا تتبع مشروع الاستيراد المحدد في المنشأة.');
+      }
       const deposit = await trx
         .insertInto('import_container_deposits')
         .values({
@@ -3958,7 +4181,7 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (this.accountingPosting) {
+      {
         const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'container_deposit');
         const bankAccId = await this.resolveTenantAccount(
           trx,
@@ -3967,7 +4190,17 @@ export class ImportSalesService {
           dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
         );
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const bankScope = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', bankAccId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: bankScope.account_id,
+          txn_type: 'import_container_deposit', amount: -Number(dto.depositAmountEgp),
+          note: `تأمين حاوية ${dto.containerNo} للخط الملاحي ${dto.shippingLine}`,
+          reference_type: 'import_container_deposit', reference_id: Number(deposit.serial_id),
+          created_by: userId,
+        }).execute();
+        const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await posting.postDomainJournal(trx, {
           sourceType: 'import_container_deposit',
           sourceId: Number(deposit.serial_id),
           tenantId,
@@ -4191,19 +4424,25 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      const item = await trx
+      const itemRows = await trx
         .selectFrom('import_shipment_items')
-        .selectAll()
+        .select(['quantity', 'received_quantity'])
         .where('shipment_id', '=', dto.shipmentId)
         .where('product_id', '=', Number(dto.productId))
         .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
+        .execute();
 
-      if (!item) {
+      if (!itemRows.length) {
         throw new BadRequestException('هذا الصنف غير مدرج في هذه الشحنة.');
       }
-
-      const blQuantity = Number(item.quantity);
+      // The same SKU can be represented by several distinct shipment lines.
+      const customer = await trx.selectFrom('customers').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', Number(dto.customerId)).executeTakeFirst();
+      if (!customer) throw new BadRequestException('العميل المحدد لا ينتمي لهذه المنشأة.');
+      if (dto.projectId && shipment.project_id && dto.projectId !== shipment.project_id) {
+        throw new BadRequestException('مشروع الحجز لا يطابق مشروع الشحنة.');
+      }
+      const blQuantity = itemRows.reduce((sum, row) => sum + Number(row.received_quantity ?? row.quantity), 0);
 
       const existingOrders = await trx
         .selectFrom('import_container_preorders')
@@ -4211,7 +4450,7 @@ export class ImportSalesService {
         .where('shipment_id', '=', dto.shipmentId)
         .where('product_id', '=', Number(dto.productId))
         .where('tenant_id', '=', tenantId)
-        .where('status', 'in', ['reserved', 'allocated'])
+        .where('status', 'in', ['reserved', 'allocated', 'invoiced'])
         .execute();
 
       const alreadyReserved = existingOrders.reduce((acc, o) => acc + Number(o.reserved_quantity), 0);
@@ -4231,7 +4470,7 @@ export class ImportSalesService {
         .insertInto('import_container_preorders')
         .values({
           tenant_id: tenantId,
-          preorder_no: `PRE-${Date.now().toString().slice(-6)}`,
+          preorder_no: `PRE-${randomUUID()}`,
           project_id: shipment.project_id ?? dto.projectId ?? null,
           shipment_id: dto.shipmentId,
           customer_id: Number(dto.customerId),
@@ -4249,7 +4488,10 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (depositAmount > 0 && this.accountingPosting) {
+      if (!Number.isFinite(depositAmount) || depositAmount < 0 || depositAmount > totalPrice) {
+        throw new BadRequestException('قيمة العربون يجب أن تكون موجبة ولا تتجاوز إجمالي قيمة الحجز.');
+      }
+      if (depositAmount > 0) {
         const bankAccId = await this.resolveTenantAccount(
           trx,
           tenantId,
@@ -4258,7 +4500,17 @@ export class ImportSalesService {
         );
         const unearnedRevAccId = await this.resolveTenantAccount(trx, tenantId, 'customer_advance');
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const scope = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', bankAccId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: scope.account_id,
+          txn_type: 'import_customer_advance', amount: depositAmount,
+          note: `عربون حجز حاوية #${preorder.preorder_no}`,
+          reference_type: 'import_container_preorder',
+          reference_id: Number(preorder.serial_id), created_by: userId,
+        }).execute();
+        const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await postingService.postDomainJournal(trx, {
           sourceType: 'import_container_preorder',
           sourceId: Number(preorder.serial_id),
           tenantId,
@@ -4311,6 +4563,65 @@ export class ImportSalesService {
     return await q.orderBy('po.created_at', 'desc').execute();
   }
 
+  /** Refunds are append-only GL source events; original deposits remain immutable. */
+  async refundContainerPreorder(tenantId: string, userId: number, preorderId: string, dto: RefundImportPreorderDto) {
+    return this.db.transaction().execute(async (trx) => {
+      const preorder = await trx.selectFrom('import_container_preorders').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', preorderId).forUpdate().executeTakeFirstOrThrow();
+      if (preorder.status === 'invoiced' || preorder.status === 'cancelled') {
+        throw new BadRequestException('لا يجوز رد عربون حجز مفوتر أو ملغى.');
+      }
+      const requestKey = String(dto.idempotencyKey || '').trim();
+      if (!requestKey || requestKey.length > 128) throw new BadRequestException('مفتاح عدم تكرار الرد إلزامي.');
+      const existing = await trx.selectFrom('import_preorder_refund_events').select('id')
+        .where('tenant_id', '=', tenantId).where('preorder_id', '=', preorderId)
+        .where('idempotency_key', '=', requestKey).executeTakeFirst();
+      if (existing) throw new ConflictException('رد العربون بنفس المفتاح مسجل بالفعل.');
+      const amount = Number(dto.amountEgp);
+      const remaining = Number((Number(preorder.deposit_amount_egp || 0) - Number(preorder.refunded_amount_egp || 0)).toFixed(2));
+      if (!Number.isFinite(amount) || amount <= 0 || Number(amount.toFixed(2)) !== amount || amount > remaining + 0.001) {
+        throw new BadRequestException('مبلغ الرد أكبر من العربون المتبقي أو غير صالح.');
+      }
+      const preferred = Number(dto.treasuryAccountId || preorder.deposit_treasury_account_id || 0);
+      const bankAccountId = await this.resolveTenantAccount(trx, tenantId, 'bank', preferred || undefined);
+      const liabilityAccountId = await this.resolveTenantAccount(trx, tenantId, 'customer_advance');
+      const bankScope = await trx.selectFrom('accounting_accounts').select('account_id')
+        .where('tenant_id', '=', tenantId).where('id', '=', bankAccountId).executeTakeFirstOrThrow();
+      const event = await trx.insertInto('import_preorder_refund_events').values({
+        tenant_id: tenantId, preorder_id: preorderId, idempotency_key: requestKey,
+        amount_egp: amount, treasury_account_id: bankAccountId, created_by: userId,
+      }).returning(['id', 'serial_id']).executeTakeFirstOrThrow();
+      await trx.insertInto('treasury_transactions').values({
+        tenant_id: tenantId, account_id: bankScope.account_id,
+        txn_type: 'import_customer_advance_refund', amount: -amount,
+        note: `رد عربون حجز ${preorder.preorder_no}`,
+        reference_type: 'import_preorder_refund', reference_id: Number(event.serial_id), created_by: userId,
+      }).execute();
+      const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+      const journalId = await posting.postDomainJournal(trx, {
+        sourceType: 'import_preorder_refund', sourceId: Number(event.serial_id),
+        tenantId, accountId: bankScope.account_id,
+        entryDate: new Date(), description: `رد عربون حجز ${preorder.preorder_no}`,
+        branchId: null, locationId: null, createdBy: userId, postedBy: userId,
+        lines: [
+          { accountId: liabilityAccountId, debit: amount, credit: 0,
+            description: 'تخفيض التزام العربون المسترد', partnerType: 'customer',
+            partnerId: Number(preorder.customer_id), branchId: null, locationId: null },
+          { accountId: bankAccountId, debit: 0, credit: amount,
+            description: 'صرف رد عربون للعميل', partnerType: 'customer',
+            partnerId: Number(preorder.customer_id), branchId: null, locationId: null },
+        ],
+      });
+      await trx.updateTable('import_preorder_refund_events').set({ journal_entry_id: journalId })
+        .where('tenant_id', '=', tenantId).where('id', '=', event.id).execute();
+      const updated = await trx.updateTable('import_container_preorders').set({
+        refunded_amount_egp: Number((Number(preorder.refunded_amount_egp || 0) + amount).toFixed(2)),
+        updated_at: sql`NOW()`,
+      }).where('tenant_id', '=', tenantId).where('id', '=', preorderId).returningAll().executeTakeFirstOrThrow();
+      return { success: true, preorder: updated, refundEventId: event.id, journalEntryId: journalId };
+    });
+  }
+
   async cancelContainerPreorder(tenantId: string, preorderId: string, reason?: string) {
     return await this.db.transaction().execute(async (trx) => {
       const preorder = await trx
@@ -4321,8 +4632,11 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      if (preorder.status === 'invoiced') {
-        throw new BadRequestException('لا يمكن إلغاء حجز تم إصدار فاتورة بيع فعلية له.');
+      if (preorder.status === 'invoiced' || preorder.status === 'cancelled') {
+        throw new BadRequestException('الحجز مفوتر أو ملغى بالفعل.');
+      }
+      if (Number(preorder.deposit_amount_egp || 0) - Number(preorder.refunded_amount_egp || 0) > 0.001) {
+        throw new BadRequestException('لا يمكن إلغاء حجز بعربون قبل رد المبلغ وتسوية التزام العميل محاسبياً.');
       }
 
       return await trx
@@ -4428,12 +4742,15 @@ export class ImportSalesService {
       actualAllocatedCogsEgp += effectiveQty * unitCost;
     }
 
-    const preordersTotalRevenue = preorders
-      .filter((p) => p.status !== 'cancelled')
+    // Invoiced bookings are already included in invoiced sales. Refunded deposits are
+    // not liabilities, and cancelled/refunded bookings must not inflate cash held.
+    const openBookings = preorders.filter((p) => p.status === 'reserved' || p.status === 'allocated');
+    const preordersTotalRevenue = openBookings
       .reduce((acc, p) => acc + Number(p.total_price_egp), 0);
-    const preordersDepositsCollected = preorders
-      .filter((p) => p.status !== 'cancelled')
-      .reduce((acc, p) => acc + Number(p.deposit_amount_egp), 0);
+    const preordersDepositsCollected = openBookings
+      .reduce((acc, p) => acc + Math.max(0, Number(p.deposit_amount_egp) - Number(p.refunded_amount_egp || 0)), 0);
+    const preordersDepositsRefunded = preorders
+      .reduce((acc, p) => acc + Number(p.refunded_amount_egp || 0), 0);
 
     let totalUnitsShipped = 0;
     let totalUnitsReceived = 0;
@@ -4497,6 +4814,7 @@ export class ImportSalesService {
         grossSalesEgp: Number(actualInvoicedSalesEgp.toFixed(2)),
         inTransitPreordersRevenue: Number(preordersTotalRevenue.toFixed(2)),
         depositsCollectedEgp: Number(preordersDepositsCollected.toFixed(2)),
+        refundedPreorderDepositsEgp: Number(preordersDepositsRefunded.toFixed(2)),
         unearnedPreorderLiabilityEgp: Number(preordersDepositsCollected.toFixed(2)),
         unsoldStockLandedValueEgp: Number(unsoldStockLandedValueEgp.toFixed(2)),
         lotsCount: lots.length,
@@ -4527,7 +4845,18 @@ export class ImportSalesService {
   // FX TREASURY DESK
   // -------------------------------------------------------------
   async recordFxAcquisition(tenantId: string, userId: number, dto: RecordFxAcquisitionDto) {
-    const effectiveRate = Number(dto.egpCost) / Number(dto.foreignAmount);
+    const foreignAmount = Number(dto.foreignAmount);
+    const egpCost = Number(dto.egpCost);
+    if (!Number.isFinite(foreignAmount) || foreignAmount <= 0 ||
+        !Number.isFinite(egpCost) || egpCost <= 0) {
+      throw new BadRequestException('مبالغ تدبير العملة يجب أن تكون أرقاماً موجبة صحيحة.');
+    }
+    const bankId = dto.bankAccountId ? Number(dto.bankAccountId) : null;
+    if (bankId !== null) {
+      // This log is informational; still never allow linking a bank belonging to another tenant.
+      await this.resolveTenantAccount(this.db, tenantId, 'bank', bankId);
+    }
+    const effectiveRate = egpCost / foreignAmount;
     return await this.db
       .insertInto('import_fx_acquisitions')
       .values({
@@ -4538,7 +4867,7 @@ export class ImportSalesService {
         effective_exchange_rate: Number(effectiveRate.toFixed(4)),
         acquisition_date: dto.acquisitionDate || new Date().toISOString().slice(0, 10),
         source: dto.source || 'bank',
-        bank_account_id: dto.bankAccountId ? Number(dto.bankAccountId) : null,
+        bank_account_id: bankId,
         notes: dto.notes || null,
       })
       .returningAll()
@@ -4682,8 +5011,13 @@ export class ImportSalesService {
       .where('status', '=', 'active')
       .execute();
 
+    const today = new Date();
     for (const adv of staleAdvances) {
-      if (Number(adv.remaining_amount_egp) > 0) {
+      // A fresh, not-yet-liquidated broker advance is a normal operation, not an exception.
+      const disbursedOn = new Date(String(adv.disbursement_date));
+      const ageDays = Number.isFinite(disbursedOn.getTime())
+        ? (today.getTime() - disbursedOn.getTime()) / (24 * 60 * 60 * 1000) : 0;
+      if (Number(adv.remaining_amount_egp) > 0 && ageDays > 30) {
         exceptions.push({
           tenant_id: tenantId,
           exception_type: 'broker_advance_mismatch',
@@ -4713,7 +5047,7 @@ export class ImportSalesService {
       if (dep.expected_return_date && (dep.expected_return_date as any) < todayStr) {
         exceptions.push({
           tenant_id: tenantId,
-          exception_type: 'unrecorded_customs_expense',
+          exception_type: 'container_deposit_overdue',
           severity: 'critical',
           project_id: dep.project_id,
           shipment_id: dep.shipment_id,
@@ -4728,13 +5062,24 @@ export class ImportSalesService {
       }
     }
 
+    const existingOpen = await this.db.selectFrom('import_reconciliation_exceptions')
+      .select(['exception_type', 'shipment_id', 'project_id', 'details'])
+      .where('tenant_id', '=', tenantId).where('status', '=', 'open').execute();
+    let insertedCount = 0;
     for (const ex of exceptions) {
+      const duplicate = existingOpen.some((row: any) =>
+        row.exception_type === ex.exception_type &&
+        row.shipment_id === ex.shipment_id && row.project_id === ex.project_id &&
+        JSON.stringify(row.details) === JSON.stringify(typeof ex.details === 'string' ? JSON.parse(ex.details) : ex.details));
+      if (duplicate) continue;
       await this.db.insertInto('import_reconciliation_exceptions').values(ex).execute();
+      existingOpen.push({ exception_type: ex.exception_type, shipment_id: ex.shipment_id, project_id: ex.project_id, details: JSON.parse(ex.details) });
+      insertedCount++;
     }
 
     return {
       scannedAt: new Date(),
-      exceptionsFoundCount: exceptions.length,
+      exceptionsFoundCount: insertedCount,
       exceptions,
     };
   }

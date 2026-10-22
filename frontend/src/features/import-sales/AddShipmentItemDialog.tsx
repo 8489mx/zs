@@ -15,6 +15,8 @@ const schema = z.object({
   productId: z.string().min(1, 'يجب اختيار صنف'),
   quantity: z.preprocess((val) => Number(val), z.number().min(1, 'الكمية يجب أن تكون أكبر من 0')),
   factoryUnitPriceUsd: z.preprocess((val) => Number(val), z.number().min(0, 'السعر يجب أن يكون 0 أو أكثر')),
+  unitWeightKg: z.coerce.number().min(0),
+  unitCbm: z.coerce.number().min(0),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -31,6 +33,8 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
       productId: '',
       quantity: 1,
       factoryUnitPriceUsd: 0,
+      unitWeightKg: 0,
+      unitCbm: 0,
     }
   });
 
@@ -136,6 +140,14 @@ export function AddShipmentItemDialog({ open, onClose, shipmentId }: { open: boo
             </Field>
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <Field label="وزن الوحدة (كجم)">
+              <input type="number" step="0.001" min="0" className="input" {...form.register('unitWeightKg')} disabled={mutation.isPending} />
+            </Field>
+            <Field label="حجم الوحدة (CBM)">
+              <input type="number" step="0.0001" min="0" className="input" {...form.register('unitCbm')} disabled={mutation.isPending} />
+            </Field>
+          </div>
           <MutationFeedback isError={mutation.isError} isSuccess={mutation.isSuccess} error={mutation.error} />
         </div>
       </form>

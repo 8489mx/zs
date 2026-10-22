@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { strict as assert } from 'node:assert';
-import { Kysely } from 'kysely';
+import { Kysely, sql } from 'kysely';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import type { Database } from '../../src/database/database.types';
@@ -16,6 +16,7 @@ import { up as up239 } from '../../src/database/migrations/2040000000239_contain
 import { up as up240 } from '../../src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation';
 import { up as up241 } from '../../src/database/migrations/2040000000241_import_container_refund_events';
 import { up as up242 } from '../../src/database/migrations/2040000000242_import_late_expense_events';
+import { up as up245 } from '../../src/database/migrations/2040000000245_import_preorder_refunds';
 import {
   allocateSaleFromImportLots,
   restoreImportLotsFromCancelledSale,
@@ -493,6 +494,57 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE purchase_orders (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      order_number VARCHAR(60) NOT NULL,
+      supplier_id INTEGER,
+      supplier_name TEXT NOT NULL,
+      supplier_phone TEXT,
+      warehouse_id INTEGER,
+      warehouse_name TEXT,
+      subtotal NUMERIC(14,3) NOT NULL DEFAULT 0,
+      tax_amount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      discount_amount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      total_amount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'draft',
+      expected_delivery_date DATE,
+      notes TEXT,
+      terms_conditions TEXT,
+      created_by INTEGER,
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE purchase_order_items (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL,
+      account_id TEXT NOT NULL,
+      purchase_order_id BIGINT NOT NULL REFERENCES purchase_orders(id),
+      product_id BIGINT NOT NULL,
+      product_name TEXT NOT NULL,
+      unit_name TEXT,
+      quantity NUMERIC(14,3) NOT NULL,
+      received_quantity NUMERIC(14,3) NOT NULL DEFAULT 0,
+      unit_cost NUMERIC(14,3) NOT NULL DEFAULT 0,
+      tax_rate NUMERIC(8,2) NOT NULL DEFAULT 0,
+      discount NUMERIC(14,3) NOT NULL DEFAULT 0,
+      total NUMERIC(14,3) NOT NULL DEFAULT 0,
+      notes TEXT
+    );
+
+    CREATE TABLE import_partner_project_payouts (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      partner_id UUID NOT NULL REFERENCES import_partners(id),
+      project_id UUID NOT NULL REFERENCES import_projects(id),
+      treasury_transaction_id BIGINT NOT NULL REFERENCES treasury_transactions(id),
+      amount_egp NUMERIC(15,2) NOT NULL CHECK (amount_egp > 0),
+      created_by BIGINT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(tenant_id, treasury_transaction_id)
+    );
+
     CREATE TABLE import_project_partners (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -706,6 +758,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
   await up240(db as any);
   await up241(db as any);
   await up242(db as any);
+  await up245(db as any);
 
   // Seed default tenant
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-e2e', 'Global Import & Trade Ltd');`);
@@ -909,10 +962,16 @@ async function runBusinessSimulation() {
   // -------------------------------------------------------------
   console.log('Step 6: Approving Proforma Invoice & Generating International PO...');
   await importService.approveProformaInvoice(tenantId, userId, conversionResult.proformaId!);
-  const issuedPo = await importService.generatePoFromProforma(tenantId, userId, conversionResult.proformaId!);
-  assert.ok(issuedPo.po_number?.startsWith('IPO-'), 'PO Number must follow international format');
-  assert.equal(issuedPo.po_status, 'issued');
-  console.log(`PASS: PO Generated: ${issuedPo.po_number}`);
+  // A Proforma without product catalog links MUST NOT fabricate a purchase order.
+  let unlinkedProformaRejected = false;
+  try {
+    await importService.generatePoFromProforma(tenantId, userId, conversionResult.proformaId!);
+  } catch (err: any) {
+    unlinkedProformaRejected = true;
+    assert.match(err.message, /صنف|ربط كل بند/);
+  }
+  assert.ok(unlinkedProformaRejected, 'Unlinked Proforma must never create a fake purchase order');
+  console.log('PASS: Unlinked Proforma cannot create an unaudited purchase order.');
 
   // -------------------------------------------------------------
   // STEP 7: FOREIGN TRANSFER (ADVANCE PAYMENT TO CHINA FACTORY)
@@ -1016,6 +1075,20 @@ async function runBusinessSimulation() {
     })
     .returningAll()
     .executeTakeFirstOrThrow();
+
+  // Link approved Proforma items to the concrete product catalog and create a real PO.
+  await importService.updateProformaInvoice(tenantId, conversionResult.proformaId!, {
+    items: [
+      { productId: Number(productA.id), qty: 1000, factoryPriceUsd: 25 },
+      { productId: Number(productB.id), qty: 500, factoryPriceUsd: 40 },
+    ],
+  } as any);
+  const issuedPo = await importService.generatePoFromProforma(tenantId, userId, conversionResult.proformaId!);
+  assert.ok(issuedPo.po_number?.startsWith('PO-'), 'Order must be a real purchasing PO');
+  assert.equal(issuedPo.po_status, 'issued');
+  const poItems = await (db as any).selectFrom('purchase_order_items').selectAll().execute();
+  assert.equal(poItems.length, 2, 'Real purchase order has two mapped stock lines');
+  console.log(`PASS: Actual purchasing PO generated with 2 stock lines: ${issuedPo.po_number}`);
 
   const shipment = await importService.createShipment(tenantId, {
     containerNumber: 'MSCU-9482019',
@@ -1173,6 +1246,44 @@ async function runBusinessSimulation() {
   }
   assert.ok(oversellRejected, 'Overselling container pre-orders beyond BL quantity must be strictly rejected!');
   console.log('PASS: Overselling negative test correctly blocked by capacity gate.');
+
+  // A separate cancellable booking verifies complete/partial idempotent advance refunds.
+  const returnable = await importService.createContainerPreorder(tenantId, userId, {
+    projectId: project.id,
+    shipmentId: shipment.id,
+    customerId: String(customer.id),
+    productId: String(productB.id),
+    reservedQuantity: 5,
+    unitPriceEgp: 2000,
+    depositAmountEgp: 1000,
+    depositTreasuryAccountId: String(accounts['1120']),
+  });
+  let prematureCancelBlocked = false;
+  try {
+    await importService.cancelContainerPreorder(tenantId, returnable.id, 'طلب العميل');
+  } catch { prematureCancelBlocked = true; }
+  assert.equal(prematureCancelBlocked, true, 'Unsettled customer liability cannot be silently cancelled.');
+  const partialRefund = await importService.refundContainerPreorder(tenantId, userId, returnable.id, {
+    amountEgp: 400, idempotencyKey: 'test-booking-refund-partial-01',
+  });
+  assert.equal(partialRefund.success, true);
+  await assert.rejects(
+    () => importService.refundContainerPreorder(tenantId, userId, returnable.id, {
+      amountEgp: 400, idempotencyKey: 'test-booking-refund-partial-01',
+    }),
+    /مفتاح|مسجل بالفعل/,
+  );
+  await importService.refundContainerPreorder(tenantId, userId, returnable.id, {
+    amountEgp: 600, idempotencyKey: 'test-booking-refund-final-02',
+  });
+  await importService.cancelContainerPreorder(tenantId, returnable.id, 'تم رد العربون بالكامل');
+  const customerRefundTotal = await db.selectFrom('treasury_transactions')
+    .select([sql<number>`coalesce(sum(amount),0)`.as('total')])
+    .where('tenant_id','=',tenantId)
+    .where('txn_type','=','import_customer_advance_refund')
+    .executeTakeFirstOrThrow();
+  assert.equal(Number(customerRefundTotal.total), -1000);
+  console.log('PASS: Customer advances refunded in two reconciled, idempotent transactions.');
 
   // -------------------------------------------------------------
   // STEP 14: CONTAINER ARRIVAL, WAREHOUSE RECEIPT & LOT CREATION
@@ -1777,12 +1888,17 @@ async function runBusinessSimulation() {
     .returningAll()
     .executeTakeFirstOrThrow();
 
+  const sharedSaleItem = await (db as any).insertInto('sale_items').values({
+    tenant_id: tenantId, account_id: 'tenant-e2e', sale_id: Number(p1Sale.id),
+    product_id: Number(productA.id), product_name: productA.name,
+    qty: 100, unit_price: 1850, line_total: 185000, cost_price: 1250,
+  }).returning('id').executeTakeFirstOrThrow();
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
       locationId: 1,
       saleId: Number(p1Sale.id),
-      items: [{ productId: Number(productA.id), qty: 100, netUnitPrice: 1850 }],
+      items: [{ itemId: Number(sharedSaleItem.id), productId: Number(productA.id), qty: 100, netUnitPrice: 1850 }],
     });
   });
 
@@ -1866,14 +1982,20 @@ async function runBusinessSimulation() {
     ])
     .execute();
 
+  const bulkSaleLines = await (db as any).selectFrom('sale_items')
+    .select(['id', 'product_id']).where('tenant_id', '=', tenantId)
+    .where('sale_id', '=', Number(bulkClearanceSale.id)).execute();
+  const bulkItemA = bulkSaleLines.find((line: any) => Number(line.product_id) === Number(productA.id));
+  const bulkItemB = bulkSaleLines.find((line: any) => Number(line.product_id) === Number(productB.id));
+  assert.ok(bulkItemA && bulkItemB, 'Each imported sale must have a real sale line for source attribution');
   await db.transaction().execute(async (trx) => {
     await allocateSaleFromImportLots(trx, {
       tenantId,
       locationId: 1,
       saleId: Number(bulkClearanceSale.id),
       items: [
-        { productId: Number(productA.id), qty: 460, netUnitPrice: 1850 },
-        { productId: Number(productB.id), qty: 500, netUnitPrice: 2950 },
+        { itemId: Number(bulkItemA.id), productId: Number(productA.id), qty: 460, netUnitPrice: 1850 },
+        { itemId: Number(bulkItemB.id), productId: Number(productB.id), qty: 500, netUnitPrice: 2950 },
       ],
     });
   });

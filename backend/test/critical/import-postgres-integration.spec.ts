@@ -14,6 +14,7 @@ import { up as up239 } from '../../src/database/migrations/2040000000239_contain
 import { up as up240 } from '../../src/database/migrations/2040000000240_import_governance_approvals_and_reconciliation';
 import { up as up241 } from '../../src/database/migrations/2040000000241_import_container_refund_events';
 import { up as up242 } from '../../src/database/migrations/2040000000242_import_late_expense_events';
+import { up as up245 } from '../../src/database/migrations/2040000000245_import_preorder_refunds';
 import {
   allocateSaleFromImportLots,
   restoreImportLotsFromCancelledSale,
@@ -499,6 +500,18 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE import_partner_project_payouts (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      partner_id UUID NOT NULL REFERENCES import_partners(id),
+      project_id UUID NOT NULL REFERENCES import_projects(id),
+      treasury_transaction_id BIGINT NOT NULL REFERENCES treasury_transactions(id),
+      amount_egp NUMERIC(15,2) NOT NULL CHECK (amount_egp > 0),
+      created_by BIGINT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(tenant_id, treasury_transaction_id)
+    );
+
     CREATE TABLE import_sourcing_trips (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -667,6 +680,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
   await up240(db as any);
   await up241(db as any);
   await up242(db as any);
+  await up245(db as any);
 
   // Seed default tenant and users
   await pglite.exec(`INSERT INTO tenants (id, name) VALUES ('tenant-audit-1', 'Audited Trading Tenant');`);
@@ -1156,7 +1170,7 @@ async function runTests() {
       .execute();
 
     // 100 units total received (40 on hand -> 60 sold)
-    await db
+    const lateItem = await db
       .insertInto('import_shipment_items')
       .values({
         tenant_id: tenantId,
@@ -1167,7 +1181,14 @@ async function runTests() {
         factory_unit_price_usd: 8.00,
         landed_cost_egp: 400,
       })
-      .execute();
+      .returning('id').executeTakeFirstOrThrow();
+    await db.insertInto('import_inventory_lots').values({
+      tenant_id: tenantId, lot_number: 'EXP-LOT-01',
+      shipment_id: shipment.id, shipment_item_id: lateItem.id,
+      product_id: product.id, location_id: null,
+      initial_quantity: 100, remaining_quantity: 40,
+      unit_landed_cost_egp: 400, status: 'active',
+    } as any).execute();
 
     const res = await service.processLateShipmentExpense(tenantId, userId, shipment.id, {
       title: 'Late Detention & Terminal Charges',
@@ -1317,7 +1338,17 @@ async function runTests() {
       .executeTakeFirstOrThrow();
 
     await db.insertInto('product_location_stock').values({ tenant_id: tenantId, product_id: product.id, qty: 10, reserved_qty: 0 }).execute();
-    await db.insertInto('import_shipment_items').values({ tenant_id: tenantId, shipment_id: shipment.id, product_id: product.id, quantity: 10, received_quantity: 10, factory_unit_price_usd: 5, landed_cost_egp: 50 }).execute();
+    const negativeItem = await db.insertInto('import_shipment_items').values({
+      tenant_id: tenantId, shipment_id: shipment.id, product_id: product.id,
+      quantity: 10, received_quantity: 10, factory_unit_price_usd: 5, landed_cost_egp: 50,
+    }).returning('id').executeTakeFirstOrThrow();
+    await db.insertInto('import_inventory_lots').values({
+      tenant_id: tenantId, lot_number: 'NEG-LOT-01',
+      shipment_id: shipment.id, shipment_item_id: negativeItem.id,
+      product_id: product.id, location_id: null,
+      initial_quantity: 10, remaining_quantity: 10,
+      unit_landed_cost_egp: 50, status: 'active',
+    } as any).execute();
 
     // Negative 7-A: Supplier ID passed as GL account rejected
     let supplierAsGlRejected = false;

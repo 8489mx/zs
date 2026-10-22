@@ -5920,6 +5920,7 @@ export interface ImportContainerPreorderTable {
   unit_price_egp: ImportNumeric;
   total_price_egp: ImportNumeric;
   deposit_amount_egp: ImportNumeric;
+  refunded_amount_egp: ImportNumeric;
   deposit_treasury_account_id: number | null;
   status: string;
   sale_invoice_id: number | null;
@@ -6054,6 +6055,28 @@ export interface Database {
   import_container_deposits: ImportContainerDepositTable;
   import_container_refund_events: ImportContainerRefundEventTable;
   import_late_expense_events: ImportLateExpenseEventTable;
+  import_preorder_refund_events: {
+    id: Generated<string>;
+    serial_id: Generated<number>;
+    tenant_id: string;
+    preorder_id: string;
+    idempotency_key: string;
+    amount_egp: ImportNumeric;
+    treasury_account_id: number;
+    journal_entry_id: number | null;
+    created_by: number | null;
+    created_at: Generated<Date>;
+  };
+  import_partner_project_payouts: {
+    id: Generated<number>;
+    tenant_id: string;
+    partner_id: string;
+    project_id: string;
+    treasury_transaction_id: number;
+    amount_egp: ImportNumeric;
+    created_by: number | null;
+    created_at: Generated<Date>;
+  };
   import_container_preorders: ImportContainerPreorderTable;
   import_inventory_lots: ImportInventoryLotTable;
   import_sale_allocations: ImportSaleAllocationTable;

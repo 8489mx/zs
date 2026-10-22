@@ -1187,6 +1187,21 @@ export class CreateContainerPreorderDto {
   notes?: string;
 }
 
+export class RefundImportPreorderDto {
+  @Type(() => Number)
+  @IsNumber()
+  @IsPositive()
+  amountEgp!: number;
+
+  @IsString()
+  @IsNotEmpty()
+  idempotencyKey!: string;
+
+  @IsOptional()
+  @IsString()
+  treasuryAccountId?: string;
+}
+
 export class RecordFxAcquisitionDto {
   @IsString()
   currency!: string;
@@ -1259,7 +1274,7 @@ export class CreateImportDocumentDto {
 }
 
 export class CreateApprovalRequestDto {
-  @IsString()
+  @IsIn(['supplier_bank_change', 'large_transfer', 'broker_settlement', 'partner_distribution', 'project_closure'])
   actionType!: 'supplier_bank_change' | 'large_transfer' | 'broker_settlement' | 'partner_distribution' | 'project_closure';
 
   @IsString()

@@ -124,7 +124,7 @@ function testDemurrageRiskCalculation(): void {
   assert.equal(overdueResult.overdueDays, 6, 'Overdue days must equal 6');
   assert.equal(overdueResult.estimatedFeesEgp, 30000, 'Fees must be 6 * 100 * 50 = 30,000 EGP');
 
-  // Arrived shipment => risk is 0
+  // Arrival alone does not end detention: only empty equipment return does.
   const arrivedResult = calculateDemurrageRisk({
     arrivalDate: pastDate,
     demurrageStartDate: null,
@@ -133,8 +133,19 @@ function testDemurrageRiskCalculation(): void {
     exchangeRate: 50,
     status: 'Arrived',
   });
-  assert.equal(arrivedResult.isOverdue, false);
-  assert.equal(arrivedResult.estimatedFeesEgp, 0);
+  assert.equal(arrivedResult.isOverdue, true);
+  assert.equal(arrivedResult.estimatedFeesEgp, 30000);
+  const returnedResult = calculateDemurrageRisk({
+    arrivalDate: pastDate, freeDays: 14, ratePerDayUsd: 100,
+    exchangeRate: 50, status: 'empty_returned',
+  });
+  assert.equal(returnedResult.isOverdue, false);
+  assert.equal(returnedResult.estimatedFeesEgp, 0);
+  const noFreeDays = calculateDemurrageRisk({
+    arrivalDate: pastDate, freeDays: 0, ratePerDayUsd: 100,
+    exchangeRate: 50, status: 'Arrived',
+  });
+  assert.equal(noFreeDays.overdueDays, 20);
 }
 
 function testNewRouteGuards(): void {

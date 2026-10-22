@@ -1,4 +1,5 @@
 import { Kysely, Transaction, sql } from 'kysely';
+import { randomUUID } from 'crypto';
 import { Database } from '../../../database/database.types';
 
 /**
@@ -267,7 +268,13 @@ export async function adjustImportLotQuantity(
     .executeTakeFirstOrThrow();
 
   const current = Number(lot.remaining_quantity);
-  const newQty = Math.max(0, Number((current + params.adjustmentQty).toFixed(4)));
+  if (!Number.isFinite(params.adjustmentQty) || params.adjustmentQty === 0) {
+    throw new Error('Lot adjustment quantity must be finite and nonzero.');
+  }
+  const newQty = Number((current + params.adjustmentQty).toFixed(4));
+  if (newQty < 0 || newQty > Number(lot.initial_quantity) + 0.0001) {
+    throw new Error('Lot adjustment would exceed available inventory or original receipt.');
+  }
 
   await trx
     .updateTable('import_inventory_lots')
@@ -299,7 +306,15 @@ export async function transferImportLotLocation(
     .executeTakeFirstOrThrow();
 
   const current = Number(lot.remaining_quantity);
-  const transferQty = params.qty ? Math.min(current, Number(params.qty)) : current;
+  const transferQty = params.qty === undefined ? current : Number(params.qty);
+  if (!Number.isSafeInteger(params.toLocationId) || params.toLocationId <= 0 ||
+      !Number.isFinite(transferQty) || transferQty <= 0 || transferQty > current + 0.0001 ||
+      lot.location_id === params.toLocationId) {
+    throw new Error('Invalid destination or transfer quantity for import lot.');
+  }
+  const destination = await trx.selectFrom('stock_locations').select('id')
+    .where('tenant_id', '=', params.tenantId).where('id', '=', params.toLocationId).executeTakeFirst();
+  if (!destination) throw new Error('Target warehouse does not belong to this tenant.');
 
   if (transferQty >= current - 0.0001) {
     await trx
@@ -327,7 +342,7 @@ export async function transferImportLotLocation(
       .insertInto('import_inventory_lots')
       .values({
         tenant_id: params.tenantId,
-        lot_number: `${lot.lot_number}-TR${params.toLocationId}`,
+        lot_number: `${lot.lot_number.slice(0, 65)}-TR${params.toLocationId}-${randomUUID().slice(0, 8)}`,
         project_id: lot.project_id,
         shipment_id: lot.shipment_id,
         shipment_item_id: lot.shipment_item_id,

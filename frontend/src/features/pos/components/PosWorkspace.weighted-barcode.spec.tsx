@@ -205,8 +205,9 @@ describe('PosWorkspace - Weighted Barcodes', () => {
     });
 
     // Check quantity is 1.575
-    const qtyInput = screen.getByLabelText('الكمية');
-    expect(qtyInput).toHaveValue(1.575);
+    // POS can render multiple quantity controls (cart + editor); assert the scanned line exists.
+    const quantityInputs = screen.getAllByLabelText('الكمية');
+    expect(quantityInputs.some((element) => (element as HTMLInputElement).value === '1.575')).toBe(true);
 
     expect(posApi.lookupProducts).toHaveBeenCalledWith(expect.objectContaining({
       barcode: '00009',

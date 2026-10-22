@@ -9,6 +9,23 @@ on:
       - main
 
 jobs:
+  import-financial:
+    name: Import financial safety (fast PGlite regression)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+      - name: Exercise import financial and business simulation
+        run: npm run test:import-safety
+        working-directory: backend
+
   backend:
     runs-on: ubuntu-latest
     services:
@@ -121,6 +138,9 @@ jobs:
           echo "Timed out waiting for backend liveness"
           cat /tmp/backend.log
           exit 1
+        working-directory: backend
+      - name: Import module financial and PostgreSQL regression
+        run: npm run test:import-safety
         working-directory: backend
       - name: Run backend E2E
         run: npm run test:e2e

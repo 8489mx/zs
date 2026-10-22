@@ -29,6 +29,49 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
   const [expectedDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [refundPendingId, setRefundPendingId] = useState<string | null>(null);
+
+  const handleRefund = async (booking: any) => {
+    const remaining = Number(booking.deposit_amount_egp || 0) - Number(booking.refunded_amount_egp || 0);
+    if (remaining <= 0) return;
+    const raw = window.prompt(`قيمة العربون المطلوب رده للعميل (المتبقي ${remaining.toFixed(2)} جنيه):`, remaining.toFixed(2));
+    if (raw === null) return;
+    const amount = Number(raw);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > remaining) {
+      toast.error('قيمة الرد غير صالحة أو أكبر من العربون غير المسترد');
+      return;
+    }
+    if (!window.confirm(`تأكيد رد ${amount.toFixed(2)} جنيه من الخزينة للعميل؟ سيتم تسجيل قيد محاسبي.`)) return;
+    try {
+      setRefundPendingId(booking.id);
+      await http(`/api/import-sales/preorders/${booking.id}/refund`, {
+        method: 'POST',
+        body: JSON.stringify({ amountEgp: amount, idempotencyKey: crypto.randomUUID() }),
+      });
+      await refetch();
+      toast.success('تم تسجيل رد العربون بالخزينة والأستاذ العام');
+    } catch (err: any) {
+      toast.error('تعذر رد العربون: ' + (err?.message || 'خطأ غير معروف'));
+    } finally {
+      setRefundPendingId(null);
+    }
+  };
+
+  const handleCancel = async (booking: any) => {
+    if (!window.confirm('تأكيد إلغاء حجز البضاعة؟ يجب رد أي عربون أولاً.')) return;
+    try {
+      setRefundPendingId(booking.id);
+      await http(`/api/import-sales/preorders/${booking.id}/cancel`, {
+        method: 'POST', body: JSON.stringify({ reason: 'إلغاء بطلب العميل' }),
+      });
+      await refetch();
+      toast.success('تم إلغاء الحجز وتحرير الكمية');
+    } catch (err: any) {
+      toast.error('فشل الإلغاء: ' + (err?.message || 'خطأ غير معروف'));
+    } finally {
+      setRefundPendingId(null);
+    }
+  };
 
   // Fetch customers
   const { data: customers = [] } = useQuery({
@@ -315,6 +358,7 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
                     <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600 }}>العربون</th>
                     <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600 }}>الحالة</th>
                     <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600 }}>التاريخ</th>
+                    <th style={{ padding: '8px 10px', color: '#475569', fontWeight: 600 }}>التحصيل والاسترداد</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -354,6 +398,25 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
                       </td>
                       <td style={{ padding: '8px 10px', color: '#64748b' }}>
                         {new Date(po.created_at).toLocaleDateString('ar-EG')}
+                      </td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <div style={{ fontSize: 11, marginBottom: 4 }}>
+                          مسترد: {formatCurrency(Number(po.refunded_amount_egp || 0))}
+                        </div>
+                        {po.status !== 'cancelled' && po.status !== 'invoiced' && (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {Number(po.deposit_amount_egp || 0) > Number(po.refunded_amount_egp || 0) && (
+                              <button type="button" onClick={() => handleRefund(po)} disabled={refundPendingId === po.id}>
+                                رد العربون (محاسب)
+                              </button>
+                            )}
+                            {Number(po.deposit_amount_egp || 0) - Number(po.refunded_amount_egp || 0) < 0.01 && (
+                              <button type="button" onClick={() => handleCancel(po)} disabled={refundPendingId === po.id}>
+                                إلغاء الحجز
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

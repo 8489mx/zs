@@ -28,6 +28,7 @@ import {
   RecordContainerDepositDto,
   RecordContainerReturnRefundDto,
   CreateContainerPreorderDto,
+  RefundImportPreorderDto,
   RecordFxAcquisitionDto,
   CreateImportDocumentDto,
   CreateApprovalRequestDto,
@@ -632,6 +633,16 @@ export class ImportSalesController {
     @Query('customerId') customerId?: string
   ) {
     return this.importSalesService.listContainerPreorders(req.authContext!.tenantId!, shipmentId, customerId);
+  }
+
+  @RequireAnyPermission('accounting')
+  @Post('preorders/:id/refund')
+  async refundContainerPreorder(
+    @Req() req: RequestWithAuth,
+    @Param('id') preorderId: string,
+    @Body() dto: RefundImportPreorderDto,
+  ) {
+    return this.importSalesService.refundContainerPreorder(req.authContext!.tenantId!, req.authContext!.userId!, preorderId, dto);
   }
 
   @RequireAnyPermission('sales', 'purchases')
