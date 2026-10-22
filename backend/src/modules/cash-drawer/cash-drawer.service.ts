@@ -374,6 +374,7 @@ export class CashDrawerService {
         where tt.tenant_id = ${scope.tenantId}
           and tt.reference_type = 'cashier_shift' and tt.reference_id = ${Number(shift.id)}
           and tt.amount < 0 and rd.return_type = 'sale'
+          and coalesce(tt.payment_channel, 'cash') = 'cash'
           and rd.settlement_mode = 'refund'
       ), 0) as sale_return_cash_refund_total,
       coalesce(sum(case when rd.refund_allocations is not null then (
