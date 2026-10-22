@@ -4,6 +4,7 @@ import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
+import { assertUntrackedStockMutation } from '../inventory/helpers/inventory-tracked-stock.helper';
 import { paginateRows } from '../../common/utils/pagination';
 import { ensureReturnQtyWithinLimit } from '../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../common/utils/location-stock-ledger';
@@ -635,7 +636,10 @@ export class ReturnsService {
                   .where('id', '=', alloc.location_id)
                   .where(this.tenantPredicate(auth))
                   .executeTakeFirst();
-                const branchId = locData?.branch_id || sale.branch_id;
+                if (!locData) {
+                  throw new AppError('مخزن السطر الأصلي للمرتجع غير موجود أو خارج نطاق المنشأة', 'SALE_RETURN_ORIGINAL_LOCATION_MISSING', 409);
+                }
+                const branchId = locData.branch_id ?? sale.branch_id;
 
                const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
                await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * returnToThis).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
@@ -904,6 +908,9 @@ export class ReturnsService {
         : matchingLines[0];
       if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       const purchaseLineId = Number(purchaseItem.id);
+      // Supplier returns do not presently reconcile individual IMEIs or
+      // pharmacy batch quantities. Refuse an unsafe global-only stock reversal.
+      await assertUntrackedStockMutation(trx, scope, requestItem.productId);
       if (originalTaxCents > 0 && unreconciledTaxLineIds.has(purchaseLineId)) {
         throw new AppError('مرتجع شراء سابق يحتاج تسوية ضريبية قبل مرتجع جديد', 'PURCHASE_RETURN_TAX_RECONCILIATION_REQUIRED', 409);
       }
