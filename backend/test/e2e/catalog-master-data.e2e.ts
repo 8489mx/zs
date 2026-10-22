@@ -81,9 +81,14 @@ async function main() {
   const blue = beforeFashion.find((item) => item.color === 'ازرق');
   assert.ok(red && blue, 'Expected red and blue clothing variants');
   assert.equal(red.sku, redSku, 'Variant SKU must persist');
+  assert.ok(red.catalogUpdatedAt, 'Variant catalog version should be returned for concurrency protection');
+  const modelPage = await client.get(`/api/products?groupFashion=true&pageSize=5&q=${encodeURIComponent(styleCode)}`);
+  assert.equal(modelPage.pagination.totalItems, 1, 'Model with two sizes must count as one page group');
+  assert.equal(expectArray(modelPage.products, 'model-page').length, 2, 'Model page should contain all sizes');
 
   const row = (fields: Record<string, any>) => ({
     name: fields.name, itemKind: 'fashion', itemType: 'product', styleCode,
+    expectedCatalogUpdatedAt: fields.expectedCatalogUpdatedAt,
     color: fields.color, size: fields.size, barcode: fields.barcode, sku: fields.sku,
     categoryId: Number(category.id), supplierId: Number(supplier.id),
     costPrice: 60, retailPrice: 120, wholesalePrice: 100,
@@ -92,7 +97,7 @@ async function main() {
   });
   const edited = await client.put(`/api/products/fashion-groups/${styleCode}`, {
     rows: [
-      row({ id: red.id, name: red.name, color: 'أحمر', size: 'M', barcode: redBarcode, sku: redSku, minStock: 7 }),
+      row({ id: red.id, name: red.name, color: 'أحمر', size: 'M', barcode: redBarcode, sku: redSku, minStock: 7, expectedCatalogUpdatedAt: red.catalogUpdatedAt }),
       row({ name: `${fashionName} - أسود / 42.5`, color: 'أسود', size: '42.5', barcode: `FBLK-${suffix}`, sku: blackSku }),
     ],
   });
@@ -106,6 +111,8 @@ async function main() {
   assert.equal(savedRed.offers?.[0]?.type, 'bogo', 'Existing promotion must be preserved');
   assert.equal(savedRed.metadata?.origin, 'Egypt', 'Existing metadata must be preserved');
   assert.equal(afterFashion.find((item) => item.sku === blackSku)?.size, '42.5');
+  const scannedSku = expectArray((await client.get(`/api/catalog/pos-products?barcode=${encodeURIComponent(blackSku)}`)).products, 'exact SKU scan');
+  assert.ok(scannedSku.some((item) => item.sku === blackSku), 'Barcode-mode POS scanner must resolve SKU');
 
   const archived = expectArray((await client.get(`/api/products?view=archived&q=${encodeURIComponent(styleCode)}`)).products, 'archived fashion');
   assert.ok(archived.some((item) => item.id === blue.id), 'Removed variant must be archived, not deleted');
@@ -118,6 +125,11 @@ async function main() {
       row({ name: 'E2E Duplicate', color: 'أحمر', size: 'M', barcode: `DIFF-${suffix}`, sku: `SKU-DIFF-${suffix}` }),
     ],
   }, 400);
+  // An edit based on the old catalog version must not silently overwrite another user's save.
+  await client.put(`/api/products/fashion-groups/${styleCode}`, { rows: [
+    row({ id: red.id, name: red.name, color: 'أحمر', size: 'M', barcode: redBarcode, sku: redSku, expectedCatalogUpdatedAt: '2000-01-01T00:00:00.000Z' }),
+    row({ id: afterFashion.find((item) => item.sku === blackSku)?.id, name: `${fashionName} - أسود / 42.5`, color: 'أسود', size: '42.5', barcode: `FBLK-${suffix}`, sku: blackSku }),
+  ] }, 409);
   const afterFailedEdit = expectArray((await client.get(`/api/products?q=${encodeURIComponent(styleCode)}`)).products, 'unchanged fashion');
   assert.equal(afterFailedEdit.length, 2, 'Invalid bulk edit must not mutate the group');
 
