@@ -23,7 +23,9 @@ async function resolveStaleOfflineSale(idempotencyKey: string): Promise<StaleSal
     // Already posted server-side, or a document was produced: the queue entry is done.
     if (status === 'committed' || result?.documentId) return 'committed';
     // The server never recorded the attempt, or recorded it as failed: resending is safe.
-    if (status === 'not_found' || status === 'failed') return 'safe_to_retry';
+    // A persisted server-side failure is terminal for this idempotency key.
+    // Only an operation that was never reserved can be safely submitted anew.
+    if (status === 'not_found') return 'safe_to_retry';
     return 'needs_manual_review';
   } catch {
     // If we cannot confirm, we must not guess: a duplicate invoice is worse than a delayed one.
@@ -52,7 +54,9 @@ export function usePosOfflineSync() {
 
     try {
       const queue = getOfflineSalesQueue();
-      const pendingSales = queue.filter(item => item.status !== 'syncing');
+      // A crash/reload may leave a durable entry in 'syncing'. Never strand it:
+      // reconcile its idempotency key with the server before any new send.
+      const pendingSales = queue;
       
       if (pendingSales.length === 0) return;
       
@@ -60,6 +64,17 @@ export function usePosOfflineSync() {
       
       for (const sale of pendingSales) {
         try {
+          if (sale.status === 'syncing') {
+            const result = await resolveStaleOfflineSale(sale.id);
+            if (result === 'committed') {
+              removeOfflineSale(sale.id);
+              continue;
+            }
+            if (result !== 'safe_to_retry') {
+              updateOfflineSaleStatus(sale.id, 'failed', 'فاتورة تعطل ترحيلها: تعذر التحقق من حالة الخادم؛ راجع الفاتورة قبل إعادة الإرسال');
+              continue;
+            }
+          }
           updateOfflineSaleStatus(sale.id, 'syncing');
           const input = sale.payload;
           const offlineDocNo = (input as any).docNo || (input as any).offlineDocNo || sale.id;
@@ -114,19 +129,18 @@ export function usePosOfflineSync() {
         }
       }
       
-      setIsSyncing(false);
       await invalidateSalesDomain(queryClient, { includeDashboard: true });
 
       const remainingPending = getOfflineSalesQueue().filter(item => item.status === 'pending');
       if (remainingPending.length > 0) {
-        if (retryCount < 5) {
-          const delay = RETRY_INTERVALS[Math.min(retryCount, RETRY_INTERVALS.length - 1)] || 120000;
-          retryCount++;
-          if (retryTimeout) clearTimeout(retryTimeout);
-          retryTimeout = setTimeout(() => {
-            syncOfflineSales();
-          }, delay);
-        }
+        // Keep backing off while offline; stopping after five attempts could
+        // leave completed cashier sales stranded indefinitely on this device.
+        const delay = RETRY_INTERVALS[Math.min(retryCount, RETRY_INTERVALS.length - 1)] || 120000;
+        retryCount = Math.min(retryCount + 1, RETRY_INTERVALS.length);
+        if (retryTimeout) clearTimeout(retryTimeout);
+        retryTimeout = setTimeout(() => {
+          void syncOfflineSales();
+        }, delay);
       } else {
         retryCount = 0;
         if (retryTimeout) {
@@ -135,6 +149,7 @@ export function usePosOfflineSync() {
         }
       }
     } finally {
+      setIsSyncing(false);
       isSyncInProgress = false;
     }
   }, [queryClient]);

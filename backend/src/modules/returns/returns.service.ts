@@ -989,11 +989,37 @@ export class ReturnsService {
     if (purchase.payment_type === 'credit' && purchase.supplier_id) {
       const supplier = await trx.selectFrom('suppliers').select(['balance']).where('id', '=', Number(purchase.supplier_id))
         .where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
-      const priorReturnTotal = await trx.selectFrom('return_documents')
-        .select(sql<number>`coalesce(sum(total), 0)`.as('total'))
+      const priorReturns = await trx.selectFrom('return_documents')
+        .select(['total', 'refund_allocations'])
         .where('return_type', '=', 'purchase').where('invoice_id', '=', Number(purchase.id))
-        .where(this.tenantPredicate(auth)).executeTakeFirst();
-      const unpaidInvoiceCents = Math.max(0, Math.round((Number(purchase.total || 0) - Number(purchase.paid_amount || 0) - Number(priorReturnTotal?.total || 0)) * 100));
+        .where(this.tenantPredicate(auth)).execute();
+      // A previous partial return may have been settled BOTH by reducing the
+      // payable and by a bank/cash refund. Only its payable leg reduces the
+      // remaining invoice debt; subtracting its entire gross value understates it.
+      let priorPayableCents = 0;
+      for (const prior of priorReturns) {
+        const rawAllocations: unknown = typeof prior.refund_allocations === 'string'
+          ? JSON.parse(prior.refund_allocations) : prior.refund_allocations;
+        if (Array.isArray(rawAllocations)) {
+          for (const allocation of rawAllocations) {
+            if (allocation?.tender === 'payable') {
+              const cents = Math.round(Number(allocation.amount) * 100);
+              if (!Number.isSafeInteger(cents) || cents < 0) {
+                throw new AppError('تسوية مرتجع شراء سابقة غير صالحة', 'PURCHASE_RETURN_SETTLEMENT_RECONCILIATION_REQUIRED', 409);
+              }
+              priorPayableCents += cents;
+            }
+          }
+        } else if (rawAllocations == null) {
+          // The legacy credit-return flow reversed the entire document against
+          // supplier payables without storing a tender breakdown.
+          priorPayableCents += Math.round(Number(prior.total || 0) * 100);
+        } else {
+          throw new AppError('تسوية مرتجع شراء سابقة غير صالحة', 'PURCHASE_RETURN_SETTLEMENT_RECONCILIATION_REQUIRED', 409);
+        }
+      }
+      const unpaidInvoiceCents = Math.max(0,
+        Math.round((Number(purchase.total || 0) - Number(purchase.paid_amount || 0)) * 100) - priorPayableCents);
       const supplierOutstandingCents = Math.max(0, Math.round(Number(supplier.balance || 0) * 100));
       payableCents = Math.min(Math.round(total * 100), unpaidInvoiceCents, supplierOutstandingCents);
     }

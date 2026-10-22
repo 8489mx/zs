@@ -2829,6 +2829,23 @@ export class SalesWriteService {
         .where('return_type', '=', 'sale').where('invoice_id', '=', saleId)
         .where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
       if (existingReturn) throw new AppError('لا يمكن إلغاء فاتورة لها مرتجعات؛ استخدم تسوية محاسبية.', 'SALE_CANCEL_HAS_RETURNS', 400);
+      // A later customer receipt is a separate financial transaction. Cancelling
+      // the entire sale would reverse the original receivable while leaving that
+      // receipt's ledger entry in place, producing a fictitious customer credit.
+      // These invoices must be handled via an explicit return/credit note.
+      const laterAllocations = await trx.selectFrom('payment_allocations').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('invoice_type', '=', 'sale')
+        .where('invoice_id', '=', saleId).limit(1).executeTakeFirst();
+      if (laterAllocations) {
+        throw new AppError('لا يمكن إلغاء فاتورة تم تحصيل سداد لاحق عليها؛ استخدم مرتجعاً أو تسوية محاسبية', 'SALE_CANCEL_HAS_LATER_PAYMENTS', 422);
+      }
+      const originalPaymentTotal = await trx.selectFrom('sale_payments')
+        .select(sql<number>`coalesce(sum(amount), 0)`.as('amount'))
+        .where('tenant_id', '=', scope.tenantId).where('sale_id', '=', saleId).executeTakeFirst();
+      const recordedSalePayments = Number(originalPaymentTotal?.amount || 0);
+      if (recordedSalePayments > 0 && Number(sale.paid_amount || 0) > recordedSalePayments + 0.009) {
+        throw new AppError('الفاتورة تحتوي على تحصيلات لاحقة غير مرتبطة؛ يجب تسويتها قبل الإلغاء', 'SALE_CANCEL_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
 
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.lockSaleStockRows(trx, scope, items);
