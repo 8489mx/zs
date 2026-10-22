@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Injectable, NotFoundException, BadRequestException, ConflictException, UnprocessableEntityException, Inject, Optional } from '@nestjs/common';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
@@ -2117,10 +2118,17 @@ export class ImportSalesService {
         .execute();
     }
 
+    const paidForProject = projectId
+      ? await qb.selectFrom('import_partner_project_payouts')
+          .select(['partner_id', sql<number>`coalesce(sum(amount_egp), 0)`.as('paid')])
+          .where('tenant_id', '=', tenantId).where('project_id', '=', projectId)
+          .groupBy('partner_id').execute()
+      : [];
+    const payoutMap = new Map(paidForProject.map((v) => [String(v.partner_id), Number(v.paid)]));
     const partnerShares = partners.map((p) => {
       const percentage = Number(p.profit_share_percentage) || 0;
       const shareAmount = netProfitPool > 0 ? (netProfitPool * percentage) / 100 : 0;
-      const withdrawn = Number(p.withdrawn_profit) || 0;
+      const withdrawn = projectId ? (payoutMap.get(String(p.id)) || 0) : (Number(p.withdrawn_profit) || 0);
       return {
         partnerId: p.id,
         name: p.name,
@@ -2564,7 +2572,13 @@ export class ImportSalesService {
       }
       const partnerShare = profitReport.data.partnerShares.find((p: any) => p.partnerId === partnerId);
       const totalEntitled = Number(partnerShare?.shareAmount || 0);
-      const withdrawn = Number(partner.withdrawn_profit || 0);
+      const allAttributed = await trx.selectFrom('import_partner_project_payouts')
+        .select(sql<number>`coalesce(sum(amount_egp), 0)`.as('total'))
+        .where('tenant_id', '=', tenantId).where('partner_id', '=', partnerId).executeTakeFirst();
+      if (Number(partner.withdrawn_profit || 0) > Number(allAttributed?.total || 0) + 0.01) {
+        throw new UnprocessableEntityException('توجد توزيعات تاريخية غير مرتبطة بمشروع؛ يجب تسويتها قبل صرف أرباح إضافية.');
+      }
+      const withdrawn = Number(partnerShare?.withdrawnProfit || 0);
       const maxAvailable = Math.max(0, totalEntitled - withdrawn);
 
       if (cleanAmount > maxAvailable) {
@@ -2604,6 +2618,11 @@ export class ImportSalesService {
         .returning('id')
         .executeTakeFirstOrThrow();
 
+      await trx.insertInto('import_partner_project_payouts').values({
+        tenant_id: tenantId, partner_id: partnerId, project_id: targetProjectId,
+        treasury_transaction_id: postedTreasury.id, amount_egp: cleanAmount,
+        created_by: userId,
+      }).execute();
       await trx
         .updateTable('import_partners')
         .set((eb) => ({
@@ -4253,7 +4272,7 @@ export class ImportSalesService {
         .insertInto('import_container_preorders')
         .values({
           tenant_id: tenantId,
-          preorder_no: `PRE-${Date.now().toString().slice(-6)}`,
+          preorder_no: `PRE-${randomUUID()}`,
           project_id: shipment.project_id ?? dto.projectId ?? null,
           shipment_id: dto.shipmentId,
           customer_id: Number(dto.customerId),
@@ -4271,7 +4290,10 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (depositAmount > 0 && this.accountingPosting) {
+      if (!Number.isFinite(depositAmount) || depositAmount < 0 || depositAmount > totalPrice) {
+        throw new BadRequestException('قيمة العربون يجب أن تكون موجبة ولا تتجاوز إجمالي قيمة الحجز.');
+      }
+      if (depositAmount > 0) {
         const bankAccId = await this.resolveTenantAccount(
           trx,
           tenantId,
@@ -4280,7 +4302,17 @@ export class ImportSalesService {
         );
         const unearnedRevAccId = await this.resolveTenantAccount(trx, tenantId, 'customer_advance');
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const scope = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', bankAccId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: scope.account_id,
+          txn_type: 'import_customer_advance', amount: depositAmount,
+          note: `عربون حجز حاوية #${preorder.preorder_no}`,
+          reference_type: 'import_container_preorder',
+          reference_id: Number(preorder.serial_id), created_by: userId,
+        }).execute();
+        const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await postingService.postDomainJournal(trx, {
           sourceType: 'import_container_preorder',
           sourceId: Number(preorder.serial_id),
           tenantId,
@@ -4343,8 +4375,11 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      if (preorder.status === 'invoiced') {
-        throw new BadRequestException('لا يمكن إلغاء حجز تم إصدار فاتورة بيع فعلية له.');
+      if (preorder.status === 'invoiced' || preorder.status === 'cancelled') {
+        throw new BadRequestException('الحجز مفوتر أو ملغى بالفعل.');
+      }
+      if (Number(preorder.deposit_amount_egp || 0) > 0) {
+        throw new BadRequestException('لا يمكن إلغاء حجز بعربون قبل رد المبلغ وتسوية التزام العميل محاسبياً.');
       }
 
       return await trx
@@ -4735,7 +4770,7 @@ export class ImportSalesService {
       if (dep.expected_return_date && (dep.expected_return_date as any) < todayStr) {
         exceptions.push({
           tenant_id: tenantId,
-          exception_type: 'unrecorded_customs_expense',
+          exception_type: 'container_deposit_overdue',
           severity: 'critical',
           project_id: dep.project_id,
           shipment_id: dep.shipment_id,
@@ -4750,13 +4785,24 @@ export class ImportSalesService {
       }
     }
 
+    const existingOpen = await this.db.selectFrom('import_reconciliation_exceptions')
+      .select(['exception_type', 'shipment_id', 'project_id', 'details'])
+      .where('tenant_id', '=', tenantId).where('status', '=', 'open').execute();
+    let insertedCount = 0;
     for (const ex of exceptions) {
+      const duplicate = existingOpen.some((row: any) =>
+        row.exception_type === ex.exception_type &&
+        row.shipment_id === ex.shipment_id && row.project_id === ex.project_id &&
+        JSON.stringify(row.details) === JSON.stringify(typeof ex.details === 'string' ? JSON.parse(ex.details) : ex.details));
+      if (duplicate) continue;
       await this.db.insertInto('import_reconciliation_exceptions').values(ex).execute();
+      existingOpen.push({ exception_type: ex.exception_type, shipment_id: ex.shipment_id, project_id: ex.project_id, details: JSON.parse(ex.details) });
+      insertedCount++;
     }
 
     return {
       scannedAt: new Date(),
-      exceptionsFoundCount: exceptions.length,
+      exceptionsFoundCount: insertedCount,
       exceptions,
     };
   }

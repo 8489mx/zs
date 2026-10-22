@@ -6054,6 +6054,16 @@ export interface Database {
   import_container_deposits: ImportContainerDepositTable;
   import_container_refund_events: ImportContainerRefundEventTable;
   import_late_expense_events: ImportLateExpenseEventTable;
+  import_partner_project_payouts: {
+    id: Generated<number>;
+    tenant_id: string;
+    partner_id: string;
+    project_id: string;
+    treasury_transaction_id: number;
+    amount_egp: ImportNumeric;
+    created_by: number | null;
+    created_at: Generated<Date>;
+  };
   import_container_preorders: ImportContainerPreorderTable;
   import_inventory_lots: ImportInventoryLotTable;
   import_sale_allocations: ImportSaleAllocationTable;
