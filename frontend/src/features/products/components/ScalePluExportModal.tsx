@@ -171,12 +171,12 @@ export function ScalePluExportModal({
     if (preset === 'rongta') {
       // Rongta RLS1000 / RLink import format
       const headers = ['LFCode', 'Code', 'Name', 'Price', 'Dept', 'BarType'];
-      const rows = pluRows.map((r) => [r.plu, r.itemCode, r.name, r.price.toFixed(2), departmentId, 0]);
+      const rows = pluRows.map((r) => [r.plu, r.itemCode ?? '', r.name, r.price.toFixed(2), departmentId, 0]);
       downloadCsv(`Rongta_PLU_${today}.csv`, headers, rows);
     } else if (preset === 'cas') {
       // CAS CL5000 / CL-Works format
       const headers = ['PLU_No', 'Item_Code', 'Name', 'Price', 'Dept_No', 'Barcode_Type', 'Unit'];
-      const rows = pluRows.map((r) => [r.plu, r.itemCode, r.name, r.price.toFixed(2), departmentId, 7, 'kg']);
+      const rows = pluRows.map((r) => [r.plu, r.itemCode ?? '', r.name, r.price.toFixed(2), departmentId, 7, 'kg']);
       downloadCsv(`CAS_Scale_PLU_${today}.csv`, headers, rows);
     } else if (preset === 'dibal') {
       // Dibal Scale format
@@ -186,7 +186,7 @@ export function ScalePluExportModal({
     } else {
       // General Universal CSV
       const headers = ['PLU', 'كود الصنف بالميزان', 'اسم الصنف', 'السعر للكيلو', 'القسم', 'بادئة الباركود', 'باركود تجريبي للوزن'];
-      const rows = pluRows.map((r) => [r.plu, r.itemCode, r.name, r.price.toFixed(2), r.category, scaleConfig.prefix, r.sampleWeightBarcode]);
+      const rows = pluRows.map((r) => [r.plu, r.itemCode ?? '', r.name, r.price.toFixed(2), r.category, scaleConfig.prefix, r.sampleWeightBarcode ?? '']);
       downloadCsv(`Scale_PLU_${today}.csv`, headers, rows);
     }
   };
@@ -205,7 +205,7 @@ export function ScalePluExportModal({
     ];
     const rows = pluRows.map((r) => [
       r.plu,
-      r.itemCode,
+      r.itemCode ?? '',
       r.name,
       r.price,
       r.category,
