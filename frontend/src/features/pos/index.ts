@@ -6,3 +6,6 @@ export { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced
 export { getProductPrice } from '@/features/pos/lib/pos.domain';
 export { broadcastSignageOffersUpdate, subscribeSignageOffersUpdate } from '@/features/pos/lib/pos-customer-display-bridge';
 export { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
+export { clearCatalogStorage } from '@/features/pos/lib/pos-catalog-storage';
+export { clearPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
+

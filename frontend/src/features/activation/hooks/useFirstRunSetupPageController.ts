@@ -6,8 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { applyDocumentLanguage, getStoredUiLanguage, normalizeUiLanguage, persistUiLanguage } from '@/shared/locale/locale-preference';
 
 import { buildSettingsFromIndustry, type IndustryPresetId } from '@/features/settings/components/modular-configurator/modular-presets';
-import { clearPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
-import { clearCatalogStorage } from '@/features/pos/lib/pos-catalog-storage';
+import { clearCatalogStorage, clearPosWorkspaceStorage } from '@/features/pos';
 
 const INITIAL_STATE = {
   uiLanguage: getStoredUiLanguage(),
