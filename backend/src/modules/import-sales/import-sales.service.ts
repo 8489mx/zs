@@ -1289,6 +1289,23 @@ export class ImportSalesService {
       ] as const;
       // Replaying an identical posted request is a no-op, including its expense selections.
       if (receipt?.state === 'posted') {
+        // Valuation and provenance become immutable when the inventory receipt is posted.
+        const frozenFields: Array<[keyof UpdateShipmentCostsDto, keyof ImportShipmentTable]> = [
+          ['actualDemurrageFees','actual_demurrage_fees'], ['vatRefundableEgp','vat_refundable_egp'],
+          ['costAllocationMethod','cost_allocation_method'], ['projectId','project_id'],
+          ['freightType','freight_type'], ['containerSize','container_size'],
+          ['portOfLoading','port_of_loading'], ['portOfDischarge','port_of_discharge'],
+          ['cbmVolume','cbm_volume'], ['grossWeightKg','gross_weight_kg'],
+          ['carrierName','carrier_name'], ['freeDemurrageDays','free_demurrage_days'],
+          ['demurrageStartDate','demurrage_start_date'], ['demurrageRatePerDay','demurrage_rate_per_day'],
+          ['customsDeclarationNo','customs_declaration_no'], ['isConsolidated','is_consolidated'],
+        ];
+        for (const [input, column] of frozenFields) {
+          if (dto[input] !== undefined && String(dto[input] ?? '') !== String(shipment[column] ?? '')) {
+            this.assertShipmentEditable(state);
+          }
+          delete (payload as any)[column];
+        }
         for (const [accountId, expenseId, cost] of expenseInputs) {
           if (accountId === undefined) continue;
           if (expenseId === null && Number(cost) === 0) continue;
@@ -1411,7 +1428,7 @@ export class ImportSalesService {
       const receivedQty = Number(item.received_quantity ?? item.quantity);
       const unitLandedCost = Number(Number(item.landed_cost_egp || 0).toFixed(4));
       const cleanContainer = (shipment.container_number || 'CONT').replace(/[^a-zA-Z0-9]/g, '');
-      const lotNumber = 'LOT-' + cleanContainer + '-' + item.product_id;
+      const lotNumber = 'LOT-' + cleanContainer.slice(0, 25) + '-' + item.product_id + '-' + item.id;
 
       await trx
         .insertInto('import_inventory_lots')
@@ -1474,6 +1491,8 @@ export class ImportSalesService {
         quantity: Number(item.quantity),
         receivedQuantity: item.received_quantity !== null && item.received_quantity !== undefined ? Number(item.received_quantity) : Number(item.quantity),
         factoryUnitPriceUsd: Number(item.factory_unit_price_usd),
+        unitWeightKg: Number(item.gross_weight_kg_unit || 0),
+        unitCbm: Number(item.cbm_unit || 0),
         shortageHandlingMethod: (item.shortage_handling_method as any) || 'capitalize',
       })),
       exchangeRate: rate,
@@ -1563,7 +1582,10 @@ export class ImportSalesService {
       for (let idx = 0; idx < items.length; idx++) {
         const item = items[idx];
         const pId = Number(item.product_id);
-        const itemReceivedQty = Math.max(1, Number(item.received_quantity ?? item.quantity));
+        const itemReceivedQty = Number(item.received_quantity ?? item.quantity);
+        if (!Number.isFinite(itemReceivedQty) || itemReceivedQty <= 0) {
+          throw new UnprocessableEntityException('لا يمكن تحميل مصروف متأخر على بند ليس له كمية مستلمة.');
+        }
 
         // Query remaining stock specifically for this shipment's lots (IAS 2 compliance)
         const lotRow = await trx
@@ -1574,22 +1596,14 @@ export class ImportSalesService {
           ])
           .where('tenant_id', '=', tenantId)
           .where('shipment_id', '=', shipmentId)
-          .where('product_id', '=', pId)
+          .where('shipment_item_id', '=', item.id)
           .executeTakeFirst();
 
         let itemOnHandQty = 0;
         if (lotRow && Number(lotRow.lot_count) > 0) {
           itemOnHandQty = Math.min(itemReceivedQty, Math.max(0, Number(lotRow.total_remaining)));
         } else {
-          // Fallback to location stock if no lots exist for this shipment
-          const stockRow = await trx
-            .selectFrom('product_location_stock')
-            .select([sql<number>`coalesce(sum(qty), 0)`.as('total_qty')])
-            .where('tenant_id', '=', tenantId)
-            .where('product_id', '=', pId)
-            .executeTakeFirst();
-          const currentStock = Math.max(0, Number(stockRow?.total_qty || 0));
-          itemOnHandQty = Math.min(itemReceivedQty, currentStock);
+          throw new UnprocessableEntityException('لا يمكن تسوية المصروف المتأخر دون باتش استيراد موثق للبند.');
         }
 
         const itemSoldQty = Math.max(0, itemReceivedQty - itemOnHandQty);
@@ -1644,7 +1658,7 @@ export class ImportSalesService {
             }))
             .where('tenant_id', '=', tenantId)
             .where('shipment_id', '=', shipmentId)
-            .where('product_id', '=', pId)
+            .where('shipment_item_id', '=', item.id)
             .execute();
         }
 
@@ -1869,14 +1883,20 @@ export class ImportSalesService {
         profitAttributionVerified = true;
         attributionStatus = 'VERIFIED_LOT_ALLOCATIONS';
       } else if (hasLots) {
-        // Project uses lot tracking and has 0 sales allocations; sales are strictly 0.
-        // Never steal sales belonging to other projects sharing the same product catalog item!
+        // Zero allocation records are not proof of zero POS sales.
+        const possibleSale = projectProductIds.length
+          ? await qb.selectFrom('sale_items as si').innerJoin('sales as sa', 'sa.id', 'si.sale_id')
+              .select('si.sale_id').where('sa.tenant_id', '=', tenantId)
+              .where('sa.status', '!=', 'cancelled')
+              .where('sa.created_at', '>=', start).where('sa.created_at', '<=', end)
+              .where('si.product_id', 'in', projectProductIds).executeTakeFirst()
+          : null;
         totalRevenue = 0;
         totalCost = 0;
         returnRevenue = 0;
         returnCost = 0;
-        profitAttributionVerified = true;
-        attributionStatus = 'NO_SALES_RECORDED';
+        profitAttributionVerified = !possibleSale;
+        attributionStatus = possibleSale ? 'UNVERIFIED_SOURCE' : 'NO_SALES_RECORDED';
       } else {
         // Fallback: Check if project items have any provisional sales (legacy non-lotted projects only)
         const projectItems = projectShipmentIds.length > 0
@@ -2025,12 +2045,14 @@ export class ImportSalesService {
         .where('project_id', '=', projectId)
         .executeTakeFirst();
 
-      const lateCogsExp = await qb
-        .selectFrom('import_shipments')
-        .select([sql<number>`coalesce(sum(late_cogs_adjustment_egp), 0)`.as('total_late_cogs')])
-        .where('tenant_id', '=', tenantId)
-        .where('project_id', '=', projectId)
-        .executeTakeFirst();
+      const lateCogsExp = projectShipmentIds.length
+        ? await qb.selectFrom('import_late_expense_events')
+            .select([sql<number>`coalesce(sum(cogs_amount_egp), 0)`.as('total_late_cogs')])
+            .where('tenant_id', '=', tenantId)
+            .where('shipment_id', 'in', projectShipmentIds)
+            .where('created_at', '>=', start).where('created_at', '<=', end)
+            .executeTakeFirst()
+        : null;
 
       totalExpenses = Number(sourcingExpenses?.total_sourcing || 0) + Number(lateCogsExp?.total_late_cogs || 0);
     } else {

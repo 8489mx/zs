@@ -213,7 +213,8 @@ export function calculateDemurrageRisk(input: {
   const exchangeRate = Math.max(0.0001, Number(input.exchangeRate) || 1);
 
   const status = (input.status || '').trim().toLowerCase();
-  if (status === 'arrived' || status === 'cleared' || status === 'closed' || status === 'delivered') {
+  // Arrival does not end container detention; only the empty equipment return does.
+  if (status === 'empty_returned' || status === 'container_returned') {
     return {
       isOverdue: false,
       isUrgent: false,
