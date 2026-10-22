@@ -49,18 +49,23 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
   const grossMarginPercent = netSales > 0 ? Math.round((grossProfit / netSales) * 100) : 0;
   const netOperatingProfit = Number(profitSummary?.netProfit ?? (grossProfit - Number(profitSummary?.expenses ?? summary?.expenses?.total ?? 0)));
 
-  // Never fabricate card/online/credit percentages from aggregate treasury cash-in.
-  // Report zero/unknown until actual channel-level payment totals are provided.
-  const paymentBreakdown = useMemo(() => ({
-    hasData: false,
-    total: 0,
-    items: [
-      { name: t('dashboard.cash', 'نقدي (كاش)'), value: 0, color: PAYMENT_COLORS.cash, percentage: 0 },
-      { name: t('dashboard.pos_cards', 'بطاقات وماكينات POS'), value: 0, color: PAYMENT_COLORS.card, percentage: 0 },
-      { name: t('dashboard.online_gateways', 'متجر وبوابات إلكترونية'), value: 0, color: PAYMENT_COLORS.online, percentage: 0 },
-      { name: t('dashboard.credit_sales', 'مبيعات آجلة (ذمم)'), value: 0, color: PAYMENT_COLORS.credit, percentage: 0 },
-    ],
-  }), [t]);
+  const paymentBreakdown = useMemo(() => {
+    const amounts = overviewData.paymentBreakdown;
+    const values = {
+      cash: Math.max(0, Number(amounts?.cash || 0)),
+      card: Math.max(0, Number(amounts?.card || 0)),
+      online: Math.max(0, Number(amounts?.online || 0)),
+      credit: Math.max(0, Number(amounts?.credit || 0)),
+    };
+    const total = values.cash + values.card + values.online + values.credit;
+    const items = [
+      { name: t('dashboard.cash', 'نقدي (كاش)'), value: values.cash, color: PAYMENT_COLORS.cash },
+      { name: t('dashboard.pos_cards', 'بطاقات وماكينات POS'), value: values.card, color: PAYMENT_COLORS.card },
+      { name: t('dashboard.online_gateways', 'متجر وبوابات إلكترونية'), value: values.online, color: PAYMENT_COLORS.online },
+      { name: t('dashboard.credit_sales', 'مبيعات آجلة (ذمم)'), value: values.credit, color: PAYMENT_COLORS.credit },
+    ].map((entry) => ({ ...entry, percentage: total > 0 ? Math.round(entry.value / total * 100) : 0 }));
+    return { hasData: total > 0, total, items };
+  }, [overviewData.paymentBreakdown, t]);
 
   // 4. تجهيز بيانات مساهمة أعلى الفئات / الأصناف في الربحية
   const profitDrivers = useMemo(() => {

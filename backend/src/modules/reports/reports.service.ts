@@ -628,7 +628,51 @@ export class ReportsService {
       topSupplierRows,
     });
 
-    const result = this.withScope(buildDashboardOverviewPayload({
+    // Financial dashboard: actual checkout tenders, not guessed percentages.
+    // Join invoice-level preaggregated payments so mixed tenders never multiply
+    // the invoice total. Credit is the remaining debt not paid at checkout.
+    const breakdownResult = await sql<{
+      cash: number | string; card: number | string;
+      online: number | string; credit: number | string;
+    }>`
+      with scoped_sales as (
+        select id, total, paid_amount, store_credit_used, payment_type, payment_channel
+        from sales
+        where tenant_id = ${tenantId} and status = 'posted'
+          and created_at >= ${new Date(range.from)}
+          and created_at <= ${new Date(range.to)}
+          and (${query.branchId == null} or branch_id = ${Number(query.branchId || 0)})
+          and (${query.locationId == null} or location_id = ${Number(query.locationId || 0)})
+      ), tenders as (
+        select sp.sale_id,
+          sum(sp.amount) as paid,
+          sum(case when sp.payment_channel = 'cash' then sp.amount else 0 end) as cash,
+          sum(case when sp.payment_channel = 'card' then sp.amount else 0 end) as card,
+          sum(case when sp.payment_channel in ('wallet', 'instapay') then sp.amount else 0 end) as online
+        from sale_payments sp
+        join scoped_sales s on s.id = sp.sale_id
+        where sp.tenant_id = ${tenantId}
+        group by sp.sale_id
+      )
+      select
+        coalesce(sum(coalesce(t.cash, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel = 'cash' then s.paid_amount else 0 end)), 0) as cash,
+        coalesce(sum(coalesce(t.card, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel = 'card' then s.paid_amount else 0 end)), 0) as card,
+        coalesce(sum(coalesce(t.online, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel in ('wallet', 'instapay') then s.paid_amount else 0 end)), 0) as online,
+        coalesce(sum(case when s.payment_type = 'credit'
+          then greatest(0, s.total - coalesce(s.store_credit_used, 0)
+            - coalesce(t.paid, 0)) else 0 end), 0) as credit
+      from scoped_sales s
+      left join tenders t on t.sale_id = s.id
+    `.execute(this.db);
+    const breakdown = breakdownResult.rows[0];
+    const paymentBreakdown = {
+      cash: Number(breakdown?.cash || 0),
+      card: Number(breakdown?.card || 0),
+      online: Number(breakdown?.online || 0),
+      credit: Number(breakdown?.credit || 0),
+    };
+
+    const result = this.withScope({ ...buildDashboardOverviewPayload({
       range,
       summary: summary as Record<string, unknown>,
       productsCount: Number(productAgg.products_count),
@@ -639,7 +683,7 @@ export class ReportsService {
       todayOperations: dashboardState.todayOperations,
       trends: dashboardState.trends,
       activeOffers,
-    }), auth);
+    }), paymentBreakdown }, auth);
 
     this.overviewCache.delete(cacheKey);
     this.overviewCache.set(cacheKey, { expiresAt: nowMs + this.OVERVIEW_CACHE_TTL_MS, data: result });
