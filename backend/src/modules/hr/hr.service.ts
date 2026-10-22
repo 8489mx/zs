@@ -4988,9 +4988,7 @@ export class HrService {
       const canonicalNo = formatDailyDocumentNumber('LOAN', loanId);
       await sql`UPDATE hr_employee_loans SET loan_no = ${canonicalNo} WHERE id = ${loanId} AND tenant_id = ${tenantId}`.execute(trx);
       
-      const nextMonth = new Date();
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
-      const dueStr = nextMonth.toISOString().slice(0, 7) + '-01';
+      const dueStr = new Date().toISOString().slice(0, 10);
       
       await sql`
         INSERT INTO hr_employee_loan_installments (
@@ -5049,6 +5047,18 @@ export class HrService {
 
       // 5. Record GL journal: Dr. 1160 (Advances) / Cr. 1110 (Cash)
       await this.accountingPosting.postEmployeeLoanDisbursement(trx, loanId, auth);
+
+      // 6. Auto-rebuild active draft/reviewed payroll runs so the advance reflects in payroll immediately
+      const activeRuns = await sql<{ id: number; status: string }>`
+        SELECT id, status
+        FROM hr_payroll_runs
+        WHERE tenant_id = ${tenantId}
+          AND status IN ('draft', 'reviewed')
+        ORDER BY id DESC
+      `.execute(trx);
+      for (const run of activeRuns.rows) {
+        await this.rebuildPayrollRunItems(trx, Number(run.id), run.status as 'draft' | 'reviewed', tenantId);
+      }
     });
 
     await this.audit.log('Create Quick Cash Advance', `Cash advance #${createdLoanId} of ${amount} for employee #${employeeId} by ${auth.username}`, auth);

@@ -43,6 +43,7 @@ export interface LoanDraft {
   firstDeductionMonth: string;
   firstDeductionYear: string;
   notes: string;
+  autoDisburse: boolean;
 }
 
 export function createInitialLoanDraft(): LoanDraft {
@@ -58,6 +59,7 @@ export function createInitialLoanDraft(): LoanDraft {
     firstDeductionMonth: month,
     firstDeductionYear: String(now.getFullYear()),
     notes: '',
+    autoDisburse: true,
   };
 }
 
