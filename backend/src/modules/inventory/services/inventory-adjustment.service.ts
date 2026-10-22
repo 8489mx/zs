@@ -39,9 +39,12 @@ export class InventoryAdjustmentService {
 
     let result: any = { productId: payload.productId, locationId: payload.locationId, beforeQty: 0, afterQty: 0, scopeBefore: 0, scopeAfter: 0, globalBefore: 0, globalAfter: 0 };
 
-    if (payload.locationId) {
-      await this.scopeService.assertLocationScope(payload.locationId, auth, false, 'write');
+    const location = payload.locationId
+      ? await this.scopeService.assertLocationScope(payload.locationId, auth, false, 'write') : null;
+    if (location && payload.branchId != null && Number(payload.branchId) !== Number(location.branchId)) {
+      throw new AppError('الفرع لا يطابق المخزن المختار', 'ADJUSTMENT_BRANCH_LOCATION_MISMATCH', 409);
     }
+    const effectiveBranchId = location ? location.branchId : (payload.branchId ?? null);
 
     const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
       const requestedQty = Number(payload.qty);
@@ -70,7 +73,7 @@ export class InventoryAdjustmentService {
       }
       const rawCost = Number(product.cost_price || 0);
       const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-      const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: payload.branchId, locationId: payload.locationId };
+      const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: effectiveBranchId, locationId: payload.locationId };
       const beforeQty = payload.locationId
         ? await previewAssignedLocationStockQty(trx, stockScope)
         : Number(product.stock_qty || 0);
@@ -95,7 +98,7 @@ export class InventoryAdjustmentService {
         await dispatchTrackedStock(trx, scope, {
           productId: Number(payload.productId), qty: -deltaRequested,
           serials: payload.serials, batchAllocations: payload.batchAllocations,
-        }, Number(payload.locationId), payload.branchId ?? null, null, Number(payload.productId));
+        }, Number(payload.locationId), effectiveBranchId, null, Number(payload.productId));
       }
 
       if (payload.actionType === 'adjust') {
@@ -142,7 +145,7 @@ export class InventoryAdjustmentService {
           note: payload.note || '',
           reference_type: 'inventory_adjustment',
           reference_id: payload.productId,
-          branch_id: payload.branchId ?? null,
+          branch_id: effectiveBranchId,
           location_id: payload.locationId ?? null,
           created_by: auth.userId,
           tenant_id: scope.tenantId,
