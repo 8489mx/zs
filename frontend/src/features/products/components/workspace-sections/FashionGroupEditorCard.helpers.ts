@@ -28,6 +28,7 @@ export type VariantDraft = {
   retailPrice: number;
   wholesalePrice: number;
   stock?: number;
+  minStock?: number;
 };
 
 export function toCommonDraft(product: Product): CommonDraft {
@@ -81,6 +82,7 @@ export function toVariantRows(products: Product[]) {
         retailPrice,
         wholesalePrice,
         stock: Number(entry.stock ?? 0),
+        minStock: Number(entry.minStock ?? 0),
       };
     })
   );
@@ -99,6 +101,7 @@ export function rowsFingerprint(rows: VariantDraft[]) {
       retailPrice: Number(row.retailPrice || 0),
       wholesalePrice: Number(row.wholesalePrice || 0),
       stock: Number(row.stock || 0),
+      minStock: Number(row.minStock ?? 0),
     }))
   );
 }
@@ -138,10 +141,10 @@ export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Pr
     costPrice: Number((row.useCustomPricing ? row.costPrice : common.costPrice) || 0),
     retailPrice: Number((row.useCustomPricing ? row.retailPrice : common.retailPrice) || 0),
     wholesalePrice: Number((row.useCustomPricing ? row.wholesalePrice : common.wholesalePrice) || 0),
-    minStock: Number(common.minStock || 0),
-    categoryId: common.categoryId || '',
-    supplierId: common.supplierId || '',
-    warehouseId: common.defaultLocationId || '',
+    minStock: Number(row.id ? (row.minStock ?? common.minStock) : common.minStock),
+    categoryId: common.categoryId ? Number(common.categoryId) : undefined,
+    supplierId: common.supplierId ? Number(common.supplierId) : undefined,
+    warehouseId: common.defaultLocationId ? Number(common.defaultLocationId) : undefined,
     notes: common.notes || '',
     stock: row.id ? undefined : Number(row.stock || 0),
     units: [
@@ -155,15 +158,23 @@ export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Pr
       },
     ],
     offers: (source?.offers || []).map((offer) => ({
-      type: offer.type === 'bundle' ? 'bundle' : offer.type === 'price' ? 'price' : offer.type === 'fixed' ? 'fixed' : 'percent',
+      type: offer.type,
       value: Number(offer.value || 0),
       minQty: Math.max(1, Number(offer.minQty || 1)),
       from: offer.from || null,
       to: offer.to || null,
+      bogoBuyQty: offer.bogoBuyQty ?? undefined,
+      bogoGetQty: offer.bogoGetQty ?? undefined,
+      bogoDiscountPercent: offer.bogoDiscountPercent ?? undefined,
+      happyHourStart: offer.happyHourStart ?? undefined,
+      happyHourEnd: offer.happyHourEnd ?? undefined,
+      daysOfWeek: offer.daysOfWeek ?? undefined,
     })),
     customerPrices: (source?.customerPrices || [])
       .map((entry) => ({ customerId: Number(entry.customerId || 0), price: Number(entry.price || 0) }))
       .filter((entry) => entry.customerId > 0 && entry.price >= 0),
+    nameEn: source?.nameEn || undefined,
+    metadata: source?.metadata || undefined,
     fashionVariants: [],
   };
 }
