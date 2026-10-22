@@ -851,6 +851,10 @@ export function useNewPurchaseOrderController() {
 
   const handleProductCreateSuccess = (product: any) => {
     setProductCreateModalState(prev => ({ ...prev, isOpen: false }));
+    if (product.itemKind === 'fashion' && product.styleCode) {
+      setInlineMessage({ tone: 'success', text: 'تم إضافة موديل الملابس. اختر المقاس واللون المطلوبين من بحث الأصناف قبل إضافتهما للفاتورة.' });
+      return;
+    }
     const rawPrice = product.price ?? product.costPrice ?? product.purchasePrice ?? product.retailPrice ?? 0;
     const priceNum = Number(rawPrice);
     const safePrice = Number.isFinite(priceNum) && priceNum >= 0 ? priceNum : 0;
