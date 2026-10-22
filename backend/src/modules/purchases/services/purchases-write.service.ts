@@ -1182,6 +1182,7 @@ export class PurchasesWriteService {
       await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId, payload.paymentChannel || 'cash');
       const posting = await this.accountingPosting.postSupplierPayment(trx, id, auth);
       if (!posting.journalEntryId) throw new AppError(`Supplier payment ${id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      await this.audit.logWithExecutor(trx, 'دفع لمورد', `تم تسجيل دفع لمورد ${docNo} بواسطة ${auth.username}`, auth);
       if (idempotencyKey) {
         await this.idempotency.commitOperation(trx, {
           tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
@@ -1190,7 +1191,6 @@ export class PurchasesWriteService {
       return { id, docNo };
     });
 
-    await this.audit.log('دفع لمورد', `تم تسجيل دفع لمورد ${paymentResult.docNo} بواسطة ${auth.username}`, auth);
     return { ok: true, supplierPayments: (await this.queryService.listSupplierPayments(auth)).supplierPayments };
     } catch (error) {
       if (idempotencyKey) {
@@ -1366,6 +1366,10 @@ export class PurchasesWriteService {
         jobNumber: allocatedJobNumber,
         createdAt: new Date().toISOString(),
       };
+      // The audit record is part of the same atomic voucher transaction; an
+      // audit failure cannot turn an already-posted payment into an HTTP failure.
+      await this.audit.logWithExecutor(trx, 'سند قبض / تحصيل عميل',
+        `تم تسجيل سند قبض ${docNo} للعميل ${customer.name} بمبلغ ${amount} بواسطة ${auth.username}`, auth);
       // Commit the operation and the financial voucher in the SAME DB transaction.
       if (idempotencyKey) {
         await this.idempotency.commitOperation(trx, {
@@ -1375,7 +1379,6 @@ export class PurchasesWriteService {
       return receipt;
     });
 
-    await this.audit.log('سند قبض / تحصيل عميل', `تم تسجيل سند قبض ${paymentResult.docNo} للعميل ${paymentResult.customerName} بمبلغ ${paymentResult.amount} بواسطة ${auth.username}`, auth);
     return { ok: true, ...paymentResult };
     } catch (error) {
       if (idempotencyKey) {
