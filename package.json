@@ -22,6 +22,7 @@
     "sync:portable-backend": "node ./scripts/sync-portable-backend-runtime.cjs",
     "sync:electron-backend": "node ./scripts/sync-electron-backend.cjs",
     "qa": "npm --prefix backend run check:commercial-ready && npm --prefix frontend run qa",
+    "qa:electron": "node --check frontend/electron/main.cjs && node --check frontend/electron/postgres-manager.cjs && node --check frontend/electron/runtime-config.cjs && node scripts/test-electron-update-lifecycle.cjs",
     "qa:backend": "npm --prefix backend run check:commercial-ready",
     "qa:frontend": "npm --prefix frontend run qa",
     "lint": "npm --prefix frontend run lint",
