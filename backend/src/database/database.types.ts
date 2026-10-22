@@ -679,6 +679,10 @@ export interface StockTransferItemTable {
   received_qty?: ColumnType<number, number | undefined, number | undefined>;
   variance_qty?: ColumnType<number, number | undefined, number | undefined>;
   variance_reason?: string | null;
+  /** Snapshotted serial movements for a transfer line, including in-transit and loss reconciliation. */
+  serial_tracking?: ColumnType<any, any, any>;
+  /** Batch allocations with source and in-transit lot IDs. */
+  batch_tracking?: ColumnType<any, any, any>;
 }
 
 export interface StockCountSessionTable {
