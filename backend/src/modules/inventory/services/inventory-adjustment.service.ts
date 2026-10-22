@@ -106,6 +106,7 @@ export class InventoryAdjustmentService {
         stockChange = await setScopedStockQty(trx, {
           ...stockScope,
           nextQty: afterQty,
+          disableAutoDrain: tracked,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: 'Cannot deduct more than current stock',
         });
@@ -121,6 +122,7 @@ export class InventoryAdjustmentService {
         stockChange = await applyStockDelta(trx, {
           ...stockScope,
           delta: -Number(payload.qty || 0),
+          disableAutoDrain: tracked,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: 'Cannot deduct more than current stock',
         });
