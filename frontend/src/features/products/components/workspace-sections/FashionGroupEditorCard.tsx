@@ -11,7 +11,6 @@ import { useUnsavedChangesGuard } from '@/shared/hooks/use-unsaved-changes-guard
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { queryKeys } from '@/app/query-keys';
 import { productsApi } from '@/features/products/api/products.api';
-import { getNextSequentialStyleCode, getStyleCodeSequenceStart } from '@/features/products/lib/style-code.utils';
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { formatCurrency } from '@/lib/format';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
@@ -97,7 +96,6 @@ interface FashionGroupEditorCardProps {
 
 export function FashionGroupEditorCard({ product, categories, suppliers, locations, onSaved }: FashionGroupEditorCardProps) {
   const { t } = useTranslation();
-  const allProductsQuery = useQuery({ queryKey: queryKeys.products, queryFn: productsApi.list, staleTime: 30_000 });
   const queryClient = useQueryClient();
   const styleCode = String(product.styleCode || '').trim();
 
@@ -129,6 +127,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
   const [colorsValue, setColorsValue] = useState('');
   const [sizesValue, setSizesValue] = useState('');
   const [barcodePrefix, setBarcodePrefix] = useState('');
+  const [generationError, setGenerationError] = useState('');
 
   useEffect(() => {
     setCommonDraft({ ...toCommonDraft(seedProduct), name: deriveBaseName(seedProduct) });
@@ -224,6 +223,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         retailPrice: Number(row.retailPrice || 0),
         wholesalePrice: Number(row.wholesalePrice || 0),
         stock: Number(row.stock || 0),
+        minStock: Number(row.minStock ?? commonDraft.minStock),
       })).filter((row) => Boolean(variantLabel(row))));
 
       if (!trimmedName) throw new Error('اسم الصنف الأساسي مطلوب');
@@ -233,21 +233,12 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       if (duplicates.duplicateBarcodes) throw new Error('يوجد باركود مكرر داخل نفس المجموعة');
 
       const sourceById = new Map(groupProducts.map((entry) => [String(entry.id), entry]));
-      const keptIds = new Set<string>();
-      for (const row of cleanRows) {
+      const payloadRows = cleanRows.map((row) => {
         const source = row.id ? sourceById.get(String(row.id)) : undefined;
-        const payload = buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source);
-        if (row.id && source) {
-          keptIds.add(String(row.id));
-          await productsApi.update(String(row.id), payload);
-        } else {
-          await productsApi.create(payload);
-        }
-      }
-      const removedExisting = groupProducts.filter((entry) => !keptIds.has(String(entry.id)) && !cleanRows.some((row) => String(row.id || '') === String(entry.id)));
-      for (const entry of removedExisting) {
-        await productsApi.remove(String(entry.id));
-      }
+        if (row.id && !source) throw new Error('صنف فرعي غير موجود في المجموعة');
+        return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source), id: source ? Number(source.id) : undefined };
+      });
+      await productsApi.saveFashionGroup(styleCode, { rows: payloadRows });
       return cleanRows;
     },
     onSuccess: async () => {
@@ -259,11 +250,15 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     },
   });
 
-  function handleGenerateStyleCode() {
-    const sourceProducts = allProductsQuery.data || [];
-    const nextCode = getNextSequentialStyleCode(sourceProducts, getStyleCodeSequenceStart());
-    setCommonDraft((current) => ({ ...current, styleCode: nextCode }));
-    setBarcodePrefix(nextCode);
+  async function handleGenerateStyleCode() {
+    try {
+      const { styleCode: nextCode } = await productsApi.allocateStyleCode();
+      setGenerationError('');
+      setCommonDraft((current) => ({ ...current, styleCode: nextCode }));
+      setBarcodePrefix(nextCode);
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : 'تعذر توليد كود الموديل');
+    }
   }
 
   function updateRow(index: number, patch: Partial<VariantDraft>) {
@@ -282,6 +277,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       retailPrice: Number(commonDraft.retailPrice || 0),
       wholesalePrice: Number(commonDraft.wholesalePrice || 0),
       stock: 0,
+      minStock: Number(commonDraft.minStock || 0),
     }]);
   }
 
@@ -315,6 +311,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
             retailPrice: Number(commonDraft.retailPrice || 0),
             wholesalePrice: Number(commonDraft.wholesalePrice || 0),
             stock: 0,
+            minStock: Number(commonDraft.minStock || 0),
           });
         }
       }
@@ -400,6 +397,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
 
   return (
     <div className="page-stack" style={{ gap: '0.9rem' }} dir="rtl">
+      {generationError && <div role="alert" style={{ color: '#b91c1c' }}>{generationError}</div>}
       {/* 1. Master Product Card */}
       <div className="product-compact-card">
         <div className="product-compact-card-header">
