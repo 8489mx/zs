@@ -31,9 +31,9 @@ function buildFashionVariants(values: ProductFormValues) {
           size: normalizeArabicInput(row.size),
           barcode: String(row.barcode || '').trim(),
           stock: Math.max(0, Number(row.stock || 0)),
-          costPrice: row.costPrice !== undefined && row.costPrice !== null && !isNaN(Number(row.costPrice)) && Number(row.costPrice) > 0 ? Number(row.costPrice) : undefined,
-          retailPrice: row.retailPrice !== undefined && row.retailPrice !== null && !isNaN(Number(row.retailPrice)) && Number(row.retailPrice) > 0 ? Number(row.retailPrice) : undefined,
-          wholesalePrice: row.wholesalePrice !== undefined && row.wholesalePrice !== null && !isNaN(Number(row.wholesalePrice)) && Number(row.wholesalePrice) > 0 ? Number(row.wholesalePrice) : undefined,
+          costPrice: row.costPrice !== undefined && row.costPrice !== null && !isNaN(Number(row.costPrice)) && Number(row.costPrice) >= 0 ? Number(row.costPrice) : undefined,
+          retailPrice: row.retailPrice !== undefined && row.retailPrice !== null && !isNaN(Number(row.retailPrice)) && Number(row.retailPrice) >= 0 ? Number(row.retailPrice) : undefined,
+          wholesalePrice: row.wholesalePrice !== undefined && row.wholesalePrice !== null && !isNaN(Number(row.wholesalePrice)) && Number(row.wholesalePrice) >= 0 ? Number(row.wholesalePrice) : undefined,
           minStock: row.minStock !== undefined && row.minStock !== null && !isNaN(Number(row.minStock)) && Number(row.minStock) >= 0 ? Number(row.minStock) : undefined,
           sku: row.sku ? String(row.sku).trim() : undefined,
         }))
@@ -41,12 +41,12 @@ function buildFashionVariants(values: ProductFormValues) {
     : [];
   if (seededRows.length) {
     const seen = new Set<string>();
-    return seededRows.filter((row) => {
+    for (const row of seededRows) {
       const key = `${normalizeArabicSearchKey(row.color)}::${normalizeArabicSearchKey(row.size)}`;
-      if (seen.has(key)) return false;
+      if (seen.has(key)) throw new Error('يوجد لون ومقاس مكرر؛ صحح الصفوف قبل الحفظ');
       seen.add(key);
-      return true;
-    });
+    }
+    return seededRows;
   }
   const colors = splitTokens(values.fashionColors);
   const sizes = splitTokens(values.fashionSizes);
