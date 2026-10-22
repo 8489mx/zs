@@ -79,6 +79,25 @@ export class PaymentAllocationService {
     throw new ForbiddenException('Missing required permissions for payment allocation');
   }
 
+  private sumReversedLiabilities(
+    rows: Array<{ invoice_id: number | null; total: number; refund_allocations?: unknown | null }>,
+    tender: 'payable' | 'receivable',
+    creditInvoiceIds: Set<number>,
+  ): Map<number, number> {
+    const cents = new Map<number, number>();
+    for (const row of rows) {
+      const id = Number(row.invoice_id || 0);
+      if (!id) continue;
+      const allocations: unknown = typeof row.refund_allocations === 'string'
+        ? JSON.parse(row.refund_allocations) : row.refund_allocations;
+      const amountCents = Array.isArray(allocations)
+        ? allocations.filter((a) => a?.tender === tender).reduce((sum, a) => sum + Math.round(Number(a.amount || 0) * 100), 0)
+        : creditInvoiceIds.has(id) ? Math.round(Number(row.total || 0) * 100) : 0;
+      cents.set(id, (cents.get(id) || 0) + amountCents);
+    }
+    return new Map([...cents].map(([id, value]) => [id, value / 100]));
+  }
+
   async getOpenInvoices(partnerType: 'customer' | 'supplier', partnerId: number, auth: AuthContext): Promise<OpenInvoiceItem[]> {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
@@ -86,18 +105,25 @@ export class PaymentAllocationService {
     if (partnerType === 'customer') {
       const sales = await this.db
         .selectFrom('sales')
-        .select(['id', 'doc_no', 'total', 'paid_amount', 'status', 'created_at'])
+        .select(['id', 'doc_no', 'total', 'paid_amount', 'store_credit_used', 'payment_type', 'status', 'created_at'])
         .where('tenant_id', '=', scope.tenantId)
         .where('customer_id', '=', partnerId)
         .where('status', '!=', 'cancelled')
         .orderBy('id', 'asc')
         .execute();
 
+      const saleReturns = sales.length ? await this.db.selectFrom('return_documents')
+        .select(['invoice_id', 'total', 'refund_allocations'])
+        .where('tenant_id', '=', scope.tenantId).where('return_type', '=', 'sale')
+        .where('invoice_id', 'in', sales.map((row) => Number(row.id))).execute() : [];
+      const reversedSales = this.sumReversedLiabilities(
+        saleReturns, 'receivable', new Set(sales.filter((row) => row.payment_type === 'credit').map((row) => Number(row.id))),
+      );
       return sales
         .map((s) => {
           const total = Number(s.total || 0);
           const paid = Number(s.paid_amount || 0);
-          const remaining = Number((total - paid).toFixed(2));
+          const remaining = Number(Math.max(0, total - paid - Number(s.store_credit_used || 0) - (reversedSales.get(Number(s.id)) || 0)).toFixed(2));
           return {
             id: Number(s.id),
             docNo: s.doc_no || `INV-${s.id}`,
@@ -112,18 +138,25 @@ export class PaymentAllocationService {
     } else {
       const purchases = await this.db
         .selectFrom('purchases')
-        .select(['id', 'doc_no', 'total', 'paid_amount', 'status', 'created_at'])
+        .select(['id', 'doc_no', 'total', 'paid_amount', 'payment_type', 'status', 'created_at'])
         .where('tenant_id', '=', scope.tenantId)
         .where('supplier_id', '=', partnerId)
         .where('status', '!=', 'cancelled')
         .orderBy('id', 'asc')
         .execute();
 
+      const purchaseReturns = purchases.length ? await this.db.selectFrom('return_documents')
+        .select(['invoice_id', 'total', 'refund_allocations'])
+        .where('tenant_id', '=', scope.tenantId).where('return_type', '=', 'purchase')
+        .where('invoice_id', 'in', purchases.map((row) => Number(row.id))).execute() : [];
+      const reversedPurchases = this.sumReversedLiabilities(
+        purchaseReturns, 'payable', new Set(purchases.filter((row) => row.payment_type === 'credit').map((row) => Number(row.id))),
+      );
       return purchases
         .map((p) => {
           const total = Number(p.total || 0);
           const paid = Number(p.paid_amount || 0);
-          const remaining = Number((total - paid).toFixed(2));
+          const remaining = Number(Math.max(0, total - paid - (reversedPurchases.get(Number(p.id)) || 0)).toFixed(2));
           return {
             id: Number(p.id),
             docNo: p.doc_no || `BILL-${p.id}`,
@@ -296,7 +329,7 @@ export class PaymentAllocationService {
         if (invoiceType === 'sale') {
           const sale = await trx
             .selectFrom('sales')
-            .select(['id', 'total', 'paid_amount', 'customer_id', 'status'])
+            .select(['id', 'total', 'paid_amount', 'store_credit_used', 'payment_type', 'customer_id', 'status'])
             .where('id', '=', item.invoiceId)
             .where('tenant_id', '=', scope.tenantId)
             .forUpdate()
@@ -307,7 +340,14 @@ export class PaymentAllocationService {
 
           const currentPaid = Number(sale.paid_amount || 0);
           const total = Number(sale.total || 0);
-          const remaining = total - currentPaid;
+          const returnedRows = await trx.selectFrom('return_documents')
+            .select(['invoice_id', 'total', 'refund_allocations'])
+            .where('tenant_id', '=', scope.tenantId).where('return_type', '=', 'sale')
+            .where('invoice_id', '=', Number(sale.id)).execute();
+          const reversed = this.sumReversedLiabilities(
+            returnedRows, 'receivable', new Set(sale.payment_type === 'credit' ? [Number(sale.id)] : []),
+          ).get(Number(sale.id)) || 0;
+          const remaining = Math.max(0, total - currentPaid - Number(sale.store_credit_used || 0) - reversed);
 
           if (allocAmount > Number(remaining.toFixed(2))) {
             throw new BadRequestException(
@@ -325,7 +365,7 @@ export class PaymentAllocationService {
         } else {
           const purchase = await trx
             .selectFrom('purchases')
-            .select(['id', 'total', 'paid_amount', 'supplier_id', 'status'])
+            .select(['id', 'total', 'paid_amount', 'payment_type', 'supplier_id', 'status'])
             .where('id', '=', item.invoiceId)
             .where('tenant_id', '=', scope.tenantId)
             .forUpdate()
@@ -336,7 +376,14 @@ export class PaymentAllocationService {
 
           const currentPaid = Number(purchase.paid_amount || 0);
           const total = Number(purchase.total || 0);
-          const remaining = total - currentPaid;
+          const returnedRows = await trx.selectFrom('return_documents')
+            .select(['invoice_id', 'total', 'refund_allocations'])
+            .where('tenant_id', '=', scope.tenantId).where('return_type', '=', 'purchase')
+            .where('invoice_id', '=', Number(purchase.id)).execute();
+          const reversed = this.sumReversedLiabilities(
+            returnedRows, 'payable', new Set(purchase.payment_type === 'credit' ? [Number(purchase.id)] : []),
+          ).get(Number(purchase.id)) || 0;
+          const remaining = Math.max(0, total - currentPaid - reversed);
 
           if (allocAmount > Number(remaining.toFixed(2))) {
             throw new BadRequestException(
