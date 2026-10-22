@@ -20,6 +20,7 @@ import { idempotencyStorage } from '../../../core/idempotency/idempotency.contex
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 import { dispatchTrackedStock } from '../helpers/stock-transfer-trace.helper';
+import { reconcileStockCountTrace } from '../helpers/stock-count-trace.helper';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { normalizeArabicSearch, matchesArabic } from '../../../common/utils/arabic-search.util';
 
@@ -164,7 +165,12 @@ export class InventoryCountService {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError('Product not found in stock count session', 'PRODUCT_NOT_FOUND', 404);
         const expectedQty = await previewAssignedLocationStockQty(trx, { productId: item.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
-        await trx.insertInto('stock_count_items').values({ ...buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id), ...this.tenantFields(auth) }).execute();
+        await trx.insertInto('stock_count_items').values({
+          ...buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id),
+          counted_serials: JSON.stringify(item.countedSerials || []),
+          batch_counts: JSON.stringify(item.batchCounts || []),
+          ...this.tenantFields(auth),
+        } as any).execute();
       }
 
       // Idempotency: commit inside the EXACT SAME business transaction (CORE-004)
@@ -345,12 +351,20 @@ export class InventoryCountService {
           }
           const variance = Number(item.variance_qty || 0);
           if (Math.abs(variance) >= 0.001) {
-            await assertUntrackedStockMutation(trx, tenantScope, Number(item.product_id));
             const product = await trx.selectFrom('products').select('cost_price')
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
             const rawCost = Number(product.cost_price || 0);
             const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
             const totalCost = Number((Math.abs(variance) * unitCost).toFixed(2));
+            if (!(Number(session.location_id) > 0)) {
+              throw new AppError('الجرد المتتبع يحتاج مخزناً محدداً', 'STOCK_COUNT_LOCATION_REQUIRED', 409);
+            }
+            await reconcileStockCountTrace(trx, tenantScope, {
+              itemId: Number(item.id), sessionId, productId: Number(item.product_id),
+              branchId: session.branch_id, locationId: Number(session.location_id),
+              expectedQty, countedQty: Number(item.counted_qty || 0), unitCost,
+              countedSerials: item.counted_serials, batchCounts: item.batch_counts,
+            });
             const stockChange = await setScopedStockQty(trx, {
               productId: Number(item.product_id), nextQty: Number(item.counted_qty || 0),
               branchId: session.branch_id, locationId: session.location_id,
