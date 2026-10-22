@@ -683,15 +683,12 @@ export class OfflineReleasesService implements OnModuleInit {
     if (fs.existsSync(applyScript)) {
       const ps = spawn(
         'powershell.exe',
-        [
-          '-ExecutionPolicy', 'Bypass',
-          '-NonInteractive',
-          '-WindowStyle', 'Hidden',
-          '-File', applyScript,
-          '-PortableRoot', portableRoot,
-        ],
-        { detached: true, stdio: 'ignore', windowsHide: true },
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+          '-WindowStyle', 'Hidden', '-File', applyScript, '-PortableRoot', portableRoot],
+        { detached: true, stdio: 'ignore', windowsHide: true, cwd: portableRoot },
       );
+      if (!ps.pid) throw new BadRequestException('Could not launch the offline updater');
+      ps.on('error', (error) => console.error('[OfflineUpdate] Updater launch failed:', error));
       ps.unref();
     }
 
@@ -787,14 +784,13 @@ export class OfflineReleasesService implements OnModuleInit {
     if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
     const spawnLog = path.join(logsDir, 'update-spawn.log');
 
-    const psCommand = 'cmd.exe';
+    // Spawn the detached updater directly. cmd.exe /c start can silently fail
+    // due to quoting of Windows paths and is not a reliable handoff for production.
+    const psCommand = 'powershell.exe';
     const psArgs = [
-      '/c', 'start', '""', '/min',
-      'powershell.exe',
-      '-ExecutionPolicy', 'Bypass',
-      '-NoProfile',
-      '-File', applyScript,
-      '-PortableRoot', portableRoot
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+      '-WindowStyle', 'Hidden', '-File', applyScript,
+      '-PortableRoot', portableRoot,
     ];
 
     fs.writeFileSync(spawnLog, JSON.stringify({
@@ -812,6 +808,10 @@ export class OfflineReleasesService implements OnModuleInit {
       windowsHide: true,
       cwd: portableRoot
     });
+    if (!ps.pid) {
+      throw new BadRequestException('Could not launch the offline updater process');
+    }
+    ps.on('error', (error) => console.error('[OfflineUpdate] Updater process launch failed:', error));
     ps.unref();
 
     setTimeout(() => {
@@ -968,14 +968,13 @@ export class OfflineReleasesService implements OnModuleInit {
     if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
     const spawnLog = path.join(logsDir, 'update-spawn.log');
 
-    const psCommand = 'cmd.exe';
+    // Spawn the detached updater directly. cmd.exe /c start can silently fail
+    // due to quoting of Windows paths and is not a reliable handoff for production.
+    const psCommand = 'powershell.exe';
     const psArgs = [
-      '/c', 'start', '""', '/min',
-      'powershell.exe',
-      '-ExecutionPolicy', 'Bypass',
-      '-NoProfile',
-      '-File', applyScript,
-      '-PortableRoot', portableRoot
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+      '-WindowStyle', 'Hidden', '-File', applyScript,
+      '-PortableRoot', portableRoot,
     ];
 
     fs.writeFileSync(spawnLog, JSON.stringify({
@@ -992,6 +991,10 @@ export class OfflineReleasesService implements OnModuleInit {
       windowsHide: true,
       cwd: portableRoot
     });
+    if (!ps.pid) {
+      throw new BadRequestException('Could not launch the offline updater process');
+    }
+    ps.on('error', (error) => console.error('[OfflineUpdate] Updater process launch failed:', error));
     ps.unref();
 
     setTimeout(() => {
