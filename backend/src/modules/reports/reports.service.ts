@@ -636,7 +636,7 @@ export class ReportsService {
       online: number | string; credit: number | string;
     }>`
       with scoped_sales as (
-        select id, total, paid_amount, store_credit_used, payment_type, payment_channel
+        select id, total, paid_amount, store_credit_used, payment_type, payment_channel, customer_id
         from sales
         where tenant_id = ${tenantId} and status = 'posted'
           and created_at >= ${new Date(range.from)}
@@ -653,16 +653,31 @@ export class ReportsService {
         join scoped_sales s on s.id = sp.sale_id
         where sp.tenant_id = ${tenantId}
         group by sp.sale_id
+      ), return_liability as (
+        select rd.invoice_id,
+          sum(case when rd.refund_allocations is not null then
+            coalesce((
+              select sum((allocation.value->>'amount')::numeric)
+              from jsonb_array_elements(rd.refund_allocations) as allocation(value)
+              where allocation.value->>'tender' = 'receivable'
+            ), 0)
+            when s.payment_type = 'credit' then rd.total else 0 end) as reversed
+        from return_documents rd
+        join scoped_sales s on s.id = rd.invoice_id
+        where rd.tenant_id = ${tenantId} and rd.return_type = 'sale'
+        group by rd.invoice_id
       )
       select
         coalesce(sum(coalesce(t.cash, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel = 'cash' then s.paid_amount else 0 end)), 0) as cash,
         coalesce(sum(coalesce(t.card, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel = 'card' then s.paid_amount else 0 end)), 0) as card,
         coalesce(sum(coalesce(t.online, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel in ('wallet', 'instapay') then s.paid_amount else 0 end)), 0) as online,
-        coalesce(sum(case when s.payment_type = 'credit'
+        coalesce(sum(case when s.customer_id is not null
           then greatest(0, s.total - coalesce(s.store_credit_used, 0)
-            - coalesce(t.paid, 0)) else 0 end), 0) as credit
+            - greatest(coalesce(s.paid_amount, 0), coalesce(t.paid, 0))
+            - coalesce(r.reversed, 0)) else 0 end), 0) as credit
       from scoped_sales s
       left join tenders t on t.sale_id = s.id
+      left join return_liability r on r.invoice_id = s.id
     `.execute(this.db);
     const breakdown = breakdownResult.rows[0];
     const paymentBreakdown = {

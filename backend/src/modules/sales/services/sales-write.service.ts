@@ -2956,7 +2956,7 @@ export class SalesWriteService {
       }
 
       if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {
-        const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
         if (customer) {
           await trx.updateTable('customers').set({ store_credit_balance: Number((Number(customer.store_credit_balance || 0) + Number(sale.store_credit_used || 0)).toFixed(2)), updated_at: sql`NOW()` }).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         }
@@ -2988,7 +2988,7 @@ export class SalesWriteService {
           const clawbackDelta = Math.max(0, earnedPoints - alreadyClawed);
 
           if (clawbackDelta > 0) {
-            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
             const currentBal = Number(cust?.loyalty_points || 0);
             const balanceAfter = Math.max(0, Number((currentBal - clawbackDelta).toFixed(2)));
 
@@ -3038,7 +3038,7 @@ export class SalesWriteService {
           const refundDelta = Math.max(0, totalRedeemed - alreadyRefunded);
 
           if (refundDelta > 0) {
-            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
             const currentBal = Number(cust?.loyalty_points || 0);
             const balanceAfter = Number((currentBal + refundDelta).toFixed(2));
 
