@@ -188,7 +188,7 @@ export function FashionVariantsBuilder({
     const existing = colors.some((c) => normalizeArabicSearchKey(c) === key);
     if (existing) {
       const remaining = colors.filter((c) => normalizeArabicSearchKey(c) !== key);
-      onColorsChange(remaining.join(' - '));
+      onColorsChange(remaining.join('، '));
     } else {
       onColorsChange(mergeFashionTokens(colorsValue, [val]));
     }
@@ -199,7 +199,7 @@ export function FashionVariantsBuilder({
     const allSelected = vals.length > 0 && vals.every((v) => sizes.some((s) => normalizeArabicSearchKey(s) === normalizeArabicSearchKey(v)));
     if (allSelected) {
       const remaining = sizes.filter((s) => !normVals.has(normalizeArabicSearchKey(s)));
-      onSizesChange(remaining.join(' - '));
+      onSizesChange(remaining.join('، '));
     } else {
       onSizesChange(mergeFashionTokens(sizesValue, vals));
     }
@@ -243,7 +243,7 @@ export function FashionVariantsBuilder({
     onRowsChange(
       rows.map((row, index) => ({
         ...row,
-        barcode: `${prefix}-${String(index + 1).padStart(3, '0')}`,
+        barcode: row.barcode?.trim() || `${prefix}-${String(index + 1).padStart(3, '0')}`,
       })),
     );
   }
@@ -255,7 +255,7 @@ export function FashionVariantsBuilder({
         const colorPart = (row.color || '').trim().replace(/\s+/g, '-');
         const sizePart = (row.size || '').trim().replace(/\s+/g, '-');
         const generated = [prefix, colorPart, sizePart].filter(Boolean).join('-');
-        return { ...row, sku: generated };
+        return row.sku?.trim() ? row : { ...row, sku: generated };
       }),
     );
   }
