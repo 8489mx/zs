@@ -949,7 +949,20 @@ export function StockCountComposerCard({
                   {pagination.rows.map((item, index) => (
                     <tr key={item.id}>
                       <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>{pagination.rangeStart + index}</td>
-                      <td><strong>{item.productName}</strong></td>
+                      <td>
+                        <strong>{item.productName}</strong>
+                        <div style={{ marginTop: 4, display: 'grid', gap: 3 }}>
+                          <textarea rows={2} style={{ fontSize: 11, minWidth: 130 }} placeholder="السيريالات الموجودة فعلاً (رقم في كل سطر)"
+                            value={(item.countedSerials || []).join('\n')}
+                            onChange={event => updateCountItemById(item.id, {
+                              countedSerials: event.target.value.split(/[\n,،]+/).map(s => s.trim()).filter(Boolean),
+                            })} />
+                          <textarea rows={2} style={{ fontSize: 11, minWidth: 130 }}
+                            placeholder="رصيد التشغيلات: رقم:كمية؛ الجديدة NEW:الرقم:YYYY-MM-DD:كمية"
+                            value={item.batchCountsText || ''}
+                            onChange={event => updateCountItemById(item.id, { batchCountsText: event.target.value })} />
+                        </div>
+                      </td>
                       {canShowExpectedCount ? <td style={{ textAlign: 'center' }} className="muted">{item.expectedQty || 0}</td> : null}
                       <td style={{ textAlign: 'center' }}>
                         <input
