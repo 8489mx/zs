@@ -110,7 +110,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
     setShowPrice(true);
     setShowUnit(true);
     setShowBarcodeText(true);
-    setShowSku(Boolean(product?.styleCode));
+    setShowSku(Boolean(product?.sku));
 
     // Reset Food Statement defaults
     setShowFoodStatement(false);
@@ -254,7 +254,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
     setShowPrice(true);
     setShowUnit(true);
     setShowBarcodeText(true);
-    setShowSku(Boolean(activeProduct?.styleCode));
+    setShowSku(Boolean(activeProduct?.sku));
     setShowFoodStatement(false);
     setShowProductionDate(false);
     setProductionDate(new Date().toISOString().slice(0, 10));
