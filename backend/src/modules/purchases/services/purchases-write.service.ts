@@ -5,6 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { assertUntrackedStockMutation } from '../../inventory/helpers/inventory-tracked-stock.helper';
+import { reversePurchaseTrackedStock } from '../helpers/purchase-cancellation-trace.helper';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
@@ -426,6 +427,7 @@ export class PurchasesWriteService {
           location_id: item.locationId ?? null,
           received_qty: payload.lifecycleStatus === 'purchase_order' ? 0 : item.qty,
           serials: itemSerials.length > 0 ? JSON.stringify(itemSerials) : '[]',
+          batch_number: item.batchNumber || null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any).returning('id').executeTakeFirst();
@@ -1056,14 +1058,17 @@ export class PurchasesWriteService {
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
-        // Cancelling stock without undoing product serial and pharmacy batch
-        // provenance leaves the detail ledger inconsistent with global stock.
-        await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
+        // Traceable intake must be reversed with the stock movement and journal.
         const itemLocationId = item.location_id ?? purchase.location_id;
         const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, beforeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot cancel purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_CANCEL_STOCK_INVALID', 400);
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
+        await reversePurchaseTrackedStock(trx, scope, {
+          productId: Number(item.product_id), purchaseId, purchaseItemId: Number(item.id),
+          locationId: itemLocationId, branchId: purchase.branch_id,
+          quantity: removeQty, batchNumber: item.batch_number,
+        });
         const stockChange = await applyStockDelta(trx, {
           productId: Number(item.product_id),
           delta: -removeQty,
