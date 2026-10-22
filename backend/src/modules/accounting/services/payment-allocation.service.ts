@@ -154,16 +154,22 @@ export class PaymentAllocationService {
       const reversedPurchases = this.sumReversedLiabilities(
         purchaseReturns, 'payable', new Set(purchases.filter((row) => row.payment_type === 'credit').map((row) => Number(row.id))),
       );
+      const scheduleRows = purchases.length ? await this.db.selectFrom('supplier_payment_schedules')
+        .select(['purchase_id', sql<number>`coalesce(sum(paid_amount), 0)`.as('paid')])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('purchase_id', 'in', purchases.map((p) => Number(p.id)))
+        .groupBy('purchase_id').execute() : [];
+      const scheduledPaid = new Map(scheduleRows.map((row) => [Number(row.purchase_id), Number(row.paid || 0)]));
       return purchases
         .map((p) => {
           const total = Number(p.total || 0);
           const paid = Number(p.paid_amount || 0);
-          const remaining = Number(Math.max(0, total - paid - (reversedPurchases.get(Number(p.id)) || 0)).toFixed(2));
+          const remaining = Number(Math.max(0, total - paid - (scheduledPaid.get(Number(p.id)) || 0) - (reversedPurchases.get(Number(p.id)) || 0)).toFixed(2));
           return {
             id: Number(p.id),
             docNo: p.doc_no || `BILL-${p.id}`,
             total,
-            paidAmount: paid,
+            paidAmount: Number((paid + (scheduledPaid.get(Number(p.id)) || 0)).toFixed(2)),
             remainingAmount: remaining,
             date: p.created_at ? new Date(p.created_at).toISOString().slice(0, 10) : '',
             status: p.status,
@@ -385,7 +391,11 @@ export class PaymentAllocationService {
           const reversed = this.sumReversedLiabilities(
             returnedRows, 'payable', new Set(purchase.payment_type === 'credit' ? [Number(purchase.id)] : []),
           ).get(Number(purchase.id)) || 0;
-          const remaining = Math.max(0, total - currentPaid - reversed);
+          const scheduledRow = await trx.selectFrom('supplier_payment_schedules')
+            .select(sql<number>`coalesce(sum(paid_amount), 0)`.as('paid'))
+            .where('tenant_id', '=', scope.tenantId)
+            .where('purchase_id', '=', Number(purchase.id)).executeTakeFirst();
+          const remaining = Math.max(0, total - currentPaid - Number(scheduledRow?.paid || 0) - reversed);
 
           if (allocAmount > Number(remaining.toFixed(2))) {
             throw new BadRequestException(

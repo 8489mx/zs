@@ -1018,8 +1018,13 @@ export class ReturnsService {
           throw new AppError('تسوية مرتجع شراء سابقة غير صالحة', 'PURCHASE_RETURN_SETTLEMENT_RECONCILIATION_REQUIRED', 409);
         }
       }
+      const scheduledPayments = await trx.selectFrom('supplier_payment_schedules')
+        .select(sql<number>`coalesce(sum(paid_amount), 0)`.as('paid'))
+        .where('purchase_id', '=', Number(purchase.id)).where(this.tenantPredicate(auth))
+        .executeTakeFirst();
+      const scheduledPaidCents = Math.round(Number(scheduledPayments?.paid || 0) * 100);
       const unpaidInvoiceCents = Math.max(0,
-        Math.round((Number(purchase.total || 0) - Number(purchase.paid_amount || 0)) * 100) - priorPayableCents);
+        Math.round((Number(purchase.total || 0) - Number(purchase.paid_amount || 0)) * 100) - priorPayableCents - scheduledPaidCents);
       const supplierOutstandingCents = Math.max(0, Math.round(Number(supplier.balance || 0) * 100));
       payableCents = Math.min(Math.round(total * 100), unpaidInvoiceCents, supplierOutstandingCents);
     }
