@@ -17,6 +17,7 @@ type ProductRow = {
   name_en?: string | null;
   barcode: string | null;
   sku?: string | null;
+  catalog_updated_at?: Date | string | null;
   item_type?: 'product' | 'raw_material' | 'service';
   item_kind: 'standard' | 'fashion' | null;
   style_code: string | null;
@@ -296,7 +297,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
         .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -1237,6 +1238,7 @@ export class CatalogProductService {
         name_en: product.name_en || '',
         barcode: product.barcode || '',
         sku: product.sku || '',
+        catalogUpdatedAt: product.catalog_updated_at ? new Date(product.catalog_updated_at).toISOString() : undefined,
         categoryId: product.category_id ? String(product.category_id) : '',
         categoryName,
         supplierId: product.supplier_id ? String(product.supplier_id) : '',
@@ -1743,6 +1745,17 @@ export class CatalogProductService {
       for (const draft of drafts) if (draft.id && !byId.has(draft.id)) {
         throw new AppError('Variant does not belong to this group', 'FASHION_VARIANT_SCOPE', 403);
       }
+      // Reject stale browser tabs before the first SQL write. Stock-only changes
+      // do not advance catalog_updated_at and therefore do not create false conflicts.
+      for (const draft of drafts) {
+        const expected = draft.input.expectedCatalogUpdatedAt;
+        if (!draft.id || !expected) continue;
+        const current = byId.get(draft.id)!.catalog_updated_at;
+        if (!current || !Number.isFinite(Date.parse(expected)) ||
+            Math.abs(new Date(current).getTime() - new Date(expected).getTime()) > 1) {
+          throw new AppError('تم تعديل هذا الموديل من جهاز آخر. حدّث الشاشة قبل حفظ التعديلات', 'FASHION_GROUP_STALE', 409);
+        }
+      }
       if (newStyle !== originalStyle) {
         const taken = await trx.selectFrom('products').select('id').where('style_code', '=', newStyle)
           .where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
@@ -2142,7 +2155,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();
