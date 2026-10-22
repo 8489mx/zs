@@ -87,7 +87,7 @@ export async function reconcileStockCountTrace(
   }
 
   if (needsBatches) {
-    if (!batchCounts.length || batchCounts.some(row => !precise(row.countedQty)) ||
+    if ((!batchCounts.length && input.countedQty !== 0) || batchCounts.some(row => !precise(row.countedQty)) ||
       Math.abs(batchCounts.reduce((sum, row) => sum + Number(row.countedQty), 0) - input.countedQty) > 1e-7) {
       throw new AppError('يجب إدخال الرصيد الفعلي لكل تشغيلة بحيث يساوي الكمية المعدودة', 'COUNT_BATCH_COUNTS_REQUIRED', 422);
     }
