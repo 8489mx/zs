@@ -59,7 +59,8 @@ export class ManagerActionsService {
       this.safeQuery(() => this.loadProducts(scope.tenantId)),
       this.safeQuery(() => this.loadProductLastSales(scope.tenantId)),
       this.safeQuery(() => this.loadRecentSales(scope.tenantId)),
-      this.safeQuery(() => this.loadSaleMargins(scope.tenantId)),
+      // Profit/under-cost alerts must not disappear silently if their SQL fails.
+      this.loadSaleMargins(scope.tenantId),
       this.safeQuery(() => this.loadCustomers(scope.tenantId)),
       this.safeQuery(() => this.loadCustomerBalances(scope.tenantId)),
       this.safeQuery(() => this.loadPharmacyBatches(scope.tenantId)),
@@ -156,9 +157,13 @@ export class ManagerActionsService {
       .select([
         'si.sale_id',
         's.doc_no',
-        sql<number>`coalesce(sum(si.line_total), 0)`.as('revenue'),
-        sql<number>`coalesce(sum(si.cost_price * si.qty * si.unit_multiplier), 0)`.as('cost'),
-        sql<number>`coalesce(sum(case when si.line_total < (si.cost_price * si.qty * si.unit_multiplier) then 1 else 0 end), 0)`.as('below_cost_lines'),
+        // Original sale-line cost_price is per SOLD UNIT: do not multiply by
+        // unit_multiplier a second time (carton invoices showed fake losses).
+        // net_line_total already excludes VAT/discounts for recent invoices.
+        sql<number>`coalesce(sum(coalesce(si.net_line_total, si.line_total)), 0)`.as('revenue'),
+        sql<number>`coalesce(sum(coalesce(si.cost_price, 0) * si.qty), 0)`.as('cost'),
+        sql<number>`coalesce(sum(case when coalesce(si.net_line_total, si.line_total) <
+          (coalesce(si.cost_price, 0) * si.qty) then 1 else 0 end), 0)`.as('below_cost_lines'),
       ])
       .where('s.status', '=', 'posted')
       .where(sql<boolean>`s.tenant_id = ${tenantId}`)
