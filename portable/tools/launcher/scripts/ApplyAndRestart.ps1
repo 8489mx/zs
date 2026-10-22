@@ -90,6 +90,26 @@ if ($pending.PSObject.Properties['electronExePath'] -and $pending.electronExePat
 $isElectronMode = (-not [string]::IsNullOrWhiteSpace($electronExePath)) -and (Test-Path $electronExePath)
 Write-Log "Mode: $(if ($isElectronMode) { 'Electron' } else { 'Portable' })"
 
+# A fixed delay is not proof that Electron has released app.asar and the
+# PostgreSQL cluster. Wait for the exact parent process that requested update.
+$previousElectronPid = 0
+if ($pending.PSObject.Properties['electronMainPid'] -and $pending.electronMainPid) {
+  $previousElectronPid = [int]$pending.electronMainPid
+}
+if ($isElectronMode -and $previousElectronPid -gt 0) {
+  Write-Log "Waiting for previous Electron PID $previousElectronPid to exit..."
+  try {
+    Wait-Process -Id $previousElectronPid -Timeout 45 -ErrorAction Stop
+  } catch {
+    if (Get-Process -Id $previousElectronPid -ErrorAction SilentlyContinue) {
+      Write-Log 'ERROR: Previous Electron still owns the application files; refusing to apply update.'
+      Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
+      exit 1
+    }
+  }
+  Write-Log 'Previous Electron process released its application files.'
+}
+
 function Abort-BeforeApply([string]$Message) {
   Write-Log "Update cancelled before changing application files: $Message"
   Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
