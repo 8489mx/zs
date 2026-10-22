@@ -179,14 +179,13 @@ function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1, 
   if (!applicableOffers.length) return null;
 
   return [...applicableOffers].sort((left, right) => {
-    const leftMinQty = getOfferMinQty(left);
-    const rightMinQty = getOfferMinQty(right);
-    if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
-
     const leftPrice = getOfferAppliedPrice(basePrice, left, normalizedQty);
     const rightPrice = getOfferAppliedPrice(basePrice, right, normalizedQty);
     if (leftPrice !== rightPrice) return leftPrice - rightPrice;
 
+    const leftMinQty = getOfferMinQty(left);
+    const rightMinQty = getOfferMinQty(right);
+    if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
     return Number(right.value || 0) - Number(left.value || 0);
   })[0] || null;
 }

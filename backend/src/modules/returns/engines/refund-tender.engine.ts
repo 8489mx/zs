@@ -24,9 +24,8 @@ export function allocateRefundTenders(input: {
   };
   let remaining = toCents(input.amount);
   if (remaining <= 0) throw new AppError('Refund amount must be positive', 'INVALID_REFUND_AMOUNT', 400);
-  if (input.requested === 'store_credit') {
-    if (!input.hasCustomer) throw new AppError('Store credit requires a customer', 'REFUND_CUSTOMER_REQUIRED', 400);
-    return [{ tender: 'store_credit', amount: remaining / 100 }];
+  if (input.requested === 'store_credit' && !input.hasCustomer) {
+    throw new AppError('Store credit requires a customer', 'REFUND_CUSTOMER_REQUIRED', 400);
   }
   const result: Array<{ tender: RefundTender; amount: number }> = [];
   const apply = (tender: RefundTender, available: number): void => {
@@ -36,8 +35,13 @@ export function allocateRefundTenders(input: {
   };
   const debtAvailable = Math.max(0, toCents(input.originalDebt) - toCents(input.previousDebtReversed));
   if (debtAvailable > 0 && !input.hasCustomer) throw new AppError('Credit return requires a customer', 'REFUND_CUSTOMER_REQUIRED', 400);
+  // Settle the outstanding receivable before creating a new store-credit liability.
   apply('receivable', debtAvailable);
   if (remaining === 0) return result;
+  if (input.requested === 'store_credit') {
+    apply('store_credit', remaining);
+    return result;
+  }
   if (input.override) {
     if (String(input.overrideReason || '').trim().length < 10) {
       throw new AppError('سبب تجاوز وسيلة الاسترداد يجب أن يكون 10 أحرف على الأقل', 'REFUND_OVERRIDE_REASON_REQUIRED', 400);

@@ -844,7 +844,8 @@ export class ReturnsService {
       .select([
         'ri.product_id',
         'ri.purchase_item_id',
-        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty')
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty'),
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.line_total'), sql<number>`0`).as('total_amount'),
       ])
       .where('rd.return_type', '=', 'purchase')
       .where('rd.invoice_id', '=', Number(payload.invoiceId))
@@ -854,13 +855,17 @@ export class ReturnsService {
       .execute();
 
     const returnedQtyByLine = new Map<number, number>();
+    const returnedAmountByLine = new Map<number, number>();
     const returnedQtyByProduct = new Map<number, number>();
+    const legacyReturnedProducts = new Set<number>();
     for (const r of returnedRows) {
       const q = Number(r.total_qty || 0);
       if (r.purchase_item_id) {
         returnedQtyByLine.set(Number(r.purchase_item_id), q);
+        returnedAmountByLine.set(Number(r.purchase_item_id), Number(r.total_amount || 0));
       }
       const pId = Number(r.product_id || 0);
+      if (!r.purchase_item_id && q > 0) legacyReturnedProducts.add(pId);
       returnedQtyByProduct.set(pId, (returnedQtyByProduct.get(pId) || 0) + q);
     }
 
@@ -874,6 +879,9 @@ export class ReturnsService {
         : matchingLines[0];
       if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       const purchaseLineId = Number(purchaseItem.id);
+      if (legacyReturnedProducts.has(requestItem.productId)) {
+        throw new AppError('مرتجع شراء سابق بلا ربط بسطر الفاتورة يحتاج تسوية أولاً', 'PURCHASE_RETURN_LEGACY_RECONCILIATION_REQUIRED', 409);
+      }
       const purchasedForProduct = matchingLines.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
       ensureReturnQtyWithinLimit(
         requestItem.qty + (pendingQtyByProduct.get(requestItem.productId) || 0),
@@ -892,7 +900,10 @@ export class ReturnsService {
       const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials'])
         .where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem);
+      const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem, {
+        qty: returnedQtyByLine.get(purchaseLineId) || 0,
+        amount: returnedAmountByLine.get(purchaseLineId) || 0,
+      });
 
       // The serial ledger and general stock ledger must leave the warehouse together.
       const purchaseSerials = await trx.selectFrom('product_serials')
@@ -932,8 +943,9 @@ export class ReturnsService {
         throw new AppError('الصنف ليس دواءً مسجلاً بتشغيلة', 'PURCHASE_RETURN_BATCH_NOT_APPLICABLE', 400);
       }
 
-      const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
-      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: purchase.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+      const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
+      const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
+      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, purchaseItemId: purchaseLineId });
     }
 

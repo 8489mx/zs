@@ -218,14 +218,14 @@ export function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso:
   if (!applicableOffers.length) return null;
 
   return [...applicableOffers].sort((left, right) => {
-    const leftMinQty = getOfferEffectiveMinQty(left);
-    const rightMinQty = getOfferEffectiveMinQty(right);
-    if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
-
     const leftPrice = calculateOfferAdjustedPrice(basePrice, left, normalizedQty);
     const rightPrice = calculateOfferAdjustedPrice(basePrice, right, normalizedQty);
     if (leftPrice !== rightPrice) return leftPrice - rightPrice;
 
+    // Compare actual savings first; minimum quantity is only a tie-breaker.
+    const leftMinQty = getOfferEffectiveMinQty(left);
+    const rightMinQty = getOfferEffectiveMinQty(right);
+    if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
     return Number(right.value || 0) - Number(left.value || 0);
   })[0] || null;
 }

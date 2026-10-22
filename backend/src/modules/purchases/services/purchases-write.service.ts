@@ -440,7 +440,7 @@ export class PurchasesWriteService {
               status: 'in_stock' as const,
               branch_id: branchId || null,
               location_id: itemLocationId || null,
-              cost_price: item.effectiveUnitCost,
+              cost_price: item.effectiveUnitCost / item.unitMultiplier,
               purchase_id: id,
               purchase_item_id: insertedItem ? Number(insertedItem.id) : null,
               warranty_end_date: null,
@@ -469,8 +469,10 @@ export class PurchasesWriteService {
             .where('id', '=', item.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
           const oldCost = Number(currentProduct.cost_price || 0);
           const totalQty = oldQty + increasedQty;
+          // Inventory cost is per base stock unit, not per purchased carton.
+          const baseUnitCost = item.effectiveUnitCost / item.unitMultiplier;
           const newCost = (increasedQty > 0 && totalQty > 0.00001) 
-            ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / totalQty
+            ? ((oldQty * oldCost) + (increasedQty * baseUnitCost)) / totalQty
             : oldCost;
 
           await trx.updateTable('products')
@@ -528,7 +530,7 @@ export class PurchasesWriteService {
                   .updateTable('pharmacy_batches')
                   .set({
                     quantity: updatedQty,
-                    unit_cost: item.effectiveUnitCost,
+                    unit_cost: item.effectiveUnitCost / item.unitMultiplier,
                     status: 'active',
                     expiry_date: expiryDate,
                     updated_at: sql`NOW()`,
@@ -547,7 +549,7 @@ export class PurchasesWriteService {
                     batch_number: batchNo,
                     expiry_date: expiryDate,
                     quantity: increasedQty,
-                    unit_cost: item.effectiveUnitCost,
+                    unit_cost: item.effectiveUnitCost / item.unitMultiplier,
                     location_id: itemLocationId || null,
                     supplier_name: supplier?.name || null,
                     status: 'active',
@@ -830,8 +832,9 @@ export class PurchasesWriteService {
           .where('id', '=', normalizedItem.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
         const oldCost = Number(currentProduct.cost_price || 0);
         const totalQty = oldQty + increaseQty;
+        const baseUnitCost = repricedCost / normalizedItem.unitMultiplier;
         const newCost = (increaseQty > 0 && totalQty > 0.00001) 
-          ? ((oldQty * oldCost) + (increaseQty * repricedCost)) / totalQty
+          ? ((oldQty * oldCost) + (increaseQty * baseUnitCost)) / totalQty
           : oldCost;
 
         await trx.updateTable('products')
