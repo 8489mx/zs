@@ -2,7 +2,7 @@ import { http } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth-store';
 
 /**
- * A financial payment attempt is durable before sending the HTTP request.
+ * A financial payment attempt is persisted across renderer and Electron restarts before sending.
  * Retrying after a timeout, reload, or lost response must reuse the same key.
  * A successful server acknowledgement is the ONLY time the key is retired.
  */
@@ -21,7 +21,7 @@ export async function postIdempotentAccountPayment(path: '/api/customer-payments
   const keyName = `zs:payment-attempt:${tenantId}:${accountId}:${path}:${partnerId}`;
   let existing: { body: string; key: string } | null = null;
   try {
-    const stored = sessionStorage.getItem(keyName);
+    const stored = localStorage.getItem(keyName);
     if (stored) existing = JSON.parse(stored) as { body: string; key: string };
   } catch {
     throw new Error('تعذر قراءة حالة سند الدفع السابق؛ لا تعاود الإرسال قبل مراجعة التخزين');
@@ -41,7 +41,7 @@ export async function postIdempotentAccountPayment(path: '/api/customer-payments
     if (!uuid) throw new Error('تعذر إنشاء مفتاح آمن للسند المالي');
     attempt = { body, key: uuid };
     try {
-      sessionStorage.setItem(keyName, JSON.stringify(attempt));
+      localStorage.setItem(keyName, JSON.stringify(attempt));
     } catch {
       throw new Error('تعذر حفظ مفتاح السند المالي قبل الإرسال؛ لم يتم إرسال العملية');
     }
@@ -55,14 +55,14 @@ export async function postIdempotentAccountPayment(path: '/api/customer-payments
     const outcome = await http<{ status: string; response?: Record<string, unknown> }>(statusPath);
     if (outcome.status === 'committed') {
       if (!outcome.response?.id) throw new Error('تم تسجيل السند لكن بيانات تأكيده ناقصة؛ راجع الحسابات');
-      sessionStorage.removeItem(keyName);
+      localStorage.removeItem(keyName);
       return { ok: true, ...outcome.response };
     }
     if (outcome.status === 'processing' || outcome.status === 'recovery_required') {
       throw new Error('حالة السند على الخادم غير محسومة؛ لا يمكن إعادة سداد نفس المبلغ قبل التأكيد');
     }
     if (outcome.status === 'failed') {
-      sessionStorage.removeItem(keyName);
+      localStorage.removeItem(keyName);
       throw new Error('فشل السند السابق على الخادم ولم يتم ترحيله؛ يمكن إصلاح البيانات وإعادة المحاولة');
     }
     if (outcome.status !== 'not_found') throw new Error('حالة سند الدفع غير معروفة؛ لا يمكن إعادة إرساله بأمان');
@@ -81,18 +81,18 @@ export async function postIdempotentAccountPayment(path: '/api/customer-payments
     try {
       const outcome = await http<{ status: string }>(statusPath);
       if (outcome.status === 'failed') {
-        const stored = sessionStorage.getItem(keyName);
-        if (stored && (JSON.parse(stored) as { key?: string }).key === attempt.key) sessionStorage.removeItem(keyName);
+        const stored = localStorage.getItem(keyName);
+        if (stored && (JSON.parse(stored) as { key?: string }).key === attempt.key) localStorage.removeItem(keyName);
       }
     } catch { /* Unknown commit outcome: retain stable key for recovery. */ }
     throw error;
   }
   // Clear only the same attempt: a concurrent UI action may have altered it.
   try {
-    const stored = sessionStorage.getItem(keyName);
+    const stored = localStorage.getItem(keyName);
     if (stored) {
       const current = JSON.parse(stored) as { key?: string };
-      if (current.key === attempt.key) sessionStorage.removeItem(keyName);
+      if (current.key === attempt.key) localStorage.removeItem(keyName);
     }
   } catch {
     // An acknowledged payment is already committed. Leaving its key is safe;
