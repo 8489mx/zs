@@ -2054,6 +2054,16 @@ export class SalesWriteService {
       if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
       if (sale.exchange_return_id) throw new AppError('فاتورة استبدال مترابطة؛ استخدم مرتجعاً بدلاً من تعديلها', 'EXCHANGE_IMMUTABLE', 422);
       if (sale.status !== 'posted') throw new AppError('لا يمكن تعديل فاتورة غير مرحّلة أو ملغاة.', 'SALE_EDIT_STATUS_FORBIDDEN', 400);
+      // A later receipt is an independent GL event and must remain attached to
+      // the original debt. This edit route reverses the entire old invoice and
+      // must not silently leave that receipt allocated against its replacement.
+      const laterAllocation = await trx.selectFrom('payment_allocations')
+        .select('id').where('tenant_id', '=', scope.tenantId)
+        .where('invoice_type', '=', 'sale').where('invoice_id', '=', saleId)
+        .limit(1).executeTakeFirst();
+      if (laterAllocation) {
+        throw new AppError('الفاتورة عليها سند قبض مخصص؛ يلزم مستند تصحيح بدلاً من تعديلها', 'SALE_EDIT_HAS_LATER_PAYMENTS', 422);
+      }
 
       let branch: any = null;
       if (normalized.source === 'pos') {
@@ -2170,6 +2180,15 @@ export class SalesWriteService {
         .where('sale_id', '=', saleId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
+      const recordedCheckoutCents = currentPayments.reduce((sum, payment) =>
+        sum + Math.round(Number(payment.amount || 0) * 100), 0);
+      if (currentPayments.length > 0 &&
+          Math.round(Number(sale.paid_amount || 0) * 100) > recordedCheckoutCents) {
+        throw new AppError('الفاتورة عليها تحصيلات إضافية لا يمكن عكسها بتعديل الفاتورة', 'SALE_EDIT_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
+      if (currentPayments.length === 0 && Number(sale.paid_amount || 0) > 0 && sale.payment_channel === 'mixed') {
+        throw new AppError('لا يمكن تعديل فاتورة قديمة ذات سداد مختلط دون تفاصيل وسائل الدفع', 'SALE_EDIT_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
 
       await this.lockSaleStockRows(trx, scope, [...currentItems, ...(payload.items || [])]);
       await this.restoreSalePharmacyBatches(trx, saleId, currentItems, scope, true);
@@ -2200,8 +2219,11 @@ export class SalesWriteService {
              remainingToRestore -= qtyToRestore;
 
              // Find branch for this location
-             const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
-             const branchId = locData?.branch_id || sale.branch_id;
+             const locData = await trx.selectFrom('stock_locations').select('branch_id')
+               .where('id', '=', alloc.location_id).where('tenant_id', '=', scope.tenantId)
+               .executeTakeFirst();
+             if (!locData) throw new AppError('مخزن سطر الفاتورة الأصلي غير موجود؛ يجب تسوية المخزون قبل التعديل', 'SALE_EDIT_LOCATION_RECONCILIATION_REQUIRED', 409);
+             const branchId = locData.branch_id ?? sale.branch_id;
 
              const stockChange = await applyStockDelta(trx, {
                productId: Number(item.product_id),
@@ -2228,6 +2250,9 @@ export class SalesWriteService {
                tenant_id: scope.tenantId,
                account_id: scope.accountId,
              }).execute();
+           }
+           if (remainingToRestore > 0.0001) {
+             throw new AppError('توزيع مخزون سطر البيع الأصلي غير مكتمل؛ لا يمكن تعديل الفاتورة دون تسوية', 'SALE_EDIT_STOCK_ALLOCATION_RECONCILIATION_REQUIRED', 409);
            }
         } else {
            // Fallback for legacy sales without allocations
