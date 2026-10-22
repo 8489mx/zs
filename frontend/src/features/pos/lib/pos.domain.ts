@@ -155,10 +155,10 @@ function getOfferMinQty(offer: ProductOffer) {
   return Math.max(1, Number(offer.minQty ?? (offer as any).min_qty ?? 1));
 }
 
-function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1, now = new Date()) {
+function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1, now = new Date(), unitMultiplier = 1) {
   if (priceType === 'wholesale') return null;
   const today = todayLocalIsoDate();
-  const basePrice = Number(product.retailPrice || 0);
+  const basePrice = Number(product.retailPrice || 0) * unitMultiplier;
   const normalizedQty = Math.max(1, qty);
   const applicableOffers = (product.offers || []).filter((offer) => {
     const from = normalizeDateOnly(offer.from || offer.start_date || '');
@@ -179,14 +179,13 @@ function getApplicableOffer(product: Product, priceType: PosPriceType, qty = 1, 
   if (!applicableOffers.length) return null;
 
   return [...applicableOffers].sort((left, right) => {
-    const leftMinQty = getOfferMinQty(left);
-    const rightMinQty = getOfferMinQty(right);
-    if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
-
     const leftPrice = getOfferAppliedPrice(basePrice, left, normalizedQty);
     const rightPrice = getOfferAppliedPrice(basePrice, right, normalizedQty);
     if (leftPrice !== rightPrice) return leftPrice - rightPrice;
 
+    const leftMinQty = getOfferMinQty(left);
+    const rightMinQty = getOfferMinQty(right);
+    if (leftMinQty !== rightMinQty) return rightMinQty - leftMinQty;
     return Number(right.value || 0) - Number(left.value || 0);
   })[0] || null;
 }
@@ -209,9 +208,9 @@ export function getProductItemCode(product: Product, unit?: ProductUnit) {
   return String(product.styleCode || unit?.barcode || product.barcode || product.id || '').trim();
 }
 
-export function getProductPrice(product: Product, priceType: PosPriceType, qty = 1) {
-  const basePrice = Number(priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
-  const offer = getApplicableOffer(product, priceType, qty);
+export function getProductPrice(product: Product, priceType: PosPriceType, qty = 1, unitMultiplier = 1) {
+  const basePrice = Number(priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0) * unitMultiplier;
+  const offer = getApplicableOffer(product, priceType, qty, new Date(), unitMultiplier);
   return offer ? getOfferAppliedPrice(basePrice, offer, qty) : roundMoney(basePrice);
 }
 
@@ -229,8 +228,9 @@ export function getOfferDisplayName(offer: ProductOffer) {
 }
 
 export function repriceCartLine(item: PosItem, product: Product, qty: number) {
-  const basePrice = Number(item.priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0);
-  const offer = getApplicableOffer(product, item.priceType, qty);
+  const unitMultiplier = Number.isFinite(item.unitMultiplier) && item.unitMultiplier > 0 ? item.unitMultiplier : 1;
+  const basePrice = Number(item.priceType === 'wholesale' ? product.wholesalePrice || product.retailPrice || 0 : product.retailPrice || 0) * unitMultiplier;
+  const offer = getApplicableOffer(product, item.priceType, qty, new Date(), unitMultiplier);
   const effectivePrice = offer ? getOfferAppliedPrice(basePrice, offer, qty) : roundMoney(basePrice);
   
   let origPrice = basePrice;
@@ -455,7 +455,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
       stockLimit,
       currentStock: Number(product.stock || 0),
       minStock: Number(product.minStock || 0),
-      price: getProductPrice(product, item.priceType, nextQty),
+      price: getProductPrice(product, item.priceType, nextQty, Number(unit.multiplier) > 0 ? Number(unit.multiplier) : 1),
       qty: nextQty,
       quantityChunks: nextQty === Number(item.qty || 0) ? item.quantityChunks : undefined,
     };

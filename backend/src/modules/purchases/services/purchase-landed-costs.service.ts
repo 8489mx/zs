@@ -230,12 +230,13 @@ export class PurchaseLandedCostsService {
       // to silently lose pennies and misclassify residuals as COGS.
       const weights = items.map((item: any) => {
         if (dto.allocationMethod === 'value') return Math.max(0, Number(item.line_total || 0));
-        if (dto.allocationMethod === 'qty') return Math.max(0, Number(item.qty || 0));
+        if (dto.allocationMethod === 'qty') return Math.max(0, Number(item.qty || 0) * Number(item.unit_multiplier || 1));
         return 1;
       });
       const allocatedCosts = allocateLandedCosts(Number(totalLandedCost.toFixed(2)), weights);
       for (const [index, item] of items.entries()) {
         const itemQty = Number(item.qty || 1);
+        const baseQty = itemQty * Number(item.unit_multiplier || 1);
         const allocatedCost = allocatedCosts[index];
         const baseUnitCost = Number(item.unit_cost || 0);
         const landedUnitCost = Number((baseUnitCost + (itemQty > 0 ? allocatedCost / itemQty : 0)).toFixed(2));
@@ -272,10 +273,11 @@ export class PurchaseLandedCostsService {
             const currentCost = Number(prod.cost_price || 0);
 
             // Units of this receipt still on hand, capped by what was actually received.
-            const remainingOfReceipt = Math.max(0, Math.min(itemQty, currentStock));
-            const soldOfReceipt = Math.max(0, itemQty - remainingOfReceipt);
+            // Stock quantities are base units, including when a purchase line is in cartons.
+            const remainingOfReceipt = Math.max(0, Math.min(baseQty, currentStock));
+            const soldOfReceipt = Math.max(0, baseQty - remainingOfReceipt);
 
-            const perUnitLanded = itemQty > 0 ? allocatedCost / itemQty : 0;
+            const perUnitLanded = baseQty > 0 ? allocatedCost / baseQty : 0;
             const capitalisedPortion = Number((perUnitLanded * remainingOfReceipt).toFixed(4));
             const cogsPortion = Number((perUnitLanded * soldOfReceipt).toFixed(4));
 

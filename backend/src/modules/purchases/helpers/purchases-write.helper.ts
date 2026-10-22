@@ -59,7 +59,10 @@ export function buildNormalizedPurchaseItem(
 
   const qty = Number(item.qty || 0);
   const cost = Number(item.cost || 0);
-  const unitMultiplier = Number(item.unitMultiplier || 1) || 1;
+  const unitMultiplier = item.unitMultiplier == null ? 1 : Number(item.unitMultiplier);
+  if (!Number.isFinite(unitMultiplier) || unitMultiplier <= 0 || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(cost) || cost < 0) {
+    throw new AppError('Invalid purchase quantity, multiplier or cost', 'INVALID_PURCHASE_ITEM', 400);
+  }
 
   return {
     productId: Number(item.productId || product.id || 0),
@@ -168,14 +171,22 @@ export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[],
 }
 
 export function calculatePurchaseStockIncrease(itemQty: number | string | null | undefined, unitMultiplier: number | string | null | undefined, currentStockQty: number | string | null | undefined) {
-  const increasedQty = Number((Number(itemQty || 0) * Number(unitMultiplier || 1)).toFixed(3));
+  const exactQty = Number(itemQty || 0) * Number(unitMultiplier ?? 1);
+  const increasedQty = Number(exactQty.toFixed(3));
+  if (!Number.isFinite(exactQty) || exactQty <= 0 || Math.abs(exactQty - increasedQty) > 0.00000001) {
+    throw new AppError('Purchase stock quantity must have at most three decimal places', 'PURCHASE_QUANTITY_PRECISION_INVALID', 400);
+  }
   const beforeQty = Number(currentStockQty || 0);
   const afterQty = Number((beforeQty + increasedQty).toFixed(3));
   return { increasedQty, beforeQty, afterQty };
 }
 
 export function calculatePurchaseStockDecrease(itemQty: number | string | null | undefined, unitMultiplier: number | string | null | undefined, currentStockQty: number | string | null | undefined) {
-  const removedQty = Number((Number(itemQty || 0) * Number(unitMultiplier || 1)).toFixed(3));
+  const exactQty = Number(itemQty || 0) * Number(unitMultiplier ?? 1);
+  const removedQty = Number(exactQty.toFixed(3));
+  if (!Number.isFinite(exactQty) || exactQty <= 0 || Math.abs(exactQty - removedQty) > 0.00000001) {
+    throw new AppError('Purchase stock quantity must have at most three decimal places', 'PURCHASE_QUANTITY_PRECISION_INVALID', 400);
+  }
   const beforeQty = Number(currentStockQty || 0);
   const afterQty = Number((beforeQty - removedQty).toFixed(3));
   return { removedQty, beforeQty, afterQty };
