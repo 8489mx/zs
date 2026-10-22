@@ -386,6 +386,7 @@ export interface ProductTable {
   name: string;
   name_en?: string | null;
   barcode: string | null;
+  sku: string | null;
   category_id: number | null;
   supplier_id: number | null;
   item_type: ColumnType<'product' | 'raw_material' | 'service', 'product' | 'raw_material' | 'service' | undefined, 'product' | 'raw_material' | 'service' | undefined>;
