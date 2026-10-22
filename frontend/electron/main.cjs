@@ -796,6 +796,7 @@ app.whenReady().then(async () => {
 
   let backendProcess = null;
   let backendSignaledReady = false;
+  let backendStartupFailed = false;
   let isQuitting = false;
 
   const backendLogPath = path.join(dataDir, '../logs', 'backend.log');
@@ -837,6 +838,7 @@ app.whenReady().then(async () => {
     }
 
     backendProcess.on('error', (err) => {
+      backendStartupFailed = true;
       console.error('Backend process error:', err);
     });
 
@@ -856,6 +858,7 @@ app.whenReady().then(async () => {
         isQuitting = true;
         app.quit();
       } else if (code !== 0 && !isQuitting) {
+        backendStartupFailed = true;
         console.error(`[ELECTRON] Backend crashed with code ${code} and signal ${signal}`);
         if (backendLogStream) {
           backendLogStream.write(`\n--- Backend crashed with code ${code} ---\n`);
@@ -1112,6 +1115,7 @@ app.whenReady().then(async () => {
       let attempts = 0;
       const targetPort = Number(currentConfig.port || 3001);
       const ping = () => {
+        if (backendStartupFailed) return resolve(false);
         if (backendSignaledReady) {
           return resolve(true);
         }
