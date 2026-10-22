@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
+import { toast } from '@/shared/components/system-alert';
 import { getErrorMessage } from '@/lib/errors';
 import type { HrEmployee } from '@/types/domain';
 import { useHrMutations, useHrProfile, useHrWorkspace } from '@/features/hr/hooks/useHr';
@@ -90,6 +91,32 @@ export function EmployeeEditPage() {
 
   function goToProfile() {
     navigate(id ? `/hr/employees/${id}` : '/hr/employees');
+  }
+
+  async function handleQuickCreateMaster(kind: 'departments' | 'job-titles' | 'positions', name: string) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed) return;
+    try {
+      const payload: any = { name: trimmed };
+      if (kind === 'positions') {
+        if (draft.departmentId) payload.departmentId = toId(draft.departmentId);
+        if (draft.jobTitleId) payload.jobTitleId = toId(draft.jobTitleId);
+      }
+      const res: any = await mutations.saveMasterData.mutateAsync({ kind, payload });
+      const newId = (res as any)?.id || (res?.rows as any[])?.find((r: any) => r.name === trimmed)?.id || '';
+      if (kind === 'departments') {
+        setDraft((cur) => ({ ...cur, departmentId: String(newId) }));
+        toast.success(`تمت إضافة واختيار قسم "${trimmed}" بنجاح`);
+      } else if (kind === 'job-titles') {
+        setDraft((cur) => ({ ...cur, jobTitleId: String(newId) }));
+        toast.success(`تمت إضافة واختيار مسمى "${trimmed}" بنجاح`);
+      } else if (kind === 'positions') {
+        setDraft((cur) => ({ ...cur, positionId: String(newId) }));
+        toast.success(`تمت إضافة واختيار منصب "${trimmed}" بنجاح`);
+      }
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'تعذر إضافة البيانات.'));
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -197,6 +224,7 @@ export function EmployeeEditPage() {
                   departments={departments}
                   jobTitles={jobTitles}
                   positions={positions}
+                  onQuickCreateMaster={handleQuickCreateMaster}
                 />
                 <EmployeeAttendancePolicySection draft={draft} setDraft={setDraft} />
               </div>

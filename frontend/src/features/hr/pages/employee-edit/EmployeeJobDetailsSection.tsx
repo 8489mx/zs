@@ -9,6 +9,7 @@ interface EmployeeJobDetailsSectionProps {
   departments: Array<{ id: string; name: string }>;
   jobTitles: Array<{ id: string; name: string }>;
   positions: Array<{ id: string; name: string }>;
+  onQuickCreateMaster?: (kind: 'departments' | 'job-titles' | 'positions', name: string) => void | Promise<void>;
 }
 
 export const EmployeeJobDetailsSection: React.FC<EmployeeJobDetailsSectionProps> = ({
@@ -17,6 +18,7 @@ export const EmployeeJobDetailsSection: React.FC<EmployeeJobDetailsSectionProps>
   departments,
   jobTitles,
   positions,
+  onQuickCreateMaster,
 }) => {
   const { t } = useTranslation();
   return (
@@ -33,6 +35,8 @@ export const EmployeeJobDetailsSection: React.FC<EmployeeJobDetailsSectionProps>
               { value: '', label: t('hr.employee_edit.employee_job_details_section.s2', "اختيار") },
               ...departments.map((entry) => ({ value: entry.id, label: entry.name })),
             ]}
+            onCreateOption={onQuickCreateMaster ? (name) => onQuickCreateMaster('departments', name) : undefined}
+            createOptionLabel={(name) => `+ إضافة قسم جديد: "${name}"`}
           />
         </div>
         <div>
@@ -44,6 +48,8 @@ export const EmployeeJobDetailsSection: React.FC<EmployeeJobDetailsSectionProps>
               { value: '', label: t('hr.employee_edit.employee_job_details_section.s4', "اختيار") },
               ...jobTitles.map((entry) => ({ value: entry.id, label: entry.name })),
             ]}
+            onCreateOption={onQuickCreateMaster ? (name) => onQuickCreateMaster('job-titles', name) : undefined}
+            createOptionLabel={(name) => `+ إضافة مسمى وظيفي جديد: "${name}"`}
           />
         </div>
         <div style={{ gridColumn: 'span 2' }}>
@@ -55,6 +61,8 @@ export const EmployeeJobDetailsSection: React.FC<EmployeeJobDetailsSectionProps>
               { value: '', label: t('hr.employee_edit.employee_job_details_section.s6', "اختيار") },
               ...positions.map((entry) => ({ value: entry.id, label: entry.name })),
             ]}
+            onCreateOption={onQuickCreateMaster ? (name) => onQuickCreateMaster('positions', name) : undefined}
+            createOptionLabel={(name) => `+ إضافة منصب جديد: "${name}"`}
           />
         </div>
       </div>

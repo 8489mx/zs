@@ -309,17 +309,30 @@ export function EmployeesPage() {
                   key: 'profile',
                   header: t('hr.employees_page.s59', "الإجراء"),
                   cell: (row) => (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        navigate(`/hr/employees/${row.id}`);
-                      }}
-                      style={{ padding: '2px 10px', fontSize: '0.8rem' }}
-                    >
-                      {t('hr.employees_page.s60', "فتح الملف")}
-                    </Button>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(`/hr/employees/${row.id}`);
+                        }}
+                        style={{ padding: '2px 8px', fontSize: '0.78rem' }}
+                      >
+                        {t('hr.employees_page.s60', "الملف")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(`/hr/employees/${row.id}?tab=ledger`);
+                        }}
+                        style={{ padding: '2px 8px', fontSize: '0.78rem', color: '#170e5e', fontWeight: 600 }}
+                      >
+                        {t('hr.employees_page.financial_statement_btn', "السجل المالي")}
+                      </Button>
+                    </div>
                   ),
                 },
               ]}

@@ -9,7 +9,7 @@ export interface DocumentDraft {
   fileUrl?: string;
 }
 
-export type ProfileSection = 'overview' | 'details' | 'documents' | 'assets' | 'leaves' | 'payroll' | 'ledger' | 'all';
+export type ProfileSection = 'overview' | 'attendance' | 'payroll' | 'loans' | 'leaves' | 'assets' | 'documents' | 'details' | 'ledger' | 'all';
 
 export const initialDocumentDraft: DocumentDraft = {
   title: '',
@@ -19,14 +19,15 @@ export const initialDocumentDraft: DocumentDraft = {
 };
 
 export const PROFILE_SECTIONS: { key: ProfileSection; label: string }[] = [
-  { key: 'overview', label: 'نظرة سريعة' },
-  { key: 'details', label: 'البيانات' },
+  { key: 'overview', label: 'نظرة عامة' },
+  { key: 'attendance', label: 'الحضور والانصراف' },
+  { key: 'payroll', label: 'المرتبات والبدلات' },
+  { key: 'loans', label: 'السلف والمديونيات' },
+  { key: 'leaves', label: 'الإجازات والأذونات' },
+  { key: 'assets', label: 'العُهد والأصول' },
   { key: 'documents', label: 'المستندات' },
-  { key: 'assets', label: 'العُهد' },
-  { key: 'leaves', label: 'الإجازات' },
-  { key: 'payroll', label: 'المرتبات والسلف' },
+  { key: 'details', label: 'العقد والبيانات' },
   { key: 'ledger', label: 'السجل المالي' },
-  { key: 'all', label: 'عرض الكل' },
 ];
 
 export function shouldShowProfileSection(activeSection: ProfileSection, section: ProfileSection) {
