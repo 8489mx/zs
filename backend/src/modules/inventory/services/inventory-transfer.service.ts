@@ -214,6 +214,12 @@ export class InventoryTransferService {
       if ((transfer.status || 'sent') !== 'sent') throw new AppError('Only sent transfers can be received', 'TRANSFER_STATUS_INVALID', 400);
       const items = await trx.selectFrom('stock_transfer_items').select(['id', 'product_id', 'qty', 'dispatched_qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
+      // This includes transfers created before tracked-stock safeguards existed.
+      // Receiving or cancelling an old transfer must not move quantities while
+      // leaving the serial and batch register in its previous warehouse.
+      for (const item of items) {
+        await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
+      }
 
       // Transit loss: the destination may receive less than was dispatched. Anything short is
       // written off from the in-transit location instead of being stranded there forever, which is
@@ -351,6 +357,12 @@ export class InventoryTransferService {
       if (!['sent'].includes(transfer.status || 'sent')) throw new AppError('Only sent transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
       const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
+      // This includes transfers created before tracked-stock safeguards existed.
+      // Receiving or cancelling an old transfer must not move quantities while
+      // leaving the serial and batch register in its previous warehouse.
+      for (const item of items) {
+        await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
+      }
 
       let inTransitLocationId: number | null = null;
       if (transfer.status === 'sent') {
