@@ -134,6 +134,24 @@ describe('PosWorkspace - Weighted Barcodes', () => {
     );
   };
 
+  it('sells an exact numeric retail barcode that resembles an invoice date', async () => {
+    vi.mocked(posApi.lookupProducts).mockResolvedValue([{
+      id: '22',
+      name: 'صنف بتاريخ في الباركود',
+      barcode: '261022123456',
+      retailPrice: 40,
+      costPrice: 20,
+      stock: 10,
+      units: [],
+    } as any]);
+    renderWorkspace();
+    await waitFor(() => expect(screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...')).toBeInTheDocument());
+    const input = screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...');
+    fireEvent.change(input, { target: { value: '261022123456' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    await waitFor(() => expect(screen.getByText('صنف بتاريخ في الباركود')).toBeInTheDocument());
+  });
+
   it('adds product 00009 with qty 1.575 upon scanning 2000009015751 from an empty cache in single_location', async () => {
     // Setup API mock to return product 00009 ONLY when looking up '00009'
     vi.mocked(posApi.lookupProducts).mockImplementation(async (params: any = {}) => {
