@@ -1478,11 +1478,17 @@ export class CatalogProductService {
       if (existing) throw new AppError('Product already exists', 'PRODUCT_EXISTS', 400);
     }
 
-    if (payload.barcode) {
-      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
+    // Product and unit barcodes share one logical scanner namespace. The two tables
+    // have separate unique indexes, so check both for *every* proposed unit barcode.
+    const proposedBarcodes = [...new Set([payload.barcode, ...payload.units.map((u) => u.barcode)]
+      .map((barcode) => String(barcode || '').trim().toLowerCase()).filter(Boolean))];
+    if (proposedBarcodes.length) {
+      let query = this.db.selectFrom('products').select('id')
+        .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
       if (await query.executeTakeFirst()) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
-      let unitQuery = this.db.selectFrom('product_units').select('product_id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where(this.tenantPredicate(actor));
+      let unitQuery = this.db.selectFrom('product_units').select('product_id')
+        .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where(this.tenantPredicate(actor));
       if (productId) unitQuery = unitQuery.where('product_id', '!=', productId);
       if (await unitQuery.executeTakeFirst()) throw new AppError('Barcode already exists as a unit barcode', 'BARCODE_EXISTS', 400);
     }
