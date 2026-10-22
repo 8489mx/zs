@@ -355,14 +355,20 @@ export class SessionService {
     } else if (isDesktop) {
       // In offline/desktop mode with single-tenant store, resolve to local tenant only if no explicit companyCode is provided
       try {
-        const localTenant = await this.db
-          .selectFrom('tenants')
-          .select(['id', 'slug'])
-          .orderBy('created_at', 'asc')
-          .executeTakeFirst();
-        resolvedTenantId = localTenant?.id || 'default';
+        const configuredDesktopTenant = (this.configService.get<string>('TENANT_ID') || process.env.TENANT_ID || '').trim();
+        if (configuredDesktopTenant) {
+          resolvedTenantId = configuredDesktopTenant;
+        } else {
+          const localTenant = await this.db
+            .selectFrom('tenants')
+            .select(['id', 'slug'])
+            .where('id', '!=', 'zs')
+            .orderBy('created_at', 'asc')
+            .executeTakeFirst();
+          resolvedTenantId = localTenant?.id || 'default';
+        }
       } catch {
-        resolvedTenantId = 'default';
+        resolvedTenantId = (this.configService.get<string>('TENANT_ID') || process.env.TENANT_ID || 'default').trim();
       }
     }
 
@@ -446,6 +452,29 @@ export class SessionService {
         }
 
         candidates = await phoneQuery.execute();
+
+        if (candidates.length === 0 && isDesktop && resolvedTenantId) {
+          candidates = await this.db
+            .selectFrom('users')
+            .select([
+              'id',
+              'username',
+              'phone',
+              'password_hash',
+              'password_salt',
+              'role',
+              'permissions_json',
+              'is_active',
+              'locked_until',
+              'failed_login_count',
+              'tenant_id',
+              'account_id',
+            ])
+            .where('is_active', '=', true)
+            .where('phone', 'in', variants)
+            .where('tenant_id', '!=', 'zs')
+            .execute();
+        }
       }
 
       // If no candidate found by phone (or identifier was a username), search by username
@@ -474,6 +503,29 @@ export class SessionService {
         }
 
         candidates = await userQuery.execute();
+
+        if (candidates.length === 0 && isDesktop && resolvedTenantId) {
+          candidates = await this.db
+            .selectFrom('users')
+            .select([
+              'id',
+              'username',
+              'phone',
+              'password_hash',
+              'password_salt',
+              'role',
+              'permissions_json',
+              'is_active',
+              'locked_until',
+              'failed_login_count',
+              'tenant_id',
+              'account_id',
+            ])
+            .where(sql<boolean>`LOWER(username) = LOWER(${normalized})`)
+            .where('is_active', '=', true)
+            .where('tenant_id', '!=', 'zs')
+            .execute();
+        }
       }
 
       if (candidates.length === 1) {

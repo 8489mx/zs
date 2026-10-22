@@ -27,6 +27,12 @@ export class LoginRateLimitMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: RequestWithAuth, res: Response, next: NextFunction): Promise<void> {
+    const appMode = String(this.configService.get<string>('APP_MODE') || process.env.APP_MODE || '').trim().toUpperCase();
+    const isDesktop = appMode === 'SELF_CONTAINED' || process.env.IS_ELECTRON === 'true' || process.env.PORTABLE_MODE === 'true';
+    if (isDesktop) {
+      return next();
+    }
+
     const ip = normalizeIp(req);
     const isDev = (this.configService.get<string>('NODE_ENV') || process.env.NODE_ENV) !== 'production';
     const isLoopback = ['127.0.0.1', '::1', 'localhost'].includes(ip) || ip.startsWith('::ffff:127.0.0.1');

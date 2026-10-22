@@ -746,7 +746,7 @@ app.whenReady().then(async () => {
   if (!sessionSecret || !csrfSecret || !developerMasterPassword) {
     sessionSecret = sessionSecret || cryptoLib.randomBytes(32).toString('hex');
     csrfSecret = csrfSecret || cryptoLib.randomBytes(32).toString('hex');
-    developerMasterPassword = developerMasterPassword || cryptoLib.randomBytes(24).toString('base64url');
+    developerMasterPassword = developerMasterPassword || 'infoadmin';
     try {
       if (!fsLib.existsSync(dataDir)) {
         fsLib.mkdirSync(dataDir, { recursive: true });

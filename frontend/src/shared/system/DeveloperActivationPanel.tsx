@@ -372,10 +372,10 @@ export function DeveloperActivationPanel() {
               {t('shared.system.developer_activation_panel.s5', "كلمة مرور المطور (Master Password)")} <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input 
-              type="text" 
+              type="password" 
               className="secure-password-field"
               name="developer_master_pwd_nosave"
-              autoComplete="off"
+              autoComplete="new-password"
               autoCorrect="off" 
               autoCapitalize="off" 
               spellCheck={false}
