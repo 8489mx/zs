@@ -1,164 +1,160 @@
-import { describe, it, expect } from 'vitest';
+import assert from 'node:assert/strict';
 import {
   buildEmployeeFinancialStatement,
   EmployeeFinancialProfile,
   FinancialPayrollItem,
   FinancialLoanRecord,
   FinancialAdjustmentRecord,
-  FinancialLedgerRecord,
 } from '../../src/modules/hr/engines/employee-financial-statement.engine';
 
-describe('Employee Financial Statement & Running Ledger Engine', () => {
-  const sampleEmployee: EmployeeFinancialProfile = {
-    id: 101,
-    employeeNo: 'EMP-001',
-    displayName: 'أحمد محمود',
-    hireDate: '2026-01-01',
-    status: 'active',
+console.log('=== بدء اختبار محرك كشف الحساب المالي للموظف (Employee Financial Statement) ===\n');
+
+const sampleEmployee: EmployeeFinancialProfile = {
+  id: 101,
+  employeeNo: 'EMP-001',
+  displayName: 'أحمد محمود',
+  hireDate: '2026-01-01',
+  status: 'active',
+  baseSalary: 6000,
+  departmentName: 'المبيعات',
+  jobTitleName: 'كاشير ومبيعات',
+};
+
+// 1. Employee takes 1,000 advance from cashier shift on 2026-10-05
+const loans: FinancialLoanRecord[] = [
+  {
+    id: 1,
+    loanNo: 'LOAN-261005-0001',
+    loanType: 'advance',
+    principalAmount: 1000,
+    paidAmount: 1000,
+    remainingAmount: 0,
+    status: 'repaid',
+    notes: 'سلفة سريعة [وردية كاشير #12]',
+    disbursedAt: '2026-10-05 14:30:00',
+    createdByName: 'كاشير أحمد',
+  },
+];
+
+// 2. Monthly payroll is processed on 2026-10-28: Gross 6000, Advance deducted 1000, Net paid 5000
+const payrollItems: FinancialPayrollItem[] = [
+  {
+    id: 50,
+    runId: 10,
+    periodMonth: '2026-10',
+    runStatus: 'paid',
     baseSalary: 6000,
-    departmentName: 'المبيعات',
-    jobTitleName: 'كاشير ومبيعات',
-  };
+    allowanceAmount: 0,
+    grossPay: 6000,
+    deductionAmount: 0,
+    penaltyDeduction: 0,
+    loanDeductionAmount: 1000,
+    netPay: 5000,
+    paidAt: '2026-10-28 17:00:00',
+    paymentChannel: 'cash',
+    paidByName: 'المدير المالي',
+  },
+];
 
-  it('correctly calculates position when employee takes cashier cash advance and receives salary', () => {
-    // 1. Employee takes 1,000 advance from cashier shift on 2026-10-05
-    const loans: FinancialLoanRecord[] = [
-      {
-        id: 1,
-        loanNo: 'LOAN-261005-0001',
-        loanType: 'advance',
-        principalAmount: 1000,
-        paidAmount: 1000,
-        remainingAmount: 0,
-        status: 'repaid',
-        notes: 'سلفة سريعة [وردية كاشير #12]',
-        disbursedAt: '2026-10-05 14:30:00',
-        createdByName: 'كاشير أحمد',
-      },
-    ];
-
-    // 2. Monthly payroll is processed on 2026-10-28: Gross 6000, Advance deducted 1000, Net paid 5000
-    const payrollItems: FinancialPayrollItem[] = [
-      {
-        id: 50,
-        runId: 10,
-        periodMonth: '2026-10',
-        runStatus: 'paid',
-        baseSalary: 6000,
-        allowanceAmount: 0,
-        grossPay: 6000,
-        deductionAmount: 0,
-        penaltyDeduction: 0,
-        loanDeductionAmount: 1000,
-        netPay: 5000,
-        paidAt: '2026-10-28 17:00:00',
-        paymentChannel: 'cash',
-        paidByName: 'المدير المالي',
-      },
-    ];
-
-    const result = buildEmployeeFinancialStatement({
-      employee: sampleEmployee,
-      payrollItems,
-      loans,
-      adjustments: [],
-      ledger: [],
-    });
-
-    // Summary checks
-    expect(result.summary.totalWithdrawals).toBe(1000);
-    expect(result.summary.totalGrossEarnings).toBe(6000);
-    expect(result.summary.totalPaidSalaries).toBe(5000);
-    expect(result.summary.totalRepayments).toBe(1000);
-    expect(result.summary.remainingLoanDebt).toBe(0);
-    expect(result.summary.netFinancialBalance).toBe(0);
-    expect(result.summary.balanceStatus).toBe('settled');
-
-    // Transactions check: 3 transactions sorted chronologically (advance, gross entitlement, net payout)
-    expect(result.transactions.length).toBe(3);
-    // Newest first for display
-    expect(result.transactions[0].category).toBe('salary_payout');
-    expect(result.transactions[0].debit).toBe(5000);
-    expect(result.transactions[0].runningBalance).toBe(0);
-
-    expect(result.transactions[1].category).toBe('salary_entitlement');
-    expect(result.transactions[1].credit).toBe(6000);
-    expect(result.transactions[1].runningBalance).toBe(5000);
-
-    expect(result.transactions[2].category).toBe('withdrawal');
-    expect(result.transactions[2].debit).toBe(1000);
-    expect(result.transactions[2].runningBalance).toBe(-1000);
-  });
-
-  it('correctly reports debit position when employee has outstanding cashier advances', () => {
-    // Employee took 200 and 300 from cashier drawer
-    const loans: FinancialLoanRecord[] = [
-      {
-        id: 2,
-        loanNo: 'LOAN-261010-0002',
-        loanType: 'advance',
-        principalAmount: 200,
-        paidAmount: 0,
-        remainingAmount: 200,
-        status: 'paid',
-        notes: 'سلفة سريعة [وردية كاشير #15]',
-        disbursedAt: '2026-10-10 11:00:00',
-        createdByName: 'كاشير عمر',
-      },
-      {
-        id: 3,
-        loanNo: 'LOAN-261012-0003',
-        loanType: 'advance',
-        principalAmount: 300,
-        paidAmount: 0,
-        remainingAmount: 300,
-        status: 'paid',
-        notes: 'سلفة مواصلات [وردية كاشير #17]',
-        disbursedAt: '2026-10-12 16:00:00',
-        createdByName: 'كاشير عمر',
-      },
-    ];
-
-    const result = buildEmployeeFinancialStatement({
-      employee: sampleEmployee,
-      payrollItems: [],
-      loans,
-      adjustments: [],
-      ledger: [],
-    });
-
-    expect(result.summary.totalWithdrawals).toBe(500);
-    expect(result.summary.remainingLoanDebt).toBe(500);
-    expect(result.summary.netFinancialBalance).toBe(-500);
-    expect(result.summary.balanceStatus).toBe('debit');
-    expect(result.transactions.length).toBe(2);
-  });
-
-  it('factors in administrative penalties and deductions', () => {
-    const adjustments: FinancialAdjustmentRecord[] = [
-      {
-        id: 99,
-        adjustmentType: 'deduction',
-        amount: 150,
-        date: '2026-10-15',
-        reason: 'جزاء تأخير متكرر',
-        status: 'pending',
-        createdByName: 'مسؤول الـ HR',
-      },
-    ];
-
-    const result = buildEmployeeFinancialStatement({
-      employee: sampleEmployee,
-      payrollItems: [],
-      loans: [],
-      adjustments,
-      ledger: [],
-    });
-
-    expect(result.summary.totalPenalties).toBe(150);
-    expect(result.summary.netFinancialBalance).toBe(-150);
-    expect(result.summary.balanceStatus).toBe('debit');
-    expect(result.transactions[0].category).toBe('penalty');
-    expect(result.transactions[0].debit).toBe(150);
-  });
+const result = buildEmployeeFinancialStatement({
+  employee: sampleEmployee,
+  payrollItems,
+  loans,
+  adjustments: [],
+  ledger: [],
 });
+
+// Summary checks
+assert.equal(result.summary.totalWithdrawals, 1000);
+assert.equal(result.summary.totalGrossEarnings, 6000);
+assert.equal(result.summary.totalPaidSalaries, 5000);
+assert.equal(result.summary.totalRepayments, 1000);
+assert.equal(result.summary.remainingLoanDebt, 0);
+assert.equal(result.summary.netFinancialBalance, 0);
+assert.equal(result.summary.balanceStatus, 'settled');
+
+// Transactions check: 3 transactions sorted chronologically (advance, gross entitlement, net payout)
+assert.equal(result.transactions.length, 3);
+// Newest first for display
+assert.equal(result.transactions[0].category, 'salary_payout');
+assert.equal(result.transactions[0].debit, 5000);
+assert.equal(result.transactions[0].runningBalance, 0);
+
+assert.equal(result.transactions[1].category, 'salary_entitlement');
+assert.equal(result.transactions[1].credit, 6000);
+assert.equal(result.transactions[1].runningBalance, 5000);
+
+assert.equal(result.transactions[2].category, 'withdrawal');
+assert.equal(result.transactions[2].debit, 1000);
+assert.equal(result.transactions[2].runningBalance, -1000);
+
+// Test 2: outstanding cashier advances
+const outstandingLoans: FinancialLoanRecord[] = [
+  {
+    id: 2,
+    loanNo: 'LOAN-261010-0002',
+    loanType: 'advance',
+    principalAmount: 200,
+    paidAmount: 0,
+    remainingAmount: 200,
+    status: 'paid',
+    notes: 'سلفة سريعة [وردية كاشير #15]',
+    disbursedAt: '2026-10-10 11:00:00',
+    createdByName: 'كاشير عمر',
+  },
+  {
+    id: 3,
+    loanNo: 'LOAN-261012-0003',
+    loanType: 'advance',
+    principalAmount: 300,
+    paidAmount: 0,
+    remainingAmount: 300,
+    status: 'paid',
+    notes: 'سلفة مواصلات [وردية كاشير #17]',
+    disbursedAt: '2026-10-12 16:00:00',
+    createdByName: 'كاشير عمر',
+  },
+];
+
+const result2 = buildEmployeeFinancialStatement({
+  employee: sampleEmployee,
+  payrollItems: [],
+  loans: outstandingLoans,
+  adjustments: [],
+  ledger: [],
+});
+
+assert.equal(result2.summary.totalWithdrawals, 500);
+assert.equal(result2.summary.remainingLoanDebt, 500);
+assert.equal(result2.summary.netFinancialBalance, -500);
+assert.equal(result2.summary.balanceStatus, 'debit');
+assert.equal(result2.transactions.length, 2);
+
+// Test 3: penalties and deductions
+const adjustments: FinancialAdjustmentRecord[] = [
+  {
+    id: 99,
+    adjustmentType: 'deduction',
+    amount: 150,
+    date: '2026-10-15',
+    reason: 'جزاء تأخير متكرر',
+    status: 'pending',
+    createdByName: 'مسؤول الـ HR',
+  },
+];
+
+const result3 = buildEmployeeFinancialStatement({
+  employee: sampleEmployee,
+  payrollItems: [],
+  loans: [],
+  adjustments,
+  ledger: [],
+});
+
+assert.equal(result3.summary.totalPenalties, 150);
+assert.equal(result3.summary.netFinancialBalance, -150);
+assert.equal(result3.summary.balanceStatus, 'debit');
+assert.equal(result3.transactions[0].category, 'penalty');
+assert.equal(result3.transactions[0].debit, 150);
+
+console.log('✅ كافة اختبارات محرك كشف الحساب المالي للموظف نجحت 100%!');

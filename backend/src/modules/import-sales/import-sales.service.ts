@@ -33,6 +33,7 @@ import {
   RecordContainerDepositDto,
   RecordContainerReturnRefundDto,
   CreateContainerPreorderDto,
+  ConvertPreorderToSaleDto,
   RefundImportPreorderDto,
   RecordFxAcquisitionDto,
   CreateImportDocumentDto,
@@ -40,6 +41,7 @@ import {
   DecideApprovalRequestDto,
   ResolveExceptionDto,
 } from './dto/import-sales.dto';
+import { allocateSaleFromImportLots } from './helpers/import-lot-allocation.helper';
 import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { calculateImportFeasibility, FeasibilityCalculationResult } from './engines/import-feasibility.engine';

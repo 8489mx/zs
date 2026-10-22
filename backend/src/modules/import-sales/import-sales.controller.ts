@@ -28,6 +28,7 @@ import {
   RecordContainerDepositDto,
   RecordContainerReturnRefundDto,
   CreateContainerPreorderDto,
+  ConvertPreorderToSaleDto,
   RefundImportPreorderDto,
   RecordFxAcquisitionDto,
   CreateImportDocumentDto,

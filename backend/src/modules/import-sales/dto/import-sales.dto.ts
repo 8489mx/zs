@@ -1187,6 +1187,22 @@ export class CreateContainerPreorderDto {
   notes?: string;
 }
 
+export class ConvertPreorderToSaleDto {
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  branchId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  locationId?: number;
+}
+
 export class RefundImportPreorderDto {
   @Type(() => Number)
   @IsNumber()

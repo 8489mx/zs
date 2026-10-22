@@ -563,7 +563,7 @@ async function runCoreAuditSuite() {
 
       const scopeService = new InventoryScopeService(singleConnDb);
       const idempotency = new IdempotencyService(singleConnDb as any);
-      const transferService = new InventoryTransferService(singleConnDb, tx, mockAudit, scopeService, idempotency);
+      const transferService = new InventoryTransferService(singleConnDb, tx, mockAudit, scopeService, idempotency, {} as any);
 
       const auth: AuthContext = {
         userId: 1,
