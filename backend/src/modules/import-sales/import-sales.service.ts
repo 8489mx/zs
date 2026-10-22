@@ -1210,7 +1210,7 @@ export class ImportSalesService {
       freeDays: Number(shipment.free_demurrage_days || 14),
       ratePerDayUsd: Number(shipment.demurrage_rate_per_day || 50),
       exchangeRate: Number(shipment.exchange_rate_at_arrival || 1),
-      status: shipment.status || 'Pending',
+      status: shipment.container_status === 'empty_returned' ? 'empty_returned' : (shipment.status || 'Pending'),
     });
 
     return { ...shipment, items, inventory_receipt: receipt ?? null, demurrageRisk };
@@ -1682,7 +1682,7 @@ export class ImportSalesService {
       }
 
       totalLateCogs = Number(totalLateCogs.toFixed(2));
-      totalLateInventory = Number(totalLateInventory.toFixed(2));
+      totalLateInventory = Number((dto.lateExpenseAmount - totalLateCogs).toFixed(2));
 
       // Resolve accounts dynamically from COA / Accounting Settings
       const cogsAccountId = await this.resolveTenantAccount(trx, tenantId, 'cogs', dto.accountId ? Number(dto.accountId) : null);
@@ -1889,8 +1889,29 @@ export class ImportSalesService {
         }
         totalRevenue = grossRevenue - cancelledRevenue;
         totalCost = grossCost - cancelledCost;
-        profitAttributionVerified = true;
-        attributionStatus = 'VERIFIED_LOT_ALLOCATIONS';
+        // A partial set of lot allocations is not proof that every sale has provenance.
+        const candidateLines = projectProductIds.length
+          ? await qb.selectFrom('sale_items as si').innerJoin('sales as sa', 'sa.id', 'si.sale_id')
+              .select(['si.id', 'si.qty']).where('sa.tenant_id', '=', tenantId)
+              .where('sa.status', '!=', 'cancelled')
+              .where('sa.created_at', '>=', start).where('sa.created_at', '<=', end)
+              .where('si.product_id', 'in', projectProductIds).execute()
+          : [];
+        const saleItemIds = candidateLines.map((l) => Number(l.id));
+        const allSaleAllocations = saleItemIds.length
+          ? await qb.selectFrom('import_sale_allocations')
+              .select(['sale_item_id', 'quantity'])
+              .where('tenant_id', '=', tenantId).where('allocation_type', '=', 'sale')
+              .where('sale_item_id', 'in', saleItemIds).execute()
+          : [];
+        const allocated = new Map<number, number>();
+        for (const al of allSaleAllocations) {
+          const key = Number(al.sale_item_id);
+          allocated.set(key, (allocated.get(key) || 0) + Number(al.quantity));
+        }
+        const incomplete = candidateLines.some((l) => (allocated.get(Number(l.id)) || 0) + 0.0001 < Number(l.qty));
+        profitAttributionVerified = !incomplete;
+        attributionStatus = incomplete ? 'INCOMPLETE_SALE_LOT_ALLOCATION' : 'VERIFIED_LOT_ALLOCATIONS';
       } else if (hasLots) {
         // Zero allocation records are not proof of zero POS sales.
         const possibleSale = projectProductIds.length
@@ -2985,7 +3006,7 @@ export class ImportSalesService {
         freeDays: Number(s.free_demurrage_days || 14),
         ratePerDayUsd: Number(s.demurrage_rate_per_day || 50),
         exchangeRate: Number(s.exchange_rate_at_arrival || 1),
-        status: s.status || 'Pending',
+        status: s.container_status === 'empty_returned' ? 'empty_returned' : (s.status || 'Pending'),
       });
       if (risk.isOverdue || (risk.daysRemaining !== null && risk.daysRemaining <= 3)) {
         demurrageAlerts.push({
