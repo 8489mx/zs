@@ -536,7 +536,8 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
     try {
       return getOfflineSalesQueue().length;
     } catch {
-      return 0;
+      // Unknown queue size is NOT zero. The close must fail closed.
+      return -1;
     }
   });
 
@@ -544,7 +545,9 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
     const handleUpdate = () => {
       try {
         setOfflinePendingCount(getOfflineSalesQueue().length);
-      } catch {}
+      } catch {
+        setOfflinePendingCount(-1);
+      }
     };
     window.addEventListener('pos-offline-queue-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
@@ -990,7 +993,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             </div>
           </div>
 
-          {offlinePendingCount > 0 && (
+          {offlinePendingCount !== 0 && (
             <div style={{
               marginBottom: '16px',
               background: '#fffbeb',
@@ -1009,7 +1012,9 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               </div>
               <div>
                 <div style={{ fontWeight: 800, marginBottom: '2px' }}>
-                  {t('cash_drawer.cash_drawer_forms_panel.s48', "تنبيه: توجد")} {offlinePendingCount} {t('cash_drawer.cash_drawer_forms_panel.s49', "فواتير مسجلة محلياً بدون إنترنت لم يتم ترحيلها للخادم بعد.")}
+                  {offlinePendingCount < 0
+                    ? 'تحذير: تعذر قراءة سجل فواتير الأوفلاين؛ لا يمكن إغلاق الوردية قبل إصلاح بيانات الجهاز'
+                    : <>{t('cash_drawer.cash_drawer_forms_panel.s48', "تنبيه: توجد")} {offlinePendingCount} {t('cash_drawer.cash_drawer_forms_panel.s49', "فواتير مسجلة محلياً بدون إنترنت لم يتم ترحيلها للخادم بعد.")}</>}
                 </div>
                 <div>
                   {t('cash_drawer.cash_drawer_forms_panel.s50', "يرجى التأكد من اتصال الجهاز بالإنترنت والانتظار حتى يتم ترحيل كافة الفواتير تلقائياً قبل إغلاق الوردية، لضمان دقة الحسابات ومطابقة النقدية في الدرج.")}
@@ -1374,7 +1379,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             <SubmitButton
               type="submit"
               isPending={props.closeMutation.isPending}
-              disabled={!props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
+              disabled={offlinePendingCount !== 0 || !props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
               idleText={isBlindCloseMode ? t('cash_drawer.cash_drawer_forms_panel.s102', "إرسال إقرار الإغلاق") : t('cash_drawer.cash_drawer_forms_panel.s103', "إغلاق وردية نقطة البيع")}
               pendingText={t('cash_drawer.cash_drawer_forms_panel.s104', "جارٍ الإغلاق...")}
               style={{ width: '100%', minHeight: '42px', fontSize: '0.95rem', fontWeight: 800, marginTop: '8px' }}
