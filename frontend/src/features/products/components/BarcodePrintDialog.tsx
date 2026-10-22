@@ -401,25 +401,28 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                       onChange={(event) => setCopies(Math.max(1, Number(event.target.value || 1)))}
                       style={{ height: '32px', fontSize: '0.82rem', flex: 1 }}
                     />
-                    {activeProduct && Number(activeProduct.stock) > 0 && (
+                    {activeProduct && (
                       <button
                         type="button"
-                        onClick={() => setCopies(Math.max(1, Number(activeProduct.stock)))}
+                        onClick={() => {
+                          const stockVal = Number(activeProduct.stock ?? 0);
+                          setCopies(stockVal > 0 ? stockVal : 1);
+                        }}
                         style={{
                           height: '32px',
                           fontSize: '0.72rem',
                           fontWeight: 700,
                           padding: '0 8px',
                           whiteSpace: 'nowrap',
-                          border: '1px solid #cbd5e1',
+                          border: '1px solid #170e5e',
                           borderRadius: '4px',
                           background: '#eff6ff',
                           color: '#170e5e',
                           cursor: 'pointer'
                         }}
-                        title={`ضبط الكمية لتطابق رصيد المخزن الحالي (${activeProduct.stock} قطعة)`}
+                        title={`ضبط الكمية لتطابق رصيد المخزن الحالي (${activeProduct.stock ?? 0} قطعة)`}
                       >
-                        حسب رصيد المخزن ({activeProduct.stock})
+                        حسب رصيد المخزن ({activeProduct.stock ?? 0})
                       </button>
                     )}
                   </div>
