@@ -642,10 +642,11 @@ export class ReturnsService {
             }
          }
          
-         // Fallback if allocations are not enough (e.g. data anomaly)
-         if (remainingToReturn > 0) {
-            const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: remainingToReturn, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
-            await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: remainingToReturn, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * remainingToReturn).toFixed(2)), reason: 'sale_return', note: 'sale return fallback S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+         // Once original location allocations exist, a missing allocation is a
+         // damaged audit trail. Never silently return goods to a default warehouse;
+         // a partial refund must not create stock in the wrong location.
+         if (remainingToReturn > 0.0001) {
+           throw new AppError('توزيع مخزون البيع الأصلي غير مكتمل؛ يلزم تسوية المخزن قبل المرتجع', 'SALE_RETURN_STOCK_ALLOCATION_RECONCILIATION_REQUIRED', 409);
          }
       } else {
          const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
