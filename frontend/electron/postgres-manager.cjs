@@ -2,6 +2,8 @@ const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const net = require('net');
+const crypto = require('crypto');
+const { spawnSync } = require('child_process');
 
 class PostgresManager {
   constructor(appPath, isPackaged) {
@@ -22,6 +24,27 @@ class PostgresManager {
     this.postgresLogsDir = path.join(this.runtimeDir, 'logs');
     
     this.pgProcess = null;
+    this.authPath = path.join(this.runtimeDir, '.postgres-auth.json');
+    this.pendingDbPass = null;
+    if (fs.existsSync(this.authPath)) {
+      try {
+        const auth = JSON.parse(fs.readFileSync(this.authPath, 'utf8'));
+        if (!/^[a-f0-9]{48}$/.test(auth.password) && auth.password !== 'postgres') throw new Error('Invalid PostgreSQL credential file');
+        this.dbPass = auth.password;
+        if (auth.pendingPassword && /^[a-f0-9]{48}$/.test(auth.pendingPassword)) {
+          this.pendingDbPass = auth.pendingPassword;
+        }
+      } catch (error) {
+        throw new Error('PostgreSQL credentials corrupted. Recover the credential file from a backup: ' + error.message);
+      }
+    }
+  }
+
+  saveDatabaseCredentials(data) {
+    fs.mkdirSync(this.runtimeDir, { recursive: true });
+    const temporary = this.authPath + '.tmp';
+    fs.writeFileSync(temporary, JSON.stringify(data), { mode: 0o600, flag: 'w' });
+    fs.renameSync(temporary, this.authPath);
   }
 
   ensureDirectories() {
@@ -65,8 +88,13 @@ class PostgresManager {
   initializeDatabase() {
     return new Promise((resolve, reject) => {
       console.log('Initializing PostgreSQL data directory (first run).');
+      // New customer installations must never use the shared default 'postgres' password.
+      if (!fs.existsSync(this.authPath)) {
+        this.dbPass = crypto.randomBytes(24).toString('hex');
+        this.saveDatabaseCredentials({ password: this.dbPass });
+      }
       const passwordFile = path.join(this.runtimeDir, 'postgres.pw');
-      fs.writeFileSync(passwordFile, this.dbPass, 'utf8');
+      fs.writeFileSync(passwordFile, this.dbPass, { encoding: 'utf8', mode: 0o600 });
 
       const initDbExe = path.join(this.postgresBinDir, 'initdb.exe');
       
@@ -146,13 +174,28 @@ class PostgresManager {
       const portOpen = await checkPort();
       if (portOpen) {
         try {
-          execSync(`"${psqlExe}" -h 127.0.0.1 -p ${this.dbPort} -U ${this.dbUser} -d postgres -tAc "SELECT 1;"`, { 
-            env: { ...process.env, PGPASSWORD: this.dbPass },
-            stdio: 'ignore',
-            timeout: 1500
-          });
-          console.log('PostgreSQL is ready.');
-          return true;
+          for (const password of [this.dbPass, this.pendingDbPass].filter(Boolean)) {
+            try {
+              const actualDataDir = execSync(`"${psqlExe}" -h 127.0.0.1 -p ${this.dbPort} -U ${this.dbUser} -d postgres -tAc "SHOW data_directory;"`, {
+                env: { ...process.env, PGPASSWORD: password },
+                encoding: 'utf8',
+                timeout: 1500
+              }).trim();
+              // The port may belong to an unrelated database; never connect to or stop it.
+              if (path.resolve(actualDataDir).toLowerCase() !== path.resolve(this.postgresDataDir).toLowerCase()) {
+                throw new Error('Port 5444 belongs to a different PostgreSQL cluster');
+              }
+              if (password !== this.dbPass) {
+                this.dbPass = password;
+                this.saveDatabaseCredentials({ password });
+                this.pendingDbPass = null;
+              }
+              console.log('Bundled PostgreSQL data directory verified and ready.');
+              return true;
+            } catch (error) {
+              if (String(error.message).includes('different PostgreSQL cluster')) throw error;
+            }
+          }
         } catch (err) {
           // Port is open but server is still initializing
         }
@@ -203,6 +246,33 @@ class PostgresManager {
     await this.startServer();
     await this.waitForReady();
     await this.ensureDatabaseExists();
+    if (!fs.existsSync(this.authPath) || this.pendingDbPass) {
+      this.rotateLegacyPassword();
+    }
+  }
+
+  rotateLegacyPassword() {
+    if (fs.existsSync(this.authPath) && !this.pendingDbPass) return;
+    const nextPassword = this.pendingDbPass || crypto.randomBytes(24).toString('hex');
+    // Crash-safe credential rotation: both old and candidate credentials remain available
+    // until the database confirms ALTER ROLE, including after unexpected power loss.
+    this.saveDatabaseCredentials({ password: this.dbPass, pendingPassword: nextPassword });
+    const psqlExe = path.join(this.postgresBinDir, 'psql.exe');
+    const sql = `ALTER ROLE postgres WITH PASSWORD '${nextPassword}';`;
+    const result = spawnSync(psqlExe, ['-h', '127.0.0.1', '-p', this.dbPort,
+      '-U', this.dbUser, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-f', '-'], {
+      input: sql,
+      env: { ...process.env, PGPASSWORD: this.dbPass },
+      encoding: 'utf8',
+      timeout: 5000,
+      windowsHide: true
+    });
+    if (result.status !== 0) {
+      throw new Error('Failed to rotate legacy PostgreSQL password: ' + (result.stderr || result.error?.message || result.status));
+    }
+    this.dbPass = nextPassword;
+    this.pendingDbPass = null;
+    this.saveDatabaseCredentials({ password: nextPassword });
   }
 
   /**
