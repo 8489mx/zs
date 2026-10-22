@@ -1158,7 +1158,7 @@ export class ImportSalesService {
         container_number: dto.containerNumber,
         arrival_date: dto.arrivalDate,
         shipped_date: dto.shippingDate,
-        supplier_id: dto.supplierId,
+        supplier_id: dto.supplierId ? Number(dto.supplierId) : null,
         bill_of_lading: dto.billOfLading,
         project_id: dto.projectId,
         freight_type: dto.freightType,
@@ -1214,7 +1214,7 @@ export class ImportSalesService {
       .execute();
 
     const receipt = await this.inventoryDb.selectFrom('import_inventory_receipts')
-      .select(['id', 'state', 'posted_at', 'review_reason'])
+      .select(['id', 'state', 'posted_at', 'review_reason', 'journal_entry_id'])
       .where('tenant_id', '=', tenantId).where('shipment_id', '=', id).executeTakeFirst();
 
     const demurrageRisk = calculateDemurrageRisk({
@@ -1495,6 +1495,88 @@ export class ImportSalesService {
           status: 'active',
           receipt_date: new Date().toISOString().slice(0, 10),
         } as any)
+        .execute();
+    }
+
+    // --- ACCOUNTING: Double-entry journal for inventory receipt ---
+    // DR: Inventory (at total landed cost of all received goods)
+    // DR: Shortage Expense (if any items had shortage_handling_method = 'expense')
+    // CR: Accounts Payable / Supplier (total)
+    const totalInventoryValue = Number(groups.reduce((sum, g) => sum + g.value, 0).toFixed(2));
+    const totalShortageExpense = Number(groups.reduce((sum, g) => sum + g.shortageExpense, 0).toFixed(2));
+    const totalCreditPayable = Number((totalInventoryValue + totalShortageExpense).toFixed(2));
+
+    if (totalCreditPayable > 0) {
+      const postingService = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+      const inventoryAccountId = await this.resolveTenantAccount(trx, tenantId, 'inventory');
+      const payableAccountId = await this.resolveTenantAccount(trx, tenantId, 'payable');
+
+      const journalLines: Array<{
+        accountId: number; description: string;
+        debit: number; credit: number;
+        partnerType: 'supplier' | 'none'; partnerId: number | null;
+        branchId: null; locationId: null;
+      }> = [];
+
+      // DR: Inventory (landed cost value of physically received goods)
+      if (totalInventoryValue > 0) {
+        journalLines.push({
+          accountId: inventoryAccountId,
+          description: `استلام مخزون استيراد - حاوية ${shipment.container_number || shipmentId}`,
+          debit: totalInventoryValue,
+          credit: 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
+      }
+
+      // DR: Shortage Expense (shortages handled as expense, not capitalized)
+      if (totalShortageExpense > 0) {
+        const cogsAccountId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
+        journalLines.push({
+          accountId: cogsAccountId,
+          description: `خسائر نواقص حاوية (تسوية عجز) - حاوية ${shipment.container_number || shipmentId}`,
+          debit: totalShortageExpense,
+          credit: 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: null,
+          locationId: null,
+        });
+      }
+
+      // CR: Accounts Payable / Supplier
+      journalLines.push({
+        accountId: payableAccountId,
+        description: `استحقاق مورد استيراد - حاوية ${shipment.container_number || shipmentId}`,
+        debit: 0,
+        credit: totalCreditPayable,
+        partnerType: shipment.supplier_id ? 'supplier' : 'none',
+        partnerId: shipment.supplier_id ? Number(shipment.supplier_id) : null,
+        branchId: null,
+        locationId: null,
+      });
+
+      const journalEntryId = await postingService.postDomainJournal(trx, {
+        sourceType: 'import_inventory_receipt',
+        sourceId: Number(receipt.id),
+        tenantId,
+        accountId: tenantId,
+        entryDate: new Date(),
+        description: `قيد استلام مخزون استيراد - حاوية ${shipment.container_number || shipmentId} (سند استلام #${receipt.id})`,
+        branchId: null,
+        locationId: null,
+        createdBy: userId,
+        postedBy: userId,
+        lines: journalLines,
+      });
+
+      await trx.updateTable('import_inventory_receipts')
+        .set({ journal_entry_id: journalEntryId })
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', receipt.id)
         .execute();
     }
 

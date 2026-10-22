@@ -5748,6 +5748,7 @@ export interface ImportInventoryReceiptTable {
   posted_at: Date | null;
   created_by: number | null;
   created_at: Generated<Date>;
+  journal_entry_id: number | null;
 }
 
 export interface ImportQuotationTable {

@@ -41,6 +41,14 @@ export interface ShipmentItem {
 
 export interface ShipmentDetails extends Shipment {
   items: ShipmentItem[];
+  inventory_receipt?: {
+    id: number;
+    state: string;
+    posted_at: string;
+    review_reason?: string | null;
+    journal_entry_id?: number | null;
+  } | null;
+  demurrageRisk?: any;
 }
 
 export interface CreateShipmentDto {
@@ -896,6 +904,38 @@ export const useGenerateInternationalPoMutation = (defaultPiId?: string) => {
       const id = piId || defaultPiId;
       return await http<any>(`/api/import-sales/proforma-invoices/${id}/generate-po`, {
         method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proforma-invoices'] });
+    },
+  });
+};
+
+export interface CreateProformaInvoicePayload {
+  projectId?: string;
+  supplierId: string | number;
+  piNumber: string;
+  piDate: string;
+  currency?: string;
+  totalAmountForeign: number;
+  incoterm?: string;
+  deliveryPort?: string;
+  paymentTerms?: string;
+  exchangeRateContract?: number;
+  advancePercentage?: number;
+  balancePercentage?: number;
+  items?: any[];
+  notes?: string;
+}
+
+export const useCreateProformaInvoiceMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateProformaInvoicePayload) => {
+      return await http<any>('/api/import-sales/proforma-invoices', {
+        method: 'POST',
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {

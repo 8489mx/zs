@@ -7,7 +7,7 @@ import {
   ShipmentDetails,
 } from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
-import { toast } from '@/shared/components/system-alert';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
@@ -34,42 +34,57 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refundPendingId, setRefundPendingId] = useState<string | null>(null);
+  const [refundDialogBooking, setRefundDialogBooking] = useState<any | null>(null);
+  const [refundAmount, setRefundAmount] = useState<number>(0);
+  const [isRefunding, setIsRefunding] = useState(false);
 
-  const handleRefund = async (booking: any) => {
+  const openRefundDialog = (booking: any) => {
     const remaining = Number(booking.deposit_amount_egp || 0) - Number(booking.refunded_amount_egp || 0);
-    if (remaining <= 0) return;
-    const raw = window.prompt(`قيمة العربون المطلوب رده للعميل (المتبقي ${remaining.toFixed(2)} جنيه):`, remaining.toFixed(2));
-    if (raw === null) return;
-    const amount = Number(raw);
-    if (!Number.isFinite(amount) || amount <= 0 || amount > remaining) {
+    if (remaining <= 0) {
+      toast.error('تم رد كامل العربون لهذا الحجز بالفعل');
+      return;
+    }
+    setRefundDialogBooking(booking);
+    setRefundAmount(remaining);
+  };
+
+  const handleConfirmRefund = async () => {
+    if (!refundDialogBooking) return;
+    const remaining = Number(refundDialogBooking.deposit_amount_egp || 0) - Number(refundDialogBooking.refunded_amount_egp || 0);
+    if (!Number.isFinite(refundAmount) || refundAmount <= 0 || refundAmount > remaining) {
       toast.error('قيمة الرد غير صالحة أو أكبر من العربون غير المسترد');
       return;
     }
-    if (!window.confirm(`تأكيد رد ${amount.toFixed(2)} جنيه من الخزينة للعميل؟ سيتم تسجيل قيد محاسبي.`)) return;
     try {
-      setRefundPendingId(booking.id);
-      await http(`/api/import-sales/preorders/${booking.id}/refund`, {
+      setIsRefunding(true);
+      await http(`/api/import-sales/preorders/${refundDialogBooking.id}/refund`, {
         method: 'POST',
-        body: JSON.stringify({ amountEgp: amount, idempotencyKey: crypto.randomUUID() }),
+        body: JSON.stringify({ amountEgp: refundAmount, idempotencyKey: crypto.randomUUID() }),
       });
       await refetch();
-      toast.success('تم تسجيل رد العربون بالخزينة والأستاذ العام');
+      toast.success('تم تسجيل رد العربون بالخزينة والأستاذ العام بنجاح');
+      setRefundDialogBooking(null);
     } catch (err: any) {
       toast.error('تعذر رد العربون: ' + (err?.message || 'خطأ غير معروف'));
     } finally {
-      setRefundPendingId(null);
+      setIsRefunding(false);
     }
   };
 
   const handleCancel = async (booking: any) => {
-    if (!window.confirm('تأكيد إلغاء حجز البضاعة؟ يجب رد أي عربون أولاً.')) return;
+    const confirmed = await systemConfirm({
+      title: 'تأكيد إلغاء حجز البضاعة العايمة',
+      message: 'هل أنت متأكد من إلغاء حجز البضاعة؟ سيتم تحرير الكمية وإعادتها لسعة البوليصة المتاحة للحاوية.',
+    });
+    if (!confirmed) return;
     try {
       setRefundPendingId(booking.id);
       await http(`/api/import-sales/preorders/${booking.id}/cancel`, {
-        method: 'POST', body: JSON.stringify({ reason: 'إلغاء بطلب العميل' }),
+        method: 'POST',
+        body: JSON.stringify({ reason: 'إلغاء بطلب العميل' }),
       });
       await refetch();
-      toast.success('تم إلغاء الحجز وتحرير الكمية');
+      toast.success('تم إلغاء الحجز وتحرير الكمية بنجاح');
     } catch (err: any) {
       toast.error('فشل الإلغاء: ' + (err?.message || 'خطأ غير معروف'));
     } finally {
@@ -410,7 +425,7 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
                         {po.status !== 'cancelled' && po.status !== 'invoiced' && (
                           <div style={{ display: 'flex', gap: 4 }}>
                             {Number(po.deposit_amount_egp || 0) > Number(po.refunded_amount_egp || 0) && (
-                              <button type="button" onClick={() => handleRefund(po)} disabled={refundPendingId === po.id}>
+                              <button type="button" onClick={() => openRefundDialog(po)} disabled={refundPendingId === po.id}>
                                 رد العربون (محاسب)
                               </button>
                             )}
@@ -492,6 +507,72 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
                 style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#170e5e', color: '#ffffff', fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
               >
                 {convertPreorderMutation.isPending ? 'جاري الإصدار...' : 'تأكيد وإصدار الفاتورة'}
+              </button>
+            </div>
+          </div>
+        )}
+      </StandardDialog>
+
+    
+      {/* Refund Preorder Deposit Dialog */}
+      <StandardDialog
+        open={Boolean(refundDialogBooking)}
+        onClose={() => setRefundDialogBooking(null)}
+        title="رد عربون حجز بضاعة عايمة"
+        subtitle={`تسجيل رد نقدي أو بنكي للعميل: ${refundDialogBooking?.customer_name || 'عميل حجز'}`}
+        width="520px"
+        compact
+      >
+        {refundDialogBooking && (
+          <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: '12.5px' }}>
+                <div><span style={{ color: '#64748b' }}>العميل:</span> <strong>{refundDialogBooking.customer_name || 'عميل حجز'}</strong></div>
+                <div><span style={{ color: '#64748b' }}>الكمية المحجوزة:</span> <strong>{refundDialogBooking.reserved_quantity} وحدة</strong></div>
+                <div><span style={{ color: '#64748b' }}>العربون المقبوض:</span> <strong style={{ color: '#166534' }}>{formatCurrency(refundDialogBooking.deposit_amount_egp)}</strong></div>
+                <div><span style={{ color: '#64748b' }}>تم رده سابقاً:</span> <strong style={{ color: '#b91c1c' }}>{formatCurrency(refundDialogBooking.refunded_amount_egp || 0)}</strong></div>
+                <div style={{ gridColumn: 'span 2', marginTop: 4, paddingTop: 4, borderTop: '1px solid #e2e8f0' }}>
+                  <span style={{ color: '#64748b' }}>أقصى مبلغ متاح للرد:</span>{' '}
+                  <strong style={{ color: '#170e5e', fontSize: 13 }}>
+                    {formatCurrency(Number(refundDialogBooking.deposit_amount_egp || 0) - Number(refundDialogBooking.refunded_amount_egp || 0))}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                المبلغ المطلوب رده (ج.م):
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="1"
+                max={Number(refundDialogBooking.deposit_amount_egp || 0) - Number(refundDialogBooking.refunded_amount_egp || 0)}
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(Number(e.target.value))}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '13px', fontWeight: 700 }}
+              />
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#64748b' }}>
+                سيتم تلقائياً إصدار إذن صرف خزينة وتسجيل قيد يومية عكسي مدين بالتزام العربون ودائن بحساب النقدية.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setRefundDialogBooking(null)}
+                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                disabled={isRefunding || refundAmount <= 0}
+                onClick={handleConfirmRefund}
+                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#b91c1c', color: '#ffffff', fontSize: '12.5px', fontWeight: 700, cursor: isRefunding ? 'not-allowed' : 'pointer' }}
+              >
+                {isRefunding ? 'جاري تسجيل الرد...' : 'تأكيد رد العربون وقيد المحاسبة'}
               </button>
             </div>
           </div>

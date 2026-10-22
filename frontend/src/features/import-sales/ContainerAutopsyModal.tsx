@@ -5,7 +5,10 @@ import {
   DownloadIcon,
   RefreshCwIcon,
   AlertTriangleIcon,
+  FileTextIcon,
 } from '@/shared/components/icons/AppIcons';
+import { downloadExcelFile } from '@/lib/browser';
+import { toast } from '@/shared/components/system-alert';
 
 interface ContainerAutopsyModalProps {
   isOpen: boolean;
@@ -20,6 +23,41 @@ export function ContainerAutopsyModal({ isOpen, onClose, shipmentId }: Container
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExportExcel = async () => {
+    if (!autopsy) return;
+    try {
+      const headers = [
+        'بيان الصنف',
+        'الكمية المشحونة',
+        'المستلم الفعلي',
+        'سعر المصنع ($)',
+        'تكلفة الوحدة الواصلة (ج.م)',
+        'إجمالي تكلفة البند الواصلة (ج.م)',
+      ];
+      const rows: Array<Array<string | number | null | undefined>> = (autopsy.items || []).map((item: any) => [
+        item.product_name || `صنف #${item.product_id}`,
+        item.quantity,
+        item.received_quantity ?? item.quantity,
+        Number(item.factory_unit_price_usd || 0),
+        Number((Number(item.landed_cost_egp) / Number((item.received_quantity ?? item.quantity) || 1)).toFixed(2)),
+        Number(Number(item.landed_cost_egp || 0).toFixed(2)),
+      ]);
+
+      rows.push(['---', '---', '---', '---', '---', '---']);
+      rows.push(['رقم الحاوية', autopsy.operational.containerNumber, 'بوليصة الشحن', autopsy.operational.billOfLading || '—', 'المورد', autopsy.operational.supplierName || '—']);
+      rows.push(['إجمالي التكلفة الواصلة (Landed Cost EGP)', Number(autopsy.landedCosts.totalLandedCostEgp || 0), '', '', '', '']);
+      rows.push(['إجمالي مبيعات الحاوية (Gross Sales EGP)', Number(autopsy.salesAndInventory.grossSalesEgp || 0), '', '', '', '']);
+      rows.push(['صافي الربح المحقق (Realized Net EGP)', Number(autopsy.profitability.realizedNetProfitEgp || 0), '', '', '', '']);
+      rows.push(['العائد على الاستثمار (ROI %)', `%`, '', '', '', '']);
+      rows.push(['قيمة المخزون المتبقي (Landed Value EGP)', Number(autopsy.salesAndInventory.unsoldStockLandedValueEgp || 0), '', '', '', '']);
+
+      await downloadExcelFile(`كشف_تشريح_الحاوية_${autopsy.operational.containerNumber || shipmentId}.xlsx`, headers, rows);
+      toast.success('تم تصدير كشف تشريح الحاوية إلى ملف إكسل بنجاح');
+    } catch (err: any) {
+      toast.error('فشل تصدير الإكسل: ' + (err?.message || 'خطأ'));
+    }
   };
 
   return (
@@ -53,6 +91,26 @@ export function ContainerAutopsyModal({ isOpen, onClose, shipmentId }: Container
               <span style={{ fontSize: 12, color: '#64748b' }}>({autopsy.operational.containerSize || '40HQ'} - {autopsy.operational.freightType || 'FCL'})</span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 14px',
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: 6,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  color: '#15803d',
+                }}
+              >
+                <FileTextIcon size={14} />
+                تصدير إكسل (Excel)
+              </button>
               <button
                 type="button"
                 onClick={handlePrint}

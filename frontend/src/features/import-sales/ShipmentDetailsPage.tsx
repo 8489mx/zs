@@ -20,7 +20,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { referenceDataApi } from '@/services/reference-data.api';
 
-function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate }: { item: ShipmentItem, shipmentId: string, arrivalRate: number, pricingRate: number }) {
+function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate, isArrived }: { item: ShipmentItem, shipmentId: string, arrivalRate: number, pricingRate: number, isArrived?: boolean }) {
   const { t } = useTranslation();
   const updateMutation = useUpdateShipmentItemMutation(shipmentId);
   const [receivedQty, setReceivedQty] = useState(item.received_quantity || '');
@@ -56,6 +56,8 @@ function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate }: { item: S
           style={{ width: '100px', padding: '0.2rem' }} 
           value={receivedQty}
           placeholder={String(item.quantity)}
+          disabled={isArrived}
+          title={isArrived ? 'تم استلام الحاوية وترحيل المخزون نهائياً - مقفلة' : ''}
           onChange={e => setReceivedQty(e.target.value)}
           onBlur={e => handleBlur('receivedQuantity', e.target.value)}
         />
@@ -66,6 +68,7 @@ function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate }: { item: S
               className="input" 
               style={{ width: '100%', padding: '0.2rem', fontSize: '0.85rem' }}
               value={item.shortage_handling_method || 'capitalize'}
+              disabled={isArrived}
               onChange={e => handleBlur('shortageHandlingMethod', e.target.value)}
             >
               <option value="capitalize">{t('import_sales.shipment_details_page.s1', "تحميل على الباقي (رسملة)")}</option>
@@ -170,6 +173,18 @@ export default function ShipmentDetailsPage() {
 
   const handleUpdateCosts = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === 'Arrived' && data.status !== 'Arrived') {
+      if (!receiptLocationId) {
+        toast.error('يجب تحديد مخزن استلام الحاوية الفعلي قبل الترحيل إلى المخزون');
+        return;
+      }
+      const confirmed = await systemConfirm({
+        title: 'تأكيد وصول الحاوية وترحيل المخزون واليومية العامة',
+        message: 'تنبيه محاسبي ومخزني: تغيير الحالة إلى (تم الوصول Arrived) سيقوم بإدخال الأصناف فوراً إلى رصيد المخزن المحدد، حساب متوسط التكلفة المرجح، إنشاء سند استلام نهائي، وإثبات قيد التكلفة المحملة في اليومية العامة. لا يمكن تعديل الكميات بعد الترحيل إلا بتسوية جردية معتمدة. هل ترغب في المتابعة؟',
+        confirmVariant: 'danger',
+      });
+      if (!confirmed) return;
+    }
     await updateCostsMutation.mutateAsync({
       shippingCostUsd: shippingCost ? Number(shippingCost) : undefined,
       shippingAccountId: shippingAcc || undefined,
@@ -242,6 +257,16 @@ export default function ShipmentDetailsPage() {
               )}
               {(data as any).port_of_loading && (
                 <span>المسار: <strong>{(data as any).port_of_loading} &larr; {(data as any).port_of_discharge || 'Alexandria'}</strong></span>
+              )}
+              {data.inventory_receipt && (
+                <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 4, fontWeight: 700, border: '1px solid #bbf7d0', fontSize: '0.78rem' }}>
+                  سند استلام مخزني: #{data.inventory_receipt.id} (مرحل)
+                </span>
+              )}
+              {data.inventory_receipt?.journal_entry_id && (
+                <span style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: 4, fontWeight: 700, border: '1px solid #c7d2fe', fontSize: '0.78rem' }}>
+                  قيد اليومية العامة: #JE-{data.inventory_receipt.journal_entry_id}
+                </span>
               )}
             </div>
           }
@@ -372,7 +397,7 @@ export default function ShipmentDetailsPage() {
               <Button variant="secondary" onClick={handleApplyPrices} disabled={applyPricesMutation.isPending}>
                 {t('import_sales.shipment_details_page.s31', "تطبيق واعتماد الأسعار للمخزن")}
               </Button>
-              <Button variant="secondary" onClick={() => setIsAddItemOpen(true)}>{t('import_sales.shipment_details_page.s32', "إضافة صنف +")}</Button>
+              <Button variant="secondary" onClick={() => setIsAddItemOpen(true)} disabled={data.status === 'Arrived'}>{t('import_sales.shipment_details_page.s32', "إضافة صنف +")}</Button>
             </div>
           }
         >
@@ -419,6 +444,7 @@ export default function ShipmentDetailsPage() {
                       shipmentId={id!} 
                       arrivalRate={Number(data.exchange_rate_at_arrival) || 1} 
                       pricingRate={Number(data.pricing_exchange_rate) || Number(data.exchange_rate_at_arrival) || 1} 
+                      isArrived={data.status === 'Arrived'}
                     />
                   </tr>
                 ))}

@@ -13,8 +13,10 @@ import {
   RefreshCwIcon,
   FileTextIcon,
   PackageIcon,
+  DownloadIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { downloadExcelFile } from '@/lib/browser';
 
 export default function ShipmentsManager() {
   const { t } = useTranslation();
@@ -26,6 +28,36 @@ export default function ShipmentsManager() {
   const customsCount = data?.stats?.customs || 0;
   const arrivedCount = data?.stats?.arrived || 0;
   const rows = data?.rows || [];
+
+  const handleExportExcel = async () => {
+    if (!rows.length) return;
+    try {
+      const headers = [
+        'رقم الحاوية',
+        'المصنع / المورد',
+        'حالة الشحنة',
+        'تاريخ الوصول',
+        'تكلفة الشحن بالدولار ($)',
+        'الجمارك والمصاريف (ج.م)',
+        'سعر الصرف عند الوصول',
+        'بوليصة الشحن (B/L)',
+      ];
+      const exportRows = rows.map((r: any) => [
+        r.container_number,
+        r.supplier_name || 'غير محدد',
+        r.status === 'Pending' ? 'في البحر' : r.status === 'In Customs' ? 'في الجمارك' : r.status === 'Arrived' ? 'تم الوصول للمخزن' : r.status,
+        r.arrival_date ? r.arrival_date.split('T')[0] : '—',
+        Number(r.shipping_cost_usd || 0),
+        Number(r.customs_cost_egp || 0),
+        Number(r.exchange_rate_at_arrival || 1),
+        r.bill_of_lading || '—',
+      ]);
+      await downloadExcelFile('قائمة_حاويات_وشحنات_الاستيراد.xlsx', headers, exportRows);
+      toast.success('تم تصدير قائمة الشحنات إلى ملف إكسل بنجاح');
+    } catch (err: any) {
+      toast.error('فشل تصدير الإكسل: ' + (err?.message || 'خطأ'));
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -83,6 +115,25 @@ export default function ShipmentsManager() {
               >
                 <PackageIcon size={16} />
                 <span>{t('import_sales.shipments_manager.s6', "إضافة حاوية جديدة")}</span>
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={handleExportExcel}
+                disabled={isLoading || rows.length === 0}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: '#bbf7d0',
+                  color: '#15803d',
+                }}
+              >
+                <DownloadIcon size={15} />
+                <span>تصدير إكسل</span>
               </Button>
               <Button 
                 variant="secondary" 
