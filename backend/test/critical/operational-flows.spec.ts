@@ -182,12 +182,21 @@ import { mapSaleRows, summarizeSales } from '../../src/modules/sales/helpers/sal
     invoiceId: 15,
     items: [
       { productId: 1, qty: 2, productName: 'A' },
-      { productId: 0, qty: 1 },
     ],
     settlementMode: 'refund',
   } as any);
   assert.equal(normalizedReturn.length, 1);
   assert.equal(normalizedReturn[0]?.productId, 1);
+
+  assert.throws(
+    () => normalizeReturnItems({
+      type: 'sale',
+      invoiceId: 15,
+      items: [{ productId: 0, qty: 1 }],
+      settlementMode: 'refund',
+    } as any),
+    (error: any) => error?.code === 'RETURN_ITEM_INVALID',
+  );
 
   assert.throws(
     () => normalizeReturnItems({
