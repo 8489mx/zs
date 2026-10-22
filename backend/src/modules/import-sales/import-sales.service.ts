@@ -2073,6 +2073,8 @@ export class ImportSalesService {
         .select([sql<number>`coalesce(sum(actual_cost_egp), 0)`.as('total_sourcing')])
         .where('tenant_id', '=', tenantId)
         .where('project_id', '=', projectId)
+        .where('start_date', '>=', start.toISOString().slice(0, 10))
+        .where('start_date', '<=', end.toISOString().slice(0, 10))
         .executeTakeFirst();
 
       const lateCogsExp = projectShipmentIds.length

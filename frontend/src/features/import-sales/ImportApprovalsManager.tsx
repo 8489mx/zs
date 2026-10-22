@@ -25,7 +25,8 @@ export default function ImportApprovalsManager() {
   const [decisionNotes, setDecisionNotes] = useState('');
 
   // New Request Form State
-  const [requestType, setRequestType] = useState('foreign_transfer');
+  const [requestType, setRequestType] = useState('large_transfer');
+  const [projectId, setProjectId] = useState('');
   const [entityId, setEntityId] = useState('');
   const [amountEgp, setAmountEgp] = useState<number>(100000);
   const [justification, setJustification] = useState('');
@@ -40,11 +41,17 @@ export default function ImportApprovalsManager() {
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!entityId.trim()) throw new Error('معرف المورد أو الشريك أو المشروع إلزامي.');
+      if (requestType === 'partner_distribution' && !projectId.trim()) throw new Error('معرف المشروع إلزامي لصرف الأرباح.');
       await createApprovalMutation.mutateAsync({
-        requestType,
-        entityId: entityId || `REQ-${Date.now()}`,
-        amountEgp: Number(amountEgp),
-        justification,
+        actionType: requestType,
+        referenceId: entityId.trim(),
+        requestPayload: {
+          amount: Number(amountEgp),
+          partnerId: requestType === 'partner_distribution' ? entityId.trim() : undefined,
+          projectId: requestType === 'partner_distribution' ? projectId.trim() : undefined,
+          justification,
+        },
       });
       toast.success('تم رفع طلب الاعتماد للرقابة بنجاح');
       setIsCreateModalOpen(false);
@@ -329,10 +336,11 @@ export default function ImportApprovalsManager() {
               onChange={(e) => setRequestType(e.target.value)}
               style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
             >
-              <option value="foreign_transfer">حوالة بنكية خارجية للمورد (Foreign Transfer)</option>
-              <option value="partner_share_adjustment">تعديل نسب مشاركة الشركاء (Partner Share Adjustment)</option>
-              <option value="project_closure">إقفال نهائي لحسابات مشروع استيراد (Project Closure)</option>
-              <option value="late_expense_allocation">تسوية مصروف متأخر على شحنة مستلمة (Late Expense)</option>
+              <option value="large_transfer">حوالة بنكية خارجية كبيرة (Large Transfer)</option>
+              <option value="supplier_bank_change">توثيق تغيير حساب مورد</option>
+              <option value="broker_settlement">تسوية عهدة مخلص جمركي</option>
+              <option value="partner_distribution">صرف أرباح شريك من مشروع محدد</option>
+              <option value="project_closure">إقفال مشروع الاستيراد</option>
             </select>
           </div>
 
@@ -364,6 +372,13 @@ export default function ImportApprovalsManager() {
             </div>
           </div>
 
+          {requestType === 'partner_distribution' && (
+            <div>
+              <label style={{ display: 'block', marginBottom: 4 }}>معرف مشروع أرباح الشريك (UUID)</label>
+              <input required value={projectId} onChange={e => setProjectId(e.target.value)}
+                style={{ width: '100%', height: 36, padding: 6, border: '1px solid #cbd5e1', borderRadius: 6 }} />
+            </div>
+          )}
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
               المبرر التشغيلي والتفاصيل

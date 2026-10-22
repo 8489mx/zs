@@ -1259,7 +1259,7 @@ export class CreateImportDocumentDto {
 }
 
 export class CreateApprovalRequestDto {
-  @IsString()
+  @IsIn(['supplier_bank_change', 'large_transfer', 'broker_settlement', 'partner_distribution', 'project_closure'])
   actionType!: 'supplier_bank_change' | 'large_transfer' | 'broker_settlement' | 'partner_distribution' | 'project_closure';
 
   @IsString()

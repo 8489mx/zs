@@ -31,7 +31,7 @@ export default function ImportReconciliationManager() {
   const handleRunScan = async () => {
     try {
       const res = await runScanMutation.mutateAsync();
-      const count = res?.issuesFound || res?.exceptionsCreated || 0;
+      const count = res?.exceptionsFoundCount ?? 0;
       toast.success(`اكتمل الفحص الآلي الذكي: تم فحص وتدقيق كافة الحركات (${count} ملاحظة مستحدثة)`);
       refetch();
     } catch (err: any) {

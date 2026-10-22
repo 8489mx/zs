@@ -36,8 +36,13 @@ export default function ImportFxTreasuryManager() {
     (a: any) => a.accountGroup === 'current_assets' || a.isCashBank
   );
 
-  const portfolio = fxData?.portfolio || [];
-  const acquisitions = fxData?.acquisitions || [];
+  // This endpoint returns historic purchases, not an audited foreign-currency cash balance.
+  const portfolio = Object.entries(fxData?.portfolio || {}).map(([currency, raw]) => {
+    const item = raw as { totalForeign: number; totalEgp: number; weightedAvgRate: number };
+    return { currency, total_foreign: item.totalForeign, total_egp_cost: item.totalEgp,
+      weighted_avg_rate: item.weightedAvgRate };
+  });
+  const acquisitions = fxData?.transactions || [];
 
   const usdItem = portfolio.find((p: any) => p.currency === 'USD');
   const cnyItem = portfolio.find((p: any) => p.currency === 'CNY');
@@ -52,11 +57,11 @@ export default function ImportFxTreasuryManager() {
         currency,
         foreignAmount: Number(foreignAmount),
         egpCost: Number(egpCost),
-        sourceProvider,
-        treasuryAccountId: treasuryAccountId || undefined,
-        notes,
+        source: 'bank',
+        bankAccountId: treasuryAccountId || undefined,
+        notes: `جهة التدبير: ${sourceProvider}. ${notes}`,
       });
-      toast.success('تم قيد تدبير العملة الأجنبية بنجاح');
+      toast.success('تم حفظ بيان تدبير العملة كسجل مرجعي (بدون ترحيل قيود للخزينة)');
       setIsRecordModalOpen(false);
       setNotes('');
       refetch();
@@ -77,7 +82,7 @@ export default function ImportFxTreasuryManager() {
             </h1>
           </div>
           <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-            متابعة أرصدة الدولار واليوان المحتجزة، متوسط سعر الصرف الفعلي المرجح، والالتزامات المستحقة للمصانع
+            سجل عمليات تدبير العملة ومتوسط تكلفتها؛ ليس رصيد بنك أجنبي فعليًا أو قيودًا محاسبية
           </p>
         </div>
 
@@ -127,9 +132,9 @@ export default function ImportFxTreasuryManager() {
       {/* 2. KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>رصيد الدولار الأمريكي (USD)</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>إجمالي الدولار المسجل تدبيره (USD)</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#16a34a' }}>
-            ${Number(usdItem?.available_balance || 0).toLocaleString()}
+            ${Number(usdItem?.total_foreign || 0).toLocaleString()}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
             متوسط سعر الصرف المرجح: <strong>{Number(usdItem?.weighted_avg_rate || 0).toFixed(2)} ج.م</strong>
@@ -137,9 +142,9 @@ export default function ImportFxTreasuryManager() {
         </div>
 
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>رصيد اليوان الصيني (CNY)</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>إجمالي اليوان المسجل تدبيره (CNY)</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#0284c7' }}>
-            ¥{Number(cnyItem?.available_balance || 0).toLocaleString()}
+            ¥{Number(cnyItem?.total_foreign || 0).toLocaleString()}
           </div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: 4 }}>
             متوسط سعر الصرف المرجح: <strong>{Number(cnyItem?.weighted_avg_rate || 0).toFixed(2)} ج.م</strong>
@@ -147,15 +152,15 @@ export default function ImportFxTreasuryManager() {
         </div>
 
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>إجمالي السيولة المستخدمة بالجنيه</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>إجمالي تكلفة تدبير العملة المسجلة</div>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#170e5e' }}>{formatCurrency(totalEgpDeployed)}</div>
           <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: 4 }}>إجمالي التكلفة الدفترية للنقد الأجنبي</div>
         </div>
 
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>حماية الالتزامات والسيولة</div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#334155' }}>100%</div>
-          <div style={{ fontSize: '11px', color: '#16a34a', marginTop: 4 }}>مطابقة حسابية وفصل لفروق العملة</div>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>مستوى التحقق المحاسبي</div>
+          <div style={{ fontSize: '22px', fontWeight: 800, color: '#334155' }}>مرجعي</div>
+          <div style={{ fontSize: '11px', color: '#16a34a', marginTop: 4 }}>يتطلب مطابقة يدوية مع كشف البنك والتحويلات</div>
         </div>
       </div>
 
@@ -199,14 +204,14 @@ export default function ImportFxTreasuryManager() {
                       {a.currency} {Number(a.foreign_amount || 0).toLocaleString()}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 600, color: '#0284c7' }}>
-                      {Number(a.exchange_rate || (a.egp_cost / a.foreign_amount)).toFixed(3)} ج.م
+                      {Number(a.effective_exchange_rate || (a.egp_cost / a.foreign_amount)).toFixed(3)} ج.م
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 700, color: '#170e5e' }}>
                       {formatCurrency(a.egp_cost)}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12px', color: '#334155' }}>
                       <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: '11px', fontWeight: 600, backgroundColor: '#f1f5f9', color: '#334155' }}>
-                        {a.source_provider || 'تدبير مباشر'}
+                        {a.source || 'تدبير مباشر'}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12px', color: '#64748b' }}>
