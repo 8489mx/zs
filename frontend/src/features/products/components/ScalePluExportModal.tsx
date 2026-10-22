@@ -181,7 +181,7 @@ export function ScalePluExportModal({
     } else if (preset === 'dibal') {
       // Dibal Scale format
       const headers = ['Code', 'Name', 'Price', 'Section', 'DirectKey', 'Barcode'];
-      const rows = pluRows.map((r) => [r.plu, r.name, r.price.toFixed(2), departmentId, r.plu <= 99 ? r.plu : '', r.itemCode]);
+      const rows = pluRows.map((r) => [r.plu, r.name, r.price.toFixed(2), departmentId, r.plu <= 99 ? r.plu : '', r.itemCode ?? '']);
       downloadCsv(`Dibal_PLU_${today}.csv`, headers, rows);
     } else {
       // General Universal CSV
