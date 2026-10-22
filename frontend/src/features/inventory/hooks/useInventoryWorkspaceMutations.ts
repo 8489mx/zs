@@ -59,10 +59,13 @@ export function useInventoryWorkspaceMutations({
   });
 
   const transferActionMutation = useMutation({
-    mutationFn: async ({ transferIds, action }: { transferIds: string[]; action: 'receive' | 'cancel' }) => {
+    mutationFn: async ({ transferIds, action, receiptItems }: {
+      transferIds: string[]; action: 'receive' | 'cancel';
+      receiptItems?: Record<string, Array<{ itemId: number; receivedQty: number; receivedSerials?: string[]; batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }> }>>;
+    }) => {
       for (const transferId of transferIds) {
         if (action === 'receive') {
-          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers), 'receiveStockTransfer', crypto.randomUUID());
+          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers, { items: receiptItems?.[transferId] }), 'receiveStockTransfer', crypto.randomUUID());
         } else {
           await withIdempotency((headers) => inventoryApi.cancelStockTransfer(transferId, headers), 'cancelStockTransfer', crypto.randomUUID());
         }
