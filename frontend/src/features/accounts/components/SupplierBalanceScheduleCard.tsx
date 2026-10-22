@@ -404,7 +404,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       amount,
       paymentChannel: schedulePaymentChannel,
       note: noteText || `تسجيل دفع دفعة ${row.installmentNo} من مستحقات ${supplierName}`,
-    }),
+    }, String(row.supplierId)),
     onSuccess: (nextRows, variables) => {
       queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
       refreshAccounts();
