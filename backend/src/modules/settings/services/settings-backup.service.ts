@@ -44,11 +44,17 @@ const BACKUP_TABLES: BackupTableName[] = [
   'hr_compensation_packages', 'hr_employee_loans', 'hr_employee_loan_installments',
   'hr_employee_ledger', 'hr_attendance_records', 'hr_attendance_exceptions',
   'hr_leave_types', 'hr_leave_requests', 'hr_employee_assets', 'hr_payroll_runs',
-  'hr_payroll_run_items', 'hr_payroll_item_adjustments', 'hr_hr_settings'
+  'hr_payroll_run_items', 'hr_payroll_item_adjustments', 'hr_hr_settings',
+  // Additional transactional tables must be exported and restored together with
+  // invoices, inventory and journal entries. Incomplete backups lose real business data.
+  'daily_financial_summaries', 'operation_executions', 'bank_statements', 'bank_statement_lines', 'accounting_cheques', 'accounting_fiscal_years', 'accounting_fiscal_periods', 'withholding_tax_transactions', 'crm_deals', 'crm_activities', 'accounting_posting_failures', 'product_serials', 'sale_pharmacy_batch_allocations', 'treasury_transfers', 'pos_audit_events', 'goods_receipt_notes', 'goods_receipt_lines', 'purchase_three_way_matches', 'purchase_landed_costs', 'purchase_orders', 'purchase_order_items', 'sales_orders', 'sales_order_items', 'manufacturing_unbuild_orders', 'services', 'hr_payroll_loan_deduction_allocations', 'hr_holidays', 'delivery_representatives', 'fleet_vehicles', 'van_sales_trips', 'van_field_returns', 'van_trip_expenses', 'van_trip_packaging_movements', 'delivery_rep_targets', 'van_load_requisitions', 'van_rep_financial_settlements'
 ];
 const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()];
 const RESTORE_CONFIRMATION_TEXT = 'RESTORE BACKUP';
-const DEFAULT_BACKUP_FOLDER = 'D:\\ZS Backups';
+// Never require a D: drive on a customer's standalone Windows computer.
+const DEFAULT_BACKUP_FOLDER = process.env.IS_ELECTRON === 'true' && process.env.Z_DATA_DIR
+  ? path.resolve(process.env.Z_DATA_DIR, '..', 'backups')
+  : path.resolve(process.cwd(), 'backups');
 const BACKUP_FOLDER_SETTING_KEY = 'backupFolderPath';
 const BACKUP_AUTOMATION_SETTING_KEY = 'backupAutomation';
 
