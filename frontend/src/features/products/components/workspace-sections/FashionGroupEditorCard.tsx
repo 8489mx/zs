@@ -253,7 +253,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       const payloadRows = cleanRows.map((row) => {
         const source = row.id ? sourceById.get(String(row.id)) : undefined;
         if (row.id && !source) throw new Error('صنف فرعي غير موجود في المجموعة');
-        return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source), id: source ? Number(source.id) : undefined };
+        return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source, toCommonDraft(seedProduct).defaultLocationId), id: source ? Number(source.id) : undefined };
       });
       await productsApi.saveFashionGroup(styleCode, { rows: payloadRows });
       return cleanRows;
