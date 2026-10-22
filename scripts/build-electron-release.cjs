@@ -26,6 +26,17 @@ async function main() {
 
     // 3. Run electron-builder
     console.log('[build-electron-release] Running electron-builder...');
+    const runtimeDir = path.join(__dirname, '../portable/runtime');
+    const requiredRuntime = [
+      'postgres/bin/postgres.exe', 'postgres/bin/pg_ctl.exe',
+      'postgres/bin/initdb.exe', 'postgres/bin/psql.exe',
+      'postgres/bin/pg_dump.exe'
+    ];
+    for (const relative of requiredRuntime) {
+      if (!fs.existsSync(path.join(runtimeDir, relative))) {
+        throw new Error('Cannot produce offline customer build: required bundled runtime file missing: ' + relative);
+      }
+    }
     // We execute it in the frontend directory where the electron builder config is
     execSync('npx electron-builder', { 
         cwd: path.join(__dirname, '../frontend'), 
@@ -56,7 +67,21 @@ async function main() {
     console.log(`[build-electron-release] Renaming 'win-unpacked' to '${targetDirName}'...`);
     fs.renameSync(sourceDir, targetDir);
 
-    console.log(`[build-electron-release] ✅ Successfully generated release at: release/${targetDirName}`);
+    // Refuse a green release result unless the actual unpacked EXE is bootable
+    // and contains its database, API, renderer and update machinery.
+    const requiredOutput = [
+      'ZSystems POS.exe',
+      'runtime/postgres/bin/postgres.exe',
+      'runtime/postgres/bin/pg_ctl.exe',
+      'resources/app.asar.unpacked/electron/backend/dist/main.js',
+      'resources/app.asar.unpacked/dist/index.html',
+      'tools/launcher/scripts/ApplyAndRestart.ps1',
+    ];
+    const missingOutput = requiredOutput.filter((p) => !fs.existsSync(path.join(targetDir, p)));
+    if (missingOutput.length) {
+      throw new Error('Electron release is incomplete. Missing: ' + missingOutput.join(', '));
+    }
+    console.log(`[build-electron-release] ✅ Validated customer release at: release/${targetDirName}`);
   } catch (error) {
     console.error('[build-electron-release] ❌ Error during build or rename process:', error);
     process.exit(1);
