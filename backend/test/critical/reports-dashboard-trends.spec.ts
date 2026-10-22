@@ -46,6 +46,13 @@ class FakeDb {
   selectFrom(table: string): FakeQuery {
     return new FakeQuery(this.data[table] || []);
   }
+  getExecutor(): any {
+    return {
+      transformQuery: (node: unknown) => node,
+      compileQuery: () => ({ sql: '', parameters: [] }),
+      executeQuery: async () => ({ rows: [{ cash: 0, card: 0, online: 0, credit: 0 }] }),
+    };
+  }
 }
 
 (async () => {
