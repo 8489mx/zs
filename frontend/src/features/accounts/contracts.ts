@@ -2,6 +2,7 @@ export interface CustomerPaymentPayloadInput {
   customerId: string;
   amount: number;
   note?: string;
+  paymentChannel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   jobId?: string | number | null;
 }
 
@@ -9,6 +10,7 @@ export interface SupplierPaymentPayloadInput {
   supplierId: string;
   amount: number;
   note?: string;
+  paymentChannel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
 }
 
 function normalizeMoney(value: number) {
@@ -23,6 +25,7 @@ export function buildCustomerPaymentPayload(input: CustomerPaymentPayloadInput) 
     customerId: input.customerId,
     amount: normalizeMoney(input.amount),
     note: String(input.note || '').trim(),
+    paymentChannel: input.paymentChannel || 'cash',
     jobId: input.jobId ? Number(input.jobId) : undefined,
   };
 }
@@ -34,6 +37,7 @@ export function buildSupplierPaymentPayload(input: SupplierPaymentPayloadInput) 
   return {
     supplierId: input.supplierId,
     amount: normalizeMoney(input.amount),
-    note: String(input.note || '').trim()
+    note: String(input.note || '').trim(),
+    paymentChannel: input.paymentChannel || 'cash',
   };
 }
