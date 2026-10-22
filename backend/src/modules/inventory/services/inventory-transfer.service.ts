@@ -18,6 +18,7 @@ import { idempotencyStorage } from '../../../core/idempotency/idempotency.contex
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 import { dispatchTrackedStock, receiveTrackedStock, cancelTrackedStock, type TransferReceiptTraceRequest } from '../helpers/stock-transfer-trace.helper';
+import { moveDirectTrackedStock } from '../helpers/direct-tracked-stock-move.helper';
 
 @Injectable()
 export class InventoryTransferService {
@@ -471,8 +472,9 @@ export class InventoryTransferService {
       await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       for (const stock of stocks) {
-        await assertUntrackedStockMutation(trx, scope, Number(stock.product_id));
         const qty = Number(stock.qty);
+        await moveDirectTrackedStock(trx, scope, Number(stock.product_id), qty,
+          { id: from.id, branchId: from.branchId }, { id: to.id, branchId: to.branchId }, transferId);
         await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty, ...this.tenantFields(auth) }).execute();
 
         // Deduct from source
@@ -534,8 +536,16 @@ export class InventoryTransferService {
       for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
-        await assertUntrackedStockMutation(trx, scope, Number(item.productId));
         const qty = Number(item.qty || 0);
+        if (isUnassignedLink) {
+          // Orphan stock cannot be assigned as tracked inventory without
+          // verified source location identity and a serial/lot reconciliation.
+          await assertUntrackedStockMutation(trx, scope, Number(item.productId));
+        } else {
+          await moveDirectTrackedStock(trx, scope, Number(item.productId), qty,
+            { id: Number(from.id), branchId: from.branchId },
+            { id: to.id, branchId: to.branchId }, Number(transferId));
+        }
 
         if (transferId != null) {
           await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: item.productId, product_name: product.name || '', qty, ...this.tenantFields(auth) }).execute();
@@ -630,8 +640,9 @@ export class InventoryTransferService {
       await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       for (const stock of stocks) {
-        await assertUntrackedStockMutation(trx, scope, Number(stock.product_id));
         const qty = Number(stock.qty);
+        await moveDirectTrackedStock(trx, scope, Number(stock.product_id), qty,
+          { id: from.id, branchId: from.branchId }, { id: to.id, branchId: to.branchId }, transferId);
 
         await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty, ...this.tenantFields(auth) }).execute();
 
