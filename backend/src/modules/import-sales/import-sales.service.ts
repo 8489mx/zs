@@ -3682,27 +3682,69 @@ export class ImportSalesService {
   }
 
   async generatePoFromProforma(tenantId: string, userId: number, id: string) {
-    return await this.db.transaction().execute(async (trx) => {
-      const pi = await trx
-        .selectFrom('import_proforma_invoices')
-        .selectAll()
-        .where('id', '=', id)
-        .where('tenant_id', '=', tenantId)
-        .forUpdate()
-        .executeTakeFirstOrThrow();
-
-      const poNumber = `IPO-${pi.pi_number}-${Date.now().toString().slice(-4)}`;
-      return await trx
-        .updateTable('import_proforma_invoices')
-        .set({
-          po_number: poNumber,
-          po_date: new Date().toISOString().slice(0, 10),
-          po_status: 'issued',
-        })
-        .where('id', '=', id)
-        .where('tenant_id', '=', tenantId)
-        .returningAll()
-        .executeTakeFirstOrThrow();
+    // A Proforma is not an order: create the REAL purchasing PO and its stock lines atomically.
+    return this.db.transaction().execute(async (trx) => {
+      const pi = await trx.selectFrom('import_proforma_invoices').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirstOrThrow();
+      if (pi.po_status === 'issued' && pi.po_number) return pi;
+      if (pi.status !== 'approved') throw new BadRequestException('يجب اعتماد الفاتورة المبدئية قبل إصدار أمر شراء.');
+      const raw = typeof pi.items === 'string' ? JSON.parse(pi.items) : pi.items;
+      if (!Array.isArray(raw) || !raw.length) throw new BadRequestException('الفاتورة المبدئية لا تحتوي على أصناف قابلة للشراء.');
+      const exchangeRate = (pi.currency || 'USD').toUpperCase() === 'EGP'
+        ? 1 : Number(pi.exchange_rate_contract);
+      if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+        throw new BadRequestException('سعر صرف العقد إلزامي قبل تحويل فاتورة أجنبية إلى أمر شراء محلي.');
+      }
+      const supplier = await trx.selectFrom('suppliers')
+        .select(['id', 'name', 'account_id']).where('tenant_id', '=', tenantId)
+        .where('id', '=', pi.supplier_id).executeTakeFirstOrThrow();
+      const scopeAccountId = supplier.account_id || tenantId;
+      const lines: Array<{productId: number; name: string; quantity: number; unitCost: number; total: number}> = [];
+      let foreignTotal = 0;
+      for (const item of raw) {
+        const productId = Number(item.productId ?? item.product_id);
+        const qty = Number(item.quantity ?? item.qty);
+        const foreignUnitCost = Number(item.unitPriceForeign ?? item.factoryPriceUsd ?? item.unitPriceUsd);
+        if (!Number.isSafeInteger(productId) || productId <= 0 || !Number.isFinite(qty) || qty <= 0 ||
+          !Number.isFinite(foreignUnitCost) || foreignUnitCost < 0) {
+          throw new BadRequestException('يجب ربط كل بند من الـ Proforma بصنف حقيقي وتحديد الكمية وسعر الوحدة الأجنبي.');
+        }
+        const product = await trx.selectFrom('products').select(['id', 'name'])
+          .where('tenant_id', '=', tenantId).where('id', '=', productId).executeTakeFirst();
+        if (!product) throw new BadRequestException('صنف Proforma غير موجود ضمن أصناف المنشأة.');
+        const unitCost = Number((foreignUnitCost * exchangeRate).toFixed(3));
+        const total = Number((qty * unitCost).toFixed(3));
+        lines.push({ productId, name: product.name, quantity: qty, unitCost, total });
+        foreignTotal += qty * foreignUnitCost;
+      }
+      if (Math.abs(foreignTotal - Number(pi.total_amount_foreign)) > 0.02) {
+        throw new BadRequestException('إجمالي بنود Proforma لا يطابق القيمة الأجنبية المعتمدة.');
+      }
+      const subtotal = Number(lines.reduce((sum, item) => sum + item.total, 0).toFixed(3));
+      const inserted = await trx.insertInto('purchase_orders').values({
+        tenant_id: tenantId, account_id: scopeAccountId,
+        order_number: `PO-TMP-${randomUUID()}`,
+        supplier_id: supplier.id, supplier_name: supplier.name,
+        subtotal, tax_amount: 0, discount_amount: 0, total_amount: subtotal,
+        status: 'draft', notes: `أمر شراء وارد من Proforma ${pi.pi_number} - ${pi.currency} بسعر صرف ${exchangeRate}`,
+        created_by: userId,
+      }).returning('id').executeTakeFirstOrThrow();
+      const orderNumber = formatDailyDocumentNumber('PO', inserted.id);
+      await trx.updateTable('purchase_orders').set({ order_number: orderNumber })
+        .where('tenant_id', '=', tenantId).where('id', '=', inserted.id).execute();
+      for (const item of lines) {
+        await trx.insertInto('purchase_order_items').values({
+          tenant_id: tenantId, account_id: scopeAccountId,
+          purchase_order_id: inserted.id, product_id: item.productId,
+          product_name: item.name, quantity: item.quantity, received_quantity: 0,
+          unit_cost: item.unitCost, tax_rate: 0, discount: 0, total: item.total,
+        }).execute();
+      }
+      return trx.updateTable('import_proforma_invoices').set({
+        po_number: orderNumber, po_date: new Date().toISOString().slice(0, 10), po_status: 'issued',
+      }).where('id', '=', id).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirstOrThrow();
     });
   }
 
