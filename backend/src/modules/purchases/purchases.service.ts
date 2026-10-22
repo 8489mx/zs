@@ -50,8 +50,8 @@ export class PurchasesService {
     return this.writeService.createSupplierPayment(payload, auth, idempotencyKey);
   }
 
-  createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    return this.writeService.createCustomerPayment(payload, auth);
+  createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
+    return this.writeService.createCustomerPayment(payload, auth, idempotencyKey);
   }
 
   receivePurchaseGoods(
