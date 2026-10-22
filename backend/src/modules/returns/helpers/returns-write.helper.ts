@@ -73,13 +73,21 @@ export function buildSaleReturnLine(source: ReturnSourceLine, product: ReturnPro
   };
 }
 
-export function buildPurchaseReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem): PreparedReturnLine {
+export function buildPurchaseReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem, history: { qty: number; amount: number; tax?: number } = { qty: 0, amount: 0 }): PreparedReturnLine {
   const purchasedQty = Number(source.qty || 0);
-  const sourceLineTotal = Number(source.line_total || 0);
-  const lineTotal = (requestItem.qty === purchasedQty)
-    ? sourceLineTotal
-    : roundMoney((sourceLineTotal / purchasedQty) * requestItem.qty);
-  const unitTotal = purchasedQty > 0 ? roundMoney(sourceLineTotal / purchasedQty) : 0;
+  const sourceLineTotal = roundMoney(Number(source.line_total || 0));
+  const cumulativeQty = history.qty + requestItem.qty;
+  if (!(purchasedQty > 0) || !(requestItem.qty > 0) || cumulativeQty > purchasedQty + 0.000001) {
+    throw new AppError('كمية مرتجع الشراء تتجاوز الكمية المشتراة', 'PURCHASE_RETURN_QUANTITY_EXCEEDED', 400);
+  }
+  // Cumulative rounding allocates any residual cents to the final partial return.
+  const lineTotal = roundMoney(sourceLineTotal * cumulativeQty / purchasedQty) - roundMoney(history.amount);
+  const sourceTax = roundMoney(Number(source.allocated_tax || 0));
+  const allocatedTax = roundMoney(sourceTax * cumulativeQty / purchasedQty) - roundMoney(history.tax || 0);
+  if (lineTotal < -0.0001 || allocatedTax < -0.0001 || allocatedTax > lineTotal + 0.0001) {
+    throw new AppError('سجل مرتجع الشراء السابق يحتاج مراجعة مالية', 'PURCHASE_RETURN_RECONCILIATION_REQUIRED', 409);
+  }
+  const unitTotal = roundMoney(lineTotal / requestItem.qty);
   const rawStockDelta = Number(requestItem.qty || 0) * Number(source.unit_multiplier || 1);
   const stockDelta = Number(rawStockDelta.toFixed(3));
   if (!Number.isFinite(rawStockDelta) || rawStockDelta <= 0 || Math.abs(rawStockDelta - stockDelta) > 0.00000001) {
@@ -97,7 +105,7 @@ export function buildPurchaseReturnLine(source: ReturnSourceLine, product: Retur
     qty: Number(requestItem.qty || 0),
     unitTotal,
     lineTotal,
-    allocatedTax: 0,
+    allocatedTax,
     stockDelta,
     beforeQty,
     afterQty,

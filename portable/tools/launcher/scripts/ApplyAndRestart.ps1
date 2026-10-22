@@ -24,6 +24,7 @@ param(
   [int]$WaitBeforeApplySecs = 4
 )
 
+New-Item -ItemType Directory -Path (Join-Path $PortableRoot 'runtime\logs') -Force | Out-Null
 $entryLog = Join-Path $PortableRoot 'runtime\logs\ps-entry.log'
 "ENTERED SCRIPT $(Get-Date)" | Out-File $entryLog -Append -Encoding utf8
 
@@ -89,6 +90,36 @@ if ($pending.PSObject.Properties['electronExePath'] -and $pending.electronExePat
 $isElectronMode = (-not [string]::IsNullOrWhiteSpace($electronExePath)) -and (Test-Path $electronExePath)
 Write-Log "Mode: $(if ($isElectronMode) { 'Electron' } else { 'Portable' })"
 
+# A fixed delay is not proof that Electron has released app.asar and the
+# PostgreSQL cluster. Wait for the exact parent process that requested update.
+$previousElectronPid = 0
+if ($pending.PSObject.Properties['electronMainPid'] -and $pending.electronMainPid) {
+  $previousElectronPid = [int]$pending.electronMainPid
+}
+if ($isElectronMode -and $previousElectronPid -gt 0) {
+  Write-Log "Waiting for previous Electron PID $previousElectronPid to exit..."
+  try {
+    Wait-Process -Id $previousElectronPid -Timeout 45 -ErrorAction Stop
+  } catch {
+    if (Get-Process -Id $previousElectronPid -ErrorAction SilentlyContinue) {
+      Write-Log 'ERROR: Previous Electron still owns the application files; refusing to apply update.'
+      Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
+      exit 1
+    }
+  }
+  Write-Log 'Previous Electron process released its application files.'
+}
+
+function Abort-BeforeApply([string]$Message) {
+  Write-Log "Update cancelled before changing application files: $Message"
+  Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
+  if ($isElectronMode -and (Test-Path $electronExePath)) {
+    Write-Log 'Reopening the previous, unchanged Electron application.'
+    Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal | Out-Null
+  }
+  exit 1
+}
+
 # ── Build path map ────────────────────────────────────────────────────────────
 if ($isElectronMode) {
   $unpackedBase = Join-Path $PortableRoot 'resources\app.asar.unpacked'
@@ -118,11 +149,33 @@ if ($isElectronMode) {
 
 # ── Validate patch source ─────────────────────────────────────────────────────
 if ([string]::IsNullOrWhiteSpace($patchUrl) -and [string]::IsNullOrWhiteSpace($localPatchPath)) {
-  Write-Log 'ERROR: Both patchUrl and localPatchPath are empty. Aborting.'
-  exit 1
+  Abort-BeforeApply 'No patch URL or local patch source was supplied'
 }
 
 Write-Log "Applying update to v$version"
+
+# Releases are pinned by the VERSION-SPECIFIC manifest in the trusted GitHub repository.
+# Uploaded ZIP files are checked against the operator provisioned digest by NestJS.
+$expectedSha256 = ''
+if ($pending.PSObject.Properties['expectedSha256'] -and $pending.expectedSha256) {
+  $expectedSha256 = ([string]$pending.expectedSha256).Trim().ToLowerInvariant()
+}
+if ([string]::IsNullOrWhiteSpace($localPatchPath)) {
+  try {
+    $trusted = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/8489mx/zs/main/releases/manifest-$version.json" -TimeoutSec 20
+    if ([string]$trusted.version -ne [string]$version) { throw 'Trusted version mismatch' }
+    $trustedUrl = [string]$trusted.patchUrl
+    if ($trustedUrl -notmatch '^https://github[.]com/8489mx/zs/releases/download/') { throw 'Untrusted release URL' }
+    if ($patchUrl -and $patchUrl -ne $trustedUrl) { throw 'Release URL mismatch' }
+    $patchUrl = $trustedUrl
+    $expectedSha256 = ([string]$trusted.sha256).Trim().ToLowerInvariant()
+  } catch {
+    Abort-BeforeApply "Official GitHub release manifest verification failed: $($_.Exception.Message)"
+  }
+}
+if ($expectedSha256 -notmatch '^[0-9a-f]{64}$') {
+  Abort-BeforeApply 'No trusted SHA256 digest was supplied'
+}
 
 # ── Pre-Update Backup ─────────────────────────────────────────────────────────
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -151,8 +204,35 @@ try {
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist (exit $LASTEXITCODE)" }
   }
 
-  # Database backup — portable mode only (Electron: postgres is stopped before this script runs)
-  if (-not $isElectronMode) {
+  # A stopped PostgreSQL cluster can be snapshotted and restored across schema migrations.
+  # Protect EVERY table and WAL file, not just the SQL export subset.
+  if ($isElectronMode) {
+    $dataDir = Join-Path $pathMap.RuntimeDir 'data'
+    $pgCtl = Join-Path $pathMap.PostgresBinDir 'pg_ctl.exe'
+    if (-not (Test-Path (Join-Path $dataDir 'PG_VERSION')) -or -not (Test-Path $pgCtl)) {
+      throw 'PostgreSQL cluster or pg_ctl missing; cannot safely update'
+    }
+    & $pgCtl -D $dataDir status *> $null
+    if ($LASTEXITCODE -eq 0) {
+      & $pgCtl -D $dataDir stop -m fast -w *> $null
+      if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL did not stop for snapshot' }
+    }
+    $clusterBackup = Join-Path $backupDir 'postgres-data'
+    robocopy $dataDir $clusterBackup /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8 -or -not (Test-Path (Join-Path $clusterBackup 'PG_VERSION'))) {
+      throw "Database snapshot could not be verified (robocopy $LASTEXITCODE)"
+    }
+    # PostgreSQL auth is stored next to the cluster, not inside data/.
+    # Keep it in the same rollback snapshot, otherwise a password change during
+    # a failed upgrade can permanently lock the old database.
+    $pgAuthFile = Join-Path $pathMap.RuntimeDir '.postgres-auth.json'
+    if (Test-Path $pgAuthFile) {
+      Copy-Item -Path $pgAuthFile -Destination (Join-Path $backupDir 'postgres-auth.json') -Force
+    } else {
+      Set-Content -Path (Join-Path $backupDir 'postgres-auth.absent') -Value 'not-present-before-update'
+    }
+    Write-Log 'Complete PostgreSQL cluster and authentication backup verified.'
+  } else {
     $pgDump = Join-Path $pathMap.PostgresBinDir 'pg_dump.exe'
     if (Test-Path $pgDump) {
       $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
@@ -169,14 +249,11 @@ try {
         Write-Log 'Database backup completed.'
       }
     }
-  } else {
-    Write-Log 'Skipping database backup in Electron mode (postgres already stopped).'
   }
 
   Write-Log 'Pre-update backup completed.'
 } catch {
-  Write-Log "ERROR: Pre-update backup failed: $($_.Exception.Message). Aborting."
-  exit 1
+  Abort-BeforeApply "Pre-update backup failed: $($_.Exception.Message)"
 }
 
 # ── Staging ───────────────────────────────────────────────────────────────────
@@ -248,10 +325,20 @@ if ((-not [string]::IsNullOrWhiteSpace($localPatchPath)) -and (Test-Path $localP
     } else {
       Write-Log "ERROR: No patch archive found (download failed and no local patch available)."
       Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
-      exit 1
+      Abort-BeforeApply 'Release could not be downloaded or found locally'
     }
   }
 }
+
+# Validate every byte before extracting any executable or applying any migration.
+if (-not (Test-Path $zipPath)) { Abort-BeforeApply 'Release ZIP missing' }
+$receivedSha256 = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($receivedSha256 -ne $expectedSha256) {
+  Write-Log "ERROR: SHA256 mismatch. Expected $expectedSha256 but got $receivedSha256."
+  Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+  Abort-BeforeApply 'Release SHA256 mismatch'
+}
+Write-Log 'SHA256 of downloaded release verified.'
 
 # ── Extract and Apply ─────────────────────────────────────────────────────────
 $applySuccess = $false
@@ -261,22 +348,30 @@ try {
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
   Write-Log 'Extraction complete.'
 
-  # ── Validate update-manifest.json / package.json ──────────────────────────────
-  $manifestPath = Join-Path $extractDir 'update-manifest.json'
-  if (Test-Path $manifestPath) {
-    $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
-    if ($manifest.version) {
-      $version = $manifest.version
-    }
-  } else {
-    Write-Log 'Notice: update-manifest.json not present in patch; reading backend/package.json'
-    $pkgPath = Join-Path $extractDir 'backend\package.json'
-    if (Test-Path $pkgPath) {
-      $pkgJson = Get-Content $pkgPath -Raw | ConvertFrom-Json
-      if ($pkgJson.version) { $version = $pkgJson.version }
+  # Check the release's own file list, layout, and path traversal before copying.
+  $manifestFile = Join-Path $extractDir 'update-manifest.json'
+  if (-not (Test-Path $manifestFile)) { throw 'update-manifest.json missing' }
+  $manifest = Get-Content $manifestFile -Raw | ConvertFrom-Json
+  if ([string]$manifest.version -ne [string]$version) { throw 'ZIP version differs from release' }
+  if (-not $manifest.files -or $manifest.files.Count -lt 3) { throw 'ZIP manifest contains no file hashes' }
+  $safeRoot = [IO.Path]::GetFullPath($extractDir).TrimEnd('\') + '\'
+  foreach ($f in $manifest.files) {
+    $rel = [string]$f.path
+    if (-not $rel -or $rel -match '(^[\\/]|^[A-Za-z]:|(^|[\\/])[.][.]([\\/]|$))') { throw "Unsafe archive path: $rel" }
+    $filePath = [IO.Path]::GetFullPath((Join-Path $extractDir ($rel -replace '/', '\')))
+    if (-not $filePath.StartsWith($safeRoot, [StringComparison]::OrdinalIgnoreCase)) { throw "Path traversal: $rel" }
+    if (-not (Test-Path -LiteralPath $filePath -PathType Leaf)) { throw "Missing patch file: $rel" }
+    if ((Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne ([string]$f.sha256).ToLowerInvariant()) {
+      throw "Patch checksum mismatch: $rel"
     }
   }
-  
+  if (-not (Test-Path (Join-Path $extractDir 'backend\dist\main.js')) -or
+      -not (Test-Path (Join-Path $extractDir 'frontend\dist\index.html')) -or
+      -not (Test-Path (Join-Path $extractDir 'backend\package.json'))) {
+    throw 'The patch is missing the backend or frontend executable'
+  }
+  Write-Log 'Complete update manifest verified.'
+
   # ── Copy backend/dist ─────────────────────────────────────────────────────────
   $srcBackend = $null
   $candidates = @(
@@ -290,7 +385,7 @@ try {
   if ($srcBackend) {
     $destBackend = Join-Path $pathMap.AppBackendDir 'dist'
     Write-Log "Copying backend/dist -> $destBackend"
-    robocopy $srcBackend $destBackend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    robocopy $srcBackend $destBackend /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for backend dist (exit $LASTEXITCODE)" }
     Write-Log 'backend/dist applied.'
   } else {
@@ -328,7 +423,7 @@ try {
   if ($srcFrontend) {
     $destFrontend = $pathMap.AppFrontendDir
     Write-Log "Copying frontend/dist -> $destFrontend"
-    robocopy $srcFrontend $destFrontend /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+    robocopy $srcFrontend $destFrontend /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed for frontend dist (exit $LASTEXITCODE)" }
     Write-Log 'frontend/dist applied.'
 
@@ -389,7 +484,31 @@ try {
       }
     }
   } else {
-    Write-Log 'Skipping migrations in Electron mode (NestJS runs them on startup).'
+    # Electron automatically runs database migrations. A patch is NOT successful until
+    # the new backend has started and /health/ready returns HTTP 200.
+    Write-Log 'Starting patched Electron for migration + health verification...'
+    $newProc = Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal -PassThru
+    $healthUrl = "http://127.0.0.1:$BackendPort/health/ready"
+    $healthy = $false
+    $deadline = (Get-Date).AddSeconds(150)
+    while ((Get-Date) -lt $deadline) {
+      $newProc.Refresh()
+      if ($newProc.HasExited) { break }
+      try {
+        $check = Invoke-WebRequest -Uri $healthUrl -Method Get -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        if ([int]$check.StatusCode -eq 200) { $healthy = $true; break }
+      } catch {}
+      Start-Sleep -Milliseconds 800
+    }
+    if (-not $healthy) {
+      Write-Log 'New Electron release did not become healthy; reverting code and database.'
+      $newProc.Refresh()
+      if (-not $newProc.HasExited) { taskkill /PID $newProc.Id /T /F *> $null }
+      $pgCtl = Join-Path $pathMap.PostgresBinDir 'pg_ctl.exe'
+      & $pgCtl -D (Join-Path $pathMap.RuntimeDir 'data') stop -m immediate -w *> $null
+      throw 'Electron failed to pass backend and migration readiness'
+    }
+    Write-Log 'Patched Electron and PostgreSQL migrations passed HTTP readiness.'
   }
 
   $applySuccess = $true
@@ -398,19 +517,42 @@ try {
   Write-Log "ERROR: Update application failed: $($_.Exception.Message)"
 }
 
+$rollbackOk = $true
 if (-not $applySuccess) {
   Write-Log "Initiating Rollback from $backupDir ..."
   try {
     if (Test-Path (Join-Path $backupDir 'backend\dist')) {
-       robocopy (Join-Path $backupDir 'backend\dist') (Join-Path $pathMap.AppBackendDir 'dist') /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+       robocopy (Join-Path $backupDir 'backend\dist') (Join-Path $pathMap.AppBackendDir 'dist') /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+       if ($LASTEXITCODE -ge 8) { throw "Backend rollback failed ($LASTEXITCODE)" }
     }
     if (Test-Path (Join-Path $backupDir 'backend\package.json')) {
        Copy-Item (Join-Path $backupDir 'backend\package.json') (Join-Path $pathMap.AppBackendDir 'package.json') -Force
     }
     if (Test-Path (Join-Path $backupDir 'frontend\dist')) {
-       robocopy (Join-Path $backupDir 'frontend\dist') $pathMap.AppFrontendDir /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
+       robocopy (Join-Path $backupDir 'frontend\dist') $pathMap.AppFrontendDir /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+       if ($LASTEXITCODE -ge 8) { throw "Frontend rollback failed ($LASTEXITCODE)" }
     }
-    if (-not $isElectronMode) {
+    if ($isElectronMode) {
+      $clusterBackup = Join-Path $backupDir 'postgres-data'
+      $dbData = Join-Path $pathMap.RuntimeDir 'data'
+      if (-not (Test-Path (Join-Path $clusterBackup 'PG_VERSION'))) {
+        throw 'Cannot restore prior version: PostgreSQL snapshot missing'
+      }
+      $pgCtl = Join-Path $pathMap.PostgresBinDir 'pg_ctl.exe'
+      & $pgCtl -D $dbData stop -m immediate -w *> $null
+      robocopy $clusterBackup $dbData /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+      if ($LASTEXITCODE -ge 8) { throw "PostgreSQL rollback failed ($LASTEXITCODE)" }
+      $originalPgAuth = Join-Path $backupDir 'postgres-auth.json'
+      $pgAuthDest = Join-Path $pathMap.RuntimeDir '.postgres-auth.json'
+      if (Test-Path $originalPgAuth) {
+        Copy-Item -Path $originalPgAuth -Destination $pgAuthDest -Force
+      } elseif (Test-Path (Join-Path $backupDir 'postgres-auth.absent')) {
+        Remove-Item -Path $pgAuthDest -Force -ErrorAction SilentlyContinue
+      } else {
+        throw 'PostgreSQL authentication snapshot marker missing; refusing incomplete rollback'
+      }
+      Write-Log 'Restored complete pre-update PostgreSQL cluster and credentials.'
+    } else {
       $dbBackupPath = Join-Path $backupDir 'database.sql'
       if (Test-Path $dbBackupPath) {
         Write-Log "Restoring database from $dbBackupPath ..."
@@ -430,6 +572,7 @@ if (-not $applySuccess) {
     }
     Write-Log "Rollback complete. Restarting with previous version..."
   } catch {
+    $rollbackOk = $false
     Write-Log "CRITICAL ERROR during rollback: $($_.Exception.Message)"
   }
 } else {
@@ -438,15 +581,26 @@ if (-not $applySuccess) {
   Set-Content -Path $versionFile -Value $version -Encoding ascii
   Write-Log "Written .app_version = $version"
   
-  # Remove pending marker ONLY on full success
+  # Update the updater itself only after health succeeds; the running script is not
+  # replaced until its code and DB are already verified.
+  $newUpdater = Join-Path $extractDir 'tools\launcher\scripts\ApplyAndRestart.ps1'
+  if (Test-Path $newUpdater) {
+    Copy-Item -Path $newUpdater -Destination (Join-Path $PortableRoot 'tools\launcher\scripts\ApplyAndRestart.ps1') -Force
+  }
   Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
 }
 
 # ── Restart ───────────────────────────────────────────────────────────────────
 if ($isElectronMode) {
-  Write-Log "Starting Electron: $electronExePath (WorkingDirectory: $PortableRoot)"
-  $electronProc = Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal -PassThru
-  Write-Log "Electron process started (PID: $($electronProc.Id))"
+  if (-not $applySuccess) {
+    # Avoid an endless bad-update retry after successful rollback.
+    Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
+    if (-not $rollbackOk) { Write-Log 'ERROR: Rollback incomplete. Manual recovery required.'; exit 1 }
+    Write-Log 'Restarting previous working Electron version after rollback.'
+    Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal | Out-Null
+    exit 1
+  }
+  Write-Log 'Updated Electron is already running with verified backend readiness.'
 } else {
   if ([string]::IsNullOrWhiteSpace($NodeExe) -or -not (Test-Path $NodeExe)) {
     $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
@@ -476,14 +630,15 @@ if ($isElectronMode) {
   while ((Get-Date) -lt $deadline) {
     try {
       $r = Invoke-WebRequest -Uri $healthUrl -Method Get -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
-      if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { $ready = $true; break }
+      if ([int]$r.StatusCode -eq 200) { $ready = $true; break }
     } catch { }
     Start-Sleep -Milliseconds 800
   }
   if ($ready) {
     Write-Log 'Backend is healthy.'
   } else {
-    Write-Log 'WARNING: Backend did not become healthy within 120s.'
+    Write-Log 'ERROR: Backend did not become healthy within 120s.'
+    exit 1
   }
 }
 

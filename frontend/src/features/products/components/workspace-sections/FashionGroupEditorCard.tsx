@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
@@ -129,17 +129,33 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
   const [barcodePrefix, setBarcodePrefix] = useState('');
   const [generationError, setGenerationError] = useState('');
 
+  // Query refresh must not overwrite an unsaved model/variant matrix.
+  const lastHydratedRef = useRef<{
+    id: string; common: string; rows: string; colors: string; sizes: string; prefix: string;
+  } | null>(null);
   useEffect(() => {
-    setCommonDraft({ ...toCommonDraft(seedProduct), name: deriveBaseName(seedProduct) });
-    const initialRows = toVariantRows(groupProducts);
-    setVariantRows(initialRows);
-    
-    // Extract unique colors & sizes from existing products
-    const existingColors = Array.from(new Set(initialRows.map(r => r.color).filter(Boolean)));
-    const existingSizes = Array.from(new Set(initialRows.map(r => r.size).filter(Boolean)));
-    setColorsValue(existingColors.join('، '));
-    setSizesValue(existingSizes.join('، '));
-    setBarcodePrefix(seedProduct.styleCode || '');
+    const previous = lastHydratedRef.current;
+    const sameProduct = previous?.id === String(product.id);
+    const draftIsUnchanged = previous
+      && previous.common === JSON.stringify(commonDraft)
+      && previous.rows === rowsFingerprint(variantRows)
+      && previous.colors === colorsValue && previous.sizes === sizesValue
+      && previous.prefix === barcodePrefix;
+    if (sameProduct && !draftIsUnchanged) return;
+    const nextCommon = { ...toCommonDraft(seedProduct), name: deriveBaseName(seedProduct) };
+    const nextRows = toVariantRows(groupProducts);
+    const nextColors = Array.from(new Set(nextRows.map((r) => r.color).filter(Boolean))).join('، ');
+    const nextSizes = Array.from(new Set(nextRows.map((r) => r.size).filter(Boolean))).join('، ');
+    const prefix = seedProduct.styleCode || '';
+    setCommonDraft(nextCommon);
+    setVariantRows(nextRows);
+    setColorsValue(nextColors);
+    setSizesValue(nextSizes);
+    setBarcodePrefix(prefix);
+    lastHydratedRef.current = {
+      id: String(product.id), common: JSON.stringify(nextCommon), rows: rowsFingerprint(nextRows),
+      colors: nextColors, sizes: nextSizes, prefix,
+    };
   }, [product.id, seedProduct, groupProducts]);
 
   const baselineCommon = useMemo(() => JSON.stringify({ ...toCommonDraft(seedProduct), name: deriveBaseName(seedProduct) }), [seedProduct]);
@@ -237,16 +253,19 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       const payloadRows = cleanRows.map((row) => {
         const source = row.id ? sourceById.get(String(row.id)) : undefined;
         if (row.id && !source) throw new Error('صنف فرعي غير موجود في المجموعة');
-        return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source), id: source ? Number(source.id) : undefined };
+        return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source, toCommonDraft(seedProduct).defaultLocationId), id: source ? Number(source.id) : undefined };
       });
       await productsApi.saveFashionGroup(styleCode, { rows: payloadRows });
       return cleanRows;
     },
     onSuccess: async () => {
+      lastHydratedRef.current = null;
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
       await queryClient.invalidateQueries({ queryKey: queryKeys.productsPage(`variant-group:${styleCode || product.id}`) });
-      const refreshed = await queryClient.fetchQuery({ queryKey: queryKeys.products, queryFn: productsApi.list });
-      const selected = refreshed.find((entry) => String(entry.id) === String(product.id)) || refreshed.find((entry) => String(entry.styleCode || '').trim() === commonDraft.styleCode.trim()) || null;
+      // Do not download the entire retailer catalog after editing one model.
+      const refreshed = await productsApi.listAll({ q: commonDraft.styleCode.trim() });
+      const selected = refreshed.products.find((entry) => String(entry.id) === String(product.id))
+        || refreshed.products.find((entry) => String(entry.styleCode || '').trim() === commonDraft.styleCode.trim()) || null;
       if (selected) onSaved?.(selected);
     },
   });

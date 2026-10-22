@@ -638,6 +638,9 @@ export class OfflineReleasesService implements OnModuleInit {
    * and restart the backend — all without any manual user intervention.
    */
   async triggerUpdate(auth: AuthContext) {
+    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+      throw new BadRequestException('Cloud SaaS must never apply desktop updates');
+    }
     const active = await this.db
       .selectFrom('offline_releases')
       .selectAll()
@@ -668,8 +671,9 @@ export class OfflineReleasesService implements OnModuleInit {
       nodeExe:         process.execPath,
       backendCwd:      process.cwd(),
       backendEntry:    process.argv[1] ?? 'dist/main.js',
-      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
+      electronMainPid: Number(process.env.ELECTRON_MAIN_PID || '0'),
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -679,15 +683,12 @@ export class OfflineReleasesService implements OnModuleInit {
     if (fs.existsSync(applyScript)) {
       const ps = spawn(
         'powershell.exe',
-        [
-          '-ExecutionPolicy', 'Bypass',
-          '-NonInteractive',
-          '-WindowStyle', 'Hidden',
-          '-File', applyScript,
-          '-PortableRoot', portableRoot,
-        ],
-        { detached: true, stdio: 'ignore', windowsHide: true },
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+          '-WindowStyle', 'Hidden', '-File', applyScript, '-PortableRoot', portableRoot],
+        { detached: true, stdio: 'ignore', windowsHide: true, cwd: portableRoot },
       );
+      if (!ps.pid) throw new BadRequestException('Could not launch the offline updater');
+      ps.on('error', (error) => console.error('[OfflineUpdate] Updater launch failed:', error));
       ps.unref();
     }
 
@@ -761,8 +762,9 @@ export class OfflineReleasesService implements OnModuleInit {
       nodeExe:         process.execPath,
       backendCwd:      process.cwd(),
       backendEntry:    process.argv[1] ?? 'dist/main.js',
-      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
+      electronMainPid: Number(process.env.ELECTRON_MAIN_PID || '0'),
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -782,14 +784,13 @@ export class OfflineReleasesService implements OnModuleInit {
     if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
     const spawnLog = path.join(logsDir, 'update-spawn.log');
 
-    const psCommand = 'cmd.exe';
+    // Spawn the detached updater directly. cmd.exe /c start can silently fail
+    // due to quoting of Windows paths and is not a reliable handoff for production.
+    const psCommand = 'powershell.exe';
     const psArgs = [
-      '/c', 'start', '""', '/min',
-      'powershell.exe',
-      '-ExecutionPolicy', 'Bypass',
-      '-NoProfile',
-      '-File', applyScript,
-      '-PortableRoot', portableRoot
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+      '-WindowStyle', 'Hidden', '-File', applyScript,
+      '-PortableRoot', portableRoot,
     ];
 
     fs.writeFileSync(spawnLog, JSON.stringify({
@@ -807,12 +808,16 @@ export class OfflineReleasesService implements OnModuleInit {
       windowsHide: true,
       cwd: portableRoot
     });
+    if (!ps.pid) {
+      throw new BadRequestException('Could not launch the offline updater process');
+    }
+    ps.on('error', (error) => console.error('[OfflineUpdate] Updater process launch failed:', error));
     ps.unref();
 
     setTimeout(() => {
-      console.log('[OfflineReleasesService] Exiting process for clean self-update restart...');
+      console.log('[OfflineReleasesService] Shutting down before patching any files...');
       process.exit(0);
-    }, 17500);
+    }, 1500);
 
     return {
       ok: true,
@@ -936,8 +941,10 @@ export class OfflineReleasesService implements OnModuleInit {
       nodeExe:         process.execPath,
       backendCwd:      process.cwd(),
       backendEntry:    process.argv[1] ?? 'dist/main.js',
-      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
+      electronMainPid: Number(process.env.ELECTRON_MAIN_PID || '0'),
+      expectedSha256: process.env.ZS_TRUSTED_OFFLINE_UPDATE_SHA256 || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -961,14 +968,13 @@ export class OfflineReleasesService implements OnModuleInit {
     if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
     const spawnLog = path.join(logsDir, 'update-spawn.log');
 
-    const psCommand = 'cmd.exe';
+    // Spawn the detached updater directly. cmd.exe /c start can silently fail
+    // due to quoting of Windows paths and is not a reliable handoff for production.
+    const psCommand = 'powershell.exe';
     const psArgs = [
-      '/c', 'start', '""', '/min',
-      'powershell.exe',
-      '-ExecutionPolicy', 'Bypass',
-      '-NoProfile',
-      '-File', applyScript,
-      '-PortableRoot', portableRoot
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+      '-WindowStyle', 'Hidden', '-File', applyScript,
+      '-PortableRoot', portableRoot,
     ];
 
     fs.writeFileSync(spawnLog, JSON.stringify({
@@ -985,12 +991,16 @@ export class OfflineReleasesService implements OnModuleInit {
       windowsHide: true,
       cwd: portableRoot
     });
+    if (!ps.pid) {
+      throw new BadRequestException('Could not launch the offline updater process');
+    }
+    ps.on('error', (error) => console.error('[OfflineUpdate] Updater process launch failed:', error));
     ps.unref();
 
     setTimeout(() => {
-      console.log('[OfflineReleasesService] Exiting process for clean zip self-update restart...');
+      console.log('[OfflineReleasesService] Shutting down before applying verified ZIP...');
       process.exit(0);
-    }, 17500);
+    }, 1500);
 
     return {
       ok: true,

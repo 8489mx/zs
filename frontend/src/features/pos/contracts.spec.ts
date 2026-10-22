@@ -57,6 +57,27 @@ describe('POS sale contracts', () => {
     });
   });
 
+  it('preserves fractional unit conversion in all POS payloads for accurate stock deduction', () => {
+    const input = {
+      cart: [{ ...cart[0], qty: 4, price: 12.5, unitMultiplier: 0.5 }],
+      customerId: '',
+      paymentType: 'cash' as const,
+      paymentChannel: 'cash' as const,
+      discount: 0,
+      deliveryFee: 0,
+      note: '',
+      paidAmount: 50,
+      tenderedAmount: 50,
+      payments: [{ paymentChannel: 'cash' as const, amount: 50 }],
+      taxRate: 0,
+      pricesIncludeTax: false,
+      expectedTotal: 50,
+    };
+    for (const build of [buildPosSalePayload, buildLegacyPosSalePayload, buildMinimalPosSalePayload]) {
+      expect((build(input) as any).items[0].unitMultiplier).toBe(0.5);
+    }
+  });
+
   it('rejects a credit sale before submit when no customer is selected', () => {
     expect(() => validatePosSaleInput({
       cart,

@@ -125,6 +125,11 @@ export function paginateCashDrawerRows<T>(rows: T[], query: CashDrawerQuery): { 
   };
 }
 
+function cashDrawerDateKey(value: unknown): string {
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.toISOString().slice(0, 10) : '';
+  return String(value || '').slice(0, 10);
+}
+
 export function filterCashDrawerRows(rows: CashDrawerMappedRow[], query: CashDrawerQuery): CashDrawerMappedRow[] {
   const search = String(query.search || '').trim().toLowerCase();
   const filter = String(query.filter || 'all').trim().toLowerCase();
@@ -132,12 +137,11 @@ export function filterCashDrawerRows(rows: CashDrawerMappedRow[], query: CashDra
   return rows.filter((row) => {
     const status = String(row.status || '');
     const variance = Number(row.variance || 0);
-    const openedAt = String(row.openedAt || row.createdAt || '');
     if (filter === 'open' && status !== 'open') return false;
     if (filter === 'closed' && status !== 'closed') return false;
     if (filter === 'pending_review' && status !== 'pending_review') return false;
     if (filter === 'variance' && Math.abs(variance) <= 0) return false;
-    if (filter === 'today' && openedAt.slice(0, 10) !== today) return false;
+    if (filter === 'today' && cashDrawerDateKey(row.openedAt || row.createdAt) !== today) return false;
     if (!search) return true;
     return [row.docNo, row.status, row.branchName, row.locationName, row.openedByName, row.openingNote, row.closeNote].some((value) => String(value || '').toLowerCase().includes(search));
   });

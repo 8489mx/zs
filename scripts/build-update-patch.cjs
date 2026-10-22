@@ -87,6 +87,14 @@ async function main() {
       }
     }
 
+    // OTA patches also carry the latest updater. It is installed only after the
+    // patch has passed startup/readiness verification on the customer machine.
+    const updaterScript = path.join(rootDir, 'portable', 'tools', 'launcher', 'scripts', 'ApplyAndRestart.ps1');
+    if (!fs.existsSync(updaterScript)) throw new Error('Offline updater script missing from release source');
+    const updaterDest = path.join(stagingDir, 'tools', 'launcher', 'scripts');
+    fs.mkdirSync(updaterDest, { recursive: true });
+    fs.copyFileSync(updaterScript, path.join(updaterDest, 'ApplyAndRestart.ps1'));
+
     // Generate update-manifest.json
     console.log('[build-update-patch] Generating update-manifest.json...');
     const crypto = require('crypto');

@@ -136,12 +136,13 @@ export function duplicateSummary(rows: VariantDraft[]) {
   return { duplicateCombos, duplicateBarcodes, duplicateSkus };
 }
 
-export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Product) {
+export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Product, originalLocationId?: string) {
   const label = variantLabel(row);
   return {
     name: label ? `${common.name.trim()} - ${label}` : common.name.trim(),
     barcode: row.barcode.trim(),
     sku: row.sku ? row.sku.trim() : undefined,
+    expectedCatalogUpdatedAt: source?.catalogUpdatedAt,
     itemKind: common.itemKind,
     styleCode: common.styleCode.trim(),
     color: row.color.trim(),
@@ -152,7 +153,7 @@ export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Pr
     minStock: Number(row.id ? (row.minStock ?? common.minStock) : common.minStock),
     categoryId: common.categoryId ? Number(common.categoryId) : undefined,
     supplierId: common.supplierId ? Number(common.supplierId) : undefined,
-    warehouseId: common.defaultLocationId ? Number(common.defaultLocationId) : undefined,
+    warehouseId: ((source && originalLocationId === common.defaultLocationId ? source.defaultLocationId : common.defaultLocationId) || '') ? Number(source && originalLocationId === common.defaultLocationId ? source.defaultLocationId : common.defaultLocationId) : undefined,
     notes: common.notes || '',
     stock: row.id ? undefined : Number(row.stock || 0),
     units: [

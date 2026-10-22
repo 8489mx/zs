@@ -77,7 +77,7 @@ function normalizeCart(items: PosItem[]) {
     name_en: (item as any).name_en || item.nameEn || undefined,
     qty: normalizeCartQty(item),
     unitName: item.unitName,
-    unitMultiplier: Math.max(1, Number(item.unitMultiplier || 1)),
+    unitMultiplier: Number.isFinite(Number(item.unitMultiplier)) && Number(item.unitMultiplier) > 0 ? Number(item.unitMultiplier) : 1,
     price: normalizeMoney(Number(item.price || 0)),
     originalPrice: item.originalPrice ? normalizeMoney(Number(item.originalPrice)) : undefined,
     offerDiscount: item.offerDiscount ? normalizeMoney(Number(item.offerDiscount)) : undefined,
@@ -271,7 +271,9 @@ export function buildMinimalPosSalePayload(input: CreatePosSaleInput) {
     items: normalizedItems.map((item) => ({
       productId: item.productId,
       qty: item.qty,
-      price: item.price
+      price: item.price,
+      unitName: item.unitName,
+      unitMultiplier: item.unitMultiplier,
     }))
   };
 }

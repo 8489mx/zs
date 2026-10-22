@@ -151,6 +151,8 @@ export type DashboardManagerOverviewPayload = {
 export type DashboardOverviewPayload = {
   range: { from: string; to: string; branchId?: string; locationId?: string };
   summary: DashboardSummarySnapshot;
+  /** Actual posting-time tender totals and remaining credit, for the selected period. */
+  paymentBreakdown?: { cash: number; card: number; online: number; credit: number };
   stats: {
     productsCount: number;
     customersCount: number;

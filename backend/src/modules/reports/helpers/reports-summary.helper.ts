@@ -15,8 +15,11 @@ export type SummaryTotals = {
   servicesTotal: number;
   purchasesTotal: number;
   expensesTotal: number;
+  operatingMaterialsTotal?: number;
   salesReturnsTotal: number;
   purchaseReturnsTotal: number;
+  salesTaxTotal?: number;
+  salesReturnTaxTotal?: number;
   cashIn: number;
   cashOut: number;
   cogs: number;
@@ -62,6 +65,7 @@ type SummarySaleItemRow = {
   product_id?: string | number | null;
   product_name?: string | null;
   line_total?: string | number | null;
+  allocated_tax?: string | number | null;
 };
 
 export function buildTopProducts(rows: TopProductAccumulatorRow[], limit = 10): Array<{ name: string; qty: number; revenue: number; total: number }> {
@@ -84,7 +88,11 @@ export function buildCommercialSummary(counts: SummaryCounts, totals: SummaryTot
   const merchandiseSalesTotal = toMoney(totals.salesTotal);
   const servicesTotal = toMoney(totals.servicesTotal);
   const revenueTotal = toMoney(merchandiseSalesTotal + servicesTotal);
-  const netSales = toMoney(revenueTotal - totals.salesReturnsTotal);
+  // Recognise revenue net of output VAT and the net (excluding VAT) returned sales.
+  // The merchandise sales/return totals remain gross for invoice reconciliation.
+  const salesNetOfTax = toMoney(revenueTotal - Number(totals.salesTaxTotal || 0));
+  const returnedNetOfTax = toMoney(totals.salesReturnsTotal - Number(totals.salesReturnTaxTotal || 0));
+  const netSales = toMoney(salesNetOfTax - returnedNetOfTax);
   const netPurchases = toMoney(totals.purchasesTotal - totals.purchaseReturnsTotal);
   const grossProfit = toMoney(netSales - totals.cogs);
   const grossMarginPercent = netSales > 0 ? toMoney((grossProfit / netSales) * 100) : 0;
@@ -112,6 +120,7 @@ export function buildCommercialSummary(counts: SummaryCounts, totals: SummaryTot
     expenses: {
       count: counts.expensesCount,
       total: totals.expensesTotal,
+      operatingMaterialsTotal: toMoney(totals.operatingMaterialsTotal || 0),
     },
     returns: {
       count: counts.returnsCount,
@@ -201,6 +210,12 @@ export function buildReportSummaryPayload(args: {
   const salesReturnsTotal = totalsOverride?.salesReturnsTotal != null ? toMoney(totalsOverride.salesReturnsTotal) : sumMoney(splitReturns.sales, (row) => row.total);
   const purchaseReturnsTotal = totalsOverride?.purchaseReturnsTotal != null ? toMoney(totalsOverride.purchaseReturnsTotal) : sumMoney(splitReturns.purchases, (row) => row.total);
   
+  const salesTaxTotal = totalsOverride?.salesTaxTotal != null
+    ? toMoney(totalsOverride.salesTaxTotal)
+    : sumMoney(salesRows as Array<{ tax_amount?: number | string | null }>, (row) => row.tax_amount);
+  const salesReturnTaxTotal = totalsOverride?.salesReturnTaxTotal != null
+    ? toMoney(totalsOverride.salesReturnTaxTotal)
+    : sumMoney(returnedSaleItemsRows, (row) => row.allocated_tax);
   const rawCogs = saleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
   const returnedCogs = returnedSaleItemsRows.reduce((sum, row) => sum + (Number(row.qty || 0) * Number(row.cost_price || 0)), 0);
   const cogs = cogsOverride != null ? toMoney(cogsOverride) : (totalsOverride?.cogs != null ? toMoney(totalsOverride.cogs) : toMoney(rawCogs - returnedCogs));
@@ -239,8 +254,11 @@ export function buildReportSummaryPayload(args: {
       servicesTotal,
       purchasesTotal,
       expensesTotal,
+      operatingMaterialsTotal: totalsOverride?.operatingMaterialsTotal ?? 0,
       salesReturnsTotal,
       purchaseReturnsTotal,
+      salesTaxTotal,
+      salesReturnTaxTotal,
       cashIn,
       cashOut,
       cogs,

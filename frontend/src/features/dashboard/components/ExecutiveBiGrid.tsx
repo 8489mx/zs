@@ -44,59 +44,28 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
   // 1. حساب مؤشرات الأداء التنفيذي الفريدة (غير المكررة)
   const averageBasket = salesLast30?.averageInvoice || 0;
   const grossSales = Number(summary?.sales?.total || 0);
-  const netSales = Number(profitSummary?.netSales || summary?.sales?.netSales || grossSales);
-  const grossProfit = Number(profitSummary?.grossProfit || (netSales - Number(profitSummary?.cogs || 0)));
+  const netSales = Number(profitSummary?.netSales ?? summary?.sales?.netSales ?? grossSales);
+  const grossProfit = Number(profitSummary?.grossProfit ?? (netSales - Number(profitSummary?.cogs ?? 0)));
   const grossMarginPercent = netSales > 0 ? Math.round((grossProfit / netSales) * 100) : 0;
-  const netOperatingProfit = Number(profitSummary?.netProfit || (grossProfit - Number(profitSummary?.expenses || summary?.expenses?.total || 0)));
+  const netOperatingProfit = Number(profitSummary?.netProfit ?? (grossProfit - Number(profitSummary?.expenses ?? summary?.expenses?.total ?? 0)));
 
-  // 2. تجهيز بيانات توزيع قنوات وطرق السداد (الدونات)
   const paymentBreakdown = useMemo(() => {
-    const cashIn = Number(summary?.treasury?.cashIn || 0);
-    const gross = Number(summary?.sales?.total || 0);
-
-    const labels = {
-      cash: t('dashboard.cash', 'نقدي (كاش)'),
-      card: t('dashboard.pos_cards', 'بطاقات وماكينات POS'),
-      online: t('dashboard.online_gateways', 'متجر وبوابات إلكترونية'),
-      credit: t('dashboard.credit_sales', 'مبيعات آجلة (ذمم)'),
+    const amounts = overviewData.paymentBreakdown;
+    const values = {
+      cash: Math.max(0, Number(amounts?.cash || 0)),
+      card: Math.max(0, Number(amounts?.card || 0)),
+      online: Math.max(0, Number(amounts?.online || 0)),
+      credit: Math.max(0, Number(amounts?.credit || 0)),
     };
-
-    if (gross <= 0 && cashIn <= 0) {
-      return {
-        hasData: false,
-        total: 0,
-        items: [
-          { name: labels.cash, value: 0, color: PAYMENT_COLORS.cash, percentage: 0 },
-          { name: labels.card, value: 0, color: PAYMENT_COLORS.card, percentage: 0 },
-          { name: labels.online, value: 0, color: PAYMENT_COLORS.online, percentage: 0 },
-          { name: labels.credit, value: 0, color: PAYMENT_COLORS.credit, percentage: 0 },
-        ],
-      };
-    }
-
-    const cashVal = cashIn > 0 ? Math.min(cashIn, gross) : 0;
-    const remaining = Math.max(0, gross - cashVal);
-    const cardVal = remaining > 0 ? remaining * 0.60 : 0;
-    const onlineVal = remaining > 0 ? remaining * 0.25 : 0;
-    const creditVal = remaining > 0 ? remaining * 0.15 : 0;
-
-    const data = [
-      { name: labels.cash, value: cashVal, color: PAYMENT_COLORS.cash },
-      { name: labels.card, value: cardVal, color: PAYMENT_COLORS.card },
-      { name: labels.online, value: onlineVal, color: PAYMENT_COLORS.online },
-      { name: labels.credit, value: creditVal, color: PAYMENT_COLORS.credit },
-    ];
-
-    const sumValues = data.reduce((acc, item) => acc + item.value, 0);
-    return {
-      hasData: sumValues > 0,
-      total: sumValues,
-      items: data.map((item) => ({
-        ...item,
-        percentage: sumValues > 0 ? Math.round((item.value / sumValues) * 100) : 0,
-      })),
-    };
-  }, [summary, t]);
+    const total = values.cash + values.card + values.online + values.credit;
+    const items = [
+      { name: t('dashboard.cash', 'نقدي (كاش)'), value: values.cash, color: PAYMENT_COLORS.cash },
+      { name: t('dashboard.pos_cards', 'بطاقات وماكينات POS'), value: values.card, color: PAYMENT_COLORS.card },
+      { name: t('dashboard.online_gateways', 'متجر وبوابات إلكترونية'), value: values.online, color: PAYMENT_COLORS.online },
+      { name: t('dashboard.credit_sales', 'مبيعات آجلة (ذمم)'), value: values.credit, color: PAYMENT_COLORS.credit },
+    ].map((entry) => ({ ...entry, percentage: total > 0 ? Math.round(entry.value / total * 100) : 0 }));
+    return { hasData: total > 0, total, items };
+  }, [overviewData.paymentBreakdown, t]);
 
   // 4. تجهيز بيانات مساهمة أعلى الفئات / الأصناف في الربحية
   const profitDrivers = useMemo(() => {
@@ -120,14 +89,9 @@ export function ExecutiveBiGrid({ overviewData, managerData, isLoading = false }
       }));
     }
 
-    // fallback from topToday
-    return (overviewData.topToday || []).slice(0, 4).map((item) => ({
-      name: item.name,
-      revenue: Number(item.total || 0),
-      grossProfit: Math.round(Number(item.total || 0) * 0.25),
-      marginPercent: 25,
-    }));
-  }, [managerData, overviewData.topToday]);
+    // Sales ranking has no actual product cost; do not invent a 25% profit.
+    return [];
+  }, [managerData]);
 
   if (isLoading) {
     return (

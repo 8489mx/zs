@@ -11,6 +11,7 @@ type ProductRow = {
   id: number;
   name: string;
   barcode: string | null;
+  sku?: string | null;
   item_kind: 'standard' | 'fashion';
   style_code: string | null;
   color: string | null;
@@ -82,6 +83,8 @@ class FakeSelectBuilder {
     const barcodeFilter = this.filters.find((filter) => filter.column === 'p.barcode' && filter.op === '=');
     let rows = this.db.products.filter((product) => product.is_active);
     if (barcodeFilter) rows = rows.filter((product) => product.barcode === barcodeFilter.value);
+    const skuFilter = this.filters.find((filter) => filter.column === 'p.sku' && filter.op === '=');
+    if (skuFilter) rows = rows.filter((product) => product.sku === skuFilter.value);
     if (!barcodeFilter && this.hasExpressionFilter && this.db.searchNeedle) {
       const needle = this.db.searchNeedle.toLowerCase();
       rows = rows.filter((product) => {
@@ -198,6 +201,14 @@ async function run(): Promise<void> {
     const result = await service.listPosProducts({ barcode: '111' }, cashier);
     assert.deepEqual(productIds(result), ['1']);
     assert.equal((result.products as Array<Record<string, unknown>>)[0].barcode, '111');
+  }
+
+  {
+    const db = new FakeDb();
+    db.products[1].sku = 'BLACK-XL-42';
+    const { service } = createService(db);
+    const result = await service.listPosProducts({ barcode: 'BLACK-XL-42' }, cashier);
+    assert.deepEqual(productIds(result), ['2'], 'Scanner must resolve an exact fashion SKU');
   }
 
   {

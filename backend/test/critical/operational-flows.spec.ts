@@ -61,7 +61,6 @@ import { mapSaleRows, summarizeSales } from '../../src/modules/sales/helpers/sal
     locationId: 2,
     items: [
       { productId: 1, qty: 2, price: 100, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail' },
-      { productId: 0, qty: 1, price: 50 },
     ],
     payments: [
       { paymentChannel: 'cash', amount: 50 },
@@ -74,6 +73,24 @@ import { mapSaleRows, summarizeSales } from '../../src/modules/sales/helpers/sal
   assert.equal(normalized.note, 'test sale');
   assert.equal(normalized.items.length, 1);
   assert.equal(normalized.payments.length, 2);
+
+  // Invalid lines must abort the entire sale, not disappear from the receipt or stock ledger.
+  for (const invalidItem of [
+    { productId: 0, qty: 1, price: 50 },
+    { productId: 2, qty: 0, price: 50 },
+    { productId: 2, qty: -1, price: 50 },
+    { productId: 2, qty: 1, price: -50 },
+    { productId: 2, qty: 1, price: 50, unitMultiplier: -1 },
+    { productId: 2, qty: 1, price: 50, unitMultiplier: 0 },
+  ]) {
+    assert.throws(
+      () => normalizeSalePayload({
+        paymentType: 'cash',
+        items: [{ productId: 1, qty: 1, price: 20 }, invalidItem],
+      } as any),
+      (error: any) => error?.code === 'SALE_ITEM_INVALID',
+    );
+  }
 
   const totals = computeInvoiceTotals(200, normalized.discount, normalized.taxRate, false);
   assert.equal(totals.taxAmount, 26.6);

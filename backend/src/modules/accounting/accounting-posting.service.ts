@@ -1695,7 +1695,17 @@ export class AccountingPostingService {
     const originalPurchaseTotal = Number(purchase?.total || 0);
     const originalPurchaseTax = Number(purchase?.tax_amount || 0);
     const taxRatio = originalPurchaseTotal > 0 && originalPurchaseTax > 0 ? (originalPurchaseTax / originalPurchaseTotal) : 0;
-    const taxAmount = this.toMoney(total * taxRatio);
+    const lineTax = await queryable.selectFrom('return_items')
+      .select([
+        sql<number>`coalesce(sum(allocated_tax), 0)`.as('allocated_tax'),
+        sql<number>`count(*) filter (where allocated_tax is null)`.as('unallocated_lines'),
+      ])
+      .where('return_document_id', '=', returnId).where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const taxAmount = Number(lineTax?.unallocated_lines || 0) === 0
+      ? this.toMoney(lineTax?.allocated_tax || 0)
+      : this.toMoney(total * taxRatio); // Historical returns predating line-tax tracking.
+    if (taxAmount < 0 || taxAmount > total + 0.001) throw new Error(`Invalid purchase return VAT for ${returnId}`);
     const netReturnAmount = this.toMoney(Math.max(0, total - taxAmount));
     const supplierPartnerId = purchase?.supplier_id ? Number(purchase?.supplier_id) : null;
     const lines: JournalLineDraft[] = [];
@@ -1709,41 +1719,38 @@ export class AccountingPostingService {
     const inventoryAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.inventory_account_id, '1140');
     const purchaseTaxAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.purchase_tax_account_id, '1150');
 
-    // Dr. Supplier Payable (2110) or Cash/Bank
+    // Debit the payable only for its actual reversal. Partially paid credit bills
+    // can generate a mix of supplier-liability relief and money refunded to treasury.
     const originalPaymentType = String(purchase?.payment_type || '').trim().toLowerCase();
     const refundMethod = String(returnDocument.refund_method || '').trim().toLowerCase();
-
+    const rawAllocations: unknown = typeof returnDocument.refund_allocations === 'string'
+      ? JSON.parse(returnDocument.refund_allocations) : returnDocument.refund_allocations;
+    const storedAllocations = Array.isArray(rawAllocations)
+      ? rawAllocations as Array<{ tender: string; amount: number }>
+      : null;
+    if (returnDocument.refund_allocations != null && (!storedAllocations || storedAllocations.some((allocation) =>
+      !allocation || !['payable', 'cash', 'card'].includes(allocation.tender) ||
+      !Number.isFinite(Number(allocation.amount)) || Number(allocation.amount) <= 0))) {
+      throw new Error(`Invalid purchase return settlement allocation for ${returnId}`);
+    }
     if (total > 0) {
-      if (originalPaymentType === 'credit') {
+      const allocations = storedAllocations ?? [{
+        tender: originalPaymentType === 'credit' ? 'payable' : refundMethod === 'cash' ? 'cash' : 'card',
+        amount: total,
+      }];
+      const allocatedCents = allocations.reduce((sum, allocation) => sum + Math.round(Number(allocation.amount) * 100), 0);
+      if (allocatedCents !== Math.round(total * 100)) throw new Error(`Purchase return settlement does not balance for ${returnId}`);
+      for (const allocation of allocations) {
+        const payable = allocation.tender === 'payable';
+        const bank = allocation.tender === 'card';
         this.addLine(lines, {
-          accountId: supplierPayableAccountId,
-          description: `تخفيض مديونية مورد من مردودات مشتريات فاتورة رقم ${invoiceNo}`,
-          debit: total,
+          accountId: payable ? supplierPayableAccountId : bank ? bankAccountId : cashAccountId,
+          description: payable ? `تخفيض مديونية مورد من مردودات مشتريات فاتورة رقم ${invoiceNo}`
+            : `استرداد ${bank ? 'بنكي' : 'نقدي'} من مورد لمرتجع فاتورة رقم ${invoiceNo}`,
+          debit: this.toMoney(allocation.amount),
           credit: 0,
-          partnerType: supplierPartnerId ? 'supplier' : 'none',
-          partnerId: supplierPartnerId,
-          branchId,
-          locationId,
-        });
-      } else if (refundMethod === 'cash') {
-        this.addLine(lines, {
-          accountId: cashAccountId,
-          description: `استرداد نقدي من مورد لمرتجع فاتورة رقم ${invoiceNo}`,
-          debit: total,
-          credit: 0,
-          partnerType: 'none',
-          partnerId: null,
-          branchId,
-          locationId,
-        });
-      } else {
-        this.addLine(lines, {
-          accountId: bankAccountId,
-          description: `استرداد بنكي من مورد لمرتجع فاتورة رقم ${invoiceNo}`,
-          debit: total,
-          credit: 0,
-          partnerType: 'none',
-          partnerId: null,
+          partnerType: payable && supplierPartnerId ? 'supplier' : 'none',
+          partnerId: payable ? supplierPartnerId : null,
           branchId,
           locationId,
         });
@@ -2387,11 +2394,17 @@ export class AccountingPostingService {
     if (!movement) return { posted: false, journalEntryId: null, hasFinancialImpact: false };
 
     const delta = Number(movement.after_qty || 0) - Number(movement.before_qty || 0);
+    const isFinalIssue = movement.movement_type === 'transfer_final_issue' && movement.reason === 'final_issue';
+    const isTransitLoss = movement.movement_type === 'transfer_transit_loss' && movement.reason === 'transit_shrinkage';
     if (Math.abs(delta) < 0.001) return { posted: false, journalEntryId: null, hasFinancialImpact: false }; // No variance
 
     const rawCost = Number(movement.unit_cost || 0);
     const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-    const amount = this.toMoney(Math.abs(delta) * unitCost);
+    // Use the immutable amount recorded at the time of the physical movement.
+    // Re-multiplying a rounded per-unit cost can drift by cents for fractional quantities.
+    const rawTotal = movement.total_cost == null ? null : Number(movement.total_cost);
+    const amount = rawTotal != null && Number.isFinite(rawTotal) && rawTotal >= 0
+      ? this.toMoney(rawTotal) : this.toMoney(Math.abs(delta) * unitCost);
 
     if (amount <= 0) {
       return { posted: false, journalEntryId: null, hasFinancialImpact: false };
@@ -2419,9 +2432,10 @@ export class AccountingPostingService {
       this.addLine(lines, { accountId: gainAccountId, description: 'أرباح تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     } else {
       // Loss
-      const lossAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5200');
-      this.addLine(lines, { accountId: lossAccountId, description: 'خسائر تسوية مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
-      this.addLine(lines, { accountId: accountIdToUse, description: 'نقص تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+      const lossAccountCode = isFinalIssue ? '6900' : isTransitLoss ? '5300' : '5200';
+      const lossAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, lossAccountCode);
+      this.addLine(lines, { accountId: lossAccountId, description: isFinalIssue ? 'مواد تشغيل مصروفة نهائياً' : isTransitLoss ? 'هالك وفاقد بضاعة أثناء النقل' : 'خسائر تسوية مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: accountIdToUse, description: isFinalIssue ? 'تخفيض المخزون بموجب إذن صرف نهائي' : isTransitLoss ? 'تخفيض مخزون البضاعة بالطريق بسبب الفاقد' : 'نقص تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     try {
@@ -2431,7 +2445,7 @@ export class AccountingPostingService {
         tenantId: scope.tenantId,
         accountId: scope.accountId,
         entryDate: movement.created_at ? new Date(movement.created_at) : new Date(),
-        description: `قيد تسوية مخزون - حركة #${movementId}`,
+        description: isFinalIssue ? `قيد صرف مخزون نهائي - حركة #${movementId}` : `قيد تسوية مخزون - حركة #${movementId}`,
         branchId,
         locationId,
         createdBy: movement.created_by ? Number(movement.created_by) : auth.userId,

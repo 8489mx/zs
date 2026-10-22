@@ -41,8 +41,7 @@ const copies = [
 
 for (const { source, target } of copies) {
   if (!fs.existsSync(source)) {
-    console.warn(`Missing source path: ${source}, please make sure you built the backend.`);
-    continue;
+    throw new Error(`Electron backend source missing: ${source}. Refusing a partial customer build.`);
   }
 
   fs.rmSync(target, { recursive: true, force: true });

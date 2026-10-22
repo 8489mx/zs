@@ -115,7 +115,13 @@ export function enqueueOfflineSale(payload: CreatePosSaleInput, existingIdempote
     throw new Error('تعذر قراءة الفواتير المحفوظة على هذا الجهاز. تحقق من الفواتير قبل إعادة المحاولة.');
   }
   const docNo = (payload as any).docNo || (payload as any).offlineDocNo || generateOfflineDocNo();
-  const draftId = existingIdempotencyKey || docNo;
+  // Receipt numbering is human-readable and can collide if two devices use
+  // the same terminal code. The idempotency key must have stronger entropy,
+  // and must remain stable once the invoice is saved locally.
+  const draftId = existingIdempotencyKey ||
+    (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${docNo}:${Date.now()}:${Math.random().toString(36).slice(2)}`);
   const scope = currentQueueScope();
   if (!scope.tenantId || !scope.accountId) {
     throw new Error('تعذر تحديد المنشأة والحساب لهذه الفاتورة الأوفلاين. سجل الدخول ثم أعد المحاولة.');

@@ -48,7 +48,7 @@ async function main() {
         try {
           run(`gh release upload v${version} "${zipPath}" --clobber`);
         } catch (ghErr) {
-          console.warn('Could not upload to GitHub release:', ghErr.message);
+          throw new Error('Release asset upload failed — manifest was committed but update is NOT published: ' + ghErr.message);
         }
       }
     }
@@ -56,7 +56,7 @@ async function main() {
 
   console.log('\n========================================================');
   console.log(`🎉 [SUCCESS] Patch v${version} is LIVE and published!`);
-  console.log('   All clients will receive the update automatically.');
+  console.log('   Release asset uploaded; clients can download it after SHA256 verification.');
   console.log('========================================================\n');
 }
 

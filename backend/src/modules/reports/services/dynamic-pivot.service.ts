@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -43,23 +43,38 @@ export class DynamicPivotService {
           .leftJoin('categories as cat', (j: any) => j.onRef('cat.id', '=', 'p.category_id').onRef('cat.tenant_id', '=', 'p.tenant_id'))
           .leftJoin('branches as b', (j: any) => j.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
           .leftJoin('customers as c', (j: any) => j.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
-          .leftJoin('users as u', (j: any) => j.onRef('u.id', '=', 's.user_id').onRef('u.tenant_id', '=', 's.tenant_id'))
+          .leftJoin('users as u', (j: any) => j.onRef('u.id', '=', 's.created_by').onRef('u.tenant_id', '=', 's.tenant_id'))
           .select([
             sql`to_char(s.created_at, 'YYYY-MM')`.as('date_month'),
             sql`to_char(s.created_at, 'YYYY-MM-DD')`.as('date_day'),
             'b.name as branch',
             'c.name as customer',
-            'u.name as rep',
+            'u.display_name as rep',
             's.payment_type as payment_type',
             'p.name as product',
             'cat.name as category',
-            sql<number>`si.total_price`.as('total_amount'),
-            sql<number>`(si.total_price - COALESCE(si.cost_price, 0) * si.quantity)`.as('net_profit'),
-            sql<number>`si.quantity`.as('quantity'),
+            sql<number>`(coalesce(si.net_line_total, si.line_total) - coalesce((
+              select sum(ri.line_total - coalesce(ri.allocated_tax, 0))
+              from return_items ri join return_documents rd
+                on rd.id = ri.return_document_id and rd.tenant_id = ri.tenant_id
+              where ri.tenant_id = si.tenant_id and ri.sale_item_id = si.id
+                and rd.return_type = 'sale' and rd.invoice_id = s.id), 0))`.as('total_amount'),
+            sql<number>`(coalesce(si.net_line_total, si.line_total) - coalesce(si.cost_price, 0) * si.qty
+              - coalesce((select sum(ri.line_total - coalesce(ri.allocated_tax, 0) -
+                ri.qty * coalesce(ri.cost_price, si.cost_price, 0))
+                from return_items ri join return_documents rd
+                  on rd.id = ri.return_document_id and rd.tenant_id = ri.tenant_id
+                where ri.tenant_id = si.tenant_id and ri.sale_item_id = si.id
+                  and rd.return_type = 'sale' and rd.invoice_id = s.id), 0))`.as('net_profit'),
+            sql<number>`(si.qty - coalesce((select sum(ri.qty)
+              from return_items ri join return_documents rd
+                on rd.id = ri.return_document_id and rd.tenant_id = ri.tenant_id
+              where ri.tenant_id = si.tenant_id and ri.sale_item_id = si.id
+                and rd.return_type = 'sale' and rd.invoice_id = s.id), 0))`.as('quantity'),
           ])
           .where('s.tenant_id', '=', tenantId)
           .where('si.tenant_id', '=', tenantId)
-          .where('s.status', '!=', 'cancelled');
+          .where('s.status', '=', 'posted');
 
         if (dto.dateFrom) query = query.where('s.created_at', '>=', new Date(dto.dateFrom));
         if (dto.dateTo) {
@@ -69,30 +84,38 @@ export class DynamicPivotService {
         }
         if (dto.branchId) query = query.where('s.branch_id', '=', dto.branchId);
 
-        records = await query.limit(5000).execute();
+        records = await query.limit(10001).execute();
+        if (records.length > 10000) throw new BadRequestException('التقرير يحتوي على أكثر من 10,000 سجل؛ يرجى تضييق الفترة حتى لا تظهر نتائج جزئية.');
       } else {
         // Query at sale header level
         let query = (this.db as any)
           .selectFrom('sales as s')
           .leftJoin('branches as b', (j: any) => j.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
           .leftJoin('customers as c', (j: any) => j.onRef('c.id', '=', 's.customer_id').onRef('c.tenant_id', '=', 's.tenant_id'))
-          .leftJoin('users as u', (j: any) => j.onRef('u.id', '=', 's.user_id').onRef('u.tenant_id', '=', 's.tenant_id'))
+          .leftJoin('users as u', (j: any) => j.onRef('u.id', '=', 's.created_by').onRef('u.tenant_id', '=', 's.tenant_id'))
           .select([
             sql`to_char(s.created_at, 'YYYY-MM')`.as('date_month'),
             sql`to_char(s.created_at, 'YYYY-MM-DD')`.as('date_day'),
             'b.name as branch',
             'c.name as customer',
-            'u.name as rep',
+            'u.display_name as rep',
             's.payment_type as payment_type',
             's.order_type as order_type',
             's.status as status',
-            sql<number>`s.total`.as('total_amount'),
+            sql<number>`(s.total - coalesce((select sum(rd.total) from return_documents rd where rd.tenant_id = s.tenant_id and rd.return_type = 'sale' and rd.invoice_id = s.id), 0))`.as('total_amount'),
             sql<number>`COALESCE(s.paid_amount, 0)`.as('paid_amount'),
-            sql<number>`(s.total - COALESCE(s.tax_amount, 0)) * 0.25`.as('net_profit'), // Header profit heuristic
+            sql<number>`(s.total - coalesce(s.tax_amount, 0) - coalesce(s.delivery_fee, 0) - coalesce(s.tip_amount, 0)
+              - coalesce((select sum(si.qty * coalesce(si.cost_price, 0))
+                 from sale_items si where si.tenant_id = s.tenant_id and si.sale_id = s.id), 0)
+              - coalesce((select sum(ri.line_total - coalesce(ri.allocated_tax, 0) -
+                ri.qty * coalesce(ri.cost_price, 0))
+                from return_documents rd join return_items ri
+                  on ri.return_document_id = rd.id and ri.tenant_id = rd.tenant_id
+                where rd.tenant_id = s.tenant_id and rd.return_type = 'sale' and rd.invoice_id = s.id), 0))`.as('net_profit'),
             sql<number>`1`.as('quantity'),
           ])
           .where('s.tenant_id', '=', tenantId)
-          .where('s.status', '!=', 'cancelled');
+          .where('s.status', '=', 'posted');
 
         if (dto.dateFrom) query = query.where('s.created_at', '>=', new Date(dto.dateFrom));
         if (dto.dateTo) {
@@ -102,7 +125,8 @@ export class DynamicPivotService {
         }
         if (dto.branchId) query = query.where('s.branch_id', '=', dto.branchId);
 
-        records = await query.limit(5000).execute();
+        records = await query.limit(10001).execute();
+        if (records.length > 10000) throw new BadRequestException('التقرير يحتوي على أكثر من 10,000 سجل؛ يرجى تضييق الفترة حتى لا تظهر نتائج جزئية.');
       }
     } else if (dto.dataset === 'purchases') {
       let query = (this.db as any)
@@ -119,7 +143,8 @@ export class DynamicPivotService {
           sql<number>`0`.as('net_profit'),
           sql<number>`1`.as('quantity'),
         ])
-        .where('p.tenant_id', '=', tenantId);
+        .where('p.tenant_id', '=', tenantId)
+        .where('p.status', '=', 'posted');
 
       if (dto.dateFrom) query = query.where('p.created_at', '>=', new Date(dto.dateFrom));
       if (dto.dateTo) {
@@ -128,44 +153,50 @@ export class DynamicPivotService {
         query = query.where('p.created_at', '<=', to);
       }
 
-      records = await query.limit(5000).execute();
+      records = await query.limit(10001).execute();
+        if (records.length > 10000) throw new BadRequestException('التقرير يحتوي على أكثر من 10,000 سجل؛ يرجى تضييق الفترة حتى لا تظهر نتائج جزئية.');
     } else if (dto.dataset === 'inventory') {
       let query = (this.db as any)
         .selectFrom('product_location_stock as pls')
         .innerJoin('products as p', (j: any) => j.onRef('p.id', '=', 'pls.product_id').onRef('p.tenant_id', '=', 'pls.tenant_id'))
         .leftJoin('categories as cat', (j: any) => j.onRef('cat.id', '=', 'p.category_id').onRef('cat.tenant_id', '=', 'p.tenant_id'))
-        .leftJoin('locations as loc', (j: any) => j.onRef('loc.id', '=', 'pls.location_id').onRef('loc.tenant_id', '=', 'pls.tenant_id'))
+        .leftJoin('stock_locations as loc', (j: any) => j.onRef('loc.id', '=', 'pls.location_id').onRef('loc.tenant_id', '=', 'pls.tenant_id'))
         .select([
           'loc.name as branch',
           'cat.name as category',
           'p.name as product',
-          sql<number>`(pls.stock_on_hand * COALESCE(p.cost_price, 0))`.as('total_amount'),
-          sql<number>`pls.stock_on_hand`.as('quantity'),
+          sql<number>`(pls.qty * COALESCE(p.cost_price, 0))`.as('total_amount'),
+          sql<number>`pls.qty`.as('quantity'),
         ])
         .where('pls.tenant_id', '=', tenantId);
 
-      records = await query.limit(5000).execute();
+      records = await query.limit(10001).execute();
+        if (records.length > 10000) throw new BadRequestException('التقرير يحتوي على أكثر من 10,000 سجل؛ يرجى تضييق الفترة حتى لا تظهر نتائج جزئية.');
     } else if (dto.dataset === 'expenses') {
       let query = (this.db as any)
-        .selectFrom('treasury_transactions as t')
+        .selectFrom('expenses as e')
+        .leftJoin('branches as b', (j: any) => j.onRef('b.id', '=', 'e.branch_id').onRef('b.tenant_id', '=', 'e.tenant_id'))
         .select([
-          sql`to_char(t.created_at, 'YYYY-MM')`.as('date_month'),
-          sql`to_char(t.created_at, 'YYYY-MM-DD')`.as('date_day'),
-          't.category as category',
-          't.description as description',
-          sql<number>`t.amount`.as('total_amount'),
+          sql`to_char(e.expense_date, 'YYYY-MM')`.as('date_month'),
+          sql`to_char(e.expense_date, 'YYYY-MM-DD')`.as('date_day'),
+          'b.name as branch',
+          'e.title as category',
+          'e.note as description',
+          sql<number>`e.amount`.as('total_amount'),
+          sql<number>`0`.as('net_profit'),
+          sql<number>`1`.as('quantity'),
         ])
-        .where('t.tenant_id', '=', tenantId)
-        .where('t.type', '=', 'expense');
+        .where('e.tenant_id', '=', tenantId);
 
-      if (dto.dateFrom) query = query.where('t.created_at', '>=', new Date(dto.dateFrom));
+      if (dto.dateFrom) query = query.where('e.expense_date', '>=', new Date(dto.dateFrom));
       if (dto.dateTo) {
         const to = new Date(dto.dateTo);
         to.setHours(23, 59, 59, 999);
-        query = query.where('t.created_at', '<=', to);
+        query = query.where('e.expense_date', '<=', to);
       }
 
-      records = await query.limit(5000).execute();
+      records = await query.limit(10001).execute();
+        if (records.length > 10000) throw new BadRequestException('التقرير يحتوي على أكثر من 10,000 سجل؛ يرجى تضييق الفترة حتى لا تظهر نتائج جزئية.');
     }
 
     return buildDynamicPivotMatrix({

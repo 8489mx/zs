@@ -12,9 +12,11 @@ export function normalizeReturnItems(payload: CreateReturnDto): Array<{ productI
       purchaseItemId: item.purchaseItemId ? Number(item.purchaseItemId) : undefined,
       batchId: item.batchId ? Number(item.batchId) : undefined,
       serials: item.serials,
-    }))
-    .filter((item) => item.productId > 0 && item.qty > 0);
+    }));
 
+  if (normalized.some((item) => !Number.isSafeInteger(item.productId) || item.productId <= 0 || !Number.isFinite(item.qty) || item.qty <= 0)) {
+    throw new AppError('Return contains invalid product or quantity', 'RETURN_ITEM_INVALID', 400);
+  }
   if (!normalized.length) {
     throw new AppError('Return must include at least one valid item', 'RETURN_ITEMS_REQUIRED', 400);
   }

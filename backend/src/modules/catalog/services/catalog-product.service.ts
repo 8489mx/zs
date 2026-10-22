@@ -17,6 +17,7 @@ type ProductRow = {
   name_en?: string | null;
   barcode: string | null;
   sku?: string | null;
+  catalog_updated_at?: Date | string | null;
   item_type?: 'product' | 'raw_material' | 'service';
   item_kind: 'standard' | 'fashion' | null;
   style_code: string | null;
@@ -296,7 +297,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
         .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -322,11 +323,44 @@ export class CatalogProductService {
       ...listContext,
     });
 
-    const total = filteredBaseRows.length;
+    // Fashion pages are counted by models, never by individual sizes.
+    // Every selected model returns all of its tenant-scoped active variants.
+    const groupedFashion = String(query.groupFashion || '') === 'true';
+    const pageGroups: ProductRow[][] = [];
+    if (groupedFashion) {
+      const groupByKey = new Map<string, ProductRow[]>();
+      for (const row of filteredBaseRows) {
+        const key = row.item_kind === 'fashion' && row.style_code
+          ? `style:${row.style_code}` : `product:${row.id}`;
+        if (!groupByKey.has(key)) groupByKey.set(key, []);
+        groupByKey.get(key)!.push(row);
+      }
+      // Index the complete source once; avoid O(modelCount × productCount)
+      // scans at larger apparel retailers.
+      const allByStyle = new Map<string, ProductRow[]>();
+      for (const product of products) {
+        if (product.item_kind !== 'fashion' || !product.style_code) continue;
+        const list = allByStyle.get(product.style_code) || [];
+        list.push(product);
+        allByStyle.set(product.style_code, list);
+      }
+      for (const [key, rows] of groupByKey.entries()) {
+        if (key.startsWith('style:')) {
+          const present = new Set(rows.map((p) => Number(p.id)));
+          for (const sibling of allByStyle.get(key.slice(6)) || []) {
+            if (!present.has(Number(sibling.id))) rows.push(sibling);
+          }
+        }
+        pageGroups.push(rows);
+      }
+    }
+    const total = groupedFashion ? pageGroups.length : filteredBaseRows.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const safePage = Math.min(page, totalPages);
     const start = (safePage - 1) * pageSize;
-    const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
+    const pagedBaseRows = groupedFashion
+      ? pageGroups.slice(start, start + pageSize).flat()
+      : filteredBaseRows.slice(start, start + pageSize);
     const pagedIds = pagedBaseRows.map((row) => Number(row.id));
 
     const [relations, movementRows] = await Promise.all([
@@ -508,7 +542,7 @@ export class CatalogProductService {
 
   private async findPosProductsByBarcode(barcode: string, limit: number, actor: AuthContext): Promise<PosProductLookupRow[]> {
     if (!barcode) return [];
-    const productMatches = await this.db
+    let productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
       .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.sku', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
@@ -518,6 +552,22 @@ export class CatalogProductService {
       .orderBy('p.id', 'asc')
       .limit(limit)
       .execute() as PosProductLookupRow[];
+
+    // Prefer the physical barcode; a SKU is a fallback, not a competing code.
+    // A separate exact query preserves barcode precedence and the existing POS contract.
+    if (!productMatches.length) {
+      productMatches = await this.db
+        .selectFrom('products as p')
+        .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+        .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.sku', 'p.item_type', 'p.item_kind',
+          'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price',
+          'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty',
+          'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
+        .where('p.is_active', '=', true)
+        .where('p.sku', '=', barcode)
+        .where(this.tenantPredicate(actor, 'p'))
+        .orderBy('p.id', 'asc').limit(limit).execute() as PosProductLookupRow[];
+    }
 
     const seenProductIds = productMatches.map((product) => Number(product.id));
     let remaining = limit - productMatches.length;
@@ -1206,6 +1256,7 @@ export class CatalogProductService {
         name_en: product.name_en || '',
         barcode: product.barcode || '',
         sku: product.sku || '',
+        catalogUpdatedAt: product.catalog_updated_at ? new Date(product.catalog_updated_at).toISOString() : undefined,
         categoryId: product.category_id ? String(product.category_id) : '',
         categoryName,
         supplierId: product.supplier_id ? String(product.supplier_id) : '',
@@ -1712,6 +1763,17 @@ export class CatalogProductService {
       for (const draft of drafts) if (draft.id && !byId.has(draft.id)) {
         throw new AppError('Variant does not belong to this group', 'FASHION_VARIANT_SCOPE', 403);
       }
+      // Reject stale browser tabs before the first SQL write. Stock-only changes
+      // do not advance catalog_updated_at and therefore do not create false conflicts.
+      for (const draft of drafts) {
+        const expected = draft.input.expectedCatalogUpdatedAt;
+        if (!draft.id || !expected) continue;
+        const current = byId.get(draft.id)!.catalog_updated_at;
+        if (!current || !Number.isFinite(Date.parse(expected)) ||
+            Math.abs(new Date(current).getTime() - new Date(expected).getTime()) > 1) {
+          throw new AppError('تم تعديل هذا الموديل من جهاز آخر. حدّث الشاشة قبل حفظ التعديلات', 'FASHION_GROUP_STALE', 409);
+        }
+      }
       if (newStyle !== originalStyle) {
         const taken = await trx.selectFrom('products').select('id').where('style_code', '=', newStyle)
           .where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
@@ -2061,38 +2123,45 @@ export class CatalogProductService {
   }
 
   async toggleProductArchive(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const product = await this.db
-      .selectFrom('products')
-      .select(['id', 'name', 'is_active'])
-      .where('id', '=', id)
-      .where(this.tenantPredicate(actor))
-      .executeTakeFirst();
-    if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-
-    const nextActive = !Boolean(product.is_active);
-    await this.db
-      .updateTable('products')
-      .set({
-        is_active: nextActive,
-        catalog_updated_at: sql`NOW()`,
-        updated_at: sql`NOW()`,
-      } as any)
-      .where('id', '=', id)
-      .where(this.tenantPredicate(actor))
-      .execute();
-
+    const result = await this.db.transaction().execute(async (trx) => {
+      const product = await trx.selectFrom('products').selectAll()
+        .where('id', '=', id).where(this.tenantPredicate(actor)).forUpdate().executeTakeFirst();
+      if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      const nextActive = !Boolean(product.is_active);
+      if (!nextActive && (Math.abs(Number(product.stock_qty || 0)) > 0.0001 || Number(product.reserved_qty || 0) > 0)) {
+        throw new AppError('لا يمكن أرشفة صنف عليه مخزون أو كميات محجوزة. صفّر رصيده أولاً.', 'PRODUCT_HAS_STOCK', 409);
+      }
+      if (nextActive) {
+        // Re-activating a historic variant must not collide with a newer active item.
+        const taken = await trx.selectFrom('products').select('id')
+          .where('id', '!=', id).where('is_active', '=', true)
+          .where(this.tenantPredicate(actor)).where((eb) => eb.or([
+            sql<boolean>`LOWER(name) = ${String(product.name || '').toLowerCase()}`,
+            ...(product.barcode ? [sql<boolean>`LOWER(barcode) = ${String(product.barcode).toLowerCase()}`] : []),
+            ...(product.sku ? [sql<boolean>`LOWER(sku) = ${String(product.sku).toLowerCase()}`] : []),
+          ])).executeTakeFirst();
+        if (taken) throw new AppError('لا يمكن إعادة تنشيط الصنف: الاسم أو الباركود أو SKU مستخدم بالفعل', 'PRODUCT_IDENTITY_CONFLICT', 409);
+        if (product.item_kind === 'fashion' && product.style_code) {
+          const duplicate = await trx.selectFrom('products').select('id')
+            .where('id', '!=', id).where('style_code', '=', product.style_code)
+            .where('item_kind', '=', 'fashion').where('is_active', '=', true)
+            .where(this.tenantPredicate(actor))
+            .where(sql`LOWER(COALESCE(color, ''))`, '=', String(product.color || '').toLowerCase())
+            .where(sql`LOWER(COALESCE(size, ''))`, '=', String(product.size || '').toLowerCase()).executeTakeFirst();
+          if (duplicate) throw new AppError('اللون والمقاس موجودان بالفعل في هذا الموديل', 'VARIANT_EXISTS', 409);
+        }
+      }
+      await trx.updateTable('products')
+        .set({ is_active: nextActive, catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
+        .where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      return { name: product.name, nextActive };
+    });
     (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
-    const actionLabel = nextActive ? 'تنشيط صنف' : 'أرشفة صنف';
-    const auditDetail = nextActive
-      ? `تم إلغاء أرشفة وتنشيط الصنف ${product.name} (#${id}) بواسطة ${actor.username}`
-      : `تم تعطيل وأرشفة الصنف ${product.name} (#${id}) بواسطة ${actor.username}`;
-    await this.audit.log(actionLabel, auditDetail, actor);
-
+    const actionLabel = result.nextActive ? 'تنشيط صنف' : 'أرشفة صنف';
+    await this.audit.log(actionLabel, `${result.nextActive ? 'تم تنشيط' : 'تم أرشفة'} الصنف ${result.name} (#${id}) بواسطة ${actor.username}`, actor);
     return {
-      ok: true,
-      id,
-      isActive: nextActive,
-      message: nextActive ? 'تم تنشيط الصنف بنجاح وإعادته لدليل الأصناف النشطة' : 'تم أرشفة وتعطيل الصنف بنجاح',
+      ok: true, id, isActive: result.nextActive,
+      message: result.nextActive ? 'تم تنشيط الصنف بنجاح وإعادته لدليل الأصناف النشطة' : 'تم أرشفة وتعطيل الصنف بنجاح',
     };
   }
 
@@ -2104,7 +2173,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();

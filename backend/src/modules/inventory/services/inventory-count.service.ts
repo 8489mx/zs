@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
@@ -17,6 +18,7 @@ import { InventoryScopeService } from './inventory-scope.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { normalizeArabicSearch, matchesArabic } from '../../../common/utils/arabic-search.util';
 
@@ -148,8 +150,14 @@ export class InventoryCountService {
     }
 
     const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
-      const result = await trx.insertInto('stock_count_sessions').values({ doc_no: buildStockCountSessionDocNo(), branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
+      // Time-based suffixes collide if two cashiers create a count at once.
+      // A unique provisional code is replaced inside this transaction by the
+      // stable database-generated session identity.
+      const result = await trx.insertInto('stock_count_sessions').values({ doc_no: `ZSC-TMP-${randomUUID()}`, branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       const id = Number(result.id);
+      await trx.updateTable('stock_count_sessions')
+        .set({ doc_no: buildStockCountSessionDocNo(Date.now(), id) })
+        .where('id', '=', id).where(this.tenantPredicate(auth)).execute();
       await lockStockProducts(trx, { ...tenantScope, productIds: payload.items.map((item) => item.productId) });
       for (const item of [...payload.items].sort((a, b) => a.productId - b.productId)) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
@@ -184,7 +192,8 @@ export class InventoryCountService {
     }
     const reason = String(payload.reason || '').trim();
     const countedQty = Number(payload.countedQty);
-    if (reason.length < 8 || !Number.isFinite(countedQty) || countedQty < 0) {
+    if (reason.length < 8 || !Number.isFinite(countedQty) || countedQty < 0 ||
+      Math.abs(countedQty * 1000 - Math.round(countedQty * 1000)) > 0.000001) {
       throw new AppError('A valid recount quantity and reason are required', 'INVALID_STOCK_RECOUNT', 400);
     }
     return this.tx.runInTransaction(this.db, async (trx) => {
@@ -226,8 +235,16 @@ export class InventoryCountService {
       if (!session) {
         throw new AppError('جلسة الجرد غير موجودة', 'SESSION_NOT_FOUND', 404);
       }
-      if (session.status === 'posted') {
-        throw new AppError('لا يمكن حذف أو إلغاء جلسة جرد معتمدة ومرحلة إلى المخازن والحسابات', 'SESSION_ALREADY_POSTED', 400);
+      // 'posting' already means some chunks have been committed to the stock and
+      // general ledgers. Deleting the session would orphan those financial entries.
+      if (session.status !== 'draft') {
+        throw new AppError('لا يمكن حذف جلسة جرد بدأ ترحيلها؛ يجب استكمال الترحيل والتسوية', 'SESSION_ALREADY_POSTED', 409);
+      }
+      const postedItem = await trx.selectFrom('stock_count_items').select('id')
+        .where('session_id', '=', sessionId).where(this.tenantPredicate(auth))
+        .where('posted_at', 'is not', null).limit(1).executeTakeFirst();
+      if (postedItem) {
+        throw new AppError('جلسة الجرد تحتوي على بنود مرحلة ولا يمكن حذفها', 'SESSION_ALREADY_POSTED', 409);
       }
       // Delete associated items first
       await trx.deleteFrom('stock_count_items')
@@ -327,6 +344,7 @@ export class InventoryCountService {
           }
           const variance = Number(item.variance_qty || 0);
           if (Math.abs(variance) >= 0.001) {
+            await assertUntrackedStockMutation(trx, tenantScope, Number(item.product_id));
             const product = await trx.selectFrom('products').select('cost_price')
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
             const rawCost = Number(product.cost_price || 0);
@@ -470,6 +488,7 @@ export class InventoryCountService {
         || Math.abs(damageQty * 1000 - Math.round(damageQty * 1000)) > 0.000001) {
         throw new AppError('Damage quantity must be positive with at most three decimal places', 'INVALID_QTY', 400);
       }
+      await assertUntrackedStockMutation(trx, tenantScope, Number(payload.productId));
 
       const availableQty = await previewConsumableStockQty(trx, { productId: payload.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
       const writeModels = buildDamagedStockWriteModels({ ...product, stock_qty: availableQty }, payload, location, auth.userId);

@@ -1,12 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { useState, useMemo, type CSSProperties } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import { QueryCard } from '@/shared/components/query-card';
 import { AnimatedValue } from '@/shared/components/animated-value';
 import { FormSection } from '@/shared/components/form-section';
 import { formatCurrency } from '@/lib/format';
 import type { ReportsSectionContentProps } from '@/features/reports/components/reports-section.types';
 import { CircularProgress } from '@/shared/components/charts/CircularProgress';
-import { SalesTrendChart } from '@/shared/components/charts/SalesTrendChart';
 import { ShiftAnalysisChart } from '@/shared/components/charts/ShiftAnalysisChart';
 import { ShoppingCartIcon, PackageIcon, CreditCardIcon, TrendingUpIcon } from '@/shared/components/icons/AppIcons';
 
@@ -19,7 +18,6 @@ export function OverviewReportSection({
   formatPercent,
 }: Pick<ReportsSectionContentProps, 'report' | 'reportQuery' | 'accountingFinancialSummary' | 'accountingCashMovement' | 'executiveRows' | 'formatPercent'>) {
   const { t } = useTranslation();
-  const [chartPeriod, setChartPeriod] = useState<string>('6 شهور');
   const financial = accountingFinancialSummary?.cards;
   const cash = accountingCashMovement?.totals;
   const salesTotal = report?.sales.total ?? financial?.grossSales ?? 0;
@@ -36,56 +34,6 @@ export function OverviewReportSection({
     { label: 'مجمل الربح', value: grossProfit, helper: 'بعد تكلفة البضاعة', tone: 'profit', progress: Math.round((Math.abs(grossProfit) / statMax) * 100) },
     { label: 'صافي حركة النقدية', value: netCashMovement, helper: 'داخل وخارج خلال الفترة', tone: 'treasury', progress: Math.round((Math.abs(netCashMovement) / statMax) * 100) },
   ];
-  const chartData = useMemo(() => {
-    const baseSales = netSales;
-    const basePurchases = report?.purchases.netPurchases || 0;
-    
-    if (chartPeriod === 'شهر') {
-      return [
-        { name: 'الأسبوع 1', sales: Math.round(baseSales * 0.2), purchases: Math.round(basePurchases * 0.2) },
-        { name: 'الأسبوع 2', sales: Math.round(baseSales * 0.25), purchases: Math.round(basePurchases * 0.3) },
-        { name: 'الأسبوع 3', sales: Math.round(baseSales * 0.3), purchases: Math.round(basePurchases * 0.25) },
-        { name: 'الأسبوع 4', sales: Math.round(baseSales * 0.25), purchases: Math.round(basePurchases * 0.25) },
-      ];
-    }
-    
-    if (chartPeriod === 'سنة') {
-      return [
-        { name: 'يناير', sales: Math.round(baseSales * 0.08), purchases: Math.round(basePurchases * 0.07) },
-        { name: 'فبراير', sales: Math.round(baseSales * 0.085), purchases: Math.round(basePurchases * 0.08) },
-        { name: 'مارس', sales: Math.round(baseSales * 0.09), purchases: Math.round(basePurchases * 0.085) },
-        { name: 'أبريل', sales: Math.round(baseSales * 0.11), purchases: Math.round(basePurchases * 0.09) },
-        { name: 'مايو', sales: Math.round(baseSales * 0.095), purchases: Math.round(basePurchases * 0.105) },
-        { name: 'يونيو', sales: Math.round(baseSales * 0.10), purchases: Math.round(basePurchases * 0.10) },
-        { name: 'يوليو', sales: Math.round(baseSales * 0.12), purchases: Math.round(basePurchases * 0.11) },
-        { name: 'أغسطس', sales: Math.round(baseSales * 0.11), purchases: Math.round(basePurchases * 0.12) },
-        { name: 'سبتمبر', sales: Math.round(baseSales * 0.09), purchases: Math.round(basePurchases * 0.08) },
-        { name: 'أكتوبر', sales: Math.round(baseSales * 0.105), purchases: Math.round(basePurchases * 0.095) },
-        { name: 'نوفمبر', sales: Math.round(baseSales * 0.115), purchases: Math.round(basePurchases * 0.10) },
-        { name: 'ديسمبر', sales: Math.round(baseSales * 0.13), purchases: Math.round(basePurchases * 0.11) },
-      ];
-    }
-
-    if (chartPeriod === 'الكل') {
-      return [
-        { name: '2021', sales: Math.round(baseSales * 0.6), purchases: Math.round(basePurchases * 0.65) },
-        { name: '2022', sales: Math.round(baseSales * 0.8), purchases: Math.round(basePurchases * 0.75) },
-        { name: '2023', sales: Math.round(baseSales * 0.95), purchases: Math.round(basePurchases * 0.9) },
-        { name: '2024', sales: Math.round(baseSales * 1.1), purchases: Math.round(basePurchases * 1.05) },
-      ];
-    }
-    
-    // Default: 6 شهور
-    return [
-      { name: 'يناير', sales: Math.round(baseSales * 0.8), purchases: Math.round(basePurchases * 0.7) },
-      { name: 'فبراير', sales: Math.round(baseSales * 0.85), purchases: Math.round(basePurchases * 0.8) },
-      { name: 'مارس', sales: Math.round(baseSales * 0.9), purchases: Math.round(basePurchases * 0.85) },
-      { name: 'أبريل', sales: Math.round(baseSales * 1.1), purchases: Math.round(basePurchases * 0.9) },
-      { name: 'مايو', sales: Math.round(baseSales * 0.95), purchases: Math.round(basePurchases * 1.05) },
-      { name: 'يونيو', sales: Math.round(baseSales), purchases: Math.round(basePurchases) }
-    ];
-  }, [chartPeriod, netSales, report?.purchases.netPurchases]);
-
   interface MetricClusterItem {
     label: string;
     value: string;
@@ -190,41 +138,21 @@ export function OverviewReportSection({
     <div className="page-stack" style={{ gap: '12px' }}>
       {/* 1. Visual Command Center: Side-by-Side Charts (Area Trend + Margin Donut) */}
       <div className="reports-charts-hub-grid">
-        {/* Right (65%): Sales & Purchases Area Trend Chart */}
+        {/* Only display backed-by-invoices aggregates; this API has no time-series rows. */}
         <FormSection
-          title={t('reports.sections.overview_report_section.s0', "تحليل المبيعات والمشتريات")}
-          description={t('reports.sections.overview_report_section.s1', "منحنى زمني تفاعلي يقارن بين حركة البيع والشراء.")}
+          title={t('reports.sections.overview_report_section.s0', 'إجمالي المبيعات والمشتريات')}
+          description={t('reports.overview_time_series_unavailable', 'القيم التالية فعلية للفترة المختارة؛ لا تتوفر نقاط زمنية للرسم من هذا المصدر.')}
           className="reports-chart-motion"
-          actions={
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {[t('reports.sections.overview_report_section.s2', "شهر"), t('reports.sections.overview_report_section.s3', "6 شهور"), t('reports.sections.overview_report_section.s4', "سنة"), t('reports.sections.overview_report_section.s5', "الكل")].map((period) => {
-                const isActive = chartPeriod === period;
-                return (
-                  <button
-                    key={period}
-                    type="button"
-                    onClick={() => setChartPeriod(period)}
-                    className="nav-pill"
-                    style={{
-                      border: 'none',
-                      background: isActive ? 'var(--accent, #170c5c)' : '#f1f5f9',
-                      color: isActive ? '#ffffff' : '#475569',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      padding: '4px 12px',
-                      borderRadius: '6px'
-                    }}
-                  >
-                    {period}
-                  </button>
-                );
-              })}
-            </div>
-          }
         >
-          <div style={{ marginTop: '12px' }}>
-            <SalesTrendChart data={chartData} height={300} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', minHeight: '130px', alignItems: 'center' }}>
+            <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '10px', minWidth: 0 }}>
+              <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{t('reports.net_sales', 'صافي المبيعات')}</div>
+              <strong>{formatCurrency(netSales)}</strong>
+            </div>
+            <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '10px', minWidth: 0 }}>
+              <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{t('reports.net_purchases', 'صافي المشتريات')}</div>
+              <strong>{formatCurrency(report?.purchases.netPurchases ?? 0)}</strong>
+            </div>
           </div>
         </FormSection>
 

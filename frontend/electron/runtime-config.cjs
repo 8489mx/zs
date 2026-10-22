@@ -1,6 +1,19 @@
 const fs = require('fs');
 const path = require('path');
 
+function normalizeLanServerUrl(value) {
+  if (typeof value !== 'string') throw new Error('Invalid server URL');
+  const input = value.trim();
+  let url;
+  try { url = new URL(input); } catch { throw new Error('Invalid server URL'); }
+  if (url.protocol !== 'http:' || !url.hostname || url.username || url.password ||
+      url.pathname !== '/' || url.search || url.hash ||
+      !/^(?:localhost|[a-z0-9.-]+|\[[a-f0-9:]+\])$/i.test(url.hostname)) {
+    throw new Error('LAN server must be a plain HTTP host with an optional port');
+  }
+  return url.origin;
+}
+
 class RuntimeConfig {
   constructor(userDataPath) {
     this.configPath = path.join(userDataPath, 'runtime.json');
@@ -29,12 +42,11 @@ class RuntimeConfig {
 
       let serverUrl = parsed.serverUrl;
       if (parsed.runtimeMode === 'lan_client') {
-        if (!serverUrl || typeof serverUrl !== 'string' || !serverUrl.startsWith('http')) {
-          return { runtimeMode: 'invalid', serverUrl: null, port: 3001 };
-        }
+        try { serverUrl = normalizeLanServerUrl(serverUrl); }
+        catch { return { runtimeMode: 'invalid', serverUrl: null, port: 3001 }; }
       }
 
-      const port = typeof parsed.port === 'number' ? parsed.port : 3001;
+      const port = Number.isInteger(parsed.port) && parsed.port >= 1024 && parsed.port <= 65535 ? parsed.port : 3001;
       return { runtimeMode: parsed.runtimeMode, serverUrl, port };
     } catch (err) {
       console.error('[ELECTRON] Failed to read or parse runtime.json.', err);
@@ -72,15 +84,14 @@ class RuntimeConfig {
   }
 
   switchToLanClient(serverUrl, port) {
-    if (!serverUrl || typeof serverUrl !== 'string' || !serverUrl.startsWith('http')) {
-      throw new Error('Invalid server URL');
-    }
+    const normalized = normalizeLanServerUrl(serverUrl);
     this._saveConfig({
       runtimeMode: 'lan_client',
-      serverUrl,
-      port: port || 3001
+      serverUrl: normalized,
+      port: Number.isInteger(port) && port >= 1024 && port <= 65535 ? port : 3001
     });
   }
 }
 
 module.exports = RuntimeConfig;
+module.exports.normalizeLanServerUrl = normalizeLanServerUrl;

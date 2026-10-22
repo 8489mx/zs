@@ -84,6 +84,7 @@ export class SalesFinanceService {
     auth: AuthContext,
     branchId: number | null,
     locationId: number | null,
+    cashierShiftId?: number | null,
   ): Promise<void> {
     await queryable
       .insertInto('treasury_transactions')
@@ -91,8 +92,8 @@ export class SalesFinanceService {
         txn_type: amount >= 0 ? 'sale' : 'sale_cancel_restore',
         amount,
         note,
-        reference_type: 'sale',
-        reference_id: saleId,
+        reference_type: cashierShiftId ? 'cashier_shift' : 'sale',
+        reference_id: cashierShiftId || saleId,
         created_by: auth.userId,
         branch_id: branchId,
         location_id: locationId,

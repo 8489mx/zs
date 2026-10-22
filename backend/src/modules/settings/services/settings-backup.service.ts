@@ -1,4 +1,4 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { Kysely, sql } from '../../../database/kysely';
@@ -13,7 +13,7 @@ import AdmZip from 'adm-zip';
 import { findOrphanedReferences, listTenantTables } from '../../../core/tenant-transfer/tenant-package';
 import { encryptBundle } from '../../../core/tenant-transfer/backup-bundle';
 
-type BackupTableName = Exclude<keyof Database, 'backup_snapshots'>;
+type BackupTableName = Exclude<keyof Database, 'backup_snapshots'> | (string & {});
 
 interface BackupManifest { formatVersion: string; appVersion: string; createdAt: string; backupType: string; includesDatabase: boolean; includesFiles: boolean; databaseChecksumSha256: string; backupSchemaVersion?: string; legacyFormat?: boolean; }
 interface BackupEnvelope { meta: { version: string; exportedAt: string; source: string; tenantId?: string; accountId?: string }; tables: Partial<Record<BackupTableName, unknown[]>> }
@@ -44,11 +44,17 @@ const BACKUP_TABLES: BackupTableName[] = [
   'hr_compensation_packages', 'hr_employee_loans', 'hr_employee_loan_installments',
   'hr_employee_ledger', 'hr_attendance_records', 'hr_attendance_exceptions',
   'hr_leave_types', 'hr_leave_requests', 'hr_employee_assets', 'hr_payroll_runs',
-  'hr_payroll_run_items', 'hr_payroll_item_adjustments', 'hr_hr_settings'
+  'hr_payroll_run_items', 'hr_payroll_item_adjustments', 'hr_hr_settings',
+  // Additional transactional tables must be exported and restored together with
+  // invoices, inventory and journal entries. Incomplete backups lose real business data.
+  'daily_financial_summaries', 'operation_executions', 'bank_statements', 'bank_statement_lines', 'accounting_cheques', 'accounting_fiscal_years', 'accounting_fiscal_periods', 'withholding_tax_transactions', 'crm_deals', 'crm_activities', 'accounting_posting_failures', 'product_serials', 'sale_pharmacy_batch_allocations', 'treasury_transfers', 'pos_audit_events', 'goods_receipt_notes', 'goods_receipt_lines', 'purchase_three_way_matches', 'purchase_landed_costs', 'purchase_orders', 'purchase_order_items', 'sales_orders', 'sales_order_items', 'manufacturing_unbuild_orders', 'services', 'hr_payroll_loan_deduction_allocations', 'hr_holidays', 'delivery_representatives', 'fleet_vehicles', 'van_sales_trips', 'van_field_returns', 'van_trip_expenses', 'van_trip_packaging_movements', 'delivery_rep_targets', 'van_load_requisitions', 'van_rep_financial_settlements'
 ];
 const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()];
 const RESTORE_CONFIRMATION_TEXT = 'RESTORE BACKUP';
-const DEFAULT_BACKUP_FOLDER = 'D:\\ZS Backups';
+// Never require a D: drive on a customer's standalone Windows computer.
+const DEFAULT_BACKUP_FOLDER = process.env.IS_ELECTRON === 'true' && process.env.Z_DATA_DIR
+  ? path.resolve(process.env.Z_DATA_DIR, '..', 'backups')
+  : path.resolve(process.cwd(), 'backups');
 const BACKUP_FOLDER_SETTING_KEY = 'backupFolderPath';
 const BACKUP_AUTOMATION_SETTING_KEY = 'backupAutomation';
 
@@ -209,8 +215,59 @@ function remapPolymorphicReferences(
 }
 
 @Injectable()
-export class SettingsBackupService {
+export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
+  private backupScheduler?: NodeJS.Timeout;
+  private schedulerBusy = false;
+  private backupInFlight: Promise<Record<string, unknown>> | null = null;
+
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
+
+  onModuleInit(): void {
+    // Background backups must not require the shop owner to open Settings every day.
+    // Never run a local-file scheduler in cloud SaaS or for another tenant.
+    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') return;
+    if (process.env.APP_MODE === 'CLOUD_SAAS') return;
+    this.backupScheduler = setInterval(() => { void this.checkUnattendedBackup(); }, 5 * 60 * 1000);
+    this.backupScheduler.unref?.();
+    // Bootstrap migrations happen after provider init; the first scheduled poll will
+    // see the fully migrated database and is safer than querying tables immediately.
+  }
+
+  onModuleDestroy(): void {
+    if (this.backupScheduler) clearInterval(this.backupScheduler);
+  }
+
+  private async checkUnattendedBackup(): Promise<void> {
+    if (this.schedulerBusy) return;
+    this.schedulerBusy = true;
+    try {
+      const tenantId = String(process.env.TENANT_ID || 'default');
+      const accountId = String(process.env.ACCOUNT_ID || tenantId);
+      const admin = await this.db.selectFrom('users')
+        .select(['id', 'username', 'role'])
+        .where('tenant_id', '=', tenantId)
+        .where('role', '=', 'admin')
+        .where('is_active', '=', true)
+        .orderBy('id', 'asc').executeTakeFirst();
+      if (!admin) return;
+      // Internal-only context; no permission or session is exposed to an HTTP caller.
+      const actor: AuthContext = {
+        userId: Number(admin.id),
+        username: String(admin.username),
+        role: 'admin',
+        permissions: ['canManageSettings'],
+        sessionId: 'system-backup',
+        tenantId,
+        accountId,
+      };
+      const result = await this.runAutoBackupIfDue(actor);
+      if (result.ok === false) console.error('[DesktopBackup] Auto-backup failed:', result.error);
+    } catch (error) {
+      console.error('[DesktopBackup] Auto-backup scheduler error:', error);
+    } finally {
+      this.schedulerBusy = false;
+    }
+  }
 
   assertAdmin(auth?: AuthContext | null): asserts auth is AuthContext { if (!auth) throw new ForbiddenException('Authentication required'); const canManage = auth.role === 'super_admin' || auth.permissions.includes('settings') || auth.permissions.includes('canManageSettings'); if (!canManage) throw new ForbiddenException('Missing required permissions'); requireTenantScope(auth); }
   private assertCanRestoreBackup(auth?: AuthContext | null): asserts auth is AuthContext {
@@ -224,7 +281,19 @@ export class SettingsBackupService {
   }
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
   private assertRestoreConfirmation(payload: unknown): void { const confirmation = isObjectRecord(payload) ? String(payload.confirmation || payload.restoreConfirmation || '').trim() : ''; if (confirmation !== RESTORE_CONFIRMATION_TEXT) throw new AppError(`Type ${RESTORE_CONFIRMATION_TEXT} to confirm backup restore`, 'BACKUP_RESTORE_CONFIRMATION_REQUIRED', 400); }
-  private normalizeEnvelope(payload: unknown): BackupEnvelope { if (!isObjectRecord(payload)) throw new AppError('Backup payload must be an object', 'BACKUP_INVALID', 400); const meta = isObjectRecord(payload.meta) ? { version: String(payload.meta.version || '1.0.0'), exportedAt: String(payload.meta.exportedAt || payload.meta.exported_at || ''), source: String(payload.meta.source || 'manual'), tenantId: String(payload.meta.tenantId || ''), accountId: String(payload.meta.accountId || '') } : { version: '1.0.0', exportedAt: '', source: 'manual' }; const tablesRaw = isObjectRecord(payload.tables) ? payload.tables : {}; const tables: Partial<Record<BackupTableName, unknown[]>> = {}; for (const table of BACKUP_TABLES) tables[table] = Array.isArray(tablesRaw[table]) ? tablesRaw[table] as unknown[] : []; return { meta, tables }; }
+  private normalizeEnvelope(payload: unknown): BackupEnvelope {
+    if (!isObjectRecord(payload)) throw new AppError('Backup payload must be an object', 'BACKUP_INVALID', 400);
+    const meta = isObjectRecord(payload.meta)
+      ? { version: String(payload.meta.version || '1.0.0'), exportedAt: String(payload.meta.exportedAt || payload.meta.exported_at || ''), source: String(payload.meta.source || 'manual'), tenantId: String(payload.meta.tenantId || ''), accountId: String(payload.meta.accountId || '') }
+      : { version: '1.0.0', exportedAt: '', source: 'manual' };
+    const raw = isObjectRecord(payload.tables) ? payload.tables : {};
+    const tables: Partial<Record<BackupTableName, unknown[]>> = {};
+    for (const [name, rows] of Object.entries(raw)) {
+      if (/^[a-z][a-z0-9_]*$/.test(name) && Array.isArray(rows)) tables[name] = rows;
+    }
+    for (const name of BACKUP_TABLES) if (!tables[name]) tables[name] = [];
+    return { meta, tables };
+  }
   private normalizeFolderPath(value: unknown): string {
     const candidate = String(value || '').trim();
     if (!candidate || candidate === '\\\\?' || candidate === '\\?' || /[?*<>"|]/.test(candidate)) {
@@ -286,7 +355,7 @@ export class SettingsBackupService {
     const storeSlug = storeNameStr.replace(/[^\w\s\u0600-\u06FF-]/g, '').trim().replace(/\s+/g, '-');
     const userSlug = userNameStr.replace(/[^\w\s\u0600-\u06FF-]/g, '').trim().replace(/\s+/g, '-');
 
-    return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}.zip`;
+    return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${now.getMilliseconds().toString().padStart(3, '0')}.zip`;
   }
   private async ensureWritableFolder(folderPath: string): Promise<void> {
     const raw = String(folderPath || '').trim();
@@ -337,19 +406,45 @@ export class SettingsBackupService {
     const fileName = await this.buildBackupFileName(actor, now);
     const filePath = path.join(resolvedFolder, fileName);
     const scope = this.scope(actor);
-    await fs.writeFile(filePath, zipBuffer);
+    const tempPath = filePath + '.writing';
+    try {
+      await fs.writeFile(tempPath, zipBuffer, { flag: 'wx' });
+      await fs.rename(tempPath, filePath);
+    } catch (error) {
+      await fs.unlink(tempPath).catch(() => undefined);
+      throw error;
+    }
     await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'file-' + now.toISOString()}, ${source}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db).catch(() => undefined);
     await this.rotateOldBackups(resolvedFolder, 30);
     return { filePath, fileName };
   }
 
-  async runAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> { if (!actor) return { ok: true, ran: false, reason: 'no-actor' }; this.assertAdmin(actor); try { this.assertDesktopMode(); } catch { return { ok: true, ran: false, reason: 'disabled' }; } const state = await this.getBackupConfigState(actor); if (!state.automation.enabled) return { ok: true, ran: false, reason: 'disabled', config: state }; const now = new Date(); const scheduledAt = this.getLastScheduledDate(now, state.automation); const scheduledIso = scheduledAt.toISOString(); if (String(state.automation.lastScheduledFor || '').trim() === scheduledIso) return { ok: true, ran: false, reason: 'already-attempted', config: state }; const lastSuccessAt = state.automation.lastSuccessAt ? new Date(state.automation.lastSuccessAt) : null; if (lastSuccessAt && lastSuccessAt.getTime() >= scheduledAt.getTime()) { state.automation.lastScheduledFor = scheduledIso; await this.saveBackupConfigState(state, actor); return { ok: true, ran: false, reason: 'already-succeeded', config: state }; } state.automation.lastAttemptAt = now.toISOString(); state.automation.lastScheduledFor = scheduledIso; try { const result = await this.saveBackupToFolder(state.folderPath, 'auto-scheduled', actor); state.automation.lastAttemptStatus = 'success'; state.automation.lastSuccessAt = now.toISOString(); state.automation.lastError = ''; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي تلقائي', `تم إنشاء نسخة احتياطية تلقائية في ${result.filePath}`, actor).catch(() => undefined); return { ok: true, ran: true, success: true, filePath: result.filePath, config: state }; } catch (error) { state.automation.lastAttemptStatus = 'failed'; state.automation.lastError = error instanceof Error ? error.message : 'تعذر تنفيذ النسخ التلقائي'; await this.saveBackupConfigState(state, actor); return { ok: false, ran: true, success: false, error: state.automation.lastError, config: state }; } }
+  async runAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> {
+    if (this.backupInFlight) return this.backupInFlight;
+    const attempt = this.performAutoBackupIfDue(actor);
+    this.backupInFlight = attempt;
+    try { return await attempt; }
+    finally { if (this.backupInFlight === attempt) this.backupInFlight = null; }
+  }
+
+  private async performAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> { if (!actor) return { ok: true, ran: false, reason: 'no-actor' }; this.assertAdmin(actor); try { this.assertDesktopMode(); } catch { return { ok: true, ran: false, reason: 'disabled' }; } const state = await this.getBackupConfigState(actor); if (!state.automation.enabled) return { ok: true, ran: false, reason: 'disabled', config: state }; const now = new Date(); const scheduledAt = this.getLastScheduledDate(now, state.automation); const scheduledIso = scheduledAt.toISOString(); if (String(state.automation.lastScheduledFor || '').trim() === scheduledIso) return { ok: true, ran: false, reason: 'already-attempted', config: state }; const lastSuccessAt = state.automation.lastSuccessAt ? new Date(state.automation.lastSuccessAt) : null; if (lastSuccessAt && lastSuccessAt.getTime() >= scheduledAt.getTime()) { state.automation.lastScheduledFor = scheduledIso; await this.saveBackupConfigState(state, actor); return { ok: true, ran: false, reason: 'already-succeeded', config: state }; } state.automation.lastAttemptAt = now.toISOString(); state.automation.lastScheduledFor = scheduledIso; try { const result = await this.saveBackupToFolder(state.folderPath, 'auto-scheduled', actor); state.automation.lastAttemptStatus = 'success'; state.automation.lastSuccessAt = now.toISOString(); state.automation.lastError = ''; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي تلقائي', `تم إنشاء نسخة احتياطية تلقائية في ${result.filePath}`, actor).catch(() => undefined); return { ok: true, ran: true, success: true, filePath: result.filePath, config: state }; } catch (error) { state.automation.lastAttemptStatus = 'failed'; state.automation.lastError = error instanceof Error ? error.message : 'تعذر تنفيذ النسخ التلقائي'; state.automation.lastScheduledFor = undefined; await this.saveBackupConfigState(state, actor); return { ok: false, ran: true, success: false, error: state.automation.lastError, config: state }; } }
   async getBackupConfig(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); await this.runAutoBackupIfDue(actor); const state = await this.getBackupConfigState(actor); return { ok: true, defaultFolderPath: DEFAULT_BACKUP_FOLDER, folderPath: state.folderPath || DEFAULT_BACKUP_FOLDER, automation: state.automation, scope: this.scope(actor) }; }
   async saveBackupConfig(payload: unknown, actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const input = isObjectRecord(payload) ? payload : {}; const current = await this.getBackupConfigState(actor); const automationInput = isObjectRecord(input.automation) ? input.automation : {}; current.folderPath = this.normalizeFolderPath(input.folderPath ?? current.folderPath ?? DEFAULT_BACKUP_FOLDER); current.automation.enabled = typeof automationInput.enabled === 'boolean' ? automationInput.enabled : typeof input.autoBackupEnabled === 'boolean' ? Boolean(input.autoBackupEnabled) : current.automation.enabled; current.automation.frequency = this.normalizeFrequency(automationInput.frequency ?? input.frequency ?? current.automation.frequency); current.automation.time = this.normalizeTime(automationInput.time ?? input.time ?? current.automation.time); current.automation.weeklyDay = this.normalizeWeeklyDay(automationInput.weeklyDay ?? input.weeklyDay ?? current.automation.weeklyDay); await this.saveBackupConfigState(current, actor); await this.audit.log('تعديل إعدادات النسخ الاحتياطي', `تم تعديل إعدادات النسخ الاحتياطي بواسطة ${actor.username}`, actor).catch(() => undefined); return { ok: true, config: current, message: 'تم حفظ إعدادات النسخ الاحتياطي' }; }
   async testBackupFolder(payload: unknown, actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const input = isObjectRecord(payload) ? payload : {}; const folderPath = this.normalizeFolderPath(input.folderPath); try { await this.ensureWritableFolder(folderPath); return { ok: true, success: true, folderPath, message: `تم اختبار المسار بنجاح: ${folderPath}` }; } catch (error) { return { ok: false, success: false, folderPath, message: error instanceof Error ? error.message : 'تعذر الوصول إلى المجلد المحدد' }; } }
   async saveBackupToConfiguredFolder(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const state = await this.getBackupConfigState(actor); const result = await this.saveBackupToFolder(state.folderPath, 'manual-save-to-folder', actor); state.automation.lastAttemptAt = new Date().toISOString(); state.automation.lastAttemptStatus = 'success'; state.automation.lastError = ''; state.automation.lastSuccessAt = state.automation.lastAttemptAt; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي إلى مجلد', `تم حفظ نسخة احتياطية في ${result.filePath} بواسطة ${actor.username}`, actor).catch(() => undefined); return { ok: true, folderPath: state.folderPath, fileName: result.fileName, filePath: result.filePath, message: `تم حفظ النسخة في: ${result.filePath}` }; }
 
-  async exportBackup(actor: AuthContext): Promise<{ zipBuffer: Buffer; manifest: BackupManifest; envelope: BackupEnvelope }> { this.assertAdmin(actor); const scope = this.scope(actor); const tables = {} as Partial<Record<BackupTableName, unknown[]>>; for (const table of BACKUP_TABLES) { const tableName = String(table); const exists = await this.tableExists(tableName); if (!exists) { tables[table] = []; continue; } const hasTenant = await this.tableHasColumn(tableName, 'tenant_id'); if (!hasTenant) { tables[table] = []; continue; } const baseQuery = (this.db).selectFrom(table).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`); const hasId = await this.tableHasColumn(tableName, 'id'); const hasCreatedAt = !hasId && await this.tableHasColumn(tableName, 'created_at'); if (hasId) { tables[table] = await baseQuery.orderBy('id', 'asc').execute(); } else if (hasCreatedAt) { tables[table] = await baseQuery.orderBy('created_at', 'asc').execute(); } else { tables[table] = await baseQuery.execute(); } } const envelope: BackupEnvelope = { meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId }, tables }; const dbJson = JSON.stringify(envelope); const hash = crypto.createHash('sha256').update(dbJson).digest('hex'); const manifest: BackupManifest = { formatVersion: '1.0', appVersion: process.env.npm_package_version || '1.0.0', createdAt: new Date().toISOString(), backupType: 'full', includesDatabase: true, includesFiles: false, databaseChecksumSha256: hash, backupSchemaVersion: '1.2.0' }; const zip = new AdmZip(); zip.addFile('database.json', Buffer.from(dbJson, 'utf8')); zip.addFile('backup-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8')); return { zipBuffer: zip.toBuffer(), manifest, envelope }; }
+  /** Include new tenant-owned module tables without having to remember a hard-coded list. */
+  private async getAllTenantBackupTables(): Promise<BackupTableName[]> {
+    const discovered = await sql<{ table_name: string }>`
+      SELECT DISTINCT table_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND column_name = 'tenant_id'
+        AND table_name <> 'backup_snapshots'
+      ORDER BY table_name
+    `.execute(this.db);
+    return [...new Set<BackupTableName>([...BACKUP_TABLES, ...discovered.rows.map((r) => r.table_name)])];
+  }
+
+  async exportBackup(actor: AuthContext): Promise<{ zipBuffer: Buffer; manifest: BackupManifest; envelope: BackupEnvelope }> { this.assertAdmin(actor); const scope = this.scope(actor); const tables = {} as Partial<Record<BackupTableName, unknown[]>>; for (const table of await this.getAllTenantBackupTables()) { const tableName = String(table); const exists = await this.tableExists(tableName); if (!exists) { tables[table] = []; continue; } const hasTenant = await this.tableHasColumn(tableName, 'tenant_id'); if (!hasTenant) { tables[table] = []; continue; } const baseQuery = (this.db as Kysely<any>).selectFrom(table).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`); const hasId = await this.tableHasColumn(tableName, 'id'); const hasCreatedAt = !hasId && await this.tableHasColumn(tableName, 'created_at'); if (hasId) { tables[table] = await baseQuery.orderBy('id', 'asc').execute(); } else if (hasCreatedAt) { tables[table] = await baseQuery.orderBy('created_at', 'asc').execute(); } else { tables[table] = await baseQuery.execute(); } } const envelope: BackupEnvelope = { meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId }, tables }; const dbJson = JSON.stringify(envelope); const hash = crypto.createHash('sha256').update(dbJson).digest('hex'); const manifest: BackupManifest = { formatVersion: '1.0', appVersion: process.env.npm_package_version || '1.0.0', createdAt: new Date().toISOString(), backupType: 'full', includesDatabase: true, includesFiles: false, databaseChecksumSha256: hash, backupSchemaVersion: '1.2.0' }; const zip = new AdmZip(); zip.addFile('database.json', Buffer.from(dbJson, 'utf8')); zip.addFile('backup-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8')); return { zipBuffer: zip.toBuffer(), manifest, envelope }; }
   async listSnapshots(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); const scope = this.scope(actor); const result = await sql<{ id: number; created_at: string; label: string; source: string; payload_json: unknown }>`select id, created_at, label, source, payload_json from backup_snapshots where tenant_id = ${scope.tenantId} order by created_at desc, id desc limit 20`.execute(this.db); return { snapshots: result.rows.map((row) => ({ id: String(row.id), createdAt: row.created_at, reason: row.label || row.source || '', payload: row.payload_json })), scope }; }
   
   private async parseAndVerifyPayload(fileOrPayload: unknown): Promise<{ envelope: BackupEnvelope; manifest: BackupManifest }> {
@@ -408,7 +503,7 @@ export class SettingsBackupService {
     return { envelope: this.normalizeEnvelope(rawEnvelope), manifest };
   }
 
-  async verifyBackup(payload: unknown): Promise<Record<string, unknown>> { const { envelope, manifest } = await this.parseAndVerifyPayload(payload);  const summary: Record<string, unknown> = { version: envelope.meta.version, exportedAt: envelope.meta.exportedAt || 'unknown', source: envelope.meta.source, tenantId: envelope.meta.tenantId || '' }; for (const table of BACKUP_TABLES) summary[table] = Array.isArray(envelope.tables[table]) ? envelope.tables[table]!.length : 0; return { ok: true, summary, manifest, tablesPresent: BACKUP_TABLES.filter((table) => Array.isArray(envelope.tables[table]) && (envelope.tables[table]?.length || 0) > 0).length }; }
+  async verifyBackup(payload: unknown): Promise<Record<string, unknown>> { const { envelope, manifest } = await this.parseAndVerifyPayload(payload);  const summary: Record<string, unknown> = { version: envelope.meta.version, exportedAt: envelope.meta.exportedAt || 'unknown', source: envelope.meta.source, tenantId: envelope.meta.tenantId || '' }; for (const table of Object.keys(envelope.tables)) summary[table] = Array.isArray(envelope.tables[table]) ? envelope.tables[table]!.length : 0; return { ok: true, summary, manifest, tablesPresent: Object.keys(envelope.tables).filter((table) => Array.isArray(envelope.tables[table]) && (envelope.tables[table]?.length || 0) > 0).length }; }
   private async tableHasId(trx: Kysely<Database>, table: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = 'id') as exists`.execute(trx); return Boolean(result.rows[0]?.exists); }
   private async resetIdentity(trx: Kysely<Database>, table: string): Promise<void> { const hasId = await this.tableHasId(trx, table); if (!hasId) return; const seqResult = await sql<{ seq_name: string | null }>`select pg_get_serial_sequence(${table}, 'id') as seq_name`.execute(trx).catch(() => ({ rows: [{ seq_name: null }] } as { rows: { seq_name: string | null }[] })); const seqName = seqResult.rows[0]?.seq_name; if (!seqName) return; await sql`select setval(${seqName}, coalesce((select max(id)::bigint from ${sql.table(table)}), 0) + 1, false)`.execute(trx).catch(() => undefined); }
   private async getTableColumns(trx: Kysely<Database>, table: string): Promise<Map<string, { data_type: string, column_default: string | null, identity_generation: string | null }>> { const result = await sql<{ column_name: string, data_type: string, column_default: string | null, identity_generation: string | null }>`select column_name, data_type, column_default, identity_generation from information_schema.columns where table_schema = 'public' and table_name = ${table}`.execute(trx); return new Map(result.rows.map(r => [r.column_name, r])); }
@@ -416,7 +511,7 @@ export class SettingsBackupService {
 
   // Runs after the tenant's rows were cleared, so any id still present belongs to another tenant.
   private async canKeepOriginalIds(trx: Kysely<Database>, envelope: BackupEnvelope): Promise<boolean> {
-    for (const table of BACKUP_TABLES) {
+    for (const table of Object.keys(envelope.tables)) {
       if (String(table) === 'sessions') continue;
       const tableName = String(table);
       const rows = (envelope.tables[table] || []).filter(isObjectRecord);
@@ -521,7 +616,7 @@ export class SettingsBackupService {
         const restoredTables: string[] = [];
         const pendingBranchDefaultLocations = new Map<string, string>();
 
-        for (const table of BACKUP_TABLES) {
+        for (const table of [...new Set([...BACKUP_TABLES, ...Object.keys(envelope.tables)])]) {
           if (String(table) === 'sessions' || String(table) === 'tenants') continue;
           const tableName = String(table);
           if (!(await this.tableExists(tableName))) continue;

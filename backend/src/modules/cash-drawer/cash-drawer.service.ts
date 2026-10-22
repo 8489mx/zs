@@ -201,7 +201,7 @@ export class CashDrawerService {
       where tt.tenant_id = ${scope.tenantId}
         and tt.reference_type = 'cashier_shift'
         and tt.reference_id = ${shiftId}
-        and tt.return_document_id is null
+        and (tt.return_document_id is null or tt.txn_type = 'purchase_return_refund')
         and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
     `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
@@ -390,6 +390,51 @@ export class CashDrawerService {
     return { saleReturnCashRefundTotal: this.toMoney(row.sale_return_cash_refund_total || 0), saleReturnCardRefundTotal: this.toMoney(row.sale_return_card_refund_total || 0), saleReturnTotal: this.toMoney(row.sale_return_total || 0) };
   }
 
+  private async computeShiftCustomerCollections(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<number> {
+    const openerId = Number(shift.opened_by || 0);
+    const scope = this.scope(auth);
+    if (!(openerId > 0) || !shift.created_at) return 0;
+    const result = await sql<{ total: string | number }>`
+      select coalesce(sum(cp.amount), 0) as total
+      from customer_payments cp
+      where cp.tenant_id = ${scope.tenantId} and cp.created_by = ${openerId}
+        and cp.created_at >= ${shift.created_at}
+        and (${shift.closed_at || null}::timestamptz is null or cp.created_at <= ${shift.closed_at || null})
+        and (${shift.branch_id || null}::int is null or cp.branch_id is null or cp.branch_id = ${Number(shift.branch_id || 0) || null})
+        and (${shift.location_id || null}::int is null or cp.location_id is null or cp.location_id = ${Number(shift.location_id || 0) || null})
+    `.execute(queryable ?? this.db);
+    return this.toMoney(result.rows?.[0]?.total || 0);
+  }
+
+  private async computeShiftCancelledSaleCashReceipts(
+    shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>,
+  ): Promise<number> {
+    const openerId = Number(shift.opened_by || 0);
+    if (!(openerId > 0) || !shift.created_at) return 0;
+    const scope = this.scope(auth);
+    // A sale cancelled LATER still brought cash into its ORIGINAL shift.
+    // Restore that cash to the original shift's expected drawer, and account
+    // for the outgoing refund separately in whichever shift actually paid it.
+    const result = await sql<{ total: string | number }>`
+      select coalesce(sum(case when sp.sale_id is not null then sp.cash_paid
+        when s.payment_channel = 'cash' then s.paid_amount else 0 end), 0) as total
+      from sales s
+      left join lateral (
+        select s.id as sale_id,
+          sum(case when sp.payment_channel = 'cash' then sp.amount else 0 end) as cash_paid
+        from sale_payments sp
+        where sp.tenant_id = ${scope.tenantId} and sp.sale_id = s.id
+        having count(*) > 0
+      ) sp on true
+      where s.tenant_id = ${scope.tenantId} and s.status = 'cancelled'
+        and s.created_by = ${openerId} and s.created_at >= ${shift.created_at}
+        and (${shift.closed_at || null}::timestamptz is null or s.created_at <= ${shift.closed_at || null})
+        and (${shift.branch_id || null}::int is null or s.branch_id is null or s.branch_id = ${Number(shift.branch_id || 0) || null})
+        and (${shift.location_id || null}::int is null or s.location_id is null or s.location_id = ${Number(shift.location_id || 0) || null})
+    `.execute(queryable ?? this.db);
+    return this.toMoney(result.rows?.[0]?.total || 0);
+  }
+
   private async computeShiftExpectedCashFromShift(shift: ShiftRow, auth: AuthContext, salesBreakdown?: ShiftSalesBreakdown, serviceBreakdown?: ShiftServiceBreakdown, queryable?: Kysely<Database>): Promise<number> {
     const shiftId = Number(shift.id || 0);
     if (!(shiftId > 0)) return this.toMoney(shift.opening_cash || 0);
@@ -399,8 +444,10 @@ export class CashDrawerService {
     const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth, queryable);
     const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth, queryable);
     const expensesTotal = await this.computeShiftExpensesTotal(shift, auth, queryable);
+    const customerCollections = await this.computeShiftCustomerCollections(shift, auth, queryable);
+    const cancelledCheckoutCash = await this.computeShiftCancelledSaleCashReceipts(shift, auth, queryable);
     const netDrawerMovement = movements.cashInTotal - movements.cashOutTotal;
-    return this.toMoney(Number(shift.opening_cash || 0) + netDrawerMovement + breakdown.cashSalesTotal + services.serviceCashTotal - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
+    return this.toMoney(Number(shift.opening_cash || 0) + netDrawerMovement + breakdown.cashSalesTotal + cancelledCheckoutCash + services.serviceCashTotal + customerCollections - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
   }
 
   private async fetchShiftMovementItems(shiftId: number, shift: ShiftRow, auth: AuthContext): Promise<Array<{
@@ -438,7 +485,7 @@ export class CashDrawerService {
       where tt.tenant_id = ${scope.tenantId}
         and tt.reference_type = 'cashier_shift'
         and tt.reference_id = ${shiftId}
-        and tt.return_document_id is null
+        and (tt.return_document_id is null or tt.txn_type = 'purchase_return_refund')
         and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
       order by tt.id asc
     `.execute(this.db);
@@ -446,11 +493,15 @@ export class CashDrawerService {
     for (const tt of ttRows.rows || []) {
       const amt = Number(tt.amount || 0);
       const rawNote = String(tt.note || '').trim();
-      const isDelivery = rawNote.includes('دليفري') || rawNote.includes('مندوب');
+      const isPurchaseRefund = tt.txn_type === 'purchase_return_refund';
+      const isSaleCancellation = tt.txn_type === 'sale_cancel_restore';
+      const isDelivery = !isPurchaseRefund && !isSaleCancellation && (rawNote.includes('دليفري') || rawNote.includes('مندوب'));
       const kind = isDelivery ? 'delivery' : (amt > 0 ? 'cash_in' : 'cash_out');
-      const kindLabel = isDelivery
-        ? (amt > 0 ? 'تحصيل وتسوية دليفري' : 'صرف أجرة طيار دليفري')
-        : (amt > 0 ? 'إيداع نقدي بالدرج (يدوياً)' : 'مسحوبات نقدية من الدرج');
+      const kindLabel = isPurchaseRefund ? 'استرداد نقدي من مورد بعد مرتجع شراء'
+        : isSaleCancellation ? 'رد نقدية فاتورة بيع ملغاة'
+        : isDelivery
+          ? (amt > 0 ? 'تحصيل وتسوية دليفري' : 'صرف أجرة طيار دليفري')
+          : (amt > 0 ? 'إيداع نقدي بالدرج (يدوياً)' : 'مسحوبات نقدية من الدرج');
 
       items.push({
         id: `tt-${tt.id}`,
@@ -511,6 +562,24 @@ export class CashDrawerService {
           note: note.trim() || 'سداد مورد',
           createdAt: sup.payment_date ? new Date(sup.payment_date).toISOString() : '',
         });
+      }
+
+      // Customer debt collections are physical receipts at the same cashier drawer.
+      // They are not sales and must not be counted in sales turnover.
+      const customerRows = await sql<{ id: number; amount: number | string; note?: string | null; created_at?: string | Date | null }>`
+        select cp.id, cp.amount, cp.note, cp.created_at
+        from customer_payments cp
+        where cp.tenant_id = ${scope.tenantId} and cp.created_by = ${openerId}
+          and cp.created_at >= ${shift.created_at}
+          and (${shift.closed_at || null}::timestamptz is null or cp.created_at <= ${shift.closed_at || null})
+          and (${shift.branch_id || null}::int is null or cp.branch_id is null or cp.branch_id = ${Number(shift.branch_id || 0) || null})
+          and (${shift.location_id || null}::int is null or cp.location_id is null or cp.location_id = ${Number(shift.location_id || 0) || null})
+        order by cp.id asc
+      `.execute(this.db);
+      for (const receipt of customerRows.rows || []) {
+        items.push({ id: `cp-${receipt.id}`, kind: 'cash_in', kindLabel: 'تحصيل من عميل آجل',
+          amount: Math.abs(Number(receipt.amount || 0)), note: String(receipt.note || 'سند قبض عميل').trim(),
+          createdAt: receipt.created_at ? new Date(receipt.created_at).toISOString() : '' });
       }
 
       // 5. Returns (Sale Returns)

@@ -344,14 +344,15 @@ export function PosWorkspace() {
           return;
         }
 
-        // 1. Check if invoice
-        if (isInvoiceBarcodeQuery(query)) {
+        // A numeric retail product barcode can resemble YYMMDD+sequence.
+        // Always prioritize a known product over the invoice heuristic.
+        const localMatch = matchProductByCode(pos.catalogProducts, query);
+        if (localMatch.status === 'not-found' && isInvoiceBarcodeQuery(query)) {
           const isInvoice = await resolveScannedInvoice(query);
           if (isInvoice) return;
         }
 
-        // 2. Fast path 0ms: Check local in-memory catalog cache first
-        const localMatch = matchProductByCode(pos.catalogProducts, query);
+        // Fast path: check local in-memory catalog before remote lookup.
         if (localMatch.status === 'matched') {
           const submitted = pos.handleQuickAddCodeSubmit(rawQuery, pos.catalogProducts);
           if (submitted) { pos.setSearch(''); return; }
@@ -420,8 +421,12 @@ export function PosWorkspace() {
     const query = parsed.cleanQuery || raw;
     const requestedQuantity = parsed.hasPrefix ? parsed.quantity : 1;
 
-    // 1. Direct Invoice lookup if matching pattern
-    if (isInvoiceBarcodeQuery(query) || isInvoiceBarcodeQuery(raw)) {
+    const exactCodeMatch = matchProductByCode(pos.productsQuery.data || [], query);
+
+    // Exact product barcodes (and scale labels) win over the date-shaped invoice heuristic.
+    if (exactCodeMatch.status === 'not-found' &&
+        !parseWeightedBarcode(query, pos.settingsQuery.data || null) &&
+        (isInvoiceBarcodeQuery(query) || isInvoiceBarcodeQuery(raw))) {
       void (async () => {
         const isInvoice = await resolveScannedInvoice(query);
         if (!isInvoice) {
@@ -448,7 +453,6 @@ export function PosWorkspace() {
       return true;
     }
 
-    const exactCodeMatch = matchProductByCode(pos.productsQuery.data || [], query);
     if (exactCodeMatch.status === 'matched') {
       const submitted = handleQuickAddSubmit(raw);
       if (submitted) pos.setSearch('');
@@ -1056,8 +1060,17 @@ export function PosWorkspace() {
           initialBarcode={newProductInitialBarcode}
           onSuccess={(newProduct) => {
             setNewProductModalOpen(false);
-            pos.handleAddProduct(newProduct);
-            pos.setSearch('');
+            if (newProduct.itemKind === 'fashion' && newProduct.styleCode) {
+              // A grouped creation returns its first variant, not the customer's size.
+              const suffix = [newProduct.color, newProduct.size].filter(Boolean).join(' / ');
+              const baseName = suffix && newProduct.name.endsWith(` - ${suffix}`)
+                ? newProduct.name.slice(0, -(` - ${suffix}`).length) : newProduct.name;
+              pos.setSearch(baseName);
+              toast.warning('الموديل اتضاف. اختار اللون والمقاس المطلوب من النتائج قبل إضافته للسلة.');
+            } else {
+              pos.handleAddProduct(newProduct);
+              pos.setSearch('');
+            }
             focusBarcodeEntry();
           }}
         />

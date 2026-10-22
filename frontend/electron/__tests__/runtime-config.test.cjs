@@ -67,6 +67,19 @@ describe('RuntimeConfig', () => {
     expect(saved.runtimeMode).toBe('lan_server');
   });
 
+  it('rejects unsafe LAN URLs and normalizes valid endpoints', () => {
+    const instance = new RuntimeConfig(testDir);
+    for (const url of [
+      'https://example.com', 'http://name:pass@192.168.0.5:3001',
+      'http://192.168.0.5:3001/other', 'http://192.168.0.5:3001/?x=1',
+      'javascript:alert(1)',
+    ]) {
+      expect(() => instance.switchToLanClient(url)).toThrow();
+    }
+    instance.switchToLanClient('http://192.168.0.5:3001/');
+    expect(instance.getConfig().serverUrl).toBe('http://192.168.0.5:3001');
+  });
+
   it('switchToLanClient requires valid URL', () => {
     const instance = new RuntimeConfig(testDir);
     expect(() => instance.switchToLanClient('invalid-url')).toThrow();

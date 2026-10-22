@@ -4,6 +4,7 @@ import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
+import { assertUntrackedStockMutation } from '../../inventory/helpers/inventory-tracked-stock.helper';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
@@ -408,6 +409,10 @@ export class PurchasesWriteService {
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
       for (const item of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const itemSerials = Array.isArray(item.serials) ? item.serials : [];
+        // Recoverable input VAT is a separate asset, not inventory/COGS cost.
+        const netPurchaseUnitCost = payload.pricesIncludeTax
+          ? item.effectiveUnitCost / (1 + Number(payload.taxRate || 0) / 100)
+          : item.effectiveUnitCost;
         const insertedItem = await trx.insertInto('purchase_items').values({
           purchase_id: id,
           product_id: item.productId,
@@ -440,7 +445,7 @@ export class PurchasesWriteService {
               status: 'in_stock' as const,
               branch_id: branchId || null,
               location_id: itemLocationId || null,
-              cost_price: item.effectiveUnitCost,
+              cost_price: netPurchaseUnitCost / item.unitMultiplier,
               purchase_id: id,
               purchase_item_id: insertedItem ? Number(insertedItem.id) : null,
               warranty_end_date: null,
@@ -469,8 +474,10 @@ export class PurchasesWriteService {
             .where('id', '=', item.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
           const oldCost = Number(currentProduct.cost_price || 0);
           const totalQty = oldQty + increasedQty;
+          // Inventory cost is per base stock unit, not per purchased carton.
+          const baseUnitCost = netPurchaseUnitCost / item.unitMultiplier;
           const newCost = (increasedQty > 0 && totalQty > 0.00001) 
-            ? ((oldQty * oldCost) + (increasedQty * item.effectiveUnitCost)) / totalQty
+            ? ((oldQty * oldCost) + (increasedQty * baseUnitCost)) / totalQty
             : oldCost;
 
           await trx.updateTable('products')
@@ -528,7 +535,7 @@ export class PurchasesWriteService {
                   .updateTable('pharmacy_batches')
                   .set({
                     quantity: updatedQty,
-                    unit_cost: item.effectiveUnitCost,
+                    unit_cost: netPurchaseUnitCost / item.unitMultiplier,
                     status: 'active',
                     expiry_date: expiryDate,
                     updated_at: sql`NOW()`,
@@ -547,7 +554,7 @@ export class PurchasesWriteService {
                     batch_number: batchNo,
                     expiry_date: expiryDate,
                     quantity: increasedQty,
-                    unit_cost: item.effectiveUnitCost,
+                    unit_cost: netPurchaseUnitCost / item.unitMultiplier,
                     location_id: itemLocationId || null,
                     supplier_name: supplier?.name || null,
                     status: 'active',
@@ -798,6 +805,9 @@ export class PurchasesWriteService {
       const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
       for (const normalizedItem of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const repricedCost = Number(normalizedItem.effectiveUnitCost || 0);
+        const netRepricedCost = payload.pricesIncludeTax
+          ? repricedCost / (1 + Number(payload.taxRate || 0) / 100)
+          : repricedCost;
 
         await trx.insertInto('purchase_items').values({
           purchase_id: purchaseId,
@@ -830,8 +840,9 @@ export class PurchasesWriteService {
           .where('id', '=', normalizedItem.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
         const oldCost = Number(currentProduct.cost_price || 0);
         const totalQty = oldQty + increaseQty;
+        const baseUnitCost = netRepricedCost / normalizedItem.unitMultiplier;
         const newCost = (increaseQty > 0 && totalQty > 0.00001) 
-          ? ((oldQty * oldCost) + (increaseQty * repricedCost)) / totalQty
+          ? ((oldQty * oldCost) + (increaseQty * baseUnitCost)) / totalQty
           : oldCost;
 
         await trx.updateTable('products')
@@ -1009,10 +1020,45 @@ export class PurchasesWriteService {
       }
       if (purchase.lifecycle_status === 'grn_bill') throw new AppError('لا يمكن إلغاء فاتورة GRN بعد تسوية الاستحقاق؛ يلزم إشعار دائن محاسبي', 'GRNI_BILL_IMMUTABLE', 422);
 
+      // Cancellation reverses the *entire* invoice. Once its cost is capitalised,
+      // some debt is settled, or any line has been returned, that reversal would
+      // double-reverse stock or supplier balances. Require adjustment documents.
+      const existingReturn = await trx.selectFrom('return_documents').select('id')
+        .where('return_type', '=', 'purchase').where('invoice_id', '=', purchaseId)
+        .where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
+      if (existingReturn) throw new AppError('لا يمكن إلغاء فاتورة مشتريات لها مرتجعات؛ استخدم تسوية محاسبية', 'PURCHASE_CANCEL_HAS_RETURNS', 422);
+      if (purchase.landed_cost_applied_at || Number(purchase.landed_cost_total || 0) > 0) {
+        throw new AppError('لا يمكن إلغاء فاتورة مشتريات عليها مصاريف شراء محملة؛ يلزم مستند تصحيح', 'PURCHASE_CANCEL_HAS_LANDED_COST', 422);
+      }
+      if (purchase.payment_type === 'credit' && Number(purchase.paid_amount || 0) > 0.001) {
+        throw new AppError('لا يمكن إلغاء فاتورة مشتريات آجل مسددة جزئياً أو كلياً؛ يلزم مستند تصحيح', 'PURCHASE_CANCEL_PARTIALLY_PAID', 422);
+      }
+      const scheduledSettlements = await trx.selectFrom('supplier_payment_schedules')
+        .select([
+          sql<number>`coalesce(sum(paid_amount), 0)`.as('paid'),
+          sql<number>`count(*) filter (where status <> 'cancelled')`.as('active_count'),
+        ])
+        .where('purchase_id', '=', purchaseId).where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      if (Number(scheduledSettlements?.paid || 0) > 0.001) {
+        throw new AppError('فاتورة الشراء عليها أقساط مورد مسددة؛ لا يمكن عكسها بإلغاء مباشر', 'PURCHASE_CANCEL_SCHEDULE_HAS_PAYMENTS', 422);
+      }
+      // Unpaid installment schedules are commitments, not financial entries.
+      // Retire them atomically with the purchase to avoid ghost due payments.
+      if (Number(scheduledSettlements?.active_count || 0) > 0) {
+        await trx.updateTable('supplier_payment_schedules')
+          .set({ status: 'cancelled', updated_by: auth.userId, updated_at: sql`NOW()` })
+          .where('purchase_id', '=', purchaseId).where('tenant_id', '=', scope.tenantId)
+          .where('status', '!=', 'cancelled').execute();
+      }
+
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
+        // Cancelling stock without undoing product serial and pharmacy batch
+        // provenance leaves the detail ledger inconsistent with global stock.
+        await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
         const itemLocationId = item.location_id ?? purchase.location_id;
         const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, beforeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
@@ -1047,6 +1093,12 @@ export class PurchasesWriteService {
       }
 
       if (purchase.payment_type === 'credit' && purchase.supplier_id) {
+        const supplier = await trx.selectFrom('suppliers').select(['balance'])
+          .where('id', '=', purchase.supplier_id).where('tenant_id', '=', scope.tenantId)
+          .forUpdate().executeTakeFirstOrThrow();
+        if (Number(supplier.balance || 0) + 0.001 < Number(purchase.total || 0)) {
+          throw new AppError('رصيد المورد لا يغطي عكس فاتورة الشراء بالكامل؛ راجع التسويات والمدفوعات', 'PURCHASE_CANCEL_SUPPLIER_BALANCE', 422);
+        }
         await this.financeService.addSupplierLedgerEntry(trx, purchase.supplier_id, -Number(purchase.total || 0), 'purchase_cancel', buildPurchaseReferenceNote('إلغاء فاتورة شراء', purchase), 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
       } else {
         await this.financeService.addTreasuryTransaction(trx, 'purchase_cancel', Number(purchase.total || 0), buildPurchaseReferenceNote('إلغاء فاتورة شراء', purchase), 'purchase', purchaseId, auth, purchase.branch_id, purchase.location_id);
@@ -1087,7 +1139,9 @@ export class PurchasesWriteService {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const amount = Number(payload.amount || 0);
-      if (!(amount > 0)) throw new AppError('Amount must be greater than zero', 'INVALID_AMOUNT', 400);
+      if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
+        throw new AppError('Supplier payment must be positive and have at most two decimal places', 'INVALID_AMOUNT', 400);
+      }
       const currentBalance = Number(supplier.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Supplier has no outstanding balance', 'SUPPLIER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Supplier payment cannot exceed outstanding balance', 'SUPPLIER_OVERPAYMENT', 400);
@@ -1151,7 +1205,9 @@ export class PurchasesWriteService {
   async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const amount = Number(payload.amount);
-    if (!Number.isFinite(amount) || amount <= 0) throw new AppError('Payment amount must be greater than zero', 'INVALID_PAYMENT_AMOUNT', 400);
+    if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
+      throw new AppError('Customer payment must be positive and have at most two decimal places', 'INVALID_PAYMENT_AMOUNT', 400);
+    }
 
     const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
       const customer = await trx
@@ -1159,6 +1215,7 @@ export class PurchasesWriteService {
         .select(['id', 'name', 'balance'])
         .where('id', '=', payload.customerId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .forUpdate()
         .executeTakeFirst();
       if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
 

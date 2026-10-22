@@ -32,6 +32,9 @@ export function createProductBarcodeMap(products: Product[]): Map<string, Produc
     if (p.barcode) {
       map.set(p.barcode.trim().toLowerCase(), p);
     }
+    if (p.sku) {
+      map.set(p.sku.trim().toLowerCase(), p);
+    }
     if (p.units) {
       for (const u of p.units) {
         if (u.barcode) {

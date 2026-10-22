@@ -118,14 +118,14 @@ export class ReportsService {
     // PERF-FIX: In production PostgreSQL, all 8 queries are pure SQL aggregates (0 raw rows pulled into Node).
     // For unit-test query builder mocks (e.g. FakeDb in reports-financial-summary.spec.ts), fallback to row evaluation.
     if (typeof (this.db.selectFrom('sales') as any).groupBy !== 'function') {
-      const salesQuery = applyReportScopeFilter(this.db.selectFrom('sales').select(['id', 'total', 'discount', 'delivery_fee', 'delivery_fee_mode', 'delivery_rep_id', 'branch_id', 'location_id', 'created_by', 'created_at']).where('status', '=', 'posted').where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
+      const salesQuery = applyReportScopeFilter(this.db.selectFrom('sales').select(['id', 'total', 'tax_amount', 'discount', 'delivery_fee', 'delivery_fee_mode', 'delivery_rep_id', 'branch_id', 'location_id', 'created_by', 'created_at']).where('status', '=', 'posted').where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
       const purchasesQuery = applyReportScopeFilter(this.db.selectFrom('purchases').select(['id', 'total', 'branch_id', 'location_id', 'created_by', 'created_at']).where('status', '=', 'posted').where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
       const servicesQuery = applyReportScopeFilter((this.db as any).selectFrom('services').select(['id', 'amount as total', 'branch_id', 'location_id', 'created_by', 'service_date as created_at']).where('is_active', '=', true).where('service_date', '>=', fromDate!).where('service_date', '<=', toDate!).where(this.tenantPredicate(auth)), query);
       const expensesQuery = applyReportScopeFilter(this.db.selectFrom('expenses').select(['id', 'amount', 'branch_id', 'location_id', 'created_by', 'expense_date']).where('expense_date', '>=', fromDate).where('expense_date', '<=', toDate).where(this.tenantPredicate(auth)), query);
       const returnsQuery = applyReportScopeFilter(this.db.selectFrom('return_documents').select(['id', 'return_type', 'total', 'branch_id', 'location_id', 'created_by', 'created_at']).where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
       const treasuryQuery = applyReportScopeFilter(this.db.selectFrom('treasury_transactions').select(['amount', 'branch_id', 'location_id', 'created_by', 'created_at']).where('created_at', '>=', fromDate!).where('created_at', '<=', toDate!).where(this.tenantPredicate(auth)), query);
       const saleItemsQuery = applyReportScopeFilter(this.db.selectFrom('sale_items as si').innerJoin('sales as s', 's.id', 'si.sale_id').select(['si.product_id', 'si.product_name', 'si.qty', 'si.line_total', 'si.cost_price', 's.branch_id', 's.location_id', 's.created_by', 's.created_at']).where('s.status', '=', 'posted').where('s.created_at', '>=', fromDate).where('s.created_at', '<=', toDate).where(this.tenantPredicate(auth, 's')).where(this.tenantPredicate(auth, 'si')), query, 's');
-      const returnedSaleItemsQuery = applyReportScopeFilter(this.db.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').leftJoin('sale_items as si', (join) => join.onRef('si.sale_id', '=', 'rd.invoice_id').onRef('si.product_id', '=', 'ri.product_id')).leftJoin('products as p', 'p.id', 'ri.product_id').select(['ri.qty', (eb) => eb.fn.coalesce('si.cost_price', 'p.cost_price').as('cost_price'), 'rd.branch_id', 'rd.location_id', 'rd.created_by', 'rd.created_at']).where('rd.return_type', '=', 'sale').where('rd.created_at', '>=', fromDate!).where('rd.created_at', '<=', toDate!).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')), query, 'rd');
+      const returnedSaleItemsQuery = applyReportScopeFilter(this.db.selectFrom('return_items as ri').innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id').leftJoin('sale_items as si', (join) => join.onRef('si.id', '=', 'ri.sale_item_id').onRef('si.tenant_id', '=', 'ri.tenant_id')).leftJoin('products as p', (join) => join.onRef('p.id', '=', 'ri.product_id').onRef('p.tenant_id', '=', 'ri.tenant_id')).select(['ri.qty', 'ri.allocated_tax', (eb) => eb.fn.coalesce('ri.cost_price', 'si.cost_price', 'p.cost_price').as('cost_price'), 'rd.branch_id', 'rd.location_id', 'rd.created_by', 'rd.created_at']).where('rd.return_type', '=', 'sale').where('rd.created_at', '>=', fromDate!).where('rd.created_at', '<=', toDate!).where(this.tenantPredicate(auth, 'rd')).where(this.tenantPredicate(auth, 'ri')), query, 'rd');
 
       const [salesRows, purchasesRows, rawServicesRows, expensesRows, returnsRows, treasuryRows, saleItemsRows, returnedSaleItemsRows] = await Promise.all([
         salesQuery.execute(),
@@ -162,6 +162,7 @@ export class ReportsService {
         .select([
           sql<number>`count(*)`.as('sales_count'),
           sql<number>`coalesce(sum(total), 0)`.as('sales_total'),
+          sql<number>`coalesce(sum(tax_amount), 0)`.as('sales_tax_total'),
           sql<number>`count(*) filter (where ${freelanceCondition})`.as('freelance_count'),
           sql<number>`coalesce(sum(delivery_fee) filter (where ${freelanceCondition}), 0)`.as('freelance_total'),
           sql<number>`count(*) filter (where ${storeFleetCondition})`.as('store_fleet_count'),
@@ -215,6 +216,20 @@ export class ReportsService {
       query,
     );
 
+    // Stock issued permanently for operations is expensed to account 6900,
+    // without a row in the standalone expenses table. Excluding it from this
+    // summary overstates operating profit compared with the general ledger.
+    const operatingMaterialsQuery = applyReportScopeFilter(
+      this.db.selectFrom('stock_movements as m')
+        .select(sql<number>`coalesce(sum(m.total_cost), 0)`.as('materials_total'))
+        .where('m.movement_type', '=', 'transfer_final_issue')
+        .where('m.reason', '=', 'final_issue')
+        .where('m.created_at', '>=', fromDate)
+        .where('m.created_at', '<=', toDate)
+        .where(this.tenantPredicate(auth, 'm')),
+      query, 'm',
+    );
+
     const returnsAggQuery = applyReportScopeFilter(
       this.db
         .selectFrom('return_documents')
@@ -228,6 +243,19 @@ export class ReportsService {
         .where(this.tenantPredicate(auth))
         .groupBy('return_type'),
       query,
+    );
+
+    const salesReturnTaxQuery = applyReportScopeFilter(
+      this.db.selectFrom('return_items as ri')
+        .innerJoin('return_documents as rd', (join) => join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id'))
+        .select(sql<number>`coalesce(sum(ri.allocated_tax), 0)`.as('tax_total'))
+        .where('rd.return_type', '=', 'sale')
+        .where('rd.created_at', '>=', fromDate)
+        .where('rd.created_at', '<=', toDate)
+        .where(this.tenantPredicate(auth, 'rd'))
+        .where(this.tenantPredicate(auth, 'ri')),
+      query,
+      'rd',
     );
 
     const treasuryAggQuery = applyReportScopeFilter(
@@ -262,11 +290,11 @@ export class ReportsService {
         .selectFrom('return_items as ri')
         .innerJoin('return_documents as rd', 'rd.id', 'ri.return_document_id')
         .leftJoin('sale_items as si', (join) =>
-          join.onRef('si.sale_id', '=', 'rd.invoice_id').onRef('si.product_id', '=', 'ri.product_id'),
+          join.onRef('si.id', '=', 'ri.sale_item_id').onRef('si.tenant_id', '=', 'ri.tenant_id'),
         )
-        .leftJoin('products as p', 'p.id', 'ri.product_id')
+        .leftJoin('products as p', (join) => join.onRef('p.id', '=', 'ri.product_id').onRef('p.tenant_id', '=', 'ri.tenant_id'))
         .select(
-          sql<number>`coalesce(sum(ri.qty * coalesce(si.cost_price, p.cost_price, 0)), 0)`.as('returned_cogs'),
+          sql<number>`coalesce(sum(ri.qty * coalesce(ri.cost_price, si.cost_price, p.cost_price, 0)), 0)`.as('returned_cogs'),
         )
         .where('rd.return_type', '=', 'sale')
         .where('rd.created_at', '>=', fromDate!)
@@ -305,7 +333,9 @@ export class ReportsService {
       purchasesAggRow,
       servicesAggRow,
       expensesAggRow,
+      operatingMaterialsRow,
       returnsAggRows,
+      salesReturnTaxRow,
       treasuryAggRow,
       rawCogsRow,
       returnedCogsRow,
@@ -315,7 +345,9 @@ export class ReportsService {
       purchasesAggQuery.executeTakeFirst(),
       servicesAggQuery.executeTakeFirst(),
       expensesAggQuery.executeTakeFirst(),
+      operatingMaterialsQuery.executeTakeFirst(),
       returnsAggQuery.execute(),
+      salesReturnTaxQuery.executeTakeFirst(),
       treasuryAggQuery.executeTakeFirst(),
       rawCogsQuery.executeTakeFirst(),
       returnedCogsQuery.executeTakeFirst(),
@@ -342,7 +374,8 @@ export class ReportsService {
 
     const rawCogs = Number((rawCogsRow as any)?.raw_cogs || 0);
     const returnedCogs = Number((returnedCogsRow as any)?.returned_cogs || 0);
-    const cogsOverride = Math.max(0, rawCogs - returnedCogs);
+    // Return COGS can exceed new-sale COGS in a quiet period; do not clamp it away.
+    const cogsOverride = rawCogs - returnedCogs;
 
     const topProductsOverride = (topProductsRows || []).map((r: any) => ({
       name: String(r.name || 'صنف غير محدد'),
@@ -363,9 +396,12 @@ export class ReportsService {
 
     const totalsOverride = {
       salesTotal: Number((salesAggRow as any)?.sales_total || 0),
+      salesTaxTotal: Number((salesAggRow as any)?.sales_tax_total || 0),
+      salesReturnTaxTotal: Number((salesReturnTaxRow as any)?.tax_total || 0),
       servicesTotal: Number((servicesAggRow as any)?.services_total || 0),
       purchasesTotal: Number((purchasesAggRow as any)?.purchases_total || 0),
-      expensesTotal: Number((expensesAggRow as any)?.expenses_total || 0),
+      expensesTotal: Number((expensesAggRow as any)?.expenses_total || 0) + Number((operatingMaterialsRow as any)?.materials_total || 0),
+      operatingMaterialsTotal: Number((operatingMaterialsRow as any)?.materials_total || 0),
       salesReturnsTotal,
       purchaseReturnsTotal,
       cashIn: Number((treasuryAggRow as any)?.cash_in || 0),
@@ -609,7 +645,66 @@ export class ReportsService {
       topSupplierRows,
     });
 
-    const result = this.withScope(buildDashboardOverviewPayload({
+    // Financial dashboard: actual checkout tenders, not guessed percentages.
+    // Join invoice-level preaggregated payments so mixed tenders never multiply
+    // the invoice total. Credit is the remaining debt not paid at checkout.
+    const breakdownResult = await sql<{
+      cash: number | string; card: number | string;
+      online: number | string; credit: number | string;
+    }>`
+      with scoped_sales as (
+        select id, total, paid_amount, store_credit_used, payment_type, payment_channel, customer_id
+        from sales
+        where tenant_id = ${tenantId} and status = 'posted'
+          and created_at >= ${new Date(range.from)}
+          and created_at <= ${new Date(range.to)}
+          and (${query.branchId == null} or branch_id = ${Number(query.branchId || 0)})
+          and (${query.locationId == null} or location_id = ${Number(query.locationId || 0)})
+      ), tenders as (
+        select sp.sale_id,
+          sum(sp.amount) as paid,
+          sum(case when sp.payment_channel = 'cash' then sp.amount else 0 end) as cash,
+          sum(case when sp.payment_channel = 'card' then sp.amount else 0 end) as card,
+          sum(case when sp.payment_channel in ('wallet', 'instapay') then sp.amount else 0 end) as online
+        from sale_payments sp
+        join scoped_sales s on s.id = sp.sale_id
+        where sp.tenant_id = ${tenantId}
+        group by sp.sale_id
+      ), return_liability as (
+        select rd.invoice_id,
+          sum(case when rd.refund_allocations is not null then
+            coalesce((
+              select sum((allocation.value->>'amount')::numeric)
+              from jsonb_array_elements(rd.refund_allocations) as allocation(value)
+              where allocation.value->>'tender' = 'receivable'
+            ), 0)
+            when s.payment_type = 'credit' then rd.total else 0 end) as reversed
+        from return_documents rd
+        join scoped_sales s on s.id = rd.invoice_id
+        where rd.tenant_id = ${tenantId} and rd.return_type = 'sale'
+        group by rd.invoice_id
+      )
+      select
+        coalesce(sum(coalesce(t.cash, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel = 'cash' then s.paid_amount else 0 end)), 0) as cash,
+        coalesce(sum(coalesce(t.card, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel = 'card' then s.paid_amount else 0 end)), 0) as card,
+        coalesce(sum(coalesce(t.online, case when t.sale_id is null and s.payment_type = 'cash' and s.payment_channel in ('wallet', 'instapay') then s.paid_amount else 0 end)), 0) as online,
+        coalesce(sum(case when s.customer_id is not null
+          then greatest(0, s.total - coalesce(s.store_credit_used, 0)
+            - greatest(coalesce(s.paid_amount, 0), coalesce(t.paid, 0))
+            - coalesce(r.reversed, 0)) else 0 end), 0) as credit
+      from scoped_sales s
+      left join tenders t on t.sale_id = s.id
+      left join return_liability r on r.invoice_id = s.id
+    `.execute(this.db);
+    const breakdown = breakdownResult.rows[0];
+    const paymentBreakdown = {
+      cash: Number(breakdown?.cash || 0),
+      card: Number(breakdown?.card || 0),
+      online: Number(breakdown?.online || 0),
+      credit: Number(breakdown?.credit || 0),
+    };
+
+    const result = this.withScope({ ...buildDashboardOverviewPayload({
       range,
       summary: summary as Record<string, unknown>,
       productsCount: Number(productAgg.products_count),
@@ -620,7 +715,7 @@ export class ReportsService {
       todayOperations: dashboardState.todayOperations,
       trends: dashboardState.trends,
       activeOffers,
-    }), auth);
+    }), paymentBreakdown }, auth);
 
     this.overviewCache.delete(cacheKey);
     this.overviewCache.set(cacheKey, { expiresAt: nowMs + this.OVERVIEW_CACHE_TTL_MS, data: result });

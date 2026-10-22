@@ -2055,6 +2055,39 @@ export class SalesWriteService {
       if (sale.exchange_return_id) throw new AppError('فاتورة استبدال مترابطة؛ استخدم مرتجعاً بدلاً من تعديلها', 'EXCHANGE_IMMUTABLE', 422);
       if (sale.status !== 'posted') throw new AppError('لا يمكن تعديل فاتورة غير مرحّلة أو ملغاة.', 'SALE_EDIT_STATUS_FORBIDDEN', 400);
 
+      // A cashier shift is a historical cash accountability period. A sale
+      // belonging to a closed shift cannot be edited in place: doing so would
+      // retroactively change that shift's computed totals and cash exposure.
+      const shiftBase = trx.selectFrom('cashier_shifts')
+        .select(['id', 'opened_by', 'status'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('opened_by', '=', Number(sale.created_by || 0))
+        .where('created_at', '<=', sale.created_at)
+        .where((eb) => eb.or([eb('closed_at', 'is', null), eb('closed_at', '>=', sale.created_at)]));
+      const originalShift = await (sale.branch_id == null
+        ? shiftBase.where('branch_id', 'is', null)
+        : shiftBase.where('branch_id', '=', sale.branch_id))
+        .orderBy('id', 'desc').forUpdate().executeTakeFirst();
+      if (originalShift && (originalShift.status !== 'open' || Number(originalShift.opened_by) !== auth.userId)) {
+        throw new AppError(
+          'لا يمكن تعديل فاتورة تخص وردية مقفولة أو وردية كاشير آخر؛ استخدم مستند مرتجع أو تسوية',
+          'SALE_EDIT_ORIGINAL_SHIFT_LOCKED', 422,
+        );
+      }
+      if (normalized.source === 'pos' && !originalShift) {
+        throw new AppError('لا يمكن تعديل فاتورة كاشير خارج ورديتها الأصلية؛ استخدم مرتجعاً أو تسوية', 'SALE_EDIT_ORIGINAL_SHIFT_MISSING', 422);
+      }
+      // A later receipt is an independent GL event and must remain attached to
+      // the original debt. This edit route reverses the entire old invoice and
+      // must not silently leave that receipt allocated against its replacement.
+      const laterAllocation = await trx.selectFrom('payment_allocations')
+        .select('id').where('tenant_id', '=', scope.tenantId)
+        .where('invoice_type', '=', 'sale').where('invoice_id', '=', saleId)
+        .limit(1).executeTakeFirst();
+      if (laterAllocation) {
+        throw new AppError('الفاتورة عليها سند قبض مخصص؛ يلزم مستند تصحيح بدلاً من تعديلها', 'SALE_EDIT_HAS_LATER_PAYMENTS', 422);
+      }
+
       let branch: any = null;
       if (normalized.source === 'pos') {
         if (!normalized.branchId) {
@@ -2170,6 +2203,15 @@ export class SalesWriteService {
         .where('sale_id', '=', saleId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
+      const recordedCheckoutCents = currentPayments.reduce((sum, payment) =>
+        sum + Math.round(Number(payment.amount || 0) * 100), 0);
+      if (currentPayments.length > 0 &&
+          Math.round(Number(sale.paid_amount || 0) * 100) > recordedCheckoutCents) {
+        throw new AppError('الفاتورة عليها تحصيلات إضافية لا يمكن عكسها بتعديل الفاتورة', 'SALE_EDIT_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
+      if (currentPayments.length === 0 && Number(sale.paid_amount || 0) > 0 && sale.payment_channel === 'mixed') {
+        throw new AppError('لا يمكن تعديل فاتورة قديمة ذات سداد مختلط دون تفاصيل وسائل الدفع', 'SALE_EDIT_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
 
       await this.lockSaleStockRows(trx, scope, [...currentItems, ...(payload.items || [])]);
       await this.restoreSalePharmacyBatches(trx, saleId, currentItems, scope, true);
@@ -2200,8 +2242,11 @@ export class SalesWriteService {
              remainingToRestore -= qtyToRestore;
 
              // Find branch for this location
-             const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
-             const branchId = locData?.branch_id || sale.branch_id;
+             const locData = await trx.selectFrom('stock_locations').select('branch_id')
+               .where('id', '=', alloc.location_id).where('tenant_id', '=', scope.tenantId)
+               .executeTakeFirst();
+             if (!locData) throw new AppError('مخزن سطر الفاتورة الأصلي غير موجود؛ يجب تسوية المخزون قبل التعديل', 'SALE_EDIT_LOCATION_RECONCILIATION_REQUIRED', 409);
+             const branchId = locData.branch_id ?? sale.branch_id;
 
              const stockChange = await applyStockDelta(trx, {
                productId: Number(item.product_id),
@@ -2228,6 +2273,9 @@ export class SalesWriteService {
                tenant_id: scope.tenantId,
                account_id: scope.accountId,
              }).execute();
+           }
+           if (remainingToRestore > 0.0001) {
+             throw new AppError('توزيع مخزون سطر البيع الأصلي غير مكتمل؛ لا يمكن تعديل الفاتورة دون تسوية', 'SALE_EDIT_STOCK_ALLOCATION_RECONCILIATION_REQUIRED', 409);
            }
         } else {
            // Fallback for legacy sales without allocations
@@ -2829,6 +2877,23 @@ export class SalesWriteService {
         .where('return_type', '=', 'sale').where('invoice_id', '=', saleId)
         .where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
       if (existingReturn) throw new AppError('لا يمكن إلغاء فاتورة لها مرتجعات؛ استخدم تسوية محاسبية.', 'SALE_CANCEL_HAS_RETURNS', 400);
+      // A later customer receipt is a separate financial transaction. Cancelling
+      // the entire sale would reverse the original receivable while leaving that
+      // receipt's ledger entry in place, producing a fictitious customer credit.
+      // These invoices must be handled via an explicit return/credit note.
+      const laterAllocations = await trx.selectFrom('payment_allocations').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('invoice_type', '=', 'sale')
+        .where('invoice_id', '=', saleId).limit(1).executeTakeFirst();
+      if (laterAllocations) {
+        throw new AppError('لا يمكن إلغاء فاتورة تم تحصيل سداد لاحق عليها؛ استخدم مرتجعاً أو تسوية محاسبية', 'SALE_CANCEL_HAS_LATER_PAYMENTS', 422);
+      }
+      const originalPaymentTotal = await trx.selectFrom('sale_payments')
+        .select(sql<number>`coalesce(sum(amount), 0)`.as('amount'))
+        .where('tenant_id', '=', scope.tenantId).where('sale_id', '=', saleId).executeTakeFirst();
+      const recordedSalePayments = Number(originalPaymentTotal?.amount || 0);
+      if (recordedSalePayments > 0 && Number(sale.paid_amount || 0) > recordedSalePayments + 0.009) {
+        throw new AppError('الفاتورة تحتوي على تحصيلات لاحقة غير مرتبطة؛ يجب تسويتها قبل الإلغاء', 'SALE_CANCEL_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
 
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.lockSaleStockRows(trx, scope, items);
@@ -2837,7 +2902,7 @@ export class SalesWriteService {
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
         const product = await trx.selectFrom('products').select(['stock_qty']).where('id', '=', item.product_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
-        if (!product) continue;
+        if (!product) throw new AppError('لا يمكن إلغاء البيع: الصنف الأصلي مفقود ويحتاج تسوية مخزون', 'SALE_CANCEL_PRODUCT_RECONCILIATION_REQUIRED', 409);
         const { restoreQty } = calculateRestoredStockQuantity(product.stock_qty, item.qty, item.unit_multiplier);
 
         const allocations = await trx.selectFrom('sale_line_stock_allocations')
@@ -2851,8 +2916,11 @@ export class SalesWriteService {
              const qtyToRestore = Number(alloc.quantity || 0);
 
              // Find branch for this location
-             const locData = await trx.selectFrom('stock_locations').select('branch_id').where('id', '=', alloc.location_id).executeTakeFirst();
-             const branchId = locData?.branch_id || sale.branch_id;
+             const locData = await trx.selectFrom('stock_locations').select('branch_id')
+               .where('id', '=', alloc.location_id).where('tenant_id', '=', scope.tenantId)
+               .executeTakeFirst();
+             if (!locData) throw new AppError('مخزن الفاتورة لم يعد صالحاً؛ يلزم تسوية قبل الإلغاء', 'SALE_CANCEL_LOCATION_RECONCILIATION_REQUIRED', 409);
+             const branchId = locData.branch_id ?? sale.branch_id;
 
              const stockChange = await applyStockDelta(trx, {
                productId: alloc.product_id,
@@ -2927,13 +2995,34 @@ export class SalesWriteService {
       if (sale.customer_id && remainingDebt > 0) {
         await this.finance.createCustomerLedgerEntry(trx, sale.customer_id, -remainingDebt, `عكس فاتورة بيع S-${saleId}`, saleId, auth);
       }
-      for (const payment of originalPayments) {
-        if (payment.payment_channel !== 'cash') continue;
-        await this.finance.addTreasuryTransaction(trx, -Number(payment.amount || 0), `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id);
+      if (originalPayments.length === 0 && originalPaid > 0 && sale.payment_channel === 'mixed') {
+        throw new AppError('فاتورة قديمة بمدفوعات مختلطة دون تفاصيل تحتاج تسوية قبل الإلغاء', 'SALE_CANCEL_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
+      const cashRefundTotal = originalPayments.length > 0
+        ? originalPayments.filter((payment) => payment.payment_channel === 'cash')
+          .reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+        : sale.payment_channel === 'cash' ? originalPaid : 0;
+      if (cashRefundTotal > 0) {
+        // Cash refunds belong to the shift that ACTUALLY pays the customer,
+        // not the original checkout shift. Without this link, cross-shift
+        // cancellation silently understates cash withdrawn today.
+        const refundShiftQuery = trx.selectFrom('cashier_shifts').select('id')
+          .where('opened_by', '=', auth.userId).where('status', '=', 'open')
+          .where('tenant_id', '=', scope.tenantId);
+        const refundShift = await (sale.branch_id == null
+          ? refundShiftQuery.where('branch_id', 'is', null)
+          : refundShiftQuery.where('branch_id', '=', sale.branch_id))
+          .orderBy('id', 'desc').forUpdate().executeTakeFirst();
+        if (!refundShift && !['admin', 'super_admin'].includes(auth.role)) {
+          throw new AppError('يجب فتح وردية على الفرع قبل رد نقدية فاتورة ملغاة', 'OPEN_SHIFT_REQUIRED', 400);
+        }
+        await this.finance.addTreasuryTransaction(trx, -Number(cashRefundTotal.toFixed(2)),
+          `إلغاء فاتورة بيع S-${saleId}`, saleId, auth, sale.branch_id, sale.location_id,
+          refundShift?.id || null);
       }
 
       if (Number(sale.store_credit_used || 0) > 0 && sale.customer_id) {
-        const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+        const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
         if (customer) {
           await trx.updateTable('customers').set({ store_credit_balance: Number((Number(customer.store_credit_balance || 0) + Number(sale.store_credit_used || 0)).toFixed(2)), updated_at: sql`NOW()` }).where('id', '=', sale.customer_id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
         }
@@ -2965,7 +3054,7 @@ export class SalesWriteService {
           const clawbackDelta = Math.max(0, earnedPoints - alreadyClawed);
 
           if (clawbackDelta > 0) {
-            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
             const currentBal = Number(cust?.loyalty_points || 0);
             const balanceAfter = Math.max(0, Number((currentBal - clawbackDelta).toFixed(2)));
 
@@ -3015,7 +3104,7 @@ export class SalesWriteService {
           const refundDelta = Math.max(0, totalRedeemed - alreadyRefunded);
 
           if (refundDelta > 0) {
-            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
+            const cust = await trx.selectFrom('customers').select(['loyalty_points']).where('id', '=', customerId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
             const currentBal = Number(cust?.loyalty_points || 0);
             const balanceAfter = Number((currentBal + refundDelta).toFixed(2));
 
