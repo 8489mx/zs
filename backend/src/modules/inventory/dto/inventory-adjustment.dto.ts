@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
+import { IsIn, IsNumber, IsArray, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
 
 export class InventoryAdjustmentDto {
   @Type(() => Number)
@@ -34,6 +34,15 @@ export class InventoryAdjustmentDto {
   @Type(() => Number)
   @IsNumber()
   locationId?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  serials?: string[];
+
+  @IsOptional()
+  @IsArray()
+  batchAllocations?: Array<{ batchId: number; qty: number }>;
 
   @IsOptional()
   @IsString()
