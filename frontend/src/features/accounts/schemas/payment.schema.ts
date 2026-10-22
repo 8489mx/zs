@@ -4,13 +4,15 @@ export const customerPaymentSchema = z.object({
   customerId: z.string().min(1, 'اختر العميل'),
   amount: z.coerce.number().positive('المبلغ يجب أن يكون أكبر من صفر'),
   note: z.string().optional(),
+  paymentChannel: z.enum(['cash','bank','card','wallet','instapay']).optional(),
   jobId: z.string().optional(),
 });
 
 export const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'اختر المورد'),
   amount: z.coerce.number().positive('المبلغ يجب أن يكون أكبر من صفر'),
-  note: z.string().optional()
+  note: z.string().optional(),
+  paymentChannel: z.enum(['cash','bank','card','wallet','instapay']).optional(),
 });
 
 export type CustomerPaymentInput = z.input<typeof customerPaymentSchema>;
