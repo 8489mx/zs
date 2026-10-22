@@ -150,6 +150,10 @@ export function normalizeHrAttendanceRow(row: HrAttendanceRecord | HrApiDateReco
     checkOutAt: normalizeApiDateTime(apiPick(source, ['checkOutAt', 'check_out_at', 'check_out_at_text'])) || (row as HrAttendanceRecord).checkOutAt || '',
     source: apiPick(source, ['source']) || (row as HrAttendanceRecord).source || '',
     notes: apiPick(source, ['notes']) || (row as HrAttendanceRecord).notes || '',
+    scheduledCheckInTime: apiPick(source, ['scheduledCheckInTime', 'scheduled_check_in_time']) || (row as HrAttendanceRecord).scheduledCheckInTime || '',
+    scheduledCheckOutTime: apiPick(source, ['scheduledCheckOutTime', 'scheduled_check_out_time']) || (row as HrAttendanceRecord).scheduledCheckOutTime || '',
+    graceMinutes: Number(source.grace_minutes ?? source.graceMinutes ?? (row as HrAttendanceRecord).graceMinutes ?? 0),
+    departmentId: apiPick(source, ['departmentId', 'department_id']) || (row as HrAttendanceRecord).departmentId || '',
   };
 }
 
@@ -171,6 +175,12 @@ export function normalizeHrAttendanceExceptionRow(row: HrAttendanceException | H
       : Number(source.approved_duration_minutes ?? source.approvedDurationMinutes ?? 0),
     status: apiPick(source, ['status']) || (row as HrAttendanceException).status || 'pending',
     note: apiPick(source, ['note']) || (row as HrAttendanceException).note || '',
+    departmentId: apiPick(source, ['departmentId', 'department_id']) || (row as HrAttendanceException).departmentId || '',
+    estimatedAmount: Number(source.estimatedAmount ?? source.estimated_amount ?? (row as HrAttendanceException).estimatedAmount ?? 0),
+    hourlyRate: Number(source.hourlyRate ?? source.hourly_rate ?? (row as HrAttendanceException).hourlyRate ?? 0),
+    dailyRate: Number(source.dailyRate ?? source.daily_rate ?? (row as HrAttendanceException).dailyRate ?? 0),
+    policyDescription: apiPick(source, ['policyDescription', 'policy_description']) || (row as HrAttendanceException).policyDescription || '',
+    delayPolicy: apiPick(source, ['delayPolicy', 'delay_policy']) || (row as HrAttendanceException).delayPolicy || '',
   };
 }
 

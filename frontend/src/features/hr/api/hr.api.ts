@@ -45,6 +45,7 @@ export interface HrListParams {
   pageSize?: number;
   search?: string;
   employeeId?: string | number;
+  departmentId?: string | number;
   period?: string;
   month?: string;
   periodMonth?: string;
@@ -188,6 +189,8 @@ export const hrApi = {
   },
   saveHoliday: (payload: unknown, id?: string) => http(`/api/hr/holidays${id ? `/${id}` : ''}`, { method: id ? 'PUT' : 'POST', body: JSON.stringify(payload) }),
   deleteHoliday: (id: string) => http(`/api/hr/holidays/${id}`, { method: 'DELETE' }),
+  financialStatement: (employeeId: string | number, params: { from?: string; to?: string; month?: string } = {}) =>
+    http<any>(`/api/hr/employees/${employeeId}/financial-statement${buildQueryString(params)}`),
 };
 
 

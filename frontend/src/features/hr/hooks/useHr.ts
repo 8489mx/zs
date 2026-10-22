@@ -9,6 +9,7 @@ function paramsKey(params: HrListParams) {
     pageSize: params.pageSize || 25,
     search: params.search || '',
     employeeId: params.employeeId || '',
+    departmentId: params.departmentId || '',
     period: params.period || '',
     month: params.month || '',
     periodMonth: params.periodMonth || '',

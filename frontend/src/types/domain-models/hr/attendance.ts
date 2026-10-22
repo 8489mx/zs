@@ -13,6 +13,10 @@ export interface HrAttendanceRecord {
   checkOutAt?: string;
   source?: 'manual' | 'import' | string;
   notes?: string;
+  scheduledCheckInTime?: string;
+  scheduledCheckOutTime?: string;
+  graceMinutes?: number;
+  departmentId?: string;
 }
 
 export interface HrAttendanceException {
@@ -35,4 +39,10 @@ export interface HrAttendanceException {
   approvedDurationMinutes?: number | null;
   status: 'pending' | 'approved' | 'skipped' | 'auto_calculated' | 'needs_review' | string;
   note?: string;
+  departmentId?: string;
+  estimatedAmount?: number;
+  hourlyRate?: number;
+  dailyRate?: number;
+  policyDescription?: string;
+  delayPolicy?: string;
 }

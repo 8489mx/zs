@@ -438,7 +438,18 @@ export function SearchableCombobox<T extends ComboboxOption>({
             onChange(event.target.value);
             openDropdown();
           }}
-          onFocus={openDropdown}
+          onFocus={(event) => {
+            openDropdown();
+            const target = event.currentTarget;
+            target.select();
+            requestAnimationFrame(() => target.select());
+          }}
+          onClick={(event) => {
+            openDropdown();
+            const target = event.currentTarget;
+            target.select();
+            requestAnimationFrame(() => target.select());
+          }}
           onKeyDown={handleKeyDown}
           disabled={disabled}
         />
@@ -460,7 +471,18 @@ export function SearchableCombobox<T extends ComboboxOption>({
               onChange(event.target.value);
               openDropdown();
             }}
-            onFocus={openDropdown}
+            onFocus={(event) => {
+              openDropdown();
+              const target = event.currentTarget;
+              target.select();
+              requestAnimationFrame(() => target.select());
+            }}
+            onClick={(event) => {
+              openDropdown();
+              const target = event.currentTarget;
+              target.select();
+              requestAnimationFrame(() => target.select());
+            }}
             onKeyDown={handleKeyDown}
             disabled={disabled}
           />
