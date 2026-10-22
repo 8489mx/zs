@@ -1005,7 +1005,7 @@ export class SalesWriteService {
         // Verify the assigned default stock location actually exists and is active
         const defaultLocation = await trx
           .selectFrom('stock_locations')
-          .select(['id', 'name', 'is_active'])
+          .select(['id', 'name', 'is_active', 'location_type', 'branch_id'])
           .where('id', '=', branch.default_stock_location_id)
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .executeTakeFirst();
@@ -1027,7 +1027,31 @@ export class SalesWriteService {
           );
         }
 
+        if (['damaged', 'in_transit'].includes(defaultLocation.location_type || '')) {
+          throw new AppError('المخزن الافتراضي لا يجوز أن يكون مخزن تالف أو بضاعة بالطريق',
+            'POS_DEFAULT_LOCATION_NOT_SELLABLE', 409);
+        }
+        if (defaultLocation.branch_id != null && Number(defaultLocation.branch_id) !== Number(normalized.branchId)) {
+          throw new AppError('المخزن الافتراضي يتبع فرعاً آخر', 'POS_DEFAULT_LOCATION_BRANCH_MISMATCH', 409);
+        }
         normalized.locationId = branch.default_stock_location_id;
+      }
+
+      // Validate an explicitly selected sale warehouse too: the default branch
+      // guard alone does not protect manually entered or edited invoices.
+      if (normalized.locationId) {
+        const selectedLocation = await trx.selectFrom('stock_locations')
+          .select(['id', 'is_active', 'location_type'])
+          .where('id', '=', normalized.locationId)
+          .where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId)
+          .executeTakeFirst();
+        if (!selectedLocation || !selectedLocation.is_active) {
+          throw new AppError('مخزن البيع غير موجود أو غير نشط', 'SALE_LOCATION_UNAVAILABLE', 409);
+        }
+        if (['damaged', 'in_transit'].includes(selectedLocation.location_type || '')) {
+          throw new AppError('لا يمكن بيع المخزون التالف أو البضاعة بالطريق', 'SALE_LOCATION_NOT_SELLABLE', 409);
+        }
       }
 
       // أي المخازن يجوز لهذا الفرع السحب منها — القاعدة في `branch-sellable-locations.engine.ts`،
@@ -2113,7 +2137,7 @@ export class SalesWriteService {
         // Verify the assigned default stock location actually exists and is active
         const defaultLocation = await trx
           .selectFrom('stock_locations')
-          .select(['id', 'name', 'is_active'])
+          .select(['id', 'name', 'is_active', 'location_type', 'branch_id'])
           .where('id', '=', branch.default_stock_location_id)
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .executeTakeFirst();
@@ -2135,7 +2159,31 @@ export class SalesWriteService {
           );
         }
 
+        if (['damaged', 'in_transit'].includes(defaultLocation.location_type || '')) {
+          throw new AppError('المخزن الافتراضي لا يجوز أن يكون مخزن تالف أو بضاعة بالطريق',
+            'POS_DEFAULT_LOCATION_NOT_SELLABLE', 409);
+        }
+        if (defaultLocation.branch_id != null && Number(defaultLocation.branch_id) !== Number(normalized.branchId)) {
+          throw new AppError('المخزن الافتراضي يتبع فرعاً آخر', 'POS_DEFAULT_LOCATION_BRANCH_MISMATCH', 409);
+        }
         normalized.locationId = branch.default_stock_location_id;
+      }
+
+      // Validate an explicitly selected sale warehouse too: the default branch
+      // guard alone does not protect manually entered or edited invoices.
+      if (normalized.locationId) {
+        const selectedLocation = await trx.selectFrom('stock_locations')
+          .select(['id', 'is_active', 'location_type'])
+          .where('id', '=', normalized.locationId)
+          .where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId)
+          .executeTakeFirst();
+        if (!selectedLocation || !selectedLocation.is_active) {
+          throw new AppError('مخزن البيع غير موجود أو غير نشط', 'SALE_LOCATION_UNAVAILABLE', 409);
+        }
+        if (['damaged', 'in_transit'].includes(selectedLocation.location_type || '')) {
+          throw new AppError('لا يمكن بيع المخزون التالف أو البضاعة بالطريق', 'SALE_LOCATION_NOT_SELLABLE', 409);
+        }
       }
 
       let eligibleLocations = [{ id: normalized.locationId, branchId: normalized.branchId }];
