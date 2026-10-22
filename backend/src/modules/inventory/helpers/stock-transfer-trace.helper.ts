@@ -22,12 +22,6 @@ function parseTrace<T>(value: unknown): T[] {
   if (!Array.isArray(decoded)) throw new AppError('بيانات تتبع التحويل تالفة', 'TRANSFER_TRACE_CORRUPT', 409);
   return decoded as T[];
 }
-function matchLocation<T>(query: T, field: 'location_id' | 'branch_id', id: number | null): T {
-  // Location filtering is performed by the caller; this function exists only
-  // for the shared nullable-identity convention used by the ledger.
-  void field; void id;
-  return query;
-}
 
 /** Called after the product row has been locked, and before any quantity movement. */
 export async function dispatchTrackedStock(
@@ -35,7 +29,6 @@ export async function dispatchTrackedStock(
   input: TransferItemTraceRequest, fromLocationId: number, fromBranchId: number | null,
   transitLocationId: number | null, transferId: number,
 ): Promise<{ serialTracking: TransferSerialTrace[]; batchTracking: TransferBatchTrace[]; tracked: boolean }> {
-  void matchLocation;
   const productId = Number(input.productId);
   const qty = preciseQty(input.qty);
   const product = await trx.selectFrom('products').select(['track_serials']).where('tenant_id', '=', scope.tenantId)
@@ -148,13 +141,13 @@ export async function receiveTrackedStock(
     if (current.length !== serials.length) throw new AppError('سيريالات بالطريق تغيرت؛ يلزم تسوية', 'TRANSFER_SERIAL_TRANSIT_MISMATCH', 409);
     const requested = (receipt.receivedSerials || []).map(s => String(s).trim().toLowerCase());
     if (new Set(requested).size !== requested.length || requested.some(s => !s) ||
-      (!requested.length && received !== serials.length)) {
+      (!requested.length && received !== serials.length && received !== 0)) {
       throw new AppError('حدد سيريالات القطع التي وصلت فعلاً', 'TRANSFER_RECEIPT_SERIALS_REQUIRED', 422);
     }
     const selected = requested.length
       ? current.filter(s => requested.includes(s.serial_number.toLowerCase()) ||
         Boolean(s.imei_2 && requested.includes(s.imei_2.toLowerCase())))
-      : current;
+      : received === 0 ? [] : current;
     if (selected.length !== received || (requested.length > 0 && requested.length !== received)) {
       throw new AppError('سيريالات الاستلام لا تطابق البضاعة بالطريق', 'TRANSFER_RECEIPT_SERIAL_MISMATCH', 409);
     }
@@ -208,7 +201,7 @@ export async function receiveTrackedStock(
             throw new AppError('اختلاف تاريخ صلاحية تشغيلة الوجهة', 'TRANSFER_BATCH_EXPIRY_MISMATCH', 409);
           }
           await trx.updateTable('pharmacy_batches')
-            .set({ quantity: roundQty(Number(dest.quantity) + receivedQty), updated_at: sql`NOW()` })
+            .set({ quantity: roundQty(Number(dest.quantity) + receivedQty), status: 'active', updated_at: sql`NOW()` })
             .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(dest.id)).execute();
         } else {
           await trx.insertInto('pharmacy_batches').values({
