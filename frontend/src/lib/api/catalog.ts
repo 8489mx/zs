@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { postIdempotentAccountPayment } from '@/lib/api/idempotent-account-payment';
 import { unwrapArray, unwrapByKey } from '@/lib/api/contracts';
 import type { AppSettings, Branch, Category, Customer, CustomerLedger, InventoryReport, Location, Product, Purchase, ReportSummary, Sale, Supplier, SupplierLedger } from '@/types/domain';
 
@@ -18,8 +19,8 @@ export const catalogApi = {
   listPurchases: async () => unwrapArray<Purchase>(await http<Purchase[] | { purchases: Purchase[] }>('/api/purchases'), 'purchases'),
   createPurchase: (payload: unknown) => http('/api/purchases', { method: 'POST', body: JSON.stringify(payload) }),
 
-  createCustomerPayment: (payload: unknown) => http('/api/customer-payments', { method: 'POST', body: JSON.stringify(payload) }),
-  createSupplierPayment: (payload: unknown) => http('/api/supplier-payments', { method: 'POST', body: JSON.stringify(payload) }),
+  createCustomerPayment: (payload: unknown) => postIdempotentAccountPayment('/api/customer-payments', payload),
+  createSupplierPayment: (payload: unknown) => postIdempotentAccountPayment('/api/supplier-payments', payload),
 
   reportSummary: (from: string, to: string) => http<ReportSummary>(`/api/reports/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
   inventoryReport: async () => unwrapByKey<InventoryReport>(await http<InventoryReport | { inventory: InventoryReport }>('/api/reports/inventory'), 'inventory', {} as InventoryReport),
