@@ -95,6 +95,15 @@ export function useInventoryWorkspaceMutations({
             countedQty: Number(item.countedQty),
           };
 
+          if (item.countedSerials?.length) countItem.countedSerials = item.countedSerials;
+          const batchLines = String(item.batchCountsText || '').split(/[\n,،]+/).map(s => s.trim()).filter(Boolean);
+          if (batchLines.length) countItem.batchCounts = batchLines.map(line => {
+            const existing = /^(\d+)\s*:\s*(\d+(?:\.\d+)?)$/.exec(line);
+            if (existing) return { batchId: Number(existing[1]), countedQty: Number(existing[2]) };
+            const novel = /^NEW:([^:]+):(\d{4}-\d{2}-\d{2}):(\d+(?:\.\d+)?)$/i.exec(line);
+            if (novel) return { batchNumber: novel[1].trim(), expiryDate: novel[2], countedQty: Number(novel[3]) };
+            throw new Error(`صيغة تشغيلة الجرد غير صحيحة للصنف ${item.productName}`);
+          });
           if (String(item.reason || '').trim()) countItem.reason = item.reason;
           if (String(item.note || '').trim()) countItem.note = item.note;
           return countItem;
