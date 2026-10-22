@@ -178,7 +178,7 @@ export const useUpdateShipmentItemMutation = (shipmentId: string) => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ itemId, dto }: { itemId: string, dto: { receivedQuantity?: number, targetRetailMargin?: number, targetWholesaleMargin?: number, shortageHandlingMethod?: 'capitalize' | 'expense' } }) => {
+    mutationFn: async ({ itemId, dto }: { itemId: string, dto: { receivedQuantity?: number, targetRetailMargin?: number, targetWholesaleMargin?: number, shortageHandlingMethod?: 'capitalize' | 'expense', unitWeightKg?: number, unitCbm?: number } }) => {
       const data = await http(`/api/import-sales/shipment-items/${itemId}`, {
         method: 'PATCH',
         body: JSON.stringify(dto),

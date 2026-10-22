@@ -1231,6 +1231,8 @@ export class ImportSalesService {
       const item = await trx.insertInto('import_shipment_items').values({
         tenant_id: tenantId, shipment_id: shipmentId, product_id: productId,
         quantity: dto.quantity, factory_unit_price_usd: dto.factoryUnitPriceUsd,
+        gross_weight_kg_unit: requireImportNumber(dto.unitWeightKg ?? 0, 'وزن الوحدة'),
+        cbm_unit: requireImportNumber(dto.unitCbm ?? 0, 'حجم الوحدة'),
       }).returningAll().executeTakeFirstOrThrow();
       await this.calculateLandedCostInTransaction(trx, state.shipment);
       return trx.selectFrom('import_shipment_items').selectAll()
@@ -1485,6 +1487,12 @@ export class ImportSalesService {
     const rate = requireImportNumber(shipment.exchange_rate_at_arrival, 'سعر الصرف', Number.MIN_VALUE);
     const method = (shipment.cost_allocation_method as 'value' | 'weight' | 'cbm') || 'value';
 
+    if (method === 'weight' && items.some((item) => Number(item.gross_weight_kg_unit || 0) <= 0)) {
+      throw new BadRequestException('يلزم تحديد وزن الوحدة لكل صنف قبل التوزيع بالوزن.');
+    }
+    if (method === 'cbm' && items.some((item) => Number(item.cbm_unit || 0) <= 0)) {
+      throw new BadRequestException('يلزم تحديد CBM الوحدة لكل صنف قبل التوزيع بالحجم.');
+    }
     const breakdown = calculateLandedCostBreakdown({
       items: items.map((item) => ({
         id: item.id,
@@ -2791,11 +2799,14 @@ export class ImportSalesService {
         .where('tenant_id', '=', tenantId).where('shipment_id', '=', parent.shipment_id)
         .where('id', '=', itemId).executeTakeFirstOrThrow();
       const payload: Updateable<ImportShipmentItemTable> = {};
-      const stockEdit = dto.receivedQuantity !== undefined || dto.shortageHandlingMethod !== undefined;
+      const stockEdit = dto.receivedQuantity !== undefined || dto.shortageHandlingMethod !== undefined ||
+        dto.unitWeightKg !== undefined || dto.unitCbm !== undefined;
       if (stockEdit) {
         this.assertShipmentEditable(state);
         if (dto.receivedQuantity !== undefined) payload.received_quantity = requireImportNumber(dto.receivedQuantity, 'الكمية المستلمة');
         if (dto.shortageHandlingMethod !== undefined) payload.shortage_handling_method = dto.shortageHandlingMethod;
+        if (dto.unitWeightKg !== undefined) payload.gross_weight_kg_unit = requireImportNumber(dto.unitWeightKg, 'وزن الوحدة');
+        if (dto.unitCbm !== undefined) payload.cbm_unit = requireImportNumber(dto.unitCbm, 'حجم الوحدة');
       }
       if (dto.targetRetailMargin !== undefined) payload.target_retail_margin = requireImportNumber(dto.targetRetailMargin, 'هامش التجزئة');
       if (dto.targetWholesaleMargin !== undefined) payload.target_wholesale_margin = requireImportNumber(dto.targetWholesaleMargin, 'هامش الجملة');

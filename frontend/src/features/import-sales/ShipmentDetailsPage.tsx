@@ -129,6 +129,7 @@ export default function ShipmentDetailsPage() {
   const [exchangeRate, setExchangeRate] = useState('');
   const [pricingExchangeRate, setPricingExchangeRate] = useState('');
   const [status, setStatus] = useState<string>('');
+  const [allocationMethod, setAllocationMethod] = useState<'value' | 'weight' | 'cbm' | ''>('');
   const [receiptLocationId, setReceiptLocationId] = useState<string>('');
   
   // Dates
@@ -177,6 +178,7 @@ export default function ShipmentDetailsPage() {
       internalTransportCostEgp: transportCost ? Number(transportCost) : undefined,
       transportAccountId: transportAcc || undefined,
       exchangeRateAtArrival: exchangeRate ? Number(exchangeRate) : undefined,
+      costAllocationMethod: allocationMethod || undefined,
       pricingExchangeRate: pricingExchangeRate ? Number(pricingExchangeRate) : undefined,
       status: status ? status : undefined,
       receiptLocationId: status === 'Arrived' && receiptLocationId ? Number(receiptLocationId) : undefined,
@@ -189,6 +191,7 @@ export default function ShipmentDetailsPage() {
     setTransportCost('');
     setExchangeRate('');
     setPricingExchangeRate('');
+    setAllocationMethod('');
     setShippingAcc('');
     setCustomsAcc('');
     setTransportAcc('');
@@ -333,6 +336,17 @@ export default function ShipmentDetailsPage() {
               </select>
             </div>
 
+            {data.status !== 'Arrived' && (
+              <div className="form-group">
+                <label>طريقة توزيع تكلفة الاستيراد</label>
+                <select className="input" value={allocationMethod} onChange={e => setAllocationMethod(e.target.value as typeof allocationMethod)}>
+                  <option value="">الحالية: {data.cost_allocation_method || 'value'}</option>
+                  <option value="value">قيمة الصنف</option>
+                  <option value="weight">الوزن</option>
+                  <option value="cbm">الحجم CBM</option>
+                </select>
+              </div>
+            )}
             {status === 'Arrived' && data.status !== 'Arrived' && (
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label>مخزن استلام الحاوية (إلزامي عند الوصول)</label>
