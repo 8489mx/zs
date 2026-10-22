@@ -135,7 +135,9 @@ export async function postIdempotentSupplierInstallment(
   const statusPath = `/api/operations/supplier_schedule_settlement/${encodeURIComponent(recorded.key)}/status`;
   if (localStorage.getItem(keyName) && recorded) {
     const status = await http<{ status: string; documentId?: string | null }>(statusPath);
-    if (status.status === 'committed' || status.documentId) {
+    // A document identifier alone cannot override a non-committed operation state.
+    // Only the authoritative committed status proves settlement succeeded.
+    if (status.status === 'committed') {
       localStorage.removeItem(keyName);
       return http(`/api/suppliers/${supplierId}/payment-schedule`);
     }
