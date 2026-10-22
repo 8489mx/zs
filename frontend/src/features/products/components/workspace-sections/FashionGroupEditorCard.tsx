@@ -262,8 +262,10 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       lastHydratedRef.current = null;
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
       await queryClient.invalidateQueries({ queryKey: queryKeys.productsPage(`variant-group:${styleCode || product.id}`) });
-      const refreshed = await queryClient.fetchQuery({ queryKey: queryKeys.products, queryFn: productsApi.list });
-      const selected = refreshed.find((entry) => String(entry.id) === String(product.id)) || refreshed.find((entry) => String(entry.styleCode || '').trim() === commonDraft.styleCode.trim()) || null;
+      // Do not download the entire retailer catalog after editing one model.
+      const refreshed = await productsApi.listAll({ q: commonDraft.styleCode.trim() });
+      const selected = refreshed.products.find((entry) => String(entry.id) === String(product.id))
+        || refreshed.products.find((entry) => String(entry.styleCode || '').trim() === commonDraft.styleCode.trim()) || null;
       if (selected) onSaved?.(selected);
     },
   });
