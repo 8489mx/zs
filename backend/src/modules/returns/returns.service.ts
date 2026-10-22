@@ -105,7 +105,13 @@ export class ReturnsService {
       const drug = await trx.selectFrom('pharmacy_drugs').select('id')
         .where('tenant_id', '=', scope.tenantId).where('product_id', '=', productId)
         .executeTakeFirst();
-      if (drug) throw new AppError('فاتورة دوائية قديمة بلا تخصيص تشغيلة تحتاج تسوية قبل المرتجع', 'PHARMACY_BATCH_RECONCILIATION_REQUIRED', 422);
+      const anyBatch = await trx.selectFrom('pharmacy_batches').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('product_id', '=', productId)
+        .limit(1).executeTakeFirst();
+      if (drug || anyBatch) {
+        throw new AppError('الفاتورة بلا تخصيص تشغيلة رغم وجود سجل تشغيلات للصنف؛ يلزم مصالحة قبل المرتجع',
+          'PHARMACY_BATCH_RECONCILIATION_REQUIRED', 422);
+      }
       return;
     }
     let skip = Number(previousReturnedBaseQty.toFixed(3));
@@ -980,13 +986,22 @@ export class ReturnsService {
         .where('tenant_id', '=', scope.tenantId)
         .where('product_id', '=', requestItem.productId).limit(1).executeTakeFirst();
       if (drug || anyBatch) {
-        let batchQuery = trx.selectFrom('pharmacy_batches').select(['id', 'quantity'])
+        const sourceBatchNumber = String(purchaseItem.batch_number || '').trim();
+        if (!sourceBatchNumber) {
+          throw new AppError('تشغيلة بند الشراء غير محفوظة؛ لا يمكن إرجاع كمية دوائية دون مصالحة',
+            'PURCHASE_RETURN_BATCH_PROVENANCE_REQUIRED', 409);
+        }
+        let batchQuery = trx.selectFrom('pharmacy_batches').select(['id', 'quantity', 'batch_number'])
           .where('tenant_id', '=', scope.tenantId)
           .where('product_id', '=', requestItem.productId);
         batchQuery = itemLocationId == null ? batchQuery.where('location_id', 'is', null)
           : batchQuery.where('location_id', '=', itemLocationId);
         const batches = await batchQuery.orderBy('id', 'asc').forUpdate().execute();
         const batch = selectPurchaseReturnBatch(batches, requestItem.batchId, preparedLine.stockDelta);
+        if (String(batch.batch_number || '').trim() !== sourceBatchNumber) {
+          throw new AppError('تشغيلة المرتجع لا تطابق تشغيلة فاتورة الشراء الأصلية',
+            'PURCHASE_RETURN_BATCH_ORIGIN_MISMATCH', 409);
+        }
         await trx.updateTable('pharmacy_batches')
           .set({ quantity: Number((Number(batch.quantity) - preparedLine.stockDelta).toFixed(3)), updated_at: sql`NOW()` })
           .where('tenant_id', '=', scope.tenantId).where('id', '=', batch.id).execute();
