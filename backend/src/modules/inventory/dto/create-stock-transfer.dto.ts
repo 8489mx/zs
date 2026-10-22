@@ -1,6 +1,18 @@
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 
+class StockTransferBatchAllocationDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  batchId!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.001)
+  qty!: number;
+}
+
 class StockTransferItemDto {
   @Type(() => Number)
   @IsNumber()
@@ -11,6 +23,19 @@ class StockTransferItemDto {
   @IsNumber()
   @Min(0.001)
   qty!: number;
+
+  /** Source IMEIs/serial numbers. Required for ambiguous partial transfers. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  serials?: string[];
+
+  /** Explicit batch distribution, expressed in base stock units. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockTransferBatchAllocationDto)
+  batchAllocations?: StockTransferBatchAllocationDto[];
 }
 
 export class CreateStockTransferDto {
