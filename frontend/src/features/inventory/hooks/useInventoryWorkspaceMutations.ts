@@ -21,12 +21,12 @@ export function useInventoryWorkspaceMutations({
   setCreatedTransfer,
 }: {
   queryClient: QueryClient;
-  transferForm: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string };
+  transferForm: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string; serials: string; batchAllocations: string };
   transferItems: StockTransferItem[];
   countForm: { branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string };
   countItems: StockCountItem[];
   setTransferItems: Dispatch<SetStateAction<StockTransferItem[]>>;
-  setTransferForm: Dispatch<SetStateAction<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string }>>;
+  setTransferForm: Dispatch<SetStateAction<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string; serials: string; batchAllocations: string }>>;
   setCountItems: Dispatch<SetStateAction<StockCountItem[]>>;
   setCountForm: Dispatch<SetStateAction<{ branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string }>>;
   setPostingPin: Dispatch<SetStateAction<string>>;
@@ -45,7 +45,7 @@ export function useInventoryWorkspaceMutations({
         toLocationId: transferForm.toLocationId,
         note: transferForm.note,
         recipientName: transferForm.recipientName,
-        items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty })),
+        items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty, serials: item.serials, batchAllocations: item.batchAllocations })), 
       }, headers),
       'createStockTransfer',
       crypto.randomUUID()
@@ -53,7 +53,7 @@ export function useInventoryWorkspaceMutations({
     onSuccess: async (data: unknown) => {
       await refreshInventoryQueries();
       setTransferItems([]);
-      setTransferForm({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1' });
+      setTransferForm({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1', serials: '', batchAllocations: '' });
       setCreatedTransfer((data as { stockTransfer: StockTransfer }).stockTransfer || null);
     },
   });
