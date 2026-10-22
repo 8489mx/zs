@@ -1,6 +1,27 @@
 import { Type } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsNumber, IsOptional, IsString, Min, MinLength, ValidateNested } from 'class-validator';
 
+class StockCountBatchDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  batchId?: number;
+
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  expiryDate?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  countedQty!: number;
+}
+
 class StockCountItemDto {
   @Type(() => Number)
   @IsNumber()
@@ -11,6 +32,17 @@ class StockCountItemDto {
   @IsNumber()
   @Min(0)
   countedQty!: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  countedSerials?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockCountBatchDto)
+  batchCounts?: StockCountBatchDto[];
 
   @IsOptional()
   @IsString()
