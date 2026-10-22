@@ -61,6 +61,7 @@ export interface Product {
   itemKind?: 'standard' | 'fashion';
   styleCode?: string;
   sku?: string;
+  catalogUpdatedAt?: string;
   color?: string;
   size?: string;
   isActive?: boolean;

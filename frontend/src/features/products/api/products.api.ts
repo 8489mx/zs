@@ -6,6 +6,7 @@ import type { Category, Product, Supplier } from '@/types/domain';
 export interface ProductsListParams {
   page?: number;
   pageSize?: number;
+  groupFashion?: boolean;
   q?: string;
   view?: 'all' | 'low' | 'out' | 'offers' | 'special' | 'archived';
   locationId?: number | string;

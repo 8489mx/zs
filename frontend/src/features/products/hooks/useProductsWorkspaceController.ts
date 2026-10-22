@@ -11,7 +11,7 @@ import type { Product, ProductUnit } from '@/types/domain';
 import { useProductsPageQuery } from '@/features/products/hooks/useProductsPageQuery';
 import { resolveBarcodeUnit, type BarcodePrintItem } from '@/lib/barcode-labels';
 
-export function useProductsWorkspaceController() {
+export function useProductsWorkspaceController(groupFashion = false) {
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState<'all' | 'low' | 'out' | 'offers' | 'special' | 'archived'>('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -30,7 +30,7 @@ export function useProductsWorkspaceController() {
     items?: BarcodePrintItem[];
   } | null>(null);
 
-  const productsQuery = useProductsPageQuery({ page, pageSize, q: search, view: viewFilter });
+  const productsQuery = useProductsPageQuery({ page, pageSize, q: search, view: viewFilter, groupFashion });
   const categoriesQuery = useQuery({ queryKey: queryKeys.productsCategories, queryFn: productsApi.categories, staleTime: 60_000 });
   const suppliersQuery = useQuery({ queryKey: queryKeys.productsSuppliers, queryFn: productsApi.suppliers, staleTime: 60_000 });
   const customersQuery = useQuery({ queryKey: queryKeys.productsCustomers, queryFn: catalogApi.listCustomers, staleTime: 60_000 });

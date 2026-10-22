@@ -7,6 +7,7 @@ export function useProductsPageQuery(params: ProductsListParams) {
   const paramsKey = buildQueryParamsKey({
     page: params.page,
     pageSize: params.pageSize,
+    groupFashion: params.groupFashion,
     q: params.q,
     view: params.view && params.view !== 'all' ? params.view : undefined,
   });

@@ -387,6 +387,10 @@ export type NormalizedFashionVariant = {
 
 export class FashionGroupRowDto extends UpsertProductDto {
   @IsOptional()
+  @IsString()
+  expectedCatalogUpdatedAt?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

@@ -35,6 +35,14 @@ const mockProduct: Product = {
 };
 
 describe('barcode-labels library', () => {
+
+  it('prints the actual size-and-color SKU instead of a shared model code', () => {
+    const product: Product = { ...mockProduct, name: 'حذاء أسود 42.5', sku: 'SKU-BLACK-42-5', styleCode: '900100' };
+    const html = buildSingleLabelHtml(product, product.units![0], getBarcodePrintPreset('thermal-40x30'), false, { showSku: true });
+    expect(html).toContain('SKU-BLACK-42-5');
+    expect(html).not.toContain('barcode-label-sku">900100');
+  });
+
   it('contains regulatory shelf label presets', () => {
     const shelfPreset = getBarcodePrintPreset('thermal-shelf-60x30');
     expect(shelfPreset).toBeDefined();

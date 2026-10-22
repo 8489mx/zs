@@ -1056,8 +1056,17 @@ export function PosWorkspace() {
           initialBarcode={newProductInitialBarcode}
           onSuccess={(newProduct) => {
             setNewProductModalOpen(false);
-            pos.handleAddProduct(newProduct);
-            pos.setSearch('');
+            if (newProduct.itemKind === 'fashion' && newProduct.styleCode) {
+              // A grouped creation returns its first variant, not the customer's size.
+              const suffix = [newProduct.color, newProduct.size].filter(Boolean).join(' / ');
+              const baseName = suffix && newProduct.name.endsWith(` - ${suffix}`)
+                ? newProduct.name.slice(0, -(` - ${suffix}`).length) : newProduct.name;
+              pos.setSearch(baseName);
+              toast.warning('الموديل اتضاف. اختار اللون والمقاس المطلوب من النتائج قبل إضافته للسلة.');
+            } else {
+              pos.handleAddProduct(newProduct);
+              pos.setSearch('');
+            }
             focusBarcodeEntry();
           }}
         />
