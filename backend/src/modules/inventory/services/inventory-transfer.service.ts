@@ -473,9 +473,13 @@ export class InventoryTransferService {
 
       for (const stock of stocks) {
         const qty = Number(stock.qty);
-        await moveDirectTrackedStock(trx, scope, Number(stock.product_id), qty,
+        const trace = await moveDirectTrackedStock(trx, scope, Number(stock.product_id), qty,
           { id: from.id, branchId: from.branchId }, { id: to.id, branchId: to.branchId }, transferId);
-        await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty, ...this.tenantFields(auth) }).execute();
+        await trx.insertInto('stock_transfer_items').values({
+          transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty,
+          serial_tracking: JSON.stringify(trace.serialTracking), batch_tracking: JSON.stringify(trace.batchTracking),
+          ...this.tenantFields(auth),
+        } as any).execute();
 
         // Deduct from source
         const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(stock.product_id), branchId: from.branchId, locationId: from.id };
@@ -537,18 +541,21 @@ export class InventoryTransferService {
         const product = await trx.selectFrom('products').select(['id', 'name', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const qty = Number(item.qty || 0);
+        let trace: { serialTracking: Array<{ id: number; serial: string }>; batchTracking: Array<{ sourceBatchId: number; transitBatchId: null; qty: number; receivedQty: number }> } = { serialTracking: [], batchTracking: [] };
         if (isUnassignedLink) {
-          // Orphan stock cannot be assigned as tracked inventory without
-          // verified source location identity and a serial/lot reconciliation.
           await assertUntrackedStockMutation(trx, scope, Number(item.productId));
         } else {
-          await moveDirectTrackedStock(trx, scope, Number(item.productId), qty,
+          trace = await moveDirectTrackedStock(trx, scope, Number(item.productId), qty,
             { id: Number(from.id), branchId: from.branchId },
             { id: to.id, branchId: to.branchId }, Number(transferId));
         }
 
         if (transferId != null) {
-          await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: item.productId, product_name: product.name || '', qty, ...this.tenantFields(auth) }).execute();
+          await trx.insertInto('stock_transfer_items').values({
+            transfer_id: transferId, product_id: item.productId, product_name: product.name || '', qty,
+            serial_tracking: JSON.stringify(trace.serialTracking), batch_tracking: JSON.stringify(trace.batchTracking),
+            ...this.tenantFields(auth),
+          } as any).execute();
 
           // Deduct from source
           const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
@@ -641,10 +648,14 @@ export class InventoryTransferService {
 
       for (const stock of stocks) {
         const qty = Number(stock.qty);
-        await moveDirectTrackedStock(trx, scope, Number(stock.product_id), qty,
+        const trace = await moveDirectTrackedStock(trx, scope, Number(stock.product_id), qty,
           { id: from.id, branchId: from.branchId }, { id: to.id, branchId: to.branchId }, transferId);
 
-        await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty, ...this.tenantFields(auth) }).execute();
+        await trx.insertInto('stock_transfer_items').values({
+          transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty,
+          serial_tracking: JSON.stringify(trace.serialTracking), batch_tracking: JSON.stringify(trace.batchTracking),
+          ...this.tenantFields(auth),
+        } as any).execute();
 
         // Deduct from source
         const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(stock.product_id), branchId: from.branchId, locationId: from.id };
