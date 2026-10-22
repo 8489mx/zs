@@ -47,11 +47,46 @@ export async function postIdempotentAccountPayment(path: '/api/customer-payments
     }
   }
 
-  const response = await http(path, {
-    method: 'POST',
-    body,
-    headers: { 'x-idempotency-key': attempt.key },
-  });
+  const operationType = path === '/api/customer-payments' ? 'customer_payment_create' : 'supplier_payment_create';
+  const statusPath = `/api/operations/${encodeURIComponent(operationType)}/${encodeURIComponent(attempt.key)}/status`;
+  // After an interrupted send, first ask the server about THIS precise
+  // voucher before attempting a retry. A lost 200 response is not a new payment.
+  if (existing) {
+    const outcome = await http<{ status: string; response?: Record<string, unknown> }>(statusPath);
+    if (outcome.status === 'committed') {
+      if (!outcome.response?.id) throw new Error('تم تسجيل السند لكن بيانات تأكيده ناقصة؛ راجع الحسابات');
+      sessionStorage.removeItem(keyName);
+      return { ok: true, ...outcome.response };
+    }
+    if (outcome.status === 'processing' || outcome.status === 'recovery_required') {
+      throw new Error('حالة السند على الخادم غير محسومة؛ لا يمكن إعادة سداد نفس المبلغ قبل التأكيد');
+    }
+    if (outcome.status === 'failed') {
+      sessionStorage.removeItem(keyName);
+      throw new Error('فشل السند السابق على الخادم ولم يتم ترحيله؛ يمكن إصلاح البيانات وإعادة المحاولة');
+    }
+    if (outcome.status !== 'not_found') throw new Error('حالة سند الدفع غير معروفة؛ لا يمكن إعادة إرساله بأمان');
+  }
+
+  let response: unknown;
+  try {
+    response = await http(path, {
+      method: 'POST',
+      body,
+      headers: { 'x-idempotency-key': attempt.key },
+    });
+  } catch (error) {
+    // Release an unequivocally rejected voucher only after the server says
+    // it failed, never merely because the network or browser reported an error.
+    try {
+      const outcome = await http<{ status: string }>(statusPath);
+      if (outcome.status === 'failed') {
+        const stored = sessionStorage.getItem(keyName);
+        if (stored && (JSON.parse(stored) as { key?: string }).key === attempt.key) sessionStorage.removeItem(keyName);
+      }
+    } catch { /* Unknown commit outcome: retain stable key for recovery. */ }
+    throw error;
+  }
   // Clear only the same attempt: a concurrent UI action may have altered it.
   try {
     const stored = sessionStorage.getItem(keyName);
