@@ -15,6 +15,7 @@ import { CreateCategoryTransferDto } from '../dto/create-category-transfer.dto';
 import { InventoryScopeService } from './inventory-scope.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 
 @Injectable()
 export class InventoryTransferService {
@@ -24,6 +25,7 @@ export class InventoryTransferService {
     private readonly audit: AuditService,
     private readonly scope: InventoryScopeService,
     private readonly idempotency: IdempotencyService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private tenantScope(auth: AuthContext) { return requireTenantScope(auth); }
@@ -145,12 +147,12 @@ export class InventoryTransferService {
         await trx.insertInto('stock_transfer_items').values({ transfer_id: id, product_id: item.productId, product_name: product.name || '', qty: item.qty, ...this.tenantFields(auth) }).execute();
 
         // Deduct from source. Only reduce global stock if final_issue (inTransitLocationId is null)
-        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: -Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, errorCode: 'INSUFFICIENT_LOCATION_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
+        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: -Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, disableAutoDrain: true, errorCode: 'INSUFFICIENT_LOCATION_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
         await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_send', qty: -Number(item.qty || 0), before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'transfer_send', note: `Sent transfer TR-${id}`, reference_type: 'transfer', reference_id: id, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
 
         if (inTransitLocationId) {
           const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, locationId: inTransitLocationId, branchId: null };
-          const transitChange = await applyStockDelta(trx, { ...transitScope, delta: Number(item.qty || 0), skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
+          const transitChange = await applyStockDelta(trx, { ...transitScope, delta: Number(item.qty || 0), skipGlobalUpdate: true, disableAutoDrain: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
           await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_transit_in', qty: Number(item.qty || 0), before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_send', note: `In-transit for TR-${id}`, reference_type: 'transfer', reference_id: id, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
         }
       }
@@ -224,37 +226,65 @@ export class InventoryTransferService {
           const shortfall = Number((dispatched - received).toFixed(3));
           if (shortfall > 0.0001) anyVariance = true;
 
-          if (inTransitLocationId) {
-            // The FULL dispatched quantity leaves transit: what arrived goes to the destination,
-            // what did not arrived is written off below. Leaving the shortfall in transit would
-            // quietly accumulate phantom stock in a location nobody counts.
+          if (inTransitLocationId && received > 0) {
+            // Move only what actually arrived from transit to the destination.
+            // Any missing units remain in transit until the write-off below,
+            // where the stock helper can deduct them without a negative balance.
             const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), locationId: inTransitLocationId, branchId: null };
-            const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -dispatched, skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
-            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_out', qty: -dispatched, before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_receive', note: `Out of transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
+            const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -received, skipGlobalUpdate: true, disableAutoDrain: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
+            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_out', qty: -received, before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_receive', note: `Out of transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
           }
 
           if (received > 0.0001) {
             const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.to_branch_id, locationId: effectiveToLocationId };
-            const toChange = await applyStockDelta(trx, { ...toScope, delta: received, skipGlobalUpdate: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
+            const toChange = await applyStockDelta(trx, { ...toScope, delta: received, skipGlobalUpdate: true, disableAutoDrain: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
             await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_receive', qty: received, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'transfer_receive', note: `Received transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.to_branch_id, location_id: effectiveToLocationId, ...this.tenantFields(auth) }).execute();
           }
 
           if (shortfall > 0.0001) {
             // Shrinkage: the goods left the source and never arrived, so company-wide stock really
             // does fall. This is the one leg of a transfer that touches the global counter.
-            await applyStockDelta(trx, {
+            const shrinkage = await applyStockDelta(trx, {
               tenantId: scope.tenantId,
               accountId: scope.accountId,
               productId: Number(item.product_id),
-              locationId: null,
+              locationId: inTransitLocationId,
               branchId: null,
               delta: -shortfall,
-              allowNegative: true,
+              disableAutoDrain: true,
               errorCode: 'TRANSIT_SHRINKAGE_ERROR',
               errorMessage: 'Transit shrinkage error',
               skipGlobalUpdate: false,
             });
-            await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_loss', qty: -shortfall, before_qty: 0, after_qty: 0, reason: 'transit_shrinkage', note: `فاقد نقل للتحويل TR-${transferId}: أُرسل ${dispatched} واستُلم ${received}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
+            // Transit goods are still inventory assets until receipt. A shortfall
+            // is a real company-wide write-off, not merely a location transfer.
+            const productCost = await trx.selectFrom('products').select('cost_price')
+              .where('id', '=', Number(item.product_id))
+              .where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
+            const rawUnitCost = Number(productCost.cost_price || 0);
+            const unitCost = Number.isFinite(rawUnitCost) && rawUnitCost > 0 ? rawUnitCost : 0;
+            const movement = await trx.insertInto('stock_movements').values({
+              product_id: Number(item.product_id),
+              movement_type: 'transfer_transit_loss',
+              qty: -shortfall,
+              before_qty: shrinkage.scopeBefore,
+              after_qty: shrinkage.scopeAfter,
+              reason: 'transit_shrinkage',
+              note: `فاقد نقل للتحويل TR-${transferId}: أُرسل ${dispatched} واستُلم ${received}`,
+              reference_type: 'transfer',
+              reference_id: transferId,
+              created_by: auth.userId,
+              location_id: inTransitLocationId,
+              unit_cost: unitCost,
+              total_cost: Number((shortfall * unitCost).toFixed(2)),
+              ...this.tenantFields(auth),
+            }).returning('id').executeTakeFirstOrThrow();
+            // Reuse the immutable stock-adjustment posting (Dr shrinkage loss,
+            // Cr inventory). The movement itself still references the transfer.
+            const posting = await this.accountingPosting.postInventoryAdjustment(trx, Number(movement.id), auth);
+            if (posting.hasFinancialImpact && !posting.journalEntryId) {
+              throw new AppError('فاقد التحويل لم ينتج عنه قيد تسوية مخزون', 'TRANSFER_SHRINKAGE_JOURNAL_MISSING', 500);
+            }
           }
 
           await trx
@@ -304,12 +334,12 @@ export class InventoryTransferService {
       for (const item of items) {
         if (inTransitLocationId) {
           const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), locationId: inTransitLocationId, branchId: null };
-          const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -Number(item.qty || 0), skipGlobalUpdate: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
+          const transitChange = await applyStockDelta(trx, { ...transitScope, delta: -Number(item.qty || 0), skipGlobalUpdate: true, disableAutoDrain: true, errorCode: 'TRANSIT_STOCK_ERROR', errorMessage: 'Transit error' });
           await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_transit_cancel', qty: -Number(item.qty || 0), before_qty: transitChange.scopeBefore, after_qty: transitChange.scopeAfter, reason: 'transfer_cancel', note: `Cancel transit for TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, location_id: inTransitLocationId, ...this.tenantFields(auth) }).execute();
         }
 
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(item.product_id), branchId: transfer.from_branch_id, locationId: transfer.from_location_id };
-        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, errorCode: 'TRANSFER_CANCEL_ERROR', errorMessage: `Transfer TR-${transferId} cannot be cancelled` });
+        const stockChange = await applyStockDelta(trx, { ...stockScope, delta: Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, disableAutoDrain: true, errorCode: 'TRANSFER_CANCEL_ERROR', errorMessage: `Transfer TR-${transferId} cannot be cancelled` });
         await trx.insertInto('stock_movements').values({ product_id: Number(item.product_id), movement_type: 'transfer_cancel', qty: Number(item.qty || 0), before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'transfer_cancel', note: `Cancelled transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: transfer.from_branch_id, location_id: transfer.from_location_id, ...this.tenantFields(auth) }).execute();
       }
       await trx.updateTable('stock_transfers').set({ status: 'cancelled', cancelled_by: auth.userId, cancelled_at: sql`NOW()`, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
@@ -380,12 +410,12 @@ export class InventoryTransferService {
 
         // Deduct from source
         const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(stock.product_id), branchId: from.branchId, locationId: from.id };
-        const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `Insufficient stock` });
+        const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, disableAutoDrain: true, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `Insufficient stock` });
         await trx.insertInto('stock_movements').values({ product_id: stock.product_id, movement_type: 'transfer_send', qty: -qty, before_qty: fromChange.scopeBefore, after_qty: fromChange.scopeAfter, reason: 'transfer_send', note: `Sent category transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
 
         // Add to destination
         const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(stock.product_id), branchId: to.branchId, locationId: to.id };
-        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
+        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, disableAutoDrain: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
         await trx.insertInto('stock_movements').values({ product_id: stock.product_id, movement_type: 'transfer_receive', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'transfer_receive', note: `Received category transfer TR-${transferId}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: to.branchId, location_id: to.id, ...this.tenantFields(auth) }).execute();
       }
     });
@@ -444,7 +474,7 @@ export class InventoryTransferService {
 
           // Deduct from source
           const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
-          const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `الرصيد غير كافٍ للصنف ${product.name}` });
+          const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, disableAutoDrain: true, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `الرصيد غير كافٍ للصنف ${product.name}` });
           await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_send', qty: -qty, before_qty: fromChange.scopeBefore, after_qty: fromChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل داخلي إلى ${to.name}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
         } else {
           // Deduct from unassigned explicitly
@@ -454,7 +484,7 @@ export class InventoryTransferService {
 
         // Add to destination location
         const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: to.branchId, locationId: to.id, skipGlobalUpdate: isUnassignedLink };
-        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving`, disableAutoDrain: isUnassignedLink });
+        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving`, disableAutoDrain: true });
         await trx.insertInto('stock_movements').values({
           product_id: item.productId,
           movement_type: isUnassignedLink ? 'stock_assign' : 'transfer_receive',
@@ -538,12 +568,12 @@ export class InventoryTransferService {
 
         // Deduct from source
         const fromScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(stock.product_id), branchId: from.branchId, locationId: from.id };
-        const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `Insufficient stock` });
+        const fromChange = await applyStockDelta(trx, { ...fromScope, delta: -qty, disableAutoDrain: true, errorCode: 'INSUFFICIENT_STOCK', errorMessage: `Insufficient stock` });
         await trx.insertInto('stock_movements').values({ product_id: stock.product_id, movement_type: 'transfer_send', qty: -qty, before_qty: fromChange.scopeBefore, after_qty: fromChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل قسم داخلي إلى ${to.name}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
 
         // Add to destination
         const toScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(stock.product_id), branchId: to.branchId, locationId: to.id };
-        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
+        const toChange = await applyStockDelta(trx, { ...toScope, delta: qty, disableAutoDrain: true, errorCode: 'TRANSFER_RECEIVE_ERROR', errorMessage: `Error receiving` });
         await trx.insertInto('stock_movements').values({ product_id: stock.product_id, movement_type: 'transfer_receive', qty: qty, before_qty: toChange.scopeBefore, after_qty: toChange.scopeAfter, reason: 'internal_transfer', note: payload.note || `نقل قسم داخلي من ${from.name}`, reference_type: 'transfer', reference_id: transferId, created_by: auth.userId, branch_id: to.branchId, location_id: to.id, ...this.tenantFields(auth) }).execute();
       }
 
