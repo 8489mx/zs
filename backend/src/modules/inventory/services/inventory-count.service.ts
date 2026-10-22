@@ -184,7 +184,8 @@ export class InventoryCountService {
     }
     const reason = String(payload.reason || '').trim();
     const countedQty = Number(payload.countedQty);
-    if (reason.length < 8 || !Number.isFinite(countedQty) || countedQty < 0) {
+    if (reason.length < 8 || !Number.isFinite(countedQty) || countedQty < 0 ||
+      Math.abs(countedQty * 1000 - Math.round(countedQty * 1000)) > 0.000001) {
       throw new AppError('A valid recount quantity and reason are required', 'INVALID_STOCK_RECOUNT', 400);
     }
     return this.tx.runInTransaction(this.db, async (trx) => {
@@ -226,8 +227,16 @@ export class InventoryCountService {
       if (!session) {
         throw new AppError('جلسة الجرد غير موجودة', 'SESSION_NOT_FOUND', 404);
       }
-      if (session.status === 'posted') {
-        throw new AppError('لا يمكن حذف أو إلغاء جلسة جرد معتمدة ومرحلة إلى المخازن والحسابات', 'SESSION_ALREADY_POSTED', 400);
+      // 'posting' already means some chunks have been committed to the stock and
+      // general ledgers. Deleting the session would orphan those financial entries.
+      if (session.status !== 'draft') {
+        throw new AppError('لا يمكن حذف جلسة جرد بدأ ترحيلها؛ يجب استكمال الترحيل والتسوية', 'SESSION_ALREADY_POSTED', 409);
+      }
+      const postedItem = await trx.selectFrom('stock_count_items').select('id')
+        .where('session_id', '=', sessionId).where(this.tenantPredicate(auth))
+        .where('posted_at', 'is not', null).limit(1).executeTakeFirst();
+      if (postedItem) {
+        throw new AppError('جلسة الجرد تحتوي على بنود مرحلة ولا يمكن حذفها', 'SESSION_ALREADY_POSTED', 409);
       }
       // Delete associated items first
       await trx.deleteFrom('stock_count_items')
