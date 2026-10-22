@@ -527,6 +527,7 @@ export class CatalogProductService {
           'p.name',
           'p.name_en',
           'p.barcode',
+          'p.sku',
           'p.item_type',
           'p.item_kind',
           'p.style_code',
@@ -572,6 +573,7 @@ export class CatalogProductService {
         'p.name',
         'p.name_en',
         'p.barcode',
+        'p.sku',
         'p.item_type',
         'p.item_kind',
         'p.style_code',
@@ -619,6 +621,7 @@ export class CatalogProductService {
         'p.name',
         'p.name_en',
         'p.barcode',
+        'p.sku',
         'p.item_type',
         'p.item_kind',
         'p.style_code',
@@ -1634,6 +1637,169 @@ export class CatalogProductService {
     await db.updateTable('products').set({
       catalog_updated_at: sql`NOW()`,
     } as any).where('id', '=', productId).where(this.tenantPredicate(actor)).execute();
+  }
+
+
+  /**
+   * All-or-nothing fashion group replacement. Existing rows retain unit IDs,
+   * promotions, customer prices, metadata and their full stock ledgers.
+   * Removed variants are archived rather than deleted.
+   */
+  async saveFashionGroup(oldStyleCode: string, payload: SaveFashionGroupDto, actor: AuthContext): Promise<{ ok: boolean; updated: number; created: number; archived: number }> {
+    const originalStyle = this.coerceNewStyleCode(oldStyleCode);
+    const rows = payload?.rows || [];
+    if (!originalStyle || !Array.isArray(rows) || rows.length < 1 || rows.length > 400) {
+      throw new AppError('Fashion group must contain between 1 and 400 variants', 'FASHION_GROUP_INVALID', 400);
+    }
+    const drafts = rows.map((row) => ({ id: Number(row.id || 0), input: row, value: this.normalizeProductPayload(row) }));
+    const newStyle = this.coerceNewStyleCode(drafts[0].value.styleCode);
+    if (!newStyle) throw new AppError('Style code is required', 'STYLE_CODE_INVALID', 400);
+    const seenCombinations = new Set<string>();
+    const seenNames = new Set<string>();
+    const seenBarcodes = new Set<string>();
+    const seenSkus = new Set<string>();
+    const seenIds = new Set<number>();
+    for (const { id, value } of drafts) {
+      if (value.itemKind !== 'fashion' || this.coerceNewStyleCode(value.styleCode) !== newStyle || !value.name || !(value.color || value.size)) {
+        throw new AppError('Invalid fashion variant or mixed style codes', 'FASHION_GROUP_INVALID', 400);
+      }
+      const combination = `${normalizeArabicSearch(value.color)}::${normalizeArabicSearch(value.size)}`;
+      const name = normalizeArabicSearch(value.name);
+      const barcode = value.barcode.toLowerCase();
+      const sku = value.sku.toLowerCase();
+      if (seenCombinations.has(combination) || seenNames.has(name) ||
+          (barcode && seenBarcodes.has(barcode)) || (sku && seenSkus.has(sku)) || (id && seenIds.has(id))) {
+        throw new AppError('Duplicate variant, barcode or SKU in fashion group', 'FASHION_GROUP_DUPLICATE', 400);
+      }
+      seenCombinations.add(combination);
+      seenNames.add(name);
+      if (barcode) seenBarcodes.add(barcode);
+      if (sku) seenSkus.add(sku);
+      if (id) seenIds.add(id);
+      if (id && value.stock !== undefined) throw new AppError('Use inventory adjustment to change stock', 'STOCK_UPDATE_FORBIDDEN', 400);
+      await this.ensureCategoryAndSupplierInTenant(value, actor);
+      if (!id) {
+        if (value.stock && !value.warehouseId) throw new AppError('حدد مخزنًا للرصيد الافتتاحي', 'LOCATION_REQUIRED', 400);
+        await this.ensureCustomerPricesInTenant(value, actor);
+        this.ensureAdvancedOffersSupported(value, await this.getProductOfferColumnCapabilities());
+      }
+      if (value.warehouseId) await this.inventoryScope.assertLocationScope(value.warehouseId, actor);
+    }
+
+    const result = await this.db.transaction().execute(async (trx) => {
+      // Both styles are locked in a stable order to avoid a style-renaming deadlock.
+      for (const style of [...new Set([originalStyle, newStyle])].sort()) {
+        await sql`SELECT pg_advisory_xact_lock(hashtext(${this.tenantId(actor)}), hashtext(${style}))`.execute(trx);
+      }
+      const existing = await trx.selectFrom('products').selectAll()
+        .where('style_code', '=', originalStyle).where('item_kind', '=', 'fashion')
+        .where('is_active', '=', true).where(this.tenantPredicate(actor)).forUpdate().execute();
+      if (!existing.length) throw new AppError('Fashion group no longer exists', 'FASHION_GROUP_NOT_FOUND', 404);
+      const byId = new Map(existing.map((p) => [Number(p.id), p]));
+      for (const draft of drafts) if (draft.id && !byId.has(draft.id)) {
+        throw new AppError('Variant does not belong to this group', 'FASHION_VARIANT_SCOPE', 403);
+      }
+      if (newStyle !== originalStyle) {
+        const taken = await trx.selectFrom('products').select('id').where('style_code', '=', newStyle)
+          .where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+        if (taken) throw new AppError('Style code already belongs to another group', 'STYLE_CODE_EXISTS', 400);
+      }
+
+      const oldIds = existing.map((p) => Number(p.id));
+      const outsiderProducts = await trx.selectFrom('products')
+        .select(['id', 'name', 'barcode', 'sku']).where('is_active', '=', true).where(this.tenantPredicate(actor))
+        .where('id', 'not in', oldIds).execute();
+      for (const other of outsiderProducts) {
+        if (seenNames.has(normalizeArabicSearch(other.name || '')) ||
+            (other.barcode && seenBarcodes.has(String(other.barcode).toLowerCase())) ||
+            (other.sku && seenSkus.has(String(other.sku).toLowerCase()))) {
+          throw new AppError('Variant name, barcode or SKU is already in use', 'FASHION_VARIANT_EXISTS', 400);
+        }
+      }
+      if (seenBarcodes.size) {
+        const otherUnitBarcodes = await trx.selectFrom('product_units')
+          .select(['product_id', 'barcode'])
+          .where(sql`LOWER(barcode)`, 'in', [...seenBarcodes])
+          .where('product_id', 'not in', oldIds).where(this.tenantPredicate(actor)).execute();
+        if (otherUnitBarcodes.length) throw new AppError('Barcode is used by another product unit', 'BARCODE_EXISTS', 400);
+      }
+
+      // Release old group keys before writing, allowing two sizes to swap SKUs/barcodes.
+      await trx.updateTable('products').set({ barcode: null, sku: null })
+        .where('id', 'in', oldIds).where(this.tenantPredicate(actor)).execute();
+      await trx.updateTable('product_units').set({ barcode: null })
+        .where('product_id', 'in', oldIds).where('is_base_unit', '=', true)
+        .where(this.tenantPredicate(actor)).execute();
+
+      let created = 0;
+      let updated = 0;
+      for (const { id, value } of drafts) {
+        if (id) {
+          const prior = byId.get(id)!;
+          const priceChanged = Number(prior.cost_price) !== value.costPrice ||
+            Number(prior.retail_price) !== value.retailPrice || Number(prior.wholesale_price) !== value.wholesalePrice;
+          if (priceChanged && !this.hasPermission(actor, 'canEditPrice')) {
+            throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
+          }
+          await trx.updateTable('products').set({
+            name: value.name, barcode: value.barcode || null, sku: value.sku || null,
+            item_type: value.itemType, item_kind: 'fashion', style_code: newStyle,
+            color: value.color || null, size: value.size || null,
+            category_id: value.categoryId, supplier_id: value.supplierId,
+            cost_price: value.costPrice, retail_price: value.retailPrice,
+            wholesale_price: value.wholesalePrice, min_stock_qty: value.minStock,
+            notes: value.notes, default_location_id: value.warehouseId || prior.default_location_id,
+            catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()`,
+          }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+          await trx.updateTable('product_units').set({ barcode: value.barcode || null })
+            .where('product_id', '=', id).where('is_base_unit', '=', true)
+            .where(this.tenantPredicate(actor)).execute();
+          updated++;
+        } else {
+          const stock = Number(value.stock || 0);
+          const inserted = await trx.insertInto('products').values({
+            name: value.name, name_en: value.nameEn || null,
+            barcode: value.barcode || null, sku: value.sku || null,
+            item_type: value.itemType, item_kind: 'fashion', style_code: newStyle,
+            color: value.color || null, size: value.size || null, bin_location: value.binLocation || null,
+            category_id: value.categoryId, supplier_id: value.supplierId,
+            cost_price: value.costPrice, retail_price: value.retailPrice,
+            wholesale_price: value.wholesalePrice, min_stock_qty: value.minStock,
+            stock_qty: stock, default_location_id: value.warehouseId || null,
+            notes: value.notes, is_active: true, track_serials: false,
+            metadata: value.metadata ? JSON.stringify(value.metadata) : null,
+            catalog_updated_at: sql`NOW()`, ...this.tenantFields(actor),
+          } as any).returning('id').executeTakeFirstOrThrow();
+          const productId = Number(inserted.id);
+          const newValue = { ...value, units: value.units.map((u) => u.isBaseUnit ? { ...u, barcode: value.barcode } : u) };
+          await this.replaceProductRelations(trx, productId, newValue, actor);
+          if (stock > 0) {
+            await trx.insertInto('product_location_stock').values({
+              product_id: productId, branch_id: null, location_id: value.warehouseId!, qty: stock,
+              ...this.tenantFields(actor),
+            }).execute();
+            await trx.insertInto('stock_movements').values({
+              product_id: productId, movement_type: 'opening_balance', qty: stock,
+              before_qty: 0, after_qty: stock, reason: 'opening_balance',
+              note: 'رصيد افتتاحي لمقاس جديد', reference_type: 'product',
+              reference_id: productId, location_id: value.warehouseId!, created_by: actor.userId,
+              ...this.tenantFields(actor),
+            } as any).execute();
+          }
+          created++;
+        }
+      }
+      const kept = new Set(drafts.filter((row) => row.id).map((row) => row.id));
+      const removed = existing.filter((p) => !kept.has(Number(p.id)));
+      if (removed.length) {
+        await trx.updateTable('products').set({ is_active: false, catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
+          .where('id', 'in', removed.map((p) => Number(p.id))).where(this.tenantPredicate(actor)).execute();
+      }
+      return { ok: true, updated, created, archived: removed.length };
+    });
+    (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
+    await this.audit.log('تعديل مجموعة ملابس', `تم حفظ الموديل ${originalStyle} بواسطة ${actor.username}: ${result.updated} تعديل، ${result.created} إضافة، ${result.archived} أرشفة`, actor);
+    return result;
   }
 
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
