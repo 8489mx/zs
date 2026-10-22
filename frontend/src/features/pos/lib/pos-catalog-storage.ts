@@ -206,6 +206,11 @@ export async function lookupProductByBarcodeFromStorage(rawCode: string): Promis
             return;
           }
 
+          if (product.sku && product.sku.trim().toLowerCase() === cleanCode) {
+            resolve(product);
+            return;
+          }
+
           if (product.styleCode && product.styleCode.trim().toLowerCase() === cleanCode) {
             resolve(product);
             return;
