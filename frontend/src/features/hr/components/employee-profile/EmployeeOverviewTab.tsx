@@ -1,19 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
-import { fallbackText, normalizeText, money } from '@/features/hr/utils/employee-profile.helpers';
+import { fallbackText, money } from '@/features/hr/utils/employee-profile.helpers';
 import type { HrEmployee } from '@/types/domain';
 import type { ProfileSection } from './employee-profile-page.helpers';
 import {
-  ClockIcon,
-  DollarSignIcon,
-  CreditCardIcon,
-  CalendarIcon,
-  PackageIcon,
-  FileTextIcon,
   CheckCircleIcon,
   AlertCircleIcon,
-  BriefcaseIcon,
-  UsersIcon,
 } from '@/shared/components/icons/AppIcons';
 
 interface EmployeeOverviewTabProps {
@@ -59,162 +51,9 @@ export function EmployeeOverviewTab({
   const usedLeaves = Number(employee?.usedAnnualLeaves || 0);
   const remainingLeaves = Math.max(0, annualBalance - usedLeaves);
 
-  const quickLaunchpad = [
-    {
-      title: 'الحضور والانصراف',
-      subtitle: 'ساعات العمل وسجل البصمات',
-      icon: ClockIcon,
-      iconBg: '#eef2ff',
-      iconColor: '#170e5e',
-      section: 'attendance' as ProfileSection,
-      badgeText: employee?.expectedDailyHours ? `${employee.expectedDailyHours} س/يوم` : undefined,
-    },
-    {
-      title: 'المرتبات والبدلات',
-      subtitle: canViewSalary && employee?.baseSalary ? `${money(employee.baseSalary)}` : 'المسير والبدلات المعتمدة',
-      icon: DollarSignIcon,
-      iconBg: '#f0fdf4',
-      iconColor: '#15803d',
-      section: 'payroll' as ProfileSection,
-      badgeText: normalizeText(employee?.compensationType) === 'hourly' ? 'بالساعة' : 'شهري',
-    },
-    {
-      title: 'السلف والمديونيات',
-      subtitle: canViewLoans && openLoansRemaining > 0 ? `متبقي: ${money(openLoansRemaining)}` : 'سداد وأقساط السلف',
-      icon: CreditCardIcon,
-      iconBg: '#ffedd5',
-      iconColor: '#c2410c',
-      section: 'loans' as ProfileSection,
-      badgeText: openLoansCount > 0 ? `${openLoansCount} سلفة` : undefined,
-      badgeAlert: openLoansRemaining > 0,
-    },
-    {
-      title: 'الإجازات والأذونات',
-      subtitle: `رصيد متبقي: ${remainingLeaves} يوم`,
-      icon: CalendarIcon,
-      iconBg: '#fef3c7',
-      iconColor: '#b45309',
-      section: 'leaves' as ProfileSection,
-      badgeText: pendingLeavesCount > 0 ? `${pendingLeavesCount} معلق` : undefined,
-      badgeAlert: pendingLeavesCount > 0,
-    },
-    {
-      title: 'العُهد والأصول',
-      subtitle: openAssetsCount > 0 ? `${openAssetsCount} عهدة بالاستلام` : 'الأجهزة والمعدات',
-      icon: PackageIcon,
-      iconBg: '#f1f5f9',
-      iconColor: '#334155',
-      section: 'assets' as ProfileSection,
-      badgeText: openAssetsCount > 0 ? `${openAssetsCount}` : undefined,
-    },
-    {
-      title: 'المستندات والوثائق',
-      subtitle: expiredOrNearDocumentsCount > 0 ? `${expiredOrNearDocumentsCount} تحتاج تجديد` : `${documentsCount} مستند مسجل`,
-      icon: FileTextIcon,
-      iconBg: '#ede9fe',
-      iconColor: '#6d28d9',
-      section: 'documents' as ProfileSection,
-      badgeText: expiredOrNearDocumentsCount > 0 ? 'تنبيه' : undefined,
-      badgeAlert: expiredOrNearDocumentsCount > 0,
-    },
-  ];
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* 1. Quick HR Launchpad (منصة العمليات والإجراءات السريعة للموظف) */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '16px 20px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <div>
-            <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>
-              منصة العمليات والإجراءات السريعة
-            </strong>
-            <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-              انتقل مباشرة إلى سجلات الموظف وأقسام التشغيل بنقرة واحدة
-            </span>
-          </div>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', padding: '4px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            اكتمال الملف: {completenessText}
-          </span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-          {quickLaunchpad.map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={idx}
-                onClick={() => onNavigateSection(item.section)}
-                style={{
-                  background: '#ffffff',
-                  border: `1px solid ${item.badgeAlert ? '#fca5a5' : '#e2e8f0'}`,
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                  transition: 'border-color 0.15s ease, transform 0.1s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#170e5e';
-                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(23, 14, 94, 0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = item.badgeAlert ? '#fca5a5' : '#e2e8f0';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.02)';
-                }}
-              >
-                <div style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  backgroundColor: item.iconBg,
-                  color: item.iconColor,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <Icon size={20} color={item.iconColor} />
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                    <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {item.title}
-                    </span>
-                    {item.badgeText ? (
-                      <span style={{
-                        fontSize: '0.68rem',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        fontWeight: 700,
-                        backgroundColor: item.badgeAlert ? '#fee2e2' : '#f1f5f9',
-                        color: item.badgeAlert ? '#b91c1c' : '#334155',
-                        flexShrink: 0,
-                      }}>
-                        {item.badgeText}
-                      </span>
-                    ) : null}
-                  </div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
-                    {item.subtitle}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 2. Balanced 2-Column Symmetrical Operational Info Cards */}
+      {/* 1. Balanced 2-Column Symmetrical Operational Info Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '14px', alignItems: 'stretch' }}>
         {/* Right Card: بيانات التشغيل وجدول الدوام التعاقدي */}
         <div style={{
@@ -468,7 +307,7 @@ export function EmployeeOverviewTab({
         </div>
       </div>
 
-      {/* 3. Compact Single-Row KPI Operational Summary Bar */}
+      {/* 2. Compact Single-Row KPI Operational Summary Bar */}
       <div style={{
         background: '#ffffff',
         border: '1px solid #e2e8f0',
@@ -480,8 +319,8 @@ export function EmployeeOverviewTab({
           <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>
             المؤشرات التشغيلية للملف الوظيفي
           </span>
-          <span style={{ fontSize: '0.725rem', color: '#64748b' }}>
-            اضغط على أي بطاقة للانتقال الفوري إلى السجل الكامل
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#170e5e', background: '#f8fafc', padding: '2px 8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+            اكتمال الملف: {completenessText}
           </span>
         </div>
 
