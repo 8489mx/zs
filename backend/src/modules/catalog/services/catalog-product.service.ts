@@ -542,19 +542,32 @@ export class CatalogProductService {
 
   private async findPosProductsByBarcode(barcode: string, limit: number, actor: AuthContext): Promise<PosProductLookupRow[]> {
     if (!barcode) return [];
-    const productMatches = await this.db
+    let productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
       .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.sku', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
       .where('p.is_active', '=', true)
-      .where((eb) => eb.or([
-        sql<boolean>`LOWER(p.barcode) = ${barcode.trim().toLowerCase()}`,
-        sql<boolean>`LOWER(p.sku) = ${barcode.trim().toLowerCase()}`,
-      ]))
+      .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
       .orderBy('p.id', 'asc')
       .limit(limit)
       .execute() as PosProductLookupRow[];
+
+    // Prefer the physical barcode; a SKU is a fallback, not a competing code.
+    // A separate exact query preserves barcode precedence and the existing POS contract.
+    if (!productMatches.length) {
+      productMatches = await this.db
+        .selectFrom('products as p')
+        .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
+        .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.sku', 'p.item_type', 'p.item_kind',
+          'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price',
+          'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty',
+          'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
+        .where('p.is_active', '=', true)
+        .where('p.sku', '=', barcode)
+        .where(this.tenantPredicate(actor, 'p'))
+        .orderBy('p.id', 'asc').limit(limit).execute() as PosProductLookupRow[];
+    }
 
     const seenProductIds = productMatches.map((product) => Number(product.id));
     let remaining = limit - productMatches.length;
