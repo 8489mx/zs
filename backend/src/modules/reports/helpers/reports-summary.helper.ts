@@ -15,6 +15,7 @@ export type SummaryTotals = {
   servicesTotal: number;
   purchasesTotal: number;
   expensesTotal: number;
+  operatingMaterialsTotal?: number;
   salesReturnsTotal: number;
   purchaseReturnsTotal: number;
   salesTaxTotal?: number;
@@ -119,6 +120,7 @@ export function buildCommercialSummary(counts: SummaryCounts, totals: SummaryTot
     expenses: {
       count: counts.expensesCount,
       total: totals.expensesTotal,
+      operatingMaterialsTotal: toMoney(totals.operatingMaterialsTotal || 0),
     },
     returns: {
       count: counts.returnsCount,
@@ -252,6 +254,7 @@ export function buildReportSummaryPayload(args: {
       servicesTotal,
       purchasesTotal,
       expensesTotal,
+      operatingMaterialsTotal: totalsOverride?.operatingMaterialsTotal ?? 0,
       salesReturnsTotal,
       purchaseReturnsTotal,
       salesTaxTotal,

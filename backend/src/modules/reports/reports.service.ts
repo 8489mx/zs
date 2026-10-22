@@ -216,6 +216,20 @@ export class ReportsService {
       query,
     );
 
+    // Stock issued permanently for operations is expensed to account 6900,
+    // without a row in the standalone expenses table. Excluding it from this
+    // summary overstates operating profit compared with the general ledger.
+    const operatingMaterialsQuery = applyReportScopeFilter(
+      this.db.selectFrom('stock_movements as m')
+        .select(sql<number>`coalesce(sum(m.total_cost), 0)`.as('materials_total'))
+        .where('m.movement_type', '=', 'transfer_final_issue')
+        .where('m.reason', '=', 'final_issue')
+        .where('m.created_at', '>=', fromDate)
+        .where('m.created_at', '<=', toDate)
+        .where(this.tenantPredicate(auth, 'm')),
+      query, 'm',
+    );
+
     const returnsAggQuery = applyReportScopeFilter(
       this.db
         .selectFrom('return_documents')
@@ -319,6 +333,7 @@ export class ReportsService {
       purchasesAggRow,
       servicesAggRow,
       expensesAggRow,
+      operatingMaterialsRow,
       returnsAggRows,
       salesReturnTaxRow,
       treasuryAggRow,
@@ -330,6 +345,7 @@ export class ReportsService {
       purchasesAggQuery.executeTakeFirst(),
       servicesAggQuery.executeTakeFirst(),
       expensesAggQuery.executeTakeFirst(),
+      operatingMaterialsQuery.executeTakeFirst(),
       returnsAggQuery.execute(),
       salesReturnTaxQuery.executeTakeFirst(),
       treasuryAggQuery.executeTakeFirst(),
@@ -384,7 +400,8 @@ export class ReportsService {
       salesReturnTaxTotal: Number((salesReturnTaxRow as any)?.tax_total || 0),
       servicesTotal: Number((servicesAggRow as any)?.services_total || 0),
       purchasesTotal: Number((purchasesAggRow as any)?.purchases_total || 0),
-      expensesTotal: Number((expensesAggRow as any)?.expenses_total || 0),
+      expensesTotal: Number((expensesAggRow as any)?.expenses_total || 0) + Number((operatingMaterialsRow as any)?.materials_total || 0),
+      operatingMaterialsTotal: Number((operatingMaterialsRow as any)?.materials_total || 0),
       salesReturnsTotal,
       purchaseReturnsTotal,
       cashIn: Number((treasuryAggRow as any)?.cash_in || 0),
