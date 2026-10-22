@@ -322,11 +322,39 @@ export class CatalogProductService {
       ...listContext,
     });
 
-    const total = filteredBaseRows.length;
+    // Fashion pages are counted by models, never by individual sizes.
+    // Every selected model returns all of its tenant-scoped active variants.
+    const groupedFashion = String(query.groupFashion || '') === 'true';
+    const pageGroups: ProductRow[][] = [];
+    if (groupedFashion) {
+      const groupByKey = new Map<string, ProductRow[]>();
+      for (const row of filteredBaseRows) {
+        const key = row.item_kind === 'fashion' && row.style_code
+          ? `style:${row.style_code}` : `product:${row.id}`;
+        if (!groupByKey.has(key)) groupByKey.set(key, []);
+        groupByKey.get(key)!.push(row);
+      }
+      for (const [key, rows] of groupByKey.entries()) {
+        if (key.startsWith('style:')) {
+          const style = key.slice(6);
+          const present = new Set(rows.map((p) => Number(p.id)));
+          for (const sibling of products) {
+            if (sibling.item_kind === 'fashion' && sibling.style_code === style && !present.has(Number(sibling.id))) {
+              rows.push(sibling);
+              present.add(Number(sibling.id));
+            }
+          }
+        }
+        pageGroups.push(rows);
+      }
+    }
+    const total = groupedFashion ? pageGroups.length : filteredBaseRows.length;
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
     const safePage = Math.min(page, totalPages);
     const start = (safePage - 1) * pageSize;
-    const pagedBaseRows = filteredBaseRows.slice(start, start + pageSize);
+    const pagedBaseRows = groupedFashion
+      ? pageGroups.slice(start, start + pageSize).flat()
+      : filteredBaseRows.slice(start, start + pageSize);
     const pagedIds = pagedBaseRows.map((row) => Number(row.id));
 
     const [relations, movementRows] = await Promise.all([
