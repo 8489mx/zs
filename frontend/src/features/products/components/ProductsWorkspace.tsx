@@ -30,9 +30,9 @@ void productsWorkspaceRegressionLabels;
 
 export function ProductsWorkspace() {
   const { t: __t } = useTranslation();
-  const controller = useProductsWorkspaceController();
   const settingsQuery = useSettingsQuery();
   const clothingEnabled = settingsQuery.data?.clothingModuleEnabled === true;
+  const controller = useProductsWorkspaceController(clothingEnabled);
   const defaultProductKind = clothingEnabled && settingsQuery.data?.defaultProductKind === 'fashion' ? 'fashion' : 'standard';
   const navigate = useNavigate();
   const toolsRef = useRef<HTMLDivElement | null>(null);
@@ -141,7 +141,7 @@ export function ProductsWorkspace() {
           error={controller.productsQuery.error || controller.categoriesQuery.error || controller.suppliersQuery.error}
           page={controller.page}
           pageSize={controller.pageSize}
-          totalItems={controller.summary?.totalProducts || controller.visibleProducts.length}
+          totalItems={controller.productsQuery.data?.pagination?.totalItems ?? controller.visibleProducts.length}
           onPageChange={controller.setPage}
           onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
           clothingEnabled={clothingEnabled}
