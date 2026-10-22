@@ -46,18 +46,22 @@ export function assertInventoryLocationBranchMatch(selectedBranchId: number | st
   }
 }
 
-export function buildStockCountSessionDocNo(now = Date.now()): string {
+export function buildStockCountSessionDocNo(now = Date.now(), sessionId?: number): string {
   const d = new Date(now);
   const yy = String(d.getFullYear()).slice(-2);
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  const suffix = String(now).slice(-4);
+  const suffix = sessionId == null ? String(now).slice(-4) : String(sessionId).padStart(6, '0');
   return `ZSC-${yy}${mm}${dd}-${suffix}`;
 }
 
 export function buildStockCountItemValues(product: StockCountProductSnapshot, item: StockCountInputItem, sessionId: number) {
   const expectedQty = Number(product.stock_qty || 0);
   const countedQty = Number(item.countedQty || 0);
+  if (!Number.isFinite(countedQty) || countedQty < 0 ||
+    Math.abs(countedQty * 1000 - Math.round(countedQty * 1000)) > 0.000001) {
+    throw new AppError('الكمية الفعلية للجرد يجب أن تكون موجبة أو صفر وبدقة ثلاث خانات عشرية', 'STOCK_COUNT_QUANTITY_INVALID', 400);
+  }
   const varianceQty = Number((countedQty - expectedQty).toFixed(3));
 
   return {

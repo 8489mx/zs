@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
@@ -148,8 +149,14 @@ export class InventoryCountService {
     }
 
     const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
-      const result = await trx.insertInto('stock_count_sessions').values({ doc_no: buildStockCountSessionDocNo(), branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
+      // Time-based suffixes collide if two cashiers create a count at once.
+      // A unique provisional code is replaced inside this transaction by the
+      // stable database-generated session identity.
+      const result = await trx.insertInto('stock_count_sessions').values({ doc_no: `ZSC-TMP-${randomUUID()}`, branch_id: location.branchId, location_id: location.id, status: 'draft', note: String(payload.note || '').trim(), counted_by: auth.userId, ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       const id = Number(result.id);
+      await trx.updateTable('stock_count_sessions')
+        .set({ doc_no: buildStockCountSessionDocNo(Date.now(), id) })
+        .where('id', '=', id).where(this.tenantPredicate(auth)).execute();
       await lockStockProducts(trx, { ...tenantScope, productIds: payload.items.map((item) => item.productId) });
       for (const item of [...payload.items].sort((a, b) => a.productId - b.productId)) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
