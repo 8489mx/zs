@@ -2395,11 +2395,16 @@ export class AccountingPostingService {
 
     const delta = Number(movement.after_qty || 0) - Number(movement.before_qty || 0);
     const isFinalIssue = movement.movement_type === 'transfer_final_issue' && movement.reason === 'final_issue';
+    const isTransitLoss = movement.movement_type === 'transfer_transit_loss' && movement.reason === 'transit_shrinkage';
     if (Math.abs(delta) < 0.001) return { posted: false, journalEntryId: null, hasFinancialImpact: false }; // No variance
 
     const rawCost = Number(movement.unit_cost || 0);
     const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-    const amount = this.toMoney(Math.abs(delta) * unitCost);
+    // Use the immutable amount recorded at the time of the physical movement.
+    // Re-multiplying a rounded per-unit cost can drift by cents for fractional quantities.
+    const rawTotal = movement.total_cost == null ? null : Number(movement.total_cost);
+    const amount = rawTotal != null && Number.isFinite(rawTotal) && rawTotal >= 0
+      ? this.toMoney(rawTotal) : this.toMoney(Math.abs(delta) * unitCost);
 
     if (amount <= 0) {
       return { posted: false, journalEntryId: null, hasFinancialImpact: false };
@@ -2427,9 +2432,10 @@ export class AccountingPostingService {
       this.addLine(lines, { accountId: gainAccountId, description: 'أرباح تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     } else {
       // Loss
-      const lossAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5200');
-      this.addLine(lines, { accountId: lossAccountId, description: isFinalIssue ? 'تكلفة صرف مخزون نهائي للتشغيل' : 'خسائر تسوية مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
-      this.addLine(lines, { accountId: accountIdToUse, description: isFinalIssue ? 'تخفيض المخزون بموجب إذن صرف نهائي' : 'نقص تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+      const lossAccountCode = isFinalIssue ? '6900' : isTransitLoss ? '5300' : '5200';
+      const lossAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, lossAccountCode);
+      this.addLine(lines, { accountId: lossAccountId, description: isFinalIssue ? 'مواد تشغيل مصروفة نهائياً' : isTransitLoss ? 'هالك وفاقد بضاعة أثناء النقل' : 'خسائر تسوية مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: accountIdToUse, description: isFinalIssue ? 'تخفيض المخزون بموجب إذن صرف نهائي' : isTransitLoss ? 'تخفيض مخزون البضاعة بالطريق بسبب الفاقد' : 'نقص تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     try {
