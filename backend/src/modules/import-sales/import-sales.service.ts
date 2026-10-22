@@ -3300,12 +3300,11 @@ export class ImportSalesService {
       const startDate = project.created_at || new Date('2020-01-01');
       const profitReport = await this.generatePeriodProfitReport(tenantId, startDate, new Date(), projectId, trx);
 
-      if (
-        !profitReport.data.profitAttributionVerified &&
-        (profitReport.data.grossSalesRevenue > 0 || profitReport.data.salesReturnsRevenue > 0)
-      ) {
+      if (!profitReport.data.profitAttributionVerified) {
+        // An unverified report may show zero sales precisely because allocation is missing.
+        // Never treat that synthetic zero as safe to close.
         throw new UnprocessableEntityException(
-          'لا يمكن اعتماد إقفال مالي نهائي لمشروع لديه مبيعات قبل إثبات مصدر الكميات المباعة وتسوية ربحية الشحنة.'
+          'لا يمكن إقفال المشروع قبل اعتماد تتبع مصدر المبيعات وكميات المخزون بالكامل.'
         );
       }
 
@@ -4308,19 +4307,19 @@ export class ImportSalesService {
         .forUpdate()
         .executeTakeFirstOrThrow();
 
-      const item = await trx
+      const itemRows = await trx
         .selectFrom('import_shipment_items')
-        .selectAll()
+        .select(['quantity', 'received_quantity'])
         .where('shipment_id', '=', dto.shipmentId)
         .where('product_id', '=', Number(dto.productId))
         .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
+        .execute();
 
-      if (!item) {
+      if (!itemRows.length) {
         throw new BadRequestException('هذا الصنف غير مدرج في هذه الشحنة.');
       }
-
-      const blQuantity = Number(item.quantity);
+      // The same SKU can be represented by several distinct shipment lines.
+      const blQuantity = itemRows.reduce((sum, row) => sum + Number(row.received_quantity ?? row.quantity), 0);
 
       const existingOrders = await trx
         .selectFrom('import_container_preorders')
@@ -4815,8 +4814,13 @@ export class ImportSalesService {
       .where('status', '=', 'active')
       .execute();
 
+    const today = new Date();
     for (const adv of staleAdvances) {
-      if (Number(adv.remaining_amount_egp) > 0) {
+      // A fresh, not-yet-liquidated broker advance is a normal operation, not an exception.
+      const disbursedOn = new Date(String(adv.disbursement_date));
+      const ageDays = Number.isFinite(disbursedOn.getTime())
+        ? (today.getTime() - disbursedOn.getTime()) / (24 * 60 * 60 * 1000) : 0;
+      if (Number(adv.remaining_amount_egp) > 0 && ageDays > 30) {
         exceptions.push({
           tenant_id: tenantId,
           exception_type: 'broker_advance_mismatch',
