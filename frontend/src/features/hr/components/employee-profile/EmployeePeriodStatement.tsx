@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useHrAttendance } from '@/features/hr/hooks/useHr';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
@@ -35,6 +36,7 @@ function formatLedgerNote(note?: string, type?: string): string {
 }
 
 export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, canViewSalary }: Props) {
+  const navigate = useNavigate();
   const [from, setFrom] = useState(todayDate().slice(0, 7) + '-01');
   const [to, setTo] = useState(todayDate());
   const [attendancePage, setAttendancePage] = useState(1);
@@ -64,13 +66,32 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
           <strong style={{ fontSize: '1rem', color: '#0f172a', display: 'block' }}>سجل تشغيل ومستحقات الموظف للفترة</strong>
           <span style={{ fontSize: '0.78rem', color: '#64748b' }}>متابعة تفصيلية لساعات العمل، الحضور والانصراف، وحركات السلف والمسحوبات</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', padding: '6px 12px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
-            من: <input type="date" value={from} onChange={e => { setFrom(e.target.value); setAttendancePage(1); setWithdrawalPage(1); }} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }} />
-          </label>
-          <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
-            إلى: <input type="date" value={to} onChange={e => { setTo(e.target.value); setAttendancePage(1); setWithdrawalPage(1); }} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }} />
-          </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => navigate(`/hr/attendance?employeeId=${employeeId}`)}
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.78rem',
+              borderRadius: 6,
+              border: '1px solid #170e5e',
+              backgroundColor: '#170e5e',
+              color: '#ffffff',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            فتح سجل البصمات الكامل
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', padding: '4px 10px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
+              من: <input type="date" value={from} onChange={e => { setFrom(e.target.value); setAttendancePage(1); setWithdrawalPage(1); }} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }} />
+            </label>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569', display: 'flex', alignItems: 'center', gap: 6 }}>
+              إلى: <input type="date" value={to} onChange={e => { setTo(e.target.value); setAttendancePage(1); setWithdrawalPage(1); }} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.8rem' }} />
+            </label>
+          </div>
         </div>
       </div>
 
@@ -133,7 +154,18 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
             { key: 'date', header: 'التاريخ', cell: row => <span style={{ fontWeight: 600 }}>{row.workDate}</span> },
             { key: 'in', header: 'الحضور', cell: row => row.checkInAt?.slice(11, 16) || '—' },
             { key: 'out', header: 'الانصراف', cell: row => row.checkOutAt?.slice(11, 16) || '—' },
+            { key: 'duration', header: 'مدة العمل', cell: row => {
+              if (!row.checkInAt || !row.checkOutAt) return '—';
+              const start = new Date(row.checkInAt).getTime();
+              const end = new Date(row.checkOutAt).getTime();
+              const diffMins = Math.round((end - start) / 60000);
+              if (diffMins <= 0) return '—';
+              const hours = Math.floor(diffMins / 60);
+              const mins = diffMins % 60;
+              return <span style={{ fontWeight: 600, color: '#0f172a' }}>{hours} س {mins > 0 ? `${mins} د` : ''}</span>;
+            }},
             { key: 'state', header: 'الحالة', cell: row => attendanceStatusBadge(row.status) },
+            { key: 'notes', header: 'ملاحظات / المصدر', cell: row => row.notes || (row.source ? (row.source === 'device' ? 'جهاز البصمة' : row.source === 'mobile' ? 'تطبيق الموبايل' : 'يدوي') : '—') },
           ]}
         />
         {canViewAttendance && Number(attendance.data?.pagination?.totalPages || 1) > 1 ? (
