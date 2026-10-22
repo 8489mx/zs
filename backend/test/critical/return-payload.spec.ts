@@ -63,8 +63,8 @@ expectAppError(() => normalizeReturnItems({
   type: 'sale',
   invoiceId: 1,
   items: [{ productId: 1, qty: 0 }, { productId: 2, qty: -5 }],
-}), 'RETURN_ITEMS_REQUIRED');
-console.log('✓ 5. تصفية الكميات الصفرية والسالبة وحظر القوائم الخالية (RETURN_ITEMS_REQUIRED)');
+}), 'RETURN_ITEM_INVALID');
+console.log('✓ 5. تصفية الكميات الصفرية والسالبة وحظر القوائم الخالية (RETURN_ITEM_INVALID)');
 
 console.log('\n=============================================================================');
 console.log('  كافة اختبارات حمولة المرتجعات (return-payload.spec) اجتازت 100%');
