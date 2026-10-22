@@ -53,6 +53,74 @@ async function main() {
   assert.equal(Number(product.costPrice), 10);
   assert.equal(Number(product.retailPrice), 15);
 
+
+  // Fashion regression: grouped creation, SKU lookup, atomic edit and safe archive.
+  const styleCode = String(1_000_000 + Math.floor(Math.random() * 900_000));
+  const fashionName = `E2E Fashion ${suffix}`;
+  const redBarcode = `FRED-${suffix}`;
+  const blueBarcode = `FBLUE-${suffix}`;
+  const redSku = `SKU-RED-${suffix}`;
+  const blackSku = `SKU-BLACK-${suffix}`;
+  const unit = (barcode: string) => ({
+    name: 'قطعة', multiplier: 1, barcode,
+    isBaseUnit: true, isSaleUnit: true, isPurchaseUnit: true,
+  });
+  await client.post('/api/products', {
+    name: fashionName, itemKind: 'fashion', styleCode,
+    categoryId: Number(category.id), supplierId: Number(supplier.id),
+    costPrice: 60, retailPrice: 120, wholesalePrice: 100, minStock: 2,
+    units: [unit('')], stock: 0, metadata: { origin: 'Egypt' },
+    offers: [{ type: 'bogo', value: 0, bogoBuyQty: 1, bogoGetQty: 1, bogoDiscountPercent: 100 }],
+    fashionVariants: [
+      { color: 'أحمر', size: 'M', barcode: redBarcode, sku: redSku, stock: 0 },
+      { color: 'أزرق', size: 'L', barcode: blueBarcode, sku: `SKU-BLUE-${suffix}`, stock: 0 },
+    ],
+  }, 201);
+  const beforeFashion = expectArray((await client.get(`/api/products?q=${encodeURIComponent(styleCode)}`)).products, 'fashion variants');
+  const red = beforeFashion.find((item) => item.color === 'أحمر');
+  const blue = beforeFashion.find((item) => item.color === 'أزرق');
+  assert.ok(red && blue, 'Expected red and blue clothing variants');
+  assert.equal(red.sku, redSku, 'Variant SKU must persist');
+
+  const row = (fields: Record<string, any>) => ({
+    name: fields.name, itemKind: 'fashion', itemType: 'product', styleCode,
+    color: fields.color, size: fields.size, barcode: fields.barcode, sku: fields.sku,
+    categoryId: Number(category.id), supplierId: Number(supplier.id),
+    costPrice: 60, retailPrice: 120, wholesalePrice: 100,
+    minStock: fields.minStock ?? 2, units: [unit(fields.barcode)],
+    ...(fields.id ? { id: Number(fields.id) } : { stock: 0 }),
+  });
+  const edited = await client.put(`/api/products/fashion-groups/${styleCode}`, {
+    rows: [
+      row({ id: red.id, name: red.name, color: 'أحمر', size: 'M', barcode: redBarcode, sku: redSku, minStock: 7 }),
+      row({ name: `${fashionName} - أسود / 42.5`, color: 'أسود', size: '42.5', barcode: `FBLK-${suffix}`, sku: blackSku }),
+    ],
+  });
+  assert.deepEqual([edited.updated, edited.created, edited.archived], [1, 1, 1]);
+
+  const afterFashion = expectArray((await client.get(`/api/products?q=${encodeURIComponent(styleCode)}`)).products, 'updated fashion');
+  assert.equal(afterFashion.length, 2, 'Only active variants should be listed');
+  const savedRed = afterFashion.find((item) => item.id === red.id);
+  assert.equal(savedRed.minStock, 7);
+  assert.equal(savedRed.sku, redSku);
+  assert.equal(savedRed.offers?.[0]?.type, 'bogo', 'Existing promotion must be preserved');
+  assert.equal(savedRed.metadata?.origin, 'Egypt', 'Existing metadata must be preserved');
+  assert.equal(afterFashion.find((item) => item.sku === blackSku)?.size, '42.5');
+
+  const archived = expectArray((await client.get(`/api/products?view=archived&q=${encodeURIComponent(styleCode)}`)).products, 'archived fashion');
+  assert.ok(archived.some((item) => item.id === blue.id), 'Removed variant must be archived, not deleted');
+  const skuSearch = expectArray((await client.get(`/api/catalog/pos-products?q=${encodeURIComponent(blackSku)}`)).products, 'pos SKU lookup');
+  assert.ok(skuSearch.some((item) => item.sku === blackSku), 'POS should find variants by SKU');
+
+  await client.put(`/api/products/fashion-groups/${styleCode}`, {
+    rows: [
+      row({ id: red.id, name: red.name, color: 'أحمر', size: 'M', barcode: redBarcode, sku: redSku }),
+      row({ name: 'E2E Duplicate', color: 'أحمر', size: 'M', barcode: `DIFF-${suffix}`, sku: `SKU-DIFF-${suffix}` }),
+    ],
+  }, 400);
+  const afterFailedEdit = expectArray((await client.get(`/api/products?q=${encodeURIComponent(styleCode)}`)).products, 'unchanged fashion');
+  assert.equal(afterFailedEdit.length, 2, 'Invalid bulk edit must not mutate the group');
+
   console.log('catalog-master-data.e2e: ok');
 }
 
