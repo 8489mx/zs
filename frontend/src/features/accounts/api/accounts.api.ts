@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { postIdempotentAccountPayment } from '@/lib/api/idempotent-account-payment';
 import { unwrapArray } from '@/lib/api/contracts';
 import type { Customer, CustomerLedger, Supplier, SupplierLedger } from '@/types/domain';
 import { buildQueryString } from '@/lib/query-string';
@@ -108,8 +109,8 @@ export const accountsApi = {
     }
     return { supplier, entries, summary } as SupplierLedger;
   },
-  customerPaymentCreate: (payload: unknown) => http('/api/customer-payments', { method: 'POST', body: JSON.stringify(payload) }),
-  supplierPaymentCreate: (payload: unknown) => http('/api/supplier-payments', { method: 'POST', body: JSON.stringify(payload) }),
+  customerPaymentCreate: (payload: unknown) => postIdempotentAccountPayment('/api/customer-payments', payload),
+  supplierPaymentCreate: (payload: unknown) => postIdempotentAccountPayment('/api/supplier-payments', payload),
   listCustomersWithDebt: async (): Promise<Customer[]> => {
     const pageSize = 200;
     let page = 1;
