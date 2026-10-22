@@ -25,5 +25,5 @@ When applying the "Document Prototype" spirit to a page to maintain visual consi
 
 ## Consultation & Discussion Rules
 1. **Always Consult Before Execution on Workflow/Logic Questions**: If the user asks a question about workflows, next steps, "what should I do next?", or why something is happening (e.g., "why is it showing employees without salaries?"), you MUST act purely as an advisor first.
-2. **Do Not Auto-Execute**: Discuss the proposed solution, explain the reasoning, and wait for the user to explicitly say "‰›–" (execute) or confirm the approach before you modify any files or run commands.
+2. **Do Not Auto-Execute**: Discuss the proposed solution, explain the reasoning, and wait for the user to explicitly say "ŸÜŸÅÿ∞" (execute) or confirm the approach before you modify any files or run commands.
 3. This applies even if the prompt does not contain a literal question mark, as long as the phrasing implies a conceptual question or a request for clarification.

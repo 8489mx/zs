@@ -321,6 +321,43 @@ async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
         );
       }
     }
+
+    // Reconcile shifted import migrations (commit d44a2a648 shifted 236..239 to 237..240 to insert supplier_payments_foreign_amount at 236)
+    const shiftedImportMigrations: [string, string][] = [
+      ['2040000000236_international_trade_procurement_and_sourcing', '2040000000237_international_trade_procurement_and_sourcing'],
+      ['2040000000237_customs_broker_advances_and_container_deposits', '2040000000238_customs_broker_advances_and_container_deposits'],
+      ['2040000000238_container_preorders_and_inventory_traceability', '2040000000239_container_preorders_and_inventory_traceability'],
+      ['2040000000239_import_governance_approvals_and_reconciliation', '2040000000240_import_governance_approvals_and_reconciliation'],
+    ];
+
+    for (const [oldName, newName] of shiftedImportMigrations) {
+      const oldCheck = await sql<{ found: number }>`
+        SELECT 1 AS found FROM ${sql.id(schema, 'kysely_migration')}
+        WHERE name = ${oldName}
+      `.execute(db);
+
+      if (oldCheck.rows.length > 0) {
+        const newCheck = await sql<{ found: number }>`
+          SELECT 1 AS found FROM ${sql.id(schema, 'kysely_migration')}
+          WHERE name = ${newName}
+        `.execute(db);
+
+        if (newCheck.rows.length > 0) {
+          // New numbered row already exists; delete the obsolete ghost row so Kysely doesn't treat it as missing
+          await sql`
+            DELETE FROM ${sql.id(schema, 'kysely_migration')}
+            WHERE name = ${oldName}
+          `.execute(db);
+        } else {
+          // Only old row exists; rename it to new prefix so Kysely recognizes it without rerunning
+          await sql`
+            UPDATE ${sql.id(schema, 'kysely_migration')}
+            SET name = ${newName}
+            WHERE name = ${oldName}
+          `.execute(db);
+        }
+      }
+    }
   } catch (err: any) {
     if (err.message && err.message.includes('Migration reconciliation integrity check failed')) {
       throw err;
