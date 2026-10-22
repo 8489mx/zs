@@ -73,7 +73,7 @@ export function buildSaleReturnLine(source: ReturnSourceLine, product: ReturnPro
   };
 }
 
-export function buildPurchaseReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem, history: { qty: number; amount: number } = { qty: 0, amount: 0 }): PreparedReturnLine {
+export function buildPurchaseReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem, history: { qty: number; amount: number; tax?: number } = { qty: 0, amount: 0 }): PreparedReturnLine {
   const purchasedQty = Number(source.qty || 0);
   const sourceLineTotal = roundMoney(Number(source.line_total || 0));
   const cumulativeQty = history.qty + requestItem.qty;
@@ -82,7 +82,9 @@ export function buildPurchaseReturnLine(source: ReturnSourceLine, product: Retur
   }
   // Cumulative rounding allocates any residual cents to the final partial return.
   const lineTotal = roundMoney(sourceLineTotal * cumulativeQty / purchasedQty) - roundMoney(history.amount);
-  if (lineTotal < -0.0001) {
+  const sourceTax = roundMoney(Number(source.allocated_tax || 0));
+  const allocatedTax = roundMoney(sourceTax * cumulativeQty / purchasedQty) - roundMoney(history.tax || 0);
+  if (lineTotal < -0.0001 || allocatedTax < -0.0001 || allocatedTax > lineTotal + 0.0001) {
     throw new AppError('سجل مرتجع الشراء السابق يحتاج مراجعة مالية', 'PURCHASE_RETURN_RECONCILIATION_REQUIRED', 409);
   }
   const unitTotal = roundMoney(lineTotal / requestItem.qty);
@@ -103,7 +105,7 @@ export function buildPurchaseReturnLine(source: ReturnSourceLine, product: Retur
     qty: Number(requestItem.qty || 0),
     unitTotal,
     lineTotal,
-    allocatedTax: 0,
+    allocatedTax,
     stockDelta,
     beforeQty,
     afterQty,

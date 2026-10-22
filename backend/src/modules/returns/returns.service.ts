@@ -35,7 +35,7 @@ export interface ExchangeReturnContext {
 }
 
 type ReturnInputItem = { productId: number; productName: string; qty: number; saleItemId?: number; purchaseItemId?: number; batchId?: number; serials?: string[] };
-type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null; refundAllocations?: Array<{ tender: RefundTender; amount: number }> };
+type ReturnDocumentInput = { returnType: 'sale' | 'purchase'; invoiceId: number; settlementMode: string; refundMethod: string; total: number; note: string; branchId: number | null; locationId: number | null; refundAllocations?: Array<{ tender: RefundTender | 'payable'; amount: number }> };
 
 @Injectable()
 export class ReturnsService {
@@ -834,7 +834,24 @@ export class ReturnsService {
     if (!purchase) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
     const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).orderBy('id', 'asc').forUpdate().execute();
-    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; saleItemId?: number; purchaseItemId?: number }> = [];
+    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; allocatedTax: number; saleItemId?: number; purchaseItemId?: number }> = [];
+
+    // Purchase items hold after-discount values. Distribute the invoice's actual
+    // input VAT to original lines in cents, including the last-line remainder.
+    // Inclusive purchase prices already contain VAT; exclusive prices do not.
+    const originalTaxCents = Math.round(Number(purchase.tax_amount || 0) * 100);
+    const weightedLines = purchaseItems.filter((line) => Number(line.line_total || 0) > 0);
+    const netLinesTotal = weightedLines.reduce((sum, line) => sum + Number(line.line_total || 0), 0);
+    const taxByLine = new Map<number, number>();
+    let allocatedTaxCents = 0;
+    for (let index = 0; index < weightedLines.length; index += 1) {
+      const line = weightedLines[index];
+      const last = index === weightedLines.length - 1;
+      const cents = last ? originalTaxCents - allocatedTaxCents
+        : Math.min(originalTaxCents - allocatedTaxCents, Math.round(originalTaxCents * Number(line.line_total || 0) / netLinesTotal));
+      allocatedTaxCents += cents;
+      taxByLine.set(Number(line.id), cents / 100);
+    }
 
     const pendingQtyByProduct = new Map<number, number>();
     const pendingQtyByLine = new Map<number, number>();
@@ -847,6 +864,8 @@ export class ReturnsService {
         'ri.purchase_item_id',
         (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.qty'), sql<number>`0`).as('total_qty'),
         (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.line_total'), sql<number>`0`).as('total_amount'),
+        (eb) => eb.fn.coalesce(eb.fn.sum<number>('ri.allocated_tax'), sql<number>`0`).as('total_tax'),
+        sql<number>`sum(case when ri.allocated_tax is null then 1 else 0 end)`.as('unallocated_tax_lines'),
       ])
       .where('rd.return_type', '=', 'purchase')
       .where('rd.invoice_id', '=', Number(payload.invoiceId))
@@ -857,6 +876,8 @@ export class ReturnsService {
 
     const returnedQtyByLine = new Map<number, number>();
     const returnedAmountByLine = new Map<number, number>();
+    const returnedTaxByLine = new Map<number, number>();
+    const unreconciledTaxLineIds = new Set<number>();
     const returnedQtyByProduct = new Map<number, number>();
     const legacyReturnedProducts = new Set<number>();
     for (const r of returnedRows) {
@@ -864,6 +885,8 @@ export class ReturnsService {
       if (r.purchase_item_id) {
         returnedQtyByLine.set(Number(r.purchase_item_id), q);
         returnedAmountByLine.set(Number(r.purchase_item_id), Number(r.total_amount || 0));
+        returnedTaxByLine.set(Number(r.purchase_item_id), Number(r.total_tax || 0));
+        if (Number(r.unallocated_tax_lines || 0) > 0) unreconciledTaxLineIds.add(Number(r.purchase_item_id));
       }
       const pId = Number(r.product_id || 0);
       if (!r.purchase_item_id && q > 0) legacyReturnedProducts.add(pId);
@@ -880,6 +903,9 @@ export class ReturnsService {
         : matchingLines[0];
       if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       const purchaseLineId = Number(purchaseItem.id);
+      if (originalTaxCents > 0 && unreconciledTaxLineIds.has(purchaseLineId)) {
+        throw new AppError('مرتجع شراء سابق يحتاج تسوية ضريبية قبل مرتجع جديد', 'PURCHASE_RETURN_TAX_RECONCILIATION_REQUIRED', 409);
+      }
       if (legacyReturnedProducts.has(requestItem.productId)) {
         throw new AppError('مرتجع شراء سابق بلا ربط بسطر الفاتورة يحتاج تسوية أولاً', 'PURCHASE_RETURN_LEGACY_RECONCILIATION_REQUIRED', 409);
       }
@@ -897,13 +923,16 @@ export class ReturnsService {
       pendingQtyByProduct.set(requestItem.productId, (pendingQtyByProduct.get(requestItem.productId) || 0) + requestItem.qty);
       pendingQtyByLine.set(purchaseLineId, (pendingQtyByLine.get(purchaseLineId) || 0) + requestItem.qty);
 
-      const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
+      const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchaseItem.location_id ?? purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
       const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials'])
         .where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const preparedLine = buildPurchaseReturnLine(purchaseItem, { ...product, stock_qty: availableQty }, requestItem, {
+      const sourceTax = taxByLine.get(purchaseLineId) || 0;
+      const sourceGross = Number(purchaseItem.line_total || 0) + (purchase.prices_include_tax ? 0 : sourceTax);
+      const preparedLine = buildPurchaseReturnLine({ ...purchaseItem, line_total: sourceGross, allocated_tax: sourceTax }, { ...product, stock_qty: availableQty }, requestItem, {
         qty: returnedQtyByLine.get(purchaseLineId) || 0,
         amount: returnedAmountByLine.get(purchaseLineId) || 0,
+        tax: returnedTaxByLine.get(purchaseLineId) || 0,
       });
 
       // The serial ledger and general stock ledger must leave the warehouse together.
@@ -947,15 +976,42 @@ export class ReturnsService {
       const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
       await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, purchaseItemId: purchaseLineId });
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, purchaseItemId: purchaseLineId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
+    if (!(total > 0)) throw new AppError('مرتجع الشراء يجب أن تكون قيمته موجبة', 'PURCHASE_RETURN_AMOUNT_INVALID', 400);
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
-    const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, { returnType: 'purchase', invoiceId: Number(payload.invoiceId), settlementMode: 'refund', refundMethod, total, note: String(payload.note || '').trim(), branchId: purchase.branch_id, locationId: purchase.location_id }, auth);
-    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, purchaseItemId: line.purchaseItemId }, auth);
-    if (purchase.payment_type === 'credit' && purchase.supplier_id) await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -total, 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
-    else await this.addTreasuryTransaction(trx, 'purchase_return_refund', total, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
+    // Supplier payments may have already settled part of an originally credit invoice.
+    // Never reverse more payable than both the invoice remainder and supplier balance.
+    // Only the excess is a real cash/bank refund, not a negative supplier payable.
+    let payableCents = 0;
+    if (purchase.payment_type === 'credit' && purchase.supplier_id) {
+      const supplier = await trx.selectFrom('suppliers').select(['balance']).where('id', '=', Number(purchase.supplier_id))
+        .where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
+      const priorReturnTotal = await trx.selectFrom('return_documents')
+        .select(sql<number>`coalesce(sum(total), 0)`.as('total'))
+        .where('return_type', '=', 'purchase').where('invoice_id', '=', Number(purchase.id))
+        .where(this.tenantPredicate(auth)).executeTakeFirst();
+      const unpaidInvoiceCents = Math.max(0, Math.round((Number(purchase.total || 0) - Number(purchase.paid_amount || 0) - Number(priorReturnTotal?.total || 0)) * 100));
+      const supplierOutstandingCents = Math.max(0, Math.round(Number(supplier.balance || 0) * 100));
+      payableCents = Math.min(Math.round(total * 100), unpaidInvoiceCents, supplierOutstandingCents);
+    }
+    const refundCents = Math.round(total * 100) - payableCents;
+    const allocations: Array<{ tender: 'payable' | 'cash' | 'card'; amount: number }> = [];
+    if (payableCents > 0) allocations.push({ tender: 'payable', amount: payableCents / 100 });
+    if (refundCents > 0) allocations.push({ tender: refundMethod, amount: refundCents / 100 });
+    const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, {
+      returnType: 'purchase', invoiceId: Number(payload.invoiceId), settlementMode: 'refund',
+      refundMethod: allocations.length > 1 ? 'mixed' : allocations[0].tender,
+      refundAllocations: allocations, total, note: String(payload.note || '').trim(),
+      branchId: purchase.branch_id, locationId: purchase.location_id,
+    }, auth);
+    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, allocatedTax: line.allocatedTax, purchaseItemId: line.purchaseItemId }, auth);
+    if (payableCents > 0 && purchase.supplier_id) {
+      await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -(payableCents / 100), 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
+    }
+    if (refundCents > 0) await this.addTreasuryTransaction(trx, 'purchase_return_refund', refundCents / 100, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
 
     try {
       const posting = await this.accountingPosting.postPurchaseReturn(trx, returnDocumentId, auth);
