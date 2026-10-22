@@ -222,7 +222,16 @@ try {
     if ($LASTEXITCODE -ge 8 -or -not (Test-Path (Join-Path $clusterBackup 'PG_VERSION'))) {
       throw "Database snapshot could not be verified (robocopy $LASTEXITCODE)"
     }
-    Write-Log 'Complete cold PostgreSQL backup verified.'
+    # PostgreSQL auth is stored next to the cluster, not inside data/.
+    # Keep it in the same rollback snapshot, otherwise a password change during
+    # a failed upgrade can permanently lock the old database.
+    $pgAuthFile = Join-Path $pathMap.RuntimeDir '.postgres-auth.json'
+    if (Test-Path $pgAuthFile) {
+      Copy-Item -Path $pgAuthFile -Destination (Join-Path $backupDir 'postgres-auth.json') -Force
+    } else {
+      Set-Content -Path (Join-Path $backupDir 'postgres-auth.absent') -Value 'not-present-before-update'
+    }
+    Write-Log 'Complete PostgreSQL cluster and authentication backup verified.'
   } else {
     $pgDump = Join-Path $pathMap.PostgresBinDir 'pg_dump.exe'
     if (Test-Path $pgDump) {
@@ -533,7 +542,16 @@ if (-not $applySuccess) {
       & $pgCtl -D $dbData stop -m immediate -w *> $null
       robocopy $clusterBackup $dbData /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
       if ($LASTEXITCODE -ge 8) { throw "PostgreSQL rollback failed ($LASTEXITCODE)" }
-      Write-Log 'Restored complete pre-update PostgreSQL cluster.'
+      $originalPgAuth = Join-Path $backupDir 'postgres-auth.json'
+      $pgAuthDest = Join-Path $pathMap.RuntimeDir '.postgres-auth.json'
+      if (Test-Path $originalPgAuth) {
+        Copy-Item -Path $originalPgAuth -Destination $pgAuthDest -Force
+      } elseif (Test-Path (Join-Path $backupDir 'postgres-auth.absent')) {
+        Remove-Item -Path $pgAuthDest -Force -ErrorAction SilentlyContinue
+      } else {
+        throw 'PostgreSQL authentication snapshot marker missing; refusing incomplete rollback'
+      }
+      Write-Log 'Restored complete pre-update PostgreSQL cluster and credentials.'
     } else {
       $dbBackupPath = Join-Path $backupDir 'database.sql'
       if (Test-Path $dbBackupPath) {
