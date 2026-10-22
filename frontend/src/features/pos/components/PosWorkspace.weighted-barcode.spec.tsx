@@ -90,6 +90,7 @@ describe('PosWorkspace - Weighted Barcodes', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    localStorage.removeItem('zsystems.react.pos.draft');
     vi.clearAllMocks();
     queryClient = createTestQueryClient();
     vi.mocked(posApi.customers).mockResolvedValue([]);
@@ -122,6 +123,8 @@ describe('PosWorkspace - Weighted Barcodes', () => {
 
   afterEach(() => {
     cleanup();
+    // A POS draft saved by one test must not hydrate the next cashier test.
+    localStorage.removeItem('zsystems.react.pos.draft');
   });
 
   const renderWorkspace = () => {
@@ -149,7 +152,11 @@ describe('PosWorkspace - Weighted Barcodes', () => {
     const input = screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...');
     fireEvent.change(input, { target: { value: '261022123456' } });
     fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-    await waitFor(() => expect(screen.getByText('صنف بتاريخ في الباركود')).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getAllByText('صنف بتاريخ في الباركود').some((node) =>
+        node.classList.contains('pos-cart-product-name'),
+      )).toBe(true);
+    });
   });
 
   it('adds product 00009 with qty 1.575 upon scanning 2000009015751 from an empty cache in single_location', async () => {
