@@ -5,7 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
-import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto } from '../dto/upsert-product.dto';
+import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto, SaveFashionGroupDto } from '../dto/upsert-product.dto';
 import { InventoryScopeService } from '../../inventory/services/inventory-scope.service';
 import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
@@ -16,6 +16,7 @@ type ProductRow = {
   name: string;
   name_en?: string | null;
   barcode: string | null;
+  sku?: string | null;
   item_type?: 'product' | 'raw_material' | 'service';
   item_kind: 'standard' | 'fashion' | null;
   style_code: string | null;
@@ -86,7 +87,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'name_en' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'name_en' | 'barcode' | 'sku' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
   calories?: number | null;
   allergens?: any;
   is_spicy?: boolean | null;
@@ -289,7 +290,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
         .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -504,7 +505,7 @@ export class CatalogProductService {
     const productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-      .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
+      .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.sku', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -644,6 +645,7 @@ export class CatalogProductService {
         TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
         OR LOWER(COALESCE(p.name_en, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.barcode, '')) LIKE ${pattern}
+        OR LOWER(COALESCE(p.sku, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.style_code, '')) LIKE ${pattern}
         OR TRANSLATE(LOWER(COALESCE(p.color, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
         OR LOWER(COALESCE(p.size, '')) LIKE ${pattern}
@@ -867,6 +869,7 @@ export class CatalogProductService {
       nameEn: product.name_en || null,
       name_en: product.name_en || null,
       barcode: product.barcode || '',
+      sku: product.sku || '',
       itemType: product.item_type === 'raw_material' ? 'raw_material' : product.item_type === 'service' ? 'service' : 'product',
       itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
       styleCode: product.style_code || '',
@@ -1088,6 +1091,7 @@ export class CatalogProductService {
         ...activeLocNames,
         String(product.notes || ''),
         String(product.style_code || ''),
+        String(product.sku || ''),
         String(product.color || ''),
         String(product.size || ''),
         ...(context.unitSearchValuesByProduct.get(key) || []),
@@ -1192,6 +1196,7 @@ export class CatalogProductService {
         nameEn: product.name_en || '',
         name_en: product.name_en || '',
         barcode: product.barcode || '',
+        sku: product.sku || '',
         categoryId: product.category_id ? String(product.category_id) : '',
         categoryName,
         supplierId: product.supplier_id ? String(product.supplier_id) : '',
@@ -1332,7 +1337,7 @@ export class CatalogProductService {
       .map((entry) => ({ customerId: Number(entry.customerId || 0), price: Number(entry.price || 0) }))
       .filter((entry) => entry.customerId > 0);
 
-    const fashionVariants: NormalizedFashionVariant[] = Array.from(new Map(
+    const fashionVariants: NormalizedFashionVariant[] =
       (payload.fashionVariants || [])
         .map((entry) => ({
           color: normalizeArabicInput(entry.color),
@@ -1345,14 +1350,19 @@ export class CatalogProductService {
           minStock: entry.minStock !== undefined && entry.minStock !== null && !isNaN(Number(entry.minStock)) && Number(entry.minStock) >= 0 ? Number(entry.minStock) : undefined,
           sku: entry.sku ? String(entry.sku).trim() : undefined,
         }))
-        .filter((entry) => entry.color || entry.size)
-        .map((entry) => [`${normalizeArabicSearch(entry.color)}::${normalizeArabicSearch(entry.size)}`, entry]),
-    ).values());
+        .filter((entry) => entry.color || entry.size);
+    const seenVariants = new Set<string>();
+    for (const variant of fashionVariants) {
+      const key = `${normalizeArabicSearch(variant.color)}::${normalizeArabicSearch(variant.size)}`;
+      if (seenVariants.has(key)) throw new AppError('يوجد لون ومقاس مكرر في المجموعة', 'VARIANT_DUPLICATE', 400);
+      seenVariants.add(key);
+    }
 
     return {
       name: normalizeArabicInput(payload.name),
       nameEn: payload.nameEn ? String(payload.nameEn).trim() : null,
       barcode: String(payload.barcode || '').trim(),
+      sku: String(payload.sku || '').trim(),
       itemType: payload.itemType === 'raw_material' ? 'raw_material' : payload.itemType === 'service' ? 'service' : 'product',
       itemKind: payload.itemKind === 'fashion' ? 'fashion' : 'standard',
       styleCode: String(payload.styleCode || '').trim(),
@@ -1468,8 +1478,15 @@ export class CatalogProductService {
     if (payload.barcode) {
       let query = this.db.selectFrom('products').select('id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
-      const existing = await query.executeTakeFirst();
-      if (existing) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
+      if (await query.executeTakeFirst()) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
+      let unitQuery = this.db.selectFrom('product_units').select('product_id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where(this.tenantPredicate(actor));
+      if (productId) unitQuery = unitQuery.where('product_id', '!=', productId);
+      if (await unitQuery.executeTakeFirst()) throw new AppError('Barcode already exists as a unit barcode', 'BARCODE_EXISTS', 400);
+    }
+    if (payload.sku) {
+      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(sku)`, '=', payload.sku.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
+      if (productId) query = query.where('id', '!=', productId);
+      if (await query.executeTakeFirst()) throw new AppError('SKU already exists', 'SKU_EXISTS', 400);
     }
   }
 
@@ -1631,6 +1648,7 @@ export class CatalogProductService {
             ...normalized,
             name: label ? `${normalized.name} - ${label}` : normalized.name,
             barcode: variant.barcode || '',
+            sku: variant.sku || '',
             color: variant.color,
             size: variant.size,
             stock: variant.stock,
@@ -1650,6 +1668,7 @@ export class CatalogProductService {
 
     const duplicateDraftNames = new Set<string>();
     const duplicateDraftBarcodes = new Set<string>();
+    const duplicateDraftSkus = new Set<string>();
     for (const draft of drafts) {
       const nameKey = draft.name.toLowerCase();
       if (duplicateDraftNames.has(nameKey)) throw new AppError('Duplicate grouped variants are not allowed', 'PRODUCT_EXISTS', 400);
@@ -1658,6 +1677,11 @@ export class CatalogProductService {
         const barcodeKey = draft.barcode.toLowerCase();
         if (duplicateDraftBarcodes.has(barcodeKey)) throw new AppError('Variant barcodes must be unique', 'BARCODE_EXISTS', 400);
         duplicateDraftBarcodes.add(barcodeKey);
+      }
+      if (draft.sku) {
+        const key = draft.sku.toLowerCase();
+        if (duplicateDraftSkus.has(key)) throw new AppError('Variant SKUs must be unique', 'SKU_EXISTS', 400);
+        duplicateDraftSkus.add(key);
       }
       await this.ensureProductIdentityAvailable(draft, actor);
     }
@@ -1690,6 +1714,7 @@ export class CatalogProductService {
             name: draft.name,
             name_en: draft.nameEn || null,
             barcode: draft.barcode || null,
+            sku: draft.sku || null,
             item_type: draft.itemType === 'service' ? 'service' : draft.itemType === 'raw_material' ? 'raw_material' : 'product',
             item_kind: draft.itemKind,
             style_code: draft.styleCode || null,
@@ -1794,6 +1819,7 @@ export class CatalogProductService {
         name: normalized.name,
         name_en: normalized.nameEn !== undefined ? (normalized.nameEn || null) : (existing as any).name_en,
         barcode: normalized.barcode || null,
+        sku: normalized.sku || null,
         item_type: normalized.itemType === 'service' ? 'service' : normalized.itemType === 'raw_material' ? 'raw_material' : 'product',
         item_kind: normalized.itemKind,
         style_code: normalized.styleCode || null,
@@ -1892,7 +1918,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();
