@@ -231,6 +231,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       if (!cleanRows.length) throw new Error('أضف صنفًا فرعيًا واحدًا على الأقل');
       if (duplicates.duplicateCombos) throw new Error('يوجد صنف فرعي مكرر داخل نفس المجموعة');
       if (duplicates.duplicateBarcodes) throw new Error('يوجد باركود مكرر داخل نفس المجموعة');
+      if (duplicates.duplicateSkus) throw new Error('يوجد كود SKU مكرر داخل نفس المجموعة');
 
       const sourceById = new Map(groupProducts.map((entry) => [String(entry.id), entry]));
       const payloadRows = cleanRows.map((row) => {
@@ -287,7 +288,8 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     if (!colors.length && !sizes.length) return;
 
     const existingMap = new Map(variantRows.map((row) => [`${normalizeArabicSearchKey(row.color)}::${normalizeArabicSearchKey(row.size)}`, row]));
-    const nextRows: VariantDraft[] = [];
+    // Generate additions only. Dropping existing rows here used to archive valid sizes on save.
+    const nextRows: VariantDraft[] = [...variantRows];
 
     const normColors = colors.length ? colors : [''];
     const normSizes = sizes.length ? sizes : [''];
@@ -297,9 +299,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         if (!c.trim() && !s.trim()) continue;
         const key = `${normalizeArabicSearchKey(c)}::${normalizeArabicSearchKey(s)}`;
         const existing = existingMap.get(key);
-        if (existing) {
-          nextRows.push({ ...existing, color: c, size: s });
-        } else {
+        if (!existing) {
           nextRows.push({
             color: c,
             size: s,
@@ -323,10 +323,20 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
   function generateSequentialBarcodes() {
     const prefix = (barcodePrefix || commonDraft.styleCode).trim();
     if (!prefix) return;
-    setVariantRows((current) => current.map((row, index) => ({
-      ...row,
-      barcode: `${prefix}-${String(index + 1).padStart(3, '0')}`,
-    })));
+    setVariantRows((current) => {
+      const used = new Set(current.map((row) => row.barcode.trim().toLowerCase()).filter(Boolean));
+      return current.map((row, index) => {
+        if (row.barcode.trim()) return row;
+        let sequence = index + 1;
+        let candidate = `${prefix}-${String(sequence).padStart(3, '0')}`;
+        while (used.has(candidate.toLowerCase())) {
+          sequence++;
+          candidate = `${prefix}-${String(sequence).padStart(3, '0')}`;
+        }
+        used.add(candidate.toLowerCase());
+        return { ...row, barcode: candidate };
+      });
+    });
   }
 
   function generateSequentialSkus() {
@@ -335,7 +345,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       const colorPart = (row.color || '').trim().replace(/\s+/g, '-');
       const sizePart = (row.size || '').trim().replace(/\s+/g, '-');
       const generated = [prefix, colorPart, sizePart].filter(Boolean).join('-');
-      return { ...row, sku: generated };
+      return row.sku?.trim() ? row : { ...row, sku: generated };
     }));
   }
 
@@ -483,14 +493,17 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               />
             </Field>
 
-            <Field label={t('products.workspace_sections.fashion_group_editor_card.s10', "الحد الأدنى")}>
+            <Field label={t('products.workspace_sections.fashion_group_editor_card.s10', "الحد الأدنى الافتراضي")}>
               <input
                 className="purchase-prototype-field-input"
                 type="number"
                 value={commonDraft.minStock}
-                onChange={(event) => setCommonDraft((current) => ({ ...current, minStock: Number(event.target.value || 0) }))}
+                onChange={(event) => setCommonDraft((current) => ({ ...current, minStock: Math.max(0, Number(event.target.value || 0)) }))}
                 disabled={mutation.isPending}
               />
+              <button type="button" disabled={mutation.isPending} onClick={() => setVariantRows((current) => current.map((row) => ({ ...row, minStock: commonDraft.minStock })))} style={{ fontSize: '0.72rem', textDecoration: 'underline', color: '#1d4ed8' }}>
+                تطبيق الحد الأدنى على كل المقاسات
+              </button>
             </Field>
           </div>
 
@@ -834,7 +847,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               disabled={mutation.isPending || (!colorsValue.trim() && !sizesValue.trim())}
               style={{ fontSize: '0.78rem', padding: '4px 14px', fontWeight: 700, height: '30px' }}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s28', "توليد وتحديث شبكة الفروع بناءً على القيم أعلاه")}
+              {t('products.workspace_sections.fashion_group_editor_card.s28', "إضافة المقاسات والألوان الجديدة دون حذف الحالية")}
             </Button>
           </div>
         </div>
@@ -1144,6 +1157,12 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         </div>
       ) : null}
 
+      {duplicates.duplicateSkus ? (
+        <div role="alert" style={{ padding: '8px 12px', color: '#b91c1c', fontWeight: 700 }}>
+          يوجد كود SKU مكرر داخل المجموعة؛ صححه قبل الحفظ.
+        </div>
+      ) : null}
+
       {duplicates.duplicateBarcodes ? (
         <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#fef2f2', border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '0.8rem', fontWeight: 700 }}>
           {t('products.workspace_sections.fashion_group_editor_card.s59', "يوجد باركود مكرر مسند لأكثر من صنف فرعي داخل المجموعة.")}
@@ -1191,8 +1210,13 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
 
           <SubmitButton
             type="button"
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || duplicates.duplicateCombos > 0 || duplicates.duplicateBarcodes > 0 || !variantRows.length}
+            onClick={() => {
+              const keptIds = new Set(variantRows.filter((row) => row.id).map((row) => String(row.id)));
+              const removedCount = groupProducts.filter((item) => !keptIds.has(String(item.id))).length;
+              if (removedCount > 0 && !window.confirm(`سيتم أرشفة ${removedCount} مقاس أو لون محذوف من المجموعة. متابعة الحفظ؟`)) return;
+              mutation.mutate();
+            }}
+            disabled={mutation.isPending || duplicates.duplicateCombos > 0 || duplicates.duplicateBarcodes > 0 || duplicates.duplicateSkus > 0 || !variantRows.length}
             idleText={t('products.workspace_sections.fashion_group_editor_card.s66', "حفظ كل التعديلات مرة واحدة")}
             pendingText={t('products.workspace_sections.fashion_group_editor_card.s67', "جارٍ الحفظ...")}
             style={{ fontSize: '0.84rem', padding: '6px 20px', fontWeight: 800 }}
