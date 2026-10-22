@@ -39,6 +39,12 @@ export interface StockTransferItem {
   productId: string;
   productName: string;
   qty: number;
+  /** Source selection for new tracked transfers. */
+  serials?: string[];
+  batchAllocations?: Array<{ batchId: number; qty: number }>;
+  /** Immutable server snapshot for receipt and in-transit reconciliation. */
+  serialTracking?: Array<{ id: number; serial: string }>;
+  batchTracking?: Array<{ sourceBatchId: number; transitBatchId: number | null; qty: number; receivedQty?: number }>;
 }
 
 export interface StockTransfer {
