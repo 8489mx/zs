@@ -24,6 +24,7 @@ param(
   [int]$WaitBeforeApplySecs = 4
 )
 
+New-Item -ItemType Directory -Path (Join-Path $PortableRoot 'runtime\logs') -Force | Out-Null
 $entryLog = Join-Path $PortableRoot 'runtime\logs\ps-entry.log'
 "ENTERED SCRIPT $(Get-Date)" | Out-File $entryLog -Append -Encoding utf8
 
@@ -448,7 +449,31 @@ try {
       }
     }
   } else {
-    Write-Log 'Skipping migrations in Electron mode (NestJS runs them on startup).'
+    # Electron automatically runs database migrations. A patch is NOT successful until
+    # the new backend has started and /health/ready returns HTTP 200.
+    Write-Log 'Starting patched Electron for migration + health verification...'
+    $newProc = Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal -PassThru
+    $healthUrl = "http://127.0.0.1:$BackendPort/health/ready"
+    $healthy = $false
+    $deadline = (Get-Date).AddSeconds(150)
+    while ((Get-Date) -lt $deadline) {
+      $newProc.Refresh()
+      if ($newProc.HasExited) { break }
+      try {
+        $check = Invoke-WebRequest -Uri $healthUrl -Method Get -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        if ([int]$check.StatusCode -eq 200) { $healthy = $true; break }
+      } catch {}
+      Start-Sleep -Milliseconds 800
+    }
+    if (-not $healthy) {
+      Write-Log 'New Electron release did not become healthy; reverting code and database.'
+      $newProc.Refresh()
+      if (-not $newProc.HasExited) { taskkill /PID $newProc.Id /T /F *> $null }
+      $pgCtl = Join-Path $pathMap.PostgresBinDir 'pg_ctl.exe'
+      & $pgCtl -D (Join-Path $pathMap.RuntimeDir 'data') stop -m immediate -w *> $null
+      throw 'Electron failed to pass backend and migration readiness'
+    }
+    Write-Log 'Patched Electron and PostgreSQL migrations passed HTTP readiness.'
   }
 
   $applySuccess = $true
@@ -457,6 +482,7 @@ try {
   Write-Log "ERROR: Update application failed: $($_.Exception.Message)"
 }
 
+$rollbackOk = $true
 if (-not $applySuccess) {
   Write-Log "Initiating Rollback from $backupDir ..."
   try {
@@ -469,7 +495,18 @@ if (-not $applySuccess) {
     if (Test-Path (Join-Path $backupDir 'frontend\dist')) {
        robocopy (Join-Path $backupDir 'frontend\dist') $pathMap.AppFrontendDir /E /IS /IT /NFL /NDL /NJH /NJS /NP | Out-Null
     }
-    if (-not $isElectronMode) {
+    if ($isElectronMode) {
+      $clusterBackup = Join-Path $backupDir 'postgres-data'
+      $dbData = Join-Path $pathMap.RuntimeDir 'data'
+      if (-not (Test-Path (Join-Path $clusterBackup 'PG_VERSION'))) {
+        throw 'Cannot restore prior version: PostgreSQL snapshot missing'
+      }
+      $pgCtl = Join-Path $pathMap.PostgresBinDir 'pg_ctl.exe'
+      & $pgCtl -D $dbData stop -m immediate -w *> $null
+      robocopy $clusterBackup $dbData /MIR /R:2 /W:1 /NFL /NDL /NJH /NJS /NP | Out-Null
+      if ($LASTEXITCODE -ge 8) { throw "PostgreSQL rollback failed ($LASTEXITCODE)" }
+      Write-Log 'Restored complete pre-update PostgreSQL cluster.'
+    } else {
       $dbBackupPath = Join-Path $backupDir 'database.sql'
       if (Test-Path $dbBackupPath) {
         Write-Log "Restoring database from $dbBackupPath ..."
@@ -489,6 +526,7 @@ if (-not $applySuccess) {
     }
     Write-Log "Rollback complete. Restarting with previous version..."
   } catch {
+    $rollbackOk = $false
     Write-Log "CRITICAL ERROR during rollback: $($_.Exception.Message)"
   }
 } else {
@@ -497,15 +535,26 @@ if (-not $applySuccess) {
   Set-Content -Path $versionFile -Value $version -Encoding ascii
   Write-Log "Written .app_version = $version"
   
-  # Remove pending marker ONLY on full success
+  # Update the updater itself only after health succeeds; the running script is not
+  # replaced until its code and DB are already verified.
+  $newUpdater = Join-Path $extractDir 'tools\launcher\scripts\ApplyAndRestart.ps1'
+  if (Test-Path $newUpdater) {
+    Copy-Item -Path $newUpdater -Destination (Join-Path $PortableRoot 'tools\launcher\scripts\ApplyAndRestart.ps1') -Force
+  }
   Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
 }
 
 # ── Restart ───────────────────────────────────────────────────────────────────
 if ($isElectronMode) {
-  Write-Log "Starting Electron: $electronExePath (WorkingDirectory: $PortableRoot)"
-  $electronProc = Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal -PassThru
-  Write-Log "Electron process started (PID: $($electronProc.Id))"
+  if (-not $applySuccess) {
+    # Avoid an endless bad-update retry after successful rollback.
+    Remove-Item -Path $pendingFile -Force -ErrorAction SilentlyContinue
+    if (-not $rollbackOk) { Write-Log 'ERROR: Rollback incomplete. Manual recovery required.'; exit 1 }
+    Write-Log 'Restarting previous working Electron version after rollback.'
+    Start-Process -FilePath $electronExePath -WorkingDirectory $PortableRoot -WindowStyle Normal | Out-Null
+    exit 1
+  }
+  Write-Log 'Updated Electron is already running with verified backend readiness.'
 } else {
   if ([string]::IsNullOrWhiteSpace($NodeExe) -or -not (Test-Path $NodeExe)) {
     $envFile = Join-Path $pathMap.ConfigDir '.env.offline'
@@ -535,14 +584,15 @@ if ($isElectronMode) {
   while ((Get-Date) -lt $deadline) {
     try {
       $r = Invoke-WebRequest -Uri $healthUrl -Method Get -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
-      if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { $ready = $true; break }
+      if ([int]$r.StatusCode -eq 200) { $ready = $true; break }
     } catch { }
     Start-Sleep -Milliseconds 800
   }
   if ($ready) {
     Write-Log 'Backend is healthy.'
   } else {
-    Write-Log 'WARNING: Backend did not become healthy within 120s.'
+    Write-Log 'ERROR: Backend did not become healthy within 120s.'
+    exit 1
   }
 }
 
