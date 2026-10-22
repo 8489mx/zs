@@ -808,3 +808,5 @@ export function CustomsBrokerManager() {
     </div>
   );
 }
+
+export default CustomsBrokerManager;

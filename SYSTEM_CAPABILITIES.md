@@ -8282,6 +8282,10 @@ esolveTenantAccount التي تربط ديناميكياً بدليل الحسا
   - `frontend/src/features/import-sales/components/ChinaProformasTab.tsx` (الفواتير المبدئية وتوليد أوامر الشراء الدولية IPO).
   - `frontend/src/features/import-sales/ChinaSourcingPage.tsx` (تكامل التبويبات الخمسة لتوريد وتصنيع البضائع الدولية).
   - `frontend/src/features/import-sales/CustomsTariffCalculator.tsx` (دمج حاسبة التعريفات وبوابة المخلصين وتأمينات الحاويات).
+  - `frontend/src/features/import-sales/ImportApprovalsManager.tsx` (مركز الرقابة والموافقات المعتمدة Maker-Checker للتحويلات الكبرى وتعديل نسب الشركاء وإقفال المشاريع).
+  - `frontend/src/features/import-sales/ImportFxTreasuryManager.tsx` (شاشة مستقلة لإدارة محفظة النقد الأجنبي FX، عمليات الشراء والتدبير، ومتوسط سعر الصرف المرجح).
+  - `frontend/src/features/import-sales/ImportReconciliationManager.tsx` (مركز مطابقة الاستيراد، الفحص الآلي الذكي لاكتشاف تسريب التكاليف، وتسوية الفروقات الرقابية).
+  - `frontend/src/features/import-sales/routes.tsx` (تسجيل مسارات الاستيراد الـ 13 وعناوين التنقل الرسمية باللغة العربية).
   - `frontend/src/features/import-sales/ImportCommandCenter.tsx` (إضافة مكتب الخزانة والعملات الأجنبية FX، والمسح الرقابي للاستثناءات).
   - `frontend/src/features/import-sales/ImportProjectsManager.tsx` (إجراءات تحويل دراسة الجدوى إلى مشروع، وإدارة الشركاء، وإقفال المشاريع).
   - `frontend/src/features/import-sales/ShipmentDetailsPage.tsx` (ربط أزرار تشريح الحاوية وحجوزات الطريق).

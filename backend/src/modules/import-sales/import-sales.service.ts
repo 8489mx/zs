@@ -4656,6 +4656,155 @@ export class ImportSalesService {
   // -------------------------------------------------------------
   // SINGLE-CONTAINER EXECUTIVE AUTOPSY SHEET (كشف حساب وتشريح الحاوية P&L)
   // -------------------------------------------------------------
+  
+  // -------------------------------------------------------------
+  // CONVERT CONTAINER PRE-ORDER TO CONFIRMED SALE INVOICE
+  // -------------------------------------------------------------
+  async convertPreorderToSale(
+    tenantId: string,
+    userId: number,
+    preorderId: string,
+    dto: ConvertPreorderToSaleDto = {}
+  ) {
+    return await this.db.transaction().execute(async (trx) => {
+      const preorder = await trx
+        .selectFrom('import_container_preorders')
+        .selectAll()
+        .where('id', '=', preorderId)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!preorder) throw new NotFoundException('حجز الحاوية غير موجود');
+      if (preorder.status === 'invoiced') throw new BadRequestException('تم إصدار فاتورة لهذا الحجز مسبقاً');
+      if (preorder.status === 'cancelled') throw new BadRequestException('الحجز ملغى ولا يمكن تحويله لفاتورة');
+
+      const customer = await trx
+        .selectFrom('customers')
+        .select(['id', 'name', 'phone'])
+        .where('id', '=', preorder.customer_id)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      const product = await trx
+        .selectFrom('products')
+        .select(['id', 'name', 'sku'])
+        .where('id', '=', preorder.product_id)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+
+      const qty = Number(preorder.reserved_quantity);
+      const unitPrice = Number(preorder.agreed_unit_price_egp);
+      const total = Number((qty * unitPrice).toFixed(2));
+      const depositAmount = Number(preorder.deposit_amount_egp || 0);
+
+      const lot = await trx
+        .selectFrom('import_inventory_lots')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('shipment_id', '=', preorder.shipment_id)
+        .where('product_id', '=', preorder.product_id)
+        .where('status', '=', 'active')
+        .forUpdate()
+        .executeTakeFirst();
+
+      const branchId = dto.branchId || lot?.branch_id || 1;
+      const locationId = dto.locationId || lot?.location_id || 1;
+
+      // Create Sale Record
+      const saleInsert = await trx
+        .insertInto('sales')
+        .values({
+          customer_id: preorder.customer_id,
+          customer_name: customer?.name || 'عميل حجز حاوية',
+          customer_phone: customer?.phone || null,
+          payment_type: depositAmount >= total ? 'cash' : (depositAmount > 0 ? 'split' : 'credit'),
+          payment_channel: 'cash',
+          subtotal: total,
+          discount: 0,
+          tax_rate: 0,
+          tax_amount: 0,
+          total: total,
+          paid_amount: depositAmount,
+          applied_amount: depositAmount,
+          tendered_amount: depositAmount,
+          change_amount: 0,
+          status: 'posted',
+          note: `فاتورة مبيعات محولة آلياً من حجز حاوية مسبق [حجز #${preorder.id.slice(0, 8)}] - دفعة مقدمة مسواة: ${depositAmount} ج.م`,
+          branch_id: branchId,
+          location_id: locationId,
+          created_by: userId,
+          tenant_id: tenantId,
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
+
+      const saleId = Number(saleInsert.id);
+      const docNo = `INV-IMP-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${String(saleId).padStart(4, '0')}`;
+      await trx
+        .updateTable('sales')
+        .set({ doc_no: docNo, updated_at: sql`NOW()` })
+        .where('id', '=', saleId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
+      // Insert Sale Item
+      await trx
+        .insertInto('sale_items')
+        .values({
+          sale_id: saleId,
+          product_id: preorder.product_id,
+          product_name: product?.name || 'صنف مستورد',
+          qty: qty,
+          unit_price: unitPrice,
+          line_total: total,
+          net_unit_price: unitPrice,
+          net_line_total: total,
+          allocated_discount: 0,
+          allocated_tax: 0,
+          tenant_id: tenantId,
+        } as any)
+        .execute();
+
+      // Allocate from Import Lot to deplete remaining quantity and maintain project lineage
+      await allocateSaleFromImportLots(trx, {
+        tenantId,
+        saleId,
+        locationId,
+        items: [
+          {
+            productId: preorder.product_id,
+            qty: qty,
+            netUnitPrice: unitPrice,
+            locationId,
+          },
+        ],
+      });
+
+      // Update preorder status
+      const updatedPreorder = await trx
+        .updateTable('import_container_preorders')
+        .set({
+          status: 'invoiced',
+          notes: `${preorder.notes || ''} [تم التحويل لفاتورة مبيعات #${docNo} برقم معرف ${saleId}]`.trim(),
+          updated_at: sql`NOW()`,
+        })
+        .where('id', '=', preorderId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return {
+        preorder: updatedPreorder,
+        saleId,
+        docNo,
+        total,
+        settledDeposit: depositAmount,
+        balanceDue: Math.max(0, total - depositAmount),
+      };
+    });
+  }
+
   async getContainerAutopsySheet(tenantId: string, shipmentId: string) {
     const shipment = await this.db
       .selectFrom('import_shipments as s')
