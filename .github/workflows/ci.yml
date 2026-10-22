@@ -173,3 +173,45 @@ jobs:
       - name: Frontend bundle budget on the built output (qa:perf:dist)
         run: npm run qa:perf:dist
         working-directory: frontend
+
+  electron-windows-static:
+    name: Electron Windows launch/update script validation
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax-check Electron and release scripts
+        shell: pwsh
+        run: |
+          node --check frontend/electron/main.cjs
+          node --check frontend/electron/postgres-manager.cjs
+          node --check frontend/electron/runtime-config.cjs
+          node --check frontend/electron/preload.cjs
+          node --check scripts/build-update-patch.cjs
+          node --check scripts/publish-ota-update.cjs
+          node --check scripts/build-electron-release.cjs
+          node --check scripts/sync-electron-backend.cjs
+      - name: Parse PowerShell launch, backup and update scripts
+        shell: pwsh
+        run: |
+          $files = @(
+            'portable/tools/launcher/scripts/ApplyAndRestart.ps1',
+            'portable/tools/launcher/scripts/Apply-Update.ps1',
+            'portable/tools/launcher/scripts/Backup-ZS.ps1',
+            'portable/tools/launcher/scripts/Restore-ZS.ps1'
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Host "$file : $_" }
+              throw "PowerShell parse errors in $file"
+            }
+          }
+      - name: LAN URL security regression
+        shell: pwsh
+        run: |
+          node -e "const C=require('./frontend/electron/runtime-config.cjs'); const t=require('node:assert/strict');t.equal(C.normalizeLanServerUrl('http://192.168.1.10:3001/'),'http://192.168.1.10:3001'); for(const x of ['https://example.com','http://user:pass@192.168.1.10:3001','http://127.0.0.1/a','javascript:alert(1)']) t.throws(()=>C.normalizeLanServerUrl(x));"
