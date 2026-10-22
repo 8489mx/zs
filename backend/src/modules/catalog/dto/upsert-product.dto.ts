@@ -164,6 +164,10 @@ export class UpsertProductDto {
   barcode?: string;
 
   @IsOptional()
+  @IsString()
+  sku?: string;
+
+  @IsOptional()
   @IsIn(['product', 'raw_material', 'service'])
   itemType?: 'product' | 'raw_material' | 'service';
 
@@ -381,10 +385,27 @@ export type NormalizedFashionVariant = {
   sku?: string;
 };
 
+export class FashionGroupRowDto extends UpsertProductDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  id?: number;
+}
+
+export class SaveFashionGroupDto {
+  @IsArray()
+  @ArrayMaxSize(400)
+  @ValidateNested({ each: true })
+  @Type(() => FashionGroupRowDto)
+  rows!: FashionGroupRowDto[];
+}
+
 export type NormalizedUpsertProduct = {
   name: string;
   nameEn?: string | null;
   barcode: string;
+  sku: string;
   itemType: 'product' | 'raw_material' | 'service';
   itemKind: 'standard' | 'fashion';
   styleCode: string;

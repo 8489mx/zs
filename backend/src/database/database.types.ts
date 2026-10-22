@@ -386,6 +386,7 @@ export interface ProductTable {
   name: string;
   name_en?: string | null;
   barcode: string | null;
+  sku: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   category_id: number | null;
   supplier_id: number | null;
   item_type: ColumnType<'product' | 'raw_material' | 'service', 'product' | 'raw_material' | 'service' | undefined, 'product' | 'raw_material' | 'service' | undefined>;
@@ -409,6 +410,7 @@ export interface ProductTable {
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  catalog_updated_at: ColumnType<Date, Date | string | undefined, Date | string | undefined>;
   tax_code_type: string | null;
   tax_code: string | null;
   metadata: any | null;

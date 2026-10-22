@@ -5,7 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { AppError } from '../../../common/errors/app-error';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
-import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto } from '../dto/upsert-product.dto';
+import { NormalizedFashionVariant, NormalizedProductOffer, NormalizedUpsertProduct, UpsertProductDto, SaveFashionGroupDto } from '../dto/upsert-product.dto';
 import { InventoryScopeService } from '../../inventory/services/inventory-scope.service';
 import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
@@ -16,6 +16,7 @@ type ProductRow = {
   name: string;
   name_en?: string | null;
   barcode: string | null;
+  sku?: string | null;
   item_type?: 'product' | 'raw_material' | 'service';
   item_kind: 'standard' | 'fashion' | null;
   style_code: string | null;
@@ -86,7 +87,7 @@ type ProductUnitReadRow = {
   is_purchase_unit_default: boolean;
 };
 
-type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'name_en' | 'barcode' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
+type PosProductLookupRow = Pick<ProductRow, 'id' | 'name' | 'name_en' | 'barcode' | 'sku' | 'item_type' | 'item_kind' | 'style_code' | 'color' | 'size' | 'retail_price' | 'wholesale_price' | 'credit_price' | 'consumer_price' | 'min_selling_price' | 'stock_qty' | 'min_stock_qty' | 'bom_id' | 'category_id' | 'track_serials' | 'metadata'> & {
   calories?: number | null;
   allergens?: any;
   is_spicy?: boolean | null;
@@ -235,10 +236,9 @@ export class CatalogProductService {
         for (const row of maxResult) {
           if (!row.style_code) continue;
           const parsed = parseInt(row.style_code.trim(), 10);
-          if (!isNaN(parsed) && parsed.toString() === row.style_code.trim()) {
-            if (parsed > maxNumeric) {
-              maxNumeric = parsed;
-            }
+          // Exclude legacy timestamp-like codes: the counter column is an INTEGER.
+          if (Number.isSafeInteger(parsed) && parsed <= 2_000_000_000 && parsed.toString() === row.style_code.trim()) {
+            if (parsed > maxNumeric) maxNumeric = parsed;
           }
         }
         
@@ -262,11 +262,18 @@ export class CatalogProductService {
           .executeTakeFirst();
       }
 
-      let allocated = counter!.next_value;
-      if (allocated <= 1000) {
-        allocated = 1001;
+      let allocated = Math.max(1001, Number(counter!.next_value));
+      // Manual product codes can be created after the counter was seeded.
+      // Never suggest a style code that is already in use by this tenant.
+      while (allocated <= 2_000_000_000) {
+        const taken = await trx.selectFrom('products').select('id')
+          .where('style_code', '=', String(allocated))
+          .where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+        if (!taken) break;
+        allocated++;
       }
-      
+      if (allocated > 2_000_000_000) throw new AppError('نفدت أكواد الموديلات المتاحة', 'STYLE_CODE_EXHAUSTED', 409);
+
       await trx
         .updateTable('style_code_counters')
         .set({ next_value: allocated + 1 })
@@ -289,7 +296,7 @@ export class CatalogProductService {
         .selectFrom('products')
         .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
         .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+        .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
         .where(view === 'archived' ? sql<boolean>`products.is_active = false` : sql<boolean>`products.is_active = true`)
         .where(this.tenantPredicate(actor, 'products'))
         .orderBy('id', 'desc')
@@ -504,7 +511,7 @@ export class CatalogProductService {
     const productMatches = await this.db
       .selectFrom('products as p')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
-      .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
+      .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.sku', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
       .where('p.is_active', '=', true)
       .where('p.barcode', '=', barcode)
       .where(this.tenantPredicate(actor, 'p'))
@@ -526,6 +533,7 @@ export class CatalogProductService {
           'p.name',
           'p.name_en',
           'p.barcode',
+          'p.sku',
           'p.item_type',
           'p.item_kind',
           'p.style_code',
@@ -571,6 +579,7 @@ export class CatalogProductService {
         'p.name',
         'p.name_en',
         'p.barcode',
+        'p.sku',
         'p.item_type',
         'p.item_kind',
         'p.style_code',
@@ -618,6 +627,7 @@ export class CatalogProductService {
         'p.name',
         'p.name_en',
         'p.barcode',
+        'p.sku',
         'p.item_type',
         'p.item_kind',
         'p.style_code',
@@ -644,6 +654,7 @@ export class CatalogProductService {
         TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
         OR LOWER(COALESCE(p.name_en, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.barcode, '')) LIKE ${pattern}
+        OR LOWER(COALESCE(p.sku, '')) LIKE ${pattern}
         OR LOWER(COALESCE(p.style_code, '')) LIKE ${pattern}
         OR TRANSLATE(LOWER(COALESCE(p.color, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${pattern}
         OR LOWER(COALESCE(p.size, '')) LIKE ${pattern}
@@ -867,6 +878,7 @@ export class CatalogProductService {
       nameEn: product.name_en || null,
       name_en: product.name_en || null,
       barcode: product.barcode || '',
+      sku: product.sku || '',
       itemType: product.item_type === 'raw_material' ? 'raw_material' : product.item_type === 'service' ? 'service' : 'product',
       itemKind: product.item_kind === 'fashion' ? 'fashion' : 'standard',
       styleCode: product.style_code || '',
@@ -1088,6 +1100,7 @@ export class CatalogProductService {
         ...activeLocNames,
         String(product.notes || ''),
         String(product.style_code || ''),
+        String(product.sku || ''),
         String(product.color || ''),
         String(product.size || ''),
         ...(context.unitSearchValuesByProduct.get(key) || []),
@@ -1192,6 +1205,7 @@ export class CatalogProductService {
         nameEn: product.name_en || '',
         name_en: product.name_en || '',
         barcode: product.barcode || '',
+        sku: product.sku || '',
         categoryId: product.category_id ? String(product.category_id) : '',
         categoryName,
         supplierId: product.supplier_id ? String(product.supplier_id) : '',
@@ -1332,27 +1346,32 @@ export class CatalogProductService {
       .map((entry) => ({ customerId: Number(entry.customerId || 0), price: Number(entry.price || 0) }))
       .filter((entry) => entry.customerId > 0);
 
-    const fashionVariants: NormalizedFashionVariant[] = Array.from(new Map(
+    const fashionVariants: NormalizedFashionVariant[] =
       (payload.fashionVariants || [])
         .map((entry) => ({
           color: normalizeArabicInput(entry.color),
           size: normalizeArabicInput(entry.size),
           barcode: String(entry.barcode || '').trim(),
           stock: Math.max(0, Number(entry.stock || 0)),
-          costPrice: entry.costPrice !== undefined && entry.costPrice !== null && !isNaN(Number(entry.costPrice)) && Number(entry.costPrice) > 0 ? Number(entry.costPrice) : undefined,
-          retailPrice: entry.retailPrice !== undefined && entry.retailPrice !== null && !isNaN(Number(entry.retailPrice)) && Number(entry.retailPrice) > 0 ? Number(entry.retailPrice) : undefined,
-          wholesalePrice: entry.wholesalePrice !== undefined && entry.wholesalePrice !== null && !isNaN(Number(entry.wholesalePrice)) && Number(entry.wholesalePrice) > 0 ? Number(entry.wholesalePrice) : undefined,
+          costPrice: entry.costPrice !== undefined && entry.costPrice !== null && !isNaN(Number(entry.costPrice)) && Number(entry.costPrice) >= 0 ? Number(entry.costPrice) : undefined,
+          retailPrice: entry.retailPrice !== undefined && entry.retailPrice !== null && !isNaN(Number(entry.retailPrice)) && Number(entry.retailPrice) >= 0 ? Number(entry.retailPrice) : undefined,
+          wholesalePrice: entry.wholesalePrice !== undefined && entry.wholesalePrice !== null && !isNaN(Number(entry.wholesalePrice)) && Number(entry.wholesalePrice) >= 0 ? Number(entry.wholesalePrice) : undefined,
           minStock: entry.minStock !== undefined && entry.minStock !== null && !isNaN(Number(entry.minStock)) && Number(entry.minStock) >= 0 ? Number(entry.minStock) : undefined,
           sku: entry.sku ? String(entry.sku).trim() : undefined,
         }))
-        .filter((entry) => entry.color || entry.size)
-        .map((entry) => [`${normalizeArabicSearch(entry.color)}::${normalizeArabicSearch(entry.size)}`, entry]),
-    ).values());
+        .filter((entry) => entry.color || entry.size);
+    const seenVariants = new Set<string>();
+    for (const variant of fashionVariants) {
+      const key = `${normalizeArabicSearch(variant.color)}::${normalizeArabicSearch(variant.size)}`;
+      if (seenVariants.has(key)) throw new AppError('يوجد لون ومقاس مكرر في المجموعة', 'VARIANT_DUPLICATE', 400);
+      seenVariants.add(key);
+    }
 
     return {
       name: normalizeArabicInput(payload.name),
       nameEn: payload.nameEn ? String(payload.nameEn).trim() : null,
       barcode: String(payload.barcode || '').trim(),
+      sku: String(payload.sku || '').trim(),
       itemType: payload.itemType === 'raw_material' ? 'raw_material' : payload.itemType === 'service' ? 'service' : 'product',
       itemKind: payload.itemKind === 'fashion' ? 'fashion' : 'standard',
       styleCode: String(payload.styleCode || '').trim(),
@@ -1444,12 +1463,12 @@ export class CatalogProductService {
     }
 
     for (const row of existingRows) {
-      const normExistingColor = String(row.color || '').trim().toLowerCase();
-      const normExistingSize = String(row.size || '').trim().toLowerCase();
+      const normExistingColor = normalizeArabicSearch(row.color || '');
+      const normExistingSize = normalizeArabicSearch(row.size || '');
       
       for (const draft of drafts) {
-        const normDraftColor = String(draft.color || '').trim().toLowerCase();
-        const normDraftSize = String(draft.size || '').trim().toLowerCase();
+        const normDraftColor = normalizeArabicSearch(draft.color || '');
+        const normDraftSize = normalizeArabicSearch(draft.size || '');
         if (normExistingColor === normDraftColor && normExistingSize === normDraftSize) {
           throw new AppError('هذا اللون والمقاس موجودان بالفعل لهذا الموديل', 'VARIANT_EXISTS', 400);
         }
@@ -1465,11 +1484,24 @@ export class CatalogProductService {
       if (existing) throw new AppError('Product already exists', 'PRODUCT_EXISTS', 400);
     }
 
-    if (payload.barcode) {
-      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(barcode)`, '=', payload.barcode.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
+    // Product and unit barcodes share one logical scanner namespace. The two tables
+    // have separate unique indexes, so check both for *every* proposed unit barcode.
+    const proposedBarcodes = [...new Set([payload.barcode, ...payload.units.map((u) => u.barcode)]
+      .map((barcode) => String(barcode || '').trim().toLowerCase()).filter(Boolean))];
+    if (proposedBarcodes.length) {
+      let query = this.db.selectFrom('products').select('id')
+        .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
-      const existing = await query.executeTakeFirst();
-      if (existing) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
+      if (await query.executeTakeFirst()) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
+      let unitQuery = this.db.selectFrom('product_units').select('product_id')
+        .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where(this.tenantPredicate(actor));
+      if (productId) unitQuery = unitQuery.where('product_id', '!=', productId);
+      if (await unitQuery.executeTakeFirst()) throw new AppError('Barcode already exists as a unit barcode', 'BARCODE_EXISTS', 400);
+    }
+    if (payload.sku) {
+      let query = this.db.selectFrom('products').select('id').where(sql`LOWER(sku)`, '=', payload.sku.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
+      if (productId) query = query.where('id', '!=', productId);
+      if (await query.executeTakeFirst()) throw new AppError('SKU already exists', 'SKU_EXISTS', 400);
     }
   }
 
@@ -1619,6 +1651,172 @@ export class CatalogProductService {
     } as any).where('id', '=', productId).where(this.tenantPredicate(actor)).execute();
   }
 
+
+  /**
+   * All-or-nothing fashion group replacement. Existing rows retain unit IDs,
+   * promotions, customer prices, metadata and their full stock ledgers.
+   * Removed variants are archived rather than deleted.
+   */
+  async saveFashionGroup(oldStyleCode: string, payload: SaveFashionGroupDto, actor: AuthContext): Promise<{ ok: boolean; updated: number; created: number; archived: number }> {
+    const originalStyle = this.coerceNewStyleCode(oldStyleCode);
+    const rows = payload?.rows || [];
+    if (!originalStyle || !Array.isArray(rows) || rows.length < 1 || rows.length > 400) {
+      throw new AppError('Fashion group must contain between 1 and 400 variants', 'FASHION_GROUP_INVALID', 400);
+    }
+    const drafts = rows.map((row) => ({ id: Number(row.id || 0), input: row, value: this.normalizeProductPayload(row) }));
+    const newStyle = this.coerceNewStyleCode(drafts[0].value.styleCode);
+    const groupKind = drafts[0].value.itemKind;
+    if (!newStyle) throw new AppError('Style code is required', 'STYLE_CODE_INVALID', 400);
+    const seenCombinations = new Set<string>();
+    const seenNames = new Set<string>();
+    const seenBarcodes = new Set<string>();
+    const seenSkus = new Set<string>();
+    const seenIds = new Set<number>();
+    for (const { id, value } of drafts) {
+      if (value.itemKind !== groupKind || this.coerceNewStyleCode(value.styleCode) !== newStyle || !value.name || !(value.color || value.size)) {
+        throw new AppError('Invalid fashion variant or mixed style codes', 'FASHION_GROUP_INVALID', 400);
+      }
+      const combination = `${normalizeArabicSearch(value.color)}::${normalizeArabicSearch(value.size)}`;
+      const name = normalizeArabicSearch(value.name);
+      const barcode = value.barcode.toLowerCase();
+      const sku = value.sku.toLowerCase();
+      if (seenCombinations.has(combination) || seenNames.has(name) ||
+          (barcode && seenBarcodes.has(barcode)) || (sku && seenSkus.has(sku)) || (id && seenIds.has(id))) {
+        throw new AppError('Duplicate variant, barcode or SKU in fashion group', 'FASHION_GROUP_DUPLICATE', 400);
+      }
+      seenCombinations.add(combination);
+      seenNames.add(name);
+      if (barcode) seenBarcodes.add(barcode);
+      if (sku) seenSkus.add(sku);
+      if (id) seenIds.add(id);
+      if (id && value.stock !== undefined) throw new AppError('Use inventory adjustment to change stock', 'STOCK_UPDATE_FORBIDDEN', 400);
+      await this.ensureCategoryAndSupplierInTenant(value, actor);
+      if (!id) {
+        if (value.stock && !value.warehouseId) throw new AppError('حدد مخزنًا للرصيد الافتتاحي', 'LOCATION_REQUIRED', 400);
+        await this.ensureCustomerPricesInTenant(value, actor);
+        this.ensureAdvancedOffersSupported(value, await this.getProductOfferColumnCapabilities());
+      }
+      if (value.warehouseId) await this.inventoryScope.assertLocationScope(value.warehouseId, actor);
+    }
+
+    const result = await this.db.transaction().execute(async (trx) => {
+      // Both styles are locked in a stable order to avoid a style-renaming deadlock.
+      for (const style of [...new Set([originalStyle, newStyle])].sort()) {
+        await sql`SELECT pg_advisory_xact_lock(hashtext(${this.tenantId(actor)}), hashtext(${style}))`.execute(trx);
+      }
+      const existing = await trx.selectFrom('products').selectAll()
+        .where('style_code', '=', originalStyle).where('item_kind', '=', groupKind)
+        .where('is_active', '=', true).where(this.tenantPredicate(actor)).forUpdate().execute();
+      if (!existing.length) throw new AppError('Fashion group no longer exists', 'FASHION_GROUP_NOT_FOUND', 404);
+      const byId = new Map(existing.map((p) => [Number(p.id), p]));
+      for (const draft of drafts) if (draft.id && !byId.has(draft.id)) {
+        throw new AppError('Variant does not belong to this group', 'FASHION_VARIANT_SCOPE', 403);
+      }
+      if (newStyle !== originalStyle) {
+        const taken = await trx.selectFrom('products').select('id').where('style_code', '=', newStyle)
+          .where('is_active', '=', true).where(this.tenantPredicate(actor)).executeTakeFirst();
+        if (taken) throw new AppError('Style code already belongs to another group', 'STYLE_CODE_EXISTS', 400);
+      }
+
+      const oldIds = existing.map((p) => Number(p.id));
+      const removedWithStock = existing.filter((p) => !seenIds.has(Number(p.id)) && (Math.abs(Number(p.stock_qty || 0)) > 0.0001 || Number(p.reserved_qty || 0) > 0));
+      if (removedWithStock.length) throw new AppError('لا يمكن إخفاء مقاس له رصيد أو حجز مخزون، سوِّ رصيده أولاً', 'FASHION_VARIANT_HAS_STOCK', 409);
+      const outsiderProducts = await trx.selectFrom('products')
+        .select(['id', 'name', 'barcode', 'sku']).where('is_active', '=', true).where(this.tenantPredicate(actor))
+        .where('id', 'not in', oldIds).execute();
+      for (const other of outsiderProducts) {
+        if (seenNames.has(normalizeArabicSearch(other.name || '')) ||
+            (other.barcode && seenBarcodes.has(String(other.barcode).toLowerCase())) ||
+            (other.sku && seenSkus.has(String(other.sku).toLowerCase()))) {
+          throw new AppError('Variant name, barcode or SKU is already in use', 'FASHION_VARIANT_EXISTS', 400);
+        }
+      }
+      if (seenBarcodes.size) {
+        const otherUnitBarcodes = await trx.selectFrom('product_units')
+          .select(['product_id', 'barcode'])
+          .where(sql`LOWER(barcode)`, 'in', [...seenBarcodes])
+          .where('product_id', 'not in', oldIds).where(this.tenantPredicate(actor)).execute();
+        if (otherUnitBarcodes.length) throw new AppError('Barcode is used by another product unit', 'BARCODE_EXISTS', 400);
+      }
+
+      // Release old group keys before writing, allowing two sizes to swap SKUs/barcodes.
+      await trx.updateTable('products').set({ barcode: null, sku: null })
+        .where('id', 'in', oldIds).where(this.tenantPredicate(actor)).execute();
+      await trx.updateTable('product_units').set({ barcode: null })
+        .where('product_id', 'in', oldIds).where('is_base_unit', '=', true)
+        .where(this.tenantPredicate(actor)).execute();
+
+      let created = 0;
+      let updated = 0;
+      for (const { id, value } of drafts) {
+        if (id) {
+          const prior = byId.get(id)!;
+          const priceChanged = Number(prior.cost_price) !== value.costPrice ||
+            Number(prior.retail_price) !== value.retailPrice || Number(prior.wholesale_price) !== value.wholesalePrice;
+          if (priceChanged && !this.hasPermission(actor, 'canEditPrice')) {
+            throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
+          }
+          await trx.updateTable('products').set({
+            name: value.name, barcode: value.barcode || null, sku: value.sku || null,
+            item_type: value.itemType, item_kind: groupKind, style_code: newStyle,
+            color: value.color || null, size: value.size || null,
+            category_id: value.categoryId, supplier_id: value.supplierId,
+            cost_price: value.costPrice, retail_price: value.retailPrice,
+            wholesale_price: value.wholesalePrice, min_stock_qty: value.minStock,
+            notes: value.notes, default_location_id: value.warehouseId || prior.default_location_id,
+            catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()`,
+          }).where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+          await trx.updateTable('product_units').set({ barcode: value.barcode || null })
+            .where('product_id', '=', id).where('is_base_unit', '=', true)
+            .where(this.tenantPredicate(actor)).execute();
+          updated++;
+        } else {
+          const stock = Number(value.stock || 0);
+          const inserted = await trx.insertInto('products').values({
+            name: value.name, name_en: value.nameEn || null,
+            barcode: value.barcode || null, sku: value.sku || null,
+            item_type: value.itemType, item_kind: groupKind, style_code: newStyle,
+            color: value.color || null, size: value.size || null, bin_location: value.binLocation || null,
+            category_id: value.categoryId, supplier_id: value.supplierId,
+            cost_price: value.costPrice, retail_price: value.retailPrice,
+            wholesale_price: value.wholesalePrice, min_stock_qty: value.minStock,
+            stock_qty: stock, default_location_id: value.warehouseId || null,
+            notes: value.notes, is_active: true, track_serials: false,
+            metadata: value.metadata ? JSON.stringify(value.metadata) : null,
+            catalog_updated_at: sql`NOW()`, ...this.tenantFields(actor),
+          } as any).returning('id').executeTakeFirstOrThrow();
+          const productId = Number(inserted.id);
+          const newValue = { ...value, units: value.units.map((u) => u.isBaseUnit ? { ...u, barcode: value.barcode } : u) };
+          await this.replaceProductRelations(trx, productId, newValue, actor);
+          if (stock > 0) {
+            await trx.insertInto('product_location_stock').values({
+              product_id: productId, branch_id: null, location_id: value.warehouseId!, qty: stock,
+              ...this.tenantFields(actor),
+            }).execute();
+            await trx.insertInto('stock_movements').values({
+              product_id: productId, movement_type: 'opening_balance', qty: stock,
+              before_qty: 0, after_qty: stock, reason: 'opening_balance',
+              note: 'رصيد افتتاحي لمقاس جديد', reference_type: 'product',
+              reference_id: productId, location_id: value.warehouseId!, created_by: actor.userId,
+              ...this.tenantFields(actor),
+            } as any).execute();
+          }
+          created++;
+        }
+      }
+      const kept = new Set(drafts.filter((row) => row.id).map((row) => row.id));
+      const removed = existing.filter((p) => !kept.has(Number(p.id)));
+      if (removed.length) {
+        await trx.updateTable('products').set({ is_active: false, catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
+          .where('id', 'in', removed.map((p) => Number(p.id))).where(this.tenantPredicate(actor)).execute();
+      }
+      return { ok: true, updated, created, archived: removed.length };
+    });
+    (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
+    await this.audit.log('تعديل مجموعة ملابس', `تم حفظ الموديل ${originalStyle} بواسطة ${actor.username}: ${result.updated} تعديل، ${result.created} إضافة، ${result.archived} أرشفة`, actor);
+    return result;
+  }
+
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalized = this.normalizeProductPayload(payload);
     if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
@@ -1631,12 +1829,14 @@ export class CatalogProductService {
             ...normalized,
             name: label ? `${normalized.name} - ${label}` : normalized.name,
             barcode: variant.barcode || '',
+            sku: variant.sku || '',
+            units: normalized.units.map((unit) => unit.isBaseUnit ? { ...unit, barcode: variant.barcode || '' } : unit),
             color: variant.color,
             size: variant.size,
             stock: variant.stock,
-            costPrice: variant.costPrice !== undefined && variant.costPrice !== null && !isNaN(Number(variant.costPrice)) && Number(variant.costPrice) > 0 ? Number(variant.costPrice) : normalized.costPrice,
-            retailPrice: variant.retailPrice !== undefined && variant.retailPrice !== null && !isNaN(Number(variant.retailPrice)) && Number(variant.retailPrice) > 0 ? Number(variant.retailPrice) : normalized.retailPrice,
-            wholesalePrice: variant.wholesalePrice !== undefined && variant.wholesalePrice !== null && !isNaN(Number(variant.wholesalePrice)) && Number(variant.wholesalePrice) > 0 ? Number(variant.wholesalePrice) : normalized.wholesalePrice,
+            costPrice: variant.costPrice !== undefined && variant.costPrice !== null && !isNaN(Number(variant.costPrice)) && Number(variant.costPrice) >= 0 ? Number(variant.costPrice) : normalized.costPrice,
+            retailPrice: variant.retailPrice !== undefined && variant.retailPrice !== null && !isNaN(Number(variant.retailPrice)) && Number(variant.retailPrice) >= 0 ? Number(variant.retailPrice) : normalized.retailPrice,
+            wholesalePrice: variant.wholesalePrice !== undefined && variant.wholesalePrice !== null && !isNaN(Number(variant.wholesalePrice)) && Number(variant.wholesalePrice) >= 0 ? Number(variant.wholesalePrice) : normalized.wholesalePrice,
             minStock: variant.minStock !== undefined && variant.minStock !== null && !isNaN(Number(variant.minStock)) && Number(variant.minStock) >= 0 ? Number(variant.minStock) : normalized.minStock,
             fashionVariants: [],
           };
@@ -1650,6 +1850,7 @@ export class CatalogProductService {
 
     const duplicateDraftNames = new Set<string>();
     const duplicateDraftBarcodes = new Set<string>();
+    const duplicateDraftSkus = new Set<string>();
     for (const draft of drafts) {
       const nameKey = draft.name.toLowerCase();
       if (duplicateDraftNames.has(nameKey)) throw new AppError('Duplicate grouped variants are not allowed', 'PRODUCT_EXISTS', 400);
@@ -1658,6 +1859,11 @@ export class CatalogProductService {
         const barcodeKey = draft.barcode.toLowerCase();
         if (duplicateDraftBarcodes.has(barcodeKey)) throw new AppError('Variant barcodes must be unique', 'BARCODE_EXISTS', 400);
         duplicateDraftBarcodes.add(barcodeKey);
+      }
+      if (draft.sku) {
+        const key = draft.sku.toLowerCase();
+        if (duplicateDraftSkus.has(key)) throw new AppError('Variant SKUs must be unique', 'SKU_EXISTS', 400);
+        duplicateDraftSkus.add(key);
       }
       await this.ensureProductIdentityAvailable(draft, actor);
     }
@@ -1681,6 +1887,10 @@ export class CatalogProductService {
 
     let firstProductId: number | null = null;
     await this.db.transaction().execute(async (trx) => {
+      if (normalized.styleCode) {
+        await sql`SELECT pg_advisory_xact_lock(hashtext(${this.tenantId(actor)}), hashtext(${normalized.styleCode}))`.execute(trx);
+        await this.ensureStyleCodeAvailable(normalized.styleCode, normalized.itemKind, actor, [], drafts);
+      }
       for (const draft of drafts) {
         const initialStockQty = Number(draft.stock || 0);
         const metaObj = draft.metadata || (draft.icon ? { icon: draft.icon } : null);
@@ -1690,6 +1900,7 @@ export class CatalogProductService {
             name: draft.name,
             name_en: draft.nameEn || null,
             barcode: draft.barcode || null,
+            sku: draft.sku || null,
             item_type: draft.itemType === 'service' ? 'service' : draft.itemType === 'raw_material' ? 'raw_material' : 'product',
             item_kind: draft.itemKind,
             style_code: draft.styleCode || null,
@@ -1794,6 +2005,7 @@ export class CatalogProductService {
         name: normalized.name,
         name_en: normalized.nameEn !== undefined ? (normalized.nameEn || null) : (existing as any).name_en,
         barcode: normalized.barcode || null,
+        sku: payload.sku === undefined ? (existing.sku || null) : (normalized.sku || null),
         item_type: normalized.itemType === 'service' ? 'service' : normalized.itemType === 'raw_material' ? 'raw_material' : 'product',
         item_kind: normalized.itemKind,
         style_code: normalized.styleCode || null,
@@ -1892,7 +2104,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();

@@ -5,7 +5,7 @@ import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { CatalogService } from './catalog.service';
 import { UpsertCategoryDto } from './dto/upsert-category.dto';
-import { UpsertProductDto } from './dto/upsert-product.dto';
+import { UpsertProductDto, SaveFashionGroupDto } from './dto/upsert-product.dto';
 
 @Controller('api')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
@@ -100,6 +100,16 @@ export class CatalogController {
     @Req() req: RequestWithAuth,
   ): Promise<{ ok: boolean; updated: number }> {
     return this.catalogService.bulkUpdateIcons(payload?.updates || [], req.authContext!);
+  }
+
+  @Put('products/fashion-groups/:styleCode')
+  @RequirePermissions('products')
+  saveFashionGroup(
+    @Param('styleCode') styleCode: string,
+    @Body() payload: SaveFashionGroupDto,
+    @Req() req: RequestWithAuth,
+  ): Promise<{ ok: boolean; updated: number; created: number; archived: number }> {
+    return this.catalogService.saveFashionGroup(styleCode, payload, req.authContext!);
   }
 
   @Put('products/:id')

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { UpsertCategoryDto } from './dto/upsert-category.dto';
-import { UpsertProductDto } from './dto/upsert-product.dto';
+import { UpsertProductDto, SaveFashionGroupDto } from './dto/upsert-product.dto';
 import { CatalogCategoryService } from './services/catalog-category.service';
 import { CatalogProductService } from './services/catalog-product.service';
 import { ProductSerialsService, ProductSerialItemInput } from './services/product-serials.service';
@@ -24,6 +24,7 @@ export class CatalogService {
   getPosCatalogVersion(actor: AuthContext): Promise<{ version: string; totalCount: number; lastUpdatedAt: string }> { return this.productService.getPosCatalogVersion(actor); }
   listPosProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.listPosProducts(query, actor); }
   createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.createProduct(payload, actor); }
+  saveFashionGroup(styleCode: string, payload: SaveFashionGroupDto, actor: AuthContext): Promise<{ ok: boolean; updated: number; created: number; archived: number }> { return this.productService.saveFashionGroup(styleCode, payload, actor); }
   updateProduct(id: number, payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.updateProduct(id, payload, actor); }
   deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.deleteProduct(id, actor); }
   toggleProductArchive(id: number, actor: AuthContext): Promise<Record<string, unknown>> { return this.productService.toggleProductArchive(id, actor); }
