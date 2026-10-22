@@ -109,8 +109,10 @@ export function rowsFingerprint(rows: VariantDraft[]) {
 export function duplicateSummary(rows: VariantDraft[]) {
   const comboCounts = new Map<string, number>();
   const barcodeCounts = new Map<string, number>();
+  const skuCounts = new Map<string, number>();
   let duplicateCombos = 0;
   let duplicateBarcodes = 0;
+  let duplicateSkus = 0;
   for (const row of rows) {
     const combo = `${normalizeArabicSearchKey(String(row.color || ''))}::${normalizeArabicSearchKey(String(row.size || ''))}`;
     if (combo !== '::') {
@@ -124,8 +126,14 @@ export function duplicateSummary(rows: VariantDraft[]) {
       barcodeCounts.set(barcode, nextBarcode);
       if (nextBarcode === 2) duplicateBarcodes += 1;
     }
+    const sku = String(row.sku || '').trim().toLowerCase();
+    if (sku) {
+      const nextSku = Number(skuCounts.get(sku) || 0) + 1;
+      skuCounts.set(sku, nextSku);
+      if (nextSku === 2) duplicateSkus += 1;
+    }
   }
-  return { duplicateCombos, duplicateBarcodes };
+  return { duplicateCombos, duplicateBarcodes, duplicateSkus };
 }
 
 export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Product) {
