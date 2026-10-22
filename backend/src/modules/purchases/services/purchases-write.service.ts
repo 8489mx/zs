@@ -1032,6 +1032,24 @@ export class PurchasesWriteService {
       if (purchase.payment_type === 'credit' && Number(purchase.paid_amount || 0) > 0.001) {
         throw new AppError('لا يمكن إلغاء فاتورة مشتريات آجل مسددة جزئياً أو كلياً؛ يلزم مستند تصحيح', 'PURCHASE_CANCEL_PARTIALLY_PAID', 422);
       }
+      const scheduledSettlements = await trx.selectFrom('supplier_payment_schedules')
+        .select([
+          sql<number>`coalesce(sum(paid_amount), 0)`.as('paid'),
+          sql<number>`count(*) filter (where status <> 'cancelled')`.as('active_count'),
+        ])
+        .where('purchase_id', '=', purchaseId).where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      if (Number(scheduledSettlements?.paid || 0) > 0.001) {
+        throw new AppError('فاتورة الشراء عليها أقساط مورد مسددة؛ لا يمكن عكسها بإلغاء مباشر', 'PURCHASE_CANCEL_SCHEDULE_HAS_PAYMENTS', 422);
+      }
+      // Unpaid installment schedules are commitments, not financial entries.
+      // Retire them atomically with the purchase to avoid ghost due payments.
+      if (Number(scheduledSettlements?.active_count || 0) > 0) {
+        await trx.updateTable('supplier_payment_schedules')
+          .set({ status: 'cancelled', updated_by: auth.userId, updated_at: sql`NOW()` })
+          .where('purchase_id', '=', purchaseId).where('tenant_id', '=', scope.tenantId)
+          .where('status', '!=', 'cancelled').execute();
+      }
 
       const items = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });

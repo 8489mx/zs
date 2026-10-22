@@ -2394,6 +2394,7 @@ export class AccountingPostingService {
     if (!movement) return { posted: false, journalEntryId: null, hasFinancialImpact: false };
 
     const delta = Number(movement.after_qty || 0) - Number(movement.before_qty || 0);
+    const isFinalIssue = movement.movement_type === 'transfer_final_issue' && movement.reason === 'final_issue';
     if (Math.abs(delta) < 0.001) return { posted: false, journalEntryId: null, hasFinancialImpact: false }; // No variance
 
     const rawCost = Number(movement.unit_cost || 0);
@@ -2427,8 +2428,8 @@ export class AccountingPostingService {
     } else {
       // Loss
       const lossAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5200');
-      this.addLine(lines, { accountId: lossAccountId, description: 'خسائر تسوية مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
-      this.addLine(lines, { accountId: accountIdToUse, description: 'نقص تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: lossAccountId, description: isFinalIssue ? 'تكلفة صرف مخزون نهائي للتشغيل' : 'خسائر تسوية مخزون', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: accountIdToUse, description: isFinalIssue ? 'تخفيض المخزون بموجب إذن صرف نهائي' : 'نقص تسوية مخزون', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     try {
@@ -2438,7 +2439,7 @@ export class AccountingPostingService {
         tenantId: scope.tenantId,
         accountId: scope.accountId,
         entryDate: movement.created_at ? new Date(movement.created_at) : new Date(),
-        description: `قيد تسوية مخزون - حركة #${movementId}`,
+        description: isFinalIssue ? `قيد صرف مخزون نهائي - حركة #${movementId}` : `قيد تسوية مخزون - حركة #${movementId}`,
         branchId,
         locationId,
         createdBy: movement.created_by ? Number(movement.created_by) : auth.userId,

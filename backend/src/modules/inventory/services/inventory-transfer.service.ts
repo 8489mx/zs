@@ -136,7 +136,7 @@ export class InventoryTransferService {
 
       await lockStockProducts(trx, { ...scope, productIds: payload.items.map((item) => item.productId) });
       for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
-        const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
 
@@ -148,7 +148,33 @@ export class InventoryTransferService {
 
         // Deduct from source. Only reduce global stock if final_issue (inTransitLocationId is null)
         const stockChange = await applyStockDelta(trx, { ...stockScope, delta: -Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, disableAutoDrain: true, errorCode: 'INSUFFICIENT_LOCATION_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
-        await trx.insertInto('stock_movements').values({ product_id: item.productId, movement_type: 'transfer_send', qty: -Number(item.qty || 0), before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'transfer_send', note: `Sent transfer TR-${id}`, reference_type: 'transfer', reference_id: id, created_by: auth.userId, branch_id: from.branchId, location_id: from.id, ...this.tenantFields(auth) }).execute();
+        const isFinalIssue = issueMode === 'final_issue';
+        const originalUnitCost = Number(product.cost_price || 0);
+        const unitCost = Number.isFinite(originalUnitCost) && originalUnitCost > 0 ? originalUnitCost : 0;
+        const movement = await trx.insertInto('stock_movements').values({
+          product_id: item.productId,
+          movement_type: isFinalIssue ? 'transfer_final_issue' : 'transfer_send',
+          qty: -Number(item.qty || 0),
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: isFinalIssue ? 'final_issue' : 'transfer_send',
+          note: isFinalIssue ? `صرف نهائي TR-${id}` : `Sent transfer TR-${id}`,
+          reference_type: 'transfer', reference_id: id, created_by: auth.userId,
+          branch_id: from.branchId, location_id: from.id,
+          ...(isFinalIssue ? {
+            unit_cost: unitCost,
+            total_cost: Number((Number(item.qty || 0) * unitCost).toFixed(2)),
+          } : {}),
+          ...this.tenantFields(auth),
+        }).returning('id').executeTakeFirstOrThrow();
+        if (isFinalIssue) {
+          // Unlike a transfer-in-transit this immediately removes a company
+          // asset, so it needs an expense journal in the SAME transaction.
+          const posting = await this.accountingPosting.postInventoryAdjustment(trx, Number(movement.id), auth);
+          if (posting.hasFinancialImpact && !posting.journalEntryId) {
+            throw new AppError('صرف المخزون النهائي يحتاج قيداً محاسبياً متوازناً', 'FINAL_ISSUE_JOURNAL_MISSING', 500);
+          }
+        }
 
         if (inTransitLocationId) {
           const transitScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, locationId: inTransitLocationId, branchId: null };
@@ -465,7 +491,7 @@ export class InventoryTransferService {
 
       await lockStockProducts(trx, { ...scope, productIds: payload.items.map((item) => item.productId) });
       for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
-        const product = await trx.selectFrom('products').select(['id', 'name']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
+        const product = await trx.selectFrom('products').select(['id', 'name', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
         const qty = Number(item.qty || 0);
 
