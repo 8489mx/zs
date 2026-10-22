@@ -1393,6 +1393,27 @@ export class ImportSalesService {
     const items = await trx.selectFrom('import_shipment_items').selectAll()
       .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId).execute();
     if (!items.length) throw new BadRequestException('لا يمكن استلام شحنة بدون أصناف');
+    // Never silently allocate more pre-sold stock than the physically received quantity.
+    const receivedByProduct = new Map<number, number>();
+    for (const item of items) {
+      const id = Number(item.product_id);
+      const received = Number(item.received_quantity ?? item.quantity);
+      receivedByProduct.set(id, (receivedByProduct.get(id) || 0) + received);
+    }
+    const reserved = await trx.selectFrom('import_container_preorders')
+      .select(['product_id', 'reserved_quantity'])
+      .where('tenant_id', '=', tenantId).where('shipment_id', '=', shipmentId)
+      .where('status', '=', 'reserved').execute();
+    const bookedByProduct = new Map<number, number>();
+    for (const booking of reserved) {
+      const id = Number(booking.product_id);
+      bookedByProduct.set(id, (bookedByProduct.get(id) || 0) + Number(booking.reserved_quantity));
+    }
+    for (const [id, qty] of bookedByProduct) {
+      if (qty > (receivedByProduct.get(id) || 0) + 0.0001) {
+        throw new BadRequestException(`الحجز المسبق للصنف ${id} يتجاوز الكمية المستلمة فعلياً، يجب معالجة العجز والحجوزات قبل الترحيل.`);
+      }
+    }
     const groups = groupImportReceipts(items.map((item) => ({ ...this.costLine(item), landedCost: Number(item.landed_cost_egp) })));
     const products = await trx.selectFrom('products').select(['id', 'account_id'])
       .where('tenant_id', '=', tenantId).where('id', 'in', groups.map((group) => group.productId))
@@ -4682,7 +4703,18 @@ export class ImportSalesService {
   // FX TREASURY DESK
   // -------------------------------------------------------------
   async recordFxAcquisition(tenantId: string, userId: number, dto: RecordFxAcquisitionDto) {
-    const effectiveRate = Number(dto.egpCost) / Number(dto.foreignAmount);
+    const foreignAmount = Number(dto.foreignAmount);
+    const egpCost = Number(dto.egpCost);
+    if (!Number.isFinite(foreignAmount) || foreignAmount <= 0 ||
+        !Number.isFinite(egpCost) || egpCost <= 0) {
+      throw new BadRequestException('مبالغ تدبير العملة يجب أن تكون أرقاماً موجبة صحيحة.');
+    }
+    const bankId = dto.bankAccountId ? Number(dto.bankAccountId) : null;
+    if (bankId !== null) {
+      // This log is informational; still never allow linking a bank belonging to another tenant.
+      await this.resolveTenantAccount(this.db, tenantId, 'bank', bankId);
+    }
+    const effectiveRate = egpCost / foreignAmount;
     return await this.db
       .insertInto('import_fx_acquisitions')
       .values({
@@ -4693,7 +4725,7 @@ export class ImportSalesService {
         effective_exchange_rate: Number(effectiveRate.toFixed(4)),
         acquisition_date: dto.acquisitionDate || new Date().toISOString().slice(0, 10),
         source: dto.source || 'bank',
-        bank_account_id: dto.bankAccountId ? Number(dto.bankAccountId) : null,
+        bank_account_id: bankId,
         notes: dto.notes || null,
       })
       .returningAll()
