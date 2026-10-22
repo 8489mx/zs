@@ -218,6 +218,7 @@ function remapPolymorphicReferences(
 export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
   private backupScheduler?: NodeJS.Timeout;
   private schedulerBusy = false;
+  private backupInFlight: Promise<Record<string, unknown>> | null = null;
 
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
 
@@ -354,7 +355,7 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
     const storeSlug = storeNameStr.replace(/[^\w\s\u0600-\u06FF-]/g, '').trim().replace(/\s+/g, '-');
     const userSlug = userNameStr.replace(/[^\w\s\u0600-\u06FF-]/g, '').trim().replace(/\s+/g, '-');
 
-    return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}.zip`;
+    return `ZERP-${storeSlug}-${userSlug}-${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}-${now.getMilliseconds().toString().padStart(3, '0')}.zip`;
   }
   private async ensureWritableFolder(folderPath: string): Promise<void> {
     const raw = String(folderPath || '').trim();
@@ -405,13 +406,28 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
     const fileName = await this.buildBackupFileName(actor, now);
     const filePath = path.join(resolvedFolder, fileName);
     const scope = this.scope(actor);
-    await fs.writeFile(filePath, zipBuffer);
+    const tempPath = filePath + '.writing';
+    try {
+      await fs.writeFile(tempPath, zipBuffer, { flag: 'wx' });
+      await fs.rename(tempPath, filePath);
+    } catch (error) {
+      await fs.unlink(tempPath).catch(() => undefined);
+      throw error;
+    }
     await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'file-' + now.toISOString()}, ${source}, ${JSON.stringify({ manifest })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db).catch(() => undefined);
     await this.rotateOldBackups(resolvedFolder, 30);
     return { filePath, fileName };
   }
 
-  async runAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> { if (!actor) return { ok: true, ran: false, reason: 'no-actor' }; this.assertAdmin(actor); try { this.assertDesktopMode(); } catch { return { ok: true, ran: false, reason: 'disabled' }; } const state = await this.getBackupConfigState(actor); if (!state.automation.enabled) return { ok: true, ran: false, reason: 'disabled', config: state }; const now = new Date(); const scheduledAt = this.getLastScheduledDate(now, state.automation); const scheduledIso = scheduledAt.toISOString(); if (String(state.automation.lastScheduledFor || '').trim() === scheduledIso) return { ok: true, ran: false, reason: 'already-attempted', config: state }; const lastSuccessAt = state.automation.lastSuccessAt ? new Date(state.automation.lastSuccessAt) : null; if (lastSuccessAt && lastSuccessAt.getTime() >= scheduledAt.getTime()) { state.automation.lastScheduledFor = scheduledIso; await this.saveBackupConfigState(state, actor); return { ok: true, ran: false, reason: 'already-succeeded', config: state }; } state.automation.lastAttemptAt = now.toISOString(); state.automation.lastScheduledFor = scheduledIso; try { const result = await this.saveBackupToFolder(state.folderPath, 'auto-scheduled', actor); state.automation.lastAttemptStatus = 'success'; state.automation.lastSuccessAt = now.toISOString(); state.automation.lastError = ''; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي تلقائي', `تم إنشاء نسخة احتياطية تلقائية في ${result.filePath}`, actor).catch(() => undefined); return { ok: true, ran: true, success: true, filePath: result.filePath, config: state }; } catch (error) { state.automation.lastAttemptStatus = 'failed'; state.automation.lastError = error instanceof Error ? error.message : 'تعذر تنفيذ النسخ التلقائي'; state.automation.lastScheduledFor = undefined; await this.saveBackupConfigState(state, actor); return { ok: false, ran: true, success: false, error: state.automation.lastError, config: state }; } }
+  async runAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> {
+    if (this.backupInFlight) return this.backupInFlight;
+    const attempt = this.performAutoBackupIfDue(actor);
+    this.backupInFlight = attempt;
+    try { return await attempt; }
+    finally { if (this.backupInFlight === attempt) this.backupInFlight = null; }
+  }
+
+  private async performAutoBackupIfDue(actor?: AuthContext | null): Promise<Record<string, unknown>> { if (!actor) return { ok: true, ran: false, reason: 'no-actor' }; this.assertAdmin(actor); try { this.assertDesktopMode(); } catch { return { ok: true, ran: false, reason: 'disabled' }; } const state = await this.getBackupConfigState(actor); if (!state.automation.enabled) return { ok: true, ran: false, reason: 'disabled', config: state }; const now = new Date(); const scheduledAt = this.getLastScheduledDate(now, state.automation); const scheduledIso = scheduledAt.toISOString(); if (String(state.automation.lastScheduledFor || '').trim() === scheduledIso) return { ok: true, ran: false, reason: 'already-attempted', config: state }; const lastSuccessAt = state.automation.lastSuccessAt ? new Date(state.automation.lastSuccessAt) : null; if (lastSuccessAt && lastSuccessAt.getTime() >= scheduledAt.getTime()) { state.automation.lastScheduledFor = scheduledIso; await this.saveBackupConfigState(state, actor); return { ok: true, ran: false, reason: 'already-succeeded', config: state }; } state.automation.lastAttemptAt = now.toISOString(); state.automation.lastScheduledFor = scheduledIso; try { const result = await this.saveBackupToFolder(state.folderPath, 'auto-scheduled', actor); state.automation.lastAttemptStatus = 'success'; state.automation.lastSuccessAt = now.toISOString(); state.automation.lastError = ''; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي تلقائي', `تم إنشاء نسخة احتياطية تلقائية في ${result.filePath}`, actor).catch(() => undefined); return { ok: true, ran: true, success: true, filePath: result.filePath, config: state }; } catch (error) { state.automation.lastAttemptStatus = 'failed'; state.automation.lastError = error instanceof Error ? error.message : 'تعذر تنفيذ النسخ التلقائي'; state.automation.lastScheduledFor = undefined; await this.saveBackupConfigState(state, actor); return { ok: false, ran: true, success: false, error: state.automation.lastError, config: state }; } }
   async getBackupConfig(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); await this.runAutoBackupIfDue(actor); const state = await this.getBackupConfigState(actor); return { ok: true, defaultFolderPath: DEFAULT_BACKUP_FOLDER, folderPath: state.folderPath || DEFAULT_BACKUP_FOLDER, automation: state.automation, scope: this.scope(actor) }; }
   async saveBackupConfig(payload: unknown, actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const input = isObjectRecord(payload) ? payload : {}; const current = await this.getBackupConfigState(actor); const automationInput = isObjectRecord(input.automation) ? input.automation : {}; current.folderPath = this.normalizeFolderPath(input.folderPath ?? current.folderPath ?? DEFAULT_BACKUP_FOLDER); current.automation.enabled = typeof automationInput.enabled === 'boolean' ? automationInput.enabled : typeof input.autoBackupEnabled === 'boolean' ? Boolean(input.autoBackupEnabled) : current.automation.enabled; current.automation.frequency = this.normalizeFrequency(automationInput.frequency ?? input.frequency ?? current.automation.frequency); current.automation.time = this.normalizeTime(automationInput.time ?? input.time ?? current.automation.time); current.automation.weeklyDay = this.normalizeWeeklyDay(automationInput.weeklyDay ?? input.weeklyDay ?? current.automation.weeklyDay); await this.saveBackupConfigState(current, actor); await this.audit.log('تعديل إعدادات النسخ الاحتياطي', `تم تعديل إعدادات النسخ الاحتياطي بواسطة ${actor.username}`, actor).catch(() => undefined); return { ok: true, config: current, message: 'تم حفظ إعدادات النسخ الاحتياطي' }; }
   async testBackupFolder(payload: unknown, actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const input = isObjectRecord(payload) ? payload : {}; const folderPath = this.normalizeFolderPath(input.folderPath); try { await this.ensureWritableFolder(folderPath); return { ok: true, success: true, folderPath, message: `تم اختبار المسار بنجاح: ${folderPath}` }; } catch (error) { return { ok: false, success: false, folderPath, message: error instanceof Error ? error.message : 'تعذر الوصول إلى المجلد المحدد' }; } }
