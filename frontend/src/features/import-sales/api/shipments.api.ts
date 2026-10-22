@@ -969,3 +969,163 @@ export const useSelectQuotationMutation = (defaultQuotationId?: string) => {
     },
   });
 };
+
+
+// ==========================================
+// PRE-ORDER CONVERSION TO SALES
+// ==========================================
+export const useConvertPreorderToSaleMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ preorderId, dto }: { preorderId: string; dto?: any }) => {
+      return await http<any>(`/api/import-sales/preorders/${preorderId}/convert-to-sale`, {
+        method: 'POST',
+        body: JSON.stringify(dto || {}),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['container-preorders'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+    },
+  });
+};
+
+// ==========================================
+// MAKER-CHECKER APPROVALS
+// ==========================================
+export const useApprovalRequestsQuery = (status?: string) => {
+  return useQuery({
+    queryKey: ['import-approvals', status],
+    queryFn: async () => {
+      const url = status ? `/api/import-sales/approvals?status=${encodeURIComponent(status)}` : '/api/import-sales/approvals';
+      return await http<any[]>(url);
+    },
+  });
+};
+
+export const useCreateApprovalRequestMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http<any>('/api/import-sales/approvals', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-approvals'] });
+    },
+  });
+};
+
+export const useDecideApprovalRequestMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, decision, rejectionReason, comments }: { id: string; decision: 'approved' | 'rejected'; rejectionReason?: string; comments?: string }) => {
+      return await http<any>(`/api/import-sales/approvals/${id}/decide`, {
+        method: 'POST',
+        body: JSON.stringify({ decision, rejectionReason, comments }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-approvals'] });
+    },
+  });
+};
+
+// ==========================================
+// FX TREASURY & CURRENCY PORTFOLIO
+// ==========================================
+export const useFxPortfolioQuery = () => {
+  return useQuery({
+    queryKey: ['import-fx-portfolio'],
+    queryFn: async () => {
+      return await http<any>('/api/import-sales/fx-portfolio');
+    },
+  });
+};
+
+export const useRecordFxAcquisitionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http<any>('/api/import-sales/fx-acquisitions', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-fx-portfolio'] });
+    },
+  });
+};
+
+// ==========================================
+// RECONCILIATION & EXCEPTIONS SCANNER
+// ==========================================
+export const useReconciliationExceptionsQuery = (status?: string) => {
+  return useQuery({
+    queryKey: ['import-reconciliation-exceptions', status],
+    queryFn: async () => {
+      const url = status ? `/api/import-sales/reconciliation/exceptions?status=${encodeURIComponent(status)}` : '/api/import-sales/reconciliation/exceptions';
+      return await http<any[]>(url);
+    },
+  });
+};
+
+export const useRunReconciliationScanMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      return await http<any>('/api/import-sales/reconciliation/scan', {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-reconciliation-exceptions'] });
+    },
+  });
+};
+
+export const useResolveReconciliationExceptionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, resolutionNotes }: { id: string; resolutionNotes?: string }) => {
+      return await http<any>(`/api/import-sales/reconciliation/exceptions/${id}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ resolutionNotes }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-reconciliation-exceptions'] });
+    },
+  });
+};
+
+// ==========================================
+// SOURCING TRIPS
+// ==========================================
+export const useSourcingTripsQuery = (projectId?: string) => {
+  return useQuery({
+    queryKey: ['import-sourcing-trips', projectId],
+    queryFn: async () => {
+      const url = projectId ? `/api/import-sales/sourcing-trips?projectId=${encodeURIComponent(projectId)}` : '/api/import-sales/sourcing-trips';
+      return await http<any[]>(url);
+    },
+  });
+};
+
+export const useCreateSourcingTripMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http<any>('/api/import-sales/sourcing-trips', {
+        method: 'POST',
+        body: JSON.stringify(dto),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-sourcing-trips'] });
+    },
+  });
+};
