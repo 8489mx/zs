@@ -1078,6 +1078,7 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
           errorCode: 'PURCHASE_CANCEL_STOCK_INVALID',
           errorMessage: `Cannot cancel purchase because stock would go negative for product #${item.product_id}`,
+          disableAutoDrain: true,
         });
         await trx.insertInto('stock_movements').values({
           product_id: item.product_id,
