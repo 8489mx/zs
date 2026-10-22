@@ -43,6 +43,10 @@ export class CreateSupplierPaymentScheduleDto {
 }
 
 export class PaySupplierScheduleInstallmentDto {
+  @IsOptional()
+  @IsIn(['cash','bank','card','wallet','instapay'])
+  paymentChannel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
+
   @Type(() => Number)
   @IsOptional()
   @IsNumber()
