@@ -1117,7 +1117,9 @@ export class PurchasesWriteService {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const amount = Number(payload.amount || 0);
-      if (!(amount > 0)) throw new AppError('Amount must be greater than zero', 'INVALID_AMOUNT', 400);
+      if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
+        throw new AppError('Supplier payment must be positive and have at most two decimal places', 'INVALID_AMOUNT', 400);
+      }
       const currentBalance = Number(supplier.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Supplier has no outstanding balance', 'SUPPLIER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Supplier payment cannot exceed outstanding balance', 'SUPPLIER_OVERPAYMENT', 400);
@@ -1181,7 +1183,9 @@ export class PurchasesWriteService {
   async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const amount = Number(payload.amount);
-    if (!Number.isFinite(amount) || amount <= 0) throw new AppError('Payment amount must be greater than zero', 'INVALID_PAYMENT_AMOUNT', 400);
+    if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
+      throw new AppError('Customer payment must be positive and have at most two decimal places', 'INVALID_PAYMENT_AMOUNT', 400);
+    }
 
     const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
       const customer = await trx
@@ -1189,6 +1193,7 @@ export class PurchasesWriteService {
         .select(['id', 'name', 'balance'])
         .where('id', '=', payload.customerId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .forUpdate()
         .executeTakeFirst();
       if (!customer) throw new AppError('Customer not found', 'CUSTOMER_NOT_FOUND', 404);
 
