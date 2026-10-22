@@ -1457,12 +1457,12 @@ export class CatalogProductService {
     }
 
     for (const row of existingRows) {
-      const normExistingColor = String(row.color || '').trim().toLowerCase();
-      const normExistingSize = String(row.size || '').trim().toLowerCase();
+      const normExistingColor = normalizeArabicSearch(row.color || '');
+      const normExistingSize = normalizeArabicSearch(row.size || '');
       
       for (const draft of drafts) {
-        const normDraftColor = String(draft.color || '').trim().toLowerCase();
-        const normDraftSize = String(draft.size || '').trim().toLowerCase();
+        const normDraftColor = normalizeArabicSearch(draft.color || '');
+        const normDraftSize = normalizeArabicSearch(draft.size || '');
         if (normExistingColor === normDraftColor && normExistingSize === normDraftSize) {
           throw new AppError('هذا اللون والمقاس موجودان بالفعل لهذا الموديل', 'VARIANT_EXISTS', 400);
         }
@@ -1653,6 +1653,7 @@ export class CatalogProductService {
     }
     const drafts = rows.map((row) => ({ id: Number(row.id || 0), input: row, value: this.normalizeProductPayload(row) }));
     const newStyle = this.coerceNewStyleCode(drafts[0].value.styleCode);
+    const groupKind = drafts[0].value.itemKind;
     if (!newStyle) throw new AppError('Style code is required', 'STYLE_CODE_INVALID', 400);
     const seenCombinations = new Set<string>();
     const seenNames = new Set<string>();
@@ -1660,7 +1661,7 @@ export class CatalogProductService {
     const seenSkus = new Set<string>();
     const seenIds = new Set<number>();
     for (const { id, value } of drafts) {
-      if (value.itemKind !== 'fashion' || this.coerceNewStyleCode(value.styleCode) !== newStyle || !value.name || !(value.color || value.size)) {
+      if (value.itemKind !== groupKind || this.coerceNewStyleCode(value.styleCode) !== newStyle || !value.name || !(value.color || value.size)) {
         throw new AppError('Invalid fashion variant or mixed style codes', 'FASHION_GROUP_INVALID', 400);
       }
       const combination = `${normalizeArabicSearch(value.color)}::${normalizeArabicSearch(value.size)}`;
@@ -1692,7 +1693,7 @@ export class CatalogProductService {
         await sql`SELECT pg_advisory_xact_lock(hashtext(${this.tenantId(actor)}), hashtext(${style}))`.execute(trx);
       }
       const existing = await trx.selectFrom('products').selectAll()
-        .where('style_code', '=', originalStyle).where('item_kind', '=', 'fashion')
+        .where('style_code', '=', originalStyle).where('item_kind', '=', groupKind)
         .where('is_active', '=', true).where(this.tenantPredicate(actor)).forUpdate().execute();
       if (!existing.length) throw new AppError('Fashion group no longer exists', 'FASHION_GROUP_NOT_FOUND', 404);
       const byId = new Map(existing.map((p) => [Number(p.id), p]));
@@ -1706,6 +1707,8 @@ export class CatalogProductService {
       }
 
       const oldIds = existing.map((p) => Number(p.id));
+      const removedWithStock = existing.filter((p) => !seenIds.has(Number(p.id)) && (Math.abs(Number(p.stock_qty || 0)) > 0.0001 || Number(p.reserved_qty || 0) > 0));
+      if (removedWithStock.length) throw new AppError('لا يمكن إخفاء مقاس له رصيد أو حجز مخزون، سوِّ رصيده أولاً', 'FASHION_VARIANT_HAS_STOCK', 409);
       const outsiderProducts = await trx.selectFrom('products')
         .select(['id', 'name', 'barcode', 'sku']).where('is_active', '=', true).where(this.tenantPredicate(actor))
         .where('id', 'not in', oldIds).execute();
@@ -1743,7 +1746,7 @@ export class CatalogProductService {
           }
           await trx.updateTable('products').set({
             name: value.name, barcode: value.barcode || null, sku: value.sku || null,
-            item_type: value.itemType, item_kind: 'fashion', style_code: newStyle,
+            item_type: value.itemType, item_kind: groupKind, style_code: newStyle,
             color: value.color || null, size: value.size || null,
             category_id: value.categoryId, supplier_id: value.supplierId,
             cost_price: value.costPrice, retail_price: value.retailPrice,
@@ -1760,7 +1763,7 @@ export class CatalogProductService {
           const inserted = await trx.insertInto('products').values({
             name: value.name, name_en: value.nameEn || null,
             barcode: value.barcode || null, sku: value.sku || null,
-            item_type: value.itemType, item_kind: 'fashion', style_code: newStyle,
+            item_type: value.itemType, item_kind: groupKind, style_code: newStyle,
             color: value.color || null, size: value.size || null, bin_location: value.binLocation || null,
             category_id: value.categoryId, supplier_id: value.supplierId,
             cost_price: value.costPrice, retail_price: value.retailPrice,
