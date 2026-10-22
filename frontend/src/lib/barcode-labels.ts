@@ -135,7 +135,7 @@ export function buildSingleLabelHtml(
   const showUnit = customization?.showUnit ?? true;
   const showBarcodeText = customization?.showBarcodeText ?? true;
   const showSku = customization?.showSku ?? false;
-  const skuText = String(product.sku || product.styleCode || '').trim();
+  const skuText = String(product.sku || '').trim();
 
   // Barcode height scaled proportionally (~35-44% of label height to leave ample room for text while maximizing scan accuracy)
   const isShelf = preset.isShelfLabel;
