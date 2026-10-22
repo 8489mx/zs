@@ -168,6 +168,10 @@ export async function receiveTrackedStock(
     let selections = receipt.batchReceipts || [];
     if (!selections.length && received === roundQty(batches.reduce((sum, row) => sum + row.qty, 0))) {
       selections = batches.map(row => ({ transitBatchId: Number(row.transitBatchId), receivedQty: row.qty }));
+    } else if (!selections.length && received === 0) {
+      // Complete loss is unambiguous even when several distinct lots were sent.
+      // Write off every transit lot with the corresponding financial shrinkage leg.
+      selections = batches.map(row => ({ transitBatchId: Number(row.transitBatchId), receivedQty: 0 }));
     } else if (!selections.length && batches.length === 1) {
       selections = [{ transitBatchId: Number(batches[0].transitBatchId), receivedQty: received }];
     }
