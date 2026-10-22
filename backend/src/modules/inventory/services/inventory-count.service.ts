@@ -221,6 +221,9 @@ export class InventoryCountService {
       const varianceQty = Number((countedQty - expectedQty).toFixed(3));
       await trx.updateTable('stock_count_items').set({
         expected_qty: expectedQty, counted_qty: countedQty, variance_qty: varianceQty, reason,
+        // Recount is a fresh physical assertion; never replay stale selections.
+        counted_serials: JSON.stringify(payload.countedSerials || []),
+        batch_counts: JSON.stringify(payload.batchCounts || []),
       }).where('id', '=', itemId).where('session_id', '=', sessionId)
         .where('posted_at', 'is', null).where(this.tenantPredicate(auth)).execute();
       await this.audit.logWithExecutor(trx, 'إعادة جرد بند', JSON.stringify({ sessionId, itemId, productId: item.product_id, expectedQty, countedQty, varianceQty, reason }), auth);
