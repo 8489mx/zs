@@ -513,7 +513,10 @@ export class CatalogProductService {
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'p.id').on('b.is_active', '=', true))
       .select(['p.id', 'p.name', 'p.name_en', 'p.barcode', 'p.sku', 'p.item_type', 'p.item_kind', 'p.style_code', 'p.color', 'p.size', 'p.retail_price', 'p.wholesale_price', 'p.credit_price', 'p.consumer_price', 'p.stock_qty', 'p.min_stock_qty', 'b.id as bom_id', 'p.category_id', 'p.track_serials', 'p.metadata'])
       .where('p.is_active', '=', true)
-      .where('p.barcode', '=', barcode)
+      .where((eb) => eb.or([
+        sql<boolean>`LOWER(p.barcode) = ${barcode.trim().toLowerCase()}`,
+        sql<boolean>`LOWER(p.sku) = ${barcode.trim().toLowerCase()}`,
+      ]))
       .where(this.tenantPredicate(actor, 'p'))
       .orderBy('p.id', 'asc')
       .limit(limit)
