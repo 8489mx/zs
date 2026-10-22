@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { FormEvent } from 'react';
 import { money, reviewStatusOptions, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
+import { CustomSelect } from '@/shared/ui/custom-select';
 
 type Summary = {
   totalEmployees: number;
@@ -18,6 +19,9 @@ type Draft = { periodMonth: string; payFrequency: 'monthly' | 'weekly' | 'biweek
 export type HrPayrollTopSectionProps = {
   monthFilter: string;
   search: string;
+  selectedEmployeeId?: string;
+  onSelectedEmployeeChange?: (value: string) => void;
+  employeeOptions?: Array<{ value: string | number; label: string; hint?: string; code?: string }>;
   departmentFilter: string;
   reviewStatusFilter: PayrollReviewStatus;
   runStatusFilter: string;
@@ -45,6 +49,9 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
   const {
     monthFilter,
     search,
+    selectedEmployeeId,
+    onSelectedEmployeeChange,
+    employeeOptions,
     departmentFilter,
     reviewStatusFilter,
     runStatusFilter,
@@ -104,12 +111,20 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
 
       {/* Integrated Filters Toolbar - Single Row */}
       <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '14px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <input
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={t('hr.payroll.hr_payroll_top_sections.s8', "بحث باسم أو كود الموظف...")}
-          style={{ width: '200px', minWidth: '160px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
-        />
+        <div style={{ width: '240px', minWidth: '180px' }}>
+          <CustomSelect
+            value={selectedEmployeeId || ''}
+            onChange={(val) => {
+              if (onSelectedEmployeeChange) {
+                onSelectedEmployeeChange(val);
+              }
+            }}
+            options={employeeOptions && employeeOptions.length > 0 ? employeeOptions : [
+              { value: '', label: 'جميع الموظفين' },
+            ]}
+            placeholder={t('hr.payroll.hr_payroll_top_sections.s8', "ابحث أو اختر الموظف...")}
+          />
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{t('hr.payroll.hr_payroll_top_sections.s9', "الشهر:")}</span>
@@ -150,4 +165,3 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     </>
   );
 }
-

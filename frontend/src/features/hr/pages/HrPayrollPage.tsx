@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { hrApi } from '@/features/hr/api/hr.api';
 import { PageHeader } from '@/shared/components/page-header';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
@@ -20,7 +22,8 @@ import {
   type PayrollReviewStatus,
 } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { systemAlert } from '@/shared/components/system-alert';
+import { systemAlert, systemConfirm, toast } from '@/shared/components/system-alert';
+import { PrinterIcon, FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { PayrollWpsExportModal } from '@/features/hr/components/payroll/PayrollWpsExportModal';
 import { CreatePayrollRunModal, type PayrollDraft } from '../components/payroll/CreatePayrollRunModal';
 import { PayPayrollRunModal } from '../components/payroll/PayPayrollRunModal';
@@ -51,6 +54,7 @@ export function HrPayrollPage() {
   const [pageSize, setPageSize] = useState(20);
   const [monthFilter, setMonthFilter] = useState(initialMonth);
   const [search, setSearch] = useState('');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [reviewStatusFilter, setReviewStatusFilter] = useState<PayrollReviewStatus>('all');
   const [draft, setDraft] = useState<PayrollDraft>(initialDraft);
@@ -66,6 +70,15 @@ export function HrPayrollPage() {
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
   const payrollRunDetails = useHrPayrollRun(selectedRunId || undefined);
 
+  // Active employees for employee dropdown/combobox (matching attendance page)
+  const canViewEmployees = useHasAnyPermission(['hrEmployees', 'hrAttendance', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
+  const activeEmployeesQuery = useQuery({
+    queryKey: ['hr', 'attendance-active-employees'],
+    queryFn: () => hrApi.employees({ status: 'active', pageSize: 500 }),
+    enabled: canViewEmployees,
+  });
+  const activeEmployees = useMemo(() => activeEmployeesQuery.data?.employees || [], [activeEmployeesQuery.data?.employees]);
+
   const runs = useMemo(() => (workspace.payrollRuns.data?.runs || []) as HrPayrollRun[], [workspace.payrollRuns.data?.runs]);
   const employees = useMemo(() => (workspace.employees.data?.employees || []) as HrEmployee[], [workspace.employees.data?.employees]);
   const employeesMap = useMemo(() => new Map(employees.map((employee) => [String(employee.id), employee])), [employees]);
@@ -77,6 +90,57 @@ export function HrPayrollPage() {
     const items = (selectedRun?.items || []) as HrPayrollRunItem[];
     return items.filter((item) => item.status !== 'excluded');
   }, [selectedRun?.items]);
+
+  // Combine employees for dropdown options
+  const employeeOptions = useMemo(() => {
+    const list: Array<{ value: string; label: string; hint?: string; code?: string }> = [
+      { value: '', label: 'جميع الموظفين' },
+    ];
+    const seen = new Set<string>();
+
+    for (const item of runItems) {
+      const empId = String(item.employeeId || '');
+      if (!empId || seen.has(empId)) continue;
+      seen.add(empId);
+      list.push({
+        value: empId,
+        label: item.employeeName || 'موظف',
+        hint: item.employeeNo ? `#${item.employeeNo}` : '',
+        code: String(item.employeeNo || empId),
+      });
+    }
+
+    for (const emp of activeEmployees) {
+      const empId = String(emp.id || '');
+      if (!empId || seen.has(empId)) continue;
+      seen.add(empId);
+      list.push({
+        value: empId,
+        label: emp.displayName || emp.firstName || 'موظف',
+        hint: emp.employeeNo ? `#${emp.employeeNo}` : '',
+        code: String(emp.employeeNo || empId),
+      });
+    }
+
+    for (const emp of employees) {
+      const empId = String(emp.id || '');
+      if (!empId || seen.has(empId)) continue;
+      seen.add(empId);
+      list.push({
+        value: empId,
+        label: emp.displayName || emp.firstName || 'موظف',
+        hint: emp.employeeNo ? `#${emp.employeeNo}` : '',
+        code: String(emp.employeeNo || empId),
+      });
+    }
+
+    return list;
+  }, [runItems, activeEmployees, employees]);
+
+  const activeReviewItem = useMemo(() => {
+    if (!selectedReviewItem) return null;
+    return runItems.find((i) => String(i.id) === String(selectedReviewItem.id)) || selectedReviewItem;
+  }, [runItems, selectedReviewItem]);
 
   const departmentOptions = useMemo(() => {
     const set = new Map<string, string>();
@@ -91,6 +155,9 @@ export function HrPayrollPage() {
   const filteredRunItems = useMemo(() => {
     const searchTerm = normalize(search);
     return runItems.filter((row) => {
+      if (selectedEmployeeId && String(row.employeeId) !== String(selectedEmployeeId) && String(row.employeeNo) !== String(selectedEmployeeId)) {
+        return false;
+      }
       if (!employeeMatches(row, employeesMap, searchTerm, departmentFilter)) return false;
       const rowStatus = normalize(row.status);
       const needsReview = itemNeedsReview(row);
@@ -100,7 +167,7 @@ export function HrPayrollPage() {
       if (reviewStatusFilter === 'paid' && rowStatus !== 'paid') return false;
       return true;
     });
-  }, [departmentFilter, employeesMap, reviewStatusFilter, runItems, search]);
+  }, [departmentFilter, employeesMap, reviewStatusFilter, runItems, search, selectedEmployeeId]);
 
   const runStatusOptions = [
     { value: 'all', label: 'كافة الحالات' },
@@ -146,6 +213,50 @@ export function HrPayrollPage() {
   const hasCreatePayrollRun = Boolean(mutations.createPayrollRun);
   const runIsFinal = selectedRun && (normalize(selectedRun.status) === 'approved' || normalize(selectedRun.status) === 'paid');
 
+  const openCreateModal = () => {
+    const targetMonth = monthFilter || initialMonth;
+    const parts = targetMonth.split('-');
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const lastDay = new Date(year, month, 0).getDate();
+    setDraft({
+      periodMonth: targetMonth,
+      payFrequency: 'monthly',
+      startDate: `${targetMonth}-01`,
+      endDate: `${targetMonth}-${String(lastDay).padStart(2, '0')}`,
+      notes: '',
+    });
+    setFormError('');
+    setShowCreateRun(true);
+  };
+
+  const handleRecalculateRun = async (runId: string) => {
+    try {
+      const res = await mutations.recalculatePayrollRun?.mutateAsync(runId);
+      const count = (res?.run?.items as any[])?.length ?? 0;
+      toast.success(`تمت إعادة احتساب المسير بنجاح (${count} موظف).`);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleCancelRun = async (runId: string) => {
+    const confirmed = await systemConfirm({
+      title: 'إلغاء مسير المرتبات',
+      message: 'هل أنت متأكد من إلغاء كشف المرتبات هذا؟ لا يمكن التراجع عن هذا الإجراء.',
+      confirmText: 'نعم، قم بالإلغاء',
+      cancelText: 'تراجع',
+    });
+    if (!confirmed) return;
+    try {
+      await mutations.cancelPayrollRun?.mutateAsync(runId);
+      toast.success('تم إلغاء كشف المرتبات بنجاح.');
+      setSelectedRunId('');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    }
+  };
+
   const payrollChecklist = useMemo(() => {
     const list: Array<{ key: string; title: string; status: string; ok: boolean; action?: string; onClick?: () => void }> = [];
     list.push({
@@ -154,7 +265,7 @@ export function HrPayrollPage() {
       status: selectedRun ? `مسير شهر ${selectedRun.periodMonth}` : 'لم يتم التجهيز',
       ok: Boolean(selectedRun),
       action: !selectedRun ? 'تجهيز مسير الشهر' : undefined,
-      onClick: !selectedRun ? () => setShowCreateRun(true) : undefined,
+      onClick: !selectedRun ? openCreateModal : undefined,
     });
     list.push({
       key: 'attendance',
@@ -198,12 +309,14 @@ export function HrPayrollPage() {
     try {
       if (type === 'review') {
         await mutations.reviewPayrollRun?.mutateAsync(runId);
+        toast.success('تمت مراجعة واعتماد المسير مبدئياً بنجاح.');
       } else {
         await mutations.approvePayrollRun?.mutateAsync(runId);
+        toast.success('تم الاعتماد النهائي لكشف المرتبات بنجاح. الكشف جاهز للصرف.');
       }
       setPendingApprovalAction(null);
     } catch (err) {
-      systemAlert(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -217,8 +330,11 @@ export function HrPayrollPage() {
       if (res?.run?.id) {
         setSelectedRunId(String(res.run.id));
       }
+      const count = (res?.run?.items as any[])?.length ?? 0;
+      toast.success(`تم تجهيز مسير المرتبات بنجاح (${count} موظف).`);
     } catch (err) {
       setFormError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
     }
   };
 
@@ -229,8 +345,34 @@ export function HrPayrollPage() {
       setFormError('');
       await mutations.payPayrollRun?.mutateAsync({ id: selectedRunId, payload: { paymentChannel: payChannel } });
       setShowPayRun(false);
+      toast.success('تم تسجيل صرف المرتبات بنجاح.');
     } catch (err) {
       setFormError(getErrorMessage(err));
+      toast.error(getErrorMessage(err));
+    }
+  };
+
+  const handleAddAdjustment = async (payload: { adjustmentType: 'allowance' | 'deduction'; label: string; amount: number; notes?: string }) => {
+    if (!activeReviewItem) return;
+    try {
+      await mutations.createPayrollAdjustment.mutateAsync({
+        id: String(activeReviewItem.id),
+        payload,
+      });
+      toast.success('تمت إضافة التسوية وتحديث صافي الراتب بنجاح.');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      throw err;
+    }
+  };
+
+  const handleDeleteAdjustment = async (adjustmentId: string) => {
+    try {
+      await mutations.deletePayrollAdjustment.mutateAsync(adjustmentId);
+      toast.success('تم حذف التسوية وإعادة احتساب الراتب بنجاح.');
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+      throw err;
     }
   };
 
@@ -243,52 +385,64 @@ export function HrPayrollPage() {
           <title>كشف تسليم الرواتب - ${text(selectedRun?.periodMonth)}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
-            @page { size: A4 portrait; margin: 15mm; }
-            body { font-family: 'Tajawal', Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #1e293b; line-height: 1.6; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .header { text-align: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 25px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-            .header h1 { margin: 0; color: #0f172a; font-size: 26px; font-weight: 700; }
-            .header p { margin: 0; color: #64748b; font-size: 16px; font-weight: 500; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 14px; }
+            @page { size: A4 portrait; margin: 10mm 12mm; }
+            body { font-family: 'Tajawal', Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #1e293b; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .header { border-bottom: 2px solid #170e5e; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .header-meta { font-size: 11px; color: #475569; }
+            .header-center { text-align: center; }
+            .header-center h1 { margin: 0; color: #170e5e; font-size: 20px; font-weight: 800; }
+            .header-center p { margin: 2px 0 0; color: #64748b; font-size: 12px; font-weight: 500; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px; }
             .table thead { display: table-header-group; }
             .table tr { page-break-inside: avoid; }
-            .table th, .table td { padding: 12px 14px; text-align: right; border: 1px solid #cbd5e1; }
+            .table th, .table td { padding: 5px 8px; text-align: right; border: 1px solid #cbd5e1; }
             .table th { background-color: #f8fafc; font-weight: 700; color: #334155; border-bottom: 2px solid #94a3b8; }
             .table tbody tr:nth-child(even) { background-color: #fbfcfd; }
-            .footer { margin-top: 60px; display: flex; justify-content: space-between; padding-top: 25px; clear: both; page-break-inside: avoid; }
+            .footer { margin-top: 18px; display: flex; justify-content: space-between; padding-top: 10px; clear: both; page-break-inside: avoid; }
             .signature-box { text-align: center; width: 30%; }
-            .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 40px; }
+            .signature-box .title { font-weight: 700; color: #475569; margin-bottom: 25px; font-size: 11.5px; }
             .signature-box .line { border-bottom: 1px solid #94a3b8; width: 80%; margin: 0 auto; }
-            .amount { font-family: monospace; font-size: 15px; font-weight: 600; }
+            .amount { font-family: monospace; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>كشف تسليم الرواتب</h1>
-            <p>خاص بشهر: ${text(selectedRun?.periodMonth)}</p>
+            <div class="header-meta" style="text-align: right;">
+              <strong style="color: #170e5e; font-size: 13.5px; display: block;">Z-Systems ERP</strong>
+              <span style="color: #64748b; font-size: 10.5px;">قطاع الموارد البشرية والمالية</span>
+            </div>
+            <div class="header-center">
+              <h1>كشف تسليم الرواتب</h1>
+              <p>خاص بشهر: ${text(selectedRun?.periodMonth)} | الحالة: ${statusLabel(selectedRun?.status)}</p>
+            </div>
+            <div class="header-meta" style="text-align: left;">
+              <span style="color: #475569; font-size: 10.5px;">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</span><br>
+              <span style="color: #64748b; font-size: 10.5px;">إجمالي القوى العاملة: ${filteredRunItems.length} موظف</span>
+            </div>
           </div>
           <table class="table">
             <thead>
               <tr>
-                <th style="width: 40px; text-align: center;">م</th>
-                <th style="width: 100px;">كود الموظف</th>
-                <th>اسم الموظف</th>
-                <th style="width: 140px;">صافي الراتب المستحق</th>
-                <th style="width: 220px;">التوقيع / ملاحظات</th>
+                <th style="width: 35px; text-align: center; white-space: nowrap;">م</th>
+                <th style="width: 75px; text-align: center; white-space: nowrap;">كود الموظف</th>
+                <th style="width: 1%; white-space: nowrap;">اسم الموظف</th>
+                <th style="width: 140px; text-align: center; white-space: nowrap;">صافي الراتب المستحق</th>
+                <th style="text-align: center;">التوقيع / ملاحظات</th>
               </tr>
             </thead>
             <tbody>
               ${filteredRunItems.map((row, index) => `
                 <tr>
-                  <td style="text-align: center; color: #64748b;">${index + 1}</td>
-                  <td style="color: #64748b;">${text(row.employeeNo)}</td>
-                  <td style="font-weight: 500;">${text(row.employeeName)}</td>
-                  <td class="amount">${money(row.netPay)}</td>
+                  <td style="text-align: center; color: #64748b; white-space: nowrap;">${index + 1}</td>
+                  <td style="text-align: center; color: #64748b; white-space: nowrap;">${text(row.employeeNo)}</td>
+                  <td style="font-weight: 600; white-space: nowrap;">${text(row.employeeName)}</td>
+                  <td class="amount" style="text-align: center;">${money(row.netPay)}</td>
                   <td></td>
                 </tr>
               `).join('')}
-              <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 15px;">
-                <td colspan="3" style="text-align: left; padding: 12px 14px; border: 1px solid #cbd5e1; color: #0f172a;">إجمالي الرواتب المستحقة:</td>
-                <td class="amount" style="padding: 12px 14px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 16px;">${money(summary.totalNet)}</td>
+              <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 12.5px;">
+                <td colspan="3" style="text-align: left; padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; white-space: nowrap;">إجمالي الرواتب المستحقة:</td>
+                <td class="amount" style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 13px; text-align: center;">${money(summary.totalNet)}</td>
                 <td style="border: 1px solid #cbd5e1; background-color: #f8fafc;"></td>
               </tr>
             </tbody>
@@ -306,6 +460,165 @@ export function HrPayrollPage() {
               <div class="title">توقيع أمين الخزينة</div>
               <div class="line"></div>
             </div>
+          </div>
+          <div style="margin-top: 18px; border-top: 1px dashed #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: #64748b; clear: both; page-break-inside: avoid;">
+            <span>تم استخراج وتوثيق هذا الكشف آلياً بواسطة منظومة <strong>Z-Systems Cloud ERP</strong> لإدارة وتخطيط الموارد</span>
+            <span dir="ltr" style="font-weight: 700; color: #170e5e;">Powered by Z-Systems ERP • www.z-systems.io</span>
+          </div>
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 500);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+  };
+
+  const printDetailedPayrollReport = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const totalBase = filteredRunItems.reduce((acc, row) => acc + Number(row.baseSalary || 0), 0);
+    const totalAllowances = filteredRunItems.reduce((acc, row) => acc + Number(row.allowanceAmount || 0), 0);
+    const totalGross = filteredRunItems.reduce((acc, row) => acc + Number(row.grossPay || (Number(row.baseSalary || 0) + Number(row.allowanceAmount || 0))), 0);
+    const totalAttendanceDeductions = filteredRunItems.reduce((acc, row) => acc + Number(row.deductionAmount || 0), 0);
+    const totalLoans = filteredRunItems.reduce((acc, row) => acc + Number(row.loanDeductionAmount || 0), 0);
+    const totalAllDeductions = filteredRunItems.reduce((acc, row) => acc + (Number(row.deductionAmount || 0) + Number(row.loanDeductionAmount || 0) + Number((row as any).employeeSocialInsurance || 0) + Number((row as any).incomeTax || 0)), 0);
+    const totalNet = filteredRunItems.reduce((acc, row) => acc + Number(row.netPay || 0), 0);
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>مسير الرواتب المالي والتفصيلي - ${text(selectedRun?.periodMonth)}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+            @page { size: landscape; margin: 8mm 10mm; }
+            body { font-family: 'Tajawal', Tahoma, Arial, sans-serif; padding: 0; margin: 0; color: #1e293b; line-height: 1.25; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .header { border-bottom: 2px solid #170e5e; padding-bottom: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .header-center { text-align: center; }
+            .header-center h1 { margin: 0; color: #170e5e; font-size: 18px; font-weight: 800; }
+            .header-center p { margin: 2px 0 0; color: #64748b; font-size: 11.5px; font-weight: 500; }
+            .header-meta { font-size: 10.5px; color: #475569; }
+            .table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10.5px; }
+            .table thead { display: table-header-group; }
+            .table tr { page-break-inside: avoid; }
+            .table th, .table td { padding: 4px 6px; text-align: right; border: 1px solid #cbd5e1; }
+            .table th { background-color: #f1f5f9; font-weight: 700; color: #1e293b; text-align: center; }
+            .table th.th-earnings { background-color: #f0fdf4; color: #166534; border-bottom: 2px solid #86efac; }
+            .table th.th-deductions { background-color: #fef2f2; color: #991b1b; border-bottom: 2px solid #fca5a5; }
+            .table th.th-net { background-color: #eef2ff; color: #312e81; border-bottom: 2px solid #a5b4fc; }
+            .table tbody tr:nth-child(even) { background-color: #fafbfc; }
+            .amount { font-family: monospace; font-size: 10.5px; font-weight: 600; white-space: nowrap; text-align: center; }
+            .amount.pos { color: #166534; }
+            .amount.neg { color: #dc2626; }
+            .amount.net { font-weight: 800; color: #0f172a; background-color: #f8fafc; }
+            .footer { margin-top: 10px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding-top: 8px; clear: both; page-break-inside: avoid; }
+            .sig-box { text-align: center; }
+            .sig-box .title { font-weight: 700; color: #475569; margin-bottom: 22px; font-size: 10.5px; }
+            .sig-box .line { border-bottom: 1px solid #94a3b8; width: 75%; margin: 0 auto; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="header-meta">
+              <strong>Z-Systems ERP</strong><br>
+              قطاع الموارد البشرية والمالية
+            </div>
+            <div class="header-center">
+              <h1>مسير الرواتب المالي والتفصيلي</h1>
+              <p>كشف استحقاقات واستقطاعات شهر: ${text(selectedRun?.periodMonth)} | الحالة: ${statusLabel(selectedRun?.status)}</p>
+            </div>
+            <div class="header-meta" style="text-align: left;">
+              تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}<br>
+              إجمالي القوى العاملة: ${filteredRunItems.length} موظف
+            </div>
+          </div>
+
+          <table class="table">
+            <thead>
+              <tr>
+                <th rowspan="2" style="width: 25px;">م</th>
+                <th rowspan="2" style="width: 60px;">كود</th>
+                <th rowspan="2" style="width: 1%; white-space: nowrap; text-align: right;">اسم الموظف</th>
+                <th colspan="3" class="th-earnings">الاستحقاقات المالية (Earnings)</th>
+                <th colspan="3" class="th-deductions">الاستقطاعات والجزاءات (Deductions)</th>
+                <th rowspan="2" class="th-net" style="width: 110px;">صافي الراتب المستحق</th>
+                <th rowspan="2" style="width: 120px;">ملاحظات التدقيق</th>
+              </tr>
+              <tr>
+                <th class="th-earnings" style="width: 90px;">الأساسي</th>
+                <th class="th-earnings" style="width: 80px;">البدلات/الإضافي</th>
+                <th class="th-earnings" style="width: 95px;">إجمالي المستحق</th>
+                <th class="th-deductions" style="width: 85px;">تأخير/غياب</th>
+                <th class="th-deductions" style="width: 80px;">أقساط سلف</th>
+                <th class="th-deductions" style="width: 90px;">إجمالي الخصم</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredRunItems.map((row, index) => {
+                const bSalary = Number(row.baseSalary || 0);
+                const alw = Number(row.allowanceAmount || 0);
+                const gross = Number(row.grossPay || (bSalary + alw));
+                const attDed = Number(row.deductionAmount || 0);
+                const lDed = Number(row.loanDeductionAmount || 0);
+                const insDed = Number((row as any).employeeSocialInsurance || 0);
+                const taxDed = Number((row as any).incomeTax || 0);
+                const totDed = attDed + lDed + insDed + taxDed;
+                const net = Number(row.netPay || (gross - totDed));
+                return `
+                  <tr>
+                    <td style="text-align: center; color: #64748b;">${index + 1}</td>
+                    <td style="text-align: center; color: #64748b; white-space: nowrap;">${text(row.employeeNo)}</td>
+                    <td style="font-weight: 600; white-space: nowrap;">${text(row.employeeName)}</td>
+                    <td class="amount">${money(bSalary)}</td>
+                    <td class="amount pos">${alw > 0 ? money(alw) : '—'}</td>
+                    <td class="amount pos" style="font-weight: 700;">${money(gross)}</td>
+                    <td class="amount neg">${attDed > 0 ? money(attDed) : '—'}</td>
+                    <td class="amount neg">${lDed > 0 ? money(lDed) : '—'}</td>
+                    <td class="amount neg" style="font-weight: 700;">${totDed > 0 ? money(totDed) : '—'}</td>
+                    <td class="amount net">${money(net)}</td>
+                    <td style="font-size: 10.5px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
+                      ${text(row.notes || (Number(row.attendanceAbsentDays || 0) > 0 ? `غياب ${row.attendanceAbsentDays}ي` : ''))}
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+              <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 12px; border-top: 2px solid #94a3b8;">
+                <td colspan="3" style="text-align: left; padding: 8px 10px; color: #0f172a;">الإجماليات العامة للمسير:</td>
+                <td class="amount">${money(totalBase)}</td>
+                <td class="amount pos">${money(totalAllowances)}</td>
+                <td class="amount pos" style="font-size: 12.5px;">${money(totalGross)}</td>
+                <td class="amount neg">${money(totalAttendanceDeductions)}</td>
+                <td class="amount neg">${money(totalLoans)}</td>
+                <td class="amount neg" style="font-size: 12.5px;">${money(totalAllDeductions)}</td>
+                <td class="amount net" style="font-size: 13px; color: #170e5e; background-color: #e0e7ff;">${money(totalNet)}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div class="sig-box">
+              <div class="title">إعداد ومراجعة الموارد البشرية</div>
+              <div class="line"></div>
+            </div>
+            <div class="sig-box">
+              <div class="title">تدقيق الحسابات والمراجعة الداخلية</div>
+              <div class="line"></div>
+            </div>
+            <div class="sig-box">
+              <div class="title">اعتماد المدير المالي (CFO)</div>
+              <div class="line"></div>
+            </div>
+            <div class="sig-box">
+              <div class="title">اعتماد الإدارة العامة والتشغيل</div>
+              <div class="line"></div>
+            </div>
+          </div>
+          <div style="margin-top: 14px; border-top: 1px dashed #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: #64748b; clear: both; page-break-inside: avoid;">
+            <span>تم استخراج وتوثيق هذا الكشف المالي آلياً بواسطة منظومة <strong>Z-Systems Cloud ERP</strong> لإدارة وتخطيط الموارد المؤسسية</span>
+            <span dir="ltr" style="font-weight: 700; color: #170e5e;">Powered by Z-Systems ERP • www.z-systems.io</span>
           </div>
           <script>
             setTimeout(() => { window.print(); window.close(); }, 500);
@@ -326,7 +639,7 @@ export function HrPayrollPage() {
           actions={
             <div className="actions compact-actions">
               {hasCreatePayrollRun && canManagePayroll ? (
-                <Button onClick={() => { setDraft((current) => ({ ...current, periodMonth: current.periodMonth || monthFilter })); setShowCreateRun(true); }}>
+                <Button onClick={openCreateModal}>
                   {t('hr.hr_payroll_page.s2', "إنشاء مسير الشهر")}
                 </Button>
               ) : null}
@@ -346,6 +659,9 @@ export function HrPayrollPage() {
               <HrPayrollTopSections
                 monthFilter={monthFilter}
                 search={search}
+                selectedEmployeeId={selectedEmployeeId}
+                onSelectedEmployeeChange={setSelectedEmployeeId}
+                employeeOptions={employeeOptions}
                 departmentFilter={departmentFilter}
                 reviewStatusFilter={reviewStatusFilter}
                 runStatusFilter={runStatusFilter}
@@ -403,11 +719,11 @@ export function HrPayrollPage() {
                 canViewSalaryAmounts={canViewSalaryAmounts}
                 canManagePayroll={canManagePayroll}
                 canApprovePayroll={canApprovePayroll}
-                onRecalculate={(id) => void mutations.recalculatePayrollRun?.mutateAsync(id)}
+                onRecalculate={(id) => void handleRecalculateRun(id)}
                 onReviewClick={(id) => handleRunActionClick(id, 'review')}
                 onApproveClick={(id) => handleRunActionClick(id, 'approve')}
                 onPayClick={(id) => { setSelectedRunId(id); setShowPayRun(true); }}
-                onCancel={(id) => void mutations.cancelPayrollRun?.mutateAsync(id)}
+                onCancel={(id) => void handleCancelRun(id)}
               />
 
               {/* Selected Run Details Table */}
@@ -427,8 +743,25 @@ export function HrPayrollPage() {
                         {t('hr.hr_payroll_page.s8', "تصدير ملف حماية الأجور (WPS / SIF)")}
                       </Button>
                     )}
-                    {runIsFinal && (
-                      <Button variant="secondary" onClick={() => printPayrollSignatureSheet()} style={{ padding: '2px 10px', fontSize: '0.8rem' }}>{t('hr.hr_payroll_page.s9', "طباعة كشف تسليم الرواتب")}</Button>
+                    {selectedRun && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => printPayrollSignatureSheet()}
+                        style={{ padding: '2px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <PrinterIcon size={14} />
+                        <span>{t('hr.hr_payroll_page.s9', "كشف التوقيعات (مختصر)")}</span>
+                      </Button>
+                    )}
+                    {selectedRun && (
+                      <Button
+                        variant="secondary"
+                        onClick={() => printDetailedPayrollReport()}
+                        style={{ padding: '2px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f8fafc', borderColor: '#cbd5e1' }}
+                      >
+                        <FileTextIcon size={14} />
+                        <span>المسير المالي التفصيلي (A4 أفقي)</span>
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -447,8 +780,8 @@ export function HrPayrollPage() {
                         rowKey={(row) => String(row.id)}
                         density="compact"
                         columns={[
-                          { key: 'employeeNo', header: t('hr.hr_payroll_page.s14', "كود الموظف"), cell: (row) => text(row.employeeNo) },
-                          { key: 'employeeName', header: t('hr.hr_payroll_page.s15', "اسم الموظف"), cell: (row) => text(row.employeeName) },
+                          { key: 'employeeNo', header: t('hr.hr_payroll_page.s14', "كود الموظف"), cell: (row) => <span style={{ whiteSpace: 'nowrap' }}>{text(row.employeeNo)}</span> },
+                          { key: 'employeeName', header: t('hr.hr_payroll_page.s15', "اسم الموظف"), cell: (row) => <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{text(row.employeeName)}</span> },
                           { key: 'baseSalary', header: t('hr.hr_payroll_page.s16', "الراتب الأساسي"), cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
                           { key: 'allowanceAmount', header: t('hr.hr_payroll_page.s17', "البدلات والإضافي"), cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
                           { key: 'deductionAmount', header: t('hr.hr_payroll_page.s18', "الخصومات"), cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
@@ -480,6 +813,7 @@ export function HrPayrollPage() {
         canManagePayroll={canManagePayroll}
         hasCreatePayrollRun={hasCreatePayrollRun}
         formError={formError}
+        employees={employees}
       />
 
       <PayPayrollRunModal
@@ -504,12 +838,18 @@ export function HrPayrollPage() {
       )}
 
       <PayrollReviewItemModal
-        item={selectedReviewItem}
+        item={activeReviewItem}
         onClose={() => setSelectedReviewItem(null)}
         canViewSalaryAmounts={canViewSalaryAmounts}
         runIsFinal={Boolean(runIsFinal)}
-        onPrintSummary={(item) => alert(t('hr.hr_payroll_page.s25', "طباعة ملخص للموظف ") + item.employeeName)}
-        onPrintDetailed={(item) => alert(t('hr.hr_payroll_page.s26', "طباعة تفصيلي للموظف ") + item.employeeName)}
+        isDraft={selectedRun?.status === 'draft'}
+        periodMonth={selectedRun?.periodMonth}
+        onAddAdjustment={handleAddAdjustment}
+        onDeleteAdjustment={handleDeleteAdjustment}
+        onNavigateToAttendance={(employeeId) => navigate(`/hr/attendance?employeeId=${employeeId}${selectedRun?.periodMonth ? `&period=${selectedRun.periodMonth}` : ''}`)}
+        onNavigateToEmployee={(employeeId) => navigate(`/hr/employees/${employeeId}`)}
+        onPrintSummary={(item) => toast.info(t('hr.hr_payroll_page.s25', "طباعة ملخص للموظف ") + item.employeeName)}
+        onPrintDetailed={(item) => toast.info(t('hr.hr_payroll_page.s26', "طباعة تفصيلي للموظف ") + item.employeeName)}
       />
 
       {pendingApprovalAction && (

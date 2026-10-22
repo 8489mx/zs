@@ -4,6 +4,9 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { hrApi } from '@/features/hr/api/hr.api';
 import { getErrorMessage } from '@/lib/errors';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { getCurrencySymbol } from '@/lib/currencies';
 
 interface PayrollWpsExportModalProps {
   runId: string;
@@ -16,25 +19,44 @@ type WpsResult = Awaited<ReturnType<typeof hrApi.generatePayrollWps>>;
 
 export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: PayrollWpsExportModalProps) {
   const { t } = useTranslation();
+  const { currencyCode, currencySymbol } = useSystemCurrency();
+  const { data: settings } = useSettingsQuery();
+
   const [payerCrNo, setPayerCrNo] = useState('');
-  const [payerBankRoutingCode, setPayerBankRoutingCode] = useState('RIBL');
+  const [payerBankRoutingCode, setPayerBankRoutingCode] = useState('');
   const [payerName, setPayerName] = useState('');
-  const [currency, setCurrency] = useState('SAR');
+  const [currency, setCurrency] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [wpsData, setWpsData] = useState<WpsResult | null>(null);
   const [copied, setCopied] = useState(false);
 
-  async function handleGenerate() {
+  // Auto-sync with tenant settings
+  useEffect(() => {
+    const cur = currencyCode || (settings as any)?.currency || 'EGP';
+    if (!currency) setCurrency(cur);
+    if (!payerBankRoutingCode) {
+      setPayerBankRoutingCode(cur === 'SAR' ? 'RIBL' : cur === 'EGP' ? 'NBE' : 'BANK');
+    }
+    if (!payerName && ((settings as any)?.companyName || (settings as any)?.storeName)) {
+      setPayerName((settings as any).companyName || (settings as any).storeName);
+    }
+    if (!payerCrNo && ((settings as any)?.crNumber || (settings as any)?.taxNumber)) {
+      setPayerCrNo((settings as any).crNumber || (settings as any).taxNumber);
+    }
+  }, [currencyCode, settings]);
+
+  async function handleGenerate(overrideCur?: string) {
     setIsLoading(true);
     setError('');
     try {
+      const activeCur = (overrideCur || currency || currencyCode || (settings as any)?.currency || 'EGP').trim().toUpperCase();
       const res = await hrApi.generatePayrollWps(runId, {
         payerCrNo: payerCrNo.trim() || undefined,
         payerBankRoutingCode: payerBankRoutingCode.trim() || undefined,
         payerName: payerName.trim() || undefined,
-        currency: currency.trim() || undefined,
+        currency: activeCur,
       });
       setWpsData(res);
     } catch (err) {
@@ -45,7 +67,8 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
   }
 
   useEffect(() => {
-    void handleGenerate();
+    const cur = currencyCode || (settings as any)?.currency || 'EGP';
+    void handleGenerate(cur);
   }, [runId]);
 
   function downloadFile(content: string, fileName: string, mimeType: string) {
@@ -88,6 +111,17 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
   const summary = wpsData?.summary;
   const records = wpsData?.records || [];
 
+  const activeCurrency = currency || summary?.currency || currencyCode || 'EGP';
+  const activeSymbol = getCurrencySymbol(activeCurrency as any) || currencySymbol || activeCurrency;
+
+  const wpsStandardDesc = activeCurrency === 'SAR'
+    ? 'الملف المعتمد متوافق مع نظام حماية الأجور السعودي (مدد / GOSI / مسار) بصيغة SIF القياسية.'
+    : activeCurrency === 'EGP'
+    ? 'الملف المعتمد متوافق مع منظومة التحويلات المصرفية وحماية الأجور (البنك المركزي المصري / SIF / ACH).'
+    : activeCurrency === 'AED'
+    ? 'الملف المعتمد متوافق مع نظام حماية الأجور الإماراتي (WPS / Central Bank of UAE).'
+    : 'الملف المعتمد متوافق مع المعايير المصرفية للتحويلات البنكية وحماية الأجور (SIF Standard Interchange Format).';
+
   return (
     <DialogShell
       open
@@ -95,8 +129,9 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
       width="min(950px, 95vw)"
     >
       <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#0f172a' }}>
-        <div style={{ paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+        <div style={{ paddingBottom: '10px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
             {t('hr.payroll.payroll_wps_export_modal.s0', "تصدير ملف حماية الأجور والتحويلات البنكية (WPS / SIF)")}
           </h3>
         </div>
@@ -108,7 +143,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
               {t('hr.payroll.payroll_wps_export_modal.s1', "مسير الرواتب:")} {runName || `مسير رقم #${runId}`} {runMonth ? `(شهر ${runMonth})` : ''}
             </div>
             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>
-              {t('hr.payroll.payroll_wps_export_modal.s2', "الملف المعتمد متوافق مع نظام حماية الأجور السعودي (مدد / GOSI / مسار) وبنوك الخليج ومصر (SIF Standard Interchange Format).")}
+              {wpsStandardDesc}
             </div>
           </div>
         </div>
@@ -122,7 +157,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
             <input
               value={payerCrNo}
               onChange={(e) => setPayerCrNo(e.target.value)}
-              placeholder={t('hr.payroll.payroll_wps_export_modal.s4', "مثال: 7001234567")}
+              placeholder="رقم السجل أو البطاقة الضريبية"
               dir="ltr"
               style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
             />
@@ -134,7 +169,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
             <input
               value={payerBankRoutingCode}
               onChange={(e) => setPayerBankRoutingCode(e.target.value.toUpperCase())}
-              placeholder={t('hr.payroll.payroll_wps_export_modal.s6', "مثال: RIBL / RJHI / NCBK")}
+              placeholder={activeCurrency === 'SAR' ? 'مثال: RIBL / RJHI / NCBK' : activeCurrency === 'EGP' ? 'مثال: NBE / MISR / CIB' : 'مثال: SWIFT Code'}
               dir="ltr"
               style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
             />
@@ -152,14 +187,14 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-              {t('hr.payroll.payroll_wps_export_modal.s9', "العملة")}
+              {t('hr.payroll.payroll_wps_export_modal.s9', "العملة الرسمية")}
             </label>
             <input
               value={currency}
               onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-              placeholder="SAR / AED / EGP"
+              placeholder="EGP / SAR / AED / USD"
               dir="ltr"
-              style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '7px 10px', fontSize: '0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', fontWeight: 700 }}
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end' }}>
@@ -168,7 +203,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
               variant="secondary"
               onClick={() => void handleGenerate()}
               disabled={isLoading}
-              style={{ width: '100%', height: '36px', fontSize: '0.85rem' }}
+              style={{ width: '100%', height: '36px', fontSize: '0.85rem', fontWeight: 600 }}
             >
               {isLoading ? t('hr.payroll.payroll_wps_export_modal.s10', "جاري التحديث...") : t('hr.payroll.payroll_wps_export_modal.s11', "إعادة توليد الملف")}
             </Button>
@@ -188,7 +223,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{t('hr.payroll.payroll_wps_export_modal.s12', "إجمالي صافي الرواتب")}</span>
                 <strong style={{ fontSize: '1.2rem', color: '#10b981' }}>
-                  {summary.totalNetPay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {summary.currency}
+                  {summary.totalNetPay.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {activeSymbol}
                 </strong>
               </div>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
@@ -198,7 +233,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
                 <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{t('hr.payroll.payroll_wps_export_modal.s15', "إجمالي الأساسي")}</span>
                 <strong style={{ fontSize: '1rem', color: '#334155' }}>
-                  {summary.totalBaseSalary.toLocaleString('en-US', { minimumFractionDigits: 2 })} {summary.currency}
+                  {summary.totalBaseSalary.toLocaleString('en-US', { minimumFractionDigits: 2 })} {activeSymbol}
                 </strong>
               </div>
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
@@ -218,35 +253,31 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
             </div>
 
             {/* Actions Bar */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 16px' }}>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <Button
-                  type="button"
-                  onClick={handleDownloadSif}
-                  style={{ background: '#170e5e', color: '#ffffff', fontWeight: 600, fontSize: '0.85rem' }}
-                >
-                  {t('hr.payroll.payroll_wps_export_modal.s19', "تحميل ملف حماية الأجور (.sif)")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleDownloadCsv}
-                  style={{ fontSize: '0.85rem' }}
-                >
-                  {t('hr.payroll.payroll_wps_export_modal.s20', "تحميل جدول التحويلات (.csv)")}
-                </Button>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => void handleCopySif()}
-                  style={{ fontSize: '0.8rem' }}
-                >
-                  {copied ? t('hr.payroll.payroll_wps_export_modal.s21', "تم النسخ إلى الحافظة") : t('hr.payroll.payroll_wps_export_modal.s22', "نسخ كود SIF")}
-                </Button>
-              </div>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleDownloadSif}
+                style={{ padding: '8px 16px', fontSize: '0.875rem', fontWeight: 600, background: '#170e5e', borderColor: '#170e5e', color: '#fff' }}
+              >
+                {t('hr.payroll.payroll_wps_export_modal.s19', "تحميل ملف حماية الأجور (.sif)")}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleDownloadCsv}
+                style={{ padding: '8px 16px', fontSize: '0.875rem', fontWeight: 600 }}
+              >
+                {t('hr.payroll.payroll_wps_export_modal.s20', "تحميل جدول التحويلات (.csv)")}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void handleCopySif()}
+                style={{ padding: '8px 16px', fontSize: '0.875rem' }}
+              >
+                {copied ? t('hr.payroll.payroll_wps_export_modal.s21', "تم النسخ!") : t('hr.payroll.payroll_wps_export_modal.s22', "نسخ كود SIF")}
+              </Button>
             </div>
 
             {/* Employee Bank Mapping Preview Table */}
@@ -254,12 +285,12 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
                 <thead style={{ background: '#f1f5f9', position: 'sticky', top: 0, zIndex: 1 }}>
                   <tr>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s23', "الكود")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('hr.payroll.payroll_wps_export_modal.s23', "الكود")}</th>
                     <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s24', "اسم الموظف")}</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s25', "الهوية / الإقامة")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('hr.payroll.payroll_wps_export_modal.s25', "الهوية / الإقامة")}</th>
                     <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s26', "البنك")}</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s27', "الآيبان / الحساب")}</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569' }}>{t('hr.payroll.payroll_wps_export_modal.s28', "الصافي")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('hr.payroll.payroll_wps_export_modal.s27', "الآيبان / الحساب")}</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'center' }}>{t('hr.payroll.payroll_wps_export_modal.s28', "الصافي")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -267,15 +298,15 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                     const hasBank = rec.iban !== 'N/A' || rec.bankAccountNumber !== 'N/A';
                     return (
                       <tr key={rec.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '6px 10px', fontFamily: 'monospace' }}>{rec.employeeNo}</td>
+                        <td style={{ padding: '6px 10px', fontFamily: 'monospace', textAlign: 'center' }}>{rec.employeeNo}</td>
                         <td style={{ padding: '6px 10px', fontWeight: 600 }}>{rec.displayName}</td>
-                        <td style={{ padding: '6px 10px', fontFamily: 'monospace', color: '#64748b' }}>{rec.nationalId}</td>
+                        <td style={{ padding: '6px 10px', fontFamily: 'monospace', color: '#64748b', textAlign: 'center' }}>{rec.nationalId}</td>
                         <td style={{ padding: '6px 10px' }}>{rec.bankName}</td>
-                        <td style={{ padding: '6px 10px', fontFamily: 'monospace', direction: 'ltr', textAlign: 'left', color: hasBank ? '#0f172a' : '#dc2626' }}>
+                        <td style={{ padding: '6px 10px', fontFamily: 'monospace', direction: 'ltr', textAlign: 'center', color: hasBank ? '#0f172a' : '#dc2626' }}>
                           {rec.iban !== 'N/A' ? rec.iban : rec.bankAccountNumber}
                         </td>
-                        <td style={{ padding: '6px 10px', fontWeight: 700, color: '#10b981' }}>
-                          {rec.netPay.toFixed(2)}
+                        <td style={{ padding: '6px 10px', fontWeight: 700, color: '#10b981', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          {rec.netPay.toFixed(2)} {activeSymbol}
                         </td>
                       </tr>
                     );

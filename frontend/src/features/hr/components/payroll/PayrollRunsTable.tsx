@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
-import { CheckIcon } from '@/shared/components/icons/AppIcons';
+import { CheckIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import { text, money, statusLabel, normalize } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import type { HrPayrollRun } from '@/types/domain';
 
@@ -102,7 +102,7 @@ export function PayrollRunsTable({
             pagination={{ page, pageSize, totalItems, onPageChange, onPageSizeChange, itemLabel: t('hr.payroll.payroll_runs_table.s5', "كشف") }}
             columns={[
               { key: 'periodMonth', header: t('hr.payroll.payroll_runs_table.s6', "الشهر"), cell: (row) => text(row.periodMonth) },
-              { key: 'payFrequency', header: t('hr.payroll.payroll_runs_table.s7', "الدورة"), cell: (row) => row.payFrequency === 'weekly' ? t('hr.payroll.payroll_runs_table.s8', "أسبوعي") : row.payFrequency === 'biweekly' ? t('hr.payroll.payroll_runs_table.s9', "نصف شهري") : row.payFrequency === 'daily' ? t('hr.payroll.payroll_runs_table.s10', "يومي") : t('hr.payroll.payroll_runs_table.s11', "شهري") },
+              { key: 'payFrequency', header: t('hr.payroll.payroll_runs_table.s7', "الدورة"), cell: (row) => row.payFrequency === 'weekly' ? t('hr.payroll.payroll_runs_table.s8', "أسبوعي") : row.payFrequency === 'biweekly' ? t('hr.payroll.payroll_runs_table.s9', "نصف شهري") : row.payFrequency === 'daily' ? t('hr.payroll.payroll_runs_table.s10', "يومي") : row.payFrequency === 'all' ? "شامل (الكل)" : t('hr.payroll.payroll_runs_table.s11', "شهري") },
               { key: 'startDate', header: t('hr.payroll.payroll_runs_table.s12', "من"), cell: (row) => row.startDate ? text(row.startDate) : t('hr.payroll.payroll_runs_table.s13', "أول الشهر") },
               { key: 'endDate', header: t('hr.payroll.payroll_runs_table.s14', "إلى"), cell: (row) => row.endDate ? text(row.endDate) : t('hr.payroll.payroll_runs_table.s15', "آخر الشهر") },
               { key: 'status', header: t('hr.payroll.payroll_runs_table.s16', "الحالة"), cell: (row) => statusLabel(row.status) },
@@ -113,21 +113,31 @@ export function PayrollRunsTable({
                 key: 'actions',
                 header: t('hr.payroll.payroll_runs_table.s20', "إجراء"),
                 cell: (row) => (
-                  <div className="actions compact-actions" style={{ flexWrap: 'nowrap' }}>
+                  <div className="actions compact-actions" style={{ flexWrap: 'nowrap', gap: '4px' }}>
                     {canManagePayroll && normalize(row.status) !== 'approved' && normalize(row.status) !== 'paid' ? (
-                      <Button variant="secondary" onClick={() => onRecalculate(String(row.id))} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.payroll.payroll_runs_table.s21', "مراجعة")}</Button>
+                      <Button variant="secondary" onClick={() => onRecalculate(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        {t('hr.payroll.payroll_runs_table.recalc', "إعادة احتساب")}
+                      </Button>
                     ) : null}
                     {canManagePayroll && normalize(row.status) === 'draft' ? (
-                      <Button variant="secondary" onClick={() => onReviewClick(String(row.id))} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.payroll.payroll_runs_table.s22', "اعتماد")}</Button>
+                      <Button variant="secondary" onClick={() => onReviewClick(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#1e40af', borderColor: '#bfdbfe' }}>
+                        {t('hr.payroll.payroll_runs_table.review_approve', "مراجعة واعتماد")}
+                      </Button>
                     ) : null}
                     {canApprovePayroll && normalize(row.status) === 'reviewed' ? (
-                      <Button variant="secondary" onClick={() => onApproveClick(String(row.id))} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.payroll.payroll_runs_table.s23', "اعتماد نهائي")}</Button>
+                      <Button variant="secondary" onClick={() => onApproveClick(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#166534', borderColor: '#bbf7d0' }}>
+                        {t('hr.payroll.payroll_runs_table.final_approve', "اعتماد نهائي")}
+                      </Button>
                     ) : null}
                     {canApprovePayroll && normalize(row.status) === 'approved' ? (
-                      <Button variant="primary" onClick={() => onPayClick(String(row.id))} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.payroll.payroll_runs_table.s24', "صرف")}</Button>
+                      <Button variant="primary" onClick={() => onPayClick(String(row.id))} style={{ padding: '3px 10px', fontSize: '0.75rem', fontWeight: 700 }}>
+                        {t('hr.payroll.payroll_runs_table.pay', "صرف المرتبات")}
+                      </Button>
                     ) : null}
                     {canManagePayroll && normalize(row.status) !== 'paid' && normalize(row.status) !== 'cancelled' ? (
-                      <Button variant="secondary" onClick={() => onCancel(String(row.id))} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.payroll.payroll_runs_table.s25', "إلغاء")}</Button>
+                      <Button variant="secondary" onClick={() => onCancel(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', color: '#991b1b', borderColor: '#fecaca' }}>
+                        {t('hr.payroll.payroll_runs_table.cancel', "إلغاء")}
+                      </Button>
                     ) : null}
                   </div>
                 ),
