@@ -92,6 +92,17 @@ export class RecountStockCountItemDto {
   @Min(0)
   countedQty!: number;
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  countedSerials?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StockCountBatchDto)
+  batchCounts?: StockCountBatchDto[];
+
   @IsString()
   @MinLength(8)
   reason!: string;
