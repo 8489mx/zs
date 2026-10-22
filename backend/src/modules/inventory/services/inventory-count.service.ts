@@ -536,7 +536,7 @@ export class InventoryCountService {
         batch_tracking: JSON.stringify(trace.batchTracking),
       } as any).where('id', '=', Number(insertedDamage.id)).where(this.tenantPredicate(auth)).execute();
 
-      const stockChange = await applyStockDelta(trx, { productId: payload.productId, delta: -damageQty, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Cannot mark more damaged stock than current stock' });
+      const stockChange = await applyStockDelta(trx, { productId: payload.productId, delta: -damageQty, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Cannot mark more damaged stock than current stock', disableAutoDrain: true });
 
       await trx.insertInto('stock_movements').values({
          ...writeModels.stockMovement,
