@@ -9,7 +9,7 @@ try {
 const { app, BrowserWindow, ipcMain, dialog, session, Menu, screen, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { exec, execSync } = require('child_process');
+const { execFile, execSync } = require('child_process');
 
 // Enforce single application instance lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -937,38 +937,52 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle('print-html-silent', async (e, { html, deviceName, pageSize, receiptWidthMm }) => {
+  ipcMain.handle('print-html-silent', async (_event, options = {}) => {
+    const { html, deviceName, pageSize, receiptWidthMm } = options || {};
+    if (typeof html !== 'string' || !html.trim() || html.length > 4 * 1024 * 1024) {
+      return { ok: false, error: 'Invalid print document' };
+    }
     return new Promise((resolve) => {
-      let printWin = new BrowserWindow({
-        show: false,
-        webPreferences: { nodeIntegration: false, contextIsolation: true }
-      });
-      
-      printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
-      
-      printWin.webContents.on('did-finish-load', () => {
-        // Use a small timeout to allow layout parsing and image loading (if any data URIs)
-        setTimeout(() => {
-          if (!printWin || printWin.isDestroyed()) {
-             return resolve({ ok: false, error: 'Window destroyed' });
-          }
-          printWin.webContents.print({
-            silent: true,
-            printBackground: true,
-            deviceName: deviceName || undefined,
-            margins: { marginType: 'none' },
-            pageSize: pageSize === 'receipt'
-              ? { width: receiptWidthMm === 58 ? 58000 : 80000, height: 297000 }
-              : (pageSize === 'A4' ? 'A4' : undefined)
-          }, (success, failureReason) => {
-            if (!printWin.isDestroyed()) {
-              printWin.destroy();
+      let printWin = null;
+      let completed = false;
+      const finish = (result) => {
+        if (completed) return;
+        completed = true;
+        clearTimeout(watchdog);
+        try { if (printWin && !printWin.isDestroyed()) printWin.destroy(); } catch {}
+        resolve(result);
+      };
+      const watchdog = setTimeout(() => finish({ ok: false, error: 'Printing timed out' }), 30000);
+      try {
+        printWin = new BrowserWindow({
+          show: false,
+          webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true }
+        });
+        printWin.webContents.once('did-fail-load', (_e, code, reason) =>
+          finish({ ok: false, error: `Print document failed to load (${code}): ${reason}` }));
+        printWin.webContents.once('did-finish-load', () => {
+          setTimeout(() => {
+            if (completed || !printWin || printWin.isDestroyed()) return;
+            try {
+              printWin.webContents.print({
+                silent: true,
+                printBackground: true,
+                deviceName: typeof deviceName === 'string' ? deviceName : undefined,
+                margins: { marginType: 'none' },
+                pageSize: pageSize === 'receipt'
+                  ? { width: receiptWidthMm === 58 ? 58000 : 80000, height: 297000 }
+                  : (pageSize === 'A4' ? 'A4' : undefined)
+              }, (success, reason) => finish(success ? { ok: true } : { ok: false, error: reason || 'Print failed' }));
+            } catch (error) {
+              finish({ ok: false, error: String(error.message || error) });
             }
-            if (success) resolve({ ok: true });
-            else resolve({ ok: false, error: failureReason });
-          });
-        }, 200);
-      });
+          }, 200);
+        });
+        printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+          .catch((error) => finish({ ok: false, error: String(error.message || error) }));
+      } catch (error) {
+        finish({ ok: false, error: String(error.message || error) });
+      }
     });
   });
 
@@ -1005,10 +1019,12 @@ app.whenReady().then(async () => {
 
       // 2. Windows local printer via kick-drawer.ps1
       const psScript = path.join(__dirname, 'kick-drawer.ps1');
-      const safePrinter = (deviceName || '').replace(/["'`$]/g, '');
-      const cmd = `powershell -NoProfile -ExecutionPolicy Bypass -File "${psScript}" ${safePrinter ? `-PrinterName "${safePrinter}"` : ''}`;
+      const printerName = typeof deviceName === 'string' ? deviceName.trim() : '';
+      if (printerName.length > 256) return resolve({ ok: false, error: 'Invalid printer name' });
+      const args = ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', psScript];
+      if (printerName) args.push('-PrinterName', printerName);
 
-      exec(cmd, { timeout: 4000 }, (error, stdout, stderr) => {
+      execFile('powershell.exe', args, { timeout: 4000, windowsHide: true }, (error, stdout, stderr) => {
         if (error) {
           console.error('Drawer kick script failed:', error, stderr);
           resolve({ ok: false, error: stderr || error.message });
