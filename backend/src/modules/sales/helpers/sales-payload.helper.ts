@@ -121,7 +121,7 @@ export function normalizeSalePayload(payload: UpsertSaleDto): NormalizedSalePayl
         offerDiscount: item.offerDiscount != null && Number(item.offerDiscount) > 0 ? Number(item.offerDiscount) : undefined,
         offerName: item.offerName ? String(item.offerName).trim() : undefined,
         unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
-        unitMultiplier: Number(item.unitMultiplier || 1) || 1,
+        unitMultiplier: Number(item.unitMultiplier ?? 1),
         priceType: (item.priceType === 'wholesale' ? 'wholesale' : 'retail') as 'retail' | 'wholesale',
         notes: String(item.notes || '').trim(),
         modifiers: item.modifiers || [],
