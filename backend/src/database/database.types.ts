@@ -410,6 +410,7 @@ export interface ProductTable {
   is_active: boolean;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  catalog_updated_at: ColumnType<Date, Date | string | undefined, Date | string | undefined>;
   tax_code_type: string | null;
   tax_code: string | null;
   metadata: any | null;
