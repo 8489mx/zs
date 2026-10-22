@@ -21,6 +21,7 @@ export interface Shipment {
   supplier_name?: string;
   bill_of_lading?: string;
   pricing_exchange_rate?: string;
+  cost_allocation_method?: 'value' | 'weight' | 'cbm';
 }
 
 export interface ShipmentItem {
@@ -71,12 +72,15 @@ export interface UpdateShipmentCostsDto {
   etaDate?: string;
   clearanceDate?: string;
   pricingExchangeRate?: number;
+  costAllocationMethod?: 'value' | 'weight' | 'cbm';
 }
 
 export interface AddShipmentItemDto {
   productId: string;
   quantity: number;
   factoryUnitPriceUsd: number;
+  unitWeightKg?: number;
+  unitCbm?: number;
 }
 
 export interface RecordForeignTransferDto {
