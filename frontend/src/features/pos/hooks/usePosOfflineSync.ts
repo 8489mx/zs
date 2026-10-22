@@ -71,6 +71,10 @@ export function usePosOfflineSync() {
       
       for (const sale of pendingSales) {
         try {
+          // A renderer tenant switch mid-sync must never replay the old tenant's sale.
+          if (!getOfflineSalesQueue().some(row => row.id === sale.id && row.tenantId === sale.tenantId && row.accountId === sale.accountId)) {
+            throw new Error('تم تغيير المنشأة أثناء المزامنة؛ أوقف هذه العملية ثم راجع طابور المنشأة السابقة');
+          }
           if (sale.status === 'committed') {
             removeOfflineSale(sale.id);
             continue;
@@ -92,6 +96,9 @@ export function usePosOfflineSync() {
               updateOfflineSaleStatus(sale.id, 'failed', 'فاتورة تعطل ترحيلها: تعذر التحقق من حالة الخادم؛ راجع الفاتورة قبل إعادة الإرسال');
               continue;
             }
+          }
+          if (!getOfflineSalesQueue().some(row => row.id === sale.id && row.tenantId === sale.tenantId && row.accountId === sale.accountId)) {
+            throw new Error('تغيّر حساب المنشأة قبل إرسال الفاتورة');
           }
           updateOfflineSaleStatus(sale.id, 'syncing');
           const input = sale.payload;
