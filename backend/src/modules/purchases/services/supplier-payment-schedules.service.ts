@@ -238,14 +238,22 @@ export class SupplierPaymentSchedulesService {
 
   async createForPurchase(purchaseId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
-      if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+      // Supplier -> purchase -> schedule: one lock order shared with installment settlement.
+      const purchaseLookup = await trx.selectFrom('purchases').select(['supplier_id'])
+        .where('id', '=', purchaseId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      if (!purchaseLookup) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
+      if (!purchaseLookup.supplier_id) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
+      const supplier = await trx.selectFrom('suppliers').select(['id', 'balance'])
+        .where('id', '=', Number(purchaseLookup.supplier_id)).where(this.tenantPredicate(auth))
+        .forUpdate().executeTakeFirst();
+      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      const purchase = await trx.selectFrom('purchases').selectAll()
+        .where('id', '=', purchaseId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
+      if (!purchase || Number(purchase.supplier_id) !== Number(supplier.id)) {
+        throw new AppError('Purchase supplier changed while scheduling', 'PURCHASE_SUPPLIER_CHANGED', 409);
+      }
       if (purchase.status !== 'posted') throw new AppError('Only posted purchases can be scheduled', 'PURCHASE_NOT_POSTED', 400);
       this.ensureCredit(purchase.payment_type);
-      if (!purchase.supplier_id) throw new AppError('Supplier is required', 'SUPPLIER_REQUIRED', 400);
-      const supplier = await trx.selectFrom('suppliers').select(['balance'])
-        .where('id', '=', Number(purchase.supplier_id)).where(this.tenantPredicate(auth))
-        .forUpdate().executeTakeFirstOrThrow();
       const db = this.scheduleDb(trx);
       const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('purchase_id', '=', purchaseId).where('paid_amount', '>', 0).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (paidRow) throw new AppError('Cannot reschedule after payments were recorded', 'PURCHASE_SCHEDULE_HAS_PAYMENTS', 400);
@@ -329,15 +337,23 @@ export class SupplierPaymentSchedulesService {
     try {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const db = this.scheduleDb(trx);
-      const pendingInstallment = await db.selectFrom('supplier_payment_schedules').select('supplier_id').where('id', '=', installmentId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const pendingInstallment = await db.selectFrom('supplier_payment_schedules').select(['supplier_id', 'purchase_id']).where('id', '=', installmentId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!pendingInstallment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
       // Lock the payable first so scheduled and direct payments share one balance order.
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance'])
         .where('id', '=', Number(pendingInstallment.supplier_id)).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      // Invoice row lock serializes against payment voucher allocations updating paid_amount.
+      // Lock before the installment to avoid schedule/settlement lock-order inversions.
+      const lockedPurchase = pendingInstallment.purchase_id
+        ? await trx.selectFrom('purchases').selectAll()
+            .where('id', '=', Number(pendingInstallment.purchase_id))
+            .where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst()
+        : null;
       const installment = await db.selectFrom('supplier_payment_schedules').selectAll()
         .where('id', '=', installmentId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
-      if (!installment || Number(installment.supplier_id) !== Number(supplier.id)) {
+      if (!installment || Number(installment.supplier_id) !== Number(supplier.id)
+        || Number(installment.purchase_id || 0) !== Number(pendingInstallment.purchase_id || 0)) {
         throw new AppError('Installment changed during payment', 'INSTALLMENT_CHANGED', 409);
       }
       if (installment.status === 'cancelled' || installment.status === 'paid') {
@@ -346,9 +362,7 @@ export class SupplierPaymentSchedulesService {
       await this.financeService.assertNoBlockingThreeWayMatch(trx, Number(supplier.id), tenantScope.tenantId);
       let invoiceRemainingForInstallment: number | null = null;
       if (installment.purchase_id) {
-        const purchase = await trx.selectFrom('purchases').selectAll()
-          .where('id', '=', Number(installment.purchase_id))
-          .where(this.tenantPredicate(auth)).executeTakeFirst();
+        const purchase = lockedPurchase;
         if (!purchase || purchase.status !== 'posted' || Number(purchase.supplier_id) !== Number(supplier.id)) {
           throw new AppError('الفاتورة المرتبطة بالقسط غير مرحلة أو لا تتبع المورد', 'PURCHASE_SCHEDULE_INVOICE_INVALID', 409);
         }
