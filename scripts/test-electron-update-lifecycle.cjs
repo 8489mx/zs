@@ -21,9 +21,9 @@ assert.match(electron, /app\.on\('before-quit', cleanShutdown\)/,
 assert.match(electron, /ELECTRON_MAIN_PID: String\(process\.pid\)/,
   'Backend must get the Electron PID for exact process exit coordination');
 
-assert.doesNotMatch(service, /const psCommand = 'cmd\\.exe'/,
+assert.doesNotMatch(service, /const psCommand = 'cmd\.exe'/,
   'Offline updater must not use cmd.exe /c start quoting and asynchronous shell handoff');
-assert.match(service, /const psCommand = 'powershell\\.exe'/,
+assert.match(service, /const psCommand = 'powershell\.exe'/,
   'Offline updater should start powershell.exe detached and check process creation');
 
 const pidCount = (service.match(/electronMainPid: Number\(process\.env\.ELECTRON_MAIN_PID/g) || []).length;
