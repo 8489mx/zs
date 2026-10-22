@@ -17,6 +17,20 @@ try {
   $dbPass = Get-EnvValue -EnvMap $envMap -Key 'DB_PASSWORD' -Default 'postgres'
   $dbName = Get-EnvValue -EnvMap $envMap -Key 'DB_NAME' -Default 'zs_offline'
 
+  # Electron's bundled PostgreSQL rotates the legacy default password on first boot.
+  # Read its locally provisioned credentials instead of assuming the public 'postgres' value.
+  $electronAuthPath = Join-Path $paths.RuntimeDir '.postgres-auth.json'
+  if (Test-Path $electronAuthPath) {
+    $electronAuth = Get-Content $electronAuthPath -Raw | ConvertFrom-Json
+    if ([string]::IsNullOrWhiteSpace([string]$electronAuth.password)) {
+      throw 'Electron PostgreSQL credential file is invalid'
+    }
+    $dbPort = '5444'
+    $dbUser = 'postgres'
+    $dbName = 'zs_offline'
+    $dbPass = [string]$electronAuth.password
+  }
+
   $pgDump = Join-Path $paths.PostgresBinDir 'pg_dump.exe'
   if (-not (Test-Path $pgDump)) {
     throw "PostgreSQL runtime binary missing: $pgDump"
