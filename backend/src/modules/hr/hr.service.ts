@@ -5057,7 +5057,8 @@ export class HrService {
         ORDER BY id DESC
       `.execute(trx);
       for (const run of activeRuns.rows) {
-        await this.rebuildPayrollRunItems(trx, Number(run.id), run.status as 'draft' | 'reviewed', tenantId);
+        const runId = Number(run.id);
+        await this.rebuildPayrollRunItems(trx, runId, run.status as 'draft' | 'reviewed', auth.tenantId || '');
       }
     });
 
