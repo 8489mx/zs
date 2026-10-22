@@ -499,6 +499,18 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE import_partner_project_payouts (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      partner_id UUID NOT NULL REFERENCES import_partners(id),
+      project_id UUID NOT NULL REFERENCES import_projects(id),
+      treasury_transaction_id BIGINT NOT NULL REFERENCES treasury_transactions(id),
+      amount_egp NUMERIC(15,2) NOT NULL CHECK (amount_egp > 0),
+      created_by BIGINT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(tenant_id, treasury_transaction_id)
+    );
+
     CREATE TABLE import_sourcing_trips (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
