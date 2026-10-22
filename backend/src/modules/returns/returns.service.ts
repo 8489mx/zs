@@ -1037,7 +1037,7 @@ export class ReturnsService {
     if (payableCents > 0 && purchase.supplier_id) {
       await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -(payableCents / 100), 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
     }
-    if (refundCents > 0) await this.addTreasuryTransaction(trx, 'purchase_return_refund', refundCents / 100, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
+    if (refundCents > 0) await this.addTreasuryTransaction(trx, 'purchase_return_refund', refundCents / 100, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id, refundMethod === 'cash');
 
     try {
       const posting = await this.accountingPosting.postPurchaseReturn(trx, returnDocumentId, auth);

@@ -201,7 +201,7 @@ export class CashDrawerService {
       where tt.tenant_id = ${scope.tenantId}
         and tt.reference_type = 'cashier_shift'
         and tt.reference_id = ${shiftId}
-        and tt.return_document_id is null
+        and (tt.return_document_id is null or tt.txn_type = 'purchase_return_refund')
         and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
     `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
@@ -455,7 +455,7 @@ export class CashDrawerService {
       where tt.tenant_id = ${scope.tenantId}
         and tt.reference_type = 'cashier_shift'
         and tt.reference_id = ${shiftId}
-        and tt.return_document_id is null
+        and (tt.return_document_id is null or tt.txn_type = 'purchase_return_refund')
         and coalesce(tt.txn_type, '') not in ('supplier_payment_schedule', 'supplier_payment')
       order by tt.id asc
     `.execute(this.db);
@@ -463,11 +463,13 @@ export class CashDrawerService {
     for (const tt of ttRows.rows || []) {
       const amt = Number(tt.amount || 0);
       const rawNote = String(tt.note || '').trim();
-      const isDelivery = rawNote.includes('دليفري') || rawNote.includes('مندوب');
+      const isPurchaseRefund = tt.txn_type === 'purchase_return_refund';
+      const isDelivery = !isPurchaseRefund && (rawNote.includes('دليفري') || rawNote.includes('مندوب'));
       const kind = isDelivery ? 'delivery' : (amt > 0 ? 'cash_in' : 'cash_out');
-      const kindLabel = isDelivery
-        ? (amt > 0 ? 'تحصيل وتسوية دليفري' : 'صرف أجرة طيار دليفري')
-        : (amt > 0 ? 'إيداع نقدي بالدرج (يدوياً)' : 'مسحوبات نقدية من الدرج');
+      const kindLabel = isPurchaseRefund ? 'استرداد نقدي من مورد بعد مرتجع شراء'
+        : isDelivery
+          ? (amt > 0 ? 'تحصيل وتسوية دليفري' : 'صرف أجرة طيار دليفري')
+          : (amt > 0 ? 'إيداع نقدي بالدرج (يدوياً)' : 'مسحوبات نقدية من الدرج');
 
       items.push({
         id: `tt-${tt.id}`,
