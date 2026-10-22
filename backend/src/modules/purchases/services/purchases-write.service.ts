@@ -1202,13 +1202,28 @@ export class PurchasesWriteService {
     }
   }
 
-  async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const amount = Number(payload.amount);
     if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
       throw new AppError('Customer payment must be positive and have at most two decimal places', 'INVALID_PAYMENT_AMOUNT', 400);
     }
-
+    const operationType = 'customer_payment_create';
+    if (idempotencyKey) {
+      const existing = await this.idempotency.reserveOperation({
+        tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+        requestHash: this.idempotency.generateRequestHash(payload),
+      });
+      if (existing?.status === 'committed') {
+        const recorded = existing.responsePayload as Record<string, unknown> | undefined;
+        if (recorded?.id) return { ok: true, ...recorded };
+        throw new AppError('Customer payment result requires reconciliation', 'PAYMENT_RECOVERY_REQUIRED', 422);
+      }
+      if (existing?.status === 'processing') throw new AppError('Payment is currently processing', 'PAYMENT_PROCESSING', 409);
+      if (existing?.status === 'failed') throw new AppError(existing.errorCode || 'Payment previously failed', 'PAYMENT_IDEMPOTENCY_FAILED', 400);
+      if (existing?.status === 'recovery_required') throw new AppError('Payment requires manual recovery', 'PAYMENT_RECOVERY_REQUIRED', 422);
+    }
+    try {
     const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
       const customer = await trx
         .selectFrom('customers')
@@ -1331,7 +1346,7 @@ export class PurchasesWriteService {
           .execute();
       }
 
-      return {
+      const receipt = {
         id: paymentId,
         docNo,
         customerId: customer.id,
@@ -1344,10 +1359,33 @@ export class PurchasesWriteService {
         jobNumber: allocatedJobNumber,
         createdAt: new Date().toISOString(),
       };
+      // Commit the operation and the financial voucher in the SAME DB transaction.
+      if (idempotencyKey) {
+        await this.idempotency.commitOperation(trx, {
+          tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+        }, receipt, String(paymentId));
+      }
+      return receipt;
     });
 
     await this.audit.log('سند قبض / تحصيل عميل', `تم تسجيل سند قبض ${paymentResult.docNo} للعميل ${paymentResult.customerName} بمبلغ ${paymentResult.amount} بواسطة ${auth.username}`, auth);
     return { ok: true, ...paymentResult };
+    } catch (error) {
+      if (idempotencyKey) {
+        if (error instanceof AppError && error.statusCode < 500) {
+          await this.idempotency.recordFailure({
+            tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+          }, error.code).catch(() => undefined);
+        } else {
+          await this.db.updateTable('operation_executions')
+            .set({ status: 'recovery_required', updated_at: sql`CURRENT_TIMESTAMP` })
+            .where('tenant_id', '=', scope.tenantId).where('account_id', '=', scope.accountId)
+            .where('idempotency_key', '=', idempotencyKey).where('operation_type', '=', operationType)
+            .where('status', '=', 'processing').where('document_id', 'is', null).execute().catch(() => undefined);
+        }
+      }
+      throw error;
+    }
   }
 
   private async generatePurchaseDocNo(trx: Kysely<Database>, purchaseId: number, tenantId: string): Promise<string> {
