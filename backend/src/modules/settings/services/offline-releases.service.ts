@@ -673,6 +673,7 @@ export class OfflineReleasesService implements OnModuleInit {
       backendEntry:    process.argv[1] ?? 'dist/main.js',
       backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
+      electronMainPid: Number(process.env.ELECTRON_MAIN_PID || '0'),
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -766,6 +767,7 @@ export class OfflineReleasesService implements OnModuleInit {
       backendEntry:    process.argv[1] ?? 'dist/main.js',
       backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
+      electronMainPid: Number(process.env.ELECTRON_MAIN_PID || '0'),
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -941,6 +943,7 @@ export class OfflineReleasesService implements OnModuleInit {
       backendEntry:    process.argv[1] ?? 'dist/main.js',
       backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
+      electronMainPid: Number(process.env.ELECTRON_MAIN_PID || '0'),
       expectedSha256: process.env.ZS_TRUSTED_OFFLINE_UPDATE_SHA256 || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
