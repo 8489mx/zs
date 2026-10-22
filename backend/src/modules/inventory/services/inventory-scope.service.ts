@@ -65,6 +65,13 @@ export class InventoryScopeService {
       throw new AppError('Location not found', 'LOCATION_NOT_FOUND', 404);
     }
 
+    // In-transit is a system-owned clearing location. Letting a cashier adjust
+    // it directly strands transfer document serial/batch snapshots and hides
+    // shrinkage; only the transfer transaction may move these balances.
+    if (action === 'write' && location.location_type === 'in_transit') {
+      throw new AppError('مخزن البضاعة بالطريق مخصص لتسوية التحويلات آلياً فقط', 'IN_TRANSIT_LOCATION_RESTRICTED', 409);
+    }
+
     if (location.location_type === 'branch_stock') {
       const isSuper = ['owner', 'admin', 'super_admin'].includes(auth.role);
       const hasPerm = auth.permissions?.includes('canManageBranchStock');
