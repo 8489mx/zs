@@ -3879,7 +3879,22 @@ export class ImportSalesService {
   }
 
   async disburseBrokerAdvance(tenantId: string, userId: number, dto: DisburseBrokerAdvanceDto) {
+    if (!Number.isFinite(Number(dto.amountEgp)) || Number(dto.amountEgp) <= 0) {
+      throw new BadRequestException('مبلغ عهدة المخلص يجب أن يكون رقمًا موجبًا.');
+    }
     return await this.db.transaction().execute(async (trx) => {
+      if (dto.projectId) {
+        const project = await trx.selectFrom('import_projects').select('id')
+          .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+        if (!project) throw new BadRequestException('مشروع عهدة المخلص غير تابع للمنشأة.');
+      }
+      if (dto.shipmentId) {
+        const shipment = await trx.selectFrom('import_shipments').select('project_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', dto.shipmentId).executeTakeFirst();
+        if (!shipment || (dto.projectId && shipment.project_id && shipment.project_id !== dto.projectId)) {
+          throw new BadRequestException('شحنة عهدة المخلص لا تطابق مشروع الاستيراد.');
+        }
+      }
       const broker = await trx
         .selectFrom('import_customs_brokers')
         .selectAll()
@@ -3908,7 +3923,7 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (this.accountingPosting) {
+      {
         const assetAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
         const bankAccId = await this.resolveTenantAccount(
           trx,
@@ -3917,7 +3932,17 @@ export class ImportSalesService {
           dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
         );
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const bankScope = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', bankAccId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: bankScope.account_id,
+          txn_type: 'import_broker_advance', amount: -Number(dto.amountEgp),
+          note: `عهدة مخلص جمركي ${broker.name} - #${dto.advanceNo}`,
+          reference_type: 'import_broker_advance', reference_id: Number(advance.serial_id),
+          created_by: userId,
+        }).execute();
+        const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await posting.postDomainJournal(trx, {
           sourceType: 'import_broker_advance',
           sourceId: Number(advance.serial_id),
           tenantId,
@@ -3958,7 +3983,31 @@ export class ImportSalesService {
   }
 
   async liquidateBrokerExpenses(tenantId: string, userId: number, dto: LiquidateBrokerExpenseDto) {
+    if (!dto.advanceId) throw new BadRequestException('تسوية مصروف مخلص تتطلب عهدة أصلية موثقة.');
+    if (!Number.isFinite(Number(dto.amountEgp)) || Number(dto.amountEgp) <= 0) {
+      throw new BadRequestException('قيمة إيصال المخلص يجب أن تكون مبلغاً موجباً.');
+    }
     return await this.db.transaction().execute(async (trx) => {
+      // Serialize receipts for a single broker and reject duplicate evidence.
+      const broker = await trx.selectFrom('import_customs_brokers').select('id')
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.brokerId)
+        .forUpdate().executeTakeFirst();
+      if (!broker) throw new BadRequestException('المخلص الجمركي غير تابع للمنشأة.');
+      const repeatedReceipt = await trx.selectFrom('import_broker_expenses').select('id')
+        .where('tenant_id', '=', tenantId).where('broker_id', '=', dto.brokerId)
+        .where('receipt_no', '=', dto.receiptNo).executeTakeFirst();
+      if (repeatedReceipt) throw new ConflictException('تم تسجيل رقم إيصال المخلص مسبقًا.');
+      const advanceForValidation = await trx.selectFrom('import_broker_advances').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.advanceId)
+        .forUpdate().executeTakeFirstOrThrow();
+      if (advanceForValidation.broker_id !== dto.brokerId ||
+          (advanceForValidation.project_id && dto.projectId && advanceForValidation.project_id !== dto.projectId) ||
+          (advanceForValidation.shipment_id && dto.shipmentId && advanceForValidation.shipment_id !== dto.shipmentId)) {
+        throw new BadRequestException('العهدة لا تتبع نفس المخلص أو مشروع / شحنة الإيصال.');
+      }
+      if (Number(dto.amountEgp) > Number(advanceForValidation.remaining_amount_egp || 0) + 0.001) {
+        throw new BadRequestException('قيمة تسوية المخلص تتجاوز الرصيد المتبقي من العهدة.');
+      }
       const expense = await trx
         .insertInto('import_broker_expenses')
         .values({
@@ -4008,14 +4057,15 @@ export class ImportSalesService {
           .execute();
       }
 
-      if (this.accountingPosting) {
+      {
         const creditAccId = await this.resolveTenantAccount(trx, tenantId, 'broker_advance');
         let debitRole: 'vat_receivable' | 'inventory' | 'cogs' = 'cogs';
         if (dto.isRefundableVat) debitRole = 'vat_receivable';
         else if (dto.isCapitalized) debitRole = 'inventory';
         const debitAccId = await this.resolveTenantAccount(trx, tenantId, debitRole);
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await posting.postDomainJournal(trx, {
           sourceType: 'import_broker_expense',
           sourceId: Number(expense.serial_id),
           tenantId,
@@ -4097,7 +4147,15 @@ export class ImportSalesService {
   // CONTAINER SECURITY DEPOSITS & RETURN
   // -------------------------------------------------------------
   async recordContainerDeposit(tenantId: string, userId: number, dto: RecordContainerDepositDto) {
+    if (!Number.isFinite(Number(dto.depositAmountEgp)) || Number(dto.depositAmountEgp) <= 0) {
+      throw new BadRequestException('تأمين الحاوية يجب أن يكون مبلغاً موجباً.');
+    }
     return await this.db.transaction().execute(async (trx) => {
+      const shipment = await trx.selectFrom('import_shipments').select('project_id')
+        .where('tenant_id', '=', tenantId).where('id', '=', dto.shipmentId).executeTakeFirst();
+      if (!shipment || (dto.projectId && shipment.project_id && shipment.project_id !== dto.projectId)) {
+        throw new BadRequestException('حاوية التأمين لا تتبع مشروع الاستيراد المحدد في المنشأة.');
+      }
       const deposit = await trx
         .insertInto('import_container_deposits')
         .values({
@@ -4118,7 +4176,7 @@ export class ImportSalesService {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (this.accountingPosting) {
+      {
         const depositAssetAccId = await this.resolveTenantAccount(trx, tenantId, 'container_deposit');
         const bankAccId = await this.resolveTenantAccount(
           trx,
@@ -4127,7 +4185,17 @@ export class ImportSalesService {
           dto.treasuryAccountId ? Number(dto.treasuryAccountId) : null
         );
 
-        await this.accountingPosting.postDomainJournal(trx, {
+        const bankScope = await trx.selectFrom('accounting_accounts').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', bankAccId).executeTakeFirstOrThrow();
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: tenantId, account_id: bankScope.account_id,
+          txn_type: 'import_container_deposit', amount: -Number(dto.depositAmountEgp),
+          note: `تأمين حاوية ${dto.containerNo} للخط الملاحي ${dto.shippingLine}`,
+          reference_type: 'import_container_deposit', reference_id: Number(deposit.serial_id),
+          created_by: userId,
+        }).execute();
+        const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await posting.postDomainJournal(trx, {
           sourceType: 'import_container_deposit',
           sourceId: Number(deposit.serial_id),
           tenantId,
