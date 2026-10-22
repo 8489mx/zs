@@ -91,7 +91,7 @@ export function PosOfflineQueueModal({
                   `يوجد ${failed} فاتورة فشل ترحيلها. ستتم مراجعة حالة العمليات أولاً على الخادم قبل أي محاولة جديدة. هل تريد المتابعة؟`
                 )) return;
                 void onRetrySync();
-              }
+              }}
               style={{
                 background: '#170e5e',
                 color: '#ffffff',
