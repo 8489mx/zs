@@ -33,6 +33,7 @@ describe('POS stock handling', () => {
     const cart = addPosItem([], halfUnitProduct, { priceType: 'retail', quantity: 4 });
     expect(cart[0].qty).toBe(4);
     expect(cart[0].stockLimit).toBe(4);
+    expect(cart[0].unitMultiplier).toBe(0.5);
     expect(() => addPosItem(cart, halfUnitProduct, { priceType: 'retail', quantity: 1 })).toThrow();
   });
 

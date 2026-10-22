@@ -8,7 +8,8 @@ export function resolveSaleUnit(product: Product, unitId?: string) {
 }
 
 export function resolveAvailableQty(product: Product, unitMultiplier: number, isWeighted = false) {
-  const raw = Number(product.stock || 0) / Math.max(unitMultiplier || 1, 1);
+  const validMultiplier = Number.isFinite(unitMultiplier) && unitMultiplier > 0 ? unitMultiplier : 1;
+  const raw = Number(product.stock || 0) / validMultiplier;
   return isWeighted ? Number(raw.toFixed(3)) : Math.floor(raw);
 }
 
