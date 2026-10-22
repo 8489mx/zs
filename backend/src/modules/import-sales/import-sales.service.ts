@@ -4014,8 +4014,8 @@ export class ImportSalesService {
           tenant_id: tenantId,
           broker_id: dto.brokerId,
           advance_id: dto.advanceId ?? null,
-          project_id: dto.projectId ?? null,
-          shipment_id: dto.shipmentId ?? null,
+          project_id: dto.projectId ?? advanceForValidation.project_id ?? null,
+          shipment_id: dto.shipmentId ?? advanceForValidation.shipment_id ?? null,
           receipt_no: dto.receiptNo,
           expense_date: dto.expenseDate || new Date().toISOString().slice(0, 10),
           category: dto.category,
@@ -4153,6 +4153,11 @@ export class ImportSalesService {
     return await this.db.transaction().execute(async (trx) => {
       const shipment = await trx.selectFrom('import_shipments').select('project_id')
         .where('tenant_id', '=', tenantId).where('id', '=', dto.shipmentId).executeTakeFirst();
+      if (dto.projectId) {
+        const project = await trx.selectFrom('import_projects').select('id')
+          .where('tenant_id', '=', tenantId).where('id', '=', dto.projectId).executeTakeFirst();
+        if (!project) throw new BadRequestException('مشروع تأمين الحاوية غير تابع للمنشأة.');
+      }
       if (!shipment || (dto.projectId && shipment.project_id && shipment.project_id !== dto.projectId)) {
         throw new BadRequestException('حاوية التأمين لا تتبع مشروع الاستيراد المحدد في المنشأة.');
       }
