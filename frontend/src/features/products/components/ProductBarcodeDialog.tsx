@@ -119,8 +119,19 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
       footerActions={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <div>
-            {currentBarcode && onOpenPrint ? (
-              <Button type="button" variant="secondary" onClick={() => onOpenPrint(currentProduct, selectedUnit)} style={{ fontSize: '0.8rem' }}>
+            {onOpenPrint ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  const targetBarcode = currentBarcode || effectiveBarcode;
+                  const updatedProduct = targetBarcode && targetBarcode !== currentProduct.barcode
+                    ? { ...currentProduct, barcode: targetBarcode }
+                    : currentProduct;
+                  onOpenPrint(updatedProduct, selectedUnit);
+                }}
+                style={{ fontSize: '0.8rem' }}
+              >
                 <AppIcons.Printer size={14} style={{ marginInlineEnd: '6px' }} />
                 {t('products.product_barcode_dialog.s3', "طباعة الملصقات")}
               </Button>
