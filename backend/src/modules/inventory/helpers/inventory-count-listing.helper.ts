@@ -41,6 +41,8 @@ export type StockCountItemRow = {
   expected_qty?: unknown;
   counted_qty?: unknown;
   variance_qty?: unknown;
+  counted_serials?: unknown;
+  batch_counts?: unknown;
   reason?: unknown;
   note?: unknown;
 };
