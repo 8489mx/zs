@@ -640,6 +640,8 @@ export interface StockMovementTable {
   location_id: number | null;
   unit_cost: number | null;
   total_cost: number | null;
+  serial_tracking?: ColumnType<any, any, any>;
+  batch_tracking?: ColumnType<any, any, any>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -1573,6 +1575,7 @@ export interface PurchaseItemTable {
   category_id: number | null;
   location_id: number | null;
   serials?: any;
+  batch_number?: string | null;
 }
 
 export interface GoodsReceiptNoteTable {
