@@ -397,9 +397,9 @@ export class SupplierPaymentSchedulesService {
       const treasuryReferenceType = openShift?.id ? 'cashier_shift' : 'supplier_payment_schedule';
       const treasuryReferenceId = openShift?.id ? Number(openShift.id) : installmentId;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).where(this.tenantPredicate(auth)).execute();
-      const insertedLog = await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '', ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
+      const insertedLog = await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, payment_channel: payload.paymentChannel || 'cash', note, created_by: auth.userId, created_by_name: auth.username || '', ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `دفعة مورد مجدولة - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId, payload.paymentChannel || 'cash');
       const posting = await this.accountingPosting.postSupplierPaymentScheduleSettlement(trx, Number(insertedLog.id), auth);
       if (!posting.journalEntryId) throw new AppError(`Supplier schedule settlement ${insertedLog.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
       if (idempotencyKey) {
