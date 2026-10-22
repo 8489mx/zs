@@ -88,3 +88,24 @@ describe('ScalePluExportModal', () => {
     expect(mockDownloadExcelFile).toHaveBeenCalled();
   });
 });
+
+describe('Scale export data integrity', () => {
+  it('disables export for duplicate normalized scale codes', () => {
+    mockTriggerDownload.mockClear();
+    renderModal({ products: [
+      { ...testProducts[0], id: '10', name: 'جبنة أولى', barcode: '00101' } as Product,
+      { ...testProducts[0], id: '11', name: 'جبنة ثانية', barcode: '101' } as Product,
+    ] });
+    expect(screen.getByText(/كود ميزان مكرر/)).toBeDefined();
+    fireEvent.click(screen.getByText(/تحميل ملف CSV للميزان/));
+    expect(mockTriggerDownload).not.toHaveBeenCalled();
+  });
+
+  it('disables export instead of truncating a retail EAN barcode', () => {
+    mockTriggerDownload.mockClear();
+    renderModal({ products: [{ ...testProducts[0], barcode: '6221234567890' } as Product] });
+    expect(screen.getByText(/ليس له كود ميزان رقمي صالح/)).toBeDefined();
+    fireEvent.click(screen.getByText(/تحميل ملف CSV للميزان/));
+    expect(mockTriggerDownload).not.toHaveBeenCalled();
+  });
+});

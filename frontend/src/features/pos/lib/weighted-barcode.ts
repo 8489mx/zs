@@ -36,15 +36,15 @@ function cleanDigits(value: unknown, fallback = '') {
 }
 
 function uniqueCodeCandidates(value: string) {
-  const normalized = cleanDigits(value);
-  if (!normalized) return [];
+  const normalized = String(value ?? '').trim();
+  if (!/^\d+$/.test(normalized)) return [];
   const stripped = normalized.replace(/^0+/, '') || '0';
   return Array.from(new Set([normalized, stripped]));
 }
 
 function valueMatchesCode(value: unknown, candidates: string[]) {
-  const normalized = cleanDigits(value);
-  if (!normalized) return false;
+  const normalized = String(value ?? '').trim();
+  if (!/^\d+$/.test(normalized)) return false;
   const stripped = normalized.replace(/^0+/, '') || '0';
   return candidates.includes(normalized) || candidates.includes(stripped);
 }
@@ -124,8 +124,10 @@ export function matchProductByWeightedCode(products: Product[], rawProductCode: 
 
   const preferredUnits = matches.filter((entry) => entry.kind === 'unit');
   const pool = preferredUnits.length ? preferredUnits : matches;
-  const uniqueProductIds = Array.from(new Set(pool.map((entry) => String(entry.product.id))));
-  if (uniqueProductIds.length > 1 || pool.length > 1) {
+  // Never prefer a unit match on one product over a product/barcode match
+  // on a different product. That would silently sell the wrong stock item.
+  const uniqueProductIds = Array.from(new Set(matches.map((entry) => String(entry.product.id))));
+  if (uniqueProductIds.length > 1 || preferredUnits.length > 1) {
     return { status: 'ambiguous', productCode, matches: pool };
   }
 
@@ -137,4 +139,27 @@ export function formatWeightedBarcodeQuantity(quantity: number) {
     minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   });
+}
+
+/** Use only codes the POS will actually match; do not truncate a GTIN or use a DB id. */
+export function getScaleExportItemCode(product: Product, config: WeightedBarcodeConfig, pad = true): string | null {
+  for (const candidate of [product.barcode, product.styleCode]) {
+    const code = String(candidate ?? '').trim();
+    if (/^\d+$/.test(code) && code.length <= config.productCodeLength) {
+      return pad ? code.padStart(config.productCodeLength, '0') : code;
+    }
+  }
+  return null;
+}
+
+/** Generate a scannable EAN-13 sample: 1 kg in weight mode, 12.50 in price mode. */
+export function buildSampleScaleBarcode(code: string, config: WeightedBarcodeConfig): string | null {
+  if (!/^\d+$/.test(code) || code.length !== config.productCodeLength) return null;
+  const amount = config.valueMode === 'price' ? 1250 : 10 ** config.weightDecimals;
+  const value = String(amount);
+  if (value.length > config.weightDigits) return null;
+  const payload = config.prefix + code + value.padStart(config.weightDigits, '0');
+  if (payload.length !== 12) return null;
+  const sum = [...payload].reduce((n, d, i) => n + Number(d) * (i % 2 === 0 ? 1 : 3), 0);
+  return payload + String((10 - sum % 10) % 10);
 }

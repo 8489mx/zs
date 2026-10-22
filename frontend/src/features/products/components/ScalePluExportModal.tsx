@@ -10,7 +10,7 @@ import { downloadExcelFile, triggerDownload } from '@/lib/browser';
 import { formatCurrency } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { productsApi } from '@/features/products/api/products.api';
-import { getWeightedBarcodeConfig } from '@/features/pos/lib/weighted-barcode';
+import { getWeightedBarcodeConfig, getScaleExportItemCode, buildSampleScaleBarcode } from '@/features/pos/lib/weighted-barcode';
 import { AppIcons } from '@/shared/components/icons/AppIcons';
 import type { Product } from '@/types/domain';
 
@@ -55,11 +55,6 @@ function isWeightedProduct(product: Product): boolean {
     return true;
   }
   return false;
-}
-
-function cleanDigits(value: unknown, fallback = ''): string {
-  const text = String(value ?? '').replace(/\D/g, '');
-  return text || fallback;
 }
 
 function downloadCsv(filename: string, headers: string[], rows: Array<Array<string | number>>) {
@@ -130,15 +125,10 @@ export function ScalePluExportModal({
   const pluRows = useMemo(() => {
     return targetProducts.map((prod, index) => {
       const plu = pluStart + index;
-      const rawBarcode = cleanDigits(prod.barcode, String(prod.id));
-      let itemCode = rawBarcode;
-      if (padItemCode && scaleConfig.productCodeLength > 0) {
-        itemCode = rawBarcode.slice(-scaleConfig.productCodeLength).padStart(scaleConfig.productCodeLength, '0');
-      }
-
-      const price = Number((prod as any).retailPrice || (prod as any).price || (prod as any).retail_price || 0);
+      const itemCode = getScaleExportItemCode(prod, scaleConfig, padItemCode);
+      const price = Number((prod as any).retailPrice ?? (prod as any).price ?? (prod as any).retail_price ?? 0);
       const catName = categoryNames[String(prod.categoryId)] || (prod as any).categoryName || 'عام';
-      const sampleWeightBarcode = `${scaleConfig.prefix}${itemCode}012500`; // sample 1.250 kg
+      const sampleWeightBarcode = itemCode ? buildSampleScaleBarcode(itemCode, scaleConfig) : null;
 
       return {
         product: prod,
@@ -152,33 +142,57 @@ export function ScalePluExportModal({
     });
   }, [targetProducts, pluStart, padItemCode, scaleConfig, categoryNames]);
 
+  const exportIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (!pluRows.length) return issues;
+    if (scaleConfig.prefix.length + scaleConfig.productCodeLength + scaleConfig.weightDigits !== 12) {
+      issues.push('إعدادات الميزان لا تكوّن باركود EAN-13 صحيحًا؛ راجع طول البادئة والكود وخانات الوزن.');
+    }
+    const seen = new Map<string, string>();
+    for (const row of pluRows) {
+      if (!row.itemCode || !row.sampleWeightBarcode) {
+        issues.push(`الصنف "${row.name}" ليس له كود ميزان رقمي صالح أو تنسيق EAN-13 صحيح.`);
+        continue;
+      }
+      const normalized = row.itemCode.replace(/^0+/, '') || '0';
+      const first = seen.get(normalized);
+      if (first) issues.push(`كود ميزان مكرر بين "${first}" و"${row.name}" (${row.itemCode}).`);
+      else seen.set(normalized, row.name);
+      if (!Number.isFinite(row.price) || row.price <= 0) issues.push(`سعر غير صالح للصنف "${row.name}".`);
+    }
+    return issues;
+  }, [pluRows, scaleConfig]);
+  const canExport = pluRows.length > 0 && exportIssues.length === 0;
+
   const handleExportCsv = () => {
+    if (!canExport) return;
     const today = new Date().toISOString().slice(0, 10);
 
     if (preset === 'rongta') {
       // Rongta RLS1000 / RLink import format
       const headers = ['LFCode', 'Code', 'Name', 'Price', 'Dept', 'BarType'];
-      const rows = pluRows.map((r) => [r.plu, r.itemCode, r.name, r.price.toFixed(2), departmentId, 0]);
+      const rows = pluRows.map((r) => [r.plu, r.itemCode ?? '', r.name, r.price.toFixed(2), departmentId, 0]);
       downloadCsv(`Rongta_PLU_${today}.csv`, headers, rows);
     } else if (preset === 'cas') {
       // CAS CL5000 / CL-Works format
       const headers = ['PLU_No', 'Item_Code', 'Name', 'Price', 'Dept_No', 'Barcode_Type', 'Unit'];
-      const rows = pluRows.map((r) => [r.plu, r.itemCode, r.name, r.price.toFixed(2), departmentId, 7, 'kg']);
+      const rows = pluRows.map((r) => [r.plu, r.itemCode ?? '', r.name, r.price.toFixed(2), departmentId, 7, 'kg']);
       downloadCsv(`CAS_Scale_PLU_${today}.csv`, headers, rows);
     } else if (preset === 'dibal') {
       // Dibal Scale format
       const headers = ['Code', 'Name', 'Price', 'Section', 'DirectKey', 'Barcode'];
-      const rows = pluRows.map((r) => [r.plu, r.name, r.price.toFixed(2), departmentId, r.plu <= 99 ? r.plu : '', r.itemCode]);
+      const rows = pluRows.map((r) => [r.plu, r.name, r.price.toFixed(2), departmentId, r.plu <= 99 ? r.plu : '', r.itemCode ?? '']);
       downloadCsv(`Dibal_PLU_${today}.csv`, headers, rows);
     } else {
       // General Universal CSV
       const headers = ['PLU', 'كود الصنف بالميزان', 'اسم الصنف', 'السعر للكيلو', 'القسم', 'بادئة الباركود', 'باركود تجريبي للوزن'];
-      const rows = pluRows.map((r) => [r.plu, r.itemCode, r.name, r.price.toFixed(2), r.category, scaleConfig.prefix, r.sampleWeightBarcode]);
+      const rows = pluRows.map((r) => [r.plu, r.itemCode ?? '', r.name, r.price.toFixed(2), r.category, scaleConfig.prefix, r.sampleWeightBarcode ?? '']);
       downloadCsv(`Scale_PLU_${today}.csv`, headers, rows);
     }
   };
 
   const handleExportExcel = async () => {
+    if (!canExport) return;
     const today = new Date().toISOString().slice(0, 10);
     const headers = [
       'رقم PLU',
@@ -187,16 +201,16 @@ export function ScalePluExportModal({
       'سعر الكيلو',
       'القسم',
       'بادئة الميزان بالنظام',
-      'نموذج باركود وزني (1.25 كجم)',
+      'نموذج باركود (1 كجم أو 12.50 بنمط السعر)',
     ];
     const rows = pluRows.map((r) => [
       r.plu,
-      r.itemCode,
+      r.itemCode ?? '',
       r.name,
       r.price,
       r.category,
       scaleConfig.prefix,
-      r.sampleWeightBarcode,
+      r.sampleWeightBarcode ?? '',
     ]);
     await downloadExcelFile(`موازين_الباركود_PLU_${today}.xlsx`, headers, rows);
   };
@@ -210,7 +224,7 @@ export function ScalePluExportModal({
       maxWidth="920px"
       footerActions={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <Button variant="secondary" onClick={handleExportExcel} disabled={pluRows.length === 0} style={{ fontSize: '0.8rem' }}>
+          <Button variant="secondary" onClick={handleExportExcel} disabled={!canExport} style={{ fontSize: '0.8rem' }}>
             <AppIcons.FileSpreadsheet size={15} style={{ marginInlineEnd: '6px' }} />
             {t('products.scale_plu_export_modal.s2', "تصدير ملف Excel (.xlsx)")}
           </Button>
@@ -220,7 +234,7 @@ export function ScalePluExportModal({
             onCancel={onClose}
             submitText={t('products.scale_plu_export_modal.s4', "تحميل ملف CSV للميزان")}
             onSubmit={handleExportCsv}
-            submitDisabled={pluRows.length === 0}
+            submitDisabled={!canExport}
           />
         </div>
       }
@@ -286,6 +300,13 @@ export function ScalePluExportModal({
           </div>
         </div>
 
+        {exportIssues.length > 0 && (
+          <div role="alert" style={{ padding: '10px 14px', color: '#9a3412', border: '1px solid #fed7aa', borderRadius: '8px', background: '#fff7ed', fontSize: '0.8rem' }}>
+            <strong>تم منع التصدير لحماية الكاشير من مطابقة صنف أو وزن خاطئ.</strong>
+            <ul>{exportIssues.slice(0, 5).map((issue, index) => <li key={index}>{issue}</li>)}</ul>
+            {exportIssues.length > 5 && <div>ويوجد {exportIssues.length - 5} ملاحظات أخرى.</div>}
+          </div>
+        )}
         {/* 2. جدول معاينة الأصناف الجاهزة للتصدير */}
         <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -301,11 +322,11 @@ export function ScalePluExportModal({
               ariaLabel={t('products.scale_plu_export_modal.s20', "معاينة أصناف الميزان")}
               columns={[
                 { key: 'plu', header: 'PLU', cell: (r) => <strong>{r.plu}</strong> },
-                { key: 'itemCode', header: t('products.scale_plu_export_modal.s21', "كود الميزان"), cell: (r) => <code style={{ color: '#170e5e', fontWeight: 700 }}>{r.itemCode}</code> },
+                { key: 'itemCode', header: t('products.scale_plu_export_modal.s21', "كود الميزان"), cell: (r) => <code style={{ color: '#170e5e', fontWeight: 700 }}>{r.itemCode || '—'}</code> },
                 { key: 'name', header: t('products.scale_plu_export_modal.s22', "اسم الصنف"), cell: (r) => r.name },
                 { key: 'price', header: t('products.scale_plu_export_modal.s23', "السعر للكيلو"), cell: (r) => formatCurrency(r.price) },
                 { key: 'category', header: t('products.scale_plu_export_modal.s24', "القسم"), cell: (r) => r.category },
-                { key: 'sample', header: t('products.scale_plu_export_modal.s25', "شكل الباركود الناتج من الميزان"), cell: (r) => <span className="nav-pill" style={{ fontFamily: 'monospace' }}>{r.sampleWeightBarcode}</span> },
+                { key: 'sample', header: t('products.scale_plu_export_modal.s25', "شكل الباركود الناتج من الميزان"), cell: (r) => <span className="nav-pill" style={{ fontFamily: 'monospace' }}>{r.sampleWeightBarcode || '—'}</span> },
               ]}
               rows={pluRows.slice(0, 5)}
               empty={<div className="muted small" style={{ padding: '16px', textAlign: 'center' }}>{t('products.scale_plu_export_modal.s26', "لا توجد أصناف مطابقة للتصدير.")}</div>}
