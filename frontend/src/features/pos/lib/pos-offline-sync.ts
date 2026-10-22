@@ -9,7 +9,7 @@ export interface OfflinePosSale {
   id: string;
   payload: CreatePosSaleInput;
   savedAt: string;
-  status: 'pending' | 'syncing' | 'failed';
+  status: 'pending' | 'syncing' | 'failed' | 'committed';
   error?: string;
   tenantId?: string;
   accountId?: string;
@@ -39,11 +39,9 @@ function readStoredOfflineQueue(): OfflinePosSale[] {
 }
 
 export function getOfflineSalesQueue(): OfflinePosSale[] {
-  try {
-    return readStoredOfflineQueue().filter(isCurrentTenantSale);
-  } catch {
-    return [];
-  }
+  // A broken local queue is a financial integrity incident, not an empty queue.
+  // Returning [] hid unpaid offline invoices from the cashier and reporting.
+  return readStoredOfflineQueue().filter(isCurrentTenantSale);
 }
 
 /**
