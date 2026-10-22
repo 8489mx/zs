@@ -1157,6 +1157,7 @@ export interface TreasuryTransactionTable {
   id: Generated<number>;
   txn_type: string;
   amount: number;
+  payment_channel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note: string;
   reference_type: string | null;
   reference_id: number | null;
@@ -1243,6 +1244,7 @@ export interface CustomerPaymentTable {
   id: Generated<number>;
   customer_id: number;
   amount: number;
+  payment_channel?: ColumnType<'cash'|'bank'|'card'|'wallet'|'instapay', 'cash'|'bank'|'card'|'wallet'|'instapay'|undefined, 'cash'|'bank'|'card'|'wallet'|'instapay'|undefined>;
   note: string;
   branch_id: number | null;
   location_id: number | null;
@@ -1661,6 +1663,7 @@ export interface SupplierPaymentTable {
   doc_no: string | null;
   supplier_id: number;
   amount: number;
+  payment_channel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note: string;
   branch_id: number | null;
   location_id: number | null;
@@ -1700,6 +1703,7 @@ export interface SupplierPaymentScheduleLogTable {
   schedule_id: number;
   supplier_id: number;
   amount: number;
+  payment_channel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note: string;
   created_by: number | null;
   created_by_name: string;
