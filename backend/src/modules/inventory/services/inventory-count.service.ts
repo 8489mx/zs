@@ -383,6 +383,7 @@ export class InventoryCountService {
               branchId: session.branch_id, locationId: session.location_id,
               tenantId: tenantScope.tenantId, accountId: tenantScope.accountId,
               errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Stock count posting cannot drive total stock below zero',
+              disableAutoDrain: true,
             });
             await trx.insertInto('stock_movements').values({
               ...buildStockCountPostingMovement(item, sessionId, auth.userId),
