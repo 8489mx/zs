@@ -6,6 +6,7 @@ export type IndustryPresetId =
   | 'maritime'
   | 'restaurant'
   | 'fashion'
+  | 'clothing'
   | 'electronics'
   | 'pharmacy'
   | 'manufacturing'
@@ -540,6 +541,36 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     highlights: ['مصفوفة الألوان والمقاسات المتعددة', 'مشتريات الموديلات والكولكشن الجديد', 'مخازن الملابس وطباعة الليبل الفرعي'],
   },
 
+  clothing: {
+    id: 'clothing',
+    name: 'الملابس والأزياء والأحذية',
+    subtitle: 'محلات الملابس، الأحذية، والشنط',
+    description: 'تفعيل كامل لمصفوفة الألوان والمقاسات (Variants)، طباعة باركود الأصناف الفرعية، وتتبع الموديلات.',
+    badge: 'مصفوفة المقاسات',
+    recommendedModules: [
+      'posModuleEnabled',
+      'inventoryModuleEnabled',
+      'purchasesModuleEnabled',
+      'clothingModuleEnabled',
+      'deliveryFleetModuleEnabled',
+      'comboModuleEnabled',
+    ],
+    disabledModules: [
+      'weightedBarcodeEnabled',
+      'restaurantModuleEnabled',
+      'enablePharmacyModule',
+      'enableMobileStoreFeatures',
+      'manufacturingModuleEnabled',
+      'importModuleEnabled',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+    ],
+    recommendedPlan: 'plan_ultimate',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'fashion',
+    highlights: ['مصفوفة الألوان والمقاسات المتعددة', 'مشتريات الموديلات والكولكشن الجديد', 'مخازن الملابس وطباعة الليبل الفرعي'],
+  },
+
   electronics: {
     id: 'electronics',
     name: 'الإلكترونيات والموبايل والصيانة',
@@ -936,8 +967,9 @@ export function calculateRecommendedPlan(selectedKeys: string[]): PlanTierInfo {
 /**
  * دالة مساعدة لتوليد كائن الإعدادات الكامل بناءً على النشاط المختار
  */
-export function buildSettingsFromIndustry(industryId: IndustryPresetId): Record<string, any> {
-  const preset = INDUSTRY_PRESETS[industryId] || INDUSTRY_PRESETS.retail;
+export function buildSettingsFromIndustry(industryId: IndustryPresetId | string): Record<string, any> {
+  const normalizedId = (industryId === 'clothing' ? 'fashion' : industryId) as IndustryPresetId;
+  const preset = INDUSTRY_PRESETS[normalizedId] || (INDUSTRY_PRESETS as any)[industryId] || INDUSTRY_PRESETS.retail;
   const patch: Record<string, any> = {
     businessIndustry: industryId,
     activityType: industryId,

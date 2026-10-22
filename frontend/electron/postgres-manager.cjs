@@ -12,10 +12,12 @@ class PostgresManager {
     this.dbPort = '5444';
 
     // In production, expect the runtime folder alongside the exe
-    // In dev, use the existing C:\zn\portable\runtime
+    // In dev, use the repo's portable/runtime or fallback to C:\zn\portable\runtime
     this.runtimeDir = isPackaged 
       ? path.join(path.dirname(process.execPath), 'runtime')
-      : 'C:\\zn\\portable\\runtime';
+      : (fs.existsSync(path.resolve(__dirname, '../../portable/runtime'))
+          ? path.resolve(__dirname, '../../portable/runtime')
+          : 'C:\\zn\\portable\\runtime');
     
     this.postgresBinDir = path.join(this.runtimeDir, 'postgres', 'bin');
     this.postgresDataDir = path.join(this.runtimeDir, 'data');
