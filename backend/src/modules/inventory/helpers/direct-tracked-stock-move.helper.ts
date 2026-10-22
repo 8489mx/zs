@@ -11,7 +11,9 @@ export async function moveDirectTrackedStock(
   from: { id: number; branchId: number | null },
   to: { id: number; branchId: number | null },
   transferId: number,
-): Promise<void> {
+): Promise<{ serialTracking: Array<{ id: number; serial: string }>; batchTracking: Array<{ sourceBatchId: number; transitBatchId: null; qty: number; receivedQty: number }> }> { 
+  const serialTracking: Array<{ id: number; serial: string }> = [];
+  const batchTracking: Array<{ sourceBatchId: number; transitBatchId: null; qty: number; receivedQty: number }> = [];
   const product = await trx.selectFrom('products').select('track_serials')
     .where('tenant_id', '=', scope.tenantId).where('id', '=', productId).executeTakeFirstOrThrow();
   const anySerial = await trx.selectFrom('product_serials').select('id')
@@ -20,7 +22,7 @@ export async function moveDirectTrackedStock(
     if (!Number.isSafeInteger(qty) || qty <= 0) {
       throw new AppError('أصناف السيريال تنتقل بالوحدة الصحيحة فقط', 'DIRECT_TRANSFER_SERIAL_QTY', 400);
     }
-    let query = trx.selectFrom('product_serials').select(['id']).where('tenant_id', '=', scope.tenantId)
+    let query = trx.selectFrom('product_serials') .select(['id', 'serial_number']).where('tenant_id', '=', scope.tenantId)
       .where('product_id', '=', productId).where('location_id', '=', from.id).where('status', '=', 'in_stock');
     query = from.branchId == null ? query.where('branch_id', 'is', null) : query.where('branch_id', '=', from.branchId);
     const serials = await query.orderBy('id', 'asc').forUpdate().execute();
@@ -30,6 +32,7 @@ export async function moveDirectTrackedStock(
     if (serials.length !== qty) throw new AppError(
       'النقل الجزئي لسيريالات الصنف يتطلب اختيار الأرقام من إذن التحويل التفصيلي',
       'DIRECT_TRANSFER_SERIAL_SELECTION_REQUIRED', 422);
+    serialTracking.push(...serials.map(row => ({ id: Number(row.id), serial: row.serial_number })));
     await trx.updateTable('product_serials').set({
       location_id: to.id, branch_id: to.branchId,
       notes: `نقل فوري TR-${transferId}`, updated_at: sql`NOW()`,
@@ -73,9 +76,11 @@ export async function moveDirectTrackedStock(
           status: 'active', notes: `نقل مخزون فوري TR-${transferId}`,
         } as any).execute();
       }
+      batchTracking.push({ sourceBatchId: Number(batch.id), transitBatchId: null, qty: Number(batch.quantity), receivedQty: Number(batch.quantity) });
       await trx.updateTable('pharmacy_batches').set({
         quantity: 0, status: 'transferred', updated_at: sql`NOW()`,
       }).where('tenant_id', '=', scope.tenantId).where('id', '=', Number(batch.id)).execute();
     }
   }
+  return { serialTracking, batchTracking };
 }
