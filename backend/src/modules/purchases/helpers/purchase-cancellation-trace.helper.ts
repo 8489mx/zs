@@ -50,12 +50,26 @@ export async function reversePurchaseTrackedStock(
       throw new AppError('رقم التشغيلة الأصلي غير محفوظ؛ يلزم مصالحة مستند الشراء القديم قبل الإلغاء',
         'PURCHASE_CANCEL_BATCH_PROVENANCE_REQUIRED', 409);
     }
-    let query = trx.selectFrom('pharmacy_batches').select(['id', 'quantity'])
+    // A lot may contain receipts from different invoices. Available quantity alone
+    // does not prove ownership: reversing an arbitrary shared lot silently
+    // withdraws another purchase's inventory while cancelling this invoice.
+    // Reject ambiguous historical/shared lots instead of guessing provenance.
+    const anotherReceipt = await trx.selectFrom('purchase_items').select('id')
+      .where('tenant_id', '=', tenantId).where('product_id', '=', productId)
+      .where('batch_number', '=', batchNo)
+      .where('id', '!=', line.purchaseItemId).limit(1).executeTakeFirst();
+    if (anotherReceipt) {
+      throw new AppError('تشغيلة مشتركة بين فواتير شراء؛ لا يمكن عكسها دون مستند تسوية محدد المصدر',
+        'PURCHASE_CANCEL_SHARED_BATCH_REQUIRES_RECONCILIATION', 409);
+    }
+    let query = trx.selectFrom('pharmacy_batches').select(['id', 'quantity', 'notes'])
       .where('tenant_id', '=', tenantId).where('product_id', '=', productId).where('batch_number', '=', batchNo);
     query = line.locationId == null ? query.where('location_id', 'is', null)
       : query.where('location_id', '=', line.locationId);
     const lots = await query.orderBy('id', 'asc').forUpdate().execute();
-    if (lots.length !== 1 || Number(lots[0].quantity) + 1e-7 < line.quantity) {
+    if (lots.length !== 1 ||
+      String(lots[0].notes || '') !== `وارد فاتورة شراء PUR-${line.purchaseId}` ||
+      Number(lots[0].quantity) + 1e-7 < line.quantity) {
       throw new AppError('تشغيلة الشراء غير موجودة بالمخزن الأصلي أو كميتها ناقصة؛ يلزم مصالحة',
         'PURCHASE_CANCEL_BATCH_RECONCILIATION_REQUIRED', 409);
     }
