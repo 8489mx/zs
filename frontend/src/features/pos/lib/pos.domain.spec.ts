@@ -24,6 +24,19 @@ function localIsoDate(offsetDays = 0) {
 }
 
 describe('POS stock handling', () => {
+  it('supports fractional selling units without reducing their available stock count', () => {
+    const halfUnitProduct: Product = {
+      ...product,
+      stock: 2,
+      units: [{ ...product.units[0], id: 'half', name: 'نصف كيلو', multiplier: 0.5 }],
+    };
+    const cart = addPosItem([], halfUnitProduct, { priceType: 'retail', quantity: 4 });
+    expect(cart[0].qty).toBe(4);
+    expect(cart[0].stockLimit).toBe(4);
+    expect(cart[0].unitMultiplier).toBe(0.5);
+    expect(() => addPosItem(cart, halfUnitProduct, { priceType: 'retail', quantity: 1 })).toThrow();
+  });
+
   it('reports unavailable products without mutating the cart when negative stock sales are disabled', () => {
     expect(() => addPosItem([], product, { priceType: 'retail' })).toThrow('الصنف غير متاح للبيع حاليًا');
   });

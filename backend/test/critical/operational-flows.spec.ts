@@ -81,6 +81,7 @@ import { mapSaleRows, summarizeSales } from '../../src/modules/sales/helpers/sal
     { productId: 2, qty: -1, price: 50 },
     { productId: 2, qty: 1, price: -50 },
     { productId: 2, qty: 1, price: 50, unitMultiplier: -1 },
+    { productId: 2, qty: 1, price: 50, unitMultiplier: 0 },
   ]) {
     assert.throws(
       () => normalizeSalePayload({

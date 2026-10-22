@@ -52,7 +52,8 @@ function normalizeSaleQuantity(value: number, isWeighted?: boolean) {
 }
 
 function getResolvedStockLimit(product: Product, unit: ProductUnit, allowDecimal: boolean) {
-  const multiplier = Math.max(Number(unit.multiplier || 1), 1);
+  const candidate = Number(unit.multiplier);
+  const multiplier = Number.isFinite(candidate) && candidate > 0 ? candidate : 1;
   const rawLimit = Number(product.stock || 0) / multiplier;
   return allowDecimal ? roundQuantity(rawLimit) : Math.floor(rawLimit);
 }
@@ -346,7 +347,7 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     itemCode: getProductItemCode(product, unit),
     unitId: unit.id,
     unitName: unit.name,
-    unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
+    unitMultiplier: Number.isFinite(Number(unit.multiplier)) && Number(unit.multiplier) > 0 ? Number(unit.multiplier) : 1,
     price: 0,
     costPrice: Number((product as any).costPrice || 0),
     qty: requestedQty,
@@ -450,7 +451,7 @@ export function syncPosCartStock(cart: PosItem[], products: Product[], options: 
       unitId: String(unit.id || item.unitId || ''),
       unitName: unit.name || item.unitName,
       itemCode: getProductItemCode(product, unit) || item.itemCode,
-      unitMultiplier: Math.max(Number(unit.multiplier || 1), 1),
+      unitMultiplier: Number.isFinite(Number(unit.multiplier)) && Number(unit.multiplier) > 0 ? Number(unit.multiplier) : 1,
       stockLimit,
       currentStock: Number(product.stock || 0),
       minStock: Number(product.minStock || 0),

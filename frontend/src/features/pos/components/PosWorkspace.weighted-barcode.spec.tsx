@@ -90,6 +90,7 @@ describe('PosWorkspace - Weighted Barcodes', () => {
   let queryClient: QueryClient;
 
   beforeEach(() => {
+    localStorage.removeItem('zsystems.react.pos.draft');
     vi.clearAllMocks();
     queryClient = createTestQueryClient();
     vi.mocked(posApi.customers).mockResolvedValue([]);
@@ -122,6 +123,8 @@ describe('PosWorkspace - Weighted Barcodes', () => {
 
   afterEach(() => {
     cleanup();
+    // A POS draft saved by one test must not hydrate the next cashier test.
+    localStorage.removeItem('zsystems.react.pos.draft');
   });
 
   const renderWorkspace = () => {
@@ -133,6 +136,28 @@ describe('PosWorkspace - Weighted Barcodes', () => {
       </MemoryRouter>
     );
   };
+
+  it('sells an exact numeric retail barcode that resembles an invoice date', async () => {
+    vi.mocked(posApi.lookupProducts).mockResolvedValue([{
+      id: '22',
+      name: 'صنف بتاريخ في الباركود',
+      barcode: '261022123456',
+      retailPrice: 40,
+      costPrice: 20,
+      stock: 10,
+      units: [],
+    } as any]);
+    renderWorkspace();
+    await waitFor(() => expect(screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...')).toBeInTheDocument());
+    const input = screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...');
+    fireEvent.change(input, { target: { value: '261022123456' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    await waitFor(() => {
+      expect(screen.getAllByText('صنف بتاريخ في الباركود').some((node) =>
+        node.classList.contains('pos-cart-product-name'),
+      )).toBe(true);
+    });
+  });
 
   it('adds product 00009 with qty 1.575 upon scanning 2000009015751 from an empty cache in single_location', async () => {
     // Setup API mock to return product 00009 ONLY when looking up '00009'
