@@ -16,6 +16,9 @@ export type ManualAttendancePrompt = {
   workDate: string;
   type: 'check_in' | 'check_out';
   defaultTime: string;
+  employeeName?: string;
+  employeeNo?: string;
+  scheduledTime?: string;
 } | null;
 
 export function todayDate() {
