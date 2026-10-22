@@ -2054,6 +2054,29 @@ export class SalesWriteService {
       if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
       if (sale.exchange_return_id) throw new AppError('فاتورة استبدال مترابطة؛ استخدم مرتجعاً بدلاً من تعديلها', 'EXCHANGE_IMMUTABLE', 422);
       if (sale.status !== 'posted') throw new AppError('لا يمكن تعديل فاتورة غير مرحّلة أو ملغاة.', 'SALE_EDIT_STATUS_FORBIDDEN', 400);
+
+      // A cashier shift is a historical cash accountability period. A sale
+      // belonging to a closed shift cannot be edited in place: doing so would
+      // retroactively change that shift's computed totals and cash exposure.
+      const shiftBase = trx.selectFrom('cashier_shifts')
+        .select(['id', 'opened_by', 'status'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('opened_by', '=', Number(sale.created_by || 0))
+        .where('created_at', '<=', sale.created_at)
+        .where((eb) => eb.or([eb('closed_at', 'is', null), eb('closed_at', '>=', sale.created_at)]));
+      const originalShift = await (sale.branch_id == null
+        ? shiftBase.where('branch_id', 'is', null)
+        : shiftBase.where('branch_id', '=', sale.branch_id))
+        .orderBy('id', 'desc').forUpdate().executeTakeFirst();
+      if (originalShift && (originalShift.status !== 'open' || Number(originalShift.opened_by) !== auth.userId)) {
+        throw new AppError(
+          'لا يمكن تعديل فاتورة تخص وردية مقفولة أو وردية كاشير آخر؛ استخدم مستند مرتجع أو تسوية',
+          'SALE_EDIT_ORIGINAL_SHIFT_LOCKED', 422,
+        );
+      }
+      if (normalized.source === 'pos' && !originalShift) {
+        throw new AppError('لا يمكن تعديل فاتورة كاشير خارج ورديتها الأصلية؛ استخدم مرتجعاً أو تسوية', 'SALE_EDIT_ORIGINAL_SHIFT_MISSING', 422);
+      }
       // A later receipt is an independent GL event and must remain attached to
       // the original debt. This edit route reverses the entire old invoice and
       // must not silently leave that receipt allocated against its replacement.
