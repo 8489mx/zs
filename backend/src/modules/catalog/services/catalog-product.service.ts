@@ -335,15 +335,20 @@ export class CatalogProductService {
         if (!groupByKey.has(key)) groupByKey.set(key, []);
         groupByKey.get(key)!.push(row);
       }
+      // Index the complete source once; avoid O(modelCount × productCount)
+      // scans at larger apparel retailers.
+      const allByStyle = new Map<string, ProductRow[]>();
+      for (const product of products) {
+        if (product.item_kind !== 'fashion' || !product.style_code) continue;
+        const list = allByStyle.get(product.style_code) || [];
+        list.push(product);
+        allByStyle.set(product.style_code, list);
+      }
       for (const [key, rows] of groupByKey.entries()) {
         if (key.startsWith('style:')) {
-          const style = key.slice(6);
           const present = new Set(rows.map((p) => Number(p.id)));
-          for (const sibling of products) {
-            if (sibling.item_kind === 'fashion' && sibling.style_code === style && !present.has(Number(sibling.id))) {
-              rows.push(sibling);
-              present.add(Number(sibling.id));
-            }
+          for (const sibling of allByStyle.get(key.slice(6)) || []) {
+            if (!present.has(Number(sibling.id))) rows.push(sibling);
           }
         }
         pageGroups.push(rows);
