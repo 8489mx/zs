@@ -2005,7 +2005,7 @@ export class CatalogProductService {
         name: normalized.name,
         name_en: normalized.nameEn !== undefined ? (normalized.nameEn || null) : (existing as any).name_en,
         barcode: normalized.barcode || null,
-        sku: normalized.sku || null,
+        sku: payload.sku === undefined ? (existing.sku || null) : (normalized.sku || null),
         item_type: normalized.itemType === 'service' ? 'service' : normalized.itemType === 'raw_material' ? 'raw_material' : 'product',
         item_kind: normalized.itemKind,
         style_code: normalized.styleCode || null,
