@@ -18,6 +18,7 @@ import { InventoryScopeService } from './inventory-scope.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { normalizeArabicSearch, matchesArabic } from '../../../common/utils/arabic-search.util';
 
@@ -343,6 +344,7 @@ export class InventoryCountService {
           }
           const variance = Number(item.variance_qty || 0);
           if (Math.abs(variance) >= 0.001) {
+            await assertUntrackedStockMutation(trx, tenantScope, Number(item.product_id));
             const product = await trx.selectFrom('products').select('cost_price')
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
             const rawCost = Number(product.cost_price || 0);
@@ -486,6 +488,7 @@ export class InventoryCountService {
         || Math.abs(damageQty * 1000 - Math.round(damageQty * 1000)) > 0.000001) {
         throw new AppError('Damage quantity must be positive with at most three decimal places', 'INVALID_QTY', 400);
       }
+      await assertUntrackedStockMutation(trx, tenantScope, Number(payload.productId));
 
       const availableQty = await previewConsumableStockQty(trx, { productId: payload.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
       const writeModels = buildDamagedStockWriteModels({ ...product, stock_qty: availableQty }, payload, location, auth.userId);

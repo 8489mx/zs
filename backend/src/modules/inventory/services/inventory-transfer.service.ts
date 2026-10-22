@@ -16,6 +16,7 @@ import { InventoryScopeService } from './inventory-scope.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 
 @Injectable()
 export class InventoryTransferService {
@@ -138,6 +139,7 @@ export class InventoryTransferService {
       for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        await assertUntrackedStockMutation(trx, scope, Number(item.productId));
         const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: item.productId, branchId: from.branchId, locationId: from.id };
 
         // Ensure quantity is available in this specific location ONLY
@@ -431,6 +433,7 @@ export class InventoryTransferService {
       await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       for (const stock of stocks) {
+        await assertUntrackedStockMutation(trx, scope, Number(stock.product_id));
         const qty = Number(stock.qty);
         await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty, ...this.tenantFields(auth) }).execute();
 
@@ -493,6 +496,7 @@ export class InventoryTransferService {
       for (const item of [...payload.items].sort((a, b) => Number(a.productId) - Number(b.productId))) {
         const product = await trx.selectFrom('products').select(['id', 'name', 'cost_price']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError(`Product #${item.productId} not found`, 'PRODUCT_NOT_FOUND', 404);
+        await assertUntrackedStockMutation(trx, scope, Number(item.productId));
         const qty = Number(item.qty || 0);
 
         if (transferId != null) {
@@ -588,6 +592,7 @@ export class InventoryTransferService {
       await trx.updateTable('stock_transfers').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', transferId).where(this.tenantPredicate(auth)).execute();
 
       for (const stock of stocks) {
+        await assertUntrackedStockMutation(trx, scope, Number(stock.product_id));
         const qty = Number(stock.qty);
 
         await trx.insertInto('stock_transfer_items').values({ transfer_id: transferId, product_id: stock.product_id, product_name: stock.name || '', qty, ...this.tenantFields(auth) }).execute();

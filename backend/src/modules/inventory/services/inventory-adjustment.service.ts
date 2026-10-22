@@ -11,6 +11,7 @@ import { TransactionHelper } from '../../../database/helpers/transaction.helper'
 import { Database } from '../../../database/database.types';
 import { InventoryAdjustmentDto } from '../dto/inventory-adjustment.dto';
 import { InventoryCountService } from './inventory-count.service';
+import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 import { InventoryScopeService } from './inventory-scope.service';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
@@ -58,6 +59,7 @@ export class InventoryAdjustmentService {
         .forUpdate()
         .executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      await assertUntrackedStockMutation(trx, scope, Number(payload.productId));
       const rawCost = Number(product.cost_price || 0);
       const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
       const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: payload.branchId, locationId: payload.locationId };
