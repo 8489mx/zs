@@ -638,6 +638,9 @@ export class OfflineReleasesService implements OnModuleInit {
    * and restart the backend — all without any manual user intervention.
    */
   async triggerUpdate(auth: AuthContext) {
+    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+      throw new BadRequestException('Cloud SaaS must never apply desktop updates');
+    }
     const active = await this.db
       .selectFrom('offline_releases')
       .selectAll()
@@ -668,7 +671,7 @@ export class OfflineReleasesService implements OnModuleInit {
       nodeExe:         process.execPath,
       backendCwd:      process.cwd(),
       backendEntry:    process.argv[1] ?? 'dist/main.js',
-      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
@@ -761,7 +764,7 @@ export class OfflineReleasesService implements OnModuleInit {
       nodeExe:         process.execPath,
       backendCwd:      process.cwd(),
       backendEntry:    process.argv[1] ?? 'dist/main.js',
-      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
@@ -810,9 +813,9 @@ export class OfflineReleasesService implements OnModuleInit {
     ps.unref();
 
     setTimeout(() => {
-      console.log('[OfflineReleasesService] Exiting process for clean self-update restart...');
+      console.log('[OfflineReleasesService] Shutting down before patching any files...');
       process.exit(0);
-    }, 17500);
+    }, 1500);
 
     return {
       ok: true,
@@ -936,8 +939,9 @@ export class OfflineReleasesService implements OnModuleInit {
       nodeExe:         process.execPath,
       backendCwd:      process.cwd(),
       backendEntry:    process.argv[1] ?? 'dist/main.js',
-      backendPort:     process.env.BACKEND_PORT ?? '3001',
+      backendPort:     process.env.APP_PORT ?? process.env.BACKEND_PORT ?? '3001',
       electronExePath: process.env.ELECTRON_EXE_PATH || '',
+      expectedSha256: process.env.ZS_TRUSTED_OFFLINE_UPDATE_SHA256 || '',
     };
     fs.writeFileSync(pendingFile, JSON.stringify(payload, null, 2), 'utf8');
 
@@ -988,9 +992,9 @@ export class OfflineReleasesService implements OnModuleInit {
     ps.unref();
 
     setTimeout(() => {
-      console.log('[OfflineReleasesService] Exiting process for clean zip self-update restart...');
+      console.log('[OfflineReleasesService] Shutting down before applying verified ZIP...');
       process.exit(0);
-    }, 17500);
+    }, 1500);
 
     return {
       ok: true,
