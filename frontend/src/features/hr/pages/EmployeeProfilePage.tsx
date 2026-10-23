@@ -522,12 +522,12 @@ export function EmployeeProfilePage() {
               <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
                   <div>
-                    <strong style={{ fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>بيانات الأجر ومسير الرواتب</strong>
-                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>الراتب الأساسي التعاقدي والبدلات المعتمدة ومسيرات الصرف</span>
+                    <strong style={{ fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>بيانات الأجر والرواتب</strong>
+                    <span style={{ fontSize: '0.78rem', color: '#64748b' }}>الراتب الأساسي التعاقدي والبدلات المعتمدة وكشوف الصرف</span>
                   </div>
                   {canViewSalary ? (
                     <Button variant="secondary" onClick={() => navigate('/hr/payroll')} style={{ padding: '4px 12px', fontSize: '0.78rem' }}>
-                      فتح شاشة مسيرات الرواتب
+                      فتح شاشة المرتبات
                     </Button>
                   ) : null}
                 </div>

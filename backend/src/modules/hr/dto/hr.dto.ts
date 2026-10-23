@@ -445,7 +445,7 @@ export class CreatePayrollRunDto {
   endDate?: string;
 
   @IsOptional()
-  @IsIn(['daily', 'weekly', 'biweekly', 'monthly'])
+  @IsIn(['daily', 'weekly', 'biweekly', 'monthly', 'all'])
   payFrequency?: string;
 
   @IsOptional()

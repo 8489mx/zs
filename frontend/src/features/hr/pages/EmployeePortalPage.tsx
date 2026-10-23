@@ -257,7 +257,7 @@ export default function EmployeePortalPage() {
       <nav className="portal-nav">
         {[
           { key: 'overview', label: t('hr.employee_portal_page.s5', "نظرة عامة"), shortLabel: t('hr.employee_portal_page.s6', "نظرة عامة"), icon: <UsersIcon size={16} /> },
-          { key: 'payslips', label: t('hr.employee_portal_page.s7', "مسيرات الرواتب"), shortLabel: t('hr.employee_portal_page.s8', "الرواتب"), icon: <ReceiptIcon size={16} /> },
+          { key: 'payslips', label: t('hr.employee_portal_page.s7', "كشوف الرواتب"), shortLabel: t('hr.employee_portal_page.s8', "الرواتب"), icon: <ReceiptIcon size={16} /> },
           { key: 'leaves', label: t('hr.employee_portal_page.s9', "الإجازات والأذونات"), shortLabel: t('hr.employee_portal_page.s10', "الإجازات"), icon: <CalendarIcon size={16} /> },
           { key: 'attendance', label: t('hr.employee_portal_page.s11', "سجل الحضور"), shortLabel: t('hr.employee_portal_page.s12', "الحضور"), icon: <ClockIcon size={16} /> },
           { key: 'loans', label: t('hr.employee_portal_page.s13', "السلف والعهد"), shortLabel: t('hr.employee_portal_page.s14', "السلف"), icon: <CreditCardIcon size={16} /> },

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import React, { type FormEvent } from 'react';
-import { money, reviewStatusOptions, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
+import { money, reviewStatusOptions, type PayrollReviewStatus, type PayFrequency, payFrequencyFilterOptions } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import type { PayrollDraft } from '@/features/hr/components/payroll/CreatePayrollRunModal';
 
@@ -26,6 +26,7 @@ export type HrPayrollTopSectionProps = {
   departmentFilter: string;
   reviewStatusFilter: PayrollReviewStatus;
   runStatusFilter: string;
+  frequencyFilter?: PayFrequency;
   departmentOptions: Array<{ value: string; label: string }>;
   runStatusOptions: Array<{ value: string; label: string }>;
   summary: Summary;
@@ -36,11 +37,13 @@ export type HrPayrollTopSectionProps = {
   canManagePayroll: boolean;
   hasCreatePayrollRun: boolean;
   isCreatePending: boolean;
+  isEgypt?: boolean;
   onMonthFilterChange: (value: string) => void;
   onSearchChange: (value: string) => void;
   onDepartmentFilterChange: (value: string) => void;
   onReviewStatusFilterChange: (value: PayrollReviewStatus) => void;
   onRunStatusFilterChange: (value: string) => void;
+  onFrequencyFilterChange?: (value: PayFrequency) => void;
   onDraftChange: React.Dispatch<React.SetStateAction<PayrollDraft>> | ((updater: (current: Draft) => Draft) => void);
   onCreateRun: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -56,23 +59,30 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     departmentFilter,
     reviewStatusFilter,
     runStatusFilter,
+    frequencyFilter,
     departmentOptions,
     runStatusOptions,
     summary,
     canViewSalaryAmounts,
+    isEgypt = false,
     onMonthFilterChange,
     onSearchChange: _onSearchChange,
     onDepartmentFilterChange,
     onReviewStatusFilterChange,
     onRunStatusFilterChange,
+    onFrequencyFilterChange,
   } = props;
+
+  const payrollTerm = isEgypt ? 'كشف المرتبات' : 'مسير المرتبات';
 
   return (
     <>
       {/* Compact Single-Row KPI Summary Bar */}
       <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>{t('hr.payroll.hr_payroll_top_sections.s0', "ملخص مسير المرتبات (")}{monthFilter})</span>
+          <span style={{ fontSize: '0.825rem', fontWeight: 800, color: '#0f172a' }}>
+            {t('hr.payroll.hr_payroll_top_sections.s0', `ملخص ${payrollTerm} (`)}{monthFilter})
+          </span>
           <span style={{ fontSize: '0.725rem', color: '#64748b' }}>{t('hr.payroll.hr_payroll_top_sections.s1', "مؤشرات الحسابات الإجمالية للشهر المحدد")}</span>
         </div>
         
@@ -112,7 +122,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
 
       {/* Integrated Filters Toolbar - Single Row */}
       <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '14px', background: '#f8fafc', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-        <div style={{ width: '240px', minWidth: '180px' }}>
+        <div style={{ width: '220px', minWidth: '170px' }}>
           <CustomSelect
             value={selectedEmployeeId || ''}
             onChange={(val) => {
@@ -137,10 +147,21 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
           />
         </div>
 
+        {/* Pay Frequency Filter */}
+        <select
+          value={frequencyFilter || 'all'}
+          onChange={(event) => onFrequencyFilterChange?.(event.target.value as PayFrequency)}
+          style={{ width: 'auto', minWidth: '110px', maxWidth: '140px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box', fontWeight: 600, color: '#0f172a' }}
+        >
+          {payFrequencyFilterOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
         <select
           value={departmentFilter}
           onChange={(event) => onDepartmentFilterChange(event.target.value)}
-          style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+          style={{ width: 'auto', minWidth: '120px', maxWidth: '140px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
         >
           <option value="all">{t('hr.payroll.hr_payroll_top_sections.s10', "كل الأقسام")}</option>
           {departmentOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -149,7 +170,7 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         <select
           value={reviewStatusFilter}
           onChange={(event) => onReviewStatusFilterChange(event.target.value as PayrollReviewStatus)}
-          style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+          style={{ width: 'auto', minWidth: '110px', maxWidth: '130px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
         >
           {reviewStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
@@ -157,9 +178,9 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         <select
           value={runStatusFilter}
           onChange={(event) => onRunStatusFilterChange(event.target.value)}
-          style={{ width: 'auto', minWidth: '120px', maxWidth: '150px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
+          style={{ width: 'auto', minWidth: '120px', maxWidth: '140px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box' }}
         >
-          <option value="all">{t('hr.payroll.hr_payroll_top_sections.s11', "كل حالات المسير")}</option>
+          <option value="all">{isEgypt ? 'كل حالات الكشف' : 'كل حالات المسير'}</option>
           {runStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </div>

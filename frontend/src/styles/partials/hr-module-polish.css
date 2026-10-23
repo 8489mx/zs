@@ -119,15 +119,54 @@
   margin-top: 6px;
 }
 
+.page-shell:has(.hr-section-nav) .compact-actions,
 .page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions {
   gap: 8px;
 }
 
+.page-shell:has(.hr-section-nav) .compact-actions .btn,
+.page-shell:has(.hr-section-nav) .compact-actions .button,
+.page-shell:has(.hr-section-nav) .compact-actions button,
+.page-shell:has(.hr-section-nav) .page-header-actions .btn,
+.page-shell:has(.hr-section-nav) .page-header-actions button,
 .page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions .btn,
 .page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions .button,
-.page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions button {
-  border-radius: 8px;
-  min-height: 36px;
+.page-shell[dir='rtl']:has(.hr-section-nav) .compact-actions button,
+.page-shell[dir='rtl']:has(.hr-section-nav) .page-header-actions .btn,
+.page-shell[dir='rtl']:has(.hr-section-nav) .page-header-actions button {
+  border-radius: 8px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 14px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.page-shell:has(.hr-section-nav) .page-header,
+.page-shell[dir='rtl']:has(.hr-section-nav) .page-header {
+  padding: 12px 18px !important;
+  min-height: 98px !important;
+  max-width: 1280px !important;
+  width: min(100%, 1280px) !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+.page-shell:has(.hr-section-nav) .page-header-row,
+.page-shell[dir='rtl']:has(.hr-section-nav) .page-header-row {
+  min-height: 34px !important;
+  height: 34px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
 }
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .data-table,
@@ -248,8 +287,9 @@
   word-spacing: 0.06em;
 }
 
+.page-shell:has(.hr-section-nav) .hr-section-nav-link.active,
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link.active {
-  font-weight: 800;
+  font-weight: 600 !important;
 }
 
 @media (max-width: 900px) {
@@ -331,24 +371,37 @@
   row-gap: 8px !important;
 }
 
+.page-shell:has(.hr-section-nav) .hr-section-nav-link,
+.page-shell:has(.hr-section-nav) .hr-section-nav-link.active,
+.page-shell:has(.hr-section-nav) .hr-section-nav-link:hover,
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link,
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link.active,
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link:hover {
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font-size: 0.9rem !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  height: 32px !important;
   min-height: 32px !important;
-  padding-block: 3px !important;
-  padding-inline: 12px !important;
+  max-height: 32px !important;
+  padding: 0 14px !important;
+  transition: none !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
+.page-shell:has(.hr-section-nav) .hr-section-nav-link.is-active,
+.page-shell:has(.hr-section-nav) .hr-section-nav-link.active,
+.page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link.is-active,
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link.active {
-  background: rgba(219, 234, 254, 0.96) !important;
-  border-color: rgba(23, 12, 92, 0.28) !important;
-  box-shadow: 0 6px 16px rgba(23, 12, 92, 0.10);
-  color: rgb(29, 78, 216) !important;
-  font-weight: 800 !important;
+  background: #170e5e !important;
+  border-color: #170e5e !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
   transform: none !important;
+  box-shadow: none !important;
 }
 
 .page-shell[dir='rtl']:has(.hr-section-nav) .hr-section-nav-link:not(.active):hover {

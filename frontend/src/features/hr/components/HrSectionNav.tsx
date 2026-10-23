@@ -149,12 +149,27 @@ export function HrSectionNav() {
               key={section.to}
               to={section.to}
               ref={isActive ? activeLinkRef : null}
-              className={`hr-section-nav-link ${isActive ? 'is-active' : ''}`}
+              className={`hr-section-nav-link ${isActive ? 'is-active active' : ''}`}
               title={section.label}
               style={{
                 flexShrink: 0,
                 whiteSpace: 'nowrap',
                 textDecoration: 'none',
+                height: '32px',
+                minHeight: '32px',
+                maxHeight: '32px',
+                padding: '0 14px',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                borderRadius: '8px',
+                border: `1px solid ${isActive ? '#170e5e' : '#e2e8f0'}`,
+                background: isActive ? '#170e5e' : '#f8fafc',
+                color: isActive ? '#ffffff' : '#475569',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'none',
+                boxSizing: 'border-box',
               }}
             >
               <span className="hr-nav-text-full">{section.label}</span>

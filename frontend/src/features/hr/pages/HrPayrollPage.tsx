@@ -12,6 +12,8 @@ import type { HrEmployee, HrPayrollRun, HrPayrollRunItem } from '@/types/domain'
 import { getErrorMessage } from '@/lib/errors';
 import { useHrMutations, useHrPayrollRun, useHrWorkspace } from '@/features/hr/hooks/useHr';
 import { HrPayrollTopSections } from '@/features/hr/pages/payroll/HrPayrollTopSections';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { isEgypt } from '@/lib/currencies';
 import {
   employeeMatches,
   itemNeedsReview,
@@ -20,6 +22,7 @@ import {
   statusLabel,
   text,
   type PayrollReviewStatus,
+  type PayFrequency,
 } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { systemConfirm, toast } from '@/shared/components/system-alert';
@@ -46,6 +49,11 @@ export function HrPayrollPage() {
   const canManagePayroll = useHasAnyPermission(['hrPayrollManage', 'hrPayrollApprove']);
   const canApprovePayroll = useHasAnyPermission('hrPayrollApprove');
   const canViewSalaryAmounts = useHasAnyPermission(['hrSalaryView', 'hrSalaryManage', 'hrPayrollManage', 'hrPayrollApprove']);
+
+  const { data: settings } = useSettingsQuery();
+  const isEg = isEgypt(settings);
+  const payrollTerm = isEg ? 'كشف المرتبات' : 'مسير الرواتب';
+  const payrollTermShort = isEg ? 'الكشف' : 'المسير';
 
   const now = new Date();
   const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -179,11 +187,15 @@ export function HrPayrollPage() {
   ];
 
   const [runStatusFilter, setRunStatusFilter] = useState('all');
+  const [frequencyFilter, setFrequencyFilter] = useState<PayFrequency>('all');
 
   const filteredRuns = useMemo(() => {
-    if (runStatusFilter === 'all') return runs;
-    return runs.filter((r) => normalize(r.status) === runStatusFilter);
-  }, [runs, runStatusFilter]);
+    return runs.filter((r) => {
+      if (runStatusFilter !== 'all' && normalize(r.status) !== runStatusFilter) return false;
+      if (frequencyFilter !== 'all' && (r.payFrequency || 'monthly') !== frequencyFilter) return false;
+      return true;
+    });
+  }, [runs, runStatusFilter, frequencyFilter]);
 
   const summary = useMemo(() => {
     const totalNet = runItems.reduce((acc, row) => acc + Number(row.netPay || 0), 0);
@@ -219,11 +231,21 @@ export function HrPayrollPage() {
     const year = Number(parts[0]);
     const month = Number(parts[1]);
     const lastDay = new Date(year, month, 0).getDate();
+    const targetFreq = frequencyFilter !== 'all' ? frequencyFilter : 'monthly';
+    let sDate = `${targetMonth}-01`;
+    let eDate = `${targetMonth}-${String(lastDay).padStart(2, '0')}`;
+    if (targetFreq === 'biweekly') {
+      eDate = `${targetMonth}-15`;
+    } else if (targetFreq === 'weekly') {
+      eDate = `${targetMonth}-07`;
+    } else if (targetFreq === 'daily') {
+      eDate = `${targetMonth}-01`;
+    }
     setDraft({
       periodMonth: targetMonth,
-      payFrequency: 'monthly',
-      startDate: `${targetMonth}-01`,
-      endDate: `${targetMonth}-${String(lastDay).padStart(2, '0')}`,
+      payFrequency: targetFreq,
+      startDate: sDate,
+      endDate: eDate,
       notes: '',
     });
     setFormError('');
@@ -234,7 +256,7 @@ export function HrPayrollPage() {
     try {
       const res = await mutations.recalculatePayrollRun?.mutateAsync(runId);
       const count = (res?.run?.items as any[])?.length ?? 0;
-      toast.success(`تمت إعادة احتساب المسير بنجاح (${count} موظف).`);
+      toast.success(`تمت إعادة احتساب ${payrollTermShort} بنجاح (${count} موظف).`);
     } catch (err) {
       toast.error(getErrorMessage(err));
     }
@@ -242,15 +264,17 @@ export function HrPayrollPage() {
 
   const handleCancelRun = async (runId: string) => {
     const confirmed = await systemConfirm({
-      title: 'إلغاء مسير المرتبات',
-      message: 'هل أنت متأكد من إلغاء كشف المرتبات هذا؟ لا يمكن التراجع عن هذا الإجراء.',
+      title: isEg ? 'إلغاء كشف المرتبات' : 'إلغاء مسير الرواتب',
+      message: isEg
+        ? 'هل أنت متأكد من إلغاء كشف المرتبات هذا؟ لا يمكن التراجع عن هذا الإجراء.'
+        : 'هل أنت متأكد من إلغاء مسير الرواتب هذا؟ لا يمكن التراجع عن هذا الإجراء.',
       confirmText: 'نعم، قم بالإلغاء',
       cancelText: 'تراجع',
     });
     if (!confirmed) return;
     try {
       await mutations.cancelPayrollRun?.mutateAsync(runId);
-      toast.success('تم إلغاء كشف المرتبات بنجاح.');
+      toast.success(isEg ? 'تم إلغاء كشف المرتبات بنجاح.' : 'تم إلغاء مسير الرواتب بنجاح.');
       setSelectedRunId('');
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -261,10 +285,10 @@ export function HrPayrollPage() {
     const list: Array<{ key: string; title: string; status: string; ok: boolean; action?: string; onClick?: () => void }> = [];
     list.push({
       key: 'run',
-      title: 'تجهيز المسير',
-      status: selectedRun ? `مسير شهر ${selectedRun.periodMonth}` : 'لم يتم التجهيز',
+      title: isEg ? 'تجهيز الكشف' : 'تجهيز المسير',
+      status: selectedRun ? `${isEg ? 'كشف' : 'مسير'} شهر ${selectedRun.periodMonth}` : 'لم يتم التجهيز',
       ok: Boolean(selectedRun),
-      action: !selectedRun ? 'تجهيز مسير الشهر' : undefined,
+      action: !selectedRun ? (isEg ? 'تجهيز كشف المرتبات' : 'تجهيز مسير الرواتب') : undefined,
       onClick: !selectedRun ? openCreateModal : undefined,
     });
     list.push({
@@ -289,12 +313,12 @@ export function HrPayrollPage() {
         title: 'حالة الاعتماد',
         status: statusLabel(selectedRun.status),
         ok: Boolean(runIsFinal),
-        action: normalize(selectedRun.status) === 'draft' ? 'اعتماد المسير' : normalize(selectedRun.status) === 'reviewed' ? 'اعتماد نهائي' : undefined,
+        action: normalize(selectedRun.status) === 'draft' ? (isEg ? 'اعتماد الكشف' : 'اعتماد المسير') : normalize(selectedRun.status) === 'reviewed' ? 'اعتماد نهائي' : undefined,
         onClick: normalize(selectedRun.status) === 'draft' ? () => handleRunActionClick(String(selectedRun.id), 'review') : normalize(selectedRun.status) === 'reviewed' ? () => handleRunActionClick(String(selectedRun.id), 'approve') : undefined,
       });
     }
     return list;
-  }, [selectedRun, summary.flaggedCount, dueLoanInstallmentRows.length, runIsFinal, navigate]);
+  }, [selectedRun, summary.flaggedCount, dueLoanInstallmentRows.length, runIsFinal, navigate, isEg]);
 
   const handleRunActionClick = (runId: string, type: 'review' | 'approve') => {
     const exceptions = runItems.filter((i) => Number(i.unresolvedExceptionsCount || 0) > 0);
@@ -309,10 +333,10 @@ export function HrPayrollPage() {
     try {
       if (type === 'review') {
         await mutations.reviewPayrollRun?.mutateAsync(runId);
-        toast.success('تمت مراجعة واعتماد المسير مبدئياً بنجاح.');
+        toast.success(`تمت مراجعة واعتماد ${payrollTermShort} مبدئياً بنجاح.`);
       } else {
         await mutations.approvePayrollRun?.mutateAsync(runId);
-        toast.success('تم الاعتماد النهائي لكشف المرتبات بنجاح. الكشف جاهز للصرف.');
+        toast.success(`تم الاعتماد النهائي لـ ${payrollTerm} بنجاح. ${isEg ? 'الكشف' : 'المسير'} جاهز للصرف.`);
       }
       setPendingApprovalAction(null);
     } catch (err) {
@@ -331,7 +355,7 @@ export function HrPayrollPage() {
         setSelectedRunId(String(res.run.id));
       }
       const count = (res?.run?.items as any[])?.length ?? 0;
-      toast.success(`تم تجهيز مسير المرتبات بنجاح (${count} موظف).`);
+      toast.success(`تم تجهيز ${payrollTerm} بنجاح (${count} موظف).`);
     } catch (err) {
       setFormError(getErrorMessage(err));
       toast.error(getErrorMessage(err));
@@ -490,7 +514,7 @@ export function HrPayrollPage() {
     printWindow.document.write(`
       <html dir="rtl" lang="ar">
         <head>
-          <title>مسير الرواتب المالي والتفصيلي - ${text(selectedRun?.periodMonth)}</title>
+          <title>${isEg ? 'كشف المرتبات المالي والتفصيلي' : 'مسير الرواتب المالي والتفصيلي'} - ${text(selectedRun?.periodMonth)}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
             @page { size: landscape; margin: 8mm 10mm; }
@@ -526,7 +550,7 @@ export function HrPayrollPage() {
               قطاع الموارد البشرية والمالية
             </div>
             <div class="header-center">
-              <h1>مسير الرواتب المالي والتفصيلي</h1>
+              <h1>${isEg ? 'كشف المرتبات المالي والتفصيلي' : 'مسير الرواتب المالي والتفصيلي'}</h1>
               <p>كشف استحقاقات واستقطاعات شهر: ${text(selectedRun?.periodMonth)} | الحالة: ${statusLabel(selectedRun?.status)}</p>
             </div>
             <div class="header-meta" style="text-align: left;">
@@ -585,7 +609,7 @@ export function HrPayrollPage() {
                 `;
               }).join('')}
               <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 12px; border-top: 2px solid #94a3b8;">
-                <td colspan="3" style="text-align: left; padding: 8px 10px; color: #0f172a;">الإجماليات العامة للمسير:</td>
+                <td colspan="3" style="text-align: left; padding: 8px 10px; color: #0f172a;">${isEg ? 'الإجماليات العامة لكشف المرتبات:' : 'الإجماليات العامة للمسير:'}</td>
                 <td class="amount">${money(totalBase)}</td>
                 <td class="amount pos">${money(totalAllowances)}</td>
                 <td class="amount pos" style="font-size: 12.5px;">${money(totalGross)}</td>
@@ -635,12 +659,16 @@ export function HrPayrollPage() {
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
           title={t('hr.hr_payroll_page.s0', "المرتبات")}
-          description={t('hr.hr_payroll_page.s1', "مسار شهري واضح: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة.")}
+          description={
+            isEg
+              ? 'مسار واضح لدورة القبض: جهّز كشف المرتبات، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة.'
+              : 'مسار واضح لدورة القبض: جهّز المسير، راجع الحضور والإجازات والسلف، ثم اعتمد عند اكتمال المراجعة.'
+          }
           actions={
             <div className="actions compact-actions">
               {hasCreatePayrollRun && canManagePayroll ? (
                 <Button onClick={openCreateModal}>
-                  {t('hr.hr_payroll_page.s2', "إنشاء مسير الشهر")}
+                  {isEg ? 'إنشاء كشف المرتبات' : 'تجهيز مسير الرواتب'}
                 </Button>
               ) : null}
               <Button variant="secondary" onClick={() => navigate('/hr/attendance')}>{t('hr.hr_payroll_page.s3', "مراجعة الحضور")}</Button>
@@ -665,6 +693,7 @@ export function HrPayrollPage() {
                 departmentFilter={departmentFilter}
                 reviewStatusFilter={reviewStatusFilter}
                 runStatusFilter={runStatusFilter}
+                frequencyFilter={frequencyFilter}
                 departmentOptions={departmentOptions}
                 runStatusOptions={runStatusOptions}
                 summary={summary}
@@ -675,11 +704,13 @@ export function HrPayrollPage() {
                 canManagePayroll={canManagePayroll}
                 hasCreatePayrollRun={hasCreatePayrollRun}
                 isCreatePending={mutations.createPayrollRun.isPending}
+                isEgypt={isEg}
                 onMonthFilterChange={(value) => { setMonthFilter(value); setPage(1); }}
                 onSearchChange={setSearch}
                 onDepartmentFilterChange={setDepartmentFilter}
                 onReviewStatusFilterChange={setReviewStatusFilter}
                 onRunStatusFilterChange={setRunStatusFilter}
+                onFrequencyFilterChange={setFrequencyFilter}
                 onDraftChange={setDraft}
                 onCreateRun={(event) => { void handleCreateRun(event); }}
               />
@@ -724,13 +755,14 @@ export function HrPayrollPage() {
                 onApproveClick={(id) => handleRunActionClick(id, 'approve')}
                 onPayClick={(id) => { setSelectedRunId(id); setShowPayRun(true); }}
                 onCancel={(id) => void handleCancelRun(id)}
+                isEgypt={isEg}
               />
 
               {/* Selected Run Details Table */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a' }}>
-                    {t('hr.hr_payroll_page.s7', "تفاصيل ومراجعة موظفي المسير")} {selectedRun ? `(${text(selectedRun.periodMonth)})` : ''}
+                    {isEg ? 'تفاصيل ومراجعة موظفي كشف المرتبات' : 'تفاصيل ومراجعة موظفي مسير الرواتب'} {selectedRun ? `(${text(selectedRun.periodMonth)})` : ''}
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     {selectedRun && (
@@ -760,7 +792,7 @@ export function HrPayrollPage() {
                         style={{ padding: '2px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#f8fafc', borderColor: '#cbd5e1' }}
                       >
                         <FileTextIcon size={14} />
-                        <span>المسير المالي التفصيلي (A4 أفقي)</span>
+                        <span>{isEg ? 'الكشف المالي التفصيلي (A4 أفقي)' : 'المسير المالي التفصيلي (A4 أفقي)'}</span>
                       </Button>
                     )}
                   </div>
@@ -771,9 +803,16 @@ export function HrPayrollPage() {
                     {t('hr.hr_payroll_page.s10', "اضغط على أي كشف من الجدول أعلاه لعرض وتفصيل رواتب الموظفين الخاصة به.")}
                   </div>
                 ) : (
-                  <QueryFeedback isLoading={payrollRunDetails.isLoading} isError={payrollRunDetails.isError} error={payrollRunDetails.error} isEmpty={false} loadingText={t('hr.hr_payroll_page.s11', "جارٍ تحميل تفاصيل المسير...")} errorTitle={t('hr.hr_payroll_page.s12', "تعذر تحميل تفاصيل المسير")}>
+                  <QueryFeedback
+                    isLoading={payrollRunDetails.isLoading}
+                    isError={payrollRunDetails.isError}
+                    error={payrollRunDetails.error}
+                    isEmpty={false}
+                    loadingText={isEg ? 'جارٍ تحميل تفاصيل الكشف...' : 'جارٍ تحميل تفاصيل المسير...'}
+                    errorTitle={isEg ? 'تعذر تحميل تفاصيل الكشف' : 'تعذر تحميل تفاصيل المسير'}
+                  >
                     {!selectedRun ? (
-                      <p className="muted">{t('hr.hr_payroll_page.s13', "تفاصيل المسير غير متاحة.")}</p>
+                      <p className="muted">{isEg ? 'تفاصيل الكشف غير متاحة.' : 'تفاصيل المسير غير متاحة.'}</p>
                     ) : filteredRunItems.length ? (
                       <DataTable
                         rows={filteredRunItems}
@@ -814,6 +853,7 @@ export function HrPayrollPage() {
         hasCreatePayrollRun={hasCreatePayrollRun}
         formError={formError}
         employees={employees}
+        isEgypt={isEg}
       />
 
       <PayPayrollRunModal
@@ -832,7 +872,7 @@ export function HrPayrollPage() {
         <PayrollWpsExportModal
           runId={String(selectedRun.id)}
           runMonth={String(selectedRun.periodMonth || '')}
-          runName={String((selectedRun as any).name || `مسير شهر ${selectedRun.periodMonth || ''}`)}
+          runName={String((selectedRun as any).name || `${isEg ? 'كشف' : 'مسير'} شهر ${selectedRun.periodMonth || ''}`)}
           onClose={() => setShowWpsModal(false)}
         />
       )}

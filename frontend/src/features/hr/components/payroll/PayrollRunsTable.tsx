@@ -3,7 +3,7 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import { CheckIcon } from '@/shared/components/icons/AppIcons';
-import { text, money, statusLabel, normalize } from '@/features/hr/pages/payroll/hr-payroll.helpers';
+import { text, money, statusLabel, normalize, getPayFrequencyLabel } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import type { HrPayrollRun } from '@/types/domain';
 
 interface PayrollRunsTableProps {
@@ -26,6 +26,7 @@ interface PayrollRunsTableProps {
   onApproveClick: (id: string) => void;
   onPayClick: (id: string) => void;
   onCancel: (id: string) => void;
+  isEgypt?: boolean;
 }
 
 export function PayrollRunsTable({
@@ -48,6 +49,7 @@ export function PayrollRunsTable({
   onApproveClick,
   onPayClick,
   onCancel,
+  isEgypt = false,
 }: PayrollRunsTableProps) {
   const { t } = useTranslation();
   return (
@@ -92,17 +94,27 @@ export function PayrollRunsTable({
 
       {/* Runs Table */}
       <div style={{ marginBottom: '16px' }}>
-        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '8px' }}>{t('hr.payroll.payroll_runs_table.s1', "كشوف المرتبات المسجلة")}</div>
-        <QueryFeedback isLoading={isLoading} isError={isError} error={error} isEmpty={!runs.length} loadingText={t('hr.payroll.payroll_runs_table.s2', "جارٍ تحميل كشوف المرتبات...")} errorTitle={t('hr.payroll.payroll_runs_table.s3', "تعذر تحميل كشوف المرتبات")} emptyTitle={t('hr.payroll.payroll_runs_table.s4', "لا توجد بيانات مرتبات لهذه الفترة.")}>
+        <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#0f172a', marginBottom: '8px' }}>
+          {isEgypt ? 'كشوف المرتبات المسجلة' : 'مسيرات الرواتب المسجلة'}
+        </div>
+        <QueryFeedback
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+          isEmpty={!runs.length}
+          loadingText={isEgypt ? 'جارٍ تحميل كشوف المرتبات...' : 'جارٍ تحميل مسيرات الرواتب...'}
+          errorTitle={isEgypt ? 'تعذر تحميل كشوف المرتبات' : 'تعذر تحميل مسيرات الرواتب'}
+          emptyTitle={isEgypt ? 'لا توجد كشوف مرتبات مسجلة لهذه الفترة.' : 'لا توجد مسيرات رواتب مسجلة لهذه الفترة.'}
+        >
           <DataTable
             rows={runs}
             rowKey={(row) => String(row.id)}
             onRowClick={(row) => onSelectRun(String(row.id))}
             density="compact"
-            pagination={{ page, pageSize, totalItems, onPageChange, onPageSizeChange, itemLabel: t('hr.payroll.payroll_runs_table.s5', "كشف") }}
+            pagination={{ page, pageSize, totalItems, onPageChange, onPageSizeChange, itemLabel: isEgypt ? 'كشف' : 'مسير' }}
             columns={[
               { key: 'periodMonth', header: t('hr.payroll.payroll_runs_table.s6', "الشهر"), cell: (row) => text(row.periodMonth) },
-              { key: 'payFrequency', header: t('hr.payroll.payroll_runs_table.s7', "الدورة"), cell: (row) => row.payFrequency === 'weekly' ? t('hr.payroll.payroll_runs_table.s8', "أسبوعي") : row.payFrequency === 'biweekly' ? t('hr.payroll.payroll_runs_table.s9', "نصف شهري") : row.payFrequency === 'daily' ? t('hr.payroll.payroll_runs_table.s10', "يومي") : row.payFrequency === 'all' ? "شامل (الكل)" : t('hr.payroll.payroll_runs_table.s11', "شهري") },
+              { key: 'payFrequency', header: t('hr.payroll.payroll_runs_table.s7', "دورة القبض"), cell: (row) => getPayFrequencyLabel(row.payFrequency) },
               { key: 'startDate', header: t('hr.payroll.payroll_runs_table.s12', "من"), cell: (row) => row.startDate ? text(row.startDate) : t('hr.payroll.payroll_runs_table.s13', "أول الشهر") },
               { key: 'endDate', header: t('hr.payroll.payroll_runs_table.s14', "إلى"), cell: (row) => row.endDate ? text(row.endDate) : t('hr.payroll.payroll_runs_table.s15', "آخر الشهر") },
               { key: 'status', header: t('hr.payroll.payroll_runs_table.s16', "الحالة"), cell: (row) => statusLabel(row.status) },

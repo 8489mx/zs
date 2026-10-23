@@ -96,7 +96,7 @@ export function HrReportsPage() {
     leaves.filter(leaveNeedsReview).slice(0, 10).forEach((request) => rows.push({ id: `leave-${request.id}`, type: 'إجازات', target: text(request.employeeName), note: 'طلب إجازة قيد المراجعة.', action: 'فتح الإجازات', to: '/hr/leaves' }));
     loans.filter(hasDueLoan).slice(0, 10).forEach((loan) => rows.push({ id: `loan-${loan.id}`, type: 'سلف', target: text(loan.employeeName || loan.loanNo), note: `قسط مستحق هذا الشهر بقيمة ${money(loan.dueInstallmentsAmount || 0)}.`, action: 'فتح السلف', to: '/hr/loans' }));
     assets.filter(needsAssetReview).slice(0, 10).forEach((asset) => rows.push({ id: `asset-${asset.id}`, type: 'عُهد', target: text(asset.employeeName || asset.assetName), note: 'عهدة تالفة أو مفقودة أو ناقصة بيانات.', action: 'فتح العُهد', to: '/hr/assets' }));
-    payrollRuns.filter(payrollRunNeedsReview).slice(0, 10).forEach((run) => rows.push({ id: `payroll-${run.id}`, type: 'مرتبات', target: text(run.periodMonth), note: 'مسير يحتاج مراجعة قبل الاعتماد النهائي.', action: 'فتح المرتبات', to: '/hr/payroll' }));
+    payrollRuns.filter(payrollRunNeedsReview).slice(0, 10).forEach((run) => rows.push({ id: `payroll-${run.id}`, type: 'مرتبات', target: text(run.periodMonth), note: 'كشف مرتبات يحتاج مراجعة قبل الاعتماد النهائي.', action: 'فتح المرتبات', to: '/hr/payroll' }));
     const unmarked = Number(attendanceQuery.data?.summary?.unmarkedCount || 0);
     if (unmarked > 0) rows.push({ id: 'attendance-unmarked', type: 'حضور', target: 'سجلات الحضور', note: `يوجد ${unmarked} سجل حضور غير مكتمل ويحتاج مراجعة.`, action: 'فتح الحضور', to: '/hr/attendance' });
     return rows.slice(0, 80);

@@ -168,7 +168,7 @@ export function HrComingSoonPage() {
   const error = (canViewEmployees ? workspace.employees.error : null) || (canViewAttendance ? attendance.error : null);
 
   return (
-    <div className="page-stack page-shell">
+    <div className="page-stack page-shell" dir="rtl">
       <main className="document-prototype-column" style={{ paddingBottom: '20px' }}>
         <PageHeader
           title={t('hr.hr_coming_soon_page.s0', "الموارد البشرية")}
@@ -245,7 +245,7 @@ export function HrComingSoonPage() {
                 { label: t('hr.hr_coming_soon_page.s18', "طلب إجازة"), icon: <CalendarIcon size={14} />, to: '/hr/leaves', variant: 'secondary' as const },
                 { label: t('hr.hr_coming_soon_page.s19', "سلفة جديدة"), icon: <WalletIcon size={14} />, to: '/hr/loans', variant: 'secondary' as const },
                 { label: t('hr.hr_coming_soon_page.s20', "تسليم عهدة"), icon: <BriefcaseIcon size={14} />, to: '/hr/assets', variant: 'secondary' as const },
-                { label: t('hr.hr_coming_soon_page.s21', "مسير المرتبات"), icon: <BanknotesIcon size={14} />, to: '/hr/payroll', variant: 'secondary' as const },
+                { label: t('hr.hr_coming_soon_page.s21', "المرتبات والأجور"), icon: <BanknotesIcon size={14} />, to: '/hr/payroll', variant: 'secondary' as const },
                 { label: t('hr.hr_coming_soon_page.s22', "المستندات"), icon: <FileTextIcon size={14} />, to: '/hr/documents', variant: 'secondary' as const },
                 { label: t('hr.hr_coming_soon_page.s23', "التقارير"), icon: <ChartBarIcon size={14} />, to: '/hr/reports', variant: 'secondary' as const },
                 { label: t('hr.hr_coming_soon_page.s24', "الإعدادات"), icon: <CogIcon size={14} />, to: '/hr/settings', variant: 'secondary' as const },

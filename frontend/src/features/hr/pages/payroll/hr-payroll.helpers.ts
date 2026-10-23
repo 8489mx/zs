@@ -8,8 +8,38 @@ export const reviewStatusOptions: Array<{ value: PayrollReviewStatus; label: str
   { value: 'needs_review', label: 'يحتاج مراجعة' },
   { value: 'ready', label: 'جاهز' },
   { value: 'approved', label: 'معتمد' },
-  { value: 'paid', label: 'ط…دفوع' },
+  { value: 'paid', label: 'مدفوع' },
 ];
+
+export type PayFrequency = 'all' | 'monthly' | 'weekly' | 'biweekly' | 'daily';
+
+export const payFrequencyFilterOptions: Array<{ value: PayFrequency; label: string }> = [
+  { value: 'all', label: 'كل الدورات' },
+  { value: 'monthly', label: 'شهري' },
+  { value: 'weekly', label: 'أسبوعي' },
+  { value: 'biweekly', label: 'نصف شهري' },
+  { value: 'daily', label: 'يومي' },
+];
+
+export function getPayrollTerm(isEg: boolean, form: 'noun' | 'prep' | 'action' = 'noun'): string {
+  if (isEg) {
+    if (form === 'prep') return 'كشف';
+    if (form === 'action') return 'تجهيز كشف المرتبات';
+    return 'كشف المرتبات';
+  }
+  if (form === 'prep') return 'مسير';
+  if (form === 'action') return 'تجهيز مسير الرواتب';
+  return 'مسير الرواتب';
+}
+
+export function getPayFrequencyLabel(freq?: string): string {
+  const norm = String(freq || '').trim().toLowerCase();
+  if (norm === 'weekly') return 'أسبوعي';
+  if (norm === 'biweekly') return 'نصف شهري';
+  if (norm === 'daily') return 'يومي';
+  if (norm === 'all') return 'شامل (كافة الدورات)';
+  return 'شهري';
+}
 
 export function money(value: unknown) {
   const amount = Number(value || 0);
@@ -30,7 +60,7 @@ export function statusLabel(value: unknown) {
   if (status === 'draft') return 'مسودة / بانتظار المراجعة';
   if (status === 'reviewed') return 'جاهز';
   if (status === 'approved') return 'معتمد';
-  if (status === 'paid') return 'ط…دفوع';
+  if (status === 'paid') return 'مدفوع';
   if (status === 'cancelled' || status === 'canceled') return 'ملغي';
   return text(value);
 }

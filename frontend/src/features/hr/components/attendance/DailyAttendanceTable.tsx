@@ -6,16 +6,7 @@ import type { HrAttendanceRecord } from '@/types/domain';
 import { DraftRow } from './attendance-types';
 import { TimeAmPmInput } from './TimeAmPmInput';
 
-const STATUS_CONFIG: Record<string, { label: string; dot: string; color: string; bg: string }> = {
-  '': { label: 'غير مسجل', dot: '#94a3b8', color: '#64748b', bg: '#f8fafc' },
-  present: { label: 'حاضر', dot: '#16a34a', color: '#166534', bg: '#dcfce7' },
-  absent: { label: 'غائب', dot: '#dc2626', color: '#991b1b', bg: '#fee2e2' },
-  late: { label: 'متأخر', dot: '#d97706', color: '#92400e', bg: '#fef3c7' },
-  early_leave: { label: 'انصراف مبكر', dot: '#ea580c', color: '#9a3412', bg: '#ffedd5' },
-  leave: { label: 'إجازة', dot: '#2563eb', color: '#1e40af', bg: '#dbeafe' },
-  half_day: { label: 'نصف يوم', dot: '#7c3aed', color: '#6b21a8', bg: '#f3e8ff' },
-  excused: { label: 'بعذر', dot: '#475569', color: '#334155', bg: '#f1f5f9' },
-};
+
 
 interface DailyAttendanceTableProps {
   rows: HrAttendanceRecord[];
@@ -280,13 +271,12 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
             className: 'col-fit',
             cell: (row) => {
               const currentStatus = draftByEmployeeId[String(row.employeeId)]?.status || '';
-              const cfg = STATUS_CONFIG[currentStatus] || STATUS_CONFIG[''];
               return (
                 <div style={{ width: '135px' }}>
                   <CustomSelect
                     value={currentStatus}
                     onChange={(val) => onUpdateDraft(String(row.employeeId), { status: val })}
-                    style={{ background: cfg.bg, border: `1px solid ${cfg.dot}` }}
+                    style={{ background: '#ffffff', border: '1px solid #cbd5e1' }}
                     options={[
                       {
                         value: '',
