@@ -525,7 +525,14 @@ th, thead th {
   font-weight: 600;
   position: sticky;
   top: 0;
+  z-index: 10;
   border-bottom: 1px solid #e2e8f0;
+}
+.table-wrap-sticky thead th,
+.table-wrap-sticky th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 .table-wrap table { min-width: 880px; }
 .table-wrap tbody tr:hover { background: rgba(23, 12, 92, 0.03); }

@@ -114,6 +114,7 @@ td {
 
 th {
   background: #f7faff;
+  z-index: 10;
 }
 
 .table-wrap tbody tr:hover {

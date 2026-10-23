@@ -246,7 +246,7 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
             cell: (row) => {
               const dur = workedHours(row);
               return dur !== '—' ? (
-                <span style={{ fontWeight: 800, color: '#170e5e', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>
                   {dur}
                 </span>
               ) : (
