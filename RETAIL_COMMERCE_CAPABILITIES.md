@@ -377,3 +377,37 @@
 * **I4 / RETAIL-4:** العد الأعمى الإلزامي في إغلاق الورديات على حمولة الـ API لمنع تصفيف الدفاتر قبل الجرد.
 * **I5 / RETAIL-5:** حظر بيع الأدوية والمنتجات منتهية الصلاحية وفق محرك FEFO الصارم.
 * **I6 / RETAIL-6:** فرز ألوان ومقاسات الأزياء تحت كود الموديل الواحد `style_code` وتفرد كود الـ `sku` لكل تفريعة نشطة.
+
+---
+
+## 13. سجل التدقيق المالي والتشغيلي الشامل لمود التجارة والأزياء (Retail & Fashion End-to-End Audit Ledger — أكتوبر 2026)
+
+تم إجراء تدقيق شامل من الطرف إلى الطرف (End-to-End Financial, Inventory & Clothing Sub-Vertical Audit) وإغلاق **14 ثغرة محاسبية وتشغيلية** لضمان الجاهزية التجارية الكاملة بنسبة 100%:
+
+1. **تأسيس الحسابات الإلزامية وحل تصادم كود 6900 (`accounting-foundation.engine.ts` & `accounting-tenant-foundation.service.ts`):**
+   - إدراج حسابات `2150` (رصيد دائن للعملاء / Store Credit)، `4400` (مردودات المبيعات)، و `5300` (تالف وهالك المخزون) ضمن `REQUIRED_ACCOUNT_CODES`، وفصل كود `6950` (مصروفات أخرى) عن `6900` (تسويات الجرد).
+2. **اتزان قيد اليومية عند وجود رسوم خدمة أو إكراميات (`accounting-posting.service.ts`):**
+   - تضمين `service_charge` و `tip_amount` في استعلامات `postSale` و `postSaleEdit` وإضافتهما للجانب الدائن في القيد لمنع خطأ `Unbalanced sale journal`.
+3. **ترتيب الأقفال القانوني ومنع مضاعفة تكلفة الإضافات وتصحيح ضريبة التوصيل (`sales-write.service.ts`):**
+   - شمول `sale_line_stock_allocations.product_id` في `lockSaleStockRows` لمنع الـ Deadlock عند تعديل أو إلغاء الفواتير.
+   - إزالة حلقة جمع تكلفة الـ Modifiers المكررة في `createSale` التي كانت تضاعف الـ COGS مرتين.
+   - تمرير ضريبة الأصناف فقط (`itemOnlyTaxAmount`) إلى `allocateInvoiceDiscount` دون خلط ضريبة التوصيل.
+   - تسجيل مصروف توصيل الطيار `cash_out` بقيمة سالبة `-Math.abs(deliveryFee)` في `treasury_transactions`، وإرجاع كل تخصيص مخزني لمعرفه الفعلي `alloc.product_id` عند تعديل الفاتورة.
+4. **عزل المرتجعات بالبطاقة البنكية وتخصيص المخزن للصنف المرتجع (`returns.service.ts`):**
+   - تصفية `sale_line_stock_allocations` بمعرف الصنف `product_id` عند الإرجاع الجزئي.
+   - قصر إدراج حركات الكاش السالبة في `treasury_transactions` على المرتجعات النقدية `cash` فقط (في المرتجع العادي والاستبدال الذري `settleExchangeReturn`) لمنع تشويه رصيد درج النقدية الفعلي عند الاسترداد عبر الشبكة `card`.
+5. **حماية دورة حياة موديلات الملابس والأزياء (`catalog-product.service.ts`):**
+   - اختيار المخزن الافتراضي للفرع تلقائياً عند إضافة مقاس/لون جديد برصيد افتتاحي داخل `saveFashionGroup`.
+   - الحفاظ على الباركود والـ `sku` التاريخي للأصناف المؤرشفة ما لم يُعاد استخدامها في تفريعة نشطة.
+   - نسخ كافة حقول الموديل القالب (`credit_price`, `consumer_price`, `min_selling_price`, `bin_location`, `name_en`, `metadata`) للتفريعات المضافة حديثاً، وتوثيق `unit_cost` و `total_cost` في حركات الرصيد الافتتاحي `opening_balance`.
+6. **اختيار المخزن وتنقية كود الموديل في شاشة إضافة صنف ملابس (`NewProductForm.tsx`):**
+   - إضافة محدد المخزن (`warehouseId`) داخل شبكة بناء الألوان والمقاسات لدعم محلات الملابس متعددة المخازن/الفروع، وتنقية `styleCode` ليقبل الأرقام القياسية فقط.
+7. **منع تصادم الـ SKU للألوان العربية ووراثة الأسعار في جدول المقاسات (`FashionVariantsBuilder.tsx` & `FashionGroupEditorCard.tsx`):**
+   - تحصين `generateSequentialBarcodes` و `generateSequentialSkus` بـ `Set` لمنع تكرار الكود عند تجريد الحروف العربية في الباك إند (`normalizeSkuSegment`)، وحساب سعر الأساس للموديل من القيمة الأكثر تكراراً (Mode)، وإتاحة إدخال الرصيد الافتتاحي للمقاسات الجديدة في شاشة التعديل.
+8. **ترتيب المقاسات القياسية وطباعة باركود الملابس (`ProductsMatrixView.tsx`, `barcode-labels.ts`, `BarcodePrintDialog.tsx`):**
+   - دعم ترتيب المقاسات الكاملة (`XXS` حتى `6XL` و `ONE SIZE` / `FREE SIZE`)، وإصلاح مقارنة المقاسات المركبة مثل `3XL` مع `4XL`، واعتماد `sku || styleCode` على ملصقات الباركود الحرارية.
+9. **دقة مسح باركود الملابس والبحث باللون والمقاس في الكاشير (`pos-catalog-storage.ts` & `PosProductsPanel.tsx`):**
+   - منع مطابقة `styleCode` المشترك كباركود فردي في كاش الأوفلاين لكي لا يختار الكاشير مقاساً عشوائياً، وإضافة `color` و `size` لفهرس البحث المحلي، وتسهيل التبديل الذكي بين الألوان والمقاسات في `InlineGroupPicker`.
+10. **عزل الهوية القطاعية وتفعيل إعدادات الملابس والاستبدال بباركود الفاتورة (`vertical-scope.ts`, `settings.service.ts`, `PosCartItemsList.tsx`, `PosInstantExchangeDialog.tsx`):**
+    - حماية الهوية القطاعية للأنشطة الفرعية (`clothing`, `spices`, `perfumes`, `auto_parts`, `appliances_installments`)، وتعيين `defaultProductKind = 'fashion'` تلقائياً عند اختيار نشاط الملابس، وتفعيل ملاحظات السطر في الكاشير لمحلات الملابس (لتسجيل تعديلات الخياطة والتغليف)، ودعم البحث برقم الفاتورة المطبوع `Z-YYMMDD-XXXX` في نافذة الاستبدال الفوري.
+

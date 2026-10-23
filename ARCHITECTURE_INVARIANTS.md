@@ -2092,3 +2092,20 @@ esolveTenantAccount، مع التحقق من تفعيل الحسابات وعز�
   - `backend/test/critical/import-operations-master.spec.ts`
   - `backend/test/critical/import-lifecycle-integration.spec.ts`
   - `backend/test/critical/import-postgres-integration.spec.ts`
+
+## 2.26 ميثاق التكامل المحاسبي والتشغيلي لمود التجارة والتجزئة وقطاع الملابس والأزياء (Retail & Fashion Integrity Invariants)
+
+- **RETAIL-AUDIT-COA-SEED-1 (شمول حسابات المرتجعات وأرصدة المتجر ومنع تصادم 6900):**
+  - حسابات `2150` (رصيد دائن للعملاء / Store Credit)، `4400` (مردودات المبيعات)، و `5300` (تالف وهالك المخزون) إلزامية في `REQUIRED_ACCOUNT_CODES`، وحساب المصروفات الأخرى يحمل كود `6950` لمنع التصادم مع `6900` (تسويات الجرد).
+- **RETAIL-AUDIT-JOURNAL-BALANCE-1 (اتزان قيد المبيعات مع رسوم الخدمة والإكراميات):**
+  - دالتا `postSale` و `postSaleEdit` في `accounting-posting.service.ts` تجلبان `service_charge` و `tip_amount` وتضيفانهما إلى الجانب الدائن (`revenueCredit`) لضمان اتزان القيد 100% (`Debit == Credit`).
+- **RETAIL-AUDIT-CANONICAL-LOCK-ALLOCATIONS-1 (شمول تخصيصات المخزن في الترتيب القانوني للأقفال):**
+  - دالة `lockSaleStockRows` في `sales-write.service.ts` تقفل كافة `product_id` الموجودة في `sale_items` و `sale_line_stock_allocations` مرتبة تصاعدياً قبل أي تعديل أو إلغاء، وتعيد كل تخصيص إلى `alloc.product_id` الأصلي.
+- **RETAIL-AUDIT-CARD-REFUND-TREASURY-ISOLATION-1 (عزل مرتجعات البطاقة البنكية عن درج النقدية):**
+  - المرتجعات والاستبدالات الذرية التي تُرد عبر الشبكة (`card`) لا تدرج حركات نقدية سالبة في `treasury_transactions`؛ تقتصر حركات الصرف النقدي على `refundMethod === 'cash'`، ويسجل مصروف توصيل الطيار `cash_out` بقيمة سالبة `-Math.abs(deliveryFee)`.
+- **RETAIL-AUDIT-FASHION-SKU-COLLISION-GUARD-1 (منع تصادم الـ SKU للألوان العربية ووراثة خصائص الموديل):**
+  - توليد أكواد الـ `SKU` والباركود للمقاسات والألوان يتحقق من عدم التكرار عبر `Set` ويضيف لاحقة رقمية تسلسلية عند تطابق المقاس مع ألوان عربية، وتنسخ دالة `saveFashionGroup` خصائص الموديل القالب للتفريعات الجديدة وتعتمد المخزن الافتراضي للفرع تلقائياً عند وجود رصيد افتتاحي.
+- **RETAIL-AUDIT-POS-STYLECODE-BARCODE-SEPARATION-1 (عدم خلط كود الموديل المشترك بالباركود الفردي في الكاشير):**
+  - البحث بالباركود في `lookupProductByBarcodeFromStorage` يطابق الباركود الفردي والـ `SKU` فقط ولا يطابق `styleCode` المشترك بين عدة مقاسات، لمنع بيع مقاس عشوائي عند إدخال رقم الموديل.
+- **المرجع القطاعي المستقل:** [`RETAIL_COMMERCE_CAPABILITIES.md`](./RETAIL_COMMERCE_CAPABILITIES.md)
+
