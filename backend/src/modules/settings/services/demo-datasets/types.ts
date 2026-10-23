@@ -8,6 +8,8 @@ export interface DemoProductItem {
   stockQty: number;
   minStockQty: number;
   itemKind?: 'standard' | 'fashion';
+  styleCode?: string;
+  sku?: string;
   color?: string;
   size?: string;
 }

@@ -960,9 +960,9 @@ export class SettingsService {
       modulePatch.contractingModuleEnabled = false;
       modulePatch.maritimeFreightModuleEnabled = false;
       modulePatch.manufacturingModuleEnabled = false;
-      modulePatch.servicesModuleEnabled = false;
-      modulePatch.posModuleEnabled = true;
-      modulePatch.inventoryModuleEnabled = true;
+      modulePatch.servicesModuleEnabled = normalizedKey === 'services' || normalizedKey === 'maintenance';
+      modulePatch.posModuleEnabled = normalizedKey !== 'services';
+      modulePatch.inventoryModuleEnabled = normalizedKey !== 'services';
       modulePatch.purchasesModuleEnabled = true;
       modulePatch.crmModuleEnabled = true;
       const existingSettings = await this.getSettings(actor);
@@ -1008,9 +1008,11 @@ export class SettingsService {
       }
     }
 
+    const defaultProductKind = normalizedKey === 'clothing' ? 'fashion' : 'standard';
     const settingsEntries: Array<[string, any]> = [
       ['activityType', normalizedKey],
       ['businessIndustry', normalizedKey],
+      ['defaultProductKind', defaultProductKind],
       ...Object.entries(modulePatch),
     ];
     for (const [key, value] of settingsEntries) {

@@ -698,8 +698,9 @@ export class SettingsDemoDataService {
         }
       }
 
-      // Update tenant activity_type
-      await trx.updateTable('tenants').set({ activity_type: dataset.key }).where('id', '=', scope.tenantId).execute().catch(() => undefined);
+      // Update tenant activity_type (map 'fashion' dataset key to canonical 'clothing')
+      const canonicalActivityType = dataset.key === 'fashion' ? 'clothing' : dataset.key;
+      await trx.updateTable('tenants').set({ activity_type: canonicalActivityType }).where('id', '=', scope.tenantId).execute().catch(() => undefined);
 
       // 3. Product Categories from dataset
       const categoryMap = new Map<string, number>();
@@ -808,6 +809,8 @@ export class SettingsDemoDataService {
         const res = await trx.insertInto('products').values({
           name: p.name,
           barcode: p.barcode,
+          sku: p.sku || null,
+          style_code: p.styleCode || null,
           item_type: 'product',
           item_kind: (p.itemKind as any) || 'standard',
           color: p.color || null,

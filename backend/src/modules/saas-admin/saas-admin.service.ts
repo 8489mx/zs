@@ -1361,6 +1361,16 @@ export class SaasAdminService {
       if (verticalKey !== 'maintenance' && (verticalKey as string) !== 'electronics') {
         modulesToSet['enableMobileStoreFeatures'] = false;
       }
+      if (verticalKey !== 'clothing' && (verticalKey as string) !== 'fashion') {
+        modulesToSet['clothingModuleEnabled'] = false;
+      } else {
+        modulesToSet['clothingModuleEnabled'] = true;
+      }
+      if (verticalKey !== 'auto_parts') {
+        modulesToSet['autoPartsModuleEnabled'] = false;
+      } else {
+        modulesToSet['autoPartsModuleEnabled'] = true;
+      }
       if (verticalKey !== 'services') {
         modulesToSet['servicesModuleEnabled'] = false;
       } else {

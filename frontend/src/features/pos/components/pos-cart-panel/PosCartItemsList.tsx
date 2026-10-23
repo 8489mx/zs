@@ -257,7 +257,13 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
-  const allowItemNotes = settingsQuery.data?.manufacturingModuleEnabled === true || settingsQuery.data?.restaurantModuleEnabled === true;
+  const allowItemNotes =
+    settingsQuery.data?.manufacturingModuleEnabled === true ||
+    settingsQuery.data?.restaurantModuleEnabled === true ||
+    settingsQuery.data?.clothingModuleEnabled === true ||
+    Boolean(settingsQuery.data?.enableClothingStoreFeatures) ||
+    settingsQuery.data?.businessIndustry === 'clothing' ||
+    settingsQuery.data?.businessIndustry === 'fashion';
   const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
 
   const [notesDialogItem, setNotesDialogItem] = useState<{ lineKey: string; name: string; nameEn?: string; notes: string } | null>(null);

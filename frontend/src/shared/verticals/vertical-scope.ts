@@ -66,7 +66,6 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
   // 0. Enterprise operational module switches take precedence over generic retail
   if (isFlagActive(settings?.maritimeFreightModuleEnabled)) return 'maritime';
   if (isFlagActive(settings?.contractingModuleEnabled)) return 'contracting';
-  if (isFlagActive(settings?.manufacturingModuleEnabled)) return 'manufacturing';
 
   const hasPosEntitlement = Boolean(
     tenant?.features?.includes('pos') ||
@@ -208,17 +207,30 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
       explicit === 'general' ||
       explicit === 'store' ||
       explicit === 'supermarket' ||
+      explicit === 'clothing' ||
       explicit === 'fashion' ||
       explicit === 'spices' ||
       explicit === 'perfumes' ||
+      explicit === 'auto_parts' ||
+      explicit === 'appliances_installments' ||
+      explicit === 'ecommerce' ||
+      explicit === 'storefront' ||
       explicit.includes('تجزئة') ||
       explicit.includes('متاجر') ||
-      explicit.includes('سوبرماركت')
+      explicit.includes('سوبرماركت') ||
+      explicit.includes('ملابس') ||
+      explicit.includes('أزياء') ||
+      explicit.includes('أحذية')
     ) {
       // If explicit is generic retail, but an operational enterprise module switch was turned on, honor it
       if (isFlagActive(settings?.maritimeFreightModuleEnabled)) return 'maritime';
       if (isFlagActive(settings?.contractingModuleEnabled)) return 'contracting';
-      if (isFlagActive(settings?.manufacturingModuleEnabled)) return 'manufacturing';
+      if (
+        isFlagActive(settings?.manufacturingModuleEnabled) &&
+        !['clothing', 'fashion', 'spices', 'perfumes', 'supermarket', 'auto_parts', 'appliances_installments', 'ecommerce', 'storefront'].includes(explicit)
+      ) {
+        return 'manufacturing';
+      }
       if (isFlagActive(settings?.restaurantModuleEnabled)) return 'restaurant';
       if (isFlagActive(settings?.enablePharmacyModule)) return 'pharmacy';
       if (isFlagActive(settings?.enableMobileStoreFeatures)) return 'maintenance';

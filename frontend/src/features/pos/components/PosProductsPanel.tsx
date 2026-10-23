@@ -112,8 +112,10 @@ function InlineGroupPicker({
   const [selectedSize, setSelectedSize] = useState('');
 
   useEffect(() => {
-    setSelectedColor(group.colors[0] || '');
-    setSelectedSize(group.sizes[0] || '');
+    const firstColor = group.colors[0] || '';
+    const firstMatchingSize = group.products.find((p) => !firstColor || String(p.color || '') === firstColor)?.size || group.sizes[0] || '';
+    setSelectedColor(firstColor);
+    setSelectedSize(firstMatchingSize);
   }, [group]);
 
   useEffect(() => {
@@ -163,7 +165,17 @@ function InlineGroupPicker({
                   key={color}
                   type="button"
                   className={`pos-option-chip ${selectedColor === color ? 'is-active' : ''}`}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => {
+                    const nextColor = selectedColor === color ? '' : color;
+                    setSelectedColor(nextColor);
+                    if (nextColor && selectedSize) {
+                      const hasCombo = group.products.some((p) => String(p.color || '') === nextColor && String(p.size || '') === selectedSize);
+                      if (!hasCombo) {
+                        const availableSize = group.products.find((p) => String(p.color || '') === nextColor)?.size || '';
+                        setSelectedSize(availableSize);
+                      }
+                    }
+                  }}
                 >
                   {color}
                 </button>
@@ -181,7 +193,17 @@ function InlineGroupPicker({
                   key={size}
                   type="button"
                   className={`pos-option-chip ${selectedSize === size ? 'is-active' : ''}`}
-                  onClick={() => setSelectedSize(size)}
+                  onClick={() => {
+                    const nextSize = selectedSize === size ? '' : size;
+                    setSelectedSize(nextSize);
+                    if (nextSize && selectedColor) {
+                      const hasCombo = group.products.some((p) => String(p.color || '') === selectedColor && String(p.size || '') === nextSize);
+                      if (!hasCombo) {
+                        const availableColor = group.products.find((p) => String(p.size || '') === nextSize)?.color || '';
+                        setSelectedColor(availableColor);
+                      }
+                    }
+                  }}
                 >
                   {size}
                 </button>
@@ -800,27 +822,29 @@ function PosProductsPanelComponent({
             >
               {__t('pos.pos_products_panel.s17', __t('pos.pos_products_panel.s7', "آخر استخدام"))}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                onProductFilterChange('raw_materials');
-                setShelf('all');
-                setSelectedIndex(0);
-              }}
-              style={{
-                padding: '5px 12px',
-                fontSize: '12px',
-                borderRadius: '7px',
-                border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1',
-                background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff',
-                color: productFilter === 'raw_materials' ? '#ffffff' : '#334155',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
-              }}
-            >
-              {__t('pos.pos_products_panel.s18', __t('pos.pos_products_panel.s8', "مواد خام"))}
-            </button>
+            {(productFilter === 'raw_materials' || products.some((p) => p.itemType === 'raw_material')) ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onProductFilterChange('raw_materials');
+                  setShelf('all');
+                  setSelectedIndex(0);
+                }}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '12px',
+                  borderRadius: '7px',
+                  border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1',
+                  background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff',
+                  color: productFilter === 'raw_materials' ? '#ffffff' : '#334155',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
+                }}
+              >
+                {__t('pos.pos_products_panel.s18', __t('pos.pos_products_panel.s8', "مواد خام"))}
+              </button>
+            ) : null}
 
             {/* Density Toggle Button */}
             <button

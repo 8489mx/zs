@@ -87,6 +87,7 @@ export class TrialTenantProvisioningService {
       enablePharmacyModule: false,
       enableMobileStoreFeatures: false,
       clothingModuleEnabled: false,
+      autoPartsModuleEnabled: false,
       manufacturingModuleEnabled: false,
       weightedBarcodeEnabled: false,
       servicesModuleEnabled: false,
@@ -158,6 +159,11 @@ export class TrialTenantProvisioningService {
       case 'appliances_installments':
         base.installmentsModuleEnabled = true;
         base.enableEnterpriseFeatures = true;
+        break;
+
+      case 'auto_parts':
+        base.autoPartsModuleEnabled = true;
+        base.defaultPosMode = 'scanner';
         break;
 
       case 'restaurant':

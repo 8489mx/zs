@@ -5,6 +5,8 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos/api/pos.api';
+import { salesApi } from '@/features/sales/api/sales.api';
+import { getNormalizedInvoiceSearchTerms, matchesSaleDocNo } from '@/features/pos/lib/pos-barcode-normalizer';
 import { invalidateSalesDomain } from '@/app/query-invalidation';
 import type { PosWorkspaceState } from './posWorkspace.helpers';
 
@@ -35,11 +37,21 @@ export function PosInstantExchangeDialog({ open, onClose, pos }: {
 
   async function loadSource() {
     if (attempted) { toast.error('أعد محاولة نفس الطلب أولاً لمعرفة نتيجته قبل تحميل فاتورة أخرى'); return; }
-    const id = Number(sourceId);
-    if (!Number.isInteger(id) || id <= 0) { toast.error('أدخل رقم الفاتورة الأصلية'); return; }
+    const rawQuery = String(sourceId || '').trim();
+    const numericId = Number(rawQuery);
+    if (!rawQuery) { toast.error('أدخل رقم الفاتورة الأصلية أو باركود الإيصال'); return; }
     setPending(true);
     try {
-      const result = await posApi.getSaleForExchange(id);
+      let targetSaleId = Number.isInteger(numericId) && numericId > 0 ? numericId : 0;
+      if (!targetSaleId) {
+        const terms = getNormalizedInvoiceSearchTerms(rawQuery);
+        const searchTerm = terms[0] || rawQuery;
+        const page = await salesApi.listPage({ search: searchTerm, pageSize: 10 });
+        const matched = (page.rows || []).find((s) => matchesSaleDocNo(s.docNo, rawQuery) || matchesSaleDocNo(s.docNo, searchTerm) || String(s.docNo || '').toLowerCase() === rawQuery.toLowerCase());
+        if (matched) targetSaleId = Number(matched.id);
+      }
+      if (!targetSaleId) throw new Error('لم يتم العثور على الفاتورة المطلوبة');
+      const result = await posApi.getSaleForExchange(targetSaleId);
       const sale = result.sale;
       if (sale.status !== 'posted' || !sale.customerId || String(sale.branchId) !== String(pos.branchId) ||
         Number(sale.total) - Number(sale.paidAmount) - Number(sale.storeCreditUsed || 0) > 0.001) {
@@ -116,7 +128,7 @@ export function PosInstantExchangeDialog({ open, onClose, pos }: {
       <p>{t('pos.pos_workspace.pos_instant_exchange_dialog.s2', "البضاعة الجديدة من سلة الكاشير، والمرتجع من فاتورة العميل الأصلية. يُحسب الصافي عند الاعتماد على السيرفر.")}</p>
       <label htmlFor="exchange-source">{t('pos.pos_workspace.pos_instant_exchange_dialog.s3', "رقم الفاتورة الأصلية")}</label>
       <div style={{ display: 'flex', gap: 8 }}>
-        <input id="exchange-source" type="number" min={1} value={sourceId} onChange={(event) => setSourceId(event.target.value)} disabled={pending || attempted} />
+        <input id="exchange-source" type="text" placeholder="مثال: Z-261023-0001 أو رقم الفاتورة" value={sourceId} onChange={(event) => setSourceId(event.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void loadSource(); } }} disabled={pending || attempted} />
         <Button type="button" onClick={() => { void loadSource(); }} disabled={pending || attempted}>{t('pos.pos_workspace.pos_instant_exchange_dialog.s4', "تحميل")}</Button>
       </div>
       {source && <>

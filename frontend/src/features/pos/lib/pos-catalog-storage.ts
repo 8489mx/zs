@@ -211,11 +211,6 @@ export async function lookupProductByBarcodeFromStorage(rawCode: string): Promis
             return;
           }
 
-          if (product.styleCode && product.styleCode.trim().toLowerCase() === cleanCode) {
-            resolve(product);
-            return;
-          }
-
           if ((product as any).matchedSerialNumber && String((product as any).matchedSerialNumber).trim().toLowerCase() === cleanCode) {
             resolve(product);
             return;
@@ -313,8 +308,10 @@ export async function searchCatalogFromStorage(rawTerm: string, limit: number = 
         const barcodeNorm = String(product.barcode || '').toLowerCase();
         const skuNorm = String(product.sku || '').toLowerCase();
         const styleNorm = String(product.styleCode || '').toLowerCase();
+        const colorNorm = normalizeArabicSearchKey(product.color || '');
+        const sizeNorm = normalizeArabicSearchKey(product.size || '');
 
-        const combinedHaystack = `${nameNorm} ${barcodeNorm} ${skuNorm} ${styleNorm}`;
+        const combinedHaystack = `${nameNorm} ${barcodeNorm} ${skuNorm} ${styleNorm} ${colorNorm} ${sizeNorm}`;
         const matchesAllTokens = tokens.every((token) => combinedHaystack.includes(token));
 
         if (matchesAllTokens) {
