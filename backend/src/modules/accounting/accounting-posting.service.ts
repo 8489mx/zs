@@ -634,7 +634,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'exchange_return_id', 'branch_id', 'location_id', 'created_by', 'created_at',
-        'delivery_fee', 'delivery_fee_mode', 'prices_include_tax',
+        'delivery_fee', 'delivery_fee_mode', 'service_charge', 'tip_amount', 'prices_include_tax',
         'sale_origin', 'payment_type', 'collection_status',
       ])
       .where('id', '=', saleId)
@@ -658,13 +658,15 @@ export class AccountingPostingService {
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
     const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
+    const serviceCharge = this.toMoney((sale as any).service_charge ?? 0);
+    const tipAmount = this.toMoney((sale as any).tip_amount ?? 0);
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const saleTotal = this.toMoney(sale.total);
     const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
     const revenueCredit = sale.prices_include_tax
-      ? this.toMoney(subtotal - taxAmount + deliveryFee)
-      : this.toMoney(subtotal + deliveryFee);
+      ? this.toMoney(subtotal + serviceCharge - taxAmount + deliveryFee + tipAmount)
+      : this.toMoney(subtotal + serviceCharge + deliveryFee + tipAmount);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
@@ -913,7 +915,7 @@ export class AccountingPostingService {
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
         'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
-        'delivery_fee', 'delivery_fee_mode', 'prices_include_tax',
+        'delivery_fee', 'delivery_fee_mode', 'service_charge', 'tip_amount', 'prices_include_tax',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -936,13 +938,15 @@ export class AccountingPostingService {
     const discount = this.toMoney(sale.discount);
     const taxAmount = this.toMoney(sale.tax_amount);
     const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
+    const serviceCharge = this.toMoney((sale as any).service_charge ?? 0);
+    const tipAmount = this.toMoney((sale as any).tip_amount ?? 0);
     const paidAmount = this.toMoney(sale.paid_amount);
     const storeCreditUsed = this.toMoney(sale.store_credit_used);
     const saleTotal = this.toMoney(sale.total);
     const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
     const revenueCredit = sale.prices_include_tax
-      ? this.toMoney(subtotal - taxAmount + deliveryFee)
-      : this.toMoney(subtotal + deliveryFee);
+      ? this.toMoney(subtotal + serviceCharge - taxAmount + deliveryFee + tipAmount)
+      : this.toMoney(subtotal + serviceCharge + deliveryFee + tipAmount);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;

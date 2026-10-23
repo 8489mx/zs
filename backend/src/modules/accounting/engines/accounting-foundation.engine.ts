@@ -37,9 +37,12 @@ export const REQUIRED_ACCOUNT_CODES = [
   '1150', // ضريبة المشتريات
   '2110', // الموردون
   '2120', // ضريبة المبيعات
+  '2150', // دفعات مقدمة من العملاء (رصيد دائن / Store Credit)
   '4100', // إيرادات المبيعات
   '4300', // خصم المبيعات
+  '4400', // مردودات المبيعات
   '5100', // تكلفة البضاعة المباعة
+  '5300', // هالك وتالف مخزون
   '6900', // مواد التشغيل المصروفة نهائيًا
   '6000', // المصروفات
   '7290', // فروق التقريب المحاسبي
@@ -58,7 +61,7 @@ export const SETTINGS_ACCOUNT_MAP: Array<{ column: string; codes: string[] }> = 
   { column: 'sales_discount_account_id', codes: ['4300'] },
   { column: 'cogs_account_id', codes: ['5100'] },
   { column: 'purchase_account_id', codes: ['5100'] },
-  { column: 'expenses_account_id', codes: ['6000', '6700'] },
+  { column: 'expenses_account_id', codes: ['6700', '6900', '6000'] },
   { column: 'sales_tax_account_id', codes: ['2120'] },
   { column: 'purchase_tax_account_id', codes: ['1150'] },
 ];

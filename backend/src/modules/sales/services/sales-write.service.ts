@@ -291,6 +291,20 @@ export class SalesWriteService {
       }
     }
 
+    const existingSaleLineIds = items
+      .map((item) => Number(item.id))
+      .filter((id) => id > 0 && ('sale_id' in item || 'product_id' in item));
+    if (existingSaleLineIds.length > 0) {
+      const allocProducts = await trx.selectFrom('sale_line_stock_allocations')
+        .select('product_id')
+        .where('sale_line_id', 'in', existingSaleLineIds)
+        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+        .execute();
+      for (const row of allocProducts) {
+        if (Number(row.product_id) > 0) productIds.add(Number(row.product_id));
+      }
+    }
+
     if (optionIds.size > 0) {
       const modOptions = await trx.selectFrom('pos_modifier_options')
         .select(['id', 'component_product_id'])
@@ -1201,21 +1215,6 @@ export class SalesWriteService {
           { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service' }
         );
 
-        // Absorb additional modifier costs (e.g. extra cheese, bacon) into line cost for accurate COGS accounting
-        let additionalModifierCost = 0;
-        if (Array.isArray(item.modifiers) && item.modifiers.length > 0) {
-          for (const m of item.modifiers) {
-            const mCost = Number(m.costPrice || m.cost_price || 0);
-            const mQty = Number(m.qty || 1);
-            if (mCost > 0) {
-              additionalModifierCost += mCost * mQty;
-            }
-          }
-        }
-        if (additionalModifierCost > 0) {
-          preparedItem.costPrice = Number((Number(preparedItem.costPrice || 0) + additionalModifierCost).toFixed(3));
-        }
-
         subtotal += preparedItem.lineTotal;
         preparedItems.push({
           ...preparedItem,
@@ -1271,9 +1270,10 @@ export class SalesWriteService {
       await this.assertDiscountChangeAllowed(trx, auth, unapprovedDiscount, normalized.managerPin, subtotal);
       if (effectiveDiscount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
       const { taxAmount, total } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee, normalized.serviceCharge, Number((normalized as any).tipAmount || 0));
+      const { taxAmount: itemOnlyTaxAmount } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, 0, 0, 0);
       const allocatedLines = allocateInvoiceDiscount({
         lines: preparedItems.map((item) => ({ lineTotal: item.lineTotal, qty: item.qty })),
-        invoiceDiscount: effectiveDiscount, invoiceTax: taxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
+        invoiceDiscount: effectiveDiscount, invoiceTax: itemOnlyTaxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
       });
       const allocationByItem = new Map(preparedItems.map((item, index) => [item, allocatedLines[index]]));
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
@@ -1923,7 +1923,7 @@ export class SalesWriteService {
                 .insertInto('treasury_transactions')
                 .values({
                   txn_type: 'cash_out',
-                  amount: normalized.deliveryFee,
+                  amount: -Math.abs(normalized.deliveryFee),
                   note: `صرف أجرة توصيل نقداً للمندوب ${repLabel} عن فاتورة #${docNo || id}`,
                   reference_type: 'cashier_shift',
                   reference_id: openShift.id,
@@ -2236,10 +2236,14 @@ export class SalesWriteService {
         if (allocations.length > 0) {
            let remainingToRestore = restoreQty;
            for (const alloc of allocations) {
-             if (remainingToRestore <= 0) break;
+             const isParentProduct = Number(alloc.product_id) === Number(item.product_id);
+             if (isParentProduct && remainingToRestore <= 0) continue;
              const allocQty = Number(alloc.quantity || 0);
-             const qtyToRestore = Math.min(allocQty, remainingToRestore);
-             remainingToRestore -= qtyToRestore;
+             const qtyToRestore = isParentProduct ? Math.min(allocQty, remainingToRestore) : allocQty;
+             if (qtyToRestore <= 0) continue;
+             if (isParentProduct) {
+               remainingToRestore -= qtyToRestore;
+             }
 
              // Find branch for this location
              const locData = await trx.selectFrom('stock_locations').select('branch_id')
@@ -2249,7 +2253,7 @@ export class SalesWriteService {
              const branchId = locData.branch_id ?? sale.branch_id;
 
              const stockChange = await applyStockDelta(trx, {
-               productId: Number(item.product_id),
+               productId: Number(alloc.product_id),
                delta: qtyToRestore,
                branchId: branchId,
                locationId: alloc.location_id,
@@ -2258,7 +2262,7 @@ export class SalesWriteService {
              });
 
              await trx.insertInto('stock_movements').values({
-               product_id: item.product_id,
+               product_id: Number(alloc.product_id),
                movement_type: 'sale_edit_reversal',
                qty: qtyToRestore,
                before_qty: stockChange.scopeBefore,
@@ -2534,10 +2538,11 @@ export class SalesWriteService {
 
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin, subtotal);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
-      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee);
+      const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee, normalized.serviceCharge, Number((normalized as any).tipAmount || 0));
+      const { taxAmount: itemOnlyTaxAmount } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, 0, 0, 0);
       const allocatedLines = allocateInvoiceDiscount({
         lines: preparedItems.map((item) => ({ lineTotal: item.lineTotal, qty: item.qty })),
-        invoiceDiscount: normalized.discount, invoiceTax: taxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
+        invoiceDiscount: normalized.discount, invoiceTax: itemOnlyTaxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
       });
       const allocationByItem = new Map(preparedItems.map((item, index) => [item, allocatedLines[index]]));
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
@@ -2580,6 +2585,8 @@ export class SalesWriteService {
         subtotal: Number(subtotal.toFixed(2)),
         discount: normalized.discount,
         delivery_fee: normalized.deliveryFee,
+        service_charge: normalized.serviceCharge || 0,
+        tip_amount: Number((normalized as any).tipAmount || 0),
         tax_rate: normalized.taxRate,
         tax_amount: taxAmount,
         prices_include_tax: normalized.pricesIncludeTax,
@@ -2593,7 +2600,7 @@ export class SalesWriteService {
         branch_id: normalized.branchId,
         location_id: normalized.locationId,
         updated_at: sql`NOW()`,
-      }).where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+      } as any).where('id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
       for (const payment of payments) {
         await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, applied_amount: payment.amount, tendered_amount: payment.tenderedAmount, change_amount: payment.changeAmount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();

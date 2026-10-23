@@ -390,8 +390,10 @@ export class ReturnsService {
       if (line.tender === 'receivable') throw new AppError('يجب تسوية مديونية الفاتورة قبل الاستبدال', 'EXCHANGE_UNPAID_SOURCE', 422);
       allocations.push(line);
       await this.addStoreCredit(trx, context.customerId, -line.amount, auth);
-      await this.addTreasuryTransaction(trx, 'sale_return_refund', -line.amount,
-        `صافي استرداد استبدال ${context.returnId}`, context.returnId, auth, context.branchId, context.locationId, line.tender === 'cash');
+      if (line.tender === 'cash') {
+        await this.addTreasuryTransaction(trx, 'sale_return_refund', -line.amount,
+          `صافي استرداد استبدال ${context.returnId}`, context.returnId, auth, context.branchId, context.locationId, true);
+      }
     }
     await trx.updateTable('return_documents').set({
       settlement_mode: requested === 'store_credit' ? 'store_credit' : 'refund',
@@ -607,6 +609,7 @@ export class ReturnsService {
       const allocations = await trx.selectFrom('sale_line_stock_allocations')
          .selectAll()
          .where('sale_line_id', '=', saleLineId)
+         .where('product_id', '=', requestItem.productId)
          .where(this.tenantPredicate(auth))
          .orderBy('allocation_order', 'desc')
          .execute();
@@ -688,7 +691,6 @@ export class ReturnsService {
       if (allocation.tender === 'store_credit' && customerId) await this.addStoreCredit(trx, customerId, allocation.amount, auth);
       else if (allocation.tender === 'receivable' && customerId) await this.addCustomerLedgerEntry(trx, customerId, -allocation.amount, 'sale_return', 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
       else if (allocation.tender === 'cash') await this.addTreasuryTransaction(trx, 'sale_return_refund', -allocation.amount, 'sale return ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id, true);
-      else if (allocation.tender === 'card') await this.addTreasuryTransaction(trx, 'sale_return_refund', -allocation.amount, 'sale return (card) ' + returnDocNo, returnDocumentId, auth, sale.branch_id, sale.location_id);
     }
 
     // Reconcile Customer Loyalty Points on Return (ZS-070)
