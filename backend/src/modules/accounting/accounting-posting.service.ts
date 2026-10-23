@@ -8,6 +8,8 @@ import { AccountingTenantFoundationService } from './accounting-tenant-foundatio
 import { AppError } from '../../common/errors/app-error';
 import { calculateSalesReturnCost } from './engines/sales-return-cost.engine';
 import { allocatePayrollAccrual } from '../hr/engines/payroll-accrual-allocation.engine';
+import { lockAccountingPeriod } from './accounting-period-lock';
+import { randomUUID } from 'node:crypto';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -462,6 +464,7 @@ export class AccountingPostingService {
     if (queryable && !queryable.isTransaction && typeof queryable.transaction === 'function') {
       return queryable.transaction().execute((trx: any) => this.insertPostedJournal(trx, params));
     }
+    await lockAccountingPeriod(queryable, params.tenantId);
     if (!params.lines?.length) throw new AppError(`No journal lines for ${params.sourceType} #${params.sourceId}`, 'EMPTY_JOURNAL', 400);
 
     const lines = params.lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) }));
@@ -515,6 +518,37 @@ export class AccountingPostingService {
       throw new AppError(`One or more accounts became inactive while posting ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
     }
 
+    // Year-end entries are authorised fiscal transitions even when monthly books
+    // have already been locked. Verify their year and exact year-end date first.
+    let isFiscalTransition = false;
+    if (params.sourceType === 'fiscal_year_closing' || params.sourceType === 'fiscal_year_reopen') {
+      const fiscalYear = await queryable.selectFrom('accounting_fiscal_years')
+        .select(['closing_entry_id', 'status', 'end_date'])
+        .where('tenant_id', '=', params.tenantId)
+        .where('id', '=', params.sourceId)
+        .forUpdate()
+        .executeTakeFirst();
+      const postingDate = params.entryDate.toISOString().slice(0, 10);
+      const endDate = fiscalYear?.end_date instanceof Date
+        ? fiscalYear.end_date.toISOString().slice(0, 10)
+        : String(fiscalYear?.end_date || '').slice(0, 10);
+      if (postingDate !== endDate || fiscalYear?.status !==
+          (params.sourceType === 'fiscal_year_closing' ? 'open' : 'closed')) {
+        throw new AppError('Fiscal transition requires the correct year-end date and year status', 'INVALID_FISCAL_TRANSITION', 422);
+      }
+      if (params.sourceType === 'fiscal_year_reopen') {
+        const closingEntry = fiscalYear.closing_entry_id ? await queryable.selectFrom('journal_entries')
+          .select(['status', 'reversed_by_entry_id'])
+          .where('tenant_id', '=', params.tenantId)
+          .where('id', '=', fiscalYear.closing_entry_id)
+          .executeTakeFirst() : null;
+        if (closingEntry?.status !== 'posted' || closingEntry.reversed_by_entry_id) {
+          throw new AppError('Fiscal reopening requires a posted closing entry', 'INVALID_FISCAL_REOPEN', 422);
+        }
+      }
+      isFiscalTransition = true;
+    }
+
     // Validate Period Lock Dates
     const settings = await queryable
       .selectFrom('accounting_settings')
@@ -523,7 +557,7 @@ export class AccountingPostingService {
       .where('id', '=', 1)
       .executeTakeFirst();
 
-    if (settings) {
+    if (settings && !isFiscalTransition) {
       const dateStr = params.entryDate instanceof Date
         ? params.entryDate.toISOString().slice(0, 10)
         : String(params.entryDate || '').slice(0, 10);
@@ -564,7 +598,7 @@ export class AccountingPostingService {
       .where('end_date', '>=', (params.entryDate instanceof Date ? params.entryDate.toISOString().slice(0, 10) : String(params.entryDate || '').slice(0, 10)) as any)
       .executeTakeFirst();
 
-    if (closedMonthlyPeriod) {
+    if (closedMonthlyPeriod && !isFiscalTransition) {
       throw new AppError(
         `الفترة المحاسبية الشهرية [${closedMonthlyPeriod.name}] مقفلة. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
         'ACCOUNTING_PERIOD_LOCKED',
@@ -572,7 +606,7 @@ export class AccountingPostingService {
       );
     }
 
-    const tempEntryNo = `JE-TMP-${params.sourceType}-${params.sourceId}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const tempEntryNo = `JE-TMP-${randomUUID()}`;
     const inserted = await queryable
       .insertInto('journal_entries')
       .values({

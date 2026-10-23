@@ -195,7 +195,7 @@ export function ProductsWorkspace() {
               mode={controller.barcodeDialogMode}
               onClose={() => controller.setBarcodeDialogProduct(null)}
               onSaved={(product) => controller.applyProductPatch(product)}
-              onOpenPrint={(product, unit) => controller.openPrintDialog(product, unit)}
+              onOpenPrint={(product, unit, items) => { if (items && items.length > 1) { controller.setPrintDialogState({ items }); } else { controller.openPrintDialog(product, unit); } }}
             />
 
             <LazyBarcodePrintDialog

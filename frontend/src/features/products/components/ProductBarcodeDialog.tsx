@@ -12,7 +12,33 @@ import { productsApi } from '@/features/products/api/products.api';
 import { buildUpdatePayload, normalizeCustomerPrices, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { buildCode128Svg, collectExistingBarcodes, createGeneratedBarcode, productUnitsWithFallback } from '@/lib/barcode';
+import { resolveBarcodeUnit, type BarcodePrintItem } from '@/lib/barcode-labels';
 import type { Product, ProductUnit } from '@/types/domain';
+
+/** جمع كل متغيرات الموديل (ألوان + مقاسات) التي تشترك في نفس styleCode */
+function collectVariantItems(product: Product, allProducts: Product[]): BarcodePrintItem[] {
+  const styleCode = String(product.styleCode || '').trim();
+  if (!styleCode) {
+    // صنف عادي بدون متغيرات — ملصق واحد بعدد المخزون
+    return [{ product, unit: resolveBarcodeUnit(product), copies: Math.max(1, Number(product.stock || 1)) }];
+  }
+  // موديل ملابس له متغيرات — نجمع كل المتغيرات من نفس الموديل
+  const siblings = allProducts.filter((p) => String(p.styleCode || '').trim() === styleCode);
+  if (siblings.length <= 1) {
+    return [{ product, unit: resolveBarcodeUnit(product), copies: Math.max(1, Number(product.stock || 1)) }];
+  }
+  // ترتيب: لون ثم مقاس أبجدياً
+  const sorted = [...siblings].sort((a, b) => {
+    const colorDiff = String(a.color || '').localeCompare(String(b.color || ''), 'ar');
+    if (colorDiff !== 0) return colorDiff;
+    return String(a.size || '').localeCompare(String(b.size || ''), 'ar');
+  });
+  return sorted.map((p) => ({
+    product: p,
+    unit: resolveBarcodeUnit(p),
+    copies: Math.max(1, Number(p.stock || 1)),
+  }));
+}
 
 interface ProductBarcodeDialogProps {
   open: boolean;
@@ -21,7 +47,7 @@ interface ProductBarcodeDialogProps {
   mode?: 'scan' | 'generate';
   onClose: () => void;
   onSaved?: (product: Product) => void;
-  onOpenPrint?: (product: Product, unit?: ProductUnit | null) => void;
+  onOpenPrint?: (product: Product, unit?: ProductUnit | null, items?: BarcodePrintItem[]) => void;
 }
 
 export function ProductBarcodeDialog({ open, product, products, mode = 'scan', onClose, onSaved, onOpenPrint }: ProductBarcodeDialogProps) {
@@ -108,6 +134,11 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
   }
 
   const effectiveBarcode = activeMode === 'generate' ? generatedValue : scanValue;
+  const variantCount = useMemo(() => {
+    const styleCode = String(product.styleCode || '').trim();
+    if (!styleCode) return 1;
+    return products.filter((p) => String(p.styleCode || '').trim() === styleCode).length;
+  }, [product.styleCode, products]);
 
   return (
     <StandardDialog
@@ -128,12 +159,18 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
                   const updatedProduct = targetBarcode && targetBarcode !== currentProduct.barcode
                     ? { ...currentProduct, barcode: targetBarcode }
                     : currentProduct;
-                  onOpenPrint(updatedProduct, selectedUnit);
+                  // جمع كل المتغيرات (ألوان + مقاسات) إذا كان الصنف موديل ملابس
+                  const variantItems = collectVariantItems(updatedProduct, products);
+                  if (variantItems.length > 1) {
+                    onOpenPrint(updatedProduct, selectedUnit, variantItems);
+                  } else {
+                    onOpenPrint(updatedProduct, selectedUnit);
+                  }
                 }}
                 style={{ fontSize: '0.8rem' }}
               >
                 <AppIcons.Printer size={14} style={{ marginInlineEnd: '6px' }} />
-                {t('products.product_barcode_dialog.s3', "طباعة الملصقات")}
+                {variantCount > 1 ? `طباعة ملصقات كل المتغيرات (${variantCount} متغير)` : t('products.product_barcode_dialog.s3', "طباعة الملصقات")}
               </Button>
             ) : null}
           </div>

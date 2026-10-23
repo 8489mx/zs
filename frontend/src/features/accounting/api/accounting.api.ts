@@ -14,6 +14,8 @@ export type AccountingAccount = {
   isSystem: boolean;
   allowManualEntries: boolean;
   isControlAccount: boolean;
+  isMonetary: boolean;
+  revaluationCurrency: string | null;
   flags: {
     isCashBank: boolean;
     isReceivable: boolean;
