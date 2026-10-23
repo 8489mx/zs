@@ -28,7 +28,7 @@
 ### Payroll, loans and employee attendance (October 2026)
 
 - Serialize payroll period creation per tenant. A run with frequency `all` conflicts with every overlapping frequency; draft recalculation, review and item adjustments lock the run before checking its status, so approval cannot race a late edit.
-- Approving a loan locks the employee and draft, checks that scheduled installments equal principal, and recomputes total active debt against the salary ceiling. Only administrators may use immediate loan disbursement; employee portal advances create a complete cent-balanced installment schedule and an ID-derived document number atomically.
+- Approving a loan locks the employee and draft, checks that scheduled installments equal principal, and recomputes total active debt against the salary ceiling. Only administrators may use immediate loan disbursement; employee portal advances create a complete cent-balanced installment schedule and an ID-derived document number atomically. Legacy portal drafts with no schedule are repaired on approval; loan due dates clamp to the final day of short months.
 - Mobile punches lock the employee before reading or writing the day's attendance row, including the first check-in when no row exists. Reject invalid GPS coordinates or an absent/invalid current branch geofence instead of accepting an unrestricted punch. Portal and mobile attendance dates follow the tenant timezone. Employee payslips expose only approved payroll.
 
 ---

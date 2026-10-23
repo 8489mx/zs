@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
-import { advanceDueDate, EmployeePortalService } from '../../src/modules/hr/employee-portal.service';
+import { EmployeePortalService } from '../../src/modules/hr/employee-portal.service';
+import { advanceDueDate, buildAdvanceSchedule } from '../../src/modules/hr/engines/loan-due-date.engine';
 
 async function main(): Promise<void> {
   assert.equal(advanceDueDate('2026-01-31', 1), '2026-02-28');
   assert.equal(advanceDueDate('2026-01-31', 2), '2026-03-31');
+  assert.deepEqual(buildAdvanceSchedule(100, 3, '2026-01-31').map((row) =>
+    [row.dueDate, row.amount]), [
+    ['2026-02-28', 33.33], ['2026-03-31', 33.33], ['2026-04-30', 33.34],
+  ]);
   const installments: any[] = [];
   const updates: any[] = [];
   let transactionCount = 0;

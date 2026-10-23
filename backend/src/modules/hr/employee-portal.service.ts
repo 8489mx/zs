@@ -8,6 +8,7 @@ import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
+import { advanceDueDate, buildAdvanceSchedule } from './engines/loan-due-date.engine';
 import {
   PORTAL_TOKEN_TTL_MS,
   signPortalToken,
@@ -21,14 +22,6 @@ const PORTAL_TOKEN_ERRORS: PortalTokenErrorSpec = {
   signature: { message: 'رمز الجلسة غير صالح أو تم التلاعب به', code: 'INVALID_SIGNATURE' },
   expired: { message: 'انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول', code: 'TOKEN_EXPIRED' },
 };
-
-export function advanceDueDate(today: string, monthsAhead: number): string {
-  const [year, month, day] = today.split('-').map(Number);
-  const first = new Date(Date.UTC(year, month - 1 + monthsAhead, 1));
-  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
-  first.setUTCDate(Math.min(day, lastDay));
-  return first.toISOString().slice(0, 10);
-}
 
 export interface PortalEmployeeUser {
   employeeId: number;
@@ -814,11 +807,14 @@ export class EmployeePortalService {
     if (!Number.isSafeInteger(months) || months < 1 || months > 120) {
       throw new AppError('عدد أشهر السداد يجب أن يكون بين 1 و120', 'INVALID_REPAYMENT_MONTHS', 400);
     }
-    const totalCents = Math.round(amount * 100);
-    const installmentCents = Math.floor(totalCents / months);
-    if (installmentCents <= 0) throw new AppError('قيمة القسط الشهري غير صالحة', 'INVALID_INSTALLMENT', 400);
-    const installmentAmount = installmentCents / 100;
     const today = todayTenantDate(await getTenantTimezone(this.db, tenantId));
+    let schedule: ReturnType<typeof buildAdvanceSchedule>;
+    try {
+      schedule = buildAdvanceSchedule(amount, months, today);
+    } catch {
+      throw new AppError('قيمة القسط الشهري غير صالحة', 'INVALID_INSTALLMENT', 400);
+    }
+    const installmentAmount = schedule[0].amount;
 
     const inserted = await this.db.transaction().execute(async (trx) => {
       const loan = await trx
@@ -848,13 +844,11 @@ export class EmployeePortalService {
       const loanNo = formatDailyDocumentNumber('LOAN', Number(loan.id));
       await trx.updateTable('hr_employee_loans').set({ loan_no: loanNo })
         .where('id', '=', Number(loan.id)).where('tenant_id', '=', tenantId).execute();
-      for (let installmentNo = 1; installmentNo <= months; installmentNo += 1) {
-        const cents = installmentNo === months
-          ? totalCents - installmentCents * (months - 1) : installmentCents;
+      for (const installment of schedule) {
         await trx.insertInto('hr_employee_loan_installments').values({
           tenant_id: tenantId, account_id: accountId, loan_id: Number(loan.id),
-          installment_no: installmentNo, due_date: advanceDueDate(today, installmentNo),
-          amount: cents / 100, paid_amount: 0, status: 'pending',
+          installment_no: installment.installmentNo, due_date: installment.dueDate,
+          amount: installment.amount, paid_amount: 0, status: 'pending',
         }).execute();
       }
       return { ...loan, loan_no: loanNo };

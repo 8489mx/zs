@@ -54,6 +54,7 @@ import { buildEmployeeFinancialStatement } from './engines/employee-financial-st
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { advanceDueDate as addMonths, buildAdvanceSchedule } from './engines/loan-due-date.engine';
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
@@ -117,14 +118,6 @@ function nextMonthDate(value?: string | null): string {
   if (normalized) return addMonths(normalized, 1);
   const now = new Date();
   return addMonths(`${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`, 1);
-}
-
-function addMonths(value: string, months: number): string {
-  const normalized = normalizeDateOnly(value);
-  if (!normalized) return nextMonthDate();
-  const [year, month, day] = normalized.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1 + months, day));
-  return date.toISOString().slice(0, 10);
 }
 
 function normalizePayrollMonth(value: unknown): string {
@@ -1451,7 +1444,8 @@ export class HrService {
         .forUpdate().executeTakeFirst();
       if (employee?.status !== 'active') throw new AppError('Employee is not active', 'HR_EMPLOYEE_NOT_ACTIVE', 400);
       const loan = await trx.selectFrom('hr_employee_loans')
-        .select(['id', 'employee_id', 'created_by', 'status', 'principal_amount'])
+        .select(['id', 'employee_id', 'created_by', 'status', 'principal_amount', 'loan_no',
+          'installment_count', 'issue_date', 'account_id'])
         .where('id', '=', id).where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
       if (Number(loan.employee_id) !== Number(candidate.employee_id)) throw new AppError('Loan employee changed', 'HR_LOAN_EMPLOYEE_CHANGED', 409);
@@ -1461,10 +1455,41 @@ export class HrService {
       }
       const amount = Number(loan.principal_amount);
       if (!Number.isFinite(amount) || amount <= 0) throw new AppError('Loan amount is invalid', 'HR_LOAN_AMOUNT_INVALID', 400);
-      const schedule = await sql<{ count: string; total: string }>`
+      let schedule = await sql<{ count: string; total: string }>`
         SELECT COUNT(*)::text AS count, COALESCE(SUM(amount), 0)::text AS total
         FROM hr_employee_loan_installments WHERE loan_id = ${id} AND tenant_id = ${tenantId}
       `.execute(trx);
+      // Old employee-portal requests were drafts without installment rows.
+      // Repair only that known legacy shape while the loan row is locked.
+      if (!Number(schedule.rows[0]?.count) && loan.loan_no.startsWith('ADV-REQ-')) {
+        const issueDate = normalizeDateOnly(loan.issue_date);
+        let installments: ReturnType<typeof buildAdvanceSchedule>;
+        try {
+          if (!issueDate) throw new Error('Missing issue date');
+          installments = buildAdvanceSchedule(amount, Number(loan.installment_count), issueDate);
+        } catch {
+          throw new AppError('Legacy advance installment plan is invalid', 'HR_LOAN_SCHEDULE_INVALID', 400);
+        }
+        for (const installment of installments) {
+          await trx.insertInto('hr_employee_loan_installments').values({
+            tenant_id: tenantId, account_id: loan.account_id,
+            loan_id: id, installment_no: installment.installmentNo,
+            due_date: installment.dueDate, amount: installment.amount,
+            paid_amount: 0, status: 'pending',
+          }).execute();
+        }
+        await trx.updateTable('hr_employee_loans').set({
+          loan_no: formatDailyDocumentNumber('LOAN', id),
+          repayment_mode: 'monthly_salary_installment',
+          installment_amount: installments[0].amount,
+          monthly_installment_amount: installments[0].amount,
+          first_due_date: installments[0].dueDate,
+        }).where('id', '=', id).where('tenant_id', '=', tenantId).execute();
+        schedule = await sql<{ count: string; total: string }>`
+          SELECT COUNT(*)::text AS count, COALESCE(SUM(amount), 0)::text AS total
+          FROM hr_employee_loan_installments WHERE loan_id = ${id} AND tenant_id = ${tenantId}
+        `.execute(trx);
+      }
       if (!Number(schedule.rows[0]?.count) || Math.abs(Number(schedule.rows[0]?.total) - amount) > 0.01) {
         throw new AppError('Loan installments must add up to its principal before approval', 'HR_LOAN_SCHEDULE_INVALID', 400);
       }
