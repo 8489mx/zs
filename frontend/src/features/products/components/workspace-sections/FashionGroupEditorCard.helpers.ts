@@ -31,15 +31,48 @@ export type VariantDraft = {
   minStock?: number;
 };
 
-export function toCommonDraft(product: Product): CommonDraft {
+export function resolveGroupBaselinePricing(products: Product[], fallback?: Product) {
+  if (!products.length) {
+    return {
+      costPrice: Number(fallback?.costPrice || 0),
+      retailPrice: Number(fallback?.retailPrice || 0),
+      wholesalePrice: Number(fallback?.wholesalePrice || 0),
+    };
+  }
+  const counts = new Map<string, { count: number; costPrice: number; retailPrice: number; wholesalePrice: number }>();
+  for (const entry of products) {
+    const costPrice = Number(entry.costPrice || 0);
+    const retailPrice = Number(entry.retailPrice || 0);
+    const wholesalePrice = Number(entry.wholesalePrice || 0);
+    const key = `${costPrice}::${retailPrice}::${wholesalePrice}`;
+    const existing = counts.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(key, { count: 1, costPrice, retailPrice, wholesalePrice });
+    }
+  }
+  let best = { count: -1, costPrice: Number(products[0].costPrice || 0), retailPrice: Number(products[0].retailPrice || 0), wholesalePrice: Number(products[0].wholesalePrice || 0) };
+  for (const candidate of counts.values()) {
+    if (candidate.count > best.count) best = candidate;
+  }
+  return { costPrice: best.costPrice, retailPrice: best.retailPrice, wholesalePrice: best.wholesalePrice };
+}
+
+export function toCommonDraft(product: Product, groupProducts?: Product[]): CommonDraft {
+  const baseline = groupProducts && groupProducts.length ? resolveGroupBaselinePricing(groupProducts, product) : {
+    costPrice: Number(product.costPrice || 0),
+    retailPrice: Number(product.retailPrice || 0),
+    wholesalePrice: Number(product.wholesalePrice || 0),
+  };
   return {
     name: product.name || '',
     styleCode: product.styleCode || '',
     itemKind: product.itemKind === 'fashion' ? 'fashion' : 'standard',
     itemType: product.itemType === 'raw_material' ? 'raw_material' : 'product',
-    costPrice: Number(product.costPrice || 0),
-    retailPrice: Number(product.retailPrice || 0),
-    wholesalePrice: Number(product.wholesalePrice || 0),
+    costPrice: baseline.costPrice,
+    retailPrice: baseline.retailPrice,
+    wholesalePrice: baseline.wholesalePrice,
     minStock: Number(product.minStock || 0),
     categoryId: product.categoryId || '',
     supplierId: product.supplierId || '',
@@ -60,10 +93,10 @@ export function sortVariants(rows: VariantDraft[]) {
 }
 
 export function toVariantRows(products: Product[]) {
-  const baseline = products[0];
-  const bc = Number(baseline?.costPrice || 0);
-  const br = Number(baseline?.retailPrice || 0);
-  const bw = Number(baseline?.wholesalePrice || 0);
+  const baseline = resolveGroupBaselinePricing(products);
+  const bc = baseline.costPrice;
+  const br = baseline.retailPrice;
+  const bw = baseline.wholesalePrice;
   return sortVariants(
     products.map((entry) => {
       const costPrice = Number(entry.costPrice || 0);

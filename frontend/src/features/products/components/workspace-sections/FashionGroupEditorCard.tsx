@@ -14,6 +14,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { formatCurrency } from '@/lib/format';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
+import { systemConfirm } from '@/shared/components/system-alert';
 import type { Category, Product, Supplier, Location } from '@/types/domain';
 import {
   buildPayload,
@@ -117,7 +118,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
   }, [groupQuery.data, product]);
 
   const seedProduct = useMemo(() => (groupProducts[0] || product), [groupProducts, product]);
-  const [commonDraft, setCommonDraft] = useState<CommonDraft>(() => ({ ...toCommonDraft(seedProduct), name: deriveBaseName(seedProduct) }));
+  const [commonDraft, setCommonDraft] = useState<CommonDraft>(() => ({ ...toCommonDraft(seedProduct, groupProducts), name: deriveBaseName(seedProduct) }));
   const [variantRows, setVariantRows] = useState<VariantDraft[]>(() => toVariantRows(groupProducts));
 
   // Quick builder tokens state
@@ -142,7 +143,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       && previous.colors === colorsValue && previous.sizes === sizesValue
       && previous.prefix === barcodePrefix;
     if (sameProduct && !draftIsUnchanged) return;
-    const nextCommon = { ...toCommonDraft(seedProduct), name: deriveBaseName(seedProduct) };
+    const nextCommon = { ...toCommonDraft(seedProduct, groupProducts), name: deriveBaseName(seedProduct) };
     const nextRows = toVariantRows(groupProducts);
     const nextColors = Array.from(new Set(nextRows.map((r) => r.color).filter(Boolean))).join('، ');
     const nextSizes = Array.from(new Set(nextRows.map((r) => r.size).filter(Boolean))).join('، ');
@@ -158,7 +159,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     };
   }, [product.id, seedProduct, groupProducts]);
 
-  const baselineCommon = useMemo(() => JSON.stringify({ ...toCommonDraft(seedProduct), name: deriveBaseName(seedProduct) }), [seedProduct]);
+  const baselineCommon = useMemo(() => JSON.stringify({ ...toCommonDraft(seedProduct, groupProducts), name: deriveBaseName(seedProduct) }), [seedProduct]);
   const baselineRows = useMemo(() => rowsFingerprint(toVariantRows(groupProducts)), [groupProducts]);
   const hasDraftChanges = JSON.stringify(commonDraft) !== baselineCommon || rowsFingerprint(variantRows) !== baselineRows;
   const duplicates = useMemo(() => duplicateSummary(variantRows), [variantRows]);
@@ -253,7 +254,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       const payloadRows = cleanRows.map((row) => {
         const source = row.id ? sourceById.get(String(row.id)) : undefined;
         if (row.id && !source) throw new Error('صنف فرعي غير موجود في المجموعة');
-        return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source, toCommonDraft(seedProduct).defaultLocationId), id: source ? Number(source.id) : undefined };
+        return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source, toCommonDraft(seedProduct, groupProducts).defaultLocationId), id: source ? Number(source.id) : undefined };
       });
       await productsApi.saveFashionGroup(styleCode, { rows: payloadRows });
       return cleanRows;
@@ -360,12 +361,23 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
 
   function generateSequentialSkus() {
     const prefix = (barcodePrefix || commonDraft.styleCode || 'VAR').trim();
-    setVariantRows((current) => current.map((row) => {
-      const colorPart = (row.color || '').trim().replace(/\s+/g, '-');
-      const sizePart = (row.size || '').trim().replace(/\s+/g, '-');
-      const generated = [prefix, colorPart, sizePart].filter(Boolean).join('-');
-      return row.sku?.trim() ? row : { ...row, sku: generated };
-    }));
+    setVariantRows((current) => {
+      const used = new Set(current.map((row) => (row.sku || '').trim().toLowerCase()).filter(Boolean));
+      return current.map((row, index) => {
+        if (row.sku?.trim()) return row;
+        const colorPart = (row.color || '').trim().replace(/\s+/g, '-');
+        const sizePart = (row.size || '').trim().replace(/\s+/g, '-');
+        const base = [prefix, colorPart, sizePart].filter(Boolean).join('-') || `${prefix}-${String(index + 1).padStart(3, '0')}`;
+        let candidate = base;
+        let seq = index + 1;
+        while (used.has(candidate.toLowerCase())) {
+          candidate = `${base}-${String(seq).padStart(2, '0')}`;
+          seq++;
+        }
+        used.add(candidate.toLowerCase());
+        return { ...row, sku: candidate };
+      });
+    });
   }
 
   function clearAllBarcodes() {
@@ -1034,9 +1046,22 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                         />
                       </td>
                       <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 800, color: (row.stock || 0) > 0 ? '#15803d' : '#94a3b8', fontSize: '0.8rem' }}>
-                          {row.stock || 0}
-                        </span>
+                        {row.id ? (
+                          <span style={{ fontWeight: 800, color: (row.stock || 0) > 0 ? '#15803d' : '#94a3b8', fontSize: '0.8rem' }}>
+                            {row.stock || 0}
+                          </span>
+                        ) : (
+                          <input
+                            className="purchase-prototype-field-input"
+                            style={{ height: '30px', padding: '0 6px', fontSize: '0.78rem', textAlign: 'center', fontWeight: 700, width: '64px' }}
+                            type="number"
+                            min={0}
+                            step="1"
+                            value={row.stock ?? 0}
+                            onChange={(event) => updateRow(index, { stock: Math.max(0, Number(event.target.value || 0)) })}
+                            disabled={mutation.isPending}
+                          />
+                        )}
                       </td>
                       <td style={{ padding: '6px 6px' }}>
                         <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.78rem', display: 'block', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={fullName}>
@@ -1229,10 +1254,13 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
 
           <SubmitButton
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const keptIds = new Set(variantRows.filter((row) => row.id).map((row) => String(row.id)));
               const removedCount = groupProducts.filter((item) => !keptIds.has(String(item.id))).length;
-              if (removedCount > 0 && !window.confirm(`سيتم أرشفة ${removedCount} مقاس أو لون محذوف من المجموعة. متابعة الحفظ؟`)) return;
+              if (removedCount > 0) {
+                const confirmed = await systemConfirm(`سيتم أرشفة ${removedCount} مقاس أو لون محذوف من المجموعة. متابعة الحفظ؟`);
+                if (!confirmed) return;
+              }
               mutation.mutate();
             }}
             disabled={mutation.isPending || duplicates.duplicateCombos > 0 || duplicates.duplicateBarcodes > 0 || duplicates.duplicateSkus > 0 || !variantRows.length}

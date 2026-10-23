@@ -111,7 +111,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
     setShowPrice(true);
     setShowUnit(true);
     setShowBarcodeText(true);
-    setShowSku(Boolean(product?.sku));
+    setShowSku(Boolean(product?.sku || product?.styleCode || items?.some((it) => it.product?.sku || it.product?.styleCode)));
 
     // Reset Food Statement defaults
     setShowFoodStatement(false);
@@ -698,7 +698,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                 <span>{t('products.barcode_print_dialog.s36', "رقم الباركود أسفل الخطوط")}</span>
               </label>
 
-              {activeProduct.styleCode && (
+              {(activeProduct.sku || activeProduct.styleCode) && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#1e293b', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
@@ -706,7 +706,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                     onChange={(e) => setShowSku(e.target.checked)}
                     style={{ accentColor: '#170e5e', width: '15px', height: '15px', cursor: 'pointer' }}
                   />
-                  <span>{t('products.barcode_print_dialog.s37', "كود الصنف (")}{activeProduct.styleCode})</span>
+                  <span>{t('products.barcode_print_dialog.s37', "كود الصنف (")}{activeProduct.sku || activeProduct.styleCode})</span>
                 </label>
               )}
             </div>

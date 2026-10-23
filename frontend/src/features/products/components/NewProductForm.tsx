@@ -567,7 +567,7 @@ export function NewProductForm({
               <div className="field">
                 <label>{t('products.new_product_form.s23', "كود الصنف الأساسي / الموديل")}</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input className="purchase-prototype-field-input" {...form.register('styleCode')} disabled={isFormDisabled || isGeneratingStyleCode} inputMode="numeric" placeholder="1001" style={{ flex: 1 }} />
+                  <input className="purchase-prototype-field-input" {...form.register('styleCode', { onChange: (event) => { const cleaned = String(event.target.value || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/\D+/g, ''); if (event.target.value !== cleaned) form.setValue('styleCode', cleaned, { shouldDirty: true, shouldValidate: true }); } })} disabled={isFormDisabled || isGeneratingStyleCode} inputMode="numeric" placeholder="1001" style={{ flex: 1 }} />
                   <Button type="button" variant="secondary" onClick={() => void handleGenerateStyleCode()} disabled={isFormDisabled || isGeneratingStyleCode}>{isGeneratingStyleCode ? '...' : t('products.new_product_form.s24', "توليد كود")}</Button>
                 </div>
               </div>
@@ -651,6 +651,19 @@ export function NewProductForm({
                   isPending={supplierMutation.isPending}
                 />
                 {form.formState.errors.supplierId && <small className="field-error">{form.formState.errors.supplierId.message}</small>}
+              </div>
+
+              <div className="field">
+                <label>{t('products.new_product_form.s61', "المخزن")}</label>
+                <ComboboxSelect
+                  value={watchedWarehouseId || ''}
+                  onChange={(v) => form.setValue('warehouseId', v, { shouldDirty: true, shouldValidate: true })}
+                  options={locationOptions}
+                  emptyLabel={locationOptions.length === 1 ? '' : t('products.new_product_form.s62', "اختر المخزن...")}
+                  placeholder={t('products.new_product_form.s63', "ابحث...")}
+                  disabled={isFormDisabled || locationOptions.length === 1}
+                />
+                {form.formState.errors.warehouseId && <small className="field-error">{form.formState.errors.warehouseId.message}</small>}
               </div>
 
               <Field label={t('products.new_product_form.s47', "مكان الرف (Bin)")}>

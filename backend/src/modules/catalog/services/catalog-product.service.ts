@@ -1723,6 +1723,26 @@ export class CatalogProductService {
     const seenBarcodes = new Set<string>();
     const seenSkus = new Set<string>();
     const seenIds = new Set<number>();
+    let fallbackWarehouseId: number | null = null;
+    if (drafts.some((d) => !d.id && Number(d.value.stock || 0) > 0 && !d.value.warehouseId)) {
+      const existingGroupRow = await this.db.selectFrom('products').select('default_location_id')
+        .where('style_code', '=', originalStyle).where('item_kind', '=', groupKind)
+        .where('is_active', '=', true).where('default_location_id', 'is not', null)
+        .where(this.tenantPredicate(actor)).executeTakeFirst();
+      if (existingGroupRow?.default_location_id) {
+        fallbackWarehouseId = Number(existingGroupRow.default_location_id);
+      } else {
+        const settingsRaw = await this.db.selectFrom('settings').selectAll().where(this.tenantPredicate(actor)).execute();
+        const settings = settingsRaw.reduce<Record<string, unknown>>((acc, row) => { try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; } return acc; }, {});
+        if (settings.currentLocationId) {
+          fallbackWarehouseId = Number(settings.currentLocationId);
+        } else {
+          const activeLocs = await this.db.selectFrom('stock_locations').select('id').where('is_active', '=', true).where((eb) => eb.or([eb('location_type', 'is', null), eb('location_type', '!=', 'in_transit')])).where(this.tenantPredicate(actor)).execute();
+          if (activeLocs.length === 1) fallbackWarehouseId = Number(activeLocs[0].id);
+        }
+      }
+    }
+
     for (const { id, value } of drafts) {
       if (value.itemKind !== groupKind || this.coerceNewStyleCode(value.styleCode) !== newStyle || !value.name || !(value.color || value.size)) {
         throw new AppError('Invalid fashion variant or mixed style codes', 'FASHION_GROUP_INVALID', 400);
@@ -1743,6 +1763,7 @@ export class CatalogProductService {
       if (id && value.stock !== undefined) throw new AppError('Use inventory adjustment to change stock', 'STOCK_UPDATE_FORBIDDEN', 400);
       await this.ensureCategoryAndSupplierInTenant(value, actor);
       if (!id) {
+        if (!value.warehouseId && fallbackWarehouseId) value.warehouseId = fallbackWarehouseId;
         if (value.stock && !value.warehouseId) throw new AppError('حدد مخزنًا للرصيد الافتتاحي', 'LOCATION_REQUIRED', 400);
         await this.ensureCustomerPricesInTenant(value, actor);
         this.ensureAdvancedOffersSupported(value, await this.getProductOfferColumnCapabilities());
@@ -1801,13 +1822,28 @@ export class CatalogProductService {
         if (otherUnitBarcodes.length) throw new AppError('Barcode is used by another product unit', 'BARCODE_EXISTS', 400);
       }
 
-      // Release old group keys before writing, allowing two sizes to swap SKUs/barcodes.
-      await trx.updateTable('products').set({ barcode: null, sku: null })
-        .where('id', 'in', oldIds).where(this.tenantPredicate(actor)).execute();
-      await trx.updateTable('product_units').set({ barcode: null })
-        .where('product_id', 'in', oldIds).where('is_base_unit', '=', true)
-        .where(this.tenantPredicate(actor)).execute();
+      // Release keys on kept variants (and on any archived variant whose barcode/SKU is being reused
+      // by a kept/new variant), preserving historical barcode/SKU on archived variants otherwise.
+      const keptIdSet = new Set(drafts.filter((row) => row.id).map((row) => Number(row.id)));
+      const releaseBarcodeIds = existing
+        .filter((p) => keptIdSet.has(Number(p.id)) || (p.barcode && seenBarcodes.has(String(p.barcode).toLowerCase())))
+        .map((p) => Number(p.id));
+      const releaseSkuIds = existing
+        .filter((p) => keptIdSet.has(Number(p.id)) || (p.sku && seenSkus.has(String(p.sku).toLowerCase())))
+        .map((p) => Number(p.id));
+      if (releaseBarcodeIds.length) {
+        await trx.updateTable('products').set({ barcode: null })
+          .where('id', 'in', releaseBarcodeIds).where(this.tenantPredicate(actor)).execute();
+        await trx.updateTable('product_units').set({ barcode: null })
+          .where('product_id', 'in', releaseBarcodeIds).where('is_base_unit', '=', true)
+          .where(this.tenantPredicate(actor)).execute();
+      }
+      if (releaseSkuIds.length) {
+        await trx.updateTable('products').set({ sku: null })
+          .where('id', 'in', releaseSkuIds).where(this.tenantPredicate(actor)).execute();
+      }
 
+      const template = existing[0];
       let created = 0;
       let updated = 0;
       for (const { id, value } of drafts) {
@@ -1834,17 +1870,25 @@ export class CatalogProductService {
           updated++;
         } else {
           const stock = Number(value.stock || 0);
+          const resolvedWarehouseId = value.warehouseId || (template?.default_location_id ? Number(template.default_location_id) : null);
           const inserted = await trx.insertInto('products').values({
-            name: value.name, name_en: value.nameEn || null,
+            name: value.name, name_en: value.nameEn || template?.name_en || null,
             barcode: value.barcode || null, sku: value.sku || null,
             item_type: value.itemType, item_kind: groupKind, style_code: newStyle,
-            color: value.color || null, size: value.size || null, bin_location: value.binLocation || null,
+            color: value.color || null, size: value.size || null,
+            bin_location: value.binLocation || template?.bin_location || null,
             category_id: value.categoryId, supplier_id: value.supplierId,
             cost_price: value.costPrice, retail_price: value.retailPrice,
-            wholesale_price: value.wholesalePrice, min_stock_qty: value.minStock,
-            stock_qty: stock, default_location_id: value.warehouseId || null,
+            wholesale_price: value.wholesalePrice,
+            credit_price: value.creditPrice ?? (template?.credit_price != null ? Number(template.credit_price) : null),
+            consumer_price: value.consumerPrice ?? (template?.consumer_price != null ? Number(template.consumer_price) : null),
+            min_selling_price: value.minSellingPrice ?? (template?.min_selling_price != null ? Number(template.min_selling_price) : null),
+            min_stock_qty: value.minStock,
+            stock_qty: stock, default_location_id: resolvedWarehouseId,
             notes: value.notes, is_active: true, track_serials: false,
-            metadata: value.metadata ? JSON.stringify(value.metadata) : null,
+            metadata: value.metadata
+              ? JSON.stringify(value.metadata)
+              : (template?.metadata ? (typeof template.metadata === 'string' ? template.metadata : JSON.stringify(template.metadata)) : null),
             catalog_updated_at: sql`NOW()`, ...this.tenantFields(actor),
           } as any).returning('id').executeTakeFirstOrThrow();
           const productId = Number(inserted.id);
@@ -1852,14 +1896,16 @@ export class CatalogProductService {
           await this.replaceProductRelations(trx, productId, newValue, actor);
           if (stock > 0) {
             await trx.insertInto('product_location_stock').values({
-              product_id: productId, branch_id: null, location_id: value.warehouseId!, qty: stock,
+              product_id: productId, branch_id: null, location_id: resolvedWarehouseId!, qty: stock,
               ...this.tenantFields(actor),
             }).execute();
             await trx.insertInto('stock_movements').values({
               product_id: productId, movement_type: 'opening_balance', qty: stock,
-              before_qty: 0, after_qty: stock, reason: 'opening_balance',
+              before_qty: 0, after_qty: stock,
+              unit_cost: value.costPrice, total_cost: Number((stock * value.costPrice).toFixed(2)),
+              reason: 'opening_balance',
               note: 'رصيد افتتاحي لمقاس جديد', reference_type: 'product',
-              reference_id: productId, location_id: value.warehouseId!, created_by: actor.userId,
+              reference_id: productId, location_id: resolvedWarehouseId!, created_by: actor.userId,
               ...this.tenantFields(actor),
             } as any).execute();
           }
@@ -2007,6 +2053,8 @@ export class CatalogProductService {
             qty: initialStockQty,
             before_qty: 0,
             after_qty: initialStockQty,
+            unit_cost: draft.costPrice,
+            total_cost: Number((initialStockQty * draft.costPrice).toFixed(2)),
             reason: 'opening_balance',
             note: 'رصيد افتتاحي عند إنشاء الصنف',
             reference_type: 'product',

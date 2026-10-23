@@ -215,9 +215,9 @@ export function FashionVariantsBuilder({
         size: '',
         barcode: '',
         stock: Number(defaultStock || 0),
-        retailPrice: parentRetailPrice !== undefined && parentRetailPrice > 0 ? parentRetailPrice : undefined,
-        costPrice: parentCostPrice !== undefined && parentCostPrice > 0 ? parentCostPrice : undefined,
-        wholesalePrice: _parentWholesalePrice !== undefined && _parentWholesalePrice > 0 ? _parentWholesalePrice : undefined,
+        retailPrice: undefined,
+        costPrice: undefined,
+        wholesalePrice: undefined,
         isManual: true,
       },
     ]);
@@ -240,22 +240,39 @@ export function FashionVariantsBuilder({
   function generateSequentialBarcodes() {
     const prefix = suggestedPrefix;
     if (!prefix) return;
+    const used = new Set(rows.map((row) => (row.barcode || '').trim().toLowerCase()).filter(Boolean));
     onRowsChange(
-      rows.map((row, index) => ({
-        ...row,
-        barcode: row.barcode?.trim() || `${prefix}-${String(index + 1).padStart(3, '0')}`,
-      })),
+      rows.map((row, index) => {
+        if (row.barcode?.trim()) return row;
+        let sequence = index + 1;
+        let candidate = `${prefix}-${String(sequence).padStart(3, '0')}`;
+        while (used.has(candidate.toLowerCase())) {
+          sequence++;
+          candidate = `${prefix}-${String(sequence).padStart(3, '0')}`;
+        }
+        used.add(candidate.toLowerCase());
+        return { ...row, barcode: candidate };
+      }),
     );
   }
 
   function generateSequentialSkus() {
     const prefix = suggestedPrefix || 'VAR';
+    const used = new Set(rows.map((row) => (row.sku || '').trim().toLowerCase()).filter(Boolean));
     onRowsChange(
-      rows.map((row) => {
+      rows.map((row, index) => {
+        if (row.sku?.trim()) return row;
         const colorPart = (row.color || '').trim().replace(/\s+/g, '-');
         const sizePart = (row.size || '').trim().replace(/\s+/g, '-');
-        const generated = [prefix, colorPart, sizePart].filter(Boolean).join('-');
-        return row.sku?.trim() ? row : { ...row, sku: generated };
+        const base = [prefix, colorPart, sizePart].filter(Boolean).join('-') || `${prefix}-${String(index + 1).padStart(3, '0')}`;
+        let candidate = base;
+        let seq = index + 1;
+        while (used.has(candidate.toLowerCase())) {
+          candidate = `${base}-${String(seq).padStart(2, '0')}`;
+          seq++;
+        }
+        used.add(candidate.toLowerCase());
+        return { ...row, sku: candidate };
       }),
     );
   }

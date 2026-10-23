@@ -6,7 +6,7 @@ export interface ProductsMatrixViewProps {
   products: Product[];
 }
 
-const SIZES_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'];
+const SIZES_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', 'XXL', '3XL', 'XXXL', '4XL', '5XL', '6XL', 'ONE SIZE', 'FREE SIZE'];
 
 function getSizeRank(size: string) {
   const s = String(size || '').trim().toUpperCase();
@@ -51,8 +51,8 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
       const rankA = getSizeRank(a);
       const rankB = getSizeRank(b);
       if (rankA !== rankB) return rankA - rankB;
-      const numA = parseInt(a, 10);
-      const numB = parseInt(b, 10);
+      const numA = /^\d+(\.\d+)?$/.test(a.trim()) ? Number(a) : NaN;
+      const numB = /^\d+(\.\d+)?$/.test(b.trim()) ? Number(b) : NaN;
       if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
       return a.localeCompare(b, 'en');
     });
