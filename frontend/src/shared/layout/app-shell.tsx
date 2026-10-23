@@ -543,6 +543,8 @@ export function AppShell({ children }: PropsWithChildren) {
 
     const importOrder = [
       'dashboard',
+      'pos',
+      'cash-drawer',
       'import-command-center',
       'import-projects',
       'import-china-sourcing',
@@ -1037,7 +1039,7 @@ export function AppShell({ children }: PropsWithChildren) {
         }
 
         if (isImportVertical) {
-          if (['pos', 'cash-drawer', 'online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance'].includes(item.key)) return false;
+          if (['online-orders', 'kds', 'displays', 'signage', 'product-modifiers', 'delivery-reps', 'trade-in', 'imei-history', 'maintenance'].includes(item.key)) return false;
           if ((item.key?.startsWith('contracting-') && settings?.contractingModuleEnabled !== true) || (item.key?.startsWith('maritime-') && settings?.maritimeFreightModuleEnabled !== true) || item.key?.startsWith('pharmacy-') || item.key?.startsWith('manufacturing-')) return false;
         }
 
@@ -1086,7 +1088,7 @@ export function AppShell({ children }: PropsWithChildren) {
         // displays portal: only visible when restaurant module is enabled and plan includes restaurant
         if (item.key === 'displays' && (settings?.restaurantModuleEnabled !== true || !hasFeature('restaurant'))) return false;
         // POS & Retail Sales gating:
-        if ((item.key === 'pos' || item.key === 'cash-drawer') && (settings?.posModuleEnabled === false || isWholesaleVanVertical || isWarehousingVertical || isImportVertical)) return false;
+        if ((item.key === 'pos' || item.key === 'cash-drawer') && (settings?.posModuleEnabled === false || isWholesaleVanVertical || isWarehousingVertical)) return false;
         if ((item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false && !isWholesaleVanVertical && !isWarehousingVertical && !isImportVertical && !isEnterpriseCommerceActive) return false;
         if (item.key === 'customers' && settings?.posModuleEnabled === false && !isEnterpriseCommerceActive && settings?.installmentsModuleEnabled !== true && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && !isWholesaleVanVertical && !isWarehousingVertical) return false;
 
@@ -1155,7 +1157,8 @@ export function AppShell({ children }: PropsWithChildren) {
     }
 
     if (currentVertical === 'import_export') {
-      return dashKeys;
+      const hasPos = settings?.posModuleEnabled !== false;
+      return [...dashKeys, ...(hasPos ? ['pos', 'cash-drawer'] : [])];
     }
 
     if (isWholesaleVanVertical) {
@@ -1408,7 +1411,14 @@ export function AppShell({ children }: PropsWithChildren) {
 
     // 4. Dedicated Import & Export Enterprise Workspace
     if (isDedicatedImportOnly) {
+      const hasPos = settings?.posModuleEnabled !== false || Boolean(tenant?.features?.includes('pos'));
       return [
+        ...(hasPos ? [{
+          key: 'pos-group',
+          label: 'نقطة البيع والوردية',
+          itemKeys: ['pos', 'cash-drawer'],
+          iconKey: 'pos' as const,
+        }] : []),
         {
           key: 'import-group',
           label: 'الاستيراد والتجارة الدولية',

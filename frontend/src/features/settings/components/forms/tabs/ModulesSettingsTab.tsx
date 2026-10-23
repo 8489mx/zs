@@ -342,7 +342,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const hasServicesFeature = hasPurchasesFeature || hasInventoryFeature;
   const hasPosMetaFeature = hasRestaurantFeature;
 
-  const isPosActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || isWholesaleVanVertical || isWarehousingVertical || isImportVertical ? false : Boolean(form.watch('posModuleEnabled'));
+  const isPosActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || isWholesaleVanVertical || isWarehousingVertical ? false : Boolean(form.watch('posModuleEnabled'));
   const isPurchasesActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasPurchasesFeature && Boolean(form.watch('purchasesModuleEnabled')));
   const isInventoryActive = isContractingVertical || isManufacturingVertical || isWarehousingVertical ? true : (isMaritimeVertical ? false : (hasInventoryFeature && Boolean(form.watch('inventoryModuleEnabled'))));
   const isHrActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical ? true : (hasHrFeature && Boolean(form.watch('hrModuleEnabled')));

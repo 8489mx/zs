@@ -261,5 +261,25 @@ describe('Vertical Scope & Enterprise Isolation Constitution', () => {
     expect(isRouteAllowedInVertical(vertical, '/sales')).toBe(true);
     expect(isRouteAllowedInVertical(vertical, '/customers')).toBe(true);
   });
+
+  it('resolves import_export and allows POS and cash-drawer by default, but respects posModuleEnabled false', () => {
+    const tenant = {
+      id: 'import-co',
+      slug: 'import-co',
+      businessName: 'الشرق للاستيراد والتجارة الدولية',
+      activityType: 'import_export',
+    };
+    const vertical = resolveCurrentVertical(tenant);
+    expect(vertical).toBe('import_export');
+    expect(isRouteAllowedInVertical(vertical, '/pos')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, 'pos')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/cash-drawer')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, 'cash-drawer')).toBe(true);
+    expect(isRouteAllowedInVertical(vertical, '/import/shipments')).toBe(true);
+
+    // If posModuleEnabled is explicitly disabled in settings
+    expect(isRouteAllowedInVertical(vertical, '/pos', { posModuleEnabled: false })).toBe(false);
+    expect(isRouteAllowedInVertical(vertical, 'cash-drawer', { posModuleEnabled: false })).toBe(false);
+  });
 });
 

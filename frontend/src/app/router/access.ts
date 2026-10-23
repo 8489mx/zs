@@ -659,7 +659,7 @@ export function hasRequiredFeature(target: string, user?: AuthUser | null): bool
   const isImport = vertical === 'import_export';
   const isCommerce = !isContracting && !isMaritime && !isManufacturing && !isWholesaleVan && !isWarehousing && !isImport;
 
-  if (isImport && ['import', 'inventory', 'catalog', 'products', 'purchases', 'suppliers', 'sales', 'customers', 'accounting', 'treasury', 'hr', 'crm', 'pricing', 'reports', 'approvals'].includes(requiredFeature)) {
+  if (isImport && ['import', 'inventory', 'catalog', 'products', 'purchases', 'suppliers', 'sales', 'pos', 'cashDrawer', 'customers', 'accounting', 'treasury', 'hr', 'crm', 'pricing', 'reports', 'approvals'].includes(requiredFeature)) {
     return true;
   }
   if (isWarehousing && ['inventory', 'catalog', 'products', 'purchases', 'suppliers', 'sales', 'customers', 'accounting', 'hr', 'crm', 'pricing', 'reports'].includes(requiredFeature)) {

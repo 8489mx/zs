@@ -537,9 +537,11 @@ export function isRouteAllowedInVertical(vertical: BusinessVertical, target: str
     }
 
     case 'import_export': {
+      if ((key === 'pos' || key === 'cash-drawer') && settings?.posModuleEnabled === false) {
+        return false;
+      }
+
       const blockedKeys = [
-        'pos',
-        'cash-drawer',
         'online-orders',
         'kds',
         'displays',
