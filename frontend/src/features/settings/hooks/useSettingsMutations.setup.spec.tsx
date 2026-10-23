@@ -99,6 +99,7 @@ const baseSettingsMutationValues = {
   posMaxDiscountThresholdType: 'percentage' as const,
   posMaxDiscountThresholdValue: 15,
   requireCashierShiftForSales: true,
+  requirePasswordOnShiftOpen: false,
   restaurantServiceChargeEnabled: false,
   restaurantServiceChargePercent: 0,
   posTerminalProtocol: 'tcp_ip' as const,
