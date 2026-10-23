@@ -17,6 +17,14 @@
 - Recheck drafts while holding that lock; exclude closing and reopening entries from operating profit. Validate tenant ownership of journal and treasury references before writing.
 - Cap depreciation at cost less salvage and the cumulative amount earned by the posting month. Require actual foreign currency balances for monetary account revaluation and recompute under the posting lock; a single spot rate cannot reconstruct foreign units from the local ledger.
 
+### Purchase and inventory integrity (October 2026)
+
+- Purchase orders must validate supplier, warehouse and product IDs against the same tenant before create or draft update. A tenant-scoped header does not make foreign references safe.
+- GRN invoices and direct purchase invoices lock the supplier row before checking normalized vendor invoice numbers, so concurrent creation cannot pay the same supplier document twice.
+- A location adjustment derives its branch from the tenant-scoped location. A branch-only adjustment is rejected because the shared stock ledger would otherwise change unassigned stock while tagging the movement to that branch.
+- Product master data cannot overwrite the WAC of stock on hand. Positive opening stock posts an inventory debit and opening capital credit in the same transaction as the product and stock movement; old unposted opening balances require tenant-scoped reconciliation.
+- Landed costs apply only to posted purchases and post on their recognition date through the central period-checked journal. Split inventory and COGS by replaying classified global stock movements after the receipt through the weighted-average pool. Unclassified or missing movement history blocks automatic allocation rather than guessing.
+
 ---
 
 ## 1. كيف تقرأ هذا المشروع قبل أن تكتب فيه سطراً

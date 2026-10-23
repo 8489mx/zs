@@ -13,7 +13,7 @@ async function main(): Promise<void> {
   const query = (table: string) => {
     const builder: any = {
       selectAll: () => builder, select: () => builder, where: () => builder,
-      orderBy: () => builder,
+      orderBy: () => builder, forUpdate: () => builder,
       executeTakeFirst: async () => table === 'purchase_orders' ? order : undefined,
       execute: async () => table === 'purchase_order_items' ? items : table === 'purchase_items' ? billItems : [],
     };

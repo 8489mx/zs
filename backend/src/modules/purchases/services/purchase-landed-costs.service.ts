@@ -4,14 +4,17 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
-import { formatDailyDocumentNumber, getDailyDocumentPrefix } from '../../../common/utils/document-number.util';
 import { ApplyPurchaseLandedCostsDto } from '../dto/purchase-landed-cost.dto';
 import { allocateLandedCosts } from '../engines/landed-cost-allocation.engine';
+import { allocateReceiptCostByStockFlow, stockMovementGlobalDelta } from '../engines/landed-cost-wac.engine';
+import { lockStockProducts } from '../../../common/utils/location-stock-ledger';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 
 @Injectable()
 export class PurchaseLandedCostsService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private tenantPredicate(auth: AuthContext, alias?: string) {
@@ -63,12 +66,12 @@ export class PurchaseLandedCostsService {
     return created ? Number(created.id) : null;
   }
 
-  async getPurchaseLandedCosts(purchaseId: number, auth: AuthContext): Promise<any> {
+  async getPurchaseLandedCosts(purchaseId: number, auth: AuthContext, queryable: Kysely<Database> = this.db): Promise<any> {
     const scope = requireTenantScope(auth);
 
-    const purchase = await (this.db as any)
+    const purchase = await (queryable as any)
       .selectFrom('purchases as p')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
+      .leftJoin('suppliers as s', (join: any) => join.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
       .where('p.id', '=', purchaseId)
       .where(this.tenantPredicate(auth, 'p'))
       .select([
@@ -90,7 +93,7 @@ export class PurchaseLandedCostsService {
       throw new NotFoundException('فاتورة المشتريات غير موجودة.');
     }
 
-    const items = await (this.db as any)
+    const items = await (queryable as any)
       .selectFrom('purchase_items as pi')
       .where('pi.purchase_id', '=', purchaseId)
       .where(this.tenantPredicate(auth, 'pi'))
@@ -108,7 +111,7 @@ export class PurchaseLandedCostsService {
       .orderBy('pi.id', 'asc')
       .execute();
 
-    const landedCosts = await (this.db as any)
+    const landedCosts = await (queryable as any)
       .selectFrom('purchase_landed_costs as plc')
       .where('plc.purchase_id', '=', purchaseId)
       .where(this.tenantPredicate(auth, 'plc'))
@@ -152,6 +155,76 @@ export class PurchaseLandedCostsService {
     };
   }
 
+  private async calculateStockFlowShares(trx: any, purchaseId: number, items: any[],
+    allocatedCosts: number[], tenantId: string, accountId: string) {
+    const productIds = [...new Set(items.map((item) => Number(item.product_id || 0)).filter((id) => id > 0))].sort((a, b) => a - b);
+    await lockStockProducts(trx, { tenantId, accountId, productIds });
+    const productRows = productIds.length ? await trx.selectFrom('products')
+      .select(['id', 'stock_qty', 'cost_price', 'item_type'])
+      .where('tenant_id', '=', tenantId).where('id', 'in', productIds).orderBy('id', 'asc').execute() : [];
+    const products = new Map<number, any>(productRows.map((row: any) => [Number(row.id), row]));
+    const receiptGroups = new Map<number, Array<{ key: number; movementId: number; receivedQty: number; allocatedCost: number }>>();
+    const usedAtMovement = new Map<number, number>();
+    const splits = new Map<number, { inventory: number; cogs: number }>();
+    for (const [index, item] of items.entries()) {
+      const allocatedCost = allocatedCosts[index];
+      const productId = Number(item.product_id || 0);
+      const product = products.get(productId);
+      if (!productId || product?.item_type === 'service') {
+        splits.set(Number(item.id), { inventory: 0, cogs: allocatedCost });
+        continue;
+      }
+      if (!product) throw new BadRequestException('صنف الفاتورة غير موجود في هذه المنشأة.');
+      const receivedQty = Number(item.qty) * Number(item.unit_multiplier || 1);
+      if (!Number.isFinite(receivedQty) || receivedQty <= 0) throw new BadRequestException('كمية فاتورة الشراء غير صالحة لتحميل التكلفة.');
+      let sourceType = 'purchase';
+      let sourceId = purchaseId;
+      if (item.grn_line_id) {
+        const receiptLine = await trx.selectFrom('goods_receipt_lines')
+          .select(['grn_id', 'product_id', 'accepted_qty'])
+          .where('tenant_id', '=', tenantId).where('id', '=', Number(item.grn_line_id)).executeTakeFirst();
+        if (!receiptLine || Number(receiptLine.product_id) !== productId ||
+            Number(receiptLine.accepted_qty) + 0.001 < receivedQty) {
+          throw new BadRequestException('بند الفاتورة لا يطابق محضر استلام منشوراً وكمية مقبولة.');
+        }
+        sourceType = 'goods_receipt';
+        sourceId = Number(receiptLine.grn_id);
+      }
+      const sourceMovements = await trx.selectFrom('stock_movements')
+        .select(['id', 'qty']).where('tenant_id', '=', tenantId)
+        .where('product_id', '=', productId).where('reference_type', '=', sourceType)
+        .where('reference_id', '=', sourceId)
+        .where('movement_type', 'in', sourceType === 'purchase' ? ['purchase', 'purchase_receipt'] : ['goods_receipt'])
+        .orderBy('id', 'asc').execute();
+      const anchor = sourceMovements.find((row: any) =>
+        Number(row.qty) - (usedAtMovement.get(Number(row.id)) || 0) + 0.001 >= receivedQty);
+      if (!anchor) throw new BadRequestException('لا توجد حركة استلام مخزني كافية يمكن ربط التكلفة الإضافية بها.');
+      const movementId = Number(anchor.id);
+      usedAtMovement.set(movementId, (usedAtMovement.get(movementId) || 0) + receivedQty);
+      const group = receiptGroups.get(productId) || [];
+      group.push({ key: Number(item.id), movementId, receivedQty, allocatedCost });
+      receiptGroups.set(productId, group);
+    }
+    for (const [productId, receipts] of receiptGroups) {
+      const firstId = Math.min(...receipts.map((receipt) => receipt.movementId));
+      const rows = await trx.selectFrom('stock_movements').select(['id', 'movement_type', 'qty'])
+        .where('tenant_id', '=', tenantId).where('product_id', '=', productId)
+        .where('id', '>=', firstId).orderBy('id', 'asc').execute();
+      try {
+        const movementFlow = rows.map((row: any) => ({
+          id: Number(row.id), globalDelta: stockMovementGlobalDelta(String(row.movement_type), Number(row.qty)),
+        }));
+        const portions = allocateReceiptCostByStockFlow({
+          currentStock: Number(products.get(productId).stock_qty), movements: movementFlow, receipts,
+        });
+        for (const [key, value] of portions) splits.set(key, value);
+      } catch (error) {
+        throw new BadRequestException(`تعذر تسوية حركة مخزون الصنف ${productId} لتحميل التكلفة: ${(error as Error).message}`);
+      }
+    }
+    return { products, splits };
+  }
+
   async applyPurchaseLandedCosts(
     purchaseId: number,
     dto: ApplyPurchaseLandedCostsDto,
@@ -172,8 +245,8 @@ export class PurchaseLandedCostsService {
         throw new NotFoundException('فاتورة المشتريات غير موجودة.');
       }
 
-      if (purchase.status === 'cancelled') {
-        throw new BadRequestException('لا يمكن تحميل تكاليف إضافية على فاتورة ملغاة.');
+      if (purchase.status !== 'posted') {
+        throw new BadRequestException('يجب ترحيل فاتورة المشتريات قبل تحميل تكاليف إضافية عليها.');
       }
 
       // landed_cost_applied_at was written but never read, so re-running this compounded the cost
@@ -189,6 +262,7 @@ export class PurchaseLandedCostsService {
         .where('purchase_id', '=', purchaseId)
         .where(this.tenantPredicate(auth))
         .selectAll()
+        .orderBy('id', 'asc')
         .execute();
 
       if (!items.length) {
@@ -201,6 +275,15 @@ export class PurchaseLandedCostsService {
         throw new BadRequestException('مبالغ التكاليف الإضافية يجب أن تكون موجبة وصالحة وبمنزلتين عشريتين.');
       }
       const totalLandedCost = dto.costs.reduce((sum, c) => sum + c.amount, 0);
+      if (dto.costs.some((cost) => cost.vendorId != null &&
+          (!Number.isSafeInteger(Number(cost.vendorId)) || Number(cost.vendorId) <= 0))) {
+        throw new BadRequestException('معرّف مورد التكلفة الإضافية غير صالح.');
+      }
+      const vendorIds = [...new Set(dto.costs.map((cost) => Number(cost.vendorId || 0)).filter((id) => id > 0))];
+      if (vendorIds.length && (await trx.selectFrom('suppliers').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', 'in', vendorIds).execute()).length !== vendorIds.length) {
+        throw new BadRequestException('أحد موردي التكاليف الإضافية لا يتبع المنشأة.');
+      }
       // Split of the allocation between inventory still held and units already sold.
       let totalCapitalisedLandedCost = 0;
       let totalCogsLandedCost = 0;
@@ -234,9 +317,11 @@ export class PurchaseLandedCostsService {
         return 1;
       });
       const allocatedCosts = allocateLandedCosts(Number(totalLandedCost.toFixed(2)), weights);
+      const { products, splits } = await this.calculateStockFlowShares(
+        trx, purchaseId, items, allocatedCosts, scope.tenantId, scope.accountId);
+      const inventoryAdditionByProduct = new Map<number, number>();
       for (const [index, item] of items.entries()) {
         const itemQty = Number(item.qty || 1);
-        const baseQty = itemQty * Number(item.unit_multiplier || 1);
         const allocatedCost = allocatedCosts[index];
         const baseUnitCost = Number(item.unit_cost || 0);
         const landedUnitCost = Number((baseUnitCost + (itemQty > 0 ? allocatedCost / itemQty : 0)).toFixed(2));
@@ -252,51 +337,29 @@ export class PurchaseLandedCostsService {
           .where(this.tenantPredicate(auth))
           .execute();
 
-        // Update product cost using weighted average, splitting the allocation between the units
-        // still on hand (capitalised) and the units already sold (charged to COGS).
-        //
-        // The previous logic spread the ENTIRE allocated cost over remaining stock, so the share
-        // belonging to already-sold units inflated the cost of what was left instead of hitting
-        // cost of sales — and when most units had been sold it overwrote the running average with
-        // this shipment's unit cost outright, discarding the weighted average completely.
-        if (item.product_id && allocatedCost > 0) {
-          const prod = await trx
-            .selectFrom('products')
-            .select(['id', 'stock_qty', 'cost_price'])
-            .where('id', '=', Number(item.product_id))
-            .where(this.tenantPredicate(auth))
-            .forUpdate()
-            .executeTakeFirst();
-
-          if (prod) {
-            const currentStock = Number(prod.stock_qty || 0);
-            const currentCost = Number(prod.cost_price || 0);
-
-            // Units of this receipt still on hand, capped by what was actually received.
-            // Stock quantities are base units, including when a purchase line is in cartons.
-            const remainingOfReceipt = Math.max(0, Math.min(baseQty, currentStock));
-            const soldOfReceipt = Math.max(0, baseQty - remainingOfReceipt);
-
-            const perUnitLanded = baseQty > 0 ? allocatedCost / baseQty : 0;
-            const capitalisedPortion = Number((perUnitLanded * remainingOfReceipt).toFixed(4));
-            const cogsPortion = Number((perUnitLanded * soldOfReceipt).toFixed(4));
-
-            totalCapitalisedLandedCost += capitalisedPortion;
-            totalCogsLandedCost += cogsPortion;
-
-            if (currentStock > 0 && capitalisedPortion > 0) {
-              const newCostPrice = Number((((currentStock * currentCost) + capitalisedPortion) / currentStock).toFixed(6));
-              if (newCostPrice >= 0) {
-                await trx
-                  .updateTable('products')
-                  .set({ cost_price: newCostPrice, updated_at: new Date() })
-                  .where('id', '=', Number(item.product_id))
-                  .where(this.tenantPredicate(auth))
-                  .execute();
-              }
-            }
-          }
+        const split = splits.get(Number(item.id));
+        if (!split) throw new BadRequestException('تعذر حساب نصيب المخزون من التكلفة الإضافية.');
+        totalCapitalisedLandedCost += split.inventory;
+        totalCogsLandedCost += split.cogs;
+        if (item.product_id && split.inventory > 0) {
+          const productId = Number(item.product_id);
+          inventoryAdditionByProduct.set(productId,
+            (inventoryAdditionByProduct.get(productId) || 0) + split.inventory);
         }
+      }
+      for (const [productId, capitalised] of inventoryAdditionByProduct) {
+        const product = products.get(productId);
+        const currentStock = Number(product?.stock_qty || 0);
+        const currentCost = Number(product?.cost_price || 0);
+        if (currentStock <= 0 || !Number.isFinite(currentCost) || currentCost < 0) {
+          throw new BadRequestException('رصيد المخزون أو تكلفته غير صالح لتحميل التكلفة الإضافية.');
+        }
+        const newCostPrice = Number((currentCost + capitalised / currentStock).toFixed(6));
+        await trx.updateTable('products').set({ cost_price: newCostPrice, updated_at: new Date() })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', productId).execute();
+      }
+      if (Math.abs(Number((totalCapitalisedLandedCost + totalCogsLandedCost - totalLandedCost).toFixed(2))) > 0.001) {
+        throw new BadRequestException('توزيع التكلفة الإضافية بين المخزون والمباع غير متزن.');
       }
 
       // 4. Update purchase header
@@ -312,7 +375,8 @@ export class PurchaseLandedCostsService {
         .where(this.tenantPredicate(auth))
         .execute();
 
-      // 5. Generate Accounting Journal Entry for Landed Cost (Dr. Inventory 1140 / Cr. AP 2110)
+      // The cost is recognised when applied. Posting it on the old purchase date would rewrite
+      // a signed-off month; the central journal guard checks both lock dates and monthly periods.
       if (totalLandedCost > 0) {
         if (Number(totalLandedCost.toFixed(2)) <= 0) {
           throw new BadRequestException('التكاليف الإضافية أقل من أصغر وحدة نقدية؛ تعذر إنشاء القيد المحاسبي.');
@@ -328,104 +392,42 @@ export class PurchaseLandedCostsService {
         const cogsAccount = await this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '5110');
 
         const payableAccountId = Number(settings?.supplier_payable_account_id || 0);
+        const payableAccount = payableAccountId > 0 ? await trx.selectFrom('accounting_accounts')
+          .select('id').where('tenant_id', '=', scope.tenantId).where('id', '=', payableAccountId)
+          .where('is_active', '=', true).executeTakeFirst() : null;
 
         // Never skip the journal silently: products.cost_price has already been changed above, so
         // a skipped entry leaves the perpetual cost and the general ledger permanently divergent.
-        if (!invAccount || !(payableAccountId > 0)) {
+        if (!invAccount || !payableAccount || !cogsAccount) {
           throw new BadRequestException(
             'تعذر إثبات التكاليف الإضافية: حساب المخزون (1140) أو حساب الموردين غير مهيأ في شجرة الحسابات.',
           );
         }
 
-        // Post on the purchase date, not today. Customs cleared in March for a December shipment
-        // was landing in March — a different period, and often a different fiscal year.
-        const entryDate = purchase.created_at ? new Date(purchase.created_at) : new Date();
-        const entryDateStr = entryDate.toISOString().slice(0, 10);
-        const lockAllStr = settings?.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : '';
-        if (lockAllStr && entryDateStr <= lockAllStr) {
-          throw new BadRequestException(
-            `لا يمكن إثبات التكاليف الإضافية في فترة محاسبية مقفلة (تاريخ القفل: ${lockAllStr}).`,
-          );
-        }
-
-        {
-          const [entry] = await trx
-            .insertInto('journal_entries')
-            .values({
-              tenant_id: scope.tenantId,
-              account_id: scope.accountId || scope.tenantId,
-              // Temp number then rename by id: COUNT(*)+1 collided under concurrency.
-              entry_no: `JRN-TMP-LC-${purchaseId}-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-              entry_date: entryDate,
-              description: `إثبات تكاليف إضافية (شحن/جمارك) لفاتورة شراء ${purchase.doc_no || purchaseId}`,
-              source_type: 'purchase_landed_cost',
-              source_id: purchaseId,
-              status: 'posted',
-              created_by: auth.userId,
-            })
-            .returning(['id'])
-            .execute();
-
-          await trx
-            .updateTable('journal_entries')
-            .set({ entry_no: formatDailyDocumentNumber('JRN', Number(entry.id)), updated_at: new Date() })
-            .where('id', '=', Number(entry.id))
-            .where('tenant_id', '=', scope.tenantId)
-            .execute();
-
-          // Split the debit: the portion belonging to units already sold is a period cost and
-          // belongs in COGS, not capitalised into the remaining inventory.
-          const capitalised = Number(totalCapitalisedLandedCost.toFixed(2));
-          const toCogs = Number((Number(totalLandedCost.toFixed(2)) - capitalised).toFixed(2));
-
-          const debitLines: any[] = [];
-          if (capitalised > 0.001) {
-            debitLines.push({
-              journal_entry_id: Number(entry.id),
-              tenant_id: scope.tenantId,
-              account_id: Number(invAccount),
-              description: `تحميل تكاليف إضافية على المخزون - فاتورة ${purchase.doc_no || purchaseId}`,
-              debit: capitalised,
-              credit: 0,
-              partner_type: 'none',
-              partner_id: null,
-            });
-          }
-          if (toCogs > 0.001 && cogsAccount) {
-            debitLines.push({
-              journal_entry_id: Number(entry.id),
-              tenant_id: scope.tenantId,
-              account_id: Number(cogsAccount),
-              description: `نصيب الوحدات المباعة من التكاليف الإضافية - فاتورة ${purchase.doc_no || purchaseId}`,
-              debit: toCogs,
-              credit: 0,
-              partner_type: 'none',
-              partner_id: null,
-            });
-          } else if (toCogs > 0.001) {
-            throw new BadRequestException('تعذر إثبات نصيب الوحدات المباعة من التكاليف الإضافية: حساب تكلفة البضاعة المباعة غير موجود.');
-          }
-
-          await trx
-            .insertInto('journal_entry_lines')
-            .values([
-              ...debitLines,
-              {
-                journal_entry_id: Number(entry.id),
-                tenant_id: scope.tenantId,
-                account_id: payableAccountId,
-                description: `استحقاق تكاليف شحن/جمارك إضافية - فاتورة ${purchase.doc_no || purchaseId}`,
-                debit: 0,
-                credit: Number(totalLandedCost.toFixed(2)),
-                partner_type: 'supplier',
-                partner_id: purchase.supplier_id ? Number(purchase.supplier_id) : null,
-              },
-            ])
-            .execute();
-        }
+        const capitalised = Number(totalCapitalisedLandedCost.toFixed(2));
+        const toCogs = Number((Number(totalLandedCost.toFixed(2)) - capitalised).toFixed(2));
+        await this.accountingPosting.postDomainJournal(trx, {
+          sourceType: 'purchase_landed_cost', sourceId: purchaseId,
+          tenantId: scope.tenantId, accountId: scope.accountId,
+          entryDate: new Date(),
+          description: `إثبات تكاليف إضافية لفاتورة شراء ${purchase.doc_no || purchaseId}`,
+          createdBy: auth.userId,
+          lines: [
+            ...(capitalised > 0 ? [{ accountId: Number(invAccount), debit: capitalised, credit: 0,
+              description: 'تحميل تكاليف إضافية على المخزون', partnerType: 'none' as const,
+              partnerId: null, branchId: null, locationId: null }] : []),
+            ...(toCogs > 0 ? [{ accountId: Number(cogsAccount), debit: toCogs, credit: 0,
+              description: 'نصيب الوحدات المباعة من التكاليف الإضافية', partnerType: 'none' as const,
+              partnerId: null, branchId: null, locationId: null }] : []),
+            { accountId: payableAccountId, debit: 0, credit: Number(totalLandedCost.toFixed(2)),
+              description: 'استحقاق تكاليف الشحن والجمارك', partnerType: 'supplier' as const,
+              partnerId: purchase.supplier_id ? Number(purchase.supplier_id) : null,
+              branchId: null, locationId: null },
+          ],
+        });
       }
 
-      return this.getPurchaseLandedCosts(purchaseId, auth);
+      return this.getPurchaseLandedCosts(purchaseId, auth, trx);
     });
   }
 }

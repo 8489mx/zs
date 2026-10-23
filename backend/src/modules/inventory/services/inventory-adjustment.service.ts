@@ -45,6 +45,9 @@ export class InventoryAdjustmentService {
     if (location && payload.branchId != null && Number(payload.branchId) !== Number(location.branchId)) {
       throw new AppError('الفرع لا يطابق المخزن المختار', 'ADJUSTMENT_BRANCH_LOCATION_MISMATCH', 409);
     }
+    if (!location && payload.branchId != null) {
+      throw new AppError('المخزن مطلوب عند تحديد الفرع للتسوية', 'LOCATION_REQUIRED_FOR_BRANCH', 400);
+    }
     const effectiveBranchId = location ? location.branchId : (payload.branchId ?? null);
 
     const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {

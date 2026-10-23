@@ -20,6 +20,25 @@ export class PurchaseOrdersService {
     private readonly approvals: ApprovalWorkflowService,
   ) {}
 
+  private async assertOrderReferences(trx: Kysely<Database>, tenantId: string,
+    supplierId: number | null | undefined, warehouseId: number | null | undefined,
+    productIds: number[]): Promise<void> {
+    if (supplierId != null && !await trx.selectFrom('suppliers').select('id')
+      .where('tenant_id', '=', tenantId).where('id', '=', supplierId).executeTakeFirst()) {
+      throw new BadRequestException('المورد لا يتبع المنشأة.');
+    }
+    if (warehouseId != null && !await trx.selectFrom('stock_locations').select('id')
+      .where('tenant_id', '=', tenantId).where('id', '=', warehouseId).executeTakeFirst()) {
+      throw new BadRequestException('المخزن لا يتبع المنشأة.');
+    }
+    const ids = [...new Set(productIds.map(Number))];
+    if (ids.some((id) => !Number.isSafeInteger(id) || id <= 0)) throw new BadRequestException('أحد أصناف أمر الشراء غير صالح.');
+    if (ids.length && (await trx.selectFrom('products').select('id')
+      .where('tenant_id', '=', tenantId).where('id', 'in', ids).execute()).length !== ids.length) {
+      throw new BadRequestException('أحد أصناف أمر الشراء لا يتبع المنشأة.');
+    }
+  }
+
   async listOrders(
     auth: AuthContext,
     query?: { status?: string; search?: string; limit?: number; offset?: number }
@@ -134,6 +153,8 @@ export class PurchaseOrdersService {
     const totals = calculatePurchaseOrderTotals(payload.items, payload.discountAmount);
 
     return this.db.transaction().execute(async (trx) => {
+    await this.assertOrderReferences(trx, scope.tenantId, payload.supplierId, payload.warehouseId,
+      payload.items.map((item) => item.productId));
     const insertedOrder = await trx
       .insertInto('purchase_orders')
       .values({
@@ -214,6 +235,10 @@ export class PurchaseOrdersService {
       }
       if (payload.status && payload.status !== 'draft') throw new BadRequestException('تغيير حالة أمر الشراء يتم عبر مسار الاعتماد فقط');
       if (payload.items && !payload.items.length) throw new BadRequestException('أمر الشراء يحتاج بنداً واحداً على الأقل.');
+      await this.assertOrderReferences(trx, scope.tenantId,
+        payload.supplierId !== undefined ? payload.supplierId : order.supplier_id,
+        payload.warehouseId !== undefined ? payload.warehouseId : order.warehouse_id,
+        (payload.items || []).map((item) => item.productId));
       const itemsForTotals = payload.items || await trx.selectFrom('purchase_order_items')
         .select(['quantity', 'unit_cost', 'tax_rate'])
         .where('purchase_order_id', '=', id)
@@ -379,6 +404,17 @@ export class PurchaseOrdersService {
 
     try {
       await this.db.transaction().execute(async (trx) => {
+        const lockedOrder = await trx.selectFrom('purchase_orders').select(['id', 'status'])
+          .where('id', '=', id).where('tenant_id', '=', scope.tenantId)
+          .where('account_id', '=', scope.accountId).forUpdate().executeTakeFirst();
+        if (!lockedOrder || !['confirmed', 'partially_received', 'received'].includes(lockedOrder.status)) {
+          throw new BadRequestException('تغيرت حالة أمر الشراء أثناء تحويل الفاتورة.');
+        }
+        const existingReceiptBill = await trx.selectFrom('purchases').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('po_id', '=', id)
+          .where('lifecycle_status', '=', 'grn_bill').where('status', '!=', 'cancelled')
+          .executeTakeFirst();
+        if (existingReceiptBill) throw new BadRequestException('أمر الشراء مرتبط بالفعل بفاتورة محاضر استلام.');
         const linked = await trx.updateTable('purchases').set({ po_id: id })
           .where('id', '=', createdPurchaseId).where('tenant_id', '=', scope.tenantId)
           .where('account_id', '=', scope.accountId).execute();
