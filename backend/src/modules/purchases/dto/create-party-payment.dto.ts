@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateSupplierPaymentDto {
   @Type(() => Number)
@@ -15,6 +15,10 @@ export class CreateSupplierPaymentDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsIn(['cash', 'bank', 'card', 'wallet', 'instapay'])
+  paymentChannel?: 'cash' | 'bank' | 'card' | 'wallet' | 'instapay';
 
   @Type(() => Number)
   @IsOptional()
@@ -43,6 +47,10 @@ export class CreateCustomerPaymentDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsIn(['cash', 'bank', 'card', 'wallet', 'instapay'])
+  paymentChannel?: 'cash' | 'bank' | 'card' | 'wallet' | 'instapay';
 
   @Type(() => Number)
   @IsOptional()

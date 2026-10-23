@@ -41,6 +41,8 @@ export type StockCountItemRow = {
   expected_qty?: unknown;
   counted_qty?: unknown;
   variance_qty?: unknown;
+  counted_serials?: unknown;
+  batch_counts?: unknown;
   reason?: unknown;
   note?: unknown;
 };
@@ -131,6 +133,10 @@ export function groupStockCountItemsBySession(items: StockCountItemRow[]) {
       expectedQty: Number(item.expected_qty || 0),
       countedQty: Number(item.counted_qty || 0),
       varianceQty: Number(item.variance_qty || 0),
+      countedSerials: Array.isArray(item.counted_serials) ? item.counted_serials :
+        (typeof item.counted_serials === 'string' ? JSON.parse(item.counted_serials) : []),
+      batchCounts: Array.isArray(item.batch_counts) ? item.batch_counts :
+        (typeof item.batch_counts === 'string' ? JSON.parse(item.batch_counts) : []),
       reason: String(item.reason || ''),
       note: String(item.note || ''),
     });

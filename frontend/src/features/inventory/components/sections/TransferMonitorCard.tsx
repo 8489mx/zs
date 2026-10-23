@@ -388,7 +388,7 @@ export function TransferMonitorCard({
                       {['sent', 'received'].includes(transfer.status) ? (
                         <>
                           {onReceiveTransfer && transfer.status === 'sent' ? <Button type="button" variant="success" onClick={(event) => { event.stopPropagation(); onReceiveTransfer(transfer); }}>{t('inventory.sections.transfer_monitor_card.s47', "استلام")}</Button> : null}
-                          {onCancelTransfer ? <Button type="button" variant="danger" onClick={(event) => { event.stopPropagation(); onCancelTransfer(transfer); }}>{t('inventory.sections.transfer_monitor_card.s48', "إلغاء")}</Button> : null}
+                          {onCancelTransfer && transfer.status === 'sent' ? <Button type="button" variant="danger" onClick={(event) => { event.stopPropagation(); onCancelTransfer(transfer); }}>{t('inventory.sections.transfer_monitor_card.s48', "إلغاء")}</Button> : null}
                         </>
                       ) : null}
                     </div>

@@ -640,6 +640,8 @@ export interface StockMovementTable {
   location_id: number | null;
   unit_cost: number | null;
   total_cost: number | null;
+  serial_tracking?: ColumnType<any, any, any>;
+  batch_tracking?: ColumnType<any, any, any>;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
@@ -679,6 +681,10 @@ export interface StockTransferItemTable {
   received_qty?: ColumnType<number, number | undefined, number | undefined>;
   variance_qty?: ColumnType<number, number | undefined, number | undefined>;
   variance_reason?: string | null;
+  /** Snapshotted serial movements for a transfer line, including in-transit and loss reconciliation. */
+  serial_tracking?: ColumnType<any, any, any>;
+  /** Batch allocations with source and in-transit lot IDs. */
+  batch_tracking?: ColumnType<any, any, any>;
 }
 
 export interface StockCountSessionTable {
@@ -707,6 +713,8 @@ export interface StockCountItemTable {
   expected_qty: number;
   counted_qty: number;
   variance_qty: number;
+  counted_serials?: ColumnType<any, any, any>;
+  batch_counts?: ColumnType<any, any, any>;
   reason: string;
   note: string;
   posted_at?: Date | null;
@@ -1149,6 +1157,7 @@ export interface TreasuryTransactionTable {
   id: Generated<number>;
   txn_type: string;
   amount: number;
+  payment_channel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note: string;
   reference_type: string | null;
   reference_id: number | null;
@@ -1235,6 +1244,7 @@ export interface CustomerPaymentTable {
   id: Generated<number>;
   customer_id: number;
   amount: number;
+  payment_channel?: ColumnType<'cash'|'bank'|'card'|'wallet'|'instapay', 'cash'|'bank'|'card'|'wallet'|'instapay'|undefined, 'cash'|'bank'|'card'|'wallet'|'instapay'|undefined>;
   note: string;
   branch_id: number | null;
   location_id: number | null;
@@ -1569,6 +1579,7 @@ export interface PurchaseItemTable {
   category_id: number | null;
   location_id: number | null;
   serials?: any;
+  batch_number?: string | null;
 }
 
 export interface GoodsReceiptNoteTable {
@@ -1652,6 +1663,7 @@ export interface SupplierPaymentTable {
   doc_no: string | null;
   supplier_id: number;
   amount: number;
+  payment_channel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note: string;
   branch_id: number | null;
   location_id: number | null;
@@ -1691,6 +1703,7 @@ export interface SupplierPaymentScheduleLogTable {
   schedule_id: number;
   supplier_id: number;
   amount: number;
+  payment_channel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note: string;
   created_by: number | null;
   created_by_name: string;

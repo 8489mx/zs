@@ -4,7 +4,6 @@ import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
-import { assertUntrackedStockMutation } from '../inventory/helpers/inventory-tracked-stock.helper';
 import { paginateRows } from '../../common/utils/pagination';
 import { ensureReturnQtyWithinLimit } from '../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../common/utils/location-stock-ledger';
@@ -106,7 +105,13 @@ export class ReturnsService {
       const drug = await trx.selectFrom('pharmacy_drugs').select('id')
         .where('tenant_id', '=', scope.tenantId).where('product_id', '=', productId)
         .executeTakeFirst();
-      if (drug) throw new AppError('فاتورة دوائية قديمة بلا تخصيص تشغيلة تحتاج تسوية قبل المرتجع', 'PHARMACY_BATCH_RECONCILIATION_REQUIRED', 422);
+      const anyBatch = await trx.selectFrom('pharmacy_batches').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('product_id', '=', productId)
+        .limit(1).executeTakeFirst();
+      if (drug || anyBatch) {
+        throw new AppError('الفاتورة بلا تخصيص تشغيلة رغم وجود سجل تشغيلات للصنف؛ يلزم مصالحة قبل المرتجع',
+          'PHARMACY_BATCH_RECONCILIATION_REQUIRED', 422);
+      }
       return;
     }
     let skip = Number(previousReturnedBaseQty.toFixed(3));
@@ -644,7 +649,7 @@ export class ReturnsService {
                 }
                 const branchId = locData.branch_id ?? sale.branch_id;
 
-               const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
+               const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true, disableAutoDrain: true });
                await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * returnToThis).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
             }
          }
@@ -656,7 +661,7 @@ export class ReturnsService {
            throw new AppError('توزيع مخزون البيع الأصلي غير مكتمل؛ يلزم تسوية المخزن قبل المرتجع', 'SALE_RETURN_STOCK_ALLOCATION_RECONCILIATION_REQUIRED', 409);
          }
       } else {
-         const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true });
+         const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true, disableAutoDrain: true });
          await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * preparedLine.stockDelta).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
 
@@ -910,9 +915,9 @@ export class ReturnsService {
         : matchingLines[0];
       if (!purchaseItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       const purchaseLineId = Number(purchaseItem.id);
-      // Supplier returns do not presently reconcile individual IMEIs or
-      // pharmacy batch quantities. Refuse an unsafe global-only stock reversal.
-      await assertUntrackedStockMutation(trx, scope, requestItem.productId);
+      // Traceable supplier returns reconcile serials and batches below in the
+      // SAME stock transaction. The generic quantity-only guard must not block
+      // this explicitly reconciled path.
       if (originalTaxCents > 0 && unreconciledTaxLineIds.has(purchaseLineId)) {
         throw new AppError('مرتجع شراء سابق يحتاج تسوية ضريبية قبل مرتجع جديد', 'PURCHASE_RETURN_TAX_RECONCILIATION_REQUIRED', 409);
       }
@@ -946,13 +951,25 @@ export class ReturnsService {
       });
 
       // The serial ledger and general stock ledger must leave the warehouse together.
-      const purchaseSerials = await trx.selectFrom('product_serials')
+      const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
+      // A purchased serial moved to another warehouse is no longer returnable
+      // from this line's source location, even if its status is still in_stock.
+      let serialQuery = trx.selectFrom('product_serials')
         .select(['id', 'serial_number', 'imei_2', 'status'])
         .where('tenant_id', '=', scope.tenantId).where('product_id', '=', requestItem.productId)
         .where('purchase_id', '=', Number(purchase.id)).where('purchase_item_id', '=', purchaseLineId)
-        .where('status', '=', 'in_stock')
-        .orderBy('id', 'asc').forUpdate().execute();
-      if (product.track_serials === true || purchaseSerials.length > 0) {
+        .where('status', '=', 'in_stock');
+      serialQuery = itemLocationId == null ? serialQuery.where('location_id', 'is', null)
+        : serialQuery.where('location_id', '=', itemLocationId);
+      serialQuery = purchase.branch_id == null ? serialQuery.where('branch_id', 'is', null)
+        : serialQuery.where('branch_id', '=', purchase.branch_id);
+      const purchaseSerials = await serialQuery.orderBy('id', 'asc').forUpdate().execute();
+      // Legacy products may have existing serial rows without track_serials set.
+      // Do not silently treat their remaining stock as untracked.
+      const anySerial = await trx.selectFrom('product_serials').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('product_id', '=', requestItem.productId)
+        .limit(1).executeTakeFirst();
+      if (product.track_serials === true || anySerial) {
         const chosen = selectPurchaseReturnSerials(purchaseSerials, requestItem.serials, preparedLine.stockDelta);
         await trx.updateTable('product_serials')
           .set({ status: 'returned', updated_at: sql`NOW()` })
@@ -967,15 +984,26 @@ export class ReturnsService {
       const drug = await trx.selectFrom('pharmacy_drugs').select('id')
         .where('tenant_id', '=', scope.tenantId)
         .where('product_id', '=', requestItem.productId).executeTakeFirst();
-      if (drug) {
-        const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
-        let batchQuery = trx.selectFrom('pharmacy_batches').select(['id', 'quantity'])
+      const anyBatch = await trx.selectFrom('pharmacy_batches').select('id')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('product_id', '=', requestItem.productId).limit(1).executeTakeFirst();
+      if (drug || anyBatch) {
+        const sourceBatchNumber = String(purchaseItem.batch_number || '').trim();
+        if (!sourceBatchNumber) {
+          throw new AppError('تشغيلة بند الشراء غير محفوظة؛ لا يمكن إرجاع كمية دوائية دون مصالحة',
+            'PURCHASE_RETURN_BATCH_PROVENANCE_REQUIRED', 409);
+        }
+        let batchQuery = trx.selectFrom('pharmacy_batches').select(['id', 'quantity', 'batch_number'])
           .where('tenant_id', '=', scope.tenantId)
           .where('product_id', '=', requestItem.productId);
         batchQuery = itemLocationId == null ? batchQuery.where('location_id', 'is', null)
           : batchQuery.where('location_id', '=', itemLocationId);
         const batches = await batchQuery.orderBy('id', 'asc').forUpdate().execute();
         const batch = selectPurchaseReturnBatch(batches, requestItem.batchId, preparedLine.stockDelta);
+        if (String(batch.batch_number || '').trim() !== sourceBatchNumber) {
+          throw new AppError('تشغيلة المرتجع لا تطابق تشغيلة فاتورة الشراء الأصلية',
+            'PURCHASE_RETURN_BATCH_ORIGIN_MISMATCH', 409);
+        }
         await trx.updateTable('pharmacy_batches')
           .set({ quantity: Number((Number(batch.quantity) - preparedLine.stockDelta).toFixed(3)), updated_at: sql`NOW()` })
           .where('tenant_id', '=', scope.tenantId).where('id', '=', batch.id).execute();
@@ -983,8 +1011,7 @@ export class ReturnsService {
         throw new AppError('الصنف ليس دواءً مسجلاً بتشغيلة', 'PURCHASE_RETURN_BATCH_NOT_APPLICABLE', 400);
       }
 
-      const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
-      const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return' });
+      const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return', disableAutoDrain: true });
       await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, purchaseItemId: purchaseLineId });
     }

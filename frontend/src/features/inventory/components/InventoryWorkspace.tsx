@@ -282,7 +282,7 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
         action={inventory.transferActionConfirm}
         isBusy={inventory.transferActionMutation.isPending}
         onCancel={() => inventory.setTransferActionConfirm(null)}
-        onConfirm={() => void inventory.confirmTransferAction()}
+        onConfirm={(receipts) => inventory.confirmTransferAction(receipts)}
       />
 
       <InventoryPostSessionDialog

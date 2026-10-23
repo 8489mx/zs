@@ -73,8 +73,24 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     const product = findProduct(products, state.transferForm.productId);
     const qty = Number(state.transferForm.qty || 0);
     if (!product || !(qty > 0)) return;
-    state.setTransferItems((current: StockTransferItem[]) => [...current, { id: `${product.id}-${Date.now()}`, productId: product.id, productName: product.name, qty }]);
-    state.setTransferForm((current) => ({ ...current, productId: '', qty: '1' }));
+    const serials = state.transferForm.serials.split(/[\n,،]+/).map(s => s.trim()).filter(Boolean);
+    const lines = state.transferForm.batchAllocations.split(/[\n,،]+/).map(s => s.trim()).filter(Boolean);
+    const batchAllocations = lines.map(line => {
+      const match = /^(\d+)\s*:\s*(\d+(?:\.\d+)?)$/.exec(line);
+      return match ? { batchId: Number(match[1]), qty: Number(match[2]) } : null;
+    });
+    if ((serials.length > 0 && (serials.length !== qty || new Set(serials.map(s => s.toLowerCase())).size !== serials.length)) ||
+        batchAllocations.some(line => !line || !Number.isSafeInteger(line.batchId) || line.batchId <= 0 || line.qty <= 0) ||
+        (batchAllocations.length > 0 && Math.abs(batchAllocations.reduce((sum, line) => sum + (line?.qty || 0), 0) - qty) > 0.0001)) {
+      state.setCopyFeedback({ kind: 'error', text: 'عدد السيريالات أو توزيع كميات التشغيلات لا يطابق الكمية المراد نقلها' });
+      return;
+    }
+    state.setTransferItems((current: StockTransferItem[]) => [...current, {
+      id: `${product.id}-${Date.now()}`, productId: product.id, productName: product.name, qty,
+      ...(serials.length ? { serials } : {}),
+      ...(batchAllocations.length ? { batchAllocations: batchAllocations as Array<{ batchId: number; qty: number }> } : {}),
+    }]);
+    state.setTransferForm((current) => ({ ...current, productId: '', qty: '1', serials: '', batchAllocations: '' }));
   };
 
   const addCountItem = () => {
@@ -175,12 +191,17 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
           ? Boolean(damagedSummary.totalItems)
           : Boolean(stockMovements.length);
 
-  async function confirmTransferAction() {
+  async function confirmTransferAction(receiptItems?: Record<string, Array<{
+    itemId: number; receivedQty: number; receivedSerials?: string[];
+    batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }>;
+  }>>) {
     if (!state.transferActionConfirm) return;
-    try {
-      await mutations.transferActionMutation.mutateAsync({ transferIds: state.transferActionConfirm.transfers.map((entry) => String(entry.id)), action: state.transferActionConfirm.action });
-      state.setTransferActionConfirm(null);
-    } catch {}
+    await mutations.transferActionMutation.mutateAsync({
+      transferIds: state.transferActionConfirm.transfers.map((entry) => String(entry.id)),
+      action: state.transferActionConfirm.action,
+      receiptItems,
+    });
+    state.setTransferActionConfirm(null);
   }
 
   async function confirmPostSessionAction(context?: { managerPin?: string }) {
@@ -204,7 +225,7 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     : undefined;
   const cancelSelectedTransfers = canAdjustInventory && state.selectedTransferIds.length
     ? () => {
-      const selected = visibleTransfers.filter((transfer) => state.selectedTransferIds.includes(String(transfer.id)) && ['sent', 'received'].includes(transfer.status));
+      const selected = visibleTransfers.filter((transfer) => state.selectedTransferIds.includes(String(transfer.id)) && transfer.status === 'sent');
       if (selected.length) state.setTransferActionConfirm({ transfers: selected, action: 'cancel' });
     }
     : undefined;

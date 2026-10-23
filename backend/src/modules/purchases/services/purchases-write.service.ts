@@ -5,6 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { assertUntrackedStockMutation } from '../../inventory/helpers/inventory-tracked-stock.helper';
+import { reversePurchaseTrackedStock } from '../helpers/purchase-cancellation-trace.helper';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
@@ -426,6 +427,7 @@ export class PurchasesWriteService {
           location_id: item.locationId ?? null,
           received_qty: payload.lifecycleStatus === 'purchase_order' ? 0 : item.qty,
           serials: itemSerials.length > 0 ? JSON.stringify(itemSerials) : '[]',
+          batch_number: item.batchNumber || null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any).returning('id').executeTakeFirst();
@@ -1056,14 +1058,17 @@ export class PurchasesWriteService {
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
       for (const item of [...items].sort((a, b) => Number(a.product_id || 0) - Number(b.product_id || 0))) {
         if (!item.product_id) continue;
-        // Cancelling stock without undoing product serial and pharmacy batch
-        // provenance leaves the detail ledger inconsistent with global stock.
-        await assertUntrackedStockMutation(trx, scope, Number(item.product_id));
+        // Traceable intake must be reversed with the stock movement and journal.
         const itemLocationId = item.location_id ?? purchase.location_id;
         const availableQty = await previewConsumableStockQty(trx, { productId: Number(item.product_id), branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId });
         const { removedQty: removeQty, beforeQty, afterQty } = calculatePurchaseStockDecrease(item.qty, item.unit_multiplier, availableQty);
         if (beforeQty < removeQty) throw new AppError(`Cannot cancel purchase because stock would go negative for product #${item.product_id}`, 'PURCHASE_CANCEL_STOCK_INVALID', 400);
         ensureNonNegativeStock(afterQty, 'PURCHASE_EDIT_STOCK_INVALID', `Cannot edit purchase because stock would go negative for product #${item.product_id}`);
+        await reversePurchaseTrackedStock(trx, scope, {
+          productId: Number(item.product_id), purchaseId, purchaseItemId: Number(item.id),
+          locationId: itemLocationId, branchId: purchase.branch_id,
+          quantity: removeQty, batchNumber: item.batch_number,
+        });
         const stockChange = await applyStockDelta(trx, {
           productId: Number(item.product_id),
           delta: -removeQty,
@@ -1073,6 +1078,7 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
           errorCode: 'PURCHASE_CANCEL_STOCK_INVALID',
           errorMessage: `Cannot cancel purchase because stock would go negative for product #${item.product_id}`,
+          disableAutoDrain: true,
         });
         await trx.insertInto('stock_movements').values({
           product_id: item.product_id,
@@ -1145,6 +1151,20 @@ export class PurchasesWriteService {
       const currentBalance = Number(supplier.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Supplier has no outstanding balance', 'SUPPLIER_NO_BALANCE', 400);
       if (amount > currentBalance + 0.0001) throw new AppError('Supplier payment cannot exceed outstanding balance', 'SUPPLIER_OVERPAYMENT', 400);
+      // Amounts reserved by active installment schedules are not free supplier
+      // debt. Otherwise an ordinary payment can settle the same payable while
+      // its installment remains outstanding, leaving duplicate obligations.
+      const reservedSchedules = await trx.selectFrom('supplier_payment_schedules')
+        .select(sql<number>`coalesce(sum(greatest(amount - paid_amount, 0)), 0)`.as('reserved'))
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId)
+        .where('supplier_id', '=', supplier.id)
+        .where('status', '!=', 'cancelled').executeTakeFirst();
+      const unrestrictedBalance = Math.max(0, Math.round((currentBalance - Number(reservedSchedules?.reserved || 0)) * 100) / 100);
+      if (amount > unrestrictedBalance + 0.0001) {
+        throw new AppError('جزء من رصيد المورد محجوز في أقساط؛ سددها من جدول الأقساط أو استخدم الرصيد غير المجدول',
+          'SUPPLIER_PAYMENT_SCHEDULE_RESERVED', 409);
+      }
 
       // Gateway: three-way match must not be blocking.
       // The match previously only wrote a status label on the invoice; nothing consulted it, so an
@@ -1158,6 +1178,7 @@ export class PurchasesWriteService {
         .values({
           supplier_id: supplier.id,
           amount,
+          payment_channel: payload.paymentChannel || 'cash',
           note: normalizeOptionalNote(payload.note),
           branch_id: branchId,
           location_id: locationId,
@@ -1173,9 +1194,10 @@ export class PurchasesWriteService {
       await trx.updateTable('supplier_payments').set({ doc_no: docNo }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       const paymentNote = normalizeOptionalNote(payload.note);
       await this.financeService.addSupplierLedgerEntry(trx, supplier.id, -amount, 'supplier_payment', `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment', -amount, `دفع إلى ${supplier.name}${paymentNote ? ` - ${paymentNote}` : ''}`, 'supplier_payment', id, auth, branchId, locationId, payload.paymentChannel || 'cash');
       const posting = await this.accountingPosting.postSupplierPayment(trx, id, auth);
       if (!posting.journalEntryId) throw new AppError(`Supplier payment ${id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      await this.audit.logWithExecutor(trx, 'دفع لمورد', `تم تسجيل دفع لمورد ${docNo} بواسطة ${auth.username}`, auth);
       if (idempotencyKey) {
         await this.idempotency.commitOperation(trx, {
           tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
@@ -1184,7 +1206,6 @@ export class PurchasesWriteService {
       return { id, docNo };
     });
 
-    await this.audit.log('دفع لمورد', `تم تسجيل دفع لمورد ${paymentResult.docNo} بواسطة ${auth.username}`, auth);
     return { ok: true, supplierPayments: (await this.queryService.listSupplierPayments(auth)).supplierPayments };
     } catch (error) {
       if (idempotencyKey) {
@@ -1202,13 +1223,28 @@ export class PurchasesWriteService {
     }
   }
 
-  async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
+  async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const amount = Number(payload.amount);
     if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
       throw new AppError('Customer payment must be positive and have at most two decimal places', 'INVALID_PAYMENT_AMOUNT', 400);
     }
-
+    const operationType = 'customer_payment_create';
+    if (idempotencyKey) {
+      const existing = await this.idempotency.reserveOperation({
+        tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+        requestHash: this.idempotency.generateRequestHash(payload),
+      });
+      if (existing?.status === 'committed') {
+        const recorded = existing.responsePayload as Record<string, unknown> | undefined;
+        if (recorded?.id) return { ok: true, ...recorded };
+        throw new AppError('Customer payment result requires reconciliation', 'PAYMENT_RECOVERY_REQUIRED', 422);
+      }
+      if (existing?.status === 'processing') throw new AppError('Payment is currently processing', 'PAYMENT_PROCESSING', 409);
+      if (existing?.status === 'failed') throw new AppError(existing.errorCode || 'Payment previously failed', 'PAYMENT_IDEMPOTENCY_FAILED', 400);
+      if (existing?.status === 'recovery_required') throw new AppError('Payment requires manual recovery', 'PAYMENT_RECOVERY_REQUIRED', 422);
+    }
+    try {
     const paymentResult = await this.tx.runInTransaction(this.db, async (trx) => {
       const customer = await trx
         .selectFrom('customers')
@@ -1267,6 +1303,7 @@ export class PurchasesWriteService {
         .values({
           customer_id: customer.id,
           amount,
+          payment_channel: payload.paymentChannel || 'cash',
           note: normalizeOptionalNote(payload.note),
           branch_id: branchId,
           location_id: locationId,
@@ -1290,7 +1327,7 @@ export class PurchasesWriteService {
 
       const fullDesc = `${descPrefix}${paymentNote ? ` - ${paymentNote}` : ''}`;
       await this.financeService.addCustomerLedgerEntry(trx, customer.id, -amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'customer_payment', amount, fullDesc, 'customer_payment', paymentId, auth, branchId, locationId, payload.paymentChannel || 'cash');
       const posting = await this.accountingPosting.postCustomerPayment(trx, paymentId, auth);
       if (!posting.journalEntryId) throw new AppError(`Customer payment ${paymentId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
 
@@ -1331,7 +1368,7 @@ export class PurchasesWriteService {
           .execute();
       }
 
-      return {
+      const receipt = {
         id: paymentId,
         docNo,
         customerId: customer.id,
@@ -1344,10 +1381,36 @@ export class PurchasesWriteService {
         jobNumber: allocatedJobNumber,
         createdAt: new Date().toISOString(),
       };
+      // The audit record is part of the same atomic voucher transaction; an
+      // audit failure cannot turn an already-posted payment into an HTTP failure.
+      await this.audit.logWithExecutor(trx, 'سند قبض / تحصيل عميل',
+        `تم تسجيل سند قبض ${docNo} للعميل ${customer.name} بمبلغ ${amount} بواسطة ${auth.username}`, auth);
+      // Commit the operation and the financial voucher in the SAME DB transaction.
+      if (idempotencyKey) {
+        await this.idempotency.commitOperation(trx, {
+          tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+        }, receipt, String(paymentId));
+      }
+      return receipt;
     });
 
-    await this.audit.log('سند قبض / تحصيل عميل', `تم تسجيل سند قبض ${paymentResult.docNo} للعميل ${paymentResult.customerName} بمبلغ ${paymentResult.amount} بواسطة ${auth.username}`, auth);
     return { ok: true, ...paymentResult };
+    } catch (error) {
+      if (idempotencyKey) {
+        if (error instanceof AppError && error.statusCode < 500) {
+          await this.idempotency.recordFailure({
+            tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
+          }, error.code).catch(() => undefined);
+        } else {
+          await this.db.updateTable('operation_executions')
+            .set({ status: 'recovery_required', updated_at: sql`CURRENT_TIMESTAMP` })
+            .where('tenant_id', '=', scope.tenantId).where('account_id', '=', scope.accountId)
+            .where('idempotency_key', '=', idempotencyKey).where('operation_type', '=', operationType)
+            .where('status', '=', 'processing').where('document_id', 'is', null).execute().catch(() => undefined);
+        }
+      }
+      throw error;
+    }
   }
 
   private async generatePurchaseDocNo(trx: Kysely<Database>, purchaseId: number, tenantId: string): Promise<string> {

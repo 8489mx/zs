@@ -238,6 +238,8 @@ export class SupplierPaymentSchedulesService {
 
   async createForPurchase(purchaseId: number, payload: CreateSupplierPaymentScheduleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Purchase -> supplier -> installment is the same lock order used by
+      // purchase returns. Do not invert it in payment settlement.
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status !== 'posted') throw new AppError('Only posted purchases can be scheduled', 'PURCHASE_NOT_POSTED', 400);
@@ -329,15 +331,23 @@ export class SupplierPaymentSchedulesService {
     try {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const db = this.scheduleDb(trx);
-      const pendingInstallment = await db.selectFrom('supplier_payment_schedules').select('supplier_id').where('id', '=', installmentId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const pendingInstallment = await db.selectFrom('supplier_payment_schedules').select(['supplier_id', 'purchase_id']).where('id', '=', installmentId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!pendingInstallment) throw new AppError('Installment not found', 'INSTALLMENT_NOT_FOUND', 404);
-      // Lock the payable first so scheduled and direct payments share one balance order.
+      // Purchase returns lock purchase -> products -> supplier, so keep purchase
+      // before supplier here too. This invoice row lock also serializes voucher
+      // allocation against installment payments to prevent the same debt being paid twice.
+      const lockedPurchase = pendingInstallment.purchase_id
+        ? await trx.selectFrom('purchases').selectAll()
+            .where('id', '=', Number(pendingInstallment.purchase_id))
+            .where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst()
+        : null;
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance'])
         .where('id', '=', Number(pendingInstallment.supplier_id)).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const installment = await db.selectFrom('supplier_payment_schedules').selectAll()
         .where('id', '=', installmentId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
-      if (!installment || Number(installment.supplier_id) !== Number(supplier.id)) {
+      if (!installment || Number(installment.supplier_id) !== Number(supplier.id)
+        || Number(installment.purchase_id || 0) !== Number(pendingInstallment.purchase_id || 0)) {
         throw new AppError('Installment changed during payment', 'INSTALLMENT_CHANGED', 409);
       }
       if (installment.status === 'cancelled' || installment.status === 'paid') {
@@ -346,9 +356,7 @@ export class SupplierPaymentSchedulesService {
       await this.financeService.assertNoBlockingThreeWayMatch(trx, Number(supplier.id), tenantScope.tenantId);
       let invoiceRemainingForInstallment: number | null = null;
       if (installment.purchase_id) {
-        const purchase = await trx.selectFrom('purchases').selectAll()
-          .where('id', '=', Number(installment.purchase_id))
-          .where(this.tenantPredicate(auth)).executeTakeFirst();
+        const purchase = lockedPurchase;
         if (!purchase || purchase.status !== 'posted' || Number(purchase.supplier_id) !== Number(supplier.id)) {
           throw new AppError('الفاتورة المرتبطة بالقسط غير مرحلة أو لا تتبع المورد', 'PURCHASE_SCHEDULE_INVOICE_INVALID', 409);
         }
@@ -389,9 +397,9 @@ export class SupplierPaymentSchedulesService {
       const treasuryReferenceType = openShift?.id ? 'cashier_shift' : 'supplier_payment_schedule';
       const treasuryReferenceId = openShift?.id ? Number(openShift.id) : installmentId;
       await db.updateTable('supplier_payment_schedules').set({ paid_amount: paidAmount, status, paid_at: status === 'paid' ? sql`NOW()` : installment.paid_at, updated_by: auth.userId, updated_at: sql`NOW()` }).where('id', '=', installmentId).where(this.tenantPredicate(auth)).execute();
-      const insertedLog = await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, note, created_by: auth.userId, created_by_name: auth.username || '', ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
+      const insertedLog = await db.insertInto('supplier_payment_schedule_logs').values({ schedule_id: installmentId, supplier_id: supplierId, amount, payment_channel: payload.paymentChannel || 'cash', note, created_by: auth.userId, created_by_name: auth.username || '', ...this.tenantFields(auth) }).returning('id').executeTakeFirstOrThrow();
       await this.financeService.addSupplierLedgerEntry(trx, supplierId, -amount, 'supplier_payment_schedule', `دفعة مورد مجدولة - ${note}`, 'supplier_payment_schedule', installmentId, auth, branchId, locationId);
-      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId);
+      await this.financeService.addTreasuryTransaction(trx, 'supplier_payment_schedule', -amount, `دفعة مورد مجدولة - ${note}${openShift?.id ? ` - مرتبطة بالوردية SHIFT-${openShift.id}` : ''}`, treasuryReferenceType, treasuryReferenceId, auth, branchId, locationId, payload.paymentChannel || 'cash');
       const posting = await this.accountingPosting.postSupplierPaymentScheduleSettlement(trx, Number(insertedLog.id), auth);
       if (!posting.journalEntryId) throw new AppError(`Supplier schedule settlement ${insertedLog.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
       if (idempotencyKey) {

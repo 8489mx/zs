@@ -169,8 +169,8 @@ export class PurchasesController {
 
   @Post('customer-payments')
   @RequirePermissions('accounts')
-  createCustomerPayment(@Body() payload: CreateCustomerPaymentDto, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.purchasesService.createCustomerPayment(payload, req.authContext!);
+  createCustomerPayment(@Body() payload: CreateCustomerPaymentDto, @Req() req: RequestWithAuth, @Headers('x-idempotency-key') idempotencyKey?: string): Promise<Record<string, unknown>> {
+    return this.purchasesService.createCustomerPayment(payload, req.authContext!, idempotencyKey);
   }
 
   @Post('purchases/attachments/upload')

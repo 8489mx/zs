@@ -11,7 +11,7 @@ import { TransactionHelper } from '../../../database/helpers/transaction.helper'
 import { Database } from '../../../database/database.types';
 import { InventoryAdjustmentDto } from '../dto/inventory-adjustment.dto';
 import { InventoryCountService } from './inventory-count.service';
-import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
+import { dispatchTrackedStock } from '../helpers/stock-transfer-trace.helper';
 import { InventoryScopeService } from './inventory-scope.service';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
@@ -40,9 +40,12 @@ export class InventoryAdjustmentService {
 
     let result: any = { productId: payload.productId, locationId: payload.locationId, beforeQty: 0, afterQty: 0, scopeBefore: 0, scopeAfter: 0, globalBefore: 0, globalAfter: 0 };
 
-    if (payload.locationId) {
-      await this.scopeService.assertLocationScope(payload.locationId, auth, false, 'write');
+    const location = payload.locationId
+      ? await this.scopeService.assertLocationScope(payload.locationId, auth, false, 'write') : null;
+    if (location && payload.branchId != null && Number(payload.branchId) !== Number(location.branchId)) {
+      throw new AppError('الفرع لا يطابق المخزن المختار', 'ADJUSTMENT_BRANCH_LOCATION_MISMATCH', 409);
     }
+    const effectiveBranchId = location ? location.branchId : (payload.branchId ?? null);
 
     const finalResponse = await this.tx.runInTransaction(this.db, async (trx) => {
       const requestedQty = Number(payload.qty);
@@ -60,10 +63,18 @@ export class InventoryAdjustmentService {
         .forUpdate()
         .executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      await assertUntrackedStockMutation(trx, scope, Number(payload.productId));
+      const [serialRecord, batchRecord, drugRecord] = await Promise.all([
+        trx.selectFrom('product_serials').select('id').where('tenant_id', '=', scope.tenantId).where('product_id', '=', payload.productId).limit(1).executeTakeFirst(),
+        trx.selectFrom('pharmacy_batches').select('id').where('tenant_id', '=', scope.tenantId).where('product_id', '=', payload.productId).limit(1).executeTakeFirst(),
+        trx.selectFrom('pharmacy_drugs').select('id').where('tenant_id', '=', scope.tenantId).where('product_id', '=', payload.productId).limit(1).executeTakeFirst(),
+      ]);
+      const tracked = Boolean(product.track_serials || serialRecord || batchRecord || drugRecord);
+      if (!tracked && (payload.serials?.length || payload.batchAllocations?.length)) {
+        throw new AppError('الصنف غير متتبع؛ لا تقبل بيانات سيريال أو تشغيلة', 'ADJUSTMENT_UNEXPECTED_TRACE', 400);
+      }
       const rawCost = Number(product.cost_price || 0);
       const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-      const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: payload.branchId, locationId: payload.locationId };
+      const stockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: payload.productId, branchId: effectiveBranchId, locationId: payload.locationId };
       const beforeQty = payload.locationId
         ? await previewAssignedLocationStockQty(trx, stockScope)
         : Number(product.stock_qty || 0);
@@ -75,11 +86,28 @@ export class InventoryAdjustmentService {
         throw new AppError('Quantity must be strictly positive for add and deduct operations', 'INVALID_QTY', 400);
       }
 
+      const deltaRequested = payload.actionType === 'adjust' ? requestedQty - beforeQty
+        : payload.actionType === 'add' ? requestedQty : -requestedQty;
+      if (tracked) {
+        if (!payload.locationId || !Number.isSafeInteger(Number(payload.locationId))) {
+          throw new AppError('يجب تحديد المخزن عند تسوية صنف متتبع', 'ADJUSTMENT_TRACKED_LOCATION_REQUIRED', 422);
+        }
+        if (deltaRequested >= 0) {
+          throw new AppError('زيادة الأصناف المتتبعة أو تغييرها بدون توثيق الاستلام يتم من خلال الجرد المتتبع',
+            'ADJUSTMENT_TRACKED_INCREASE_REQUIRES_COUNT', 409);
+        }
+        await dispatchTrackedStock(trx, scope, {
+          productId: Number(payload.productId), qty: -deltaRequested,
+          serials: payload.serials, batchAllocations: payload.batchAllocations,
+        }, Number(payload.locationId), effectiveBranchId, null, Number(payload.productId));
+      }
+
       if (payload.actionType === 'adjust') {
         afterQty = requestedQty;
         stockChange = await setScopedStockQty(trx, {
           ...stockScope,
           nextQty: afterQty,
+          disableAutoDrain: tracked,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: 'Cannot deduct more than current stock',
         });
@@ -95,6 +123,7 @@ export class InventoryAdjustmentService {
         stockChange = await applyStockDelta(trx, {
           ...stockScope,
           delta: -Number(payload.qty || 0),
+          disableAutoDrain: tracked,
           errorCode: 'INSUFFICIENT_STOCK',
           errorMessage: 'Cannot deduct more than current stock',
         });
@@ -119,7 +148,7 @@ export class InventoryAdjustmentService {
           note: payload.note || '',
           reference_type: 'inventory_adjustment',
           reference_id: payload.productId,
-          branch_id: payload.branchId ?? null,
+          branch_id: effectiveBranchId,
           location_id: payload.locationId ?? null,
           created_by: auth.userId,
           tenant_id: scope.tenantId,

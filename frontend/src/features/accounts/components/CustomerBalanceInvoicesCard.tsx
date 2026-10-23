@@ -197,6 +197,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
   const [expandedSaleIds, setExpandedSaleIds] = useState<Record<string, boolean>>({});
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [paymentChannel, setPaymentChannel] = useState<'cash'|'bank'|'card'|'wallet'|'instapay'>('cash');
   const [successReceipt, setSuccessReceipt] = useState<{
     customer: Customer;
     amountPaid: number;
@@ -255,6 +256,7 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
       return accountsApi.customerPaymentCreate({
         customerId: Number(customer.id),
         amount,
+        paymentChannel,
         note: paymentNote || `تحصيل سريع من العميل ${customerName}`,
       });
     },
@@ -498,6 +500,15 @@ export function CustomerBalanceInvoicesCard({ customer, disabled = false }: Cust
               </div>
             </Field>
 
+            <Field label="وسيلة التحصيل">
+              <select value={paymentChannel} onChange={e => setPaymentChannel(e.target.value as typeof paymentChannel)} disabled={paymentMutation.isPending || disabled}>
+                <option value="cash">نقدي (درج الكاشير)</option>
+                <option value="bank">تحويل بنكي</option>
+                <option value="card">بطاقة</option>
+                <option value="wallet">محفظة إلكترونية</option>
+                <option value="instapay">إنستاباي</option>
+              </select>
+            </Field>
             <Field label={t('accounts.customer_balance_invoices_card.s44', "ملاحظات التحصيل (اختياري)")}>
               <textarea
                 rows={2}

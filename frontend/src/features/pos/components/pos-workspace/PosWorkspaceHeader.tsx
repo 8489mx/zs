@@ -95,7 +95,7 @@ function PosWorkspaceHeaderComponent({
   const isStorefrontActive = settings?.storefrontModuleEnabled !== false;
   const isServicesActive = settings?.servicesModuleEnabled === true || Boolean(settings?.enableMobileStoreFeatures);
 
-  const { offlineQueue, isSyncing, hasFailedSales, syncOfflineSales } = usePosOfflineSync();
+  const { offlineQueue, queueError, isSyncing, hasFailedSales, syncOfflineSales } = usePosOfflineSync();
   const [isOfflineQueueModalOpen, setIsOfflineQueueModalOpen] = useState(false);
   const [isNoSaleOpen, setIsNoSaleOpen] = useState(false);
   const [isExchangeOpen, setIsExchangeOpen] = useState(false);
@@ -250,6 +250,11 @@ function PosWorkspaceHeaderComponent({
             <ZErpIcon size={26} />
             <strong style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.02em', lineHeight: 1 }}>ERP</strong>
           </span>
+          {queueError ? (
+            <span role="alert" style={{ color: '#991b1b', border: '1px solid #fca5a5', background: '#fee2e2', padding: '3px 8px', marginRight: 8, fontSize: 12, borderRadius: 6 }}>
+              {queueError}
+            </span>
+          ) : null}
           {offlineQueue.length > 0 && (
             <button
               type="button"

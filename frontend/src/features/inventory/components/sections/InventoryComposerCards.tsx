@@ -32,13 +32,13 @@ interface StockTransferComposerCardProps {
   products: Product[];
   warehouses?: Location[];
   locations?: Location[];
-  form: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string };
+  form: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string; serials: string; batchAllocations: string };
   items: StockTransferItem[];
   isPending: boolean;
   isError: boolean;
   isSuccess: boolean;
   error?: unknown;
-  onFormChange: (patch: Partial<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string }>) => void;
+  onFormChange: (patch: Partial<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string; serials: string; batchAllocations: string }>) => void;
   onAddItem: () => void;
   onRemoveItem: (index: number) => void;
   onSubmit: () => void;
@@ -103,6 +103,12 @@ export function StockTransferComposerCard({
         <Field label={t('inventory.sections.inventory_composer_cards.s10', "الكمية")}>
           <input type="number" min="0.001" step="0.001" value={form.qty} onChange={(e) => onFormChange({ qty: e.target.value })} />
         </Field>
+        <Field label="سيريالات القطع المنقولة (رقم لكل سطر)">
+          <textarea rows={2} value={form.serials || ''} placeholder="IMEI / Serial" onChange={(e) => onFormChange({ serials: e.target.value })} />
+        </Field>
+        <Field label="توزيع التشغيلات (رقم التشغيلة في النظام:الكمية لكل سطر)">
+          <textarea rows={2} value={form.batchAllocations || ''} placeholder="123:2\n124:3" onChange={(e) => onFormChange({ batchAllocations: e.target.value })} />
+        </Field>
         <Field label={t('inventory.sections.inventory_composer_cards.s11', "ملاحظات")}>
           <textarea rows={3} value={form.note} onChange={(e) => onFormChange({ note: e.target.value })} />
         </Field>
@@ -120,7 +126,7 @@ export function StockTransferComposerCard({
           <div className="list-row stacked-row" key={item.id}>
             <div>
               <strong>{item.productName}</strong>
-              <div className="muted small">{t('inventory.sections.inventory_composer_cards.s18', "الكمية:")} {item.qty}</div>
+              <div className="muted small">{t('inventory.sections.inventory_composer_cards.s18', "الكمية:")} {item.qty}{item.serials?.length ? ` — ${item.serials.length} سيريال` : ''}{item.batchAllocations?.length ? ` — ${item.batchAllocations.length} تشغيلة` : ''}</div>
             </div>
             <Button type="button" variant="danger" onClick={() => onRemoveItem(index)}>{t('inventory.sections.inventory_composer_cards.s19', "حذف")}</Button>
           </div>
@@ -1062,7 +1068,20 @@ export function StockCountComposerCard({
                   {pagination.rows.map((item, index) => (
                     <tr key={item.id}>
                       <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>{pagination.rangeStart + index}</td>
-                      <td><strong>{item.productName}</strong></td>
+                      <td>
+                        <strong>{item.productName}</strong>
+                        <div style={{ marginTop: 4, display: 'grid', gap: 3 }}>
+                          <textarea rows={2} style={{ fontSize: 11, minWidth: 130 }} placeholder="السيريالات الموجودة فعلاً (رقم في كل سطر)"
+                            value={(item.countedSerials || []).join('\n')}
+                            onChange={event => updateCountItemById(item.id, {
+                              countedSerials: event.target.value.split(/[\n,،]+/).map(s => s.trim()).filter(Boolean),
+                            })} />
+                          <textarea rows={2} style={{ fontSize: 11, minWidth: 130 }}
+                            placeholder="رصيد التشغيلات: رقم:كمية؛ الجديدة NEW:الرقم:YYYY-MM-DD:كمية"
+                            value={item.batchCountsText || ''}
+                            onChange={event => updateCountItemById(item.id, { batchCountsText: event.target.value })} />
+                        </div>
+                      </td>
                       {canShowExpectedCount ? <td style={{ textAlign: 'center' }} className="muted">{item.expectedQty || 0}</td> : null}
                       <td style={{ textAlign: 'center' }}>
                         <input

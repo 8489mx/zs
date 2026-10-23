@@ -19,6 +19,8 @@ import { IdempotencyService } from '../../../core/idempotency/idempotency.servic
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
+import { dispatchTrackedStock } from '../helpers/stock-transfer-trace.helper';
+import { reconcileStockCountTrace } from '../helpers/stock-count-trace.helper';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { normalizeArabicSearch, matchesArabic } from '../../../common/utils/arabic-search.util';
 import { syncImportLotsOnStockDeduction } from '../../import-sales/helpers/import-lot-allocation.helper';
@@ -164,7 +166,12 @@ export class InventoryCountService {
         const product = await trx.selectFrom('products').select(['id', 'name', 'stock_qty']).where('id', '=', item.productId).where('is_active', '=', true).where(this.tenantPredicate(auth)).executeTakeFirst();
         if (!product) throw new AppError('Product not found in stock count session', 'PRODUCT_NOT_FOUND', 404);
         const expectedQty = await previewAssignedLocationStockQty(trx, { productId: item.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
-        await trx.insertInto('stock_count_items').values({ ...buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id), ...this.tenantFields(auth) }).execute();
+        await trx.insertInto('stock_count_items').values({
+          ...buildStockCountItemValues({ ...product, stock_qty: expectedQty }, item, id),
+          counted_serials: JSON.stringify(item.countedSerials || []),
+          batch_counts: JSON.stringify(item.batchCounts || []),
+          ...this.tenantFields(auth),
+        } as any).execute();
       }
 
       // Idempotency: commit inside the EXACT SAME business transaction (CORE-004)
@@ -215,6 +222,9 @@ export class InventoryCountService {
       const varianceQty = Number((countedQty - expectedQty).toFixed(3));
       await trx.updateTable('stock_count_items').set({
         expected_qty: expectedQty, counted_qty: countedQty, variance_qty: varianceQty, reason,
+        // Recount is a fresh physical assertion; never replay stale selections.
+        counted_serials: JSON.stringify(payload.countedSerials || []),
+        batch_counts: JSON.stringify(payload.batchCounts || []),
       }).where('id', '=', itemId).where('session_id', '=', sessionId)
         .where('posted_at', 'is', null).where(this.tenantPredicate(auth)).execute();
       await this.audit.logWithExecutor(trx, 'إعادة جرد بند', JSON.stringify({ sessionId, itemId, productId: item.product_id, expectedQty, countedQty, varianceQty, reason }), auth);
@@ -344,8 +354,35 @@ export class InventoryCountService {
             throw new AppError(`Stock count item ${item.id} is stale; reconcile this item before resuming`, 'STOCK_COUNT_STALE', 409);
           }
           const variance = Number(item.variance_qty || 0);
+          const serialData = typeof item.counted_serials === 'string' ? JSON.parse(item.counted_serials) : item.counted_serials;
+          const batchData = typeof item.batch_counts === 'string' ? JSON.parse(item.batch_counts) : item.batch_counts;
+          const hasTrace = (Array.isArray(serialData) && serialData.length > 0) ||
+            (Array.isArray(batchData) && batchData.length > 0);
+          if (Math.abs(variance) >= 0.001 || hasTrace) {
+            const product = await trx.selectFrom('products').select('cost_price')
+              .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
+            const rawCost = Number(product.cost_price || 0);
+            const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
+            if (!(Number(session.location_id) > 0)) {
+              throw new AppError('الجرد المتتبع يحتاج مخزناً محدداً', 'STOCK_COUNT_LOCATION_REQUIRED', 409);
+            }
+            await reconcileStockCountTrace(trx, tenantScope, {
+              itemId: Number(item.id), sessionId, productId: Number(item.product_id),
+              branchId: session.branch_id, locationId: Number(session.location_id),
+              expectedQty, countedQty: Number(item.counted_qty || 0), unitCost,
+              countedSerials: serialData, batchCounts: batchData,
+            });
+            // Swapping physical serial identities or lot allocations can leave
+            // quantity unchanged. It still needs a durable actor/line trace even
+            // though no monetary journal is appropriate for a zero-net movement.
+            if (hasTrace && Math.abs(variance) < 0.001) {
+              await this.audit.logWithExecutor(trx, 'مطابقة سيريالات وتشغيلات جرد بلا فرق كمي',
+                JSON.stringify({ sessionId, itemId: item.id, productId: item.product_id,
+                  locationId: session.location_id, quantity: item.counted_qty,
+                  countedSerials: serialData, batchCounts: batchData }), auth);
+            }
+          }
           if (Math.abs(variance) >= 0.001) {
-            await assertUntrackedStockMutation(trx, tenantScope, Number(item.product_id));
             const product = await trx.selectFrom('products').select('cost_price')
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
             const rawCost = Number(product.cost_price || 0);
@@ -356,6 +393,7 @@ export class InventoryCountService {
               branchId: session.branch_id, locationId: session.location_id,
               tenantId: tenantScope.tenantId, accountId: tenantScope.accountId,
               errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Stock count posting cannot drive total stock below zero',
+              disableAutoDrain: true,
             });
             await trx.insertInto('stock_movements').values({
               ...buildStockCountPostingMovement(item, sessionId, auth.userId),
@@ -498,20 +536,26 @@ export class InventoryCountService {
         || Math.abs(damageQty * 1000 - Math.round(damageQty * 1000)) > 0.000001) {
         throw new AppError('Damage quantity must be positive with at most three decimal places', 'INVALID_QTY', 400);
       }
-      await assertUntrackedStockMutation(trx, tenantScope, Number(payload.productId));
-
       const availableQty = await previewConsumableStockQty(trx, { productId: payload.productId, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId });
       const writeModels = buildDamagedStockWriteModels({ ...product, stock_qty: availableQty }, payload, location, auth.userId);
-      const stockChange = await applyStockDelta(trx, { productId: payload.productId, delta: -damageQty, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Cannot mark more damaged stock than current stock' });
-
       const insertedDamage = await trx.insertInto('damaged_stock_records').values({
          ...writeModels.damagedRecord,
          unit_cost: unitCost,
          total_cost: totalCost,
          ...this.tenantFields(auth)
       }).returning('id').executeTakeFirst();
-
       if (!insertedDamage?.id) throw new AppError('Failed to capture damaged stock ID', 'DAMAGE_INSERT_FAILED', 500);
+
+      const trace = await dispatchTrackedStock(trx, tenantScope, {
+        productId: Number(payload.productId), qty: damageQty,
+        serials: payload.serials, batchAllocations: payload.batchAllocations,
+      }, location.id, location.branchId, null, Number(insertedDamage.id));
+      await trx.updateTable('damaged_stock_records').set({
+        serial_tracking: JSON.stringify(trace.serialTracking),
+        batch_tracking: JSON.stringify(trace.batchTracking),
+      } as any).where('id', '=', Number(insertedDamage.id)).where(this.tenantPredicate(auth)).execute();
+
+      const stockChange = await applyStockDelta(trx, { productId: payload.productId, delta: -damageQty, branchId: location.branchId, locationId: location.id, tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Cannot mark more damaged stock than current stock', disableAutoDrain: true });
 
       await trx.insertInto('stock_movements').values({
          ...writeModels.stockMovement,
@@ -535,16 +579,15 @@ export class InventoryCountService {
 
       const posting = await this.accountingPosting.postDamagedStock(trx, Number(insertedDamage.id), auth);
       if (posting.hasFinancialImpact && !posting.journalEntryId) throw new AppError(`Damaged stock ${insertedDamage.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+      if (idemCtx?.idempotencyKey && idemCtx.operationType) {
+        await this.idempotency.commitOperation(trx, {
+          tenantId: tenantScope.tenantId, accountId: tenantScope.accountId,
+          idempotencyKey: idemCtx.idempotencyKey, operationType: idemCtx.operationType,
+        }, { ok: true, damageId: Number(insertedDamage.id) }, String(insertedDamage.id));
+      }
     });
     await this.audit.log('تسجيل تالف', JSON.stringify({ actorUserId: auth.userId, productId: payload.productId, qty: payload.qty }), auth);
     const responsePayload = { ok: true, products: (await this.db.selectFrom('products').select(['id', 'name']).where('is_active', '=', true).where(this.tenantPredicate(auth)).execute()).map((p) => ({ id: String(p.id), name: p.name })), damagedStockRecords: (await this.listDamagedStock({}, auth)).damagedStockRecords, stockMovements: (await this.listStockMovements({}, auth)).stockMovements };
-    if (idemCtx && idemCtx.idempotencyKey && idemCtx.operationType) {
-      const idKey = idemCtx.idempotencyKey;
-      const opType = idemCtx.operationType;
-      await this.tx.runInTransaction(this.db, async (trx) => {
-        await this.idempotency.commitOperation(trx, { tenantId: tenantScope.tenantId, accountId: tenantScope.accountId, idempotencyKey: idKey, operationType: opType }, responsePayload);
-      });
-    }
     return responsePayload;
   }
 }

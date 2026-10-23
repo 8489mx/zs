@@ -1985,6 +1985,7 @@ export class AccountingPostingService {
         'sp.doc_no',
         'sp.supplier_id',
         'sp.amount',
+        'sp.payment_channel',
         'sp.note',
         'sp.payment_date',
         'sp.branch_id',
@@ -2017,9 +2018,8 @@ export class AccountingPostingService {
 
     const supplierPayableAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.supplier_payable_account_id, '2110');
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
-
-    // No explicit payment method is stored for supplier_payments in current schema.
-    // Fallback to cash account to match existing treasury flow behavior for this endpoint.
+    const paymentAccountId = (payment.payment_channel || 'cash') === 'cash' ? cashAccountId :
+      await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {
       accountId: supplierPayableAccountId,
@@ -2032,8 +2032,8 @@ export class AccountingPostingService {
       locationId,
     });
     this.addLine(lines, {
-      accountId: cashAccountId,
-      description: 'خروج نقدية لسداد مورد',
+      accountId: paymentAccountId,
+      description: (payment.payment_channel || 'cash') === 'cash' ? 'خروج نقدية لسداد مورد' : 'سداد مورد عبر البنك أو المدفوعات الإلكترونية',
       debit: 0,
       credit: amount,
       partnerType: 'none',
@@ -2088,6 +2088,7 @@ export class AccountingPostingService {
         'l.schedule_id',
         'l.supplier_id',
         'l.amount',
+        'l.payment_channel',
         'l.note',
         'l.created_by',
         'l.created_at',
@@ -2126,9 +2127,8 @@ export class AccountingPostingService {
 
     const supplierPayableAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.supplier_payable_account_id, '2110');
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
-
-    // No explicit payment method is stored for schedule settlement logs.
-    // Fallback to cash account to match current treasury write behavior.
+    const paymentAccountId = (settlement.payment_channel || 'cash') === 'cash' ? cashAccountId :
+      await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {
       accountId: supplierPayableAccountId,
@@ -2141,8 +2141,8 @@ export class AccountingPostingService {
       locationId,
     });
     this.addLine(lines, {
-      accountId: cashAccountId,
-      description: 'خروج نقدية لسداد مورد',
+      accountId: paymentAccountId,
+      description: (settlement.payment_channel || 'cash') === 'cash' ? 'خروج نقدية لسداد مورد' : 'سداد قسط مورد عبر البنك أو المدفوعات الإلكترونية',
       debit: 0,
       credit: amount,
       partnerType: 'none',
@@ -2195,6 +2195,7 @@ export class AccountingPostingService {
         'cp.id',
         'cp.customer_id',
         'cp.amount',
+        'cp.payment_channel',
         'cp.note',
         'cp.branch_id',
         'cp.location_id',
@@ -2226,13 +2227,12 @@ export class AccountingPostingService {
 
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
     const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
-
-    // No explicit payment method is stored for customer_payments in current schema.
-    // Fallback to cash account to match existing treasury write behavior for this endpoint.
+    const paymentAccountId = (payment.payment_channel || 'cash') === 'cash' ? cashAccountId :
+      await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {
-      accountId: cashAccountId,
-      description: 'دخول نقدية من تحصيل عميل',
+      accountId: paymentAccountId,
+      description: (payment.payment_channel || 'cash') === 'cash' ? 'دخول نقدية من تحصيل عميل' : 'تحصيل عميل عبر البنك أو المدفوعات الإلكترونية',
       debit: amount,
       credit: 0,
       partnerType: 'none',

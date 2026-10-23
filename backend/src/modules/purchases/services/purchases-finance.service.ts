@@ -132,12 +132,14 @@ export class PurchasesFinanceService {
     actor: AuthContext,
     branchId: number | null,
     locationId: number | null,
+    paymentChannel: 'cash' | 'bank' | 'card' | 'wallet' | 'instapay' = 'cash',
   ): Promise<void> {
     await queryable
       .insertInto('treasury_transactions')
       .values({
         txn_type: txnType,
         amount,
+        payment_channel: paymentChannel,
         note,
         reference_type: referenceType,
         reference_id: referenceId,

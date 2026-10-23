@@ -2,7 +2,9 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { formatCurrency } from '@/lib/format';
-import { OfflinePosSale, removeOfflineSale, clearOfflineQueue } from '@/features/pos/lib/pos-offline-sync';
+import { OfflinePosSale, removeOfflineSale } from '@/features/pos/lib/pos-offline-sync';
+import { posApi } from '@/features/pos/api/pos.api';
+import { systemConfirm, toast } from '@/shared/components/system-alert';
 
 interface PosOfflineQueueModalProps {
   open: boolean;
@@ -41,17 +43,33 @@ export function PosOfflineQueueModal({
     }
   };
 
-  const handleRemoveSingle = (id: string, e: React.MouseEvent) => {
+  const handleRemoveSingle = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('هل أنت متأكد من حذف هذه الفاتورة من قائمة الانتظار المحلية؟ لن يتم ترحيلها للخادم.')) {
-      removeOfflineSale(id);
+    const sale = offlineQueue.find(item => item.id === id);
+    if (!sale || sale.status !== 'failed') {
+      toast.error('لا يمكن حذف فاتورة معلقة أو قيد الترحيل؛ يجب التحقق من نتيجتها أولاً');
+      return;
     }
-  };
-
-  const handleClearAll = () => {
-    if (window.confirm('تحذير: هل أنت متأكد من حذف جميع الفواتير المعلقة؟ سيتم فقدان بياناتها بالكامل.')) {
-      clearOfflineQueue();
-      onClose();
+    try {
+      const server = await posApi.getSaleOperationStatus(id);
+      if (server.documentId || !['not_found', 'failed'].includes(String(server.status))) {
+        throw new Error('حالة الفاتورة غير محسومة على الخادم؛ لا يمكن حذفها');
+      }
+      const confirmed = await systemConfirm({
+        title: 'حذف فاتورة لم تُرحّل',
+        message: 'أثبت الخادم عدم ترحيل الفاتورة. انسخ بياناتها كنسخة احتياطية قبل الحذف. هل تريد إلغاء المحاولة المحلية؟',
+        confirmText: 'حذف الفاتورة الفاشلة', cancelText: 'إبقاء الفاتورة',
+      });
+      if (!confirmed) return;
+      // Freshly re-read status after confirmation to avoid deleting a voucher
+      // that a parallel device or in-flight request just committed.
+      const verified = await posApi.getSaleOperationStatus(id);
+      if (verified.documentId || !['not_found', 'failed'].includes(String(verified.status))) {
+        throw new Error('تغيرت حالة الفاتورة؛ لم يتم حذفها');
+      }
+      removeOfflineSale(id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'تعذر تأكيد أمان حذف الفاتورة');
     }
   };
 
@@ -85,12 +103,17 @@ export function PosOfflineQueueModal({
             <button
               type="button"
               disabled={isSyncing || offlineQueue.length === 0}
-              onClick={() => {
+              onClick={async () => {
                 const failed = offlineQueue.filter((sale) => sale.status === 'failed').length;
-                if (failed > 0 && !window.confirm(
-                  `يوجد ${failed} فاتورة فشل ترحيلها. ستتم مراجعة حالة العمليات أولاً على الخادم قبل أي محاولة جديدة. هل تريد المتابعة؟`
-                )) return;
-                void onRetrySync();
+                if (failed > 0) {
+                  const proceed = await systemConfirm({
+                    title: 'مراجعة الفواتير المتعثرة',
+                    message: `يوجد ${failed} فاتورة فشل ترحيلها. سيتم التحقق من حالة الخادم أولاً دون تكرار الفاتورة.`,
+                    confirmText: 'التحقق والمحاولة', cancelText: 'إلغاء',
+                  });
+                  if (!proceed) return;
+                }
+                await onRetrySync();
               }}
               style={{
                 background: '#170e5e',
@@ -173,7 +196,11 @@ export function PosOfflineQueueModal({
               let statusColor = '#92400e';
               let statusLabel = t('pos.pos_workspace.pos_offline_queue_modal.s8', "في انتظار المزامنة");
 
-              if (item.status === 'syncing') {
+              if (item.status === 'committed') {
+                statusBg = '#dcfce7';
+                statusColor = '#166534';
+                statusLabel = 'مرحّلة على الخادم — جارٍ تنظيف الطابور';
+              } else if (item.status === 'syncing') {
                 statusBg = '#dbeafe';
                 statusColor = '#1e40af';
                 statusLabel = t('pos.pos_workspace.pos_offline_queue_modal.s9', "جاري الترحيل...");
@@ -222,7 +249,7 @@ export function PosOfflineQueueModal({
                       </span>
                       <button
                         type="button"
-                        onClick={(e) => handleRemoveSingle(item.id, e)}
+                        onClick={(e) => void handleRemoveSingle(item.id, e)}
                         title={t('pos.pos_workspace.pos_offline_queue_modal.s13', "حذف من الطابور المحلي")}
                         style={{
                           background: '#fef2f2',
@@ -289,20 +316,7 @@ export function PosOfflineQueueModal({
         {/* Modal Footer */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
           {offlineQueue.length > 0 ? (
-            <button
-              type="button"
-              onClick={handleClearAll}
-              style={{
-                background: 'transparent',
-                color: '#dc2626',
-                border: 'none',
-                fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {t('pos.pos_workspace.pos_offline_queue_modal.s21', "حذف الكل")}
-            </button>
+            <span className="muted small">الحذف الجماعي محظور لحماية الفواتير المالية المعلقة. يمكن نسخ السجل للمراجعة.</span>
           ) : <div />}
 
           <button

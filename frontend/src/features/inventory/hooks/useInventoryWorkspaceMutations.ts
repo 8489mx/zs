@@ -21,12 +21,12 @@ export function useInventoryWorkspaceMutations({
   setCreatedTransfer,
 }: {
   queryClient: QueryClient;
-  transferForm: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string };
+  transferForm: { fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string; serials: string; batchAllocations: string };
   transferItems: StockTransferItem[];
   countForm: { branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string };
   countItems: StockCountItem[];
   setTransferItems: Dispatch<SetStateAction<StockTransferItem[]>>;
-  setTransferForm: Dispatch<SetStateAction<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string }>>;
+  setTransferForm: Dispatch<SetStateAction<{ fromLocationId: string; toLocationId: string; note: string; recipientName: string; productId: string; qty: string; serials: string; batchAllocations: string }>>;
   setCountItems: Dispatch<SetStateAction<StockCountItem[]>>;
   setCountForm: Dispatch<SetStateAction<{ branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string }>>;
   setPostingPin: Dispatch<SetStateAction<string>>;
@@ -45,7 +45,7 @@ export function useInventoryWorkspaceMutations({
         toLocationId: transferForm.toLocationId,
         note: transferForm.note,
         recipientName: transferForm.recipientName,
-        items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty })),
+        items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty, serials: item.serials, batchAllocations: item.batchAllocations })), 
       }, headers),
       'createStockTransfer',
       crypto.randomUUID()
@@ -53,16 +53,19 @@ export function useInventoryWorkspaceMutations({
     onSuccess: async (data: unknown) => {
       await refreshInventoryQueries();
       setTransferItems([]);
-      setTransferForm({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1' });
+      setTransferForm({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1', serials: '', batchAllocations: '' });
       setCreatedTransfer((data as { stockTransfer: StockTransfer }).stockTransfer || null);
     },
   });
 
   const transferActionMutation = useMutation({
-    mutationFn: async ({ transferIds, action }: { transferIds: string[]; action: 'receive' | 'cancel' }) => {
+    mutationFn: async ({ transferIds, action, receiptItems }: {
+      transferIds: string[]; action: 'receive' | 'cancel';
+      receiptItems?: Record<string, Array<{ itemId: number; receivedQty: number; receivedSerials?: string[]; batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }> }>>;
+    }) => {
       for (const transferId of transferIds) {
         if (action === 'receive') {
-          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers), 'receiveStockTransfer', crypto.randomUUID());
+          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers, { items: receiptItems?.[transferId] }), 'receiveStockTransfer', crypto.randomUUID());
         } else {
           await withIdempotency((headers) => inventoryApi.cancelStockTransfer(transferId, headers), 'cancelStockTransfer', crypto.randomUUID());
         }
@@ -92,6 +95,15 @@ export function useInventoryWorkspaceMutations({
             countedQty: Number(item.countedQty),
           };
 
+          if (item.countedSerials?.length) countItem.countedSerials = item.countedSerials;
+          const batchLines = String(item.batchCountsText || '').split(/[\n,،]+/).map(s => s.trim()).filter(Boolean);
+          if (batchLines.length) countItem.batchCounts = batchLines.map(line => {
+            const existing = /^(\d+)\s*:\s*(\d+(?:\.\d+)?)$/.exec(line);
+            if (existing) return { batchId: Number(existing[1]), countedQty: Number(existing[2]) };
+            const novel = /^NEW:([^:]+):(\d{4}-\d{2}-\d{2}):(\d+(?:\.\d+)?)$/i.exec(line);
+            if (novel) return { batchNumber: novel[1].trim(), expiryDate: novel[2], countedQty: Number(novel[3]) };
+            throw new Error(`صيغة تشغيلة الجرد غير صحيحة للصنف ${item.productName}`);
+          });
           if (String(item.reason || '').trim()) countItem.reason = item.reason;
           if (String(item.note || '').trim()) countItem.note = item.note;
           return countItem;

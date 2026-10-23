@@ -1,5 +1,17 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsNumber, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
+import { IsIn, IsNumber, IsArray, IsOptional, IsString, Min, ValidateIf, ValidateNested } from 'class-validator';
+
+class AdjustmentBatchAllocationDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  batchId!: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0.001)
+  qty!: number;
+}
 
 export class InventoryAdjustmentDto {
   @Type(() => Number)
@@ -34,6 +46,17 @@ export class InventoryAdjustmentDto {
   @Type(() => Number)
   @IsNumber()
   locationId?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  serials?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AdjustmentBatchAllocationDto)
+  batchAllocations?: AdjustmentBatchAllocationDto[];
 
   @IsOptional()
   @IsString()

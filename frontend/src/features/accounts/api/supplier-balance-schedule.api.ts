@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { postIdempotentSupplierInstallment } from '@/lib/api/idempotent-account-payment';
 import type { Supplier } from '@/types/domain';
 
 export interface SupplierPaymentScheduleLogItem {
@@ -40,6 +41,7 @@ export interface CreateSupplierBalanceSchedulePayload {
 
 export interface SettleSupplierPaymentSchedulePayload {
   amount?: number;
+  paymentChannel?: 'cash'|'bank'|'card'|'wallet'|'instapay';
   note?: string;
   branchId?: number;
   locationId?: number;
@@ -86,5 +88,5 @@ export const supplierBalanceScheduleApi = {
   listSuppliersWithDebt,
   list: async (supplierId: string) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/suppliers/${supplierId}/payment-schedule`)),
   create: async (supplierId: string, payload: CreateSupplierBalanceSchedulePayload) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/suppliers/${supplierId}/payment-schedule`, { method: 'POST', body: JSON.stringify(payload) })),
-  settle: async (scheduleId: string, payload: SettleSupplierPaymentSchedulePayload) => unwrapSchedules(await http<SupplierPaymentScheduleResponse>(`/api/supplier-payment-schedules/${scheduleId}/settle`, { method: 'POST', body: JSON.stringify(payload) })),
+  settle: async (scheduleId: string, payload: SettleSupplierPaymentSchedulePayload, supplierId: string) => unwrapSchedules(await postIdempotentSupplierInstallment(scheduleId, supplierId, payload) as SupplierPaymentScheduleResponse),
 };

@@ -1,7 +1,53 @@
 import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
 import { ActionConfirmDialog } from '@/shared/components/action-confirm-dialog';
+import { toast } from '@/shared/components/system-alert';
 import type { StockCountSession, StockTransfer } from '@/types/domain';
 import { useAuthStore, isAdminUser } from '@/stores/auth-store';
+
+type ReceiptLine = {
+  itemId: number; receivedQty: number;
+  receivedSerials?: string[];
+  batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }>;
+};
+type ReceiptRows = Record<string, ReceiptLine[]>;
+type ReceiptDraft = { receivedQty: string; serials: string; batches: string };
+
+function receiptRowsFromDraft(transfers: StockTransfer[], draft: Record<string, ReceiptDraft>): ReceiptRows {
+  const rows: ReceiptRows = {};
+  for (const transfer of transfers) {
+    rows[String(transfer.id)] = transfer.items.map((item) => {
+      const key = `${transfer.id}:${item.id}`;
+      const entry = draft[key];
+      const dispatched = Number(item.qty);
+      const receivedQty = entry ? Number(entry.receivedQty) : dispatched;
+      if (!Number.isFinite(receivedQty) || receivedQty < 0 || receivedQty > dispatched ||
+        Math.abs(receivedQty * 1000 - Math.round(receivedQty * 1000)) > 1e-7) {
+        throw new Error(`كمية الاستلام غير صحيحة للصنف ${item.productName}`);
+      }
+      const receivedSerials = (entry?.serials || '').split(/[\n,،]+/).map(v => v.trim()).filter(Boolean);
+      if (item.serialTracking?.length && receivedQty > 0 && receivedQty < dispatched && receivedSerials.length !== receivedQty) {
+        throw new Error(`حدد السيريالات المستلمة فعلاً للصنف ${item.productName}`);
+      }
+      const rawBatchRows = (entry?.batches || '').split(/[\n,،]+/).map(v => v.trim()).filter(Boolean);
+      const batchReceipts = rawBatchRows.map(line => {
+        const parts = /^(\d+)\s*:\s*(\d+(?:\.\d+)?)$/.exec(line);
+        if (!parts) throw new Error(`اكتب كل تشغيلة بصيغة رقم:كمية للصنف ${item.productName}`);
+        return { transitBatchId: Number(parts[1]), receivedQty: Number(parts[2]) };
+      });
+      if (item.batchTracking?.length && receivedQty < dispatched && item.batchTracking.length > 1 &&
+        !batchReceipts.length) {
+        throw new Error(`حدد المستلم والفاقد لكل تشغيلة للصنف ${item.productName}`);
+      }
+      return {
+        itemId: Number(item.id), receivedQty,
+        ...(receivedSerials.length ? { receivedSerials } : {}),
+        ...(batchReceipts.length ? { batchReceipts } : {}),
+      };
+    });
+  }
+  return rows;
+}
 
 export function InventoryTransferActionDialog({
   action,
@@ -12,9 +58,11 @@ export function InventoryTransferActionDialog({
   action: { action: 'receive' | 'cancel'; transfers: StockTransfer[] } | null;
   isBusy: boolean;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (receipts?: ReceiptRows) => void | Promise<void>;
 }) {
   const { t } = useTranslation();
+  const [receiptDraft, setReceiptDraft] = useState<Record<string, ReceiptDraft>>({});
+  useEffect(() => { setReceiptDraft({}); }, [action]);
   const transferCount = action?.transfers.length || 0;
   const firstTransfer = action?.transfers[0] || null;
   const title = action?.action === 'receive' ? 'تأكيد استلام التحويل' : action?.action === 'cancel' ? 'تأكيد إلغاء التحويل' : '';
@@ -28,12 +76,56 @@ export function InventoryTransferActionDialog({
     <ActionConfirmDialog
       open={Boolean(action)}
       title={title}
-      description={description}
+      description={<>
+        {description}
+        {action?.action === 'receive' ? (
+          <div style={{ maxHeight: '240px', overflowY: 'auto', marginTop: 12 }}>
+            {action.transfers.flatMap(transfer => transfer.items.map(item => {
+              const key = `${transfer.id}:${item.id}`;
+              const draft = receiptDraft[key];
+              const patch = (change: Partial<ReceiptDraft>) =>
+                setReceiptDraft(current => ({ ...current, [key]: {
+                  receivedQty: current[key]?.receivedQty ?? String(item.qty),
+                  serials: current[key]?.serials ?? '',
+                  batches: current[key]?.batches ?? '',
+                  ...change,
+                } }));
+              return (
+                <div key={key} style={{ padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <strong>{item.productName} ({transfer.docNo || transfer.id})</strong>
+                  <div className="form-grid" style={{ marginTop: 6 }}>
+                    <label>الكمية المستلمة من {item.qty}
+                      <input type="number" min={0} max={item.qty} step="0.001" value={draft?.receivedQty ?? String(item.qty)}
+                        onChange={e => patch({ receivedQty: e.target.value })} disabled={isBusy} />
+                    </label>
+                    {item.serialTracking?.length ? <label>السيريالات المستلمة (رقم بكل سطر؛ المطلوب عند وجود فاقد)
+                      <textarea rows={2} value={draft?.serials ?? ''} onChange={e => patch({ serials: e.target.value })}
+                        placeholder="Serial / IMEI" disabled={isBusy}/>
+                    </label> : null}
+                    {item.batchTracking?.length ? <label>استلام التشغيلات (رقم تشغيلة الطريق:الكمية؛ مطلوب عند اختلاف كميات أكثر من تشغيلة)
+                      <textarea rows={2} value={draft?.batches ?? ''} onChange={e => patch({ batches: e.target.value })}
+                        placeholder={item.batchTracking.map(line => `${line.transitBatchId}:${line.qty}`).join('\n')} disabled={isBusy}/>
+                    </label> : null}
+                  </div>
+                </div>
+              );
+            }))}
+          </div>
+        ) : null}
+      </>}
       confirmLabel={action?.action === 'receive' ? t('inventory.inventory_workspace_dialogs.s10', "تأكيد الاستلام") : t('inventory.inventory_workspace_dialogs.s11', "تأكيد الإلغاء")}
       confirmVariant={action?.action === 'receive' ? 'success' : 'danger'}
       isBusy={isBusy}
       onCancel={onCancel}
-      onConfirm={onConfirm}
+      onConfirm={() => {
+        if (!action) return;
+        if (action.action !== 'receive') return onConfirm();
+        try {
+          return onConfirm(receiptRowsFromDraft(action.transfers, receiptDraft));
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : 'تعذر قراءة كميات استلام التحويل');
+        }
+      }}
     />
   );
 }

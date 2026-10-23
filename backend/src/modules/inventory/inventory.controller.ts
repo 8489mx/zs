@@ -116,8 +116,13 @@ export class InventoryController {
   @RequirePermissions('canAdjustInventory')
   receiveTransfer(
     @Param('id', ParseIntPipe) id: number,
-    // Optional per-line received quantities; omitting them means "received exactly what was sent".
-    @Body() body: { items?: Array<{ itemId: number; receivedQty: number }> },
+    // Partial/short receipts must identify which serials and which batches arrived.
+    @Body() body: { items?: Array<{
+      itemId: number;
+      receivedQty: number;
+      receivedSerials?: string[];
+      batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }>;
+    }> },
     @Req() req: RequestWithAuth,
   ): Promise<Record<string, unknown>> {
     return this.inventoryService.receiveStockTransfer(id, req.authContext!, body);

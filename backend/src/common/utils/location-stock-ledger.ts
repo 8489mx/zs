@@ -71,6 +71,8 @@ type StockSetParams = StockScopeParams & {
   nextQty: number;
   errorCode?: string;
   errorMessage?: string;
+  /** Preserve explicitly counted/traceable warehouse inventory; never drain unassigned stock. */
+  disableAutoDrain?: boolean;
 };
 
 type StockTransferParams = TenantStockScope & {
@@ -444,7 +446,7 @@ export async function setScopedStockQty(db: Kysely<Database>, params: StockSetPa
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
   let scopeBefore = roundStockQty(location.qty);
 
-  if (unassigned && roundStockQty(unassigned.qty) > 0.001) {
+  if (!params.disableAutoDrain && unassigned && roundStockQty(unassigned.qty) > 0.001) {
     const unassignedBefore = roundStockQty(unassigned.qty);
     const provisionedLocationQty = roundStockQty(scopeBefore + unassignedBefore);
     await updateBalanceQty(db, state.scope, unassigned, 0, null);

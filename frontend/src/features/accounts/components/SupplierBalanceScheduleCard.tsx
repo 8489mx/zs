@@ -258,6 +258,8 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const [expandedPurchaseIds, setExpandedPurchaseIds] = useState<Record<string, boolean>>({});
   const [directPaymentAmount, setDirectPaymentAmount] = useState('');
   const [directPaymentNote, setDirectPaymentNote] = useState('');
+  const [directPaymentChannel, setDirectPaymentChannel] = useState<'cash'|'bank'|'card'|'wallet'|'instapay'>('cash');
+  const [schedulePaymentChannel, setSchedulePaymentChannel] = useState<'cash'|'bank'|'card'|'wallet'|'instapay'>('cash');
   const [directSuccessReceipt, setDirectSuccessReceipt] = useState<{
     amountPaid: number;
     remainingBalance: number;
@@ -350,6 +352,7 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
       return accountsApi.supplierPaymentCreate({
         supplierId: Number(supplier.id),
         amount,
+        paymentChannel: directPaymentChannel,
         note: directPaymentNote || `صرف مستحقات للمورد ${supplierName}`,
       });
     },
@@ -399,8 +402,9 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
   const settleMutation = useMutation({
     mutationFn: ({ row, amount, paymentNote: noteText }: { row: SupplierPaymentScheduleItem; amount?: number; paymentNote?: string }) => supplierBalanceScheduleApi.settle(row.id, {
       amount,
+      paymentChannel: schedulePaymentChannel,
       note: noteText || `تسجيل دفع دفعة ${row.installmentNo} من مستحقات ${supplierName}`,
-    }),
+    }, String(row.supplierId)),
     onSuccess: (nextRows, variables) => {
       queryClient.setQueryData(queryKeys.supplierPaymentSchedule(supplierId), nextRows);
       refreshAccounts();
@@ -683,6 +687,15 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                   </div>
                 </Field>
 
+                <Field label="وسيلة السداد">
+                  <select value={directPaymentChannel} onChange={e => setDirectPaymentChannel(e.target.value as typeof directPaymentChannel)} disabled={directPaymentMutation.isPending || disabled}>
+                    <option value="cash">نقدي (درج الكاشير)</option>
+                    <option value="bank">تحويل بنكي</option>
+                    <option value="card">بطاقة</option>
+                    <option value="wallet">محفظة إلكترونية</option>
+                    <option value="instapay">إنستاباي</option>
+                  </select>
+                </Field>
                 <Field label={t('accounts.supplier_balance_schedule_card.s47', "ملاحظات الصرف (اختياري)")}>
                   <textarea
                     rows={2}
@@ -895,7 +908,16 @@ export function SupplierBalanceScheduleCard({ supplier, disabled = false }: Supp
                   <Field label={t('accounts.supplier_balance_schedule_card.s98', "المبلغ المدفوع")}>
                     <input type="number" min="0.01" step="0.01" max={paymentTarget.remainingAmount} value={paymentAmount} onChange={(event) => setPaymentAmount(event.target.value)} />
                   </Field>
-                  <Field label={t('accounts.supplier_balance_schedule_card.s99', "ملاحظات اختيارية")}>
+                  <Field label="وسيلة سداد القسط">
+                     <select value={schedulePaymentChannel} onChange={e => setSchedulePaymentChannel(e.target.value as typeof schedulePaymentChannel)} disabled={settleMutation.isPending}>
+                       <option value="cash">نقدي (درج الكاشير)</option>
+                       <option value="bank">تحويل بنكي</option>
+                       <option value="card">بطاقة</option>
+                       <option value="wallet">محفظة إلكترونية</option>
+                       <option value="instapay">إنستاباي</option>
+                     </select>
+                   </Field>
+                   <Field label={t('accounts.supplier_balance_schedule_card.s99', "ملاحظات اختيارية")}>
                     <textarea rows={3} value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder={t('accounts.supplier_balance_schedule_card.s100', "مثال: تم التسليم لمندوب المورد / رقم إيصال / ملاحظة داخلية")} />
                   </Field>
                 </div>

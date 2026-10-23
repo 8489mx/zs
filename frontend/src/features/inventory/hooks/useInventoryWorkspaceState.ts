@@ -27,7 +27,7 @@ export function useInventoryWorkspaceState() {
   const [sessionsPageSize, setSessionsPageSize] = useState(8);
   const [damagedPage, setDamagedPage] = useState(1);
   const [damagedPageSize, setDamagedPageSize] = useState(10);
-  const [transferForm, setTransferForm] = useState({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1' });
+  const [transferForm, setTransferForm] = useState({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1', serials: '', batchAllocations: '' });
   const [transferItems, setTransferItems] = useState<StockTransferItem[]>([]);
   const [countForm, setCountForm] = useState({ branchId: '', locationId: '', note: '', managerPin: '', productId: '', countedQty: '0', reason: '', itemNote: '' });
   const [countItems, setCountItems] = useState<StockCountItem[]>([]);
