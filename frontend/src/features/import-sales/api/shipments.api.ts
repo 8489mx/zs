@@ -1526,7 +1526,7 @@ export const useCreateReceivingInspectionMutation = (defaultShipmentId?: string)
   return useMutation({
     mutationFn: async (dto: any) => {
       const shipmentId = dto?.shipmentId || defaultShipmentId;
-      return await http<any>('/api/import-sales/receiving-inspections', {
+      return await http<any>('/api/import-sales/qc-inspections', {
         method: 'POST',
         body: JSON.stringify({ ...dto, shipmentId }),
       });

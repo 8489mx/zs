@@ -5,7 +5,7 @@ import { DialogShell } from '@/shared/components/dialog-shell';
 import { Button } from '@/shared/ui/button';
 import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos/api/pos.api';
-import { salesApi } from '@/features/sales/api/sales.api';
+import { salesApi } from '@/features/sales';
 import { getNormalizedInvoiceSearchTerms, matchesSaleDocNo } from '@/features/pos/lib/pos-barcode-normalizer';
 import { invalidateSalesDomain } from '@/app/query-invalidation';
 import type { PosWorkspaceState } from './posWorkspace.helpers';
