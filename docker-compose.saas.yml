@@ -4,7 +4,13 @@ services:
       context: ./backend
     restart: unless-stopped
     environment:
-      APP_MODE: ${APP_MODE:-CLOUD_SAAS}
+      APP_MODE: CLOUD_SAAS
+      PORTABLE_MODE: "false"
+      IS_ELECTRON: "false"
+      LICENSE_MODE: server
+      PLATFORM_TENANT_ID: ${PLATFORM_TENANT_ID:-zs}
+      TENANT_ID: ${TENANT_ID:-zs}
+      ACCOUNT_ID: ${ACCOUNT_ID:-zs}
       NODE_ENV: production
       APP_HOST: 0.0.0.0
       APP_PORT: 3001
@@ -25,11 +31,18 @@ services:
       DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
       SESSION_COOKIE_SAME_SITE: ${SESSION_COOKIE_SAME_SITE:-strict}
-      SESSION_CSRF_SECRET: ${SESSION_CSRF_SECRET:-replace-me-with-long-random-secret}
+      SESSION_CSRF_SECRET: ${SESSION_CSRF_SECRET:?SESSION_CSRF_SECRET is required}
       ALLOW_SESSION_ID_HEADER: "false"
       LOGIN_MAX_ATTEMPTS: 5
       LOGIN_LOCKOUT_MINUTES: 15
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      CORS_ORIGINS: ${CORS_ORIGINS:?CORS_ORIGINS must list the public HTTPS origins}
+      SMTP_HOST: ${SMTP_HOST:?SMTP_HOST is required}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL:?MAIL_FROM_EMAIL is required}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Z Systems}
       LOGIN_RATE_LIMIT_MAX: 10
       LOGIN_RATE_LIMIT_WINDOW_SECONDS: 600
       AUTH_BURST_RATE_LIMIT_MAX: 60
@@ -39,7 +52,7 @@ services:
     expose:
       - "3001"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/api/health/ready >/dev/null 2>&1 || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 20
@@ -48,7 +61,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_BASE_URL: /api
+        VITE_API_BASE_URL: ""
     restart: unless-stopped
     depends_on:
       backend:

@@ -3,11 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { timingSafeEqual } from 'crypto';
 import { SaasAdminService } from './saas-admin.service';
 import { DeveloperUpdatePlanDto } from './dto/developer-update-plan.dto';
+import { isDesktopRuntimeMode } from '../../config/app-mode';
 
 // Deliberately 1, matching MIN_PASSWORD_LENGTH in core/auth/utils/password-policy.ts and
 // the project's standing decision that a one-character password is acceptable (O35).
-// What still matters here is that there is NO built-in value: an unset variable leaves the
-// panel disabled rather than accepting a password published in the repository (F16).
+// Owner-approved exception: the built-in desktop password remains accepted by updatePlan.
+// Runtime isolation is enforced before checking any password.
 const MIN_MASTER_PASSWORD_LENGTH = 1;
 
 function safeCompare(a: string, b: string): boolean {
@@ -28,7 +29,7 @@ export class DeveloperController {
    * These endpoints grant any plan and any feature set to any tenant, so they exist only
    * for the offline/desktop build. The check is an allow-list, not a CLOUD_SAAS deny-list:
    * an unreadable or unexpected mode must disable the panel, never enable it (F12).
-   * Same shape as `isDesktopMode()` in core/auth/utils/portal-token.ts.
+   * Uses the same runtime policy as portal tokens and local update/transfer endpoints.
    */
   private assertDeveloperAccessAllowed(): void {
     const appMode = String(
@@ -37,27 +38,15 @@ export class DeveloperController {
       .trim()
       .toUpperCase();
 
-    const isDesktopMode =
-      appMode === 'SELF_CONTAINED' ||
-      appMode === 'LOCAL_PILOT' ||
-      appMode === 'PORTABLE' ||
-      process.env.PORTABLE_MODE === 'true' ||
-      process.env.IS_ELECTRON === 'true';
-
-    if (!isDesktopMode) {
+    if (!isDesktopRuntimeMode(appMode)) {
       throw new ForbiddenException('Developer endpoints are only available in the offline desktop build');
     }
   }
 
   /**
-   * Fail closed on the secret. This used to end in `|| 'infoadmin'`, so the endpoint that
-   * unlocks every paid module shipped with a working password published in the repository,
-   * and setting nothing on the server left it usable (F16). There is no default any more:
-   * an unset DEVELOPER_MASTER_PASSWORD disables the panel outright.
-   *
-   * The length floor is 1 by project decision (O35), so whatever the operator sets is
-   * accepted. That is a deliberate trade: the value in an operator's own .env is theirs to
-   * choose, but the build must never ship one.
+   * An unset DEVELOPER_MASTER_PASSWORD disables the panel. The minimum stays 1 by
+   * project decision (O35). Once configured, updatePlan also accepts the fixed desktop
+   * password by explicit owner instruction; Cloud never reaches password verification.
    */
   private resolveMasterPassword(): string {
     const configured = String(

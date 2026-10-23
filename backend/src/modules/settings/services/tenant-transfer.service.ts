@@ -11,6 +11,7 @@ import { AppError } from '../../../common/errors/app-error';
 import { resolveTenantPackage } from '../../../core/tenant-transfer/backup-bundle';
 import { exportTenantPackage, importTenantPackage, TenantPackageError } from '../../../core/tenant-transfer/tenant-package';
 import { SettingsService } from '../settings.service';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 export const TENANT_IMPORT_CONFIRMATION = 'IMPORT TENANT';
 
@@ -39,9 +40,7 @@ export class TenantTransferService {
   ) {}
 
   isDesktop(): boolean {
-    const mode = String(process.env.APP_MODE || '').toUpperCase();
-    if (mode === 'CLOUD_SAAS') return false;
-    return mode === 'SELF_CONTAINED' || process.env.IS_ELECTRON === 'true' || process.env.PORTABLE_MODE === 'true';
+    return isDesktopRuntimeMode(process.env.APP_MODE);
   }
 
   private assertCanTransfer(auth?: AuthContext | null): asserts auth is AuthContext {

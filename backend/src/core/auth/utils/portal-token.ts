@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AppError } from '../../../common/errors/app-error';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 /**
  * المصدر الوحيد للحقيقة لرموز بوابات الأطراف الخارجية (موظف / مندوب / بصمة موبايل).
@@ -20,13 +21,7 @@ const MIN_SECRET_LENGTH = 16;
 const DESKTOP_LOCAL_SECRET = 'zs-desktop-offline-portal-token-secret';
 
 function isDesktopMode(): boolean {
-  const appMode = String(process.env.APP_MODE || '').trim().toUpperCase();
-  if (appMode === 'CLOUD_SAAS') return false;
-  return appMode === 'SELF_CONTAINED'
-    || appMode === 'LOCAL_PILOT'
-    || appMode === 'PORTABLE'
-    || process.env.PORTABLE_MODE === 'true'
-    || process.env.IS_ELECTRON === 'true';
+  return isDesktopRuntimeMode(process.env.APP_MODE);
 }
 
 /**

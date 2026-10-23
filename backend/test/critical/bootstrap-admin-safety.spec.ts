@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { BootstrapAdminService } from '../../src/core/auth/services/bootstrap-admin.service';
 import { SessionService } from '../../src/core/auth/services/session.service';
 import { createPasswordRecord } from '../../src/core/auth/utils/password-hasher';
+import { DummyDriver, Kysely, PostgresDialect, type CompiledQuery } from 'kysely';
 
 class FakeConfigService {
   constructor(private readonly values: Record<string, unknown>) {}
@@ -257,6 +258,34 @@ async function runBootstrapGuardrails(): Promise<void> {
   await alreadyInitialized.onApplicationBootstrap();
 }
 
-Promise.all([runMePayloadSafety(), runBootstrapGuardrails()]).then(() => {
+async function runPlatformRoleCleanup(): Promise<void> {
+  // Compile and execute the real cleanup through Kysely's no-I/O driver.
+  const dialect = new PostgresDialect({ pool: {} as any });
+  const driver = new DummyDriver();
+  driver.acquireConnection = async () => ({
+    executeQuery: async () => ({ rows: [] }),
+    async *streamQuery() {},
+  });
+  dialect.createDriver = () => driver;
+  const queries: CompiledQuery[] = [];
+  const db = new Kysely<any>({
+    dialect,
+    log: (event) => { if (event.level === 'query') queries.push(event.query); },
+  });
+  try {
+    const service = new BootstrapAdminService(db, new FakeConfigService({
+      APP_MODE: 'CLOUD_SAAS', PLATFORM_TENANT_ID: 'zsystems-main',
+    }) as any);
+    await (service as any).sanitizeSuperAdminRoles();
+    assert.equal(queries.length, 1, 'cleanup must issue its guarded update');
+    assert.match(queries[0].sql, /LOWER\(TRIM\(tenant_id\)\) NOT IN/);
+    assert.deepEqual(queries[0].parameters, ['zsystems-main', 'zs'],
+      'both the configured platform and canonical zs must survive cloud role cleanup');
+  } finally {
+    await db.destroy();
+  }
+}
+
+Promise.all([runMePayloadSafety(), runBootstrapGuardrails(), runPlatformRoleCleanup()]).then(() => {
   console.log('bootstrap-admin-safety.spec: ok');
 });
