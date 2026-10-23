@@ -61,13 +61,13 @@ export const forexApi = {
   getRunDetails: (id: string) =>
     http<{ run: ForexRevaluationRun; lines: any[] }>(`/api/accounting/currencies/revaluations/${id}`),
 
-  previewRevaluation: (data: { periodDate: string; currencyCode: string; closingRate: number }) =>
+  previewRevaluation: (data: { periodDate: string; currencyCode: string; closingRate: number; items: Array<{ accountId: number; foreignBalance: number }> }) =>
     http<ForexRevaluationPreview>('/api/accounting/currencies/revaluations/preview', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  executeRevaluation: (data: { periodDate: string; currencyCode: string; closingRate: number; notes?: string }) =>
+  executeRevaluation: (data: { periodDate: string; currencyCode: string; closingRate: number; items: Array<{ accountId: number; foreignBalance: number }>; notes?: string }) =>
     http<{ ok: boolean; runId: string; journalEntryNo: string; netUnrealizedGainLoss: number; totalForeignBalance: number; linesCount: number }>(
       '/api/accounting/currencies/revaluations/execute',
       {

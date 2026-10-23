@@ -12,6 +12,7 @@ import { CreateTreasuryTransferDto } from './dto/create-treasury-transfer.dto';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
 import { canonicalLockIds } from '../../common/utils/canonical-lock-order';
+import { lockAccountingPeriod } from '../accounting/accounting-period-lock';
 
 @Injectable()
 export class TreasuryService {
@@ -113,6 +114,22 @@ export class TreasuryService {
   async createExpense(payload: CreateExpenseDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      const branchId = payload.branchId ? Number(payload.branchId) : null;
+      const locationId = payload.locationId ? Number(payload.locationId) : null;
+      const costCenterId = payload.costCenterId ? Number(payload.costCenterId) : null;
+      if (branchId && !await trx.selectFrom('branches').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', branchId).executeTakeFirst()) {
+        throw new AppError('Branch does not belong to this tenant', 'INVALID_EXPENSE_BRANCH', 400);
+      }
+      if (locationId && !await trx.selectFrom('stock_locations').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', locationId).executeTakeFirst()) {
+        throw new AppError('Location does not belong to this tenant', 'INVALID_EXPENSE_LOCATION', 400);
+      }
+      if (costCenterId && !await trx.selectFrom('cost_centers').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', costCenterId).executeTakeFirst()) {
+        throw new AppError('Cost center does not belong to this tenant', 'INVALID_EXPENSE_COST_CENTER', 400);
+      }
       const insert = await sql<{ id: number }>`
         INSERT INTO expenses (title, amount, expense_date, note, branch_id, location_id, cost_center_id, created_by, tenant_id, account_id)
         VALUES (
@@ -120,9 +137,9 @@ export class TreasuryService {
           ${Number(payload.amount || 0)},
           ${new Date(payload.date)},
           ${String(payload.note || '').trim()},
-          ${payload.branchId ? Number(payload.branchId) : null},
-          ${payload.locationId ? Number(payload.locationId) : null},
-          ${payload.costCenterId ? Number(payload.costCenterId) : null},
+          ${branchId},
+          ${locationId},
+          ${costCenterId},
           ${auth.userId},
           ${scope.tenantId},
           ${scope.accountId}
@@ -138,8 +155,8 @@ export class TreasuryService {
         note: 'مصروف: ' + String(payload.title || '').trim(),
         reference_type: 'expense',
         reference_id: expenseId,
-        branch_id: payload.branchId ? Number(payload.branchId) : null,
-        location_id: payload.locationId ? Number(payload.locationId) : null,
+        branch_id: branchId,
+        location_id: locationId,
         created_by: auth.userId,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
@@ -177,6 +194,7 @@ export class TreasuryService {
     }
 
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
       // Idempotency is checked under a row lock. A retry after a committed request
       // returns the original transfer instead of creating a second ledger movement.
       const existing = await sql<{

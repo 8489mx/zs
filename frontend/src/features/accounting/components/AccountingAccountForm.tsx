@@ -23,6 +23,8 @@ type FormValues = {
   accountType: string;
   normalBalance: string;
   isActive: boolean;
+  isMonetary: boolean;
+  revaluationCurrency: string;
 };
 
 const ACCOUNT_TYPE_OPTIONS = [
@@ -50,7 +52,7 @@ export function AccountingAccountForm({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, watch, control, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
       code: '',
       nameAr: '',
@@ -58,6 +60,8 @@ export function AccountingAccountForm({
       accountType: 'asset',
       normalBalance: 'debit',
       isActive: true,
+      isMonetary: false,
+      revaluationCurrency: '',
     },
   });
 
@@ -77,6 +81,8 @@ export function AccountingAccountForm({
           accountType: editAccount.accountType,
           normalBalance: editAccount.normalBalance,
           isActive: editAccount.isActive,
+          isMonetary: editAccount.isMonetary,
+          revaluationCurrency: editAccount.revaluationCurrency || '',
         });
       } else if (mode === 'create') {
         reset({
@@ -86,6 +92,8 @@ export function AccountingAccountForm({
           accountType: parentAccount?.accountType || 'asset',
           normalBalance: parentAccount?.normalBalance || 'debit',
           isActive: true,
+          isMonetary: false,
+          revaluationCurrency: '',
         });
       }
     }
@@ -100,11 +108,17 @@ export function AccountingAccountForm({
   const createMutation = useMutation({
     mutationFn: (data: FormValues) =>
       accountingApi.createAccount({
-        ...data,
+        code: data.code,
+        nameAr: data.nameAr,
+        nameEn: data.nameEn,
+        accountType: data.accountType,
+        normalBalance: data.normalBalance,
+        isActive: data.isActive,
         parentId: parentAccount ? (Number(parentAccount.id) as any) : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounting', 'accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounting-accounts'] });
       onClose();
     },
   });
@@ -112,10 +126,13 @@ export function AccountingAccountForm({
   const updateMutation = useMutation({
     mutationFn: (data: FormValues) => {
       if (!editAccount) throw new Error('No account to edit');
-      return accountingApi.updateAccount(editAccount.id, data);
+      return accountingApi.updateAccount(editAccount.id, {
+        ...data, revaluationCurrency: data.isMonetary ? data.revaluationCurrency : null,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounting', 'accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accounting-accounts'] });
       onClose();
     },
   });
@@ -130,6 +147,7 @@ export function AccountingAccountForm({
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const error = createMutation.error || updateMutation.error;
+  const isMonetary = watch('isMonetary');
 
   const dialogTitle = mode === 'create'
     ? (parentAccount ? `إضافة حساب فرعي تحت (${parentAccount.nameAr})` : 'إضافة حساب رئيسي جديد')
@@ -273,6 +291,22 @@ export function AccountingAccountForm({
               {t('accounting.accounting_account_form.s11', "حساب نشط ومتاح لإدراج القيود")}
             </label>
           </div>
+          {mode === 'edit' && editAccount && ['asset', 'liability'].includes(editAccount.accountType) && (
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600 }}>
+                <input type="checkbox" {...register('isMonetary')} />
+                {t('accounting.accounting_account_form.s15', 'حساب نقدي يخضع لإعادة تقييم العملة')}
+              </label>
+              {isMonetary && (
+                <label style={{ display: 'grid', gap: '4px', fontSize: '12.5px', fontWeight: 600 }}>
+                  {t('accounting.accounting_account_form.s16', 'رمز العملة الأجنبية للحساب')}
+                  <input type="text" maxLength={3} dir="ltr" {...register('revaluationCurrency', { required: true })}
+                    placeholder="USD" style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                  {errors.revaluationCurrency && <span style={{ color: '#dc2626' }}>{t('accounting.accounting_account_form.s17', 'رمز العملة مطلوب.')}</span>}
+                </label>
+              )}
+            </div>
+          )}
         </div>
       </form>
 

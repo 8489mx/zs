@@ -6,6 +6,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { CloseFiscalPeriodDto, ReopenFiscalPeriodDto, FiscalPeriodResponse } from '../dto/fiscal-period.dto';
 import { buildMonthlyFiscalPeriods } from '../engines/fiscal-period-generation.engine';
 import { AccountingPostingService } from '../accounting-posting.service';
+import { lockAccountingPeriod } from '../accounting-period-lock';
 
 export interface CreateFiscalYearDto {
   name: string;
@@ -322,7 +323,7 @@ export class FiscalYearService {
       .where('tenant_id', '=', tenantId)
       .where('entry_date', '>=', startDate as any)
       .where('entry_date', '<=', endDate as any)
-      .where('status', '!=', 'posted')
+      .where('status', '=', 'draft')
       .executeTakeFirst();
 
     const unpostedCount = Number(unpostedResult?.count || 0);
@@ -346,8 +347,9 @@ export class FiscalYearService {
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('total_credit'),
       ])
       .where('je.tenant_id', '=', tenantId)
+      .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
-      .where('je.source_type', '!=', 'fiscal_year_closing')
+      .where('je.source_type', 'not in', ['fiscal_year_closing', 'fiscal_year_reopen'])
       .where('je.entry_date', '>=', startDate as any)
       .where('je.entry_date', '<=', endDate as any)
       .groupBy('jel.account_id')
@@ -549,6 +551,7 @@ export class FiscalYearService {
 
     // 2. Execute within transaction
     const closingEntryResult = await this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, tenantId);
       // The preview above (balances, proposed lines, canClose) was computed OUTSIDE this transaction.
       // Two things can have changed since: another admin may have closed the year, and new entries
       // may have been posted inside the period — which would be silently left out of the closing
@@ -563,6 +566,17 @@ export class FiscalYearService {
 
       if (!lockedFy) throw new NotFoundException('السنة المالية غير موجودة.');
       if (lockedFy.status === 'closed') throw new BadRequestException('هذه السنة المالية مقفلة بالفعل.');
+
+      const liveDrafts = await trx.selectFrom('journal_entries')
+        .select(sql<number>`COUNT(*)`.as('count'))
+        .where('tenant_id', '=', tenantId)
+        .where('status', '=', 'draft')
+        .where('entry_date', '>=', this.formatDate(fy.start_date) as any)
+        .where('entry_date', '<=', endDate as any)
+        .executeTakeFirst();
+      if (Number(liveDrafts?.count || 0) > 0) {
+        throw new BadRequestException('ظهرت مسودات قيود داخل السنة المالية؛ يرجى تسويتها قبل الإقفال.');
+      }
 
       const startDateStr = this.formatDate(fy.start_date);
       // Compare balances for EACH profit/loss account, not just the aggregate;
@@ -581,7 +595,7 @@ export class FiscalYearService {
         .where('a.tenant_id', '=', tenantId)
         .where('a.is_active', '=', true)
         .where('je.status', '=', 'posted')
-        .where('je.source_type', '!=', 'fiscal_year_closing')
+        .where('je.source_type', 'not in', ['fiscal_year_closing', 'fiscal_year_reopen'])
         .where('je.entry_date', '>=', startDateStr as any)
         .where('je.entry_date', '<=', endDate as any)
         .groupBy(['jel.account_id', 'a.account_type', 'a.code'])
@@ -792,6 +806,7 @@ export class FiscalYearService {
     }
 
     await this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, tenantId);
       const lockedFy = await trx.selectFrom('accounting_fiscal_years')
         .select(['id', 'status', 'closing_entry_id', 'start_date'])
         .where('id', '=', id).where('tenant_id', '=', tenantId)
@@ -834,7 +849,7 @@ export class FiscalYearService {
               sourceId: fy.id,
               tenantId,
               accountId: auth.accountId || tenantId,
-              entryDate: new Date(),
+              entryDate: new Date(closingEntry.entry_date),
               description: `عكس قيد إقفال السنة المالية [${fy.name}] بسبب إعادة الفتح: ${reason}`,
               createdBy: auth.userId,
               lines: reversalLines,
@@ -850,18 +865,15 @@ export class FiscalYearService {
               .where('id', '=', reversalEntryId)
               .where('tenant_id', '=', tenantId)
               .execute();
+            await trx.updateTable('journal_entries')
+              .set({ reversed_by_entry_id: reversalEntryId, updated_at: sql`NOW()` } as any)
+              .where('tenant_id', '=', tenantId).where('id', '=', closingEntry.id).execute();
+            await trx.updateTable('journal_entries')
+              .set({ reversal_of_entry_id: closingEntry.id, updated_at: sql`NOW()` } as any)
+              .where('tenant_id', '=', tenantId).where('id', '=', reversalEntryId).execute();
           }
 
-          // Mark closing entry as cancelled while preserving immutable ledger record
-          await trx
-            .updateTable('journal_entries')
-            .set({
-              status: 'cancelled',
-              updated_at: sql`NOW()` as any,
-            } as any)
-            .where('id', '=', closingEntry.id)
-            .where('tenant_id', '=', tenantId)
-            .execute();
+          // Both closing and reversing entries remain posted and cancel numerically.
         }
       }
 
@@ -1089,6 +1101,7 @@ export class FiscalYearService {
      * نفس درس F6 وحجز الكوبون واستهلاك رمز الاستعادة: الفحص والكتابة في معاملة واحدة.
      */
     await this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, tenantId);
       const locked = await trx
         .selectFrom('accounting_fiscal_periods')
         .select(['id', 'status', 'period_number'])
@@ -1236,6 +1249,7 @@ export class FiscalYearService {
 
     // FP-7: FP-4 يُفحص داخل المعاملة وتحت قفل الصف، لنفس سبب الإقفال.
     await this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, tenantId);
       const locked = await trx
         .selectFrom('accounting_fiscal_periods')
         .select(['id', 'status'])

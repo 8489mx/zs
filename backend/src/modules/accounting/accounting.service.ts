@@ -23,6 +23,9 @@ import {
 } from './dto/accounting.dto';
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 import { AccountingPostingService } from './accounting-posting.service';
+import { lockAccountingPeriod } from './accounting-period-lock';
+import { calculateAssetDepreciation, validateFixedAssetTerms } from './engines/fixed-asset-depreciation.engine';
+import { randomUUID } from 'node:crypto';
 
 type PartnerType = 'none' | 'customer' | 'supplier';
 
@@ -87,6 +90,38 @@ export class AccountingService {
     return Number(amount.toFixed(2));
   }
 
+  private async assertJournalReferences(
+    queryable: Kysely<Database>, tenantId: string,
+    lines: Array<{ costCenterId?: number | null; branchId?: number | null; locationId?: number | null; partnerType?: string; partnerId?: number | null }>,
+  ): Promise<void> {
+    const ids = (values: Array<number | null | undefined>) => Array.from(new Set(values.filter((value): value is number => Number.isSafeInteger(value) && Number(value) > 0)));
+    const branches = ids(lines.map((line) => line.branchId));
+    const locations = ids(lines.map((line) => line.locationId));
+    const centers = ids(lines.map((line) => line.costCenterId));
+    const customers = ids(lines.filter((line) => line.partnerType === 'customer').map((line) => line.partnerId));
+    const suppliers = ids(lines.filter((line) => line.partnerType === 'supplier').map((line) => line.partnerId));
+    if (branches.length && (await queryable.selectFrom('branches').select('id')
+      .where('tenant_id', '=', tenantId).where('id', 'in', branches).execute()).length !== branches.length) {
+      throw new BadRequestException('فرع القيد لا ينتمي لهذه المنشأة.');
+    }
+    if (locations.length && (await queryable.selectFrom('stock_locations').select('id')
+      .where('tenant_id', '=', tenantId).where('id', 'in', locations).execute()).length !== locations.length) {
+      throw new BadRequestException('موقع القيد لا ينتمي لهذه المنشأة.');
+    }
+    if (centers.length && (await queryable.selectFrom('cost_centers').select('id')
+      .where('tenant_id', '=', tenantId).where('id', 'in', centers).execute()).length !== centers.length) {
+      throw new BadRequestException('مركز تكلفة القيد لا ينتمي لهذه المنشأة.');
+    }
+    if (customers.length && (await queryable.selectFrom('customers').select('id')
+      .where('tenant_id', '=', tenantId).where('id', 'in', customers).execute()).length !== customers.length) {
+      throw new BadRequestException('عميل القيد لا ينتمي لهذه المنشأة.');
+    }
+    if (suppliers.length && (await queryable.selectFrom('suppliers').select('id')
+      .where('tenant_id', '=', tenantId).where('id', 'in', suppliers).execute()).length !== suppliers.length) {
+      throw new BadRequestException('مورد القيد لا ينتمي لهذه المنشأة.');
+    }
+  }
+
   private normalizePartnerType(value: unknown): PartnerType | null {
     if (value === undefined || value === null || String(value).trim() === '') return 'none';
     if (value === 'none' || value === 'customer' || value === 'supplier') return value;
@@ -116,6 +151,8 @@ export class AccountingService {
         'is_payable',
         'is_inventory',
         'is_tax',
+        'is_monetary',
+        'revaluation_currency',
         'sort_order',
       ])
       .where(this.tenantPredicate(auth))
@@ -156,6 +193,8 @@ export class AccountingService {
         isSystem: Boolean(row.is_system),
         allowManualEntries: Boolean(row.allow_manual_entries),
         isControlAccount: Boolean(row.is_control_account),
+        isMonetary: Boolean(row.is_monetary),
+        revaluationCurrency: row.revaluation_currency || null,
         flags: {
           isCashBank: Boolean(row.is_cash_bank),
           isReceivable: Boolean(row.is_receivable),
@@ -473,15 +512,28 @@ export class AccountingService {
     if (dto.lockDateAll !== undefined) updateData.lock_date_all = dto.lockDateAll || null;
     if (dto.lockDateNonAdviser !== undefined) updateData.lock_date_non_adviser = dto.lockDateNonAdviser || null;
     if (dto.lockDateTax !== undefined) updateData.lock_date_tax = dto.lockDateTax || null;
+    const referenceColumns = [
+      'cash_account_id', 'bank_account_id', 'customer_receivable_account_id',
+      'supplier_payable_account_id', 'inventory_account_id', 'sales_revenue_account_id',
+      'sales_discount_account_id', 'cogs_account_id', 'purchase_account_id',
+      'expenses_account_id', 'sales_tax_account_id', 'purchase_tax_account_id',
+    ];
+    const accountIds = Array.from(new Set(referenceColumns
+      .map((column) => Number(updateData[column] || 0)).filter((id) => id > 0)));
+    if (accountIds.length) {
+      const owned = await this.db.selectFrom('accounting_accounts').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', 'in', accountIds).execute();
+      if (owned.length !== accountIds.length) throw new BadRequestException('حساب الإعدادات لا ينتمي لهذه المنشأة.');
+    }
     
     updateData.updated_at = new Date();
 
     if (Object.keys(updateData).length > 1) { // more than just updated_at
-      await this.db
-        .updateTable('accounting_settings')
-        .set(updateData)
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
+      await this.db.transaction().execute(async (trx) => {
+        await lockAccountingPeriod(trx, scope.tenantId);
+        await trx.updateTable('accounting_settings').set(updateData)
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', 1).execute();
+      });
     }
 
     return { success: true };
@@ -499,8 +551,8 @@ export class AccountingService {
     let countQuery = this.db.selectFrom('journal_entries').where(this.tenantPredicate(auth));
     let rowsQuery = this.db
       .selectFrom('journal_entries as je')
-      .leftJoin('users as creator', 'creator.id', 'je.created_by')
-      .leftJoin('users as poster', 'poster.id', 'je.posted_by')
+      .leftJoin('users as creator', (join) => join.onRef('creator.id', '=', 'je.created_by').onRef('creator.tenant_id', '=', 'je.tenant_id'))
+      .leftJoin('users as poster', (join) => join.onRef('poster.id', '=', 'je.posted_by').onRef('poster.tenant_id', '=', 'je.tenant_id'))
       .select([
         'je.id',
         'je.entry_no',
@@ -671,9 +723,11 @@ export class AccountingService {
     options?: {
       auth?: AuthContext;
       isTaxOperation?: boolean;
+      queryable?: Kysely<Database>;
     },
   ): Promise<void> {
-    const settings = await this.db
+    const queryable = options?.queryable || this.db;
+    const settings = await queryable
       .selectFrom('accounting_settings')
       .select(['lock_date_all', 'lock_date_non_adviser', 'lock_date_tax'])
       .where('tenant_id', '=', tenantId)
@@ -716,7 +770,7 @@ export class AccountingService {
     }
 
     // 4. Monthly fiscal period lock (البند O6)
-    const closedPeriod = await this.db
+    const closedPeriod = await queryable
       .selectFrom('accounting_fiscal_periods')
       .select(['name', 'period_number'])
       .where('tenant_id', '=', tenantId)
@@ -840,7 +894,23 @@ export class AccountingService {
     const branchId = dto.branchId ? Number(dto.branchId) : null;
 
     const writeJournal = async (trx: Kysely<Database>) => {
-      const tempEntryNo = `JE-MANUAL-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      await lockAccountingPeriod(trx, scope.tenantId);
+      await this.assertNotInLockedPeriod(scope.tenantId, entryDate, { auth, queryable: trx });
+      await this.assertJournalReferences(trx, scope.tenantId, validatedLines.map((line) => ({ ...line, branchId })));
+      const lockedAccounts = await trx.selectFrom('accounting_accounts')
+        .select(['id', 'code', 'name_ar', 'is_active', 'allow_manual_entries'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', 'in', Array.from(accountIds).sort((a, b) => a - b))
+        .orderBy('id', 'asc').forUpdate().execute();
+      if (lockedAccounts.length !== accountIds.size) {
+        throw new BadRequestException('واحد أو أكثر من الحسابات المحددة غير موجود في شجرة الحسابات.');
+      }
+      for (const account of lockedAccounts) {
+        if (!account.is_active || !account.allow_manual_entries) {
+          throw new BadRequestException(`الحساب [${account.code} - ${account.name_ar}] غير نشط أو لا يسمح بقيود يدوية.`);
+        }
+      }
+      const tempEntryNo = `JE-TMP-${randomUUID()}`;
       const inserted = await trx
         .insertInto('journal_entries')
         .values({
@@ -906,29 +976,6 @@ export class AccountingService {
     };
   }
 
-  /**
-   * A reversal entry is dated CURRENT_DATE. Verify that date is not inside a locked period, using
-   * the same inclusive comparison as insertPostedJournal so both paths agree on what "locked" means.
-   */
-  private async assertPeriodOpenForReversal(trx: any, tenantId: string): Promise<void> {
-    const settings = await trx
-      .selectFrom('accounting_settings')
-      .select(['lock_date_all'])
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', 1)
-      .executeTakeFirst();
-
-    const lockAll = settings?.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : '';
-    if (!lockAll) return;
-
-    const today = new Date().toISOString().slice(0, 10);
-    if (today <= lockAll) {
-      throw new BadRequestException(
-        `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAll}. لا يمكن ترحيل قيد عكسي داخل فترة مغلقة.`,
-      );
-    }
-  }
-
   async reverseJournalEntry(entryId: number, reason: string, auth: AuthContext): Promise<{ ok: boolean; message: string; reversalEntryId: number; reversalEntryNo: string }> {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
@@ -970,6 +1017,7 @@ export class AccountingService {
     }
 
     const result = await this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
       // Re-read the original under a row lock. The guards above ran on an unlocked read, so two
       // concurrent reversal requests would both see reversed_by_entry_id = NULL, both pass, and the
       // entry would be reversed twice — doubling the reversal's effect on the ledger.
@@ -987,16 +1035,17 @@ export class AccountingService {
 
       // A reversal is a new posting and must respect the period lock like any other. Without this,
       // reversing into a closed fiscal year silently rewrites that year's balances after sign-off.
-      await this.assertPeriodOpenForReversal(trx, scope.tenantId);
+      const reversalDate = new Date();
+      await this.assertNotInLockedPeriod(scope.tenantId, reversalDate, { auth, queryable: trx });
 
-      const tempEntryNo = `JE-REV-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const tempEntryNo = `JE-TMP-${randomUUID()}`;
       const inserted = await trx
         .insertInto('journal_entries')
         .values({
           entry_no: tempEntryNo,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
-          entry_date: sql`CURRENT_DATE`,
+          entry_date: reversalDate,
           description: `قيد عكسي للقيد رقم ${entry.entry_no}: ${trimmedReason}`,
           source_type: `${entry.source_type}_reversal`,
           source_id: entry.id,
@@ -1041,14 +1090,10 @@ export class AccountingService {
         .values(reversalLines as any)
         .execute();
 
-      // Mark original entry as cancelled and link to reversal
+      // Keep both posted entries in the ledger so their financial effects offset.
       await trx
         .updateTable('journal_entries')
         .set({
-          status: 'cancelled',
-          cancelled_by: userId,
-          cancelled_at: sql`NOW()`,
-          cancel_reason: trimmedReason,
           reversed_by_entry_id: revId,
           updated_at: sql`NOW()`,
         } as any)
@@ -1064,7 +1109,7 @@ export class AccountingService {
 
     return {
       ok: true,
-      message: `تم عكس القيد وإلغاؤه بنجاح وإنشاء القيد العكسي برقم ${result.reversalEntryNo}`,
+      message: `تم إنشاء القيد العكسي برقم ${result.reversalEntryNo} مع بقاء القيد الأصلي في سجل الأستاذ.`,
       reversalEntryId: result.reversalEntryId,
       reversalEntryNo: result.reversalEntryNo,
     };
@@ -1081,7 +1126,7 @@ export class AccountingService {
     let query = this.db
       .selectFrom('journal_entry_lines as l')
       .innerJoin('journal_entries as je', 'je.id', 'l.journal_entry_id')
-      .innerJoin('accounting_accounts as a', 'a.id', 'l.account_id')
+      .innerJoin('accounting_accounts as a', (join) => join.onRef('a.id', '=', 'l.account_id').onRef('a.tenant_id', '=', 'l.tenant_id'))
       .select([
         'a.code as account_code',
         'a.name_ar as account_name_ar',
@@ -1612,6 +1657,8 @@ export class AccountingService {
     const note = String(body.note || '').trim();
     const entryDate = new Date(`${preview.systemStartDate}T00:00:00.000Z`);
     const postResult = await this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      await this.assertNotInLockedPeriod(scope.tenantId, entryDate, { auth, queryable: trx });
       const existing = await trx
         .selectFrom('journal_entries')
         .select('id')
@@ -1701,6 +1748,12 @@ export class AccountingService {
 
     const scope = requireTenantScope(auth);
     const inserted = await this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      await this.assertNotInLockedPeriod(scope.tenantId, input.entryDate ?? new Date(), { auth, queryable: trx });
+      await this.assertJournalReferences(trx, scope.tenantId, validation.lines.map((line) => ({
+        ...line, branchId: line.branchId ?? input.branchId ?? null,
+        locationId: line.locationId ?? input.locationId ?? null,
+      })));
       const entry = await trx
         .insertInto('journal_entries')
         .values({
@@ -1967,6 +2020,9 @@ export class AccountingService {
     // is_system or transaction history — it never touches identity or posted balances,
     // only which accounts forex-revaluation.previewRevaluation() picks up.
     if (dto.isMonetary !== undefined) {
+      if (dto.isMonetary && !['asset', 'liability'].includes(existing.account_type)) {
+        throw new BadRequestException('إعادة تقييم العملة متاحة للحسابات النقدية من نوع أصل أو التزام فقط.');
+      }
       updateData.is_monetary = dto.isMonetary;
       if (!dto.isMonetary) {
         // A non-monetary account can never legitimately carry a revaluation currency.
@@ -1978,6 +2034,9 @@ export class AccountingService {
       const willBeMonetary = dto.isMonetary !== undefined ? dto.isMonetary : Boolean(existing.is_monetary);
       if (cleanCurrency && !willBeMonetary) {
         throw new BadRequestException('لا يمكن تحديد عملة إعادة التقييم لحساب غير نقدي (is_monetary = false)');
+      }
+      if (cleanCurrency && !/^[A-Z]{3}$/.test(cleanCurrency)) {
+        throw new BadRequestException('رمز عملة إعادة التقييم يجب أن يتكون من ثلاثة أحرف.');
       }
       updateData.revaluation_currency = cleanCurrency;
     }
@@ -2189,13 +2248,19 @@ export class AccountingService {
     const scope = requireTenantScope(actor);
     const code = String(body.code || '').trim();
     const name = String(body.name || '').trim();
-    const purchaseCost = Number(body.purchaseCost || 0);
-    const salvageValue = Number(body.salvageValue || 0);
-    const usefulLifeMonths = Number(body.usefulLifeMonths || 60);
+    const purchaseCost = Number(body.purchaseCost);
+    const salvageValue = Number(body.salvageValue ?? 0);
+    const usefulLifeMonths = Number(body.usefulLifeMonths ?? 60);
+    const purchaseDate = body.purchaseDate ? new Date(body.purchaseDate) : new Date();
     const depreciationMethod = body.depreciationMethod === 'declining_balance' ? 'declining_balance' : 'straight_line';
 
     if (!code || !name || purchaseCost <= 0) {
       throw new BadRequestException('بيانات الأصل غير مكتملة (الكود، الاسم، وتكلفة الشراء مطلوبة).');
+    }
+    try { validateFixedAssetTerms(purchaseCost, salvageValue, usefulLifeMonths); }
+    catch { throw new BadRequestException('تكلفة الأصل أو قيمة الخردة أو العمر الإنتاجي غير صالح.'); }
+    if (Number.isNaN(purchaseDate.getTime()) || purchaseDate > new Date()) {
+      throw new BadRequestException('تاريخ شراء الأصل غير صالح أو يقع في المستقبل.');
     }
 
     const inserted = await this.db
@@ -2210,7 +2275,7 @@ export class AccountingService {
         depreciation_method: depreciationMethod,
         accumulated_depreciation: 0,
         status: 'active',
-        purchase_date: body.purchaseDate ? new Date(body.purchaseDate) : new Date(),
+        purchase_date: purchaseDate,
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
       })
@@ -2222,6 +2287,8 @@ export class AccountingService {
 
   async depreciateFixedAsset(id: number, body: { months?: number; note?: string }, actor: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(actor);
+    const posting = this.accountingPosting;
+    if (!posting) throw new Error('Accounting posting service is required for depreciation');
 
     return await this.db.transaction().execute(async (trx) => {
       const asset = await trx
@@ -2242,29 +2309,25 @@ export class AccountingService {
 
       const cost = Number(asset.purchase_cost || 0);
       const salvage = Number(asset.salvage_value || 0);
-      const usefulLife = Math.max(1, Number(asset.useful_life_months || 60));
+      const usefulLife = Number(asset.useful_life_months);
       const currentAccumulated = Number(asset.accumulated_depreciation || 0);
       const method = asset.depreciation_method || 'straight_line';
-      const months = Math.max(1, Number(body.months || 1));
-
-      const depreciableBase = Math.max(0, cost - salvage);
-      let calculatedAmount = 0;
-
-      if (method === 'declining_balance') {
-        const currentBook = Math.max(0, cost - currentAccumulated);
-        const annualRate = 2 / (usefulLife / 12);
-        const monthlyRate = currentBook * (annualRate / 12);
-        const maxDepreciable = Math.max(0, depreciableBase - currentAccumulated);
-        calculatedAmount = Math.min(monthlyRate * months, maxDepreciable);
-      } else {
-        const monthlyRate = depreciableBase / usefulLife;
-        calculatedAmount = Math.min(monthlyRate * months, Math.max(0, depreciableBase - currentAccumulated));
+      const months = Number(body.months ?? 1);
+      const entryDate = new Date();
+      let depreciationAmount: number;
+      try {
+        depreciationAmount = calculateAssetDepreciation({
+          cost, salvage, usefulLifeMonths: usefulLife, accumulated: currentAccumulated,
+          purchaseDate: new Date(asset.purchase_date), postingDate: entryDate, months, method,
+        });
+      } catch {
+        throw new BadRequestException('بيانات الأصل أو عدد أشهر الإهلاك أو تاريخ الشراء غير صالح.');
       }
 
-      const depreciationAmount = this.toMoney(calculatedAmount);
+      const depreciableBase = cost - salvage;
 
       if (depreciationAmount <= 0) {
-        throw new BadRequestException('تم إهلاك هذا الأصل بالكامل بالفعل.');
+        throw new BadRequestException('لا يوجد إهلاك مستحق لهذا الأصل حتى تاريخ الترحيل أو وصل إلى قيمة الخردة.');
       }
 
       const newAccumulated = this.toMoney(currentAccumulated + depreciationAmount);
@@ -2275,8 +2338,7 @@ export class AccountingService {
       const accounts = await this.ensureDepreciationAccounts(trx, scope.tenantId, scope.accountId);
 
       // Check if already depreciated in the same month to prevent duplicate posting (ZS-056)
-      const entryDate = new Date();
-      const startOfMonth = new Date(entryDate.getFullYear(), entryDate.getMonth(), 1);
+      const startOfMonth = new Date(Date.UTC(entryDate.getUTCFullYear(), entryDate.getUTCMonth(), 1));
       const existingInMonth = await trx
         .selectFrom('asset_depreciation_logs')
         .select(['id', 'period_date', 'depreciation_amount'])
@@ -2285,7 +2347,7 @@ export class AccountingService {
         .where('period_date', '>=', startOfMonth)
         .executeTakeFirst();
 
-      if (existingInMonth && (body as any)?.allowDuplicateInSameMonth !== true && months <= 1) {
+      if (existingInMonth) {
         throw new BadRequestException(`تم بالفعل إهلاك هذا الأصل خلال هذا الشهر (${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}).`);
       }
 
@@ -2297,101 +2359,38 @@ export class AccountingService {
       let journalEntryId: number;
       let finalEntryNo: string;
 
-      if (this.accountingPosting) {
-        journalEntryId = await this.accountingPosting.postDomainJournal(trx, {
-          sourceType: 'depreciation',
-          sourceId: id,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-          entryDate,
-          description: entryDesc,
-          createdBy: actor.userId,
-          lines: [
-            {
-              accountId: accounts.deprExpenseAccountId,
-              description: `مصروف إهلاك الأصل - ${asset.name}`,
-              debit: depreciationAmount,
-              credit: 0,
-              partnerType: 'none',
-              partnerId: null,
-              branchId: null,
-              locationId: null,
-            },
-            {
-              accountId: accounts.accumDeprAccountId,
-              description: `مجمع إهلاك الأصل - ${asset.name}`,
-              debit: 0,
-              credit: depreciationAmount,
-              partnerType: 'none',
-              partnerId: null,
-              branchId: null,
-              locationId: null,
-            },
-          ],
-        });
-        finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
-      } else {
-        const tempEntryNo = `JE-TMP-depr-${scope.tenantId}-${Date.now()}`;
-        const insertedJe = await trx
-          .insertInto('journal_entries')
-          .values({
-            entry_no: tempEntryNo,
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            entry_date: entryDate,
-            description: entryDesc,
-            source_type: 'depreciation',
-            source_id: id,
-            status: 'posted',
-            branch_id: null,
-            location_id: null,
-            created_by: actor.userId,
-            posted_by: actor.userId,
-            posted_at: sql`NOW()`,
-          } as any)
-          .returning('id')
-          .executeTakeFirstOrThrow();
-
-        journalEntryId = Number(insertedJe.id);
-        finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
-        await trx
-          .updateTable('journal_entries')
-          .set({ entry_no: finalEntryNo, updated_at: sql`NOW()` } as any)
-          .where('id', '=', journalEntryId)
-          .where('tenant_id', '=', scope.tenantId)
-          .execute();
-
-        // 3. Insert Journal Lines (Debit Expense, Credit Accumulated)
-        await trx
-          .insertInto('journal_entry_lines')
-          .values([
-            {
-              journal_entry_id: journalEntryId,
-              tenant_id: scope.tenantId,
-              account_id: accounts.deprExpenseAccountId,
-              description: `مصروف إهلاك الأصل - ${asset.name}`,
-              debit: depreciationAmount,
-              credit: 0,
-              partner_type: 'none',
-              partner_id: null,
-              branch_id: null,
-              location_id: null,
-            } as any,
-            {
-              journal_entry_id: journalEntryId,
-              tenant_id: scope.tenantId,
-              account_id: accounts.accumDeprAccountId,
-              description: `مجمع إهلاك الأصل - ${asset.name}`,
-              debit: 0,
-              credit: depreciationAmount,
-              partner_type: 'none',
-              partner_id: null,
-              branch_id: null,
-              location_id: null,
-            } as any,
-          ])
-          .execute();
-      }
+      journalEntryId = await posting.postDomainJournal(trx, {
+        sourceType: 'depreciation',
+        sourceId: id,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate,
+        description: entryDesc,
+        createdBy: actor.userId,
+        lines: [
+          {
+            accountId: accounts.deprExpenseAccountId,
+            description: `مصروف إهلاك الأصل - ${asset.name}`,
+            debit: depreciationAmount,
+            credit: 0,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: null,
+            locationId: null,
+          },
+          {
+            accountId: accounts.accumDeprAccountId,
+            description: `مجمع إهلاك الأصل - ${asset.name}`,
+            debit: 0,
+            credit: depreciationAmount,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: null,
+            locationId: null,
+          },
+        ],
+      });
+      finalEntryNo = `JE-${String(journalEntryId).padStart(8, '0')}`;
 
       // 4. Update Fixed Asset Record
       await trx
@@ -2477,8 +2476,8 @@ export class AccountingService {
     const scope = requireTenantScope(actor!);
     let query = this.db
       .selectFrom('asset_depreciation_logs as l')
-      .leftJoin('journal_entries as j', 'j.id', 'l.journal_entry_id')
-      .leftJoin('fixed_assets as a', 'a.id', 'l.asset_id')
+      .leftJoin('journal_entries as j', (join) => join.onRef('j.id', '=', 'l.journal_entry_id').onRef('j.tenant_id', '=', 'l.tenant_id'))
+      .leftJoin('fixed_assets as a', (join) => join.onRef('a.id', '=', 'l.asset_id').onRef('a.tenant_id', '=', 'l.tenant_id'))
       .select([
         'l.id',
         'l.asset_id',
@@ -2855,8 +2854,8 @@ export class AccountingService {
 
     let query = (this.db as any)
       .selectFrom('journal_entry_lines as l')
-      .innerJoin('journal_entries as e', 'l.journal_entry_id', 'e.id')
-      .innerJoin('accounting_accounts as a', 'l.account_id', 'a.id')
+      .innerJoin('journal_entries as e', (join: any) => join.onRef('l.journal_entry_id', '=', 'e.id').onRef('l.tenant_id', '=', 'e.tenant_id'))
+      .innerJoin('accounting_accounts as a', (join: any) => join.onRef('l.account_id', '=', 'a.id').onRef('l.tenant_id', '=', 'a.tenant_id'))
       .select([
         'l.id as lineId',
         'e.id as entryId',
@@ -2866,8 +2865,8 @@ export class AccountingService {
         'l.description as lineDescription',
         'a.id as accountId',
         'a.code as accountCode',
-        'a.name as accountName',
-        'a.type as accountType',
+        'a.name_ar as accountName',
+        'a.account_type as accountType',
         'l.debit',
         'l.credit',
       ])

@@ -5,6 +5,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/shared/components/page-header';
 import { StatsGrid, type StatsGridItem } from '@/shared/components/stats-grid';
 import { Button } from '@/shared/ui/button';
+import { toast } from '@/shared/components/system-alert';
+import { accountingApi } from '../api/accounting.api';
 import {
   forexApi,
   CurrencyItem,
@@ -14,7 +16,8 @@ import {
 import { CheckIcon, ShieldAlertIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
 
 export const AccountingForexRevaluationPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-US' : 'ar-EG';
   const { currencySymbol } = useSystemCurrency();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'wizard' | 'history'>('wizard');
@@ -26,6 +29,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
   const [previewData, setPreviewData] = useState<ForexRevaluationPreview | null>(null);
   const [previewError, setPreviewError] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [foreignBalances, setForeignBalances] = useState<Record<string, string>>({});
 
   // 1. Fetch currencies
   const { data: currenciesData } = useQuery({
@@ -34,6 +38,16 @@ export const AccountingForexRevaluationPage: React.FC = () => {
   });
 
   const currencies: CurrencyItem[] = currenciesData?.currencies || [];
+  const { data: accountsData } = useQuery({ queryKey: ['accounting-accounts'], queryFn: accountingApi.accounts });
+  const monetaryAccounts = (accountsData?.accounts || []).filter((account) =>
+    account.isActive && account.isMonetary && account.revaluationCurrency === selectedCurrency);
+  const getItems = () => monetaryAccounts.map((account) => {
+    const entered = foreignBalances[account.id];
+    if (entered === undefined || entered.trim() === '' || !Number.isFinite(Number(entered))) {
+      throw new Error(t('accounting.accounting_forex_revaluation_page.s35', 'أدخل الرصيد الفعلي بالعملة الأجنبية لكل حساب.'));
+    }
+    return { accountId: Number(account.id), foreignBalance: Number(entered) };
+  });
 
   // 2. Fetch past runs
   const { data: pastRuns = [], isLoading: isRunsLoading } = useQuery({
@@ -49,6 +63,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
         periodDate,
         currencyCode: selectedCurrency,
         closingRate: Number(closingRate),
+        items: getItems(),
       });
     },
     onSuccess: (data) => {
@@ -67,18 +82,19 @@ export const AccountingForexRevaluationPage: React.FC = () => {
         periodDate,
         currencyCode: selectedCurrency,
         closingRate: Number(closingRate),
+        items: getItems(),
         notes,
       });
     },
     onSuccess: (res) => {
-      alert(`تم بنجاح ترحيل قيد تسوية فروق تقييم العملة برقم: ${res.journalEntryNo || 'معتمد'}!`);
+      toast.success(`${t('accounting.accounting_forex_revaluation_page.s36', 'تم ترحيل قيد فروق العملة برقم')} ${res.journalEntryNo || '—'}`);
       queryClient.invalidateQueries({ queryKey: ['forex-runs'] });
       queryClient.invalidateQueries({ queryKey: ['forex-currencies'] });
       setPreviewData(null);
       setActiveTab('history');
     },
     onError: (err: any) => {
-      alert(err?.message || 'فشل اعتماد قيد إعادة التقييم.');
+      toast.error(err?.message || t('accounting.accounting_forex_revaluation_page.s37', 'فشل اعتماد قيد إعادة التقييم.'));
     },
   });
 
@@ -264,7 +280,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                 <input
                   type="date"
                   value={periodDate}
-                  onChange={(e) => setPeriodDate(e.target.value)}
+                  onChange={(e) => { setPeriodDate(e.target.value); setPreviewData(null); }}
                   style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
@@ -283,6 +299,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                   value={selectedCurrency}
                   onChange={(e) => {
                     setSelectedCurrency(e.target.value);
+                    setPreviewData(null);
                     const found = currencies.find((c) => c.code === e.target.value);
                     if (found) setClosingRate(String(found.exchangeRate));
                   }}
@@ -313,7 +330,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                     type="number"
                     step="0.01"
                     value={closingRate}
-                    onChange={(e) => setClosingRate(e.target.value)}
+                    onChange={(e) => { setClosingRate(e.target.value); setPreviewData(null); }}
                     style={{
                       padding: '8px 12px',
                       borderRadius: '6px',
@@ -331,11 +348,30 @@ export const AccountingForexRevaluationPage: React.FC = () => {
               <Button
                 variant="primary"
                 onClick={() => previewMutation.mutate()}
-                disabled={previewMutation.isPending}
+                disabled={previewMutation.isPending || !accountsData || monetaryAccounts.length === 0}
                 style={{ height: '40px', padding: '0 20px' }}
               >
                 {previewMutation.isPending ? t('accounting.accounting_forex_revaluation_page.s10', "جاري الفحص المحاسبي...") : t('accounting.accounting_forex_revaluation_page.s11', "معاينة فروق التقييم")}
               </Button>
+            </div>
+
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <strong>{t('accounting.accounting_forex_revaluation_page.s34', 'الأرصدة الفعلية بالعملة الأجنبية للحسابات النقدية')}</strong>
+              {accountsData && monetaryAccounts.length === 0 && (
+                <span>{t('accounting.accounting_forex_revaluation_page.s38', 'لا توجد حسابات نقدية نشطة مربوطة بهذه العملة في شجرة الحسابات.')}</span>
+              )}
+              {monetaryAccounts.map((account) => (
+                <label key={account.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                  <span>{account.code} — {account.nameAr}</span>
+                  <input type="number" step="0.01" value={foreignBalances[account.id] ?? ''}
+                    onChange={(event) => {
+                      setForeignBalances((prior) => ({ ...prior, [account.id]: event.target.value }));
+                      setPreviewData(null);
+                    }}
+                    aria-label={`${account.code} ${selectedCurrency}`}
+                    style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', width: '170px' }} />
+                </label>
+              ))}
             </div>
 
             {/* Preview Results Table */}
@@ -361,15 +397,15 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                         color: previewData.netUnrealizedGainLoss >= 0 ? '#15803d' : '#991b1b',
                       }}
                     >
-                      {previewData.netUnrealizedGainLoss >= 0 ? t('accounting.accounting_forex_revaluation_page.s13', "أرباح فروق عملة محققة: +") : t('accounting.accounting_forex_revaluation_page.s14', "خسائر فروق عملة: ")}
-                      {Math.abs(previewData.netUnrealizedGainLoss).toLocaleString('ar-EG')} {currencySymbol}
+                      {previewData.netUnrealizedGainLoss >= 0 ? t('accounting.accounting_forex_revaluation_page.s13', "أرباح فروق عملة غير محققة: +") : t('accounting.accounting_forex_revaluation_page.s14', "خسائر فروق عملة: ")}
+                      {Math.abs(previewData.netUnrealizedGainLoss).toLocaleString(locale)} {currencySymbol}
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'left' }}>
                     <span style={{ fontSize: 'var(--font-micro)', color: '#64748b' }}>{t('accounting.accounting_forex_revaluation_page.s15', "إجمالي الرصيد الأجنبي المعني:")}</span>
                     <div style={{ fontWeight: 700, fontSize: 'var(--font-section-title)', color: '#0f172a' }}>
-                      {previewData.totalForeignBalance.toLocaleString('ar-EG')} {previewData.currencyCode}
+                      {previewData.totalForeignBalance.toLocaleString(locale)} {previewData.currencyCode}
                     </div>
                   </div>
                 </div>
@@ -399,13 +435,13 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                             {l.accountName} ({l.accountCode})
                           </td>
                           <td style={{ padding: '10px 14px', color: '#1e293b' }}>
-                            {l.foreignBalance.toLocaleString('ar-EG')} {previewData.currencyCode}
+                            {l.foreignBalance.toLocaleString(locale)} {previewData.currencyCode}
                           </td>
                           <td style={{ padding: '10px 14px', color: '#64748b' }}>
-                            {l.bookLocalValue.toLocaleString('ar-EG')} {currencySymbol}
+                            {l.bookLocalValue.toLocaleString(locale)} {currencySymbol}
                           </td>
                           <td style={{ padding: '10px 14px', color: '#0f172a', fontWeight: 600 }}>
-                            {l.revaluedLocalValue.toLocaleString('ar-EG')} {currencySymbol}
+                            {l.revaluedLocalValue.toLocaleString(locale)} {currencySymbol}
                           </td>
                           <td style={{ padding: '10px 14px' }}>
                             <span
@@ -415,7 +451,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                               }}
                             >
                               {l.unrealizedDifference >= 0 ? '+' : ''}
-                              {l.unrealizedDifference.toLocaleString('ar-EG')} {currencySymbol}
+                              {l.unrealizedDifference.toLocaleString(locale)} {currencySymbol}
                             </span>
                           </td>
                         </tr>
@@ -502,7 +538,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                 pastRuns.map((r: ForexRevaluationRun) => (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#0f172a' }}>
-                      {new Date(r.period_date).toLocaleDateString('ar-EG')}
+                      {new Date(r.period_date).toLocaleDateString(locale)}
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 700, color: '#170e5e' }}>
                       {r.currency_code}
@@ -511,7 +547,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                       {Number(r.closing_exchange_rate).toFixed(2)} {currencySymbol}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#475569' }}>
-                      {Number(r.foreign_balance_total).toLocaleString('ar-EG')} {r.currency_code}
+                      {Number(r.foreign_balance_total).toLocaleString(locale)} {r.currency_code}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <span
@@ -521,7 +557,7 @@ export const AccountingForexRevaluationPage: React.FC = () => {
                         }}
                       >
                         {Number(r.unrealized_gain_loss) >= 0 ? '+' : ''}
-                        {Number(r.unrealized_gain_loss).toLocaleString('ar-EG')} {currencySymbol}
+                        {Number(r.unrealized_gain_loss).toLocaleString(locale)} {currencySymbol}
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#2563eb' }}>

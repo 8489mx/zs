@@ -8925,6 +8925,9 @@
   },
   "accounting": {
     "accounting_account_form": {
+      "s15": "Monetary account subject to FX revaluation",
+      "s16": "Account foreign currency code",
+      "s17": "Currency code is required.",
       "s3": "Account Code",
       "s9": "Account Type",
       "s10": "Normal Balance",
@@ -10039,6 +10042,11 @@
       "s11": "Execution and entry generation in progress..."
     },
     "accounting_forex_revaluation_page": {
+      "s34": "Actual foreign currency balances for monetary accounts",
+      "s35": "Enter the actual foreign currency balance for every account.",
+      "s36": "Foreign exchange journal posted as",
+      "s37": "Could not post the foreign exchange revaluation.",
+      "s38": "No active monetary accounts are linked to this currency in the chart of accounts.",
       "s0": "FX Revaluation & Exchange Deltas (IAS 21)",
       "s16": "Account / Treasury",
       "s21": "Daily Entry Notes (Optional)...",
@@ -10056,7 +10064,7 @@
       "s6": "Financial revaluation processor (IAS 21 Revaluation Routine)",
       "s7": "End date of the financial period:",
       "s12": "Net financial impact (income statement):",
-      "s13": "Realized Currency Difference Profits: +",
+      "s13": "Unrealized FX gains: +",
       "s14": "Currency exchange losses:",
       "s20": "Evaluation difference (profits/losses)",
       "s23": "Approval and posting of automated valuation differences entry",
