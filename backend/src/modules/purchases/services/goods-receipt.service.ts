@@ -12,6 +12,7 @@ import { applyStockDelta, lockStockProducts } from '../../../common/utils/locati
 import { allocateGrnAccrual, allocateGrniBillPortion } from '../engines/grni-settlement.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { PurchasesFinanceService } from './purchases-finance.service';
+import { normalizeBillNumber } from '../engines/duplicate-bill-detector.engine';
 
 @Injectable()
 export class GoodsReceiptService {
@@ -698,7 +699,7 @@ export class GoodsReceiptService {
   /** Invoice previously posted receipts without adding physical stock a second time. */
   async createBillFromReceipts(dto: CreateGrnBillDto, auth: AuthContext): Promise<{ purchaseId: number; docNo: string }> {
     const scope = requireTenantScope(auth);
-    const invoiceNo = String(dto.supplierInvoiceNo || '').trim().replace(/\s+/g, ' ');
+    const invoiceNo = normalizeBillNumber(dto.supplierInvoiceNo);
     if (!invoiceNo || !Array.isArray(dto.lines) || dto.lines.length === 0) {
       throw new BadRequestException('حدد رقم فاتورة المورد وبنود محاضر الاستلام');
     }
@@ -715,8 +716,14 @@ export class GoodsReceiptService {
       }
       const supplier = await trx.selectFrom('suppliers').select('id')
         .where('id', '=', dto.supplierId).where('tenant_id', '=', scope.tenantId)
-        .where('is_active', '=', true).executeTakeFirst();
+        .where('is_active', '=', true).forUpdate().executeTakeFirst();
       if (!supplier) throw new NotFoundException('المورد غير موجود أو غير نشط');
+      const existingInvoices = await trx.selectFrom('purchases').select(['id', 'supplier_invoice_no'])
+        .where('tenant_id', '=', scope.tenantId).where('supplier_id', '=', dto.supplierId)
+        .where('status', '!=', 'cancelled').where('supplier_invoice_no', 'is not', null).execute();
+      if (existingInvoices.some((bill) => normalizeBillNumber(bill.supplier_invoice_no) === invoiceNo)) {
+        throw new UnprocessableEntityException('رقم فاتورة المورد مسجل بالفعل لهذا المورد.');
+      }
       const directBill = await trx.selectFrom('purchases').select('id')
         .where('tenant_id', '=', scope.tenantId).where('po_id', '=', dto.purchaseOrderId)
         .where('status', '!=', 'cancelled')

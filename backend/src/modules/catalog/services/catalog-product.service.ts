@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, Transaction, sql } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
@@ -10,6 +10,8 @@ import { InventoryScopeService } from '../../inventory/services/inventory-scope.
 import { normalizeArabicInput, normalizeArabicSearch } from '../../../common/utils/arabic-search.util';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
 
 type ProductRow = {
   id: number;
@@ -112,7 +114,41 @@ type CustomerPriceReadRow = {
 export class CatalogProductService {
   private productOfferColumnCapabilitiesPromise?: Promise<ProductOfferColumnCapabilities>;
 
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService, private readonly inventoryScope: InventoryScopeService) {}
+  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService,
+    private readonly inventoryScope: InventoryScopeService,
+    @Optional() private readonly accountingPosting?: AccountingPostingService,
+    @Optional() private readonly accountingFoundation?: AccountingTenantFoundationService) {}
+
+  private async ensureOpeningStockAccounts(actor: AuthContext): Promise<void> {
+    if (!this.accountingPosting || !this.accountingFoundation) {
+      throw new AppError('Accounting services are required for opening stock', 'OPENING_STOCK_LEDGER_UNAVAILABLE', 500);
+    }
+    await this.accountingFoundation.ensureForAuth(this.db, actor);
+  }
+
+  private async postOpeningStock(trx: ProductWriteExecutor, productId: number, qty: number, unitCost: number,
+    locationId: number | null, actor: AuthContext): Promise<void> {
+    const amount = Number((qty * unitCost).toFixed(2));
+    if (amount <= 0) return;
+    const accounts = await trx.selectFrom('accounting_accounts').select(['id', 'code'])
+      .where('tenant_id', '=', this.tenantId(actor)).where('code', 'in', ['1140', '3100'])
+      .where('is_active', '=', true).execute();
+    const byCode = new Map(accounts.map((account) => [account.code, Number(account.id)]));
+    if (!byCode.get('1140') || !byCode.get('3100')) {
+      throw new AppError('Inventory or opening capital account is unavailable', 'OPENING_STOCK_ACCOUNT_MISSING', 422);
+    }
+    await this.accountingPosting!.postDomainJournal(trx, {
+      sourceType: 'catalog_opening_stock', sourceId: productId,
+      tenantId: this.tenantId(actor), accountId: this.accountId(actor), entryDate: new Date(),
+      description: `رصيد افتتاحي للصنف ${productId}`, createdBy: actor.userId,
+      lines: [
+        { accountId: byCode.get('1140')!, debit: amount, credit: 0, description: 'إثبات مخزون افتتاحي',
+          partnerType: 'none', partnerId: null, branchId: null, locationId },
+        { accountId: byCode.get('3100')!, debit: 0, credit: amount, description: 'مقابل المخزون الافتتاحي ضمن رأس المال',
+          partnerType: 'none', partnerId: null, branchId: null, locationId },
+      ],
+    });
+  }
 
   private scope(actor: AuthContext) {
     return requireTenantScope(actor);
@@ -1750,6 +1786,10 @@ export class CatalogProductService {
       if (value.warehouseId) await this.inventoryScope.assertLocationScope(value.warehouseId, actor);
     }
 
+    if (drafts.some((draft) => !draft.id && Number(draft.value.stock || 0) > 0)) {
+      await this.ensureOpeningStockAccounts(actor);
+    }
+
     const result = await this.db.transaction().execute(async (trx) => {
       // Both styles are locked in a stable order to avoid a style-renaming deadlock.
       for (const style of [...new Set([originalStyle, newStyle])].sort()) {
@@ -1818,6 +1858,9 @@ export class CatalogProductService {
           if (priceChanged && !this.hasPermission(actor, 'canEditPrice')) {
             throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
           }
+          if (Number(prior.cost_price) !== value.costPrice && Math.abs(Number(prior.stock_qty || 0)) > 0.0001) {
+            throw new AppError('Use a valuation adjustment to change the cost of stock on hand', 'STOCK_COST_EDIT_FORBIDDEN', 422);
+          }
           await trx.updateTable('products').set({
             name: value.name, barcode: value.barcode || null, sku: value.sku || null,
             item_type: value.itemType, item_kind: groupKind, style_code: newStyle,
@@ -1862,6 +1905,7 @@ export class CatalogProductService {
               reference_id: productId, location_id: value.warehouseId!, created_by: actor.userId,
               ...this.tenantFields(actor),
             } as any).execute();
+            await this.postOpeningStock(trx, productId, stock, value.costPrice, value.warehouseId!, actor);
           }
           created++;
         }
@@ -1909,6 +1953,7 @@ export class CatalogProductService {
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
     await this.ensureCategoryAndSupplierInTenant(normalized, actor);
     await this.ensureCustomerPricesInTenant(normalized, actor);
+    if (normalized.warehouseId) await this.inventoryScope.assertLocationScope(normalized.warehouseId, actor, false, 'write');
 
     const duplicateDraftNames = new Set<string>();
     const duplicateDraftBarcodes = new Set<string>();
@@ -1932,6 +1977,7 @@ export class CatalogProductService {
 
     let resolvedLocationId = normalized.warehouseId || null;
     const hasAnyInitialStock = drafts.some(d => Number(d.stock || 0) > 0);
+    if (hasAnyInitialStock) await this.ensureOpeningStockAccounts(actor);
     if (hasAnyInitialStock && !resolvedLocationId) {
       const settingsRaw = await this.db.selectFrom('settings').selectAll().where(this.tenantPredicate(actor)).execute();
       const settings = settingsRaw.reduce<Record<string, unknown>>((acc, row) => { try { acc[row.key] = JSON.parse(row.value); } catch { acc[row.key] = row.value; } return acc; }, {});
@@ -1946,6 +1992,7 @@ export class CatalogProductService {
         }
       }
     }
+    if (resolvedLocationId) await this.inventoryScope.assertLocationScope(resolvedLocationId, actor, false, 'write');
 
     let firstProductId: number | null = null;
     await this.db.transaction().execute(async (trx) => {
@@ -2015,6 +2062,7 @@ export class CatalogProductService {
             created_by: actor.userId,
             ...this.tenantFields(actor),
           } as any).execute();
+          await this.postOpeningStock(trx, productId, initialStockQty, draft.costPrice, resolvedLocationId, actor);
         }
       }
     });
@@ -2048,6 +2096,7 @@ export class CatalogProductService {
     this.ensureAdvancedOffersSupported(normalized, await this.getProductOfferColumnCapabilities());
     await this.ensureCategoryAndSupplierInTenant(normalized, actor);
     await this.ensureCustomerPricesInTenant(normalized, actor);
+    if (normalized.warehouseId) await this.inventoryScope.assertLocationScope(normalized.warehouseId, actor, false, 'write');
 
     const priceChanged = Number(normalized.costPrice || 0) !== Number(existing.cost_price || 0)
       || Number(normalized.retailPrice || 0) !== Number(existing.retail_price || 0)
@@ -2063,6 +2112,11 @@ export class CatalogProductService {
 
     const metaObj = normalized.metadata || (normalized.icon ? { icon: normalized.icon } : null);
     await this.db.transaction().execute(async (trx) => {
+      const locked = await trx.selectFrom('products').select(['stock_qty', 'cost_price'])
+        .where('id', '=', id).where(this.tenantPredicate(actor)).forUpdate().executeTakeFirstOrThrow();
+      if (Number(locked.cost_price) !== normalized.costPrice && Math.abs(Number(locked.stock_qty || 0)) > 0.0001) {
+        throw new AppError('Use a valuation adjustment to change the cost of stock on hand', 'STOCK_COST_EDIT_FORBIDDEN', 422);
+      }
       await trx.updateTable('products').set({
         name: normalized.name,
         name_en: normalized.nameEn !== undefined ? (normalized.nameEn || null) : (existing as any).name_en,
