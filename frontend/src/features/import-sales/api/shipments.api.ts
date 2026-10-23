@@ -688,12 +688,13 @@ export const useCalculateCustomsMutation = () => {
 export const useCloseProjectMutation = (defaultProjectId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: string | { projectId?: string; approvalRequestId: string }) => {
+    mutationFn: async (args: string | { projectId?: string; approvalRequestId: string; closingNotes?: string }) => {
       const projectId = typeof args === 'string' ? defaultProjectId : args.projectId || defaultProjectId;
       const approvalRequestId = typeof args === 'string' ? args : args.approvalRequestId;
+      const closingNotes = typeof args === 'string' ? undefined : (args as any).closingNotes;
       return await http(`/api/import-sales/projects/${projectId}/close`, {
         method: 'POST',
-        body: JSON.stringify({ approvalRequestId }),
+        body: JSON.stringify({ approvalRequestId, closingNotes }),
       });
     },
     onSuccess: () => {
@@ -1520,44 +1521,51 @@ export const useCreateSourcingTripMutation = () => {
 // ==========================================
 // RECEIVING INSPECTIONS, LATE EXPENSES & FEASIBILITY CONVERSION
 // ==========================================
-export const useCreateReceivingInspectionMutation = (shipmentId: string) => {
+export const useCreateReceivingInspectionMutation = (defaultShipmentId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const shipmentId = dto?.shipmentId || defaultShipmentId;
       return await http<any>('/api/import-sales/receiving-inspections', {
         method: 'POST',
         body: JSON.stringify({ ...dto, shipmentId }),
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
-      queryClient.invalidateQueries({ queryKey: ['container-autopsy', shipmentId] });
+    onSuccess: (_data, variables: any) => {
+      const shipmentId = variables?.shipmentId || defaultShipmentId;
+      if (shipmentId) {
+        queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+        queryClient.invalidateQueries({ queryKey: ['container-autopsy', shipmentId] });
+      }
     },
   });
 };
 
-export const useRecordLateShipmentExpenseMutation = (shipmentId: string) => {
+export const useRecordLateShipmentExpenseMutation = (defaultShipmentId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (dto: {
-      expenseCategory: string;
-      amountEgp: number;
-      handlingMethod: 'revalue_unsold_stock' | 'charge_to_project_pnl';
-      treasuryAccountId?: number;
-      idempotencyKey?: string;
-      notes?: string;
-    }) => {
+    mutationFn: async (args: any) => {
+      const shipmentId = args?.shipmentId || defaultShipmentId;
+      const rawDto = args?.dto !== undefined ? args.dto : args;
+      const payload = {
+        expenseCategory: rawDto.expenseCategory || rawDto.expenseType || 'demurrage',
+        amountEgp: Number(rawDto.amountEgp ?? rawDto.amount ?? 0),
+        handlingMethod: rawDto.handlingMethod || (rawDto.treatment === 'charge_to_pnl' ? 'charge_to_project_pnl' : 'revalue_unsold_stock'),
+        treasuryAccountId: rawDto.treasuryAccountId ? Number(rawDto.treasuryAccountId) : undefined,
+        idempotencyKey: rawDto.idempotencyKey || `LATE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        notes: rawDto.notes || rawDto.description || undefined,
+      };
       return await http<any>(`/api/import-sales/shipments/${shipmentId}/late-expenses`, {
         method: 'POST',
-        body: JSON.stringify({
-          ...dto,
-          idempotencyKey: dto.idempotencyKey || `LATE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        }),
+        body: JSON.stringify(payload),
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
-      queryClient.invalidateQueries({ queryKey: ['container-autopsy', shipmentId] });
+    onSuccess: (_data, variables: any) => {
+      const shipmentId = variables?.shipmentId || defaultShipmentId;
+      if (shipmentId) {
+        queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+        queryClient.invalidateQueries({ queryKey: ['container-autopsy', shipmentId] });
+      }
     },
   });
 };
@@ -1565,20 +1573,16 @@ export const useRecordLateShipmentExpenseMutation = (shipmentId: string) => {
 export const useConvertFeasibilityToProjectMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      projectId,
-      supplierId,
-      targetPort,
-      advancePaymentPercentage,
-    }: {
-      projectId: string;
-      supplierId?: string;
-      targetPort?: string;
-      advancePaymentPercentage?: number;
-    }) => {
-      return await http<any>(`/api/import-sales/projects/${projectId}/convert-feasibility`, {
+    mutationFn: async (dto: any) => {
+      if (dto.projectId) {
+        return await http<any>(`/api/import-sales/projects/${dto.projectId}/convert-feasibility`, {
+          method: 'POST',
+          body: JSON.stringify(dto),
+        });
+      }
+      return await http<any>('/api/import-sales/projects', {
         method: 'POST',
-        body: JSON.stringify({ supplierId, targetPort, advancePaymentPercentage }),
+        body: JSON.stringify(dto),
       });
     },
     onSuccess: () => {

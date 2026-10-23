@@ -292,8 +292,8 @@ export class SalesWriteService {
     }
 
     const existingSaleLineIds = items
-      .map((item) => Number(item.id))
-      .filter((id) => id > 0 && ('sale_id' in item || 'product_id' in item));
+      .filter((item) => Number(item?.id) > 0 && ('sale_id' in item || 'product_id' in item))
+      .map((item) => Number(item.id));
     if (existingSaleLineIds.length > 0) {
       const allocProducts = await trx.selectFrom('sale_line_stock_allocations')
         .select('product_id')

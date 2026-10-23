@@ -34,6 +34,7 @@ export interface ConfirmOptions {
   confirmText?: string;
   cancelText?: string;
   variant?: 'primary' | 'danger' | 'warning' | 'info';
+  confirmVariant?: 'primary' | 'danger' | 'warning' | 'info';
 }
 
 type ConfirmState = {
@@ -532,13 +533,13 @@ export function SystemAlertProvider({ children }: { children: React.ReactNode })
                 height: '42px',
                 borderRadius: '8px',
                 backgroundColor:
-                  confirmState.options.variant === 'danger' ? '#dc2626' : '#170e5e',
+                  (confirmState.options.variant === 'danger' || confirmState.options.confirmVariant === 'danger') ? '#dc2626' : '#170e5e',
                 color: '#ffffff',
                 fontWeight: 700,
                 fontSize: '0.88rem',
                 border: 'none',
                 boxShadow:
-                  confirmState.options.variant === 'danger'
+                  (confirmState.options.variant === 'danger' || confirmState.options.confirmVariant === 'danger')
                     ? '0 2px 8px rgba(220, 38, 38, 0.28)'
                     : '0 2px 8px rgba(23, 14, 94, 0.28)',
               }}

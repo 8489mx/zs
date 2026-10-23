@@ -261,7 +261,6 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
     settingsQuery.data?.manufacturingModuleEnabled === true ||
     settingsQuery.data?.restaurantModuleEnabled === true ||
     settingsQuery.data?.clothingModuleEnabled === true ||
-    Boolean(settingsQuery.data?.enableClothingStoreFeatures) ||
     settingsQuery.data?.businessIndustry === 'clothing' ||
     settingsQuery.data?.businessIndustry === 'fashion';
   const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;

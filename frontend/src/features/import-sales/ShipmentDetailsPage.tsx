@@ -217,7 +217,7 @@ export default function ShipmentDetailsPage() {
       const confirmed = await systemConfirm({
         title: 'تأكيد وصول الحاوية وترحيل المخزون واليومية العامة',
         message: 'تنبيه محاسبي ومخزني: تغيير الحالة إلى (تم الوصول Arrived) سيقوم بإدخال الأصناف فوراً إلى رصيد المخزن المحدد، حساب متوسط التكلفة المرجح، إنشاء سند استلام نهائي، وإثبات قيد التكلفة المحملة في اليومية العامة. لا يمكن تعديل الكميات بعد الترحيل إلا بتسوية جردية معتمدة. هل ترغب في المتابعة؟',
-        confirmVariant: 'danger',
+        variant: 'danger',
       });
       if (!confirmed) return;
     }
