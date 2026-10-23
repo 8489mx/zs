@@ -7,7 +7,8 @@ export function selectInventoryTransfer(transfers: StockTransfer[], selectedTran
 }
 
 export function selectInventorySession(sessions: StockCountSession[], selectedSessionId: string) {
-  return sessions.find((session) => String(session.id) === String(selectedSessionId)) || sessions[0] || null;
+  if (!selectedSessionId) return null;
+  return sessions.find((session) => String(session.id) === String(selectedSessionId)) || null;
 }
 
 export function getSelectedTransferTotals(selectedTransfer: StockTransfer | null) {

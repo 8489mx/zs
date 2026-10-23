@@ -187,7 +187,10 @@ export function InventoryWorkspace({ currentSection }: { currentSection: Invento
             <button
               type="button"
               className={`stock-count-segmented-btn ${countSubView === 'history' ? 'stock-count-segmented-btn--active' : ''}`}
-              onClick={() => setCountSubView('history')}
+              onClick={() => {
+                inventory.setSelectedSessionId('');
+                setCountSubView('history');
+              }}
             >
               <LayersIcon size={16} />
               <span>{t('inventory.inventory_workspace.s2', "سجل ومراجعة الجلسات")}</span>

@@ -108,7 +108,7 @@ export function StockCountMonitorCard({
   const [itemsPage, setItemsPage] = useState(1);
   const [itemsPageSize, setItemsPageSize] = useState(25);
 
-  const [activeView, setActiveView] = useState<'list' | 'audit'>(selectedSession ? 'audit' : 'list');
+  const [activeView, setActiveView] = useState<'list' | 'audit'>('list');
 
   const handleSelectSession = (id: string) => {
     onSelectSession(id);
@@ -178,7 +178,10 @@ export function StockCountMonitorCard({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setActiveView('list')}
+                onClick={() => {
+                  setActiveView('list');
+                  onSelectSession('');
+                }}
                 style={{ fontWeight: 700, gap: '6px' }}
               >
                 <ArrowRightIcon size={15} />
@@ -224,6 +227,7 @@ export function StockCountMonitorCard({
                   onClick={() => {
                     onDeleteSession(selectedSession.id, selectedSession.docNo);
                     setActiveView('list');
+                    onSelectSession('');
                   }}
                   style={{ color: '#b91c1c', borderColor: '#fecaca', background: '#fff5f5', fontWeight: 700, gap: '6px' }}
                   title="إلغاء وحذف مسودة الجلسة نهائياً"
@@ -694,58 +698,44 @@ export function StockCountMonitorCard({
                   className: 'text-center',
                   cell: (session) => {
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
-                        <Button
-                          type="button"
-                          variant="primary"
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                        <div
                           style={{
-                            width: '140px',
-                            minWidth: '140px',
-                            maxWidth: '140px',
-                            justifyContent: 'center',
-                            background: '#170e5e',
-                            color: '#ffffff',
-                            gap: '6px',
-                            height: '32px',
-                            fontSize: '12px',
-                            fontWeight: 700,
-                            padding: '0 8px',
-                          }}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleSelectSession(String(session.id));
-                          }}
-                          title="عرض تفاصيل الجلسة وتدقيقها"
-                        >
-                          <EyeIcon size={14} />
-                          <span>فحص وتدقيق الجلسة</span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            minWidth: '32px',
-                            maxWidth: '32px',
-                            padding: 0,
-                            display: 'inline-flex',
+                            display: 'grid',
+                            gridTemplateColumns: '140px 32px 32px',
+                            gap: '8px',
                             alignItems: 'center',
-                            justifyContent: 'center',
+                            justifyItems: 'center',
                           }}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onPrintSession(session);
-                          }}
-                          title="طباعة محضر الجلسة"
                         >
-                          <PrinterIcon size={14} />
-                        </Button>
-                        {canReviewStock && (session.status === 'draft' || session.status === 'posting') && onDeleteSession ? (
+                          <Button
+                            type="button"
+                            variant="primary"
+                            style={{
+                              width: '140px',
+                              minWidth: '140px',
+                              maxWidth: '140px',
+                              justifyContent: 'center',
+                              background: '#170e5e',
+                              color: '#ffffff',
+                              gap: '6px',
+                              height: '32px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              padding: '0 8px',
+                            }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleSelectSession(String(session.id));
+                            }}
+                            title="عرض تفاصيل الجلسة وتدقيقها"
+                          >
+                            <EyeIcon size={14} />
+                            <span>فحص وتدقيق الجلسة</span>
+                          </Button>
                           <Button
                             type="button"
                             variant="secondary"
-                            disabled={deletePending}
                             style={{
                               width: '32px',
                               height: '32px',
@@ -755,19 +745,45 @@ export function StockCountMonitorCard({
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              color: '#b91c1c',
-                              borderColor: '#fecaca',
-                              background: '#fff5f5',
                             }}
                             onClick={(event) => {
                               event.stopPropagation();
-                              onDeleteSession(session.id, session.docNo);
+                              onPrintSession(session);
                             }}
-                            title="إلغاء وحذف مسودة الجلسة"
+                            title="طباعة محضر الجلسة"
                           >
-                            <TrashIcon size={14} color="#b91c1c" />
+                            <PrinterIcon size={14} />
                           </Button>
-                        ) : null}
+                          {canReviewStock && (session.status === 'draft' || session.status === 'posting') && onDeleteSession ? (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              disabled={deletePending}
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                minWidth: '32px',
+                                maxWidth: '32px',
+                                padding: 0,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#b91c1c',
+                                borderColor: '#fecaca',
+                                background: '#fff5f5',
+                              }}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onDeleteSession(session.id, session.docNo);
+                              }}
+                              title="إلغاء وحذف مسودة الجلسة"
+                            >
+                              <TrashIcon size={14} color="#b91c1c" />
+                            </Button>
+                          ) : (
+                            <span style={{ width: '32px', height: '32px', display: 'inline-block' }} />
+                          )}
+                        </div>
                       </div>
                     );
                   },

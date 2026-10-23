@@ -22,7 +22,9 @@ import {
   PlusIcon,
   RefreshCwIcon,
   SlidersIcon,
+  RotateCcwIcon,
 } from '@/shared/components/icons/AppIcons';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import type { Branch, Location, Product, StockCountItem, StockTransferItem } from '@/types/domain';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 
@@ -414,7 +416,19 @@ export function StockCountComposerCard({
     }));
   }
 
-  function handleResetAllToExpected() {
+  async function handleResetAllToExpected() {
+    if (!items.length) return;
+    if (countedCount > 0) {
+      const confirmed = await systemConfirm({
+        title: 'ملء برصيد النظام',
+        message: 'سيتم تعيين كافة الكميات المعدودة لتطابق رصيد النظام المسجل بالدفاتر (تصفير الفروقات). هل تريد المتابعة؟',
+        badge: 'مطابقة الدفاتر',
+        confirmText: 'ملء برصيد النظام',
+        cancelText: 'إلغاء',
+        confirmVariant: 'info',
+      });
+      if (!confirmed) return;
+    }
     onItemsChange((current) => current.map((item) => {
       const expectedQty = Number(item.expectedQty || 0);
       return {
@@ -424,15 +438,86 @@ export function StockCountComposerCard({
         isCounted: true,
       };
     }));
+    toast.success('تمت مطابقة كافة الأصناف مع رصيد النظام بنجاح.');
   }
 
-  function handleClearAllCounts() {
+  async function handleZeroUncounted() {
+    if (!items.length) return;
+    if (!uncountedCount) {
+      toast.info('جميع الأصناف في الجلسة تم عدها وإدخال كمياتها بالفعل.');
+      return;
+    }
+    const confirmed = await systemConfirm({
+      title: 'تصفير ما لم يُعد (ملء المتبقي بصفر)',
+      message: `سيتم تعيين الكمية المعدودة (0) لعدد ${uncountedCount} صنف متبقٍ لم يتم عده بعد، مع الإبقاء التام على ما قمت بعده (${countedCount} صنف). هل تريد المتابعة؟`,
+      badge: 'تصفير المتبقي',
+      confirmText: `تصفير المتبقي (${uncountedCount})`,
+      cancelText: 'إلغاء',
+      confirmVariant: 'primary',
+    });
+    if (!confirmed) return;
+
+    onItemsChange((current) => current.map((item) => {
+      const isUncounted = item.isCounted === false || item.countedQty === '' || item.countedQty == null;
+      if (!isUncounted) return item;
+      const expectedQty = Number(item.expectedQty || 0);
+      return {
+        ...item,
+        countedQty: 0,
+        varianceQty: Number((0 - expectedQty).toFixed(3)),
+        isCounted: true,
+      };
+    }));
+    toast.success(`تم تصفير ${uncountedCount} صنف متبقٍ برصيد (0) بنجاح.`);
+  }
+
+  async function handleZeroAllCounts() {
+    if (!items.length) return;
+    const isOverwriting = countedCount > 0;
+    const confirmed = await systemConfirm({
+      title: 'تصفير كافة أصناف الجلسة (جرد صفري شامل)',
+      message: isOverwriting
+        ? `تنبيه: قمت بعد ${countedCount} صنف سابقاً. سيتم وضع رصيد (0) لكافة الأصناف (${items.length} صنف) واستبدال ما أدخلته. متابعة التصفير الشامل؟`
+        : `سيتم تعيين الكمية المعدودة (0) لكافة الأصناف (${items.length} صنف) في جلسة الجرد واعتبار رصيد المخزن صفرياً بالكامل. هل تريد المتابعة؟`,
+      badge: 'جرد صفري شامل',
+      confirmText: 'تصفير الكل (0)',
+      cancelText: 'إلغاء',
+      confirmVariant: 'danger',
+    });
+    if (!confirmed) return;
+
+    onItemsChange((current) => current.map((item) => {
+      const expectedQty = Number(item.expectedQty || 0);
+      return {
+        ...item,
+        countedQty: 0,
+        varianceQty: Number((0 - expectedQty).toFixed(3)),
+        isCounted: true,
+      };
+    }));
+    toast.success(`تم تعيين رصيد (0) لكافة الأصناف (${items.length} صنف) بنجاح.`);
+  }
+
+  async function handleClearAllCounts() {
+    if (!items.length) return;
+    if (countedCount > 0) {
+      const confirmed = await systemConfirm({
+        title: 'إفراغ كافة الخانات (العد الأعمى)',
+        message: 'سيتم تفريغ كافة خانات العد للعودة لحالة العد الأعمى (الأصناف الفارغة لا تُدرج في الجلسة). هل تريد المتابعة؟',
+        badge: 'مسح المدخلات',
+        confirmText: 'إفراغ الخانات',
+        cancelText: 'إلغاء',
+        confirmVariant: 'danger',
+      });
+      if (!confirmed) return;
+    }
     onItemsChange((current) => current.map((item) => ({
       ...item,
       countedQty: '',
       varianceQty: 0,
       isCounted: false,
     })));
+    toast.info('تم إفراغ خانات الجرد والعودة للعد الأعمى.');
   }
 
   function handlePrintSheet() {
@@ -772,13 +857,47 @@ export function StockCountComposerCard({
               ) : null}
               {items.length > 0 ? (
                 <>
-                  <Button type="button" variant="secondary" onClick={handleClearAllCounts} title="إفراغ كافة خانات العد للبدء في الجرد الأعمى (الأصناف الفارغة لا يتم إدراجها في الجلسة)">
-                    <SlidersIcon size={14} />
-                    <span>إفراغ الخانات (أعمى)</span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleZeroUncounted}
+                    disabled={uncountedCount === 0}
+                    title={uncountedCount > 0 ? `وضع رصيد (0) لعدد ${uncountedCount} صنف متبقٍ لم يتم عده، مع الحفاظ على ما قمت بعده` : 'تم عد كافة الأصناف بالفعل'}
+                    style={{
+                      borderColor: uncountedCount > 0 ? '#93c5fd' : undefined,
+                      backgroundColor: uncountedCount > 0 ? '#eff6ff' : undefined,
+                      color: uncountedCount > 0 ? '#1d4ed8' : undefined,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <RotateCcwIcon size={14} />
+                    <span>{uncountedCount > 0 ? `تصفير المتبقي (${uncountedCount})` : 'تصفير المتبقي (0)'}</span>
                   </Button>
-                  <Button type="button" variant="secondary" onClick={handleResetAllToExpected} title="إعادة تعيين كافة الكميات المعدودة لتطابق رصيد النظام (تصفير الفروقات)">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleZeroAllCounts}
+                    title="وضع رصيد صفري (0) لكافة أصناف الجلسة لإثبات أن المخزن فارغ ثم تعديل ما يتواجد فعلياً"
+                  >
+                    <span>تصفير الكل (0)</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleResetAllToExpected}
+                    title="إعادة تعيين كافة الكميات المعدودة لتطابق رصيد النظام (تصفير الفروقات)"
+                  >
                     <RefreshCwIcon size={14} />
                     <span>ملء برصيد النظام</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleClearAllCounts}
+                    title="إفراغ كافة خانات العد للبدء في الجرد الأعمى (الأصناف الفارغة لا يتم إدراجها في الجلسة)"
+                  >
+                    <SlidersIcon size={14} />
+                    <span>إفراغ الخانات (أعمى)</span>
                   </Button>
                 </>
               ) : null}
