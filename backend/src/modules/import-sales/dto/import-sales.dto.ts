@@ -806,13 +806,19 @@ export class CreateQuotationDto {
   estimatedCustomsRatePercent?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  exchangeRate?: number;
+
+  @IsOptional()
   @IsString()
   notes?: string;
 }
 
 export class SelectQuotationDto {
+  @IsOptional()
   @IsString()
-  selectionReason!: string;
+  selectionReason?: string;
 }
 
 export class CreateSampleOrderDto {
@@ -1313,11 +1319,23 @@ export class DecideApprovalRequestDto {
   @IsOptional()
   @IsString()
   rejectionReason?: string;
+
+  @IsOptional()
+  @IsString()
+  decisionNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  comments?: string;
 }
 
 export class ResolveExceptionDto {
   @IsString()
   resolutionNotes!: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
 }
 
 export class RecordPartnerPayoutDto {

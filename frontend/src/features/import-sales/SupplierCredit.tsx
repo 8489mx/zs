@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
 import { useTreasury } from '@/shared/hooks/use-treasury';
-import { useRecordForeignTransferMutation, useForeignTransfersQuery } from './api/shipments.api';
+import { useRecordForeignTransferMutation, useForeignTransfersQuery, useProformaInvoicesQuery } from './api/shipments.api';
 import {
   BuildingIcon,
   CreditCardIcon,
@@ -23,8 +23,10 @@ export default function SupplierCredit() {
   const treasuryQuery = useTreasury({});
   const transferMutation = useRecordForeignTransferMutation();
   const transfersQuery = useForeignTransfersQuery();
+  const proformasQuery = useProformaInvoicesQuery();
 
   const [selectedSupplier, setSelectedSupplier] = useState('');
+  const [selectedPiId, setSelectedPiId] = useState('');
   const [amountEgp, setAmountEgp] = useState('');
   const [amountForeign, setAmountForeign] = useState('');
   const [notes, setNotes] = useState('');
@@ -32,6 +34,8 @@ export default function SupplierCredit() {
   const transferAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
   const factories = suppliersQuery.data?.filter(s => s.metadata?.supplierType === 'factory') || [];
+  const supplierProformas = (proformasQuery.data || []).filter((pi: any) => !selectedSupplier || String(pi.supplier_id) === String(selectedSupplier));
+  const selectedPi = supplierProformas.find((pi: any) => String(pi.id) === String(selectedPiId));
   // suppliers.balance is a base-currency EGP balance, NOT outstanding USD.
   const totalDebtEgp = factories.reduce((sum, s) => sum + Number(s.balance || 0), 0);
   const availableEgp = treasuryQuery.data?.summary?.net || 0;
@@ -46,7 +50,15 @@ export default function SupplierCredit() {
     { if (egpNum <= 0) { toast.error('المبلغ المسحوب من الخزينة يجب أن يكون أكبر من صفر'); return; } }
     { if (foreignNum <= 0) { toast.error('المبلغ المحول للمصنع يجب أن يكون أكبر من صفر'); return; } }
 
-    const payload = { supplierId: selectedSupplier, amountEgp: egpNum, amountForeign: foreignNum, notes };
+    const contractRate = selectedPi?.exchange_rate_contract ? Number(selectedPi.exchange_rate_contract) : undefined;
+    const payload = {
+      supplierId: selectedSupplier,
+      amountEgp: egpNum,
+      amountForeign: foreignNum,
+      notes,
+      proformaInvoiceId: selectedPiId || undefined,
+      exchangeRateContract: contractRate && contractRate > 0 ? contractRate : undefined,
+    };
     const fingerprint = JSON.stringify(payload);
     if (!transferAttempt.current || transferAttempt.current.fingerprint !== fingerprint) {
       transferAttempt.current = { fingerprint, key: crypto.randomUUID() };
@@ -61,10 +73,12 @@ export default function SupplierCredit() {
         toast.success('تم تسجيل الحوالة البنكية وتحديث مديونية المصنع والخزينة بنجاح');
         setAmountEgp('');
         setAmountForeign('');
+        setSelectedPiId('');
         setNotes('');
         void suppliersQuery.refetch();
         void treasuryQuery.refetch();
         void transfersQuery.refetch();
+        void proformasQuery.refetch();
       }
     });
   };
@@ -73,6 +87,7 @@ export default function SupplierCredit() {
     void suppliersQuery.refetch();
     void treasuryQuery.refetch();
     void transfersQuery.refetch();
+    void proformasQuery.refetch();
   };
 
   return (
@@ -166,7 +181,7 @@ export default function SupplierCredit() {
                     outline: 'none',
                   }}
                   value={selectedSupplier}
-                  onChange={e => setSelectedSupplier(e.target.value)}
+                  onChange={e => { setSelectedSupplier(e.target.value); setSelectedPiId(''); }}
                   required
                   disabled={transferMutation.isPending}
                 >
@@ -174,6 +189,39 @@ export default function SupplierCredit() {
                   {factories.map(f => (
                     <option key={f.id} value={f.id}>{f.name} {t('import_sales.supplier_credit.s11', "(مديونية:")} {formatCurrency(f.balance || 0)})</option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                  ربط بفاتورة مبدئية (Proforma Invoice - لحساب فروق العملة FX)
+                </label>
+                <select
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    padding: '0 12px',
+                    fontSize: '0.84rem',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                  value={selectedPiId}
+                  onChange={e => setSelectedPiId(e.target.value)}
+                  disabled={transferMutation.isPending}
+                >
+                  <option value="">-- تحويل عام غير مربوط بـ PI محددة --</option>
+                  {supplierProformas.map((pi: any) => {
+                    const remaining = Math.max(0, Number(pi.total_amount_foreign || 0) - Number(pi.paid_amount_foreign || 0));
+                    return (
+                      <option key={pi.id} value={pi.id}>
+                        {pi.pi_number} | المتبقي: {remaining.toLocaleString()} {pi.currency || 'USD'} {pi.exchange_rate_contract ? `(عقد: ${pi.exchange_rate_contract} ج)` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               

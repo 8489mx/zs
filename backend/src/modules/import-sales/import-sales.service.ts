@@ -91,6 +91,8 @@ export class ImportSalesService {
       | 'cogs'
       | 'inventory'
       | 'payable'
+      | 'receivable'
+      | 'sales_revenue'
       | 'bank'
       | 'forex_loss'
       | 'forex_gain'
@@ -104,6 +106,8 @@ export class ImportSalesService {
     const roleExpectedTypes: Record<string, { type: string; label: string }> = {
       bank: { type: 'asset', label: 'الأصول/النقدية والبنك' },
       payable: { type: 'liability', label: 'الخصوم/الموردين' },
+      receivable: { type: 'asset', label: 'الأصول المتداولة/العملاء والمدينون' },
+      sales_revenue: { type: 'revenue', label: 'الإيرادات/إيرادات المبيعات' },
       inventory: { type: 'asset', label: 'الأصول/المخزون' },
       cogs: { type: 'expense', label: 'المصروفات/تكلفة المبيعات' },
       forex_loss: { type: 'expense', label: 'المصروفات/خسائر فروق العملة' },
@@ -119,6 +123,10 @@ export class ImportSalesService {
 
     const accountIsEligible = (account: any): boolean => {
       if (!account || !account.is_active) return false;
+      if (role === 'receivable') {
+        if (account.is_cash_bank || account.is_inventory || account.is_payable) return false;
+        return account.account_type === 'asset' || account.is_receivable === true;
+      }
       if (roleInfo && account.account_type !== roleInfo.type) return false;
       if (role === 'bank' && account.is_cash_bank === false) return false;
       if (role === 'inventory' && account.is_inventory === false) return false;
@@ -145,7 +153,7 @@ export class ImportSalesService {
     const accountById = async (id: number) => {
       return await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
+        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable', 'is_receivable'])
         .where('tenant_id', '=', tenantId)
         .where('id', '=', id)
         .executeTakeFirst();
@@ -180,6 +188,8 @@ export class ImportSalesService {
       if (role === 'cogs') settingsAccountId = settings.cogs_account_id;
       else if (role === 'inventory') settingsAccountId = settings.inventory_account_id;
       else if (role === 'payable') settingsAccountId = settings.supplier_payable_account_id;
+      else if (role === 'receivable') settingsAccountId = settings.customer_receivable_account_id;
+      else if (role === 'sales_revenue') settingsAccountId = settings.sales_revenue_account_id;
       else if (role === 'bank') settingsAccountId = settings.bank_account_id || settings.cash_account_id;
     }
 
@@ -195,6 +205,8 @@ export class ImportSalesService {
       cogs: ['5110', '5101', '5100'],
       inventory: ['1140', '1141', '1200'],
       payable: ['2110'],
+      receivable: ['1131', '1125', '1130', '2130'],
+      sales_revenue: ['4110', '4100', '4000', '4201'],
       bank: ['1120', '1110'],
       forex_loss: ['5201', '5190'],
       forex_gain: ['4201', '4190'],
@@ -209,7 +221,7 @@ export class ImportSalesService {
     for (const code of codes) {
       const byCode = await trx
         .selectFrom('accounting_accounts')
-        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable'])
+        .select(['id', 'account_id', 'code', 'account_type', 'is_active', 'is_cash_bank', 'is_inventory', 'is_payable', 'is_receivable'])
         .where('tenant_id', '=', tenantId)
         .where('code', '=', code)
         .executeTakeFirst();
@@ -3118,15 +3130,37 @@ export class ImportSalesService {
       .where('suppliers.balance', '>', 0)
       .execute();
 
+    const openProformas = await this.db
+      .selectFrom('import_proforma_invoices')
+      .select(['supplier_id', 'total_amount_foreign', 'paid_amount_foreign', 'currency'])
+      .where('tenant_id', '=', tenantId)
+      .where('status', '!=', 'cancelled')
+      .where('payment_status', '!=', 'paid')
+      .execute();
+
+    const unpaidProformaBySupplier = new Map<number, number>();
+    let unpaidProformaForeign = 0;
+    for (const pi of openProformas) {
+      const rem = Math.max(0, Number(pi.total_amount_foreign || 0) - Number(pi.paid_amount_foreign || 0));
+      unpaidProformaForeign += rem;
+      if (pi.supplier_id) {
+        const sId = Number(pi.supplier_id);
+        unpaidProformaBySupplier.set(sId, (unpaidProformaBySupplier.get(sId) || 0) + rem);
+      }
+    }
+
     const supplierLiabilities = foreignDebts.map((s) => ({
       supplierId: s.id,
       supplierName: s.name,
       balance: Number(s.balance || 0),
-      currency: 'USD',
+      balanceEgp: Number(s.balance || 0),
+      unpaidForeignUsd: Number((unpaidProformaBySupplier.get(Number(s.id)) || 0).toFixed(2)),
+      currency: 'EGP',
       isBankVerified: s.audit_status === 'verified',
     }));
 
-    const totalDebtForeign = foreignDebts.reduce((sum, s) => sum + Number(s.balance || 0), 0);
+    const totalDebtEgp = foreignDebts.reduce((sum, s) => sum + Number(s.balance || 0), 0);
+    const totalDebtForeign = Number((unpaidProformaForeign > 0 ? unpaidProformaForeign : totalDebtEgp).toFixed(2));
 
     const demurrageAlerts: any[] = [];
     for (const s of shipmentRows.filter((r) => r.status !== 'Arrived')) {
@@ -3178,6 +3212,8 @@ export class ImportSalesService {
       },
       liabilities: {
         totalDebtForeign,
+        totalDebtEgp: Number(totalDebtEgp.toFixed(2)),
+        unpaidProformaUsd: Number(unpaidProformaForeign.toFixed(2)),
         supplierLiabilities,
       },
       alerts: {
@@ -3505,7 +3541,7 @@ export class ImportSalesService {
   // INTERNATIONAL RFQ & QUOTATIONS COMPARISON
   // -------------------------------------------------------------
   async createQuotation(tenantId: string, dto: CreateQuotationDto) {
-    const commRate = 50;
+    const commRate = Number(dto.exchangeRate || 50) > 0 ? Number(dto.exchangeRate || 50) : 50;
     const estLanded =
       Number(dto.unitPriceForeign) * commRate +
       Number(dto.estimatedFreightUsd || 0) * commRate +
@@ -3574,7 +3610,7 @@ export class ImportSalesService {
         .updateTable('import_quotations')
         .set({
           status: 'selected',
-          selection_reason: dto.selectionReason,
+          selection_reason: dto?.selectionReason || 'اعتماد عرض السعر الأفضل فنياً ومالياً',
           updated_at: sql`NOW()`,
         })
         .where('id', '=', quotationId)
@@ -3913,12 +3949,49 @@ export class ImportSalesService {
   // CUSTOMS BROKER REGISTRY & ADVANCE LIQUIDATION
   // -------------------------------------------------------------
   async listCustomsBrokers(tenantId: string) {
-    return await this.db
+    const brokers = await this.db
       .selectFrom('import_customs_brokers')
       .selectAll()
       .where('tenant_id', '=', tenantId)
       .orderBy('name', 'asc')
       .execute();
+
+    const advances = await this.db
+      .selectFrom('import_broker_advances')
+      .select(['broker_id', 'amount_egp', 'settled_amount_egp', 'remaining_amount_egp'])
+      .where('tenant_id', '=', tenantId)
+      .execute();
+
+    const statsByBroker = new Map<string, { total: number; settled: number; remaining: number }>();
+    for (const adv of advances) {
+      const curr = statsByBroker.get(adv.broker_id) || { total: 0, settled: 0, remaining: 0 };
+      curr.total += Number(adv.amount_egp || 0);
+      curr.settled += Number(adv.settled_amount_egp || 0);
+      curr.remaining += Number(adv.remaining_amount_egp || 0);
+      statsByBroker.set(adv.broker_id, curr);
+    }
+
+    return brokers.map((b) => {
+      const stats = statsByBroker.get(b.id) || { total: 0, settled: 0, remaining: 0 };
+      let ports: string[] = [];
+      try {
+        ports = Array.isArray(b.customs_ports)
+          ? (b.customs_ports as any)
+          : typeof b.customs_ports === 'string'
+            ? JSON.parse(b.customs_ports)
+            : [];
+      } catch {
+        ports = [];
+      }
+      return {
+        ...b,
+        license_number: b.license_no,
+        port_name: Array.isArray(ports) && ports.length > 0 ? ports.join('، ') : 'الإسكندرية / السخنة',
+        total_advances_egp: Number(stats.total.toFixed(2)),
+        total_liquidated_egp: Number(stats.settled.toFixed(2)),
+        unliquidated_balance_egp: Number(stats.remaining.toFixed(2)),
+      };
+    });
   }
 
   async createCustomsBroker(tenantId: string, dto: CreateCustomsBrokerDto) {
@@ -4772,15 +4845,22 @@ export class ImportSalesService {
 
       const product = await trx
         .selectFrom('products')
-        .select(['id', 'name', 'sku'])
+        .select(['id', 'name', 'sku', 'account_id', 'cost_price'])
         .where('id', '=', preorder.product_id)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
 
       const qty = Number(preorder.reserved_quantity);
-      const unitPrice = Number(preorder.agreed_unit_price_egp);
+      const unitPrice = Number(
+        (preorder as any).unit_price_egp ?? (preorder as any).agreed_unit_price_egp ?? 0,
+      );
       const total = Number((qty * unitPrice).toFixed(2));
-      const depositAmount = Number(preorder.deposit_amount_egp || 0);
+      const depositAmount = Math.max(
+        0,
+        Number((Number(preorder.deposit_amount_egp || 0) - Number((preorder as any).refunded_amount_egp || 0)).toFixed(2)),
+      );
+      const appliedDeposit = Math.min(depositAmount, total);
+      const balanceDue = Math.max(0, Number((total - appliedDeposit).toFixed(2)));
 
       const lot = await trx
         .selectFrom('import_inventory_lots')
@@ -4795,6 +4875,23 @@ export class ImportSalesService {
       const branchId = dto.branchId || lot?.branch_id || 1;
       const locationId = dto.locationId || lot?.location_id || 1;
 
+      if (product) {
+        await lockStockProducts(trx as any, {
+          tenantId,
+          accountId: (product as any).account_id || tenantId,
+          productIds: [Number(preorder.product_id)],
+        });
+        await applyStockDelta(trx as any, {
+          tenantId,
+          accountId: (product as any).account_id || tenantId,
+          productId: Number(preorder.product_id),
+          delta: -qty,
+          branchId,
+          locationId,
+          allowNegative: true,
+        });
+      }
+
       // Create Sale Record
       const saleInsert = await trx
         .insertInto('sales')
@@ -4802,23 +4899,24 @@ export class ImportSalesService {
           customer_id: preorder.customer_id,
           customer_name: customer?.name || 'عميل حجز حاوية',
           customer_phone: customer?.phone || null,
-          payment_type: depositAmount >= total ? 'cash' : (depositAmount > 0 ? 'split' : 'credit'),
+          payment_type: appliedDeposit >= total ? 'cash' : (appliedDeposit > 0 ? 'split' : 'credit'),
           payment_channel: 'cash',
           subtotal: total,
           discount: 0,
           tax_rate: 0,
           tax_amount: 0,
           total: total,
-          paid_amount: depositAmount,
-          applied_amount: depositAmount,
-          tendered_amount: depositAmount,
+          paid_amount: appliedDeposit,
+          applied_amount: appliedDeposit,
+          tendered_amount: appliedDeposit,
           change_amount: 0,
           status: 'posted',
-          note: `فاتورة مبيعات محولة آلياً من حجز حاوية مسبق [حجز #${preorder.id.slice(0, 8)}] - دفعة مقدمة مسواة: ${depositAmount} ج.م`,
+          note: `فاتورة مبيعات محولة آلياً من حجز حاوية مسبق [حجز #${preorder.id.slice(0, 8)}] - دفعة مقدمة مسواة: ${appliedDeposit} ج.م`,
           branch_id: branchId,
           location_id: locationId,
           created_by: userId,
           tenant_id: tenantId,
+          account_id: (product as any)?.account_id || tenantId,
         } as any)
         .returning('id')
         .executeTakeFirstOrThrow();
@@ -4833,7 +4931,7 @@ export class ImportSalesService {
         .execute();
 
       // Insert Sale Item
-      await trx
+      const saleItemInsert = await trx
         .insertInto('sale_items')
         .values({
           sale_id: saleId,
@@ -4847,8 +4945,10 @@ export class ImportSalesService {
           allocated_discount: 0,
           allocated_tax: 0,
           tenant_id: tenantId,
+          account_id: (product as any)?.account_id || tenantId,
         } as any)
-        .execute();
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
       // Allocate from Import Lot to deplete remaining quantity and maintain project lineage
       await allocateSaleFromImportLots(trx, {
@@ -4857,6 +4957,7 @@ export class ImportSalesService {
         locationId,
         items: [
           {
+            itemId: Number(saleItemInsert.id),
             productId: preorder.product_id,
             qty: qty,
             netUnitPrice: unitPrice,
@@ -4865,14 +4966,167 @@ export class ImportSalesService {
         ],
       });
 
+      const saleAllocs = await trx
+        .selectFrom('import_sale_allocations')
+        .select(['quantity', 'unit_cost_egp'])
+        .where('tenant_id', '=', tenantId)
+        .where('sale_id', '=', saleId)
+        .execute();
+
+      const allocCostEgp = saleAllocs.reduce(
+        (acc, a) => acc + Number(a.quantity || 0) * Number(a.unit_cost_egp || 0),
+        0,
+      );
+      const fallbackCostEgp = Number(
+        (qty * Number(lot?.unit_landed_cost_egp || (product as any)?.cost_price || 0)).toFixed(2),
+      );
+      const totalCostEgp = Number((allocCostEgp > 0 ? allocCostEgp : fallbackCostEgp).toFixed(2));
+      const unitCostEgp = qty > 0 ? Number((totalCostEgp / qty).toFixed(4)) : 0;
+
+      if (unitCostEgp > 0) {
+        await trx
+          .updateTable('sale_items')
+          .set({ cost_price: unitCostEgp } as any)
+          .where('id', '=', saleItemInsert.id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+
+      if (product) {
+        await trx
+          .insertInto('stock_movements')
+          .values({
+            tenant_id: tenantId,
+            account_id: (product as any).account_id || tenantId,
+            product_id: preorder.product_id,
+            branch_id: branchId,
+            location_id: locationId,
+            movement_type: 'sale',
+            qty: -qty,
+            unit_cost: unitCostEgp,
+            reference_type: 'sale',
+            reference_id: saleId,
+            note: `صرف مخزني لتحويل حجز حاوية مسبق #${docNo}`,
+            created_by: userId,
+          } as any)
+          .execute();
+      }
+
+      if (balanceDue > 0 && preorder.customer_id) {
+        await trx
+          .updateTable('customers')
+          .set({
+            balance: sql`COALESCE(balance, 0) + ${balanceDue}`,
+          } as any)
+          .where('id', '=', preorder.customer_id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+      }
+
+      if (total > 0) {
+        const journalLines: Array<{
+          accountId: number;
+          debit: number;
+          credit: number;
+          description: string;
+          partnerType: 'customer' | 'supplier' | 'none';
+          partnerId: number | null;
+          branchId: number | null;
+          locationId: number | null;
+        }> = [];
+
+        if (appliedDeposit > 0) {
+          const customerAdvanceAccId = await this.resolveTenantAccount(trx, tenantId, 'customer_advance');
+          journalLines.push({
+            accountId: customerAdvanceAccId,
+            debit: appliedDeposit,
+            credit: 0,
+            description: `تسوية دفعة مقدمة حجز حاوية للفاتورة #${docNo}`,
+            partnerType: preorder.customer_id ? 'customer' : 'none',
+            partnerId: preorder.customer_id ? Number(preorder.customer_id) : null,
+            branchId,
+            locationId,
+          });
+        }
+
+        if (balanceDue > 0) {
+          const receivableAccId = await this.resolveTenantAccount(trx, tenantId, 'receivable');
+          journalLines.push({
+            accountId: receivableAccId,
+            debit: balanceDue,
+            credit: 0,
+            description: `استحقاق عميل فاتورة مبيعات حجز حاوية #${docNo}`,
+            partnerType: preorder.customer_id ? 'customer' : 'none',
+            partnerId: preorder.customer_id ? Number(preorder.customer_id) : null,
+            branchId,
+            locationId,
+          });
+        }
+
+        const revenueAccId = await this.resolveTenantAccount(trx, tenantId, 'sales_revenue');
+        journalLines.push({
+          accountId: revenueAccId,
+          debit: 0,
+          credit: total,
+          description: `إيراد مبيعات تحويل حجز حاوية #${docNo}`,
+          partnerType: preorder.customer_id ? 'customer' : 'none',
+          partnerId: preorder.customer_id ? Number(preorder.customer_id) : null,
+          branchId,
+          locationId,
+        });
+
+        if (totalCostEgp > 0) {
+          const cogsAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
+          const inventoryAccId = await this.resolveTenantAccount(trx, tenantId, 'inventory');
+          journalLines.push(
+            {
+              accountId: cogsAccId,
+              debit: totalCostEgp,
+              credit: 0,
+              description: `تكلفة البضاعة المباعة لحجز الحاوية #${docNo}`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId,
+              locationId,
+            },
+            {
+              accountId: inventoryAccId,
+              debit: 0,
+              credit: totalCostEgp,
+              description: `تخفيض المخزون المستورد لحجز الحاوية #${docNo}`,
+              partnerType: 'none',
+              partnerId: null,
+              branchId,
+              locationId,
+            },
+          );
+        }
+
+        const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
+        await posting.postDomainJournal(trx, {
+          sourceType: 'sale',
+          sourceId: saleId,
+          tenantId,
+          accountId: (product as any)?.account_id || tenantId,
+          entryDate: new Date(),
+          description: `فاتورة مبيعات حجز حاوية مستوردة #${docNo}`,
+          branchId,
+          locationId,
+          createdBy: userId,
+          postedBy: userId,
+          lines: journalLines,
+        });
+      }
+
       // Update preorder status
       const updatedPreorder = await trx
         .updateTable('import_container_preorders')
         .set({
           status: 'invoiced',
+          sale_invoice_id: saleId,
           notes: `${preorder.notes || ''} [تم التحويل لفاتورة مبيعات #${docNo} برقم معرف ${saleId}]`.trim(),
           updated_at: sql`NOW()`,
-        })
+        } as any)
         .where('id', '=', preorderId)
         .where('tenant_id', '=', tenantId)
         .returningAll()
@@ -4883,8 +5137,8 @@ export class ImportSalesService {
         saleId,
         docNo,
         total,
-        settledDeposit: depositAmount,
-        balanceDue: Math.max(0, total - depositAmount),
+        settledDeposit: appliedDeposit,
+        balanceDue,
       };
     });
   }
@@ -5222,7 +5476,7 @@ export class ImportSalesService {
           status: dto.decision,
           approved_by: userId,
           decided_at: new Date(),
-          rejection_reason: dto.rejectionReason || null,
+          rejection_reason: dto.rejectionReason || dto.decisionNotes || dto.comments || null,
         })
         .where('id', '=', requestId)
         .where('tenant_id', '=', tenantId)

@@ -59,9 +59,9 @@ export function ChinaSamplesTab() {
       await createSampleMutation.mutateAsync({
         projectId: projectId || undefined,
         supplierId: Number(supplierId),
-        productName: productName.trim(),
-        specifications: specifications || undefined,
-        sampleCostUsd: Number(sampleCostUsd),
+        itemName: productName.trim(),
+        notes: specifications || undefined,
+        sampleCostForeign: Number(sampleCostUsd),
         courierTrackingNo: courierTrackingNo || undefined,
       });
       toast.success('تم تسجيل طلب العينة من المصنع بنجاح');
@@ -80,10 +80,10 @@ export function ChinaSamplesTab() {
       await updateInspectionMutation.mutateAsync({
         sampleId: selectedSampleForInspection.id,
         dto: {
-          inspectionScore: Number(inspectionScore),
-          inspectionNotes: inspectionNotes || undefined,
+          qualityScore: Number(inspectionScore),
+          defectAnalysis: inspectionNotes || undefined,
           referenceSampleApproved: approveAsReference,
-          status: approveAsReference ? 'approved' : 'tested',
+          decision: approveAsReference ? 'approved' : 'conditional',
         },
       });
       toast.success(
@@ -142,7 +142,7 @@ export function ChinaSamplesTab() {
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>المصنع المصدر</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>تكلفة العينة والشحن ($)</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>بوليصة التتبع السريع</th>
-              <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>تقييم الفحص (/10)</th>
+              <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>تقييم الفحص</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>عينة مرجعية معتمدة</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>الحالة</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600, textAlign: 'center' }}>الإجراء</th>
@@ -156,88 +156,96 @@ export function ChinaSamplesTab() {
                 </td>
               </tr>
             ) : (
-              samples.map((s: any) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>{s.product_name}</td>
-                  <td style={{ padding: '10px 14px' }}>{s.supplier_name || `مصنع #${s.supplier_id}`}</td>
-                  <td style={{ padding: '10px 14px', fontWeight: 600 }}>${s.sample_cost_usd}</td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#0369a1' }}>
-                    {s.courier_tracking_no || '—'}
-                  </td>
-                  <td style={{ padding: '10px 14px', fontWeight: 700 }}>
-                    {s.inspection_score ? `${s.inspection_score} / 10` : '—'}
-                  </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    {s.reference_sample_approved ? (
+              samples.map((s: any) => {
+                const statusVal = s.decision || s.status || 'pending';
+                const scoreVal = s.quality_score ?? s.inspection_score;
+                const costVal = Number(s.sample_cost_foreign ?? s.sample_cost_usd ?? 0) + Number(s.freight_cost_foreign ?? 0);
+                return (
+                  <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
+                      <div>{s.item_name || s.product_name}</div>
+                      {s.sample_code && <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace' }}>{s.sample_code}</div>}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>{s.supplier_name || `مصنع #${s.supplier_id}`}</td>
+                    <td style={{ padding: '10px 14px', fontWeight: 600 }}>${costVal.toLocaleString()}</td>
+                    <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#0369a1' }}>
+                      {s.courier_tracking_no || '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px', fontWeight: 700 }}>
+                      {scoreVal !== null && scoreVal !== undefined ? `${scoreVal}` : '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      {s.reference_sample_approved ? (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            backgroundColor: '#dcfce7',
+                            color: '#166534',
+                          }}
+                        >
+                          <CheckShieldIcon size={12} />
+                          معتمدة كعينة أساسية
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 11, color: '#64748b' }}>غير معتمدة</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
                       <span
                         style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
                           padding: '2px 8px',
                           borderRadius: 4,
                           fontSize: 11,
                           fontWeight: 700,
-                          backgroundColor: '#dcfce7',
-                          color: '#166534',
+                          backgroundColor:
+                            statusVal === 'approved'
+                              ? '#dcfce7'
+                              : statusVal === 'rejected'
+                              ? '#fee2e2'
+                              : '#fef3c7',
+                          color:
+                            statusVal === 'approved'
+                              ? '#166534'
+                              : statusVal === 'rejected'
+                              ? '#b91c1c'
+                              : '#b45309',
                         }}
                       >
-                        <CheckShieldIcon size={12} />
-                        معتمدة كعينة أساسية
+                        {statusVal === 'approved' ? 'معتمدة' : statusVal === 'rejected' ? 'مرفوضة' : 'قيد الفحص'}
                       </span>
-                    ) : (
-                      <span style={{ fontSize: 11, color: '#64748b' }}>غير معتمدة</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '10px 14px' }}>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        backgroundColor:
-                          s.status === 'approved'
-                            ? '#dcfce7'
-                            : s.status === 'rejected'
-                            ? '#fee2e2'
-                            : '#fef3c7',
-                        color:
-                          s.status === 'approved'
-                            ? '#166534'
-                            : s.status === 'rejected'
-                            ? '#b91c1c'
-                            : '#b45309',
-                      }}
-                    >
-                      {s.status === 'approved' ? 'معتمدة' : s.status === 'rejected' ? 'مرفوضة' : 'قيد الفحص'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedSampleForInspection(s);
-                        setInspectionScore(s.inspection_score || 9.5);
-                        setInspectionNotes(s.inspection_notes || '');
-                        setApproveAsReference(true);
-                      }}
-                      style={{
-                        padding: '4px 10px',
-                        backgroundColor: '#f1f5f9',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: 4,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        color: '#170e5e',
-                      }}
-                    >
-                      فحص واعتماد
-                    </button>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSampleForInspection(s);
+                          setInspectionScore(Number(s.quality_score ?? s.inspection_score ?? 9.5));
+                          setInspectionNotes(s.defect_analysis || s.inspection_notes || '');
+                          setApproveAsReference(true);
+                        }}
+                        style={{
+                          padding: '4px 10px',
+                          backgroundColor: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 4,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          color: '#170e5e',
+                        }}
+                      >
+                        فحص واعتماد
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

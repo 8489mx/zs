@@ -26,12 +26,13 @@ export function ChinaQuotationsTab() {
   const [projectId, setProjectId] = useState('');
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [quotationNo, setQuotationNo] = useState('');
+  const [itemName, setItemName] = useState('');
   const [incoterm, setIncoterm] = useState('FOB');
   const currency = 'USD';
-  const [totalForeign, setTotalForeign] = useState<number>(45000);
+  const [totalForeign, setTotalForeign] = useState<number>(45);
   const [exchangeRate, setExchangeRate] = useState<number>(50);
-  const [shippingCostUsd, setShippingCostUsd] = useState<number>(2800);
-  const [customsDutyEgp, setCustomsDutyEgp] = useState<number>(140000);
+  const [shippingCostUsd, setShippingCostUsd] = useState<number>(3.5);
+  const [customsDutyEgp, setCustomsDutyEgp] = useState<number>(10);
   const [estimatedUnitCostEgp] = useState<number>(1613);
   const [leadTimeDays, setLeadTimeDays] = useState<number>(30);
   const [validUntil, setValidUntil] = useState('');
@@ -55,19 +56,22 @@ export function ChinaQuotationsTab() {
       await createQuotationMutation.mutateAsync({
         projectId: projectId || undefined,
         supplierId: Number(supplierId),
-        quotationNo: quotationNo || undefined,
+        quotationNo: quotationNo || `RFQ-${Date.now().toString().slice(-6)}`,
+        itemName: itemName.trim() || `بند عرض سعر ${quotationNo || ''}`.trim(),
         incoterm,
         currency,
-        totalAmountForeign: Number(totalForeign),
-        exchangeRateEstimated: Number(exchangeRate),
-        shippingCostEstimatedUsd: Number(shippingCostUsd),
-        customsDutyEstimatedEgp: Number(customsDutyEgp),
+        unitPriceForeign: Number(totalForeign),
+        exchangeRate: Number(exchangeRate),
+        estimatedFreightUsd: Number(shippingCostUsd),
+        estimatedCustomsRatePercent: Number(customsDutyEgp),
         estimatedUnitCostEgp: Number(estimatedUnitCostEgp),
-        leadTimeDays: Number(leadTimeDays),
-        validUntil: validUntil || undefined,
+        productionLeadDays: Number(leadTimeDays),
+        expiryDate: validUntil || undefined,
       });
       toast.success('تم تسجيل عرض السعر RFQ للمقارنة بنجاح');
       setIsCreateOpen(false);
+      setItemName('');
+      setQuotationNo('');
       refetch();
     } catch (err: any) {
       toast.error('فشل تسجيل عرض السعر: ' + (err.message || 'خطأ'));
@@ -80,7 +84,7 @@ export function ChinaQuotationsTab() {
     try {
       await selectQuotationMutation.mutateAsync({
         quotationId: selectedQuoteForApproval.id,
-        reason: selectionReason,
+        selectionReason: selectionReason,
       });
       toast.success('تم اعتماد واختيار العرض الفائز وتحديث دراسة الجدوى');
       setSelectedQuoteForApproval(null);
@@ -131,9 +135,9 @@ export function ChinaQuotationsTab() {
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>المصنع المورد</th>
-              <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>رقم العرض</th>
+              <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>رقم العرض / الصنف</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>شرط التسليم</th>
-              <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>إجمالي الفوب ($)</th>
+              <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>سعر المصنع ($)</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>تكلفة القطعة الواصلة</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>مدة الإنتاج</th>
               <th style={{ padding: '10px 14px', color: '#475569', fontWeight: 600 }}>الحالة</th>
@@ -153,15 +157,18 @@ export function ChinaQuotationsTab() {
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0f172a' }}>
                     {q.supplier_name || `مورد #${q.supplier_id}`}
                   </td>
-                  <td style={{ padding: '10px 14px', fontFamily: 'monospace' }}>{q.quotation_no || '—'}</td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <div style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0f172a' }}>{q.quotation_no || '—'}</div>
+                    {q.item_name && <div style={{ fontSize: 11.5, color: '#64748b' }}>{q.item_name}</div>}
+                  </td>
                   <td style={{ padding: '10px 14px', fontWeight: 600 }}>{q.incoterm}</td>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0369a1' }}>
-                    ${Number(q.total_amount_foreign).toLocaleString()}
+                    ${Number(q.unit_price_foreign ?? q.total_amount_foreign ?? 0).toLocaleString()}
                   </td>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#170e5e' }}>
-                    {formatCurrency(q.estimated_unit_cost_egp)}
+                    {formatCurrency(Number(q.estimated_landed_cost_egp ?? q.estimated_unit_cost_egp ?? 0))}
                   </td>
-                  <td style={{ padding: '10px 14px' }}>{q.lead_time_days} يوم</td>
+                  <td style={{ padding: '10px 14px' }}>{q.production_lead_days ?? q.lead_time_days ?? 30} يوم</td>
                   <td style={{ padding: '10px 14px' }}>
                     <span
                       style={{
@@ -266,6 +273,21 @@ export function ChinaQuotationsTab() {
             </div>
           </div>
 
+          <div>
+            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+              اسم الصنف / البند المطلوب تسعيره: *
+            </label>
+            <input
+              type="text"
+              className="input"
+              style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
+              value={itemName}
+              placeholder="مثال: خلاط منزلي 1200 وات موديل Pro-X"
+              onChange={(e) => setItemName(e.target.value)}
+              required
+            />
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
@@ -276,7 +298,7 @@ export function ChinaQuotationsTab() {
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={quotationNo}
-                placeholder="RFQ-2026-001"
+                placeholder="RFQ-261023-0001"
                 onChange={(e) => setQuotationNo(e.target.value)}
               />
             </div>

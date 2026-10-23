@@ -492,12 +492,35 @@ export const routeFeatureMap: Record<string, string | null> = {
   // Import
   import: 'import',
   '/import': 'import',
+  'import-sales': 'import',
+  '/import-sales': 'import',
+  'import-command-center': 'import',
+  '/import-sales/command-center': 'import',
+  'import-projects': 'import',
+  '/import-sales/projects': 'import',
+  'import-china-sourcing': 'import',
+  '/import-sales/china-sourcing': 'import',
   'import-shipments': 'import',
   '/import/shipments': 'import',
+  '/import-sales/shipments': 'import',
+  'import-compliance': 'import',
+  '/import-sales/compliance': 'import',
+  'import-customs-brokers': 'import',
+  '/import-sales/customs-brokers': 'import',
+  'import-container-deposits': 'import',
+  '/import-sales/container-deposits': 'import',
   'import-supplier-credit': 'import',
   '/import/supplier-credit': 'import',
+  '/import-sales/supplier-credit': 'import',
+  'import-fx-treasury': 'import',
+  '/import-sales/fx-treasury': 'import',
+  'import-approvals': 'import',
+  '/import-sales/approvals': 'import',
+  'import-reconciliation': 'import',
+  '/import-sales/reconciliation': 'import',
   'import-profit-pool': 'import',
   '/import/profit-pool': 'import',
+  '/import-sales/profit-pool': 'import',
 
   // Other modules
   restaurant: 'restaurant',
@@ -633,8 +656,12 @@ export function hasRequiredFeature(target: string, user?: AuthUser | null): bool
   const isManufacturing = vertical === 'manufacturing';
   const isWholesaleVan = vertical === 'wholesale_van';
   const isWarehousing = vertical === 'warehousing';
-  const isCommerce = !isContracting && !isMaritime && !isManufacturing && !isWholesaleVan && !isWarehousing;
+  const isImport = vertical === 'import_export';
+  const isCommerce = !isContracting && !isMaritime && !isManufacturing && !isWholesaleVan && !isWarehousing && !isImport;
 
+  if (isImport && ['import', 'inventory', 'catalog', 'products', 'purchases', 'suppliers', 'sales', 'customers', 'accounting', 'treasury', 'hr', 'crm', 'pricing', 'reports', 'approvals'].includes(requiredFeature)) {
+    return true;
+  }
   if (isWarehousing && ['inventory', 'catalog', 'products', 'purchases', 'suppliers', 'sales', 'customers', 'accounting', 'hr', 'crm', 'pricing', 'reports'].includes(requiredFeature)) {
     return true;
   }

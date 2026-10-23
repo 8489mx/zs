@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import {
   useImportProjectsQuery,
   useCreateImportProjectMutation,
   useCalculateFeasibilityMutation,
+  useConvertFeasibilityToProjectMutation,
+  useCloseProjectMutation,
+  useApprovalRequestsQuery,
+  useCreateApprovalRequestMutation,
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import {
@@ -10,6 +16,7 @@ import {
   RefreshCwIcon,
   XIcon,
   SlidersIcon,
+  CheckCircleIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
@@ -17,9 +24,16 @@ export default function ImportProjectsManager() {
   const { data: projects = [], refetch } = useImportProjectsQuery();
   const createProjectMutation = useCreateImportProjectMutation();
   const calculateFeasibilityMutation = useCalculateFeasibilityMutation();
+  const convertFeasibilityMutation = useConvertFeasibilityToProjectMutation();
+  const closeProjectMutation = useCloseProjectMutation();
+  const { data: approvalRequests = [], refetch: refetchApprovals } = useApprovalRequestsQuery();
+  const createApprovalMutation = useCreateApprovalRequestMutation();
 
   const [isNewProjectOpen, setIsNewProjectOpen] = useState(false);
   const [isFeasibilityOpen, setIsFeasibilityOpen] = useState(false);
+  const [closingProject, setClosingProject] = useState<any | null>(null);
+  const [selectedApprovalId, setSelectedApprovalId] = useState('');
+  const [closingNotes, setClosingNotes] = useState('');
 
   // New Project Form State
   const [projectTitle, setProjectTitle] = useState('');
@@ -83,6 +97,70 @@ export default function ImportProjectsManager() {
     }
   };
 
+  const handleConvertFeasibilityToProject = async () => {
+    if (!feasibilityResult) return;
+    try {
+      const baseScenario = feasibilityResult.scenarios?.base || {};
+      await convertFeasibilityMutation.mutateAsync({
+        title: `مشروع استيراد معتمد (${items[0]?.name || 'صفقة جديدة'})`,
+        targetMarket,
+        countryOrigin,
+        allocatedCapital: Number(baseScenario.totalInvestmentEgp || allocatedCapital),
+        targetRoiPercentage: Number(baseScenario.roiPercentage || targetMarkup),
+        feasibilityData: feasibilityResult,
+        notes: 'تم تحويله آلياً من محرك دراسة الجدوى الاستيرادية',
+      });
+      toast.success('تم تحويل دراسة الجدوى إلى مشروع استيراد فعلي بنجاح');
+      setIsFeasibilityOpen(false);
+      refetch();
+    } catch (err: any) {
+      toast.error('فشل تحويل دراسة الجدوى: ' + (err.message || 'خطأ غير معروف'));
+    }
+  };
+
+  const handleRequestClosureApproval = async () => {
+    if (!closingProject) return;
+    try {
+      await createApprovalMutation.mutateAsync({
+        actionType: 'project_closure',
+        referenceId: closingProject.id,
+        requestPayload: {
+          amount: Number(closingProject.allocated_capital || 0),
+          projectId: closingProject.id,
+          justification: closingNotes || `طلب اعتماد إقفال حسابات مشروع الاستيراد ${closingProject.project_no}`,
+        },
+      });
+      toast.success('تم رفع طلب اعتماد إقفال المشروع للرقابة الثنائية (Maker-Checker)');
+      refetchApprovals();
+    } catch (err: any) {
+      toast.error('فشل رفع طلب الاعتماد: ' + (err.message || 'خطأ'));
+    }
+  };
+
+  const handleCloseProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!closingProject) return;
+    const approvalId = selectedApprovalId.trim();
+    if (!approvalId) {
+      toast.error('يرجى اختيار أو إدخال رقم موافقة إقفال المشروع (Maker-Checker)');
+      return;
+    }
+    try {
+      await closeProjectMutation.mutateAsync({
+        projectId: closingProject.id,
+        approvalRequestId: approvalId,
+        closingNotes: closingNotes || undefined,
+      });
+      toast.success('تم إقفال مشروع الاستيراد وتوزيع صافي الأرباح المحققة على الشركاء بنجاح');
+      setClosingProject(null);
+      setSelectedApprovalId('');
+      setClosingNotes('');
+      refetch();
+    } catch (err: any) {
+      toast.error('فشل إقفال المشروع: ' + (err.message || 'خطأ'));
+    }
+  };
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!projectTitle.trim()) {
@@ -110,63 +188,53 @@ export default function ImportProjectsManager() {
   };
 
   return (
-    <div dir="rtl" style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* 1. Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ width: 4, height: 22, backgroundColor: '#170e5e', borderRadius: 2, display: 'inline-block' }} />
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              مشاريع الاستيراد ودراسات الجدوى (Import Projects & Feasibility)
-            </h1>
-          </div>
-          <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '4px 14px 0 0' }}>
-            إدارة فرص الصفقات التجارية من لحظة دراسة الجدوى ونقطة التعادل حتى التعاقد والشحن والإقفال
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => setIsFeasibilityOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              backgroundColor: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              fontSize: '12.5px',
-              fontWeight: 600,
-              color: '#170e5e',
-              cursor: 'pointer',
-            }}
-          >
-            <SlidersIcon size={14} />
-            محرك دراسة الجدوى والسيناريوهات
-          </button>
-
-          <button
-            onClick={() => setIsNewProjectOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              backgroundColor: '#170e5e',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: '12.5px',
-              fontWeight: 700,
-              color: '#ffffff',
-              cursor: 'pointer',
-            }}
-          >
-            <PlusCircleIcon size={15} />
-            إنشاء مشروع استيراد جديد
-          </button>
-        </div>
-      </div>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="مشاريع الاستيراد ودراسات الجدوى"
+          description="إدارة فرص الصفقات التجارية من لحظة دراسة الجدوى ونقطة التعادل حتى التعاقد والشحن والإقفال."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={() => setIsNewProjectOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 18px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>إنشاء مشروع استيراد جديد</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsFeasibilityOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#170e5e',
+                }}
+              >
+                <SlidersIcon size={14} />
+                <span>محرك دراسة الجدوى والسيناريوهات</span>
+              </Button>
+            </div>
+          }
+        />
 
       {/* 2. Projects Table Card */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px' }}>
@@ -204,6 +272,7 @@ export default function ImportProjectsManager() {
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>العائد المستهدف (ROI)</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الحاويات المرتبطة</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>حالة المشروع</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,6 +319,38 @@ export default function ImportProjectsManager() {
                       >
                         {p.status}
                       </span>
+                    </td>
+                    <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                      {p.status !== 'closed' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setClosingProject(p);
+                            const matchingApproved = approvalRequests.find(
+                              (r: any) =>
+                                (r.action_type === 'project_closure' || r.request_type === 'project_closure') &&
+                                r.reference_id === p.id &&
+                                r.status === 'approved'
+                            );
+                            setSelectedApprovalId(matchingApproved?.id || '');
+                            setClosingNotes('');
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: 6,
+                            fontSize: '11.5px',
+                            fontWeight: 700,
+                            color: '#170e5e',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          إقفال وتصفية الأرباح
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '11.5px', color: '#16a34a', fontWeight: 700 }}>مقفل وموزع</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -525,6 +626,30 @@ export default function ImportProjectsManager() {
                   </tbody>
                 </table>
               </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={handleConvertFeasibilityToProject}
+                  disabled={convertFeasibilityMutation.isPending}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 18px',
+                    backgroundColor: '#15803d',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <CheckCircleIcon size={15} />
+                  {convertFeasibilityMutation.isPending ? 'جاري التحويل...' : 'تحويل دراسة الجدوى إلى مشروع استيراد فعلي'}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -634,6 +759,108 @@ export default function ImportProjectsManager() {
           </div>
         </form>
       </StandardDialog>
+
+      {/* 5. Close Project & Distribute Profit Dialog */}
+      {closingProject && (
+        <StandardDialog
+          open={!!closingProject}
+          onClose={() => setClosingProject(null)}
+          title={`إقفال حسابات مشروع الاستيراد: ${closingProject.project_no}`}
+          subtitle="احتساب صافي الأرباح المحققة فعلياً من بيع دفعات المشروع وتوزيع أنصبة الشركاء"
+          width="580px"
+          compact
+        >
+          <form onSubmit={handleCloseProject} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px', fontSize: '12.5px' }}>
+              <div><strong>اسم المشروع:</strong> {closingProject.title}</div>
+              <div style={{ marginTop: 4, color: '#475569' }}>
+                يتطلب إقفال المشروع موافقة رقابية ثنائية معتمدة (Maker-Checker) وعدم وجود شحنات معلقة أو عهد مخلصين غير مصفاة أو تأمينات حاويات غير مستردة.
+              </div>
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+                  طلب الاعتماد الرقابي المعتمد (Maker-Checker) *
+                </label>
+                <button
+                  type="button"
+                  onClick={handleRequestClosureApproval}
+                  disabled={createApprovalMutation.isPending}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#0284c7',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  + رفع طلب اعتماد إقفال للمدير الآن
+                </button>
+              </div>
+              <select
+                value={selectedApprovalId}
+                onChange={(e) => setSelectedApprovalId(e.target.value)}
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px', marginBottom: 6 }}
+              >
+                <option value="">-- اختر موافقة معتمدة أو أدخل المعرف بالأسفل --</option>
+                {approvalRequests
+                  .filter(
+                    (r: any) =>
+                      (r.action_type === 'project_closure' || r.request_type === 'project_closure') &&
+                      r.reference_id === closingProject.id
+                  )
+                  .map((r: any) => (
+                    <option key={r.id} value={r.id}>
+                      #{String(r.id).slice(0, 8)} - الحالة: {r.status === 'approved' ? 'معتمد' : r.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
+                    </option>
+                  ))}
+              </select>
+              <input
+                type="text"
+                required
+                value={selectedApprovalId}
+                onChange={(e) => setSelectedApprovalId(e.target.value)}
+                placeholder="معرف طلب الموافقة المعتمد (UUID)"
+                style={{ width: '100%', height: 34, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12px', fontFamily: 'monospace' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                ملاحظات الإقفال والتسوية الختامية
+              </label>
+              <textarea
+                rows={2}
+                value={closingNotes}
+                onChange={(e) => setClosingNotes(e.target.value)}
+                placeholder="مثال: تمت مطابقة كافة الفواتير وإيصالات التخليص واسترداد تأمينات الحاويات بالكامل..."
+                style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>
+              <button
+                type="button"
+                onClick={() => setClosingProject(null)}
+                style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                إلغاء
+              </button>
+              <button
+                type="submit"
+                disabled={closeProjectMutation.isPending}
+                style={{ padding: '8px 18px', backgroundColor: '#170e5e', color: '#ffffff', border: 'none', borderRadius: 6, fontSize: '12.5px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                {closeProjectMutation.isPending ? 'جاري الإقفال...' : 'تأكيد إقفال المشروع وتوزيع الأرباح'}
+              </button>
+            </div>
+          </form>
+        </StandardDialog>
+      )}
+      </main>
     </div>
   );
 }

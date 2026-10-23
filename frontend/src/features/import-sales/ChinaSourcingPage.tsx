@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import {
   useChinaSuppliersQuery,
   useUpsertSupplierMetaMutation,
@@ -90,6 +92,7 @@ export default function ChinaSourcingPage() {
 
     try {
       await upsertSupplierMetaMutation.mutateAsync({
+        supplierId: selectedSupplier.id,
         chineseName,
         city,
         province,
@@ -133,81 +136,76 @@ export default function ChinaSourcingPage() {
     }
   };
 
+  const tabItems: Array<{ key: 'factories' | 'quotations' | 'samples' | 'proformas' | 'qc' | 'trips'; label: string }> = [
+    { key: 'factories', label: `دليل المصانع والحسابات الموثقة (${suppliers.length})` },
+    { key: 'quotations', label: 'مقارنة عروض الأسعار (RFQ)' },
+    { key: 'samples', label: 'العينات والاعتماد المرجعي' },
+    { key: 'proformas', label: 'الفواتير المبدئية وأوامر الشراء (PI / PO)' },
+    { key: 'qc', label: `تقارير فحص الجودة (${qcInspections.length})` },
+    { key: 'trips', label: `رحلات الصين والمعارض (${sourcingTrips.length})` },
+  ];
+
   return (
-    <div dir="rtl" style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* 1. Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ width: 4, height: 22, backgroundColor: '#170e5e', borderRadius: 2, display: 'inline-block' }} />
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              سورسينج الصين وإدارة المصانع وفحص الجودة (China Sourcing & QC)
-            </h1>
-          </div>
-          <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '4px 14px 0 0' }}>
-            توثيق حسابات البنوك لمنع الاحتيال، متابعة مواعيد الإنتاج، وتقارير فحص الجودة قبل الشحن
-          </p>
-        </div>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="سورسينج الصين وإدارة المصانع وفحص الجودة"
+          description="توثيق حسابات البنوك لمنع الاحتيال، متابعة عروض الأسعار والعينات والفواتير المبدئية، وتقارير فحص الجودة قبل الشحن."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={() => setIsQcModalOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 18px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>تقرير فحص جودة جديد (QC)</span>
+              </Button>
+            </div>
+          }
+        />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => setIsQcModalOpen(true)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              backgroundColor: '#170e5e',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: '12.5px',
-              fontWeight: 700,
-              color: '#ffffff',
-              cursor: 'pointer',
-            }}
-          >
-            <PlusCircleIcon size={15} />
-            تقرير فحص جودة جديد (QC)
-          </button>
-        </div>
+        {/* 2. Tabs */}
+      <div className="horizontal-scroll-tabs" style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e2e8f0', paddingBottom: 8, overflowX: 'auto' }}>
+        {tabItems.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                boxSizing: 'border-box',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                backgroundColor: isActive ? '#170e5e' : '#f8fafc',
+                color: isActive ? '#ffffff' : '#475569',
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* 2. Tabs */}
-      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
-        <button
-          onClick={() => setActiveTab('factories')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: 8,
-            border: 'none',
-            fontSize: '12.5px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            backgroundColor: activeTab === 'factories' ? '#170e5e' : '#f1f5f9',
-            color: activeTab === 'factories' ? '#ffffff' : '#475569',
-          }}
-        >
-          دليل المصانع والحسابات الموثقة ({suppliers.length})
-        </button>
-
-        <button
-          onClick={() => setActiveTab('qc')}
-          style={{
-            padding: '8px 16px',
-            borderRadius: 8,
-            border: 'none',
-            fontSize: '12.5px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            backgroundColor: activeTab === 'qc' ? '#170e5e' : '#f1f5f9',
-            color: activeTab === 'qc' ? '#ffffff' : '#475569',
-          }}
-        >
-          تقارير فحص الجودة والإنتاج ({qcInspections.length})
-        </button>
-      </div>
-
-      {/* 3. Tab: Factories */}
+      {/* 3. Tab Content */}
       {activeTab === 'quotations' && <ChinaQuotationsTab />}
 
       {activeTab === 'samples' && <ChinaSamplesTab />}
@@ -255,21 +253,21 @@ export default function ChinaSourcingPage() {
                     <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>تاريخ البدء والانتهاء</th>
                     <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>الميزانية المقدرة</th>
                     <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>المصروف الفعلي</th>
-                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>الحالة</th>
+                    <th style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>الملاحظات والأهداف</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sourcingTrips.map((t: any) => (
                     <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 12px', fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>{t.title}</td>
-                      <td style={{ padding: '10px 12px', fontSize: '12px', color: '#475569' }}>{t.destination}</td>
-                      <td style={{ padding: '10px 12px', fontSize: '12px', color: '#64748b' }}>{t.start_date || '—'} إلى {t.end_date || 'مستمر'}</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>{t.trip_title || t.title}</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', color: '#475569' }}>{t.destination_city || t.destination}</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', color: '#64748b' }}>
+                        {t.start_date ? String(t.start_date).slice(0, 10) : '—'} إلى {t.end_date ? String(t.end_date).slice(0, 10) : 'مستمر'}
+                      </td>
                       <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>{Number(t.budget_egp || 0).toLocaleString()} ج.م</td>
-                      <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>{Number(t.actual_expenses_egp || 0).toLocaleString()} ج.م</td>
-                      <td style={{ padding: '10px 12px', fontSize: '12px' }}>
-                        <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: '11px', fontWeight: 600, backgroundColor: '#e0f2fe', color: '#0369a1' }}>
-                          {t.status || 'مخططة'}
-                        </span>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#0f172a' }}>{Number(t.actual_cost_egp ?? t.actual_expenses_egp ?? 0).toLocaleString()} ج.م</td>
+                      <td style={{ padding: '10px 12px', fontSize: '12px', color: '#475569' }}>
+                        {t.notes || '—'}
                       </td>
                     </tr>
                   ))}
@@ -314,13 +312,13 @@ export default function ChinaSourcingPage() {
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>حد الطلب الأدنى MOQ</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>مدة الإنتاج والتجهيز</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الحساب البنكي الموثق</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الرصيد المفتوح</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الرصيد الدفتري (ج.م)</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>إجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSuppliers.map((s) => {
-                  const bank = s.verified_bank_details || {};
+                  const bank = typeof s.verified_bank_details === 'string' ? JSON.parse(s.verified_bank_details || '{}') : (s.verified_bank_details || {});
                   const isVerified = Boolean(bank.bankName && bank.swiftCode);
                   return (
                     <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -355,7 +353,7 @@ export default function ChinaSourcingPage() {
                         </span>
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: '12px', fontWeight: 700, color: Number(s.balance || 0) > 0 ? '#b91c1c' : '#059669' }}>
-                        ${Number(s.balance || 0).toLocaleString()}
+                        {Number(s.balance || 0).toLocaleString()} ج.م
                       </td>
                       <td style={{ padding: '12px 14px' }}>
                         <button
@@ -849,6 +847,7 @@ export default function ChinaSourcingPage() {
           </div>
         </form>
       </StandardDialog>
+      </main>
     </div>
   );
 }

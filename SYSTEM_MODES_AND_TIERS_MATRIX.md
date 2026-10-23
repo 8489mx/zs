@@ -161,6 +161,10 @@
    - تهيئة إعدادات المستأجر الجديد آلياً: [`trial-tenant-provisioning.service.ts`](file:///d:/zn/backend/src/modules/saas-admin/trial-tenant-provisioning.service.ts)
 3. **التسعير والباقات (Pricing & Packaging):**
    - المصدر الوحيد لحقيقة الباقات والأسعار والمستويات: [`pricing-catalog.json`](file:///d:/zn/pricing/pricing-catalog.json)
+4. **المراجع القطاعية المستقلة للقدرات (Sector Capabilities References):**
+   - وثيقة قدرات التجارة والتجزئة والأزياء ونقاط البيع: [`RETAIL_COMMERCE_CAPABILITIES.md`](file:///d:/zn/RETAIL_COMMERCE_CAPABILITIES.md)
+   - وثيقة قدرات المطاعم والأغذية والكافيهات: [`RESTAURANT_CAPABILITIES.md`](file:///d:/zn/RESTAURANT_CAPABILITIES.md)
+   - وثيقة قدرات الاستيراد والتجارة الدولية والحاويات: [`IMPORT_CAPABILITIES.md`](file:///d:/zn/IMPORT_CAPABILITIES.md)
 
 ---
 

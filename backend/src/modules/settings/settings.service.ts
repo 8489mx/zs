@@ -252,9 +252,10 @@ export class SettingsService {
       const isWholesaleVan = profileKey === 'wholesale_van';
       const isServiceVertical = profileKey === 'services';
       const isWarehousing = profileKey === 'warehousing';
+      const isImportVertical = profileKey === 'import_export' || (settings.industryProfile as any)?.subVertical === 'import_export';
 
-      // POS: enabled for all retail/hospitality/specialized verticals, disabled for wholesale_van, services, and warehousing
-      if (isWarehousing) {
+      // POS: enabled for all retail/hospitality/specialized verticals, disabled for wholesale_van, services, warehousing, and import_export
+      if (isWarehousing || isImportVertical) {
         settings.posModuleEnabled = false;
         settings.requireCashierShiftForSales = false;
       } else if (isWholesaleVan || isServiceVertical) {
@@ -290,6 +291,14 @@ export class SettingsService {
         settings.enableEnterpriseFeatures = true;
       }
 
+      if (isImportVertical) {
+        settings.importModuleEnabled = true;
+        settings.inventoryModuleEnabled = true;
+        settings.purchasesModuleEnabled = true;
+        settings.enableEnterpriseFeatures = true;
+        settings.hrModuleEnabled = true;
+      }
+
       // Inventory & Purchases: respect DB if explicitly set, but default to true for profiles that need them
       if (settings.inventoryModuleEnabled === undefined || (settings.inventoryModuleEnabled === false && profileDefaults.includes('inventory'))) {
         settings.inventoryModuleEnabled = profileDefaults.includes('inventory');
@@ -315,12 +324,11 @@ export class SettingsService {
       if (settings.enableMobileStoreFeatures === undefined) {
         settings.enableMobileStoreFeatures = (settings.industryProfile as any)?.subVertical === 'maintenance';
       }
-      // Import module: only enabled if the tenant is dedicated import/export or explicitly has import in profile defaults
-      const isImportVertical = profileKey === 'import_export' || (settings.industryProfile as any)?.subVertical === 'import_export';
-      if (!isImportVertical && !profileDefaults.includes('import')) {
-        settings.importModuleEnabled = false;
-      } else if (settings.importModuleEnabled === undefined) {
-        settings.importModuleEnabled = isImportVertical;
+      // Import module: always enabled on dedicated import_export vertical; otherwise respect explicit toggle in DB
+      if (isImportVertical) {
+        settings.importModuleEnabled = true;
+      } else {
+        settings.importModuleEnabled = settings.importModuleEnabled === true || settings.importModuleEnabled === 'true';
       }
       if (settings.autoPartsModuleEnabled === undefined) {
         settings.autoPartsModuleEnabled = (settings.industryProfile as any)?.subVertical === 'auto_parts';
@@ -537,6 +545,22 @@ export class SettingsService {
       normalizedPayload.enableEnterpriseFeatures = true;
       normalizedPayload.fixedAssetsModuleEnabled = true;
       normalizedPayload.taxDeclarationModuleEnabled = true;
+      normalizedPayload.contractingModuleEnabled = false;
+      normalizedPayload.maritimeFreightModuleEnabled = false;
+      normalizedPayload.posModuleEnabled = false;
+      normalizedPayload.requireCashierShiftForSales = false;
+    } else if (profile.key === 'import_export' || profile.subVertical === 'import_export') {
+      normalizedPayload.contractingModuleEnabled = false;
+      normalizedPayload.maritimeFreightModuleEnabled = false;
+      normalizedPayload.manufacturingModuleEnabled = false;
+      normalizedPayload.importModuleEnabled = true;
+      normalizedPayload.inventoryModuleEnabled = true;
+      normalizedPayload.purchasesModuleEnabled = true;
+      normalizedPayload.enableEnterpriseFeatures = true;
+      normalizedPayload.hrModuleEnabled = true;
+      normalizedPayload.posModuleEnabled = false;
+      normalizedPayload.requireCashierShiftForSales = false;
+    } else if (profile.key === 'warehousing' || profile.key === 'wholesale_van') {
       normalizedPayload.contractingModuleEnabled = false;
       normalizedPayload.maritimeFreightModuleEnabled = false;
       normalizedPayload.posModuleEnabled = false;
@@ -979,6 +1003,7 @@ export class SettingsService {
         modulePatch.purchasesModuleEnabled = true;
         modulePatch.importModuleEnabled = true;
         modulePatch.enableEnterpriseFeatures = true;
+        modulePatch.hrModuleEnabled = true;
         modulePatch.storefrontModuleEnabled = false;
       }
     }

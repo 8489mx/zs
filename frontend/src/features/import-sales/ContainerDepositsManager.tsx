@@ -1,13 +1,18 @@
 import React, { useRef, useState } from 'react';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import {
   useContainerDepositsQuery,
   useRecordContainerDepositMutation,
   useRefundContainerDepositMutation,
+  useShipmentsQuery,
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { formatCurrency } from '@/lib/format';
 import {
   PlusCircleIcon,
+  RefreshCwIcon,
+  CheckCircleIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { useQuery } from '@tanstack/react-query';
@@ -38,13 +43,10 @@ export function ContainerDepositsManager() {
   const [deductionReason, setDeductionReason] = useState('');
   const [refundTreasuryAccountId, setRefundTreasuryAccountId] = useState('');
 
-  const { data: shipments = [] } = useQuery({
-    queryKey: ['import-shipments'],
-    queryFn: async () => {
-      const res = await http<any[]>('/api/import-sales/shipments');
-      return Array.isArray(res) ? res : (res as any)?.items || [];
-    },
-  });
+  const { data: shipmentsData } = useShipmentsQuery();
+  const shipments: any[] = Array.isArray(shipmentsData)
+    ? shipmentsData
+    : (shipmentsData as any)?.rows || (shipmentsData as any)?.items || [];
 
   // Fetch treasury accounts
   const { data: accountsData } = useQuery({
@@ -57,6 +59,10 @@ export function ContainerDepositsManager() {
 
   const handleRecordDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!shipmentId) {
+      toast.error('يرجى اختيار الحاوية / الشحنة المرتبطة بالتأمين');
+      return;
+    }
     if (!containerNo.trim()) {
       toast.error('رقم الحاوية مطلوب');
       return;
@@ -66,14 +72,16 @@ export function ContainerDepositsManager() {
       return;
     }
 
+    const selectedShipment = Array.isArray(shipments) ? shipments.find((s: any) => s.id === shipmentId) : undefined;
+
     try {
       await recordDepositMutation.mutateAsync({
-        projectId: undefined,
-        shipmentId: shipmentId || undefined,
+        projectId: selectedShipment?.project_id || undefined,
+        shipmentId,
         containerNo: containerNo.trim(),
         shippingLine,
         depositAmountEgp: Number(depositAmountEgp),
-        expectedReturnDate: expectedReturnDate || undefined,
+        expectedReturnDate: expectedReturnDate || new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
         treasuryAccountId: treasuryAccountId || undefined,
         notes: notes || undefined,
       });
@@ -112,47 +120,73 @@ export function ContainerDepositsManager() {
     }
   };
 
-  const pendingDeposits = deposits.filter((d: any) => d.refund_status === 'pending');
-  const totalPendingEgp = pendingDeposits.reduce((sum: number, d: any) => sum + Number(d.deposit_amount_egp || 0), 0);
+  const pendingDeposits = deposits.filter(
+    (d: any) => d.refund_status === 'pending' || d.refund_status === 'partially_refunded'
+  );
+  const totalPendingEgp = pendingDeposits.reduce(
+    (sum: number, d: any) =>
+      sum + Math.max(0, Number(d.deposit_amount_egp || 0) - Number(d.refunded_amount_egp || 0) - Number(d.deductions_amount_egp || 0)),
+    0
+  );
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Top Action & KPI Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px' }}>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>إجمالي مبالغ التأمين المعلقة طرف الخطوط: </span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: totalPendingEgp > 0 ? '#b45309' : '#15803d' }}>
-              {formatCurrency(totalPendingEgp)}
-            </span>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="تأمينات الحاويات وغرامات التأخير"
+          description="متابعة مبالغ التأمين المودعة طرف الخطوط الملاحية وفترات السماح واسترداد الفارغ دون تأخير."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={() => setIsRecordOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>إثبات دفع تأمين حاوية جديد</span>
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Top KPI Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '8px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي مبالغ التأمين المعلقة طرف الخطوط</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: totalPendingEgp > 0 ? '#b45309' : '#15803d', marginTop: '4px' }}>
+                {formatCurrency(totalPendingEgp)}
+              </div>
+            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fef3c7', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b45309' }}>
+              <RefreshCwIcon size={20} />
+            </div>
           </div>
-          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px' }}>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>حاويات قيد الانتظار واسترجاع الفارغ: </span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: '#170e5e' }}>{pendingDeposits.length}</span>
+
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاويات قيد الانتظار واسترجاع الفارغ</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+                {pendingDeposits.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>حاوية</span>
+              </div>
+            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
+              <CheckCircleIcon size={20} />
+            </div>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setIsRecordOpen(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '7px 14px',
-            backgroundColor: '#170e5e',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: 6,
-            fontSize: 12.5,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          <PlusCircleIcon size={14} />
-          إثبات دفع تأمين حاوية جديد
-        </button>
-      </div>
 
       {/* Deposits Table */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
@@ -179,12 +213,12 @@ export function ContainerDepositsManager() {
               deposits.map((d: any) => (
                 <tr key={d.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 800, color: '#170e5e', fontFamily: 'monospace' }}>
-                    {d.container_number}
+                    {d.container_no || d.container_number || '—'}
                   </td>
                   <td style={{ padding: '10px 14px' }}>{d.shipping_line}</td>
                   <td style={{ padding: '10px 14px', fontWeight: 700 }}>{formatCurrency(d.deposit_amount_egp)}</td>
                   <td style={{ padding: '10px 14px', color: '#15803d', fontWeight: 600 }}>
-                    {d.refunded_amount_egp ? formatCurrency(d.refunded_amount_egp) : '—'}
+                    {Number(d.refunded_amount_egp) > 0 ? formatCurrency(d.refunded_amount_egp) : '—'}
                   </td>
                   <td style={{ padding: '10px 14px', color: Number(d.deductions_amount_egp) > 0 ? '#b91c1c' : '#64748b' }}>
                     {Number(d.deductions_amount_egp) > 0 ? formatCurrency(d.deductions_amount_egp) : '0.00 ج.م'}
@@ -196,20 +230,38 @@ export function ContainerDepositsManager() {
                         borderRadius: 4,
                         fontSize: 11,
                         fontWeight: 700,
-                        backgroundColor: d.refund_status === 'refunded' ? '#dcfce7' : '#fef3c7',
-                        color: d.refund_status === 'refunded' ? '#166534' : '#b45309',
+                        backgroundColor:
+                          d.refund_status === 'refunded'
+                            ? '#dcfce7'
+                            : d.refund_status === 'partially_refunded'
+                              ? '#e0f2fe'
+                              : '#fef3c7',
+                        color:
+                          d.refund_status === 'refunded'
+                            ? '#166534'
+                            : d.refund_status === 'partially_refunded'
+                              ? '#0369a1'
+                              : '#b45309',
                       }}
                     >
-                      {d.refund_status === 'refunded' ? 'تم الاسترداد والتسوية' : 'معلق طرف الخط الملاحي'}
+                      {d.refund_status === 'refunded'
+                        ? 'تم الاسترداد والتسوية'
+                        : d.refund_status === 'partially_refunded'
+                          ? 'مسترد جزئياً'
+                          : 'معلق طرف الخط الملاحي'}
                     </span>
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                    {d.refund_status === 'pending' ? (
+                    {d.refund_status === 'pending' || d.refund_status === 'partially_refunded' ? (
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedDepositForRefund(d);
-                          setRefundedAmountEgp(Number(d.deposit_amount_egp));
+                          const remaining = Math.max(
+                            0,
+                            Number(d.deposit_amount_egp || 0) - Number(d.refunded_amount_egp || 0) - Number(d.deductions_amount_egp || 0)
+                          );
+                          setRefundedAmountEgp(remaining);
                           setDeductionsAmountEgp(0);
                         }}
                         style={{
@@ -249,6 +301,30 @@ export function ContainerDepositsManager() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                ربط بالحاوية المسجلة: *
+              </label>
+              <select
+                className="input"
+                style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
+                value={shipmentId}
+                onChange={(e) => {
+                  setShipmentId(e.target.value);
+                  const found = Array.isArray(shipments) ? shipments.find((s: any) => s.id === e.target.value) : undefined;
+                  if (found) setContainerNo(found.container_number);
+                }}
+                required
+              >
+                <option value="">-- اختر الحاوية --</option>
+                {Array.isArray(shipments) && shipments.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.container_number} ({s.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
                 رقم الحاوية: *
               </label>
               <input
@@ -261,7 +337,9 @@ export function ContainerDepositsManager() {
                 required
               />
             </div>
+          </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
                 الخط الملاحي / التوكيل: *
@@ -280,6 +358,19 @@ export function ContainerDepositsManager() {
                 <option value="ONE (Ocean Network Express)">ONE</option>
                 <option value="Evergreen Marine">Evergreen (إيفرجرين)</option>
               </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                تاريخ الإرجاع المتوقع للفارغ:
+              </label>
+              <input
+                type="date"
+                className="input"
+                style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
+                value={expectedReturnDate}
+                onChange={(e) => setExpectedReturnDate(e.target.value)}
+              />
             </div>
           </div>
 
@@ -315,44 +406,6 @@ export function ContainerDepositsManager() {
                   </option>
                 ))}
               </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                ربط بالحاوية المسجلة:
-              </label>
-              <select
-                className="input"
-                style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
-                value={shipmentId}
-                onChange={(e) => {
-                  setShipmentId(e.target.value);
-                  const found = shipments.find((s: any) => s.id === e.target.value);
-                  if (found) setContainerNo(found.container_number);
-                }}
-              >
-                <option value="">-- اختياري --</option>
-                {shipments.map((s: any) => (
-                  <option key={s.id} value={s.id}>
-                    {s.container_number} ({s.status})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                تاريخ الإرجاع المتوقع للفارغ:
-              </label>
-              <input
-                type="date"
-                className="input"
-                style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
-                value={expectedReturnDate}
-                onChange={(e) => setExpectedReturnDate(e.target.value)}
-              />
             </div>
           </div>
 
@@ -393,7 +446,7 @@ export function ContainerDepositsManager() {
         <StandardDialog
           isOpen={!!selectedDepositForRefund}
           onClose={() => setSelectedDepositForRefund(null)}
-          title={`تسوية استرداد تأمين الحاوية: ${selectedDepositForRefund.container_number}`}
+          title={`تسوية استرداد تأمين الحاوية: ${selectedDepositForRefund.container_no || selectedDepositForRefund.container_number || ''}`}
           subtitle={`الخط الملاحي: ${selectedDepositForRefund.shipping_line} | التأمين الأصلي: ${formatCurrency(selectedDepositForRefund.deposit_amount_egp)}`}
           width="600px"
           compact
@@ -498,6 +551,7 @@ export function ContainerDepositsManager() {
           </form>
         </StandardDialog>
       )}
+      </main>
     </div>
   );
 }

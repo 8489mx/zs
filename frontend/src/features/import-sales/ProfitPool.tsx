@@ -2,7 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
-import { useProfitReportQuery, usePartnerPayoutMutation, Partner } from './api/shipments.api';
+import {
+  useProfitReportQuery,
+  usePartnerPayoutMutation,
+  useApprovalRequestsQuery,
+  useCreateApprovalRequestMutation,
+  useImportProjectsQuery,
+  Partner,
+} from './api/shipments.api';
 import { formatCurrency } from '@/lib/format';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { ManagePartnersDialog } from './ManagePartnersDialog';
@@ -10,6 +17,7 @@ import { PartnerLedgerDialog } from './PartnerLedgerComponents';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { UsersIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
+import { toast } from '@/shared/components/system-alert';
 
 function PartnerPayoutModal({ 
   partner, 
@@ -22,10 +30,51 @@ function PartnerPayoutModal({
 }) {
   const { t } = useTranslation();
   const [amount, setAmount] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [approvalRequestId, setApprovalRequestId] = useState('');
   const payoutMutation = usePartnerPayoutMutation();
+  const { data: projectsData } = useImportProjectsQuery();
+  const projects = Array.isArray(projectsData) ? projectsData : (projectsData as any)?.rows || (projectsData as any)?.items || [];
+  const { data: approvalRequests = [], refetch: refetchApprovals } = useApprovalRequestsQuery();
+  const createApprovalMutation = useCreateApprovalRequestMutation();
 
   if (!partner) return null;
+
+  const partnerApprovals = approvalRequests.filter(
+    (r: any) =>
+      (r.action_type === 'partner_distribution' || r.request_type === 'partner_distribution') &&
+      String(r.reference_id) === String(partner.partnerId)
+  );
+
+  const handleRequestApproval = async () => {
+    const val = Number(amount) || Number(partner.currentBalance) || 0;
+    if (val <= 0) {
+      toast.error('يرجى تحديد قيمة الدفعة المطلوب اعتمادها أولاً');
+      return;
+    }
+    const projId = selectedProjectId || projects[0]?.id || '';
+    if (!projId) {
+      toast.error('يرجى اختيار مشروع الاستيراد المرتبط بتوزيع الأرباح');
+      return;
+    }
+    try {
+      const created = await createApprovalMutation.mutateAsync({
+        actionType: 'partner_distribution',
+        referenceId: String(partner.partnerId),
+        requestPayload: {
+          amount: val,
+          partnerId: String(partner.partnerId),
+          projectId: projId,
+          justification: `طلب اعتماد صرف دفعة أرباح للشريك ${partner.name}`,
+        },
+      });
+      if (created?.id) setApprovalRequestId(String(created.id));
+      toast.success('تم رفع طلب اعتماد صرف الأرباح للرقابة الثنائية (Maker-Checker)');
+      refetchApprovals();
+    } catch (err: any) {
+      toast.error('فشل رفع طلب الاعتماد: ' + (err.message || 'خطأ'));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +103,9 @@ function PartnerPayoutModal({
       onClose={onClose}
       title={`صرف دفعة أرباح: ${partner.name}`}
       subtitle={t('import_sales.profit_pool.s0', "تسجيل صرف دفعة نقدية من صافي الأرباح المستحقة للشريك وخصمها من رصيده المتبقي.")}
-      width="min(500px, 95vw)"
+      width="min(520px, 95vw)"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} dir="rtl">
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} dir="rtl">
         {/* Partner Info Box */}
         <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.8rem' }}>
@@ -131,22 +180,92 @@ function PartnerPayoutModal({
 
         <div>
           <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b', display: 'block', marginBottom: '6px' }}>
-            رقم طلب الموافقة المعتمد (Maker-Checker) <span style={{ color: '#ef4444' }}>*</span>
+            مشروع الاستيراد المرتبط بالتوزيع
           </label>
+          <select
+            value={selectedProjectId || projects[0]?.id || ''}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            style={{
+              width: '100%',
+              height: '36px',
+              borderRadius: '6px',
+              border: '1px solid #cbd5e1',
+              padding: '0 10px',
+              fontSize: '0.82rem',
+              background: '#ffffff',
+              color: '#0f172a',
+            }}
+          >
+            <option value="">-- اختر المشروع --</option>
+            {Array.isArray(projects) && projects.map((p: any) => (
+              <option key={p.id} value={p.id}>
+                {p.project_no} - {p.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }}>
+              رقم طلب الموافقة المعتمد (Maker-Checker) <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <button
+              type="button"
+              onClick={handleRequestApproval}
+              disabled={createApprovalMutation.isPending}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#0284c7',
+                fontSize: '0.74rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: 0,
+                textDecoration: 'underline',
+              }}
+            >
+              + رفع طلب اعتماد للمدير الآن
+            </button>
+          </div>
+          {partnerApprovals.length > 0 && (
+            <select
+              value={approvalRequestId}
+              onChange={(e) => setApprovalRequestId(e.target.value)}
+              style={{
+                width: '100%',
+                height: '36px',
+                borderRadius: '6px',
+                border: '1px solid #cbd5e1',
+                padding: '0 10px',
+                fontSize: '0.8rem',
+                marginBottom: '6px',
+                background: '#f8fafc',
+              }}
+            >
+              <option value="">-- اختر موافقة سابقة لهذا الشريك --</option>
+              {partnerApprovals.map((r: any) => (
+                <option key={r.id} value={r.id}>
+                  #{String(r.id).slice(0, 8)} - {r.status === 'approved' ? 'معتمد للصرف' : r.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
+                </option>
+              ))}
+            </select>
+          )}
           <input 
             type="text" 
             value={approvalRequestId} 
             onChange={e => setApprovalRequestId(e.target.value)} 
             required 
-            placeholder="مثال: REQ-260914-0001"
+            placeholder="معرف طلب الاعتماد المعتمد (UUID)"
             style={{
               width: '100%',
               height: '38px',
               borderRadius: '6px',
               border: '1px solid #cbd5e1',
               padding: '0 12px',
-              fontSize: '0.88rem',
+              fontSize: '0.84rem',
               fontWeight: 600,
+              fontFamily: 'monospace',
               background: '#ffffff',
               color: '#0f172a',
               boxSizing: 'border-box',
@@ -202,7 +321,7 @@ export default function ProfitPool() {
 
   return (
     <div className="page-stack page-shell import-sales-page" dir="rtl">
-      <div style={{ maxWidth: '1280px', margin: '0 auto', width: '100%', padding: '0 16px 80px 16px' }}>
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
         <PageHeader 
           title={t('import_sales.profit_pool.s9', "مجمع أرباح الشركاء وتصفية الحسابات")} 
           description={t('import_sales.profit_pool.s10', "حساب صافي الأرباح عن فترة محددة وتوزيعها بناءً على المبيعات والتكلفة الفعلية والمصاريف التشغيلية.")}
@@ -444,7 +563,7 @@ export default function ProfitPool() {
             </div>
           </div>
         ) : null}
-      </div>
+      </main>
 
       {isManagePartnersOpen && (
         <ManagePartnersDialog 

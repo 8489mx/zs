@@ -359,3 +359,104 @@ export async function transferImportLotLocation(
       .execute();
   }
 }
+
+export async function syncImportLotsOnLocationTransfer(
+  trx: Kysely<Database> | Transaction<Database>,
+  params: {
+    tenantId: string;
+    productId: number;
+    fromLocationId?: number | null;
+    toLocationId?: number | null;
+    qty: number;
+  }
+): Promise<void> {
+  const fromLoc = Number(params.fromLocationId);
+  const toLoc = Number(params.toLocationId);
+  let remaining = Number(params.qty);
+  if (
+    !Number.isSafeInteger(fromLoc) ||
+    fromLoc <= 0 ||
+    !Number.isSafeInteger(toLoc) ||
+    toLoc <= 0 ||
+    fromLoc === toLoc ||
+    !Number.isFinite(remaining) ||
+    remaining <= 0
+  ) {
+    return;
+  }
+
+  const lots = await trx
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('tenant_id', '=', params.tenantId)
+    .where('product_id', '=', Number(params.productId))
+    .where('location_id', '=', fromLoc)
+    .where('status', '=', 'active')
+    .where('remaining_quantity', '>', 0)
+    .orderBy('receipt_date', 'asc')
+    .orderBy('created_at', 'asc')
+    .forUpdate()
+    .execute();
+
+  for (const lot of lots || []) {
+    if (remaining <= 0.0001) break;
+    const avail = Number(lot.remaining_quantity);
+    if (avail <= 0.0001) continue;
+    const moveQty = Math.min(avail, remaining);
+    await transferImportLotLocation(trx, {
+      tenantId: params.tenantId,
+      lotId: String(lot.id),
+      toLocationId: toLoc,
+      qty: moveQty,
+    });
+    remaining = Number((remaining - moveQty).toFixed(4));
+  }
+}
+
+export async function syncImportLotsOnStockDeduction(
+  trx: Kysely<Database> | Transaction<Database>,
+  params: {
+    tenantId: string;
+    productId: number;
+    locationId?: number | null;
+    qty: number;
+    reason?: string;
+  }
+): Promise<void> {
+  const locId = Number(params.locationId);
+  let remaining = Math.abs(Number(params.qty));
+  if (!Number.isFinite(remaining) || remaining <= 0) return;
+
+  let query = trx
+    .selectFrom('import_inventory_lots')
+    .selectAll()
+    .where('tenant_id', '=', params.tenantId)
+    .where('product_id', '=', Number(params.productId))
+    .where('status', '=', 'active')
+    .where('remaining_quantity', '>', 0);
+
+  if (Number.isSafeInteger(locId) && locId > 0) {
+    query = query.where('location_id', '=', locId);
+  }
+
+  const lots = await query
+    .orderBy('receipt_date', 'asc')
+    .orderBy('created_at', 'asc')
+    .forUpdate()
+    .execute();
+
+  for (const lot of lots || []) {
+    if (remaining <= 0.0001) break;
+    const avail = Number(lot.remaining_quantity);
+    if (avail <= 0.0001) continue;
+    const deductQty = Math.min(avail, remaining);
+    await adjustImportLotQuantity(trx, {
+      tenantId: params.tenantId,
+      lotId: String(lot.id),
+      adjustmentQty: -deductQty,
+      reason: params.reason,
+    });
+    remaining = Number((remaining - deductQty).toFixed(4));
+  }
+}
+

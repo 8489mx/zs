@@ -21,6 +21,7 @@ import { AccountingPostingService } from '../../accounting/accounting-posting.se
 import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { normalizeArabicSearch, matchesArabic } from '../../../common/utils/arabic-search.util';
+import { syncImportLotsOnStockDeduction } from '../../import-sales/helpers/import-lot-allocation.helper';
 
 @Injectable()
 export class InventoryCountService {
@@ -362,6 +363,15 @@ export class InventoryCountService {
               branch_id: session.branch_id, location_id: session.location_id,
               unit_cost: unitCost, total_cost: totalCost, ...this.tenantFields(auth),
             }).execute();
+            if (variance < -0.0001) {
+              await syncImportLotsOnStockDeduction(trx, {
+                tenantId: tenantScope.tenantId,
+                productId: Number(item.product_id),
+                locationId: session.location_id,
+                qty: Math.abs(variance),
+                reason: item.reason || 'stock_count_shortage',
+              });
+            }
             if (shouldCreateDamageRecordFromCount(item)) {
               await trx.insertInto('damaged_stock_records').values({
                 ...buildDamageRecordFromCount(item, session, auth.userId),
@@ -424,7 +434,7 @@ export class InventoryCountService {
           const term = `%${token}%`;
           baseQuery = baseQuery.where(sql<boolean>`(
             TRANSLATE(LOWER(COALESCE(p.name, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
-            OR LOWER(COALESCE(p.name_en, '')) LIKE ${term}
+            OR LOWER(COALESCE(p.name_en, '') ) LIKE ${term}
             OR LOWER(COALESCE(p.barcode, '')) LIKE ${term}
             OR LOWER(COALESCE(p.style_code, '')) LIKE ${term}
             OR TRANSLATE(LOWER(COALESCE(d.reason, '')), 'أإآٱٲٳؤئىة', 'ااااااويهه') LIKE ${term}
@@ -514,6 +524,14 @@ export class InventoryCountService {
          total_cost: totalCost,
          ...this.tenantFields(auth)
       }).execute();
+
+      await syncImportLotsOnStockDeduction(trx, {
+        tenantId: tenantScope.tenantId,
+        productId: Number(payload.productId),
+        locationId: location.id,
+        qty: damageQty,
+        reason: payload.reason || 'damaged_stock',
+      });
 
       const posting = await this.accountingPosting.postDamagedStock(trx, Number(insertedDamage.id), auth);
       if (posting.hasFinancialImpact && !posting.journalEntryId) throw new AppError(`Damaged stock ${insertedDamage.id} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);

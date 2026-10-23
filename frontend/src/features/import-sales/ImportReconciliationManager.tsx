@@ -5,6 +5,8 @@ import {
   useResolveReconciliationExceptionMutation,
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import {
   RefreshCwIcon,
@@ -21,8 +23,36 @@ export default function ImportReconciliationManager() {
   const [selectedExceptionForResolve, setSelectedExceptionForResolve] = useState<any | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
 
+  const getExceptionTypeLabel = (type: string) => {
+    switch (type) {
+      case 'broker_advance_mismatch':
+        return 'عهدة مخلص معلقة (>30 يوم)';
+      case 'container_deposit_overdue':
+        return 'تأخر استرداد تأمين حاوية';
+      default:
+        return type || 'مطابقة عامة';
+    }
+  };
+
+  const getExceptionDescription = (e: any) => {
+    if (e.description) return e.description;
+    let details: any = {};
+    try {
+      details = typeof e.details === 'string' ? JSON.parse(e.details) : e.details || {};
+    } catch {
+      details = {};
+    }
+    if (e.exception_type === 'broker_advance_mismatch') {
+      return `عهدة تخليص جمركي غير مصفاة منذ أكثر من 30 يوماً - إذن #${details.advanceNo || '—'}`;
+    }
+    if (e.exception_type === 'container_deposit_overdue') {
+      return `تجاوز موعد استرداد تأمين الحاوية #${details.containerNo || '—'} (${details.shippingLine || '—'}) المقرر بتاريخ ${details.expectedDate || '—'}`;
+    }
+    return JSON.stringify(details);
+  };
+
   const openCount = exceptions.filter((e: any) => e.status === 'open').length;
-  const criticalCount = exceptions.filter((e: any) => e.severity === 'critical' && e.status === 'open').length;
+  const criticalCount = exceptions.filter((e: any) => (e.severity === 'critical' || e.severity === 'high') && e.status === 'open').length;
   const resolvedCount = exceptions.filter((e: any) => e.status === 'resolved').length;
   const openDiscrepancySum = exceptions
     .filter((e: any) => e.status === 'open')
@@ -31,7 +61,7 @@ export default function ImportReconciliationManager() {
   const handleRunScan = async () => {
     try {
       const res = await runScanMutation.mutateAsync();
-      const count = res?.exceptionsFoundCount ?? 0;
+      const count = res?.exceptionsFoundCount ?? res?.exceptionsFound ?? 0;
       toast.success(`اكتمل الفحص الآلي الذكي: تم فحص وتدقيق كافة الحركات (${count} ملاحظة مستحدثة)`);
       refetch();
     } catch (err: any) {
@@ -56,64 +86,53 @@ export default function ImportReconciliationManager() {
   };
 
   return (
-    <div dir="rtl" style={{ width: 'min(100%, 1280px)', margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* 1. Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-            <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              مركز مطابقة الاستيراد وتسوية الفروقات (Audit & Reconciliation)
-            </h1>
-          </div>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-            الفحص الآلي الذكي لاكتشاف تسريب التكاليف، العهد الجمركية العالقة، وتأمينات الخطوط الملاحية غير المستردة
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => refetch()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              color: '#334155',
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCwIcon size={14} />
-            تحديث
-          </button>
-
-          <button
-            onClick={handleRunScan}
-            disabled={runScanMutation.isPending}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 'none',
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: runScanMutation.isPending ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <CheckShieldIcon size={15} />
-            {runScanMutation.isPending ? 'جاري الفحص الآلي...' : 'تشغيل فحص المطابقة الشامل'}
-          </button>
-        </div>
-      </div>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="مركز مطابقة الاستيراد وتسوية الفروقات (Audit & Reconciliation)"
+          description="الفحص الآلي الذكي لاكتشاف تسريب التكاليف، العهد الجمركية العالقة، وتأمينات الخطوط الملاحية غير المستردة."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="secondary"
+                onClick={() => refetch()}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <RefreshCwIcon size={14} />
+                <span>تحديث</span>
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleRunScan}
+                disabled={runScanMutation.isPending}
+                style={{
+                  height: '38px',
+                  padding: '0 18px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: runScanMutation.isPending ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <CheckShieldIcon size={15} />
+                <span>{runScanMutation.isPending ? 'جاري الفحص الآلي...' : 'تشغيل فحص المطابقة الشامل'}</span>
+              </Button>
+            </div>
+          }
+        />
 
       {/* 2. KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
@@ -197,7 +216,7 @@ export default function ImportReconciliationManager() {
                       {new Date(e.created_at || Date.now()).toLocaleDateString('ar-EG')}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>
-                      {e.exception_type || 'مطابقة عامة'}
+                      {getExceptionTypeLabel(e.exception_type)}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12px' }}>
                       <span
@@ -206,15 +225,15 @@ export default function ImportReconciliationManager() {
                           borderRadius: 6,
                           fontSize: '11px',
                           fontWeight: 700,
-                          backgroundColor: e.severity === 'critical' ? '#fee2e2' : e.severity === 'warning' ? '#fef3c7' : '#e0f2fe',
-                          color: e.severity === 'critical' ? '#991b1b' : e.severity === 'warning' ? '#92400e' : '#0369a1',
+                          backgroundColor: e.severity === 'critical' || e.severity === 'high' ? '#fee2e2' : e.severity === 'warning' ? '#fef3c7' : '#e0f2fe',
+                          color: e.severity === 'critical' || e.severity === 'high' ? '#991b1b' : e.severity === 'warning' ? '#92400e' : '#0369a1',
                         }}
                       >
-                        {e.severity === 'critical' ? 'حرج' : e.severity === 'warning' ? 'تنبيه' : 'معلومة'}
+                        {e.severity === 'critical' ? 'حرج' : e.severity === 'high' ? 'مرتفع' : e.severity === 'warning' ? 'تنبيه' : 'معلومة'}
                       </span>
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12px', color: '#334155', maxWidth: 320 }}>
-                      {e.description || '—'}
+                      {getExceptionDescription(e)}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 700, color: '#170e5e' }}>
                       {formatCurrency(e.discrepancy_amount_egp)}
@@ -280,13 +299,13 @@ export default function ImportReconciliationManager() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px' }}>
               <div style={{ fontSize: '12.5px', marginBottom: 4 }}>
-                <strong>النوع:</strong> {selectedExceptionForResolve.exception_type}
+                <strong>النوع:</strong> {getExceptionTypeLabel(selectedExceptionForResolve.exception_type)}
               </div>
               <div style={{ fontSize: '12.5px', marginBottom: 4 }}>
                 <strong>قيمة الفارق:</strong> {formatCurrency(selectedExceptionForResolve.discrepancy_amount_egp)}
               </div>
               <div style={{ fontSize: '12px', color: '#64748b' }}>
-                <strong>الوصف:</strong> {selectedExceptionForResolve.description}
+                <strong>الوصف:</strong> {getExceptionDescription(selectedExceptionForResolve)}
               </div>
             </div>
 
@@ -333,6 +352,7 @@ export default function ImportReconciliationManager() {
           </div>
         )}
       </StandardDialog>
+      </main>
     </div>
   );
 }

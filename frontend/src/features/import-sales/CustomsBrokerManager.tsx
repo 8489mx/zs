@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import {
   useCustomsBrokersQuery,
   useCreateCustomsBrokerMutation,
   useDisburseBrokerAdvanceMutation,
   useLiquidateBrokerExpenseMutation,
   useCustomsBrokerStatementQuery,
+  useShipmentsQuery,
+  useImportProjectsQuery,
   CustomsBroker,
 } from './api/shipments.api';
 import { StandardDialog } from '@/shared/components/StandardDialog';
@@ -47,28 +51,24 @@ export function CustomsBrokerManager() {
   const [advanceNotes, setAdvanceNotes] = useState('');
 
   // Liquidate Expense State
+  const [selectedAdvanceId, setSelectedAdvanceId] = useState('');
   const [liquidateReceiptNo, setLiquidateReceiptNo] = useState('');
   const [liquidateCategory, setLiquidateCategory] = useState('customs_duty');
   const [liquidateAmountEgp, setLiquidateAmountEgp] = useState<number>(50000);
   const [isCapitalized, setIsCapitalized] = useState(true);
+  const [isRefundableVat, setIsRefundableVat] = useState(false);
   const [liquidateNotes, setLiquidateNotes] = useState('');
 
   // Fetch Projects and Shipments
-  const { data: projects = [] } = useQuery({
-    queryKey: ['import-projects'],
-    queryFn: async () => {
-      const res = await http<any[]>('/api/import-sales/projects');
-      return Array.isArray(res) ? res : (res as any)?.items || [];
-    },
-  });
+  const { data: projectsData } = useImportProjectsQuery();
+  const projects: any[] = Array.isArray(projectsData)
+    ? projectsData
+    : (projectsData as any)?.rows || (projectsData as any)?.items || [];
 
-  const { data: shipments = [] } = useQuery({
-    queryKey: ['import-shipments'],
-    queryFn: async () => {
-      const res = await http<any[]>('/api/import-sales/shipments');
-      return Array.isArray(res) ? res : (res as any)?.items || [];
-    },
-  });
+  const { data: shipmentsData } = useShipmentsQuery();
+  const shipments: any[] = Array.isArray(shipmentsData)
+    ? shipmentsData
+    : (shipmentsData as any)?.rows || (shipmentsData as any)?.items || [];
 
   // Fetch treasury accounts
   const { data: accountsData } = useQuery({
@@ -79,8 +79,15 @@ export function CustomsBrokerManager() {
     (a: any) => a.accountGroup === 'current_assets' || a.isCashBank
   );
 
-  const { data: brokerStatement, isLoading: isStatementLoading } = useCustomsBrokerStatementQuery(
+  const { data: brokerStatement, isLoading: isStatementLoading, refetch: refetchStatement } = useCustomsBrokerStatementQuery(
     selectedBrokerForStatement?.id || ''
+  );
+
+  const { data: liquidateBrokerStatement } = useCustomsBrokerStatementQuery(
+    isLiquidateOpen && selectedBrokerId ? selectedBrokerId : ''
+  );
+  const activeBrokerAdvances = (liquidateBrokerStatement?.advances || []).filter(
+    (a: any) => a.status !== 'settled' && Number(a.remaining_amount_egp || 0) > 0
   );
 
   const handleCreateBroker = async (e: React.FormEvent) => {
@@ -119,18 +126,23 @@ export function CustomsBrokerManager() {
       return;
     }
     try {
+      const generatedAdvanceNo =
+        advanceNo.trim() ||
+        `ADV-${new Date().toISOString().slice(2, 10).replace(/-/g, '')}-${String(Math.floor(1000 + Math.random() * 9000))}`;
       await disburseAdvanceMutation.mutateAsync({
         brokerId: selectedBrokerId,
         projectId: selectedProjectId || undefined,
         shipmentId: selectedShipmentId || undefined,
-        advanceNo: advanceNo || undefined,
+        advanceNo: generatedAdvanceNo,
         amountEgp: Number(advanceAmountEgp),
         treasuryAccountId: treasuryAccountId || undefined,
         notes: advanceNotes || undefined,
       });
       toast.success('تم صرف وقيد عهدة التخليص الجمركي بنجاح');
       setIsDisburseOpen(false);
+      setAdvanceNo('');
       refetch();
+      if (selectedBrokerForStatement) refetchStatement();
     } catch (err: any) {
       toast.error('فشل صرف العهدة: ' + (err.message || 'خطأ'));
     }
@@ -140,6 +152,11 @@ export function CustomsBrokerManager() {
     e.preventDefault();
     if (!selectedBrokerId) {
       toast.error('يرجى اختيار المخلص الجمركي');
+      return;
+    }
+    const targetAdvanceId = selectedAdvanceId || activeBrokerAdvances[0]?.id || '';
+    if (!targetAdvanceId) {
+      toast.error('يرجى اختيار عهدة فعالة للمخلص الجمركي لتسوية المصروف منها');
       return;
     }
     if (!liquidateReceiptNo.trim()) {
@@ -153,18 +170,21 @@ export function CustomsBrokerManager() {
     try {
       await liquidateExpenseMutation.mutateAsync({
         brokerId: selectedBrokerId,
+        advanceId: targetAdvanceId,
         projectId: selectedProjectId || undefined,
         shipmentId: selectedShipmentId || undefined,
         receiptNo: liquidateReceiptNo.trim(),
         category: liquidateCategory,
         amountEgp: Number(liquidateAmountEgp),
-        isCapitalized,
+        isCapitalized: isRefundableVat ? false : isCapitalized,
+        isRefundableVat,
         notes: liquidateNotes || undefined,
       });
       toast.success('تمت تصفية وقيد المصروف الجمركي وخصمه من رصيد العهدة');
       setIsLiquidateOpen(false);
       setLiquidateReceiptNo('');
       refetch();
+      if (selectedBrokerForStatement) refetchStatement();
     } catch (err: any) {
       toast.error('فشل تصفية المصروف: ' + (err.message || 'خطأ'));
     }
@@ -173,87 +193,99 @@ export function CustomsBrokerManager() {
   const totalUnliquidatedAll = brokers.reduce((sum: number, b: any) => sum + Number(b.unliquidated_balance_egp || 0), 0);
 
   return (
-    <div dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Top Action & KPI Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px' }}>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>إجمالي العهد المعلقة طرف المخلصين: </span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: totalUnliquidatedAll > 0 ? '#b91c1c' : '#15803d' }}>
-              {formatCurrency(totalUnliquidatedAll)}
-            </span>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="المخلصون الجمركيون وإدارة العهد"
+          description="متابعة عهد التخليص الجمركي وتصفية المصروفات بإيصالات رسمية وضبط رصيد المخلصين بالموانئ."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={() => setIsCreateBrokerOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>إضافة مخلص جمركي</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsDisburseOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: '#0284c7',
+                  color: '#0284c7',
+                }}
+              >
+                <PlusCircleIcon size={14} />
+                <span>صرف عهدة تسيير جمركي</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsLiquidateOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: '#15803d',
+                  color: '#15803d',
+                }}
+              >
+                <CheckCircleIcon size={14} />
+                <span>تصفية مصاريف بإيصالات</span>
+              </Button>
+            </div>
+          }
+        />
+
+        {/* Top KPI Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '8px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي العهد المعلقة طرف المخلصين</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: totalUnliquidatedAll > 0 ? '#b91c1c' : '#15803d', marginTop: '4px' }}>
+                {formatCurrency(totalUnliquidatedAll)}
+              </div>
+            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#fee2e2', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c' }}>
+              <RefreshCwIcon size={20} />
+            </div>
           </div>
-          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 16px' }}>
-            <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>عدد المخلصين المعتمدين: </span>
-            <span style={{ fontSize: 15, fontWeight: 800, color: '#170e5e' }}>{brokers.length}</span>
+
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+            <div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>عدد المخلصين الجمركيين المعتمدين</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+                {brokers.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>مخلص</span>
+              </div>
+            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
+              <CheckCircleIcon size={20} />
+            </div>
           </div>
         </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => setIsDisburseOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '7px 14px',
-              backgroundColor: '#0284c7',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 12.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <PlusCircleIcon size={14} />
-            صرف عهدة تسيير جمركي
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsLiquidateOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '7px 14px',
-              backgroundColor: '#15803d',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 12.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <CheckCircleIcon size={14} />
-            تصفية مصاريف بإيصالات رسمية
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsCreateBrokerOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '7px 14px',
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: 12.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <PlusCircleIcon size={14} />
-            إضافة مخلص جمركي
-          </button>
-        </div>
-      </div>
 
       {/* Brokers Table */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
@@ -471,7 +503,7 @@ export function CustomsBrokerManager() {
                 onChange={(e) => setSelectedProjectId(e.target.value)}
               >
                 <option value="">-- اختياري --</option>
-                {projects.map((p: any) => (
+                {Array.isArray(projects) && projects.map((p: any) => (
                   <option key={p.id} value={p.id}>
                     {p.project_no} - {p.title}
                   </option>
@@ -490,7 +522,7 @@ export function CustomsBrokerManager() {
                 onChange={(e) => setSelectedShipmentId(e.target.value)}
               >
                 <option value="">-- اختياري --</option>
-                {shipments.map((s: any) => (
+                {Array.isArray(shipments) && shipments.map((s: any) => (
                   <option key={s.id} value={s.id}>
                     {s.container_number} ({s.status})
                   </option>
@@ -590,24 +622,52 @@ export function CustomsBrokerManager() {
         compact
       >
         <form onSubmit={handleLiquidateExpense} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-              المخلص الجمركي صاحب العهدة: *
-            </label>
-            <select
-              className="input"
-              style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
-              value={selectedBrokerId}
-              onChange={(e) => setSelectedBrokerId(e.target.value)}
-              required
-            >
-              <option value="">-- اختر المخلص --</option>
-              {brokers.map((b: any) => (
-                <option key={b.id} value={b.id}>
-                  {b.name} (الرصيد المعلق: {formatCurrency(b.unliquidated_balance_egp)})
-                </option>
-              ))}
-            </select>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                المخلص الجمركي صاحب العهدة: *
+              </label>
+              <select
+                className="input"
+                style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
+                value={selectedBrokerId}
+                onChange={(e) => {
+                  setSelectedBrokerId(e.target.value);
+                  setSelectedAdvanceId('');
+                }}
+                required
+              >
+                <option value="">-- اختر المخلص --</option>
+                {brokers.map((b: any) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} (الرصيد المعلق: {formatCurrency(b.unliquidated_balance_egp)})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                العهدة المراد التصفية منها: *
+              </label>
+              <select
+                className="input"
+                style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
+                value={selectedAdvanceId || activeBrokerAdvances[0]?.id || ''}
+                onChange={(e) => setSelectedAdvanceId(e.target.value)}
+                required
+              >
+                {activeBrokerAdvances.length === 0 ? (
+                  <option value="">-- لا توجد عهد مفتوحة لهذا المخلص --</option>
+                ) : (
+                  activeBrokerAdvances.map((adv: any) => (
+                    <option key={adv.id} value={adv.id}>
+                      #{adv.advance_no} - المتبقي: {formatCurrency(adv.remaining_amount_egp)}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -619,7 +679,11 @@ export function CustomsBrokerManager() {
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={liquidateCategory}
-                onChange={(e) => setLiquidateCategory(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLiquidateCategory(val);
+                  if (val === 'vat') setIsRefundableVat(true);
+                }}
               >
                 <option value="customs_duty">ضرائب ورسوم جمركية (Customs Duty)</option>
                 <option value="vat">ضريبة القيمة المضافة 14%</option>
@@ -668,14 +732,25 @@ export function CustomsBrokerManager() {
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
                 المعالجة المحاسبية:
               </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, marginTop: 8, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={isCapitalized}
-                  onChange={(e) => setIsCapitalized(e.target.checked)}
-                />
-                رسملة على تكلفة البضاعة الواصلة (Landed Cost)
-              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={isCapitalized && !isRefundableVat}
+                    disabled={isRefundableVat}
+                    onChange={(e) => setIsCapitalized(e.target.checked)}
+                  />
+                  رسملة على تكلفة البضاعة الواصلة (Landed Cost)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', color: '#0369a1' }}>
+                  <input
+                    type="checkbox"
+                    checked={isRefundableVat}
+                    onChange={(e) => setIsRefundableVat(e.target.checked)}
+                  />
+                  ضريبة قيمة مضافة قابلة للخصم والرد (أصل ضريبي مدين)
+                </label>
+              </div>
             </div>
           </div>
 
@@ -759,8 +834,43 @@ export function CustomsBrokerManager() {
                 </div>
               </div>
 
-              {/* Advances and Expenses List */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
+              {/* Advances List */}
+              {Array.isArray(brokerStatement.advances) && brokerStatement.advances.length > 0 && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', maxHeight: 150, overflowY: 'auto' }} className="thin-scrollbar">
+                  <div style={{ backgroundColor: '#f8fafc', padding: '7px 12px', borderBottom: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, color: '#0f172a' }}>
+                    سجل العهد النقدية والبنكية المنصرفة ({brokerStatement.advances.length})
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>
+                        <th style={{ padding: '6px 10px', color: '#475569', fontWeight: 600 }}>رقم العهدة</th>
+                        <th style={{ padding: '6px 10px', color: '#475569', fontWeight: 600 }}>المنصرف</th>
+                        <th style={{ padding: '6px 10px', color: '#475569', fontWeight: 600 }}>المصفى</th>
+                        <th style={{ padding: '6px 10px', color: '#475569', fontWeight: 600 }}>المتبقي</th>
+                        <th style={{ padding: '6px 10px', color: '#475569', fontWeight: 600 }}>التاريخ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {brokerStatement.advances.map((adv: any) => (
+                        <tr key={adv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 10px', fontFamily: 'monospace', fontWeight: 600 }}>{adv.advance_no}</td>
+                          <td style={{ padding: '6px 10px', fontWeight: 700 }}>{formatCurrency(adv.amount_egp)}</td>
+                          <td style={{ padding: '6px 10px', color: '#15803d' }}>{formatCurrency(adv.settled_amount_egp)}</td>
+                          <td style={{ padding: '6px 10px', fontWeight: 700, color: Number(adv.remaining_amount_egp) > 0 ? '#b91c1c' : '#15803d' }}>
+                            {formatCurrency(adv.remaining_amount_egp)}
+                          </td>
+                          <td style={{ padding: '6px 10px', color: '#64748b' }}>
+                            {new Date(adv.disbursement_date || adv.created_at || Date.now()).toLocaleDateString('ar-EG')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Expenses List */}
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', maxHeight: 220, overflowY: 'auto' }} className="thin-scrollbar">
                 <div style={{ backgroundColor: '#f8fafc', padding: '8px 12px', borderBottom: '1px solid #e2e8f0', fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>
                   بيان إيصالات ومصروفات التصفية ({brokerStatement.expenses.length})
                 </div>
@@ -785,16 +895,32 @@ export function CustomsBrokerManager() {
                     ) : (
                       brokerStatement.expenses.map((exp: any) => (
                         <tr key={exp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontWeight: 600 }}>{exp.receipt_number}</td>
+                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontWeight: 600 }}>
+                            {exp.receipt_no || exp.receipt_number || '—'}
+                          </td>
                           <td style={{ padding: '8px 10px' }}>{exp.category}</td>
                           <td style={{ padding: '8px 10px', fontWeight: 700, color: '#15803d' }}>{formatCurrency(exp.amount_egp)}</td>
                           <td style={{ padding: '8px 10px' }}>
-                            <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, backgroundColor: exp.is_capitalized ? '#eef2ff' : '#fef3c7', color: exp.is_capitalized ? '#3730a3' : '#b45309' }}>
-                              {exp.is_capitalized ? 'رسملة على البضاعة' : 'مصروف فترة'}
+                            <span
+                              style={{
+                                fontSize: 11,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                backgroundColor: exp.is_refundable_vat ? '#e0f2fe' : exp.is_capitalized ? '#eef2ff' : '#fef3c7',
+                                color: exp.is_refundable_vat ? '#0369a1' : exp.is_capitalized ? '#3730a3' : '#b45309',
+                              }}
+                            >
+                              {exp.is_refundable_vat
+                                ? 'ضريبة ق.م مستردة'
+                                : exp.is_capitalized
+                                  ? 'رسملة على البضاعة'
+                                  : 'مصروف فترة'}
                             </span>
                           </td>
                           <td style={{ padding: '8px 10px', color: '#64748b' }}>{exp.notes || '—'}</td>
-                          <td style={{ padding: '8px 10px', color: '#64748b' }}>{new Date(exp.created_at).toLocaleDateString('ar-EG')}</td>
+                          <td style={{ padding: '8px 10px', color: '#64748b' }}>
+                            {new Date(exp.expense_date || exp.created_at || Date.now()).toLocaleDateString('ar-EG')}
+                          </td>
                         </tr>
                       ))
                     )}
@@ -805,6 +931,7 @@ export function CustomsBrokerManager() {
           )}
         </StandardDialog>
       )}
+      </main>
     </div>
   );
 }

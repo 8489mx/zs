@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import {
   useFxPortfolioQuery,
   useRecordFxAcquisitionMutation,
@@ -71,65 +73,55 @@ export default function ImportFxTreasuryManager() {
   };
 
   return (
-    <div dir="rtl" style={{ width: 'min(100%, 1280px)', margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* 1. Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-            <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              محفظة النقد الأجنبي وتدبير العملة (FX Treasury)
-            </h1>
-          </div>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-            سجل عمليات تدبير العملة ومتوسط تكلفتها؛ ليس رصيد بنك أجنبي فعليًا أو قيودًا محاسبية
-          </p>
-        </div>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="محفظة النقد الأجنبي وتدبير العملة"
+          description="سجل عمليات تدبير العملة ومتوسط تكلفتها المرجح؛ متابعة أسعار الصرف الحقيقية لحماية تكلفة المخزون."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={() => setIsRecordModalOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>تسجيل تدبير عملة جديد</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <RefreshCwIcon size={14} />
+                <span>تحديث</span>
+              </Button>
+            </div>
+          }
+        />
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => refetch()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              color: '#334155',
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCwIcon size={14} />
-            تحديث
-          </button>
-
-          <button
-            onClick={() => setIsRecordModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 'none',
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <PlusCircleIcon size={15} />
-            تسجيل تدبير عملة جديد
-          </button>
-        </div>
-      </div>
-
-      {/* 2. KPI Cards */}
+        {/* 2. KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>إجمالي الدولار المسجل تدبيره (USD)</div>
@@ -357,6 +349,7 @@ export default function ImportFxTreasuryManager() {
           </div>
         </form>
       </StandardDialog>
+      </main>
     </div>
   );
 }

@@ -381,64 +381,116 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
                   </tr>
                 </thead>
                 <tbody>
-                  {preorders.map((po: any) => (
-                    <tr key={po.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a' }}>
-                        {po.customer_name || `عميل #${po.customer_id}`}
-                      </td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700 }}>{po.reserved_quantity}</td>
-                      <td style={{ padding: '8px 10px' }}>{formatCurrency(po.unit_price_egp)}</td>
-                      <td style={{ padding: '8px 10px', color: '#15803d', fontWeight: 600 }}>
-                        {formatCurrency(po.deposit_amount_egp)}
-                      </td>
-                      <td style={{ padding: '8px 10px' }}>
-                        <span
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            backgroundColor:
-                              po.status === 'allocated'
-                                ? '#dcfce7'
-                                : po.status === 'fulfilled'
-                                ? '#e0f2fe'
-                                : '#fef3c7',
-                            color:
-                              po.status === 'allocated'
-                                ? '#166534'
-                                : po.status === 'fulfilled'
-                                ? '#0369a1'
-                                : '#b45309',
-                          }}
-                        >
-                          {po.status === 'allocated' ? 'مخصصة بالمخزن' : po.status === 'fulfilled' ? 'تم التسليم' : 'محجوز عايم'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '8px 10px', color: '#64748b' }}>
-                        {new Date(po.created_at).toLocaleDateString('ar-EG')}
-                      </td>
-                      <td style={{ padding: '8px 10px' }}>
-                        <div style={{ fontSize: 11, marginBottom: 4 }}>
-                          مسترد: {formatCurrency(Number(po.refunded_amount_egp || 0))}
-                        </div>
-                        {po.status !== 'cancelled' && po.status !== 'invoiced' && (
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            {Number(po.deposit_amount_egp || 0) > Number(po.refunded_amount_egp || 0) && (
-                              <button type="button" onClick={() => openRefundDialog(po)} disabled={refundPendingId === po.id}>
-                                رد العربون (محاسب)
-                              </button>
-                            )}
-                            {Number(po.deposit_amount_egp || 0) - Number(po.refunded_amount_egp || 0) < 0.01 && (
-                              <button type="button" onClick={() => handleCancel(po)} disabled={refundPendingId === po.id}>
-                                إلغاء الحجز
-                              </button>
-                            )}
+                  {preorders.map((po: any) => {
+                    const unitPriceVal = Number(po.agreed_unit_price_egp ?? po.unit_price_egp ?? 0);
+                    return (
+                      <tr key={po.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a' }}>
+                          {po.customer_name || `عميل #${po.customer_id}`}
+                        </td>
+                        <td style={{ padding: '8px 10px', fontWeight: 700 }}>{po.reserved_quantity}</td>
+                        <td style={{ padding: '8px 10px' }}>{formatCurrency(unitPriceVal)}</td>
+                        <td style={{ padding: '8px 10px', color: '#15803d', fontWeight: 600 }}>
+                          {formatCurrency(po.deposit_amount_egp)}
+                        </td>
+                        <td style={{ padding: '8px 10px' }}>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              fontSize: 11,
+                              fontWeight: 700,
+                              backgroundColor:
+                                po.status === 'allocated'
+                                  ? '#dcfce7'
+                                  : po.status === 'fulfilled'
+                                  ? '#e0f2fe'
+                                  : '#fef3c7',
+                              color:
+                                po.status === 'allocated'
+                                  ? '#166534'
+                                  : po.status === 'fulfilled'
+                                  ? '#0369a1'
+                                  : '#b45309',
+                            }}
+                          >
+                            {po.status === 'allocated' ? 'مخصصة بالمخزن' : po.status === 'fulfilled' ? 'تم التسليم' : po.status === 'cancelled' ? 'ملغي' : 'محجوز عايم'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px 10px', color: '#64748b' }}>
+                          {new Date(po.created_at).toLocaleDateString('ar-EG')}
+                        </td>
+                        <td style={{ padding: '8px 10px' }}>
+                          <div style={{ fontSize: 11, marginBottom: 4 }}>
+                            مسترد: {formatCurrency(Number(po.refunded_amount_egp || 0))}
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                          {po.status !== 'cancelled' && po.status !== 'invoiced' && po.status !== 'fulfilled' && (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {shipment.status === 'Arrived' && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConvertingPreorder(po);
+                                    setConvertNotes('');
+                                  }}
+                                  style={{
+                                    padding: '3px 8px',
+                                    backgroundColor: '#170e5e',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  تحويل لفاتورة بيع
+                                </button>
+                              )}
+                              {Number(po.deposit_amount_egp || 0) > Number(po.refunded_amount_egp || 0) && (
+                                <button
+                                  type="button"
+                                  onClick={() => openRefundDialog(po)}
+                                  disabled={refundPendingId === po.id}
+                                  style={{
+                                    padding: '3px 8px',
+                                    backgroundColor: '#fee2e2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fca5a5',
+                                    borderRadius: 4,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  رد العربون
+                                </button>
+                              )}
+                              {Number(po.deposit_amount_egp || 0) - Number(po.refunded_amount_egp || 0) < 0.01 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancel(po)}
+                                  disabled={refundPendingId === po.id}
+                                  style={{
+                                    padding: '3px 8px',
+                                    backgroundColor: '#f1f5f9',
+                                    color: '#475569',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: 4,
+                                    fontSize: 11,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  إلغاء الحجز
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -457,14 +509,21 @@ export function ContainerPreordersModal({ isOpen, onClose, shipment }: Container
         {convertingPreorder && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 14px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: '12.5px' }}>
-                <div><span style={{ color: '#64748b' }}>العميل:</span> <strong>{convertingPreorder.customer_name || 'عميل حجز'}</strong></div>
-                <div><span style={{ color: '#64748b' }}>الكمية المحجوزة:</span> <strong>{convertingPreorder.reserved_quantity} وحدة</strong></div>
-                <div><span style={{ color: '#64748b' }}>سعر الوحدة:</span> <strong>{formatCurrency(convertingPreorder.unit_price_egp)}</strong></div>
-                <div><span style={{ color: '#64748b' }}>إجمالي الفاتورة:</span> <strong>{formatCurrency(convertingPreorder.reserved_quantity * convertingPreorder.unit_price_egp)}</strong></div>
-                <div><span style={{ color: '#64748b' }}>العربون المسدد (مسوّى):</span> <strong style={{ color: '#166534' }}>{formatCurrency(convertingPreorder.deposit_amount_egp)}</strong></div>
-                <div><span style={{ color: '#64748b' }}>المتبقي للتحصيل:</span> <strong style={{ color: '#170e5e' }}>{formatCurrency(Math.max(0, convertingPreorder.reserved_quantity * convertingPreorder.unit_price_egp - (convertingPreorder.deposit_amount_egp || 0)))}</strong></div>
-              </div>
+              {(() => {
+                const cpPrice = Number(convertingPreorder.agreed_unit_price_egp ?? convertingPreorder.unit_price_egp ?? 0);
+                const cpTotal = Number(convertingPreorder.total_price_egp || convertingPreorder.reserved_quantity * cpPrice);
+                const netDeposit = Math.max(0, Number(convertingPreorder.deposit_amount_egp || 0) - Number(convertingPreorder.refunded_amount_egp || 0));
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: '12.5px' }}>
+                    <div><span style={{ color: '#64748b' }}>العميل:</span> <strong>{convertingPreorder.customer_name || 'عميل حجز'}</strong></div>
+                    <div><span style={{ color: '#64748b' }}>الكمية المحجوزة:</span> <strong>{convertingPreorder.reserved_quantity} وحدة</strong></div>
+                    <div><span style={{ color: '#64748b' }}>سعر الوحدة:</span> <strong>{formatCurrency(cpPrice)}</strong></div>
+                    <div><span style={{ color: '#64748b' }}>إجمالي الفاتورة:</span> <strong>{formatCurrency(cpTotal)}</strong></div>
+                    <div><span style={{ color: '#64748b' }}>العربون المسدد (مسوّى):</span> <strong style={{ color: '#166534' }}>{formatCurrency(netDeposit)}</strong></div>
+                    <div><span style={{ color: '#64748b' }}>المتبقي للتحصيل:</span> <strong style={{ color: '#170e5e' }}>{formatCurrency(Math.max(0, cpTotal - netDeposit))}</strong></div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div>

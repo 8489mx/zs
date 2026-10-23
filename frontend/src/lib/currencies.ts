@@ -116,7 +116,7 @@ export function isSaudi(settings?: { country?: string; currency?: string } | nul
 export function isEgypt(settings?: { country?: string; currency?: string } | null): boolean {
   const code = getSystemCountryCode(settings);
   const curr = String(settings?.currency || getGlobalSystemCurrency()).trim().toUpperCase();
-  return code === 'EG' && (curr === 'EGP' || !curr);
+  return code === 'EG' || curr === 'EGP';
 }
 
 /**

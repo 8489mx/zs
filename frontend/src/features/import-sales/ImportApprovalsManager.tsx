@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import {
   useApprovalRequestsQuery,
   useCreateApprovalRequestMutation,
@@ -31,12 +33,32 @@ export default function ImportApprovalsManager() {
   const [amountEgp, setAmountEgp] = useState<number>(100000);
   const [justification, setJustification] = useState('');
 
+  const parsePayload = (r: any) => {
+    try {
+      return typeof r.request_payload === 'string'
+        ? JSON.parse(r.request_payload)
+        : r.request_payload || {};
+    } catch {
+      return {};
+    }
+  };
+
+  const getRequestAmount = (r: any) => {
+    const p = parsePayload(r);
+    return Number(p.amount ?? p.amountEgp ?? r.amount_egp ?? 0);
+  };
+
+  const getRequestJustification = (r: any) => {
+    const p = parsePayload(r);
+    return p.justification || p.reason || r.justification || '—';
+  };
+
   const pendingCount = requests.filter((r: any) => r.status === 'pending').length;
   const approvedCount = requests.filter((r: any) => r.status === 'approved').length;
   const rejectedCount = requests.filter((r: any) => r.status === 'rejected').length;
   const pendingVolume = requests
     .filter((r: any) => r.status === 'pending')
-    .reduce((sum: number, r: any) => sum + Number(r.amount_egp || 0), 0);
+    .reduce((sum: number, r: any) => sum + getRequestAmount(r), 0);
 
   const handleCreateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,8 +105,15 @@ export default function ImportApprovalsManager() {
 
   const getRequestTypeName = (type: string) => {
     switch (type) {
+      case 'large_transfer':
       case 'foreign_transfer':
         return 'حوالة بنكية للمورد الخارجي';
+      case 'supplier_bank_change':
+        return 'توثيق تغيير حساب مورد';
+      case 'broker_settlement':
+        return 'تسوية عهدة مخلص جمركي';
+      case 'partner_distribution':
+        return 'صرف أرباح شريك من مشروع محدد';
       case 'partner_share_adjustment':
         return 'تعديل نسب مشاركة الشركاء';
       case 'project_closure':
@@ -97,65 +126,55 @@ export default function ImportApprovalsManager() {
   };
 
   return (
-    <div dir="rtl" style={{ width: 'min(100%, 1280px)', margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* 1. Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
-            <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              مركز الرقابة الثنائية والموافقات المعتمدة (Maker-Checker)
-            </h1>
-          </div>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-            فصل الصلاحيات والتحقق المزدوج للعمليات المالية الحرجة (التحويلات الكبرى، تعديل الشركاء، وإقفال المشاريع)
-          </p>
-        </div>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="مركز الرقابة الثنائية والموافقات المعتمدة (Maker-Checker)"
+          description="فصل الصلاحيات والتحقق المزدوج للعمليات المالية الحرجة (التحويلات الكبرى، تعديل الشركاء، وإقفال المشاريع)."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={() => setIsCreateModalOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>رفع طلب اعتماد جديد</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <RefreshCwIcon size={14} />
+                <span>تحديث</span>
+              </Button>
+            </div>
+          }
+        />
 
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => refetch()}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              color: '#334155',
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCwIcon size={14} />
-            تحديث
-          </button>
-
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              borderRadius: 8,
-              border: 'none',
-              backgroundColor: '#170e5e',
-              color: '#ffffff',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <PlusCircleIcon size={15} />
-            رفع طلب اعتماد جديد
-          </button>
-        </div>
-      </div>
-
-      {/* 2. KPI Cards */}
+        {/* 2. KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '16px' }}>
           <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: 4 }}>طلبات قيد المراجعة</div>
@@ -222,7 +241,7 @@ export default function ImportApprovalsManager() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>رقم الطلب والتاريخ</th>
+                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>رقم الطلب والمرجع</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>نوع العملية</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>القيمة المالية</th>
                   <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 600, color: '#475569' }}>المبرر التشغيلي</th>
@@ -234,17 +253,19 @@ export default function ImportApprovalsManager() {
                 {requests.map((r: any) => (
                   <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '10px 14px', fontSize: '12px' }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>#{String(r.id).slice(0, 8)}</div>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>
+                        #{String(r.id).slice(0, 8)} {r.reference_id ? `(${String(r.reference_id).slice(0, 12)})` : ''}
+                      </div>
                       <div style={{ color: '#94a3b8', fontSize: '11px' }}>{new Date(r.created_at || Date.now()).toLocaleDateString('ar-EG')}</div>
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>
-                      {getRequestTypeName(r.request_type)}
+                      {getRequestTypeName(r.action_type || r.request_type)}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12.5px', fontWeight: 700, color: '#170e5e' }}>
-                      {formatCurrency(r.amount_egp)}
+                      {formatCurrency(getRequestAmount(r))}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12px', color: '#475569', maxWidth: 300 }}>
-                      {r.justification || '—'}
+                      {getRequestJustification(r)}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: '12px' }}>
                       <span
@@ -306,7 +327,7 @@ export default function ImportApprovalsManager() {
                         </div>
                       ) : (
                         <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                          {r.decision_comments || r.rejection_reason || 'تم اتخاذ القرار'}
+                          {r.rejection_reason || r.decision_comments || 'تم اتخاذ القرار'}
                         </span>
                       )}
                     </td>
@@ -424,13 +445,13 @@ export default function ImportApprovalsManager() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px' }}>
               <div style={{ fontSize: '12.5px', marginBottom: 4 }}>
-                <strong>العملية:</strong> {getRequestTypeName(selectedRequestForDecision.request_type)}
+                <strong>العملية:</strong> {getRequestTypeName(selectedRequestForDecision.action_type || selectedRequestForDecision.request_type)}
               </div>
               <div style={{ fontSize: '12.5px', marginBottom: 4 }}>
-                <strong>القيمة:</strong> {formatCurrency(selectedRequestForDecision.amount_egp)}
+                <strong>القيمة:</strong> {formatCurrency(getRequestAmount(selectedRequestForDecision))}
               </div>
               <div style={{ fontSize: '12px', color: '#64748b' }}>
-                <strong>المبرر:</strong> {selectedRequestForDecision.justification}
+                <strong>المبرر:</strong> {getRequestJustification(selectedRequestForDecision)}
               </div>
             </div>
 
@@ -477,6 +498,7 @@ export default function ImportApprovalsManager() {
           </div>
         )}
       </StandardDialog>
+      </main>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/shared/components/page-header';
+import { Button } from '@/shared/ui/button';
 import {
   useImportCommandCenterQuery,
   useImportProjectsQuery,
@@ -23,77 +25,59 @@ export default function ImportCommandCenter() {
 
   const shipments = shipmentsData?.rows || [];
 
-  if (isLoading) {
-    return (
-      <div dir="rtl" style={{ padding: '32px 20px', maxWidth: 1280, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ color: '#64748b', fontSize: '14px', fontWeight: 600 }}>جاري تحميل مركز عمليات الاستيراد...</div>
-      </div>
-    );
-  }
-
   const capital = metrics?.capital || { totalCapital: 0, deployedCapital: 0, availableCapital: 0, totalWithdrawn: 0 };
   const pipeline = metrics?.pipeline || { projects: {}, shipments: { inTransit: 0, inCustoms: 0, arrived: 0 } };
   const alerts = metrics?.alerts || { demurrageAlerts: [], aciExpiring: [] };
   const performance = metrics?.performance || { totalRevenue: 0, grossProfit: 0, netProfitPool: 0 };
 
   return (
-    <div dir="rtl" style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* 1. Page Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ width: 4, height: 22, backgroundColor: '#170e5e', borderRadius: 2, display: 'inline-block' }} />
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-              مركز قيادة الاستيراد والتجارة الدولية (Import Command Center)
-            </h1>
-          </div>
-          <p style={{ fontSize: '0.8125rem', color: '#64748b', margin: '4px 14px 0 0' }}>
-            متابعة شاملة لدورة الاستيراد من الصين: دراسات الجدوى، المصانع، الشحن، الجمارك، المخزون، وتوزيع الأرباح
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => refetch()}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              backgroundColor: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: 8,
-              fontSize: '12.5px',
-              fontWeight: 600,
-              color: '#334155',
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCwIcon size={14} />
-            تحديث المؤشرات
-          </button>
-
-          <button
-            onClick={() => navigate('/import-sales/projects')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              backgroundColor: '#170e5e',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: '12.5px',
-              fontWeight: 700,
-              color: '#ffffff',
-              cursor: 'pointer',
-            }}
-          >
-            <PlusCircleIcon size={15} />
-            مشروع استيراد جديد
-          </button>
-        </div>
-      </div>
+    <div className="page-stack page-shell import-sales-page" dir="rtl">
+      <main className="document-prototype-column" style={{ paddingBottom: '80px', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
+        <PageHeader
+          title="مركز قيادة الاستيراد والتجارة الدولية"
+          description="متابعة شاملة لدورة الاستيراد من الصين: دراسات الجدوى، المصانع، الشحن، الجمارك، المخزون، وتوزيع الأرباح."
+          actions={
+            <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Button
+                variant="primary"
+                onClick={() => navigate('/import-sales/projects')}
+                style={{
+                  height: '38px',
+                  padding: '0 18px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>مشروع استيراد جديد</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                style={{
+                  height: '38px',
+                  padding: '0 14px',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <RefreshCwIcon size={15} />
+                <span>تحديث المؤشرات</span>
+              </Button>
+            </div>
+          }
+        />
 
             {/* Executive Operational Hubs Toolbar */}
       <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, flexWrap: 'wrap' }}>
@@ -185,10 +169,10 @@ export default function ImportCommandCenter() {
             </div>
           </div>
           <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#b91c1c' }}>
-            ${Number(metrics?.liabilities?.totalDebtForeign || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${Number((metrics?.liabilities as any)?.unpaidProformaUsd ?? metrics?.liabilities?.totalDebtForeign ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, marginTop: 4 }}>
-            التزام مؤجل بالعملة الأجنبية
+          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginTop: 4 }}>
+            الرصيد الدفتري: {Number((metrics?.liabilities as any)?.totalDebtEgp || 0).toLocaleString('en-US')} ج.م
           </div>
         </div>
 
@@ -555,6 +539,7 @@ export default function ImportCommandCenter() {
           )}
         </div>
       </div>
+      </main>
     </div>
   );
 }

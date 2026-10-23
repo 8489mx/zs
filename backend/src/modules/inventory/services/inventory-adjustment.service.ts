@@ -16,6 +16,7 @@ import { InventoryScopeService } from './inventory-scope.service';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
+import { syncImportLotsOnStockDeduction } from '../../import-sales/helpers/import-lot-allocation.helper';
 
 @Injectable()
 export class InventoryAdjustmentService {
@@ -131,6 +132,16 @@ export class InventoryAdjustmentService {
 
       if (!insertedMovement?.id) {
          throw new AppError('Failed to capture stock movement ID for accounting', 'MOVEMENT_INSERT_FAILED', 500);
+      }
+
+      if (signedDelta < -0.0001) {
+        await syncImportLotsOnStockDeduction(trx, {
+          tenantId: scope.tenantId,
+          productId: Number(payload.productId),
+          locationId: payload.locationId ?? null,
+          qty: Math.abs(signedDelta),
+          reason: payload.reason || 'inventory_adjustment',
+        });
       }
 
       const posting = await this.accountingPosting.postInventoryAdjustment(trx, insertedMovement.id, auth);

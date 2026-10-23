@@ -423,6 +423,15 @@ export interface ImportCommandCenterMetrics {
   };
   liabilities: {
     totalDebtForeign: number;
+    totalDebtEgp?: number;
+    unpaidProformaUsd?: number;
+    supplierLiabilities?: Array<{
+      id: number;
+      name: string;
+      balanceEgp: number;
+      unpaidForeignUsd?: number;
+      currency: string;
+    }>;
   };
   alerts: {
     demurrageAlerts: Array<{
@@ -562,13 +571,37 @@ export const useChinaSuppliersQuery = () => {
   });
 };
 
-export const useUpsertSupplierMetaMutation = (supplierId: string) => {
+export const useUpsertSupplierMetaMutation = (defaultSupplierId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
-      return await http(`/api/import-sales/suppliers/${supplierId}/meta`, {
+      const targetSupplierId = dto?.supplierId || defaultSupplierId;
+      const payload = {
+        chineseName: dto.chineseName ?? dto.chinese_name,
+        city: dto.city,
+        province: dto.province,
+        moqDescription: dto.moqDescription ?? dto.moq_description,
+        verifiedBankDetails: dto.verifiedBankDetails ?? dto.verified_bank_details,
+        incotermsAccepted: dto.incotermsAccepted ?? dto.incoterms_accepted,
+        qualityCertifications: dto.qualityCertifications ?? dto.quality_certifications,
+        notes: dto.notes,
+        productionLeadTimeDays:
+          dto.productionLeadTimeDays !== undefined
+            ? Number(dto.productionLeadTimeDays)
+            : dto.production_lead_time_days !== undefined
+              ? Number(dto.production_lead_time_days)
+              : undefined,
+        qcRating:
+          dto.qcRating !== undefined
+            ? Number(dto.qcRating)
+            : dto.qc_rating !== undefined
+              ? Number(dto.qc_rating)
+              : undefined,
+        auditStatus: dto.auditStatus ?? dto.audit_status,
+      };
+      return await http(`/api/import-sales/suppliers/${targetSupplierId}/meta`, {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -652,17 +685,22 @@ export const useCalculateCustomsMutation = () => {
   });
 };
 
-export const useCloseProjectMutation = (projectId: string) => {
+export const useCloseProjectMutation = (defaultProjectId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (approvalRequestId: string) => {
+    mutationFn: async (args: string | { projectId?: string; approvalRequestId: string }) => {
+      const projectId = typeof args === 'string' ? defaultProjectId : args.projectId || defaultProjectId;
+      const approvalRequestId = typeof args === 'string' ? args : args.approvalRequestId;
       return await http(`/api/import-sales/projects/${projectId}/close`, {
-        method: 'POST', body: JSON.stringify({ approvalRequestId }),
+        method: 'POST',
+        body: JSON.stringify({ approvalRequestId }),
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import-projects'] });
-      queryClient.invalidateQueries({ queryKey: ['import-projects', projectId] });
+      if (defaultProjectId) {
+        queryClient.invalidateQueries({ queryKey: ['import-projects', defaultProjectId] });
+      }
       queryClient.invalidateQueries({ queryKey: ['import-command-center'] });
     },
   });
@@ -698,9 +736,21 @@ export const useCreateCustomsBrokerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        name: dto.name,
+        licenseNo: dto.licenseNo ?? dto.licenseNumber ?? dto.license_no,
+        phone: dto.phone,
+        email: dto.email,
+        customsPorts:
+          dto.customsPorts ??
+          (dto.portName ? [dto.portName] : dto.customs_ports ? dto.customs_ports : undefined),
+        taxNumber: dto.taxNumber ?? dto.tax_number,
+        commercialRegistry: dto.commercialRegistry ?? dto.commercial_registry,
+        notes: dto.notes,
+      };
       return await http<CustomsBroker>('/api/import-sales/customs-brokers', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -713,9 +763,20 @@ export const useDisburseBrokerAdvanceMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        brokerId: dto.brokerId ?? dto.broker_id,
+        projectId: dto.projectId || dto.project_id || undefined,
+        shipmentId: dto.shipmentId || dto.shipment_id || undefined,
+        advanceNo: dto.advanceNo || dto.advance_no || `ADV-${Date.now().toString().slice(-6)}`,
+        amountEgp: Number(dto.amountEgp ?? dto.amount_egp ?? dto.amount ?? 0),
+        disbursementDate: dto.disbursementDate || dto.disbursement_date || new Date().toISOString().slice(0, 10),
+        paymentMethod: dto.paymentMethod || dto.payment_method || 'bank_transfer',
+        treasuryAccountId: dto.treasuryAccountId || dto.treasury_account_id || undefined,
+        notes: dto.notes || undefined,
+      };
       return await http<any>('/api/import-sales/customs-brokers/advances', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -729,9 +790,23 @@ export const useLiquidateBrokerExpenseMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        brokerId: dto.brokerId ?? dto.broker_id,
+        advanceId: dto.advanceId || dto.advance_id || undefined,
+        projectId: dto.projectId || dto.project_id || undefined,
+        shipmentId: dto.shipmentId || dto.shipment_id || undefined,
+        receiptNo: dto.receiptNo || dto.receiptNumber || dto.receipt_no || `REC-${Date.now().toString().slice(-6)}`,
+        expenseDate: dto.expenseDate || dto.expense_date || new Date().toISOString().slice(0, 10),
+        category: dto.category || dto.expenseCategory || 'clearance_fees',
+        amountEgp: Number(dto.amountEgp ?? dto.amount_egp ?? dto.amount ?? 0),
+        isCapitalized: dto.isCapitalized ?? dto.is_capitalized ?? true,
+        isRefundableVat: dto.isRefundableVat ?? dto.is_refundable_vat ?? false,
+        attachmentUrl: dto.attachmentUrl || dto.attachment_url || undefined,
+        notes: dto.notes || undefined,
+      };
       return await http<any>('/api/import-sales/customs-brokers/liquidate', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -765,9 +840,22 @@ export const useRecordContainerDepositMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        shipmentId: dto.shipmentId || dto.shipment_id,
+        projectId: dto.projectId || dto.project_id || undefined,
+        containerNo: dto.containerNo || dto.containerNumber || dto.container_no,
+        shippingLine: dto.shippingLine || dto.shipping_line,
+        depositAmountEgp: Number(dto.depositAmountEgp ?? dto.deposit_amount_egp ?? 0),
+        paymentDate: dto.paymentDate || dto.payment_date || new Date().toISOString().slice(0, 10),
+        expectedReturnDate: dto.expectedReturnDate || dto.freeDaysDeadline || dto.expected_return_date || undefined,
+        treasuryAccountId: dto.treasuryAccountId || dto.treasury_account_id || undefined,
+        receiptNo: dto.receiptNo || dto.receipt_no || undefined,
+        idempotencyKey: dto.idempotencyKey || `DEP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        notes: dto.notes || undefined,
+      };
       return await http<any>('/api/import-sales/container-deposits', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -781,10 +869,22 @@ export const useRefundContainerDepositMutation = (defaultDepositId?: string) => 
   return useMutation({
     mutationFn: async (args: any) => {
       const depositId = args?.depositId || defaultDepositId;
-      const dto = args?.dto !== undefined ? args.dto : args;
+      const raw = args?.dto !== undefined ? args.dto : args;
+      const payload = {
+        actualReturnDate: raw.actualReturnDate || raw.actual_return_date || new Date().toISOString().slice(0, 10),
+        refundedAmountEgp: Number(raw.refundedAmountEgp ?? raw.refunded_amount_egp ?? 0),
+        deductionsAmountEgp:
+          raw.deductionsAmountEgp !== undefined
+            ? Number(raw.deductionsAmountEgp)
+            : raw.deductedDamagesEgp !== undefined
+              ? Number(raw.deductedDamagesEgp)
+              : undefined,
+        deductionReason: raw.deductionReason || raw.deduction_reason || raw.notes || undefined,
+        treasuryAccountId: raw.treasuryAccountId || raw.treasury_account_id || undefined,
+      };
       return await http<any>(`/api/import-sales/container-deposits/${depositId}/return-refund`, {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -807,13 +907,104 @@ export const useCreateContainerPreorderMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        shipmentId: dto.shipmentId || dto.shipment_id,
+        projectId: dto.projectId || dto.project_id || undefined,
+        customerId: Number(dto.customerId ?? dto.customer_id),
+        productId: Number(dto.productId ?? dto.product_id),
+        reservedQuantity: Number(dto.reservedQuantity ?? dto.reserved_quantity),
+        agreedUnitPriceEgp: Number(dto.agreedUnitPriceEgp ?? dto.unit_price_egp ?? dto.agreed_unit_price_egp),
+        depositAmountEgp: dto.depositAmountEgp !== undefined ? Number(dto.depositAmountEgp) : undefined,
+        treasuryAccountId: dto.treasuryAccountId ? Number(dto.treasuryAccountId) : undefined,
+        idempotencyKey: dto.idempotencyKey || `PRE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        notes: dto.notes || undefined,
+      };
       return await http<any>('/api/import-sales/preorders', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['container-preorders'] });
+    },
+  });
+};
+
+export const useCollectPreorderDepositMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      preorderId,
+      depositAmountEgp,
+      treasuryAccountId,
+      idempotencyKey,
+    }: {
+      preorderId: string;
+      depositAmountEgp: number;
+      treasuryAccountId?: number;
+      idempotencyKey?: string;
+    }) => {
+      return await http<any>(`/api/import-sales/preorders/${preorderId}/deposit`, {
+        method: 'POST',
+        body: JSON.stringify({
+          depositAmountEgp: Number(depositAmountEgp),
+          treasuryAccountId,
+          idempotencyKey: idempotencyKey || `PDEP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['container-preorders'] });
+      queryClient.invalidateQueries({ queryKey: ['container-autopsy'] });
+    },
+  });
+};
+
+export const useRefundPreorderDepositMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      preorderId,
+      refundAmountEgp,
+      treasuryAccountId,
+      idempotencyKey,
+      reason,
+    }: {
+      preorderId: string;
+      refundAmountEgp: number;
+      treasuryAccountId?: number;
+      idempotencyKey?: string;
+      reason?: string;
+    }) => {
+      return await http<any>(`/api/import-sales/preorders/${preorderId}/refund-deposit`, {
+        method: 'POST',
+        body: JSON.stringify({
+          refundAmountEgp: Number(refundAmountEgp),
+          treasuryAccountId,
+          idempotencyKey: idempotencyKey || `PREF-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          reason,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['container-preorders'] });
+      queryClient.invalidateQueries({ queryKey: ['container-autopsy'] });
+    },
+  });
+};
+
+export const useCancelPreorderMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ preorderId, reason }: { preorderId: string; reason?: string }) => {
+      return await http<any>(`/api/import-sales/preorders/${preorderId}/cancel`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reason }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['container-preorders'] });
+      queryClient.invalidateQueries({ queryKey: ['container-autopsy'] });
     },
   });
 };
@@ -842,9 +1033,31 @@ export const useCreateSampleOrderMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        projectId: dto.projectId || dto.project_id || undefined,
+        supplierId: Number(dto.supplierId ?? dto.supplier_id),
+        sampleCode: dto.sampleCode || dto.sample_code || `SMP-${Date.now().toString().slice(-6)}`,
+        itemName: dto.itemName || dto.sampleName || dto.item_name,
+        sampleCostForeign:
+          dto.sampleCostForeign !== undefined
+            ? Number(dto.sampleCostForeign)
+            : dto.sampleCostUsd !== undefined
+              ? Number(dto.sampleCostUsd)
+              : 0,
+        freightCostForeign:
+          dto.freightCostForeign !== undefined
+            ? Number(dto.freightCostForeign)
+            : dto.courierCostUsd !== undefined
+              ? Number(dto.courierCostUsd)
+              : 0,
+        currency: dto.currency || 'USD',
+        requestDate: dto.requestDate || dto.request_date || new Date().toISOString().slice(0, 10),
+        courierTrackingNo: dto.courierTrackingNo || dto.trackingNumber || dto.courier_tracking_no || undefined,
+        notes: dto.notes || undefined,
+      };
       return await http<any>('/api/import-sales/samples', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -858,10 +1071,27 @@ export const useUpdateSampleInspectionMutation = (defaultSampleId?: string) => {
   return useMutation({
     mutationFn: async (args: any) => {
       const sampleId = args?.sampleId || defaultSampleId;
-      const dto = args?.dto !== undefined ? args.dto : args;
+      const raw = args?.dto !== undefined ? args.dto : args;
+      const payload = {
+        qualityScore:
+          raw.qualityScore !== undefined
+            ? Number(raw.qualityScore)
+            : raw.qualityRating !== undefined
+              ? Number(raw.qualityRating) * 20
+              : undefined,
+        decision: raw.decision,
+        referenceSampleApproved:
+          raw.referenceSampleApproved !== undefined
+            ? Boolean(raw.referenceSampleApproved)
+            : raw.isGoldenSample !== undefined
+              ? Boolean(raw.isGoldenSample)
+              : undefined,
+        defectAnalysis: raw.defectAnalysis ?? raw.inspectionNotes ?? raw.defect_analysis,
+        receivedDate: raw.receivedDate || new Date().toISOString().slice(0, 10),
+      };
       return await http<any>(`/api/import-sales/samples/${sampleId}/inspection`, {
         method: 'PATCH',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -877,13 +1107,17 @@ export interface ProformaInvoice {
   supplier_id: number;
   supplier_name?: string;
   pi_number: string;
-  issue_date: string;
+  pi_date?: string;
+  issue_date?: string;
   currency: string;
   total_amount_foreign: string | number;
   paid_amount_foreign: string | number;
   payment_status: 'unpaid' | 'partial' | 'paid';
+  po_number?: string;
+  po_status?: string;
   international_po_number?: string;
   status: string;
+  items?: any;
   created_at?: string;
 }
 
@@ -893,6 +1127,20 @@ export const useProformaInvoicesQuery = (projectId?: string) => {
     queryFn: async () => {
       const url = projectId ? `/api/import-sales/proforma-invoices?projectId=${projectId}` : '/api/import-sales/proforma-invoices';
       return await http<any[]>(url);
+    },
+  });
+};
+
+export const useApproveProformaInvoiceMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (piId: string) => {
+      return await http<any>(`/api/import-sales/proforma-invoices/${piId}/approve`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proforma-invoices'] });
     },
   });
 };
@@ -916,7 +1164,8 @@ export interface CreateProformaInvoicePayload {
   projectId?: string;
   supplierId: string | number;
   piNumber: string;
-  piDate: string;
+  piDate?: string;
+  issueDate?: string;
   currency?: string;
   totalAmountForeign: number;
   incoterm?: string;
@@ -933,9 +1182,25 @@ export const useCreateProformaInvoiceMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: CreateProformaInvoicePayload) => {
+      const body = {
+        projectId: payload.projectId || undefined,
+        supplierId: Number(payload.supplierId),
+        piNumber: payload.piNumber,
+        piDate: payload.piDate || payload.issueDate || new Date().toISOString().slice(0, 10),
+        currency: payload.currency || 'USD',
+        totalAmountForeign: Number(payload.totalAmountForeign),
+        incoterm: payload.incoterm || 'FOB',
+        deliveryPort: payload.deliveryPort || undefined,
+        paymentTerms: payload.paymentTerms || undefined,
+        exchangeRateContract: payload.exchangeRateContract ? Number(payload.exchangeRateContract) : 50,
+        advancePercentage: payload.advancePercentage ? Number(payload.advancePercentage) : 30,
+        balancePercentage: payload.balancePercentage ? Number(payload.balancePercentage) : 70,
+        items: payload.items || [],
+        notes: payload.notes || undefined,
+      };
       return await http<any>('/api/import-sales/proforma-invoices', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
     },
     onSuccess: () => {
@@ -951,16 +1216,24 @@ export interface Quotation {
   supplier_id: number;
   supplier_name?: string;
   quotation_no?: string;
+  item_name?: string;
   incoterm?: string;
   currency?: string;
-  total_amount_foreign: string | number;
+  unit_price_foreign?: string | number;
+  total_amount_foreign?: string | number;
   exchange_rate_estimated?: string | number;
+  estimated_freight_usd?: string | number;
   shipping_cost_estimated_usd?: string | number;
+  estimated_customs_rate_percent?: string | number;
   customs_duty_estimated_egp?: string | number;
+  estimated_landed_cost_egp?: string | number;
   estimated_unit_cost_egp?: string | number;
+  production_lead_days?: number;
   lead_time_days?: number;
-  status: 'draft' | 'under_review' | 'selected' | 'rejected';
+  moq?: number;
+  status: 'pending' | 'draft' | 'under_review' | 'selected' | 'rejected';
   selection_reason?: string;
+  expiry_date?: string;
   valid_until?: string;
   created_at?: string;
 }
@@ -979,9 +1252,28 @@ export const useCreateQuotationMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        projectId: dto.projectId || dto.project_id || undefined,
+        supplierId: Number(dto.supplierId ?? dto.supplier_id),
+        quotationNo: dto.quotationNo || dto.quotation_no || `RFQ-${Date.now().toString().slice(-6)}`,
+        inquiryDate: dto.inquiryDate || new Date().toISOString().slice(0, 10),
+        expiryDate: dto.expiryDate || dto.validUntil || undefined,
+        incoterm: dto.incoterm || 'FOB',
+        currency: dto.currency || 'USD',
+        itemName: dto.itemName || dto.item_name || `عرض سعر #${dto.quotationNo || ''}`.trim(),
+        productId: dto.productId ? Number(dto.productId) : undefined,
+        unitPriceForeign: Number(dto.unitPriceForeign ?? dto.totalAmountForeign ?? dto.unit_price_foreign ?? 0),
+        moq: Number(dto.moq || 1),
+        productionLeadDays: Number(dto.productionLeadDays ?? dto.leadTimeDays ?? 30),
+        portOfLoading: dto.portOfLoading || undefined,
+        estimatedFreightUsd: Number(dto.estimatedFreightUsd ?? dto.shippingCostEstimatedUsd ?? 0),
+        estimatedCustomsRatePercent: Number(dto.estimatedCustomsRatePercent ?? 5),
+        exchangeRate: Number(dto.exchangeRate ?? dto.exchangeRateEstimated ?? 50),
+        notes: dto.notes || undefined,
+      };
       return await http<any>('/api/import-sales/quotations', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -993,18 +1285,20 @@ export const useCreateQuotationMutation = () => {
 export const useSelectQuotationMutation = (defaultQuotationId?: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (args: string | { quotationId?: string; reason?: string }) => {
+    mutationFn: async (args: string | { quotationId?: string; reason?: string; selectionReason?: string }) => {
       let id = defaultQuotationId;
-      let reason: string | undefined;
+      let selectionReason: string | undefined;
       if (typeof args === 'string') {
-        reason = args;
+        selectionReason = args;
       } else if (args) {
         id = args.quotationId || defaultQuotationId;
-        reason = args.reason;
+        selectionReason = args.selectionReason || args.reason;
       }
       return await http<any>(`/api/import-sales/quotations/${id}/select`, {
         method: 'POST',
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({
+          selectionReason: selectionReason || 'اعتماد عرض السعر الأفضل فنياً ومالياً',
+        }),
       });
     },
     onSuccess: () => {
@@ -1013,7 +1307,6 @@ export const useSelectQuotationMutation = (defaultQuotationId?: string) => {
     },
   });
 };
-
 
 // ==========================================
 // PRE-ORDER CONVERSION TO SALES
@@ -1029,6 +1322,7 @@ export const useConvertPreorderToSaleMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['container-preorders'] });
+      queryClient.invalidateQueries({ queryKey: ['container-autopsy'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
     },
   });
@@ -1051,9 +1345,21 @@ export const useCreateApprovalRequestMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        actionType: dto.actionType || dto.action_type,
+        referenceId: String(dto.referenceId ?? dto.reference_id ?? dto.entityId ?? ''),
+        requestPayload:
+          dto.requestPayload ??
+          dto.request_payload ?? {
+            entityType: dto.entityType,
+            amountEgp: dto.amountEgp,
+            reason: dto.reason,
+            ...(dto.payload || {}),
+          },
+      };
       return await http<any>('/api/import-sales/approvals', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -1065,10 +1371,25 @@ export const useCreateApprovalRequestMutation = () => {
 export const useDecideApprovalRequestMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, decision, rejectionReason, comments }: { id: string; decision: 'approved' | 'rejected'; rejectionReason?: string; comments?: string }) => {
+    mutationFn: async ({
+      id,
+      decision,
+      rejectionReason,
+      decisionNotes,
+      comments,
+    }: {
+      id: string;
+      decision: 'approved' | 'rejected';
+      rejectionReason?: string;
+      decisionNotes?: string;
+      comments?: string;
+    }) => {
       return await http<any>(`/api/import-sales/approvals/${id}/decide`, {
         method: 'POST',
-        body: JSON.stringify({ decision, rejectionReason, comments }),
+        body: JSON.stringify({
+          decision,
+          rejectionReason: rejectionReason || decisionNotes || comments,
+        }),
       });
     },
     onSuccess: () => {
@@ -1093,9 +1414,21 @@ export const useRecordFxAcquisitionMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        currency: dto.currency || 'USD',
+        foreignAmount: Number(dto.foreignAmount ?? dto.foreign_amount ?? 0),
+        exchangeRate: Number(dto.exchangeRate ?? dto.exchange_rate ?? 0),
+        sourceType: dto.sourceType || dto.source_type || 'bank_exchange',
+        sourceReference: dto.sourceReference || dto.source_reference || undefined,
+        acquisitionDate: dto.acquisitionDate || dto.acquisition_date || new Date().toISOString().slice(0, 10),
+        treasuryAccountId: dto.treasuryAccountId ? Number(dto.treasuryAccountId) : undefined,
+        fxTreasuryAccountId: dto.fxTreasuryAccountId ? Number(dto.fxTreasuryAccountId) : undefined,
+        idempotencyKey: dto.idempotencyKey || `FX-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        notes: dto.notes || undefined,
+      };
       return await http<any>('/api/import-sales/fx-acquisitions', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -1134,10 +1467,10 @@ export const useRunReconciliationScanMutation = () => {
 export const useResolveReconciliationExceptionMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, resolutionNotes }: { id: string; resolutionNotes?: string }) => {
+    mutationFn: async ({ id, resolutionNotes }: { id: string; resolutionNotes?: string; status?: string }) => {
       return await http<any>(`/api/import-sales/reconciliation/exceptions/${id}/resolve`, {
         method: 'POST',
-        body: JSON.stringify({ resolutionNotes }),
+        body: JSON.stringify({ resolutionNotes: resolutionNotes || 'تمت المعالجة والمطابقة المحاسبية' }),
       });
     },
     onSuccess: () => {
@@ -1163,9 +1496,19 @@ export const useCreateSourcingTripMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const payload = {
+        projectId: dto.projectId || dto.project_id || undefined,
+        tripTitle: dto.tripTitle || dto.trip_title || dto.trip_name || dto.title,
+        destinationCity: dto.destinationCity || dto.destination_city || dto.cities_visited || dto.destination || 'Guangzhou / Yiwu',
+        startDate: dto.startDate || dto.start_date || new Date().toISOString().slice(0, 10),
+        endDate: dto.endDate || dto.end_date || undefined,
+        budgetEgp: Number(dto.budgetEgp ?? dto.budget_egp ?? (dto.travel_cost_usd ? Number(dto.travel_cost_usd) * 50 : 0)),
+        actualCostEgp: Number(dto.actualCostEgp ?? dto.actual_cost_egp ?? (dto.travel_cost_usd ? Number(dto.travel_cost_usd) * 50 : 0)),
+        notes: dto.notes || dto.objectives || dto.outcomes_summary || undefined,
+      };
       return await http<any>('/api/import-sales/sourcing-trips', {
         method: 'POST',
-        body: JSON.stringify(dto),
+        body: JSON.stringify(payload),
       });
     },
     onSuccess: () => {
@@ -1173,3 +1516,75 @@ export const useCreateSourcingTripMutation = () => {
     },
   });
 };
+
+// ==========================================
+// RECEIVING INSPECTIONS, LATE EXPENSES & FEASIBILITY CONVERSION
+// ==========================================
+export const useCreateReceivingInspectionMutation = (shipmentId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: any) => {
+      return await http<any>('/api/import-sales/receiving-inspections', {
+        method: 'POST',
+        body: JSON.stringify({ ...dto, shipmentId }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['container-autopsy', shipmentId] });
+    },
+  });
+};
+
+export const useRecordLateShipmentExpenseMutation = (shipmentId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (dto: {
+      expenseCategory: string;
+      amountEgp: number;
+      handlingMethod: 'revalue_unsold_stock' | 'charge_to_project_pnl';
+      treasuryAccountId?: number;
+      idempotencyKey?: string;
+      notes?: string;
+    }) => {
+      return await http<any>(`/api/import-sales/shipments/${shipmentId}/late-expenses`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...dto,
+          idempotencyKey: dto.idempotencyKey || `LATE-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['container-autopsy', shipmentId] });
+    },
+  });
+};
+
+export const useConvertFeasibilityToProjectMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      supplierId,
+      targetPort,
+      advancePaymentPercentage,
+    }: {
+      projectId: string;
+      supplierId?: string;
+      targetPort?: string;
+      advancePaymentPercentage?: number;
+    }) => {
+      return await http<any>(`/api/import-sales/projects/${projectId}/convert-feasibility`, {
+        method: 'POST',
+        body: JSON.stringify({ supplierId, targetPort, advancePaymentPercentage }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['proforma-invoices'] });
+    },
+  });
+};
+

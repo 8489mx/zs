@@ -80,10 +80,10 @@ export function resolveCurrentVertical(tenant?: any, settings?: any): BusinessVe
   const candidates = [
     settings?.businessIndustry,
     settings?.activityType,
-    tenant?.pillar,
     tenant?.activityType,
+    tenant?.pillar,
   ].map((s) => String(s ?? '').trim().toLowerCase().replace(/^"|"$/g, ''))
-   .filter((s) => s && s !== 'general' && s !== 'retail_general' && s !== 'retail' && s !== 'store');
+   .filter((s) => s && s !== 'general' && s !== 'retail_general' && s !== 'retail' && s !== 'store' && s !== 'commerce');
 
   const explicit = candidates[0] || String(settings?.businessIndustry || tenant?.activityType || '').trim().toLowerCase();
 
