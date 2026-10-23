@@ -1024,6 +1024,7 @@ export function PosWorkspace() {
         locations={pos.locationsQuery.data || []}
         defaultBranchId={pos.branchId}
         defaultLocationId={pos.locationId}
+        requirePassword={Boolean(pos.settings?.requirePasswordOnShiftOpen)}
         onShiftOpened={() => {
           void pos.refetchCatalogs();
         }}

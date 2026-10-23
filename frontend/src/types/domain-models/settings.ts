@@ -98,6 +98,7 @@ export interface AppSettings {
   allowSellingBelowStock?: boolean;
   allowZeroPurchaseCost?: boolean;
   requireCashierShiftForSales?: boolean;
+  requirePasswordOnShiftOpen?: boolean;
   posMaxDiscountThresholdEnabled?: boolean;
   posMaxDiscountThresholdType?: 'percentage' | 'fixed';
   posMaxDiscountThresholdValue?: number;

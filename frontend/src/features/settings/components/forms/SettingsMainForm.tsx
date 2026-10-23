@@ -54,6 +54,7 @@ export const SETTINGS_FIELD_METADATA: Record<
   allowNegativeStockSales: { tab: 'sales_inventory', label: 'البيع بالسالب عند نفاد المخزون' },
   allowZeroPurchaseCost: { tab: 'sales_inventory', label: 'السماح بتكلفة شراء صفرية' },
   requireCashierShiftForSales: { tab: 'sales_inventory', label: 'إلزام فتح وردية كاشير' },
+  requirePasswordOnShiftOpen: { tab: 'sales_inventory', label: 'طلب كلمة المرور عند فتح الوردية' },
   defaultProductKind: { tab: 'sales_inventory', label: 'نوع المنتج الافتراضي' },
   defaultPosMode: { tab: 'sales_inventory', label: 'نمط شاشة البيع السريع' },
   deliveryFeeMode: { tab: 'sales_inventory', label: 'نمط خدمة التوصيل' },
@@ -245,6 +246,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       allowNegativeStockSales: false,
       allowZeroPurchaseCost: false,
       requireCashierShiftForSales: true,
+      requirePasswordOnShiftOpen: false,
       restaurantTablesCount: 12,
       loyaltyEnabled: true,
       loyaltyPointsPer100Egp: 10,
@@ -512,6 +514,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: isWholesaleVertical || isWarehousingVertical || isContractingVertical || isMaritimeVertical ? false : (settings.requireCashierShiftForSales !== false),
+      requirePasswordOnShiftOpen: settings.requirePasswordOnShiftOpen === true,
       restaurantTablesCount: Math.min(200, Math.max(1, Math.floor(Number(settings.restaurantTablesCount || 12)))),
       loyaltyEnabled: (settings as any)?.loyaltyEnabled !== false,
       loyaltyPointsPer100Egp: Number((settings as any)?.loyaltyPointsPer100Egp ?? 10),
@@ -852,6 +855,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       } else if (isWholesaleVertical) {
         values.posModuleEnabled = false;
         values.requireCashierShiftForSales = false;
+        values.requirePasswordOnShiftOpen = false;
         values.vanSalesModuleEnabled = true;
         values.deliveryFleetModuleEnabled = true;
         values.deliveryRepsModuleEnabled = false;
@@ -864,6 +868,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       } else if (isWarehousingVertical) {
         values.posModuleEnabled = false;
         values.requireCashierShiftForSales = false;
+        values.requirePasswordOnShiftOpen = false;
         values.inventoryModuleEnabled = true;
         values.purchasesModuleEnabled = true;
         values.enableEnterpriseFeatures = true;

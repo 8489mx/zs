@@ -228,6 +228,9 @@ export function buildSettingsUpdatePayload(
     requireCashierShiftForSales: values.requireCashierShiftForSales !== undefined
       ? values.requireCashierShiftForSales !== false
       : current?.requireCashierShiftForSales !== false,
+    requirePasswordOnShiftOpen: values.requirePasswordOnShiftOpen !== undefined
+      ? values.requirePasswordOnShiftOpen === true
+      : current?.requirePasswordOnShiftOpen === true,
     restaurantTablesCount: values.restaurantTablesCount !== undefined
       ? Math.min(200, Math.max(1, Math.floor(Number(values.restaurantTablesCount || 12))))
       : Math.min(200, Math.max(1, Math.floor(Number(current?.restaurantTablesCount || 12)))),

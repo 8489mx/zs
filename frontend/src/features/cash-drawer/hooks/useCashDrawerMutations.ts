@@ -8,6 +8,7 @@ interface OpenShiftValues {
   note: string;
   branchId: string;
   locationId: string;
+  password?: string;
 }
 
 interface MovementValues {
@@ -57,7 +58,8 @@ export function useCashDrawerMutations(actions?: {
         openingCash: Number(values.openingCash || 0),
         note: values.note || '',
         branchId: values.branchId || '',
-        locationId: values.locationId || ''
+        locationId: values.locationId || '',
+        password: values.password || undefined,
       }),
     onSuccess: async () => {
       await refreshAll();

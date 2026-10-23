@@ -246,6 +246,7 @@ export interface AppSettings {
   allowSellingBelowStock?: boolean;
   allowZeroPurchaseCost?: boolean;
   requireCashierShiftForSales?: boolean;
+  requirePasswordOnShiftOpen?: boolean;
   posKitchenPrinterEnabled?: boolean;
   posKitchenPrinterAuto?: boolean;
   posAutoPrintKitchenReceipt?: boolean;

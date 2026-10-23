@@ -19,11 +19,12 @@ import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNo
   // Universal Document Numbering standard: PREFIX-YYMMDD-NNNN (date injected so the assertion stays deterministic).
   assert.equal(buildCashDrawerShiftDocNo(77, new Date('2026-09-20T00:00:00.000Z')), 'SHIFT-260920-0077');
   assert.match(buildCashDrawerShiftDocNo(77), /^SHIFT-\d{6}-\d{4}$/);
-  const normalized = normalizeShiftOpenPayload({ openingCash: '25' as unknown as number, note: ' start ', branchId: '3', locationId: '4' });
+  const normalized = normalizeShiftOpenPayload({ openingCash: '25' as unknown as number, note: ' start ', branchId: '3', locationId: '4', password: '  secret123  ' });
   assert.equal(normalized.openingCash, 25);
   assert.equal(normalized.note, 'start');
   assert.equal(normalized.branchId, 3);
   assert.equal(normalized.locationId, 4);
+  assert.equal(normalized.password, 'secret123');
   assert.equal(normalizeCashDrawerMovementType('cash_out'), 'cash_out');
   assert.equal(normalizeCashDrawerMovementType('other'), 'cash_in');
   assert.equal(toSignedCashDrawerAmount('cash_out', 10.5), -10.5);

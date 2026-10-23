@@ -43,6 +43,7 @@ interface CashDrawerFormsPanelProps {
   closeVariancePreview: number;
   closeNoteValue: string;
   isBlindCloseMode?: boolean;
+  requirePasswordOnShiftOpen?: boolean;
   onMovementSubmit: () => void;
   onCloseSubmit: () => void;
 }
@@ -688,6 +689,19 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
               )}
             />
           </Field>}
+          {props.requirePasswordOnShiftOpen ? (
+            <Field label={t('cash_drawer.cash_drawer_forms_panel.open_password', "كلمة مرور المستخدم الحالي (تأكيد الفتح)")}>
+              <input
+                type="password"
+                placeholder={t('cash_drawer.cash_drawer_forms_panel.open_password_ph', "أدخل كلمة المرور لتأكيد فتح الوردية")}
+                required
+                {...props.openForm.register('password', { required: props.requirePasswordOnShiftOpen })}
+                disabled={props.openMutation.isPending}
+                autoComplete="off"
+                data-lpignore="true"
+              />
+            </Field>
+          ) : null}
           <Field label={t('cash_drawer.cash_drawer_forms_panel.s21', "ملاحظة الافتتاح")}><textarea rows={2} {...props.openForm.register('note')} disabled={props.openMutation.isPending} /></Field>
           <MutationFeedback isError={props.openMutation.isError} isSuccess={props.openMutation.isSuccess} error={props.openMutation.error} errorFallback={t('cash_drawer.cash_drawer_forms_panel.s22', "تعذر فتح وردية نقطة البيع")} successText={t('cash_drawer.cash_drawer_forms_panel.s23', "تم فتح وردية نقطة البيع بنجاح.")} />
           <SubmitButton type="submit" isPending={props.openMutation.isPending} idleText={t('cash_drawer.cash_drawer_forms_panel.s24', "فتح وردية نقطة البيع")} pendingText={t('cash_drawer.cash_drawer_forms_panel.s25', "جارٍ الفتح...")} />

@@ -74,6 +74,7 @@ export const settingsFormSchema = z.object({
   allowNegativeStockSales: z.boolean().default(false),
   allowZeroPurchaseCost: z.boolean().default(false),
   requireCashierShiftForSales: z.boolean().default(true),
+  requirePasswordOnShiftOpen: z.boolean().default(false),
   restaurantTablesCount: z.preprocess(
     (val) => (val === '' || val === null || val === undefined || Number.isNaN(Number(val)) || Number(val) < 1 ? 12 : Number(val)),
     z.coerce.number().int().min(1, 'يجب تحديد طاولة واحدة على الأقل').max(200, 'الحد الأقصى 200 طاولة').default(12)

@@ -1645,6 +1645,22 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
             </label>
           )}
 
+          {/* Card 3b: Require Password On Shift Open (Only for POS) */}
+          {showPosSettings && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={iconBadgeStyle}>
+                  <LockIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s120_pwd', "طلب كلمة المرور عند فتح الوردية")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s121_pwd', "التحقق من هوية الكاشير بكلمة المرور قبل بدء الوردية وفتح الصندوق")}</small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('requirePasswordOnShiftOpen')} disabled={disabled} />
+            </label>
+          )}
+
           {/* Card 4: Low Stock Alert */}
           {showPhysicalInventory && (
             <div style={{ ...premiumCardStyle, cursor: 'default' }}>

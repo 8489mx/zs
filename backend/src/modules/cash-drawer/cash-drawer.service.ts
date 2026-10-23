@@ -169,7 +169,28 @@ export class CashDrawerService {
     const user = result.rows?.[0] || null;
     if (!user || user.is_active === false || user.is_active === 0 || user.is_active === 'false') throw new AppError('المستخدم الحالي غير متاح', 'CURRENT_USER_NOT_FOUND', 400);
     const passwordCheck = await verifyPassword(providedPassword, String(user.password_hash || ''), String(user.password_salt || ''));
-    if (!passwordCheck.valid) throw new AppError('كلمة مرور المستخدم الحالي غير صحيحة', 'CURRENT_USER_PASSWORD_INVALID', 400);
+    if (!passwordCheck.valid) {
+      try {
+        await this.assertManagerPin(providedPassword, auth);
+        return;
+      } catch {
+        throw new AppError('كلمة مرور المستخدم الحالي غير صحيحة', 'CURRENT_USER_PASSWORD_INVALID', 400);
+      }
+    }
+  }
+
+  private async isPasswordRequiredOnShiftOpen(auth: AuthContext): Promise<boolean> {
+    const scope = this.scope(auth);
+    const result = await sql<SettingsRow>`select key, value from settings where tenant_id = ${scope.tenantId} and key = 'requirePasswordOnShiftOpen' limit 1`.execute(this.db);
+    const raw = result.rows?.[0]?.value;
+    if (raw == null) return false;
+    if (typeof raw === 'boolean') return raw;
+    try {
+      const parsed = JSON.parse(String(raw));
+      return parsed === true || parsed === 'true' || parsed === 1 || parsed === '1';
+    } catch {
+      return String(raw).trim() === 'true' || String(raw).trim() === '1';
+    }
   }
 
   private async assertCashDrawerApproval(movementType: 'cash_in' | 'cash_out', approvalSecret: string, auth: AuthContext): Promise<void> {
@@ -734,15 +755,24 @@ export class CashDrawerService {
     return { cashierShifts: paged.rows, pagination: paged.pagination, summary: summarizeCashDrawerRows(filtered), viewerRole: auth.role };
   }
 
-  async openCashierShift(payload: { openingCash?: number; note?: string; branchId?: number | string | null; locationId?: number | string | null }, auth: AuthContext): Promise<Record<string, unknown>> {
+  async openCashierShift(payload: { openingCash?: number; note?: string; branchId?: number | string | null; locationId?: number | string | null; password?: string; managerPin?: string }, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = this.scope(auth);
-    const { openingCash, note, branchId, locationId } = normalizeShiftOpenPayload(payload);
+    const { openingCash, note, branchId, locationId, password } = normalizeShiftOpenPayload(payload);
     if (!Number.isFinite(openingCash) || openingCash < 0 || openingCash > 1_000_000_000_000) {
       throw new AppError('رصيد الافتتاح يجب أن يكون رقماً صالحاً وغير سالب', 'OPENING_CASH_INVALID', 400);
     }
     for (const id of [branchId, locationId]) {
       if (id !== null && (!Number.isSafeInteger(id) || id <= 0)) throw new AppError('Invalid branch/location ID', 'SHIFT_SCOPE_INVALID', 400);
     }
+
+    const isPasswordRequired = await this.isPasswordRequiredOnShiftOpen(auth);
+    if (isPasswordRequired) {
+      if (!password) {
+        throw new AppError('أدخل كلمة المرور لتأكيد فتح الوردية', 'CURRENT_USER_PASSWORD_REQUIRED', 400);
+      }
+      await this.assertCurrentUserPassword(password, auth);
+    }
+
     await this.tx.runInTransaction(this.db, async (trx) => {
       let resolvedBranchId = branchId;
       // Serialize opens for the same cashier before checking for an existing shift.

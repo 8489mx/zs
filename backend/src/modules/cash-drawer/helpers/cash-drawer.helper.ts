@@ -288,8 +288,9 @@ export function buildCashDrawerShiftDocNo(shiftId: number, date: Date = new Date
   return formatDailyDocumentNumber('SHIFT', shiftId, date);
 }
 
-export function normalizeShiftOpenPayload(payload: { openingCash?: number; note?: string; branchId?: number | string | null; locationId?: number | string | null; }): { openingCash: number; note: string; branchId: number | null; locationId: number | null; } {
-  return { openingCash: Number(payload.openingCash || 0), note: String(payload.note || '').trim(), branchId: payload.branchId ? Number(payload.branchId) : null, locationId: payload.locationId ? Number(payload.locationId) : null };
+export function normalizeShiftOpenPayload(payload: { openingCash?: number; note?: string; branchId?: number | string | null; locationId?: number | string | null; password?: string; managerPin?: string }): { openingCash: number; note: string; branchId: number | null; locationId: number | null; password?: string } {
+  const rawPassword = payload.password || payload.managerPin;
+  return { openingCash: Number(payload.openingCash || 0), note: String(payload.note || '').trim(), branchId: payload.branchId ? Number(payload.branchId) : null, locationId: payload.locationId ? Number(payload.locationId) : null, password: rawPassword ? String(rawPassword).trim() : undefined };
 }
 
 export function assertCashDrawerAmount(amount: number): void { if (!(amount > 0)) throw new AppError('المبلغ يجب أن يكون أكبر من صفر', 'AMOUNT_INVALID', 400); }

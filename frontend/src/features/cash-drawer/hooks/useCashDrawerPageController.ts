@@ -13,6 +13,7 @@ export interface OpenShiftValues {
   note: string;
   branchId: string;
   locationId: string;
+  password?: string;
 }
 
 export interface MovementValues {
@@ -66,7 +67,7 @@ export function useCashDrawerPageController() {
   const pagination = query.data?.pagination;
   const summary = query.data?.summary || { totalItems: 0, openShiftCount: 0, pendingReviewCount: 0, openShiftDocNo: '', totalVariance: 0 };
 
-  const openForm = useForm<OpenShiftValues>({ defaultValues: { openingCash: 0, note: '', branchId: '', locationId: '' } });
+  const openForm = useForm<OpenShiftValues>({ defaultValues: { openingCash: 0, note: '', branchId: '', locationId: '', password: '' } });
   const movementForm = useForm<MovementValues>({ defaultValues: { shiftId: '', type: 'cash_in', amount: 0, note: '', managerPin: '' } });
   const closeForm = useForm<CloseShiftValues>({
     defaultValues: {
@@ -102,6 +103,7 @@ export function useCashDrawerPageController() {
         note: '',
         branchId,
         locationId: defaultLocation?.id || '',
+        password: '',
       });
     },
     onMovementSuccess: () => movementForm.reset({ shiftId: '', type: 'cash_in', amount: 0, note: '', managerPin: '' }),

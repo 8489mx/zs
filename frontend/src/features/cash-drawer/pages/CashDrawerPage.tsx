@@ -222,6 +222,7 @@ export function CashDrawerPage() {
         closeVariancePreview={controller.closeVariancePreview}
         closeNoteValue={controller.closeNoteValue}
         isBlindCloseMode={controller.isBlindCloseUser}
+        requirePasswordOnShiftOpen={Boolean(settings?.requirePasswordOnShiftOpen)}
         onMovementSubmit={controller.handleMovementSubmit}
         onCloseSubmit={controller.handleCloseSubmit}
       />

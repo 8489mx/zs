@@ -6,6 +6,7 @@ import { Field } from '@/shared/ui/field';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import { cashDrawerApi } from '@/lib/api/cash-drawer';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, Location } from '@/types/domain';
 
@@ -16,6 +17,7 @@ export interface PosOpenShiftModalProps {
   locations: Location[];
   defaultBranchId?: string | number | null;
   defaultLocationId?: string | number | null;
+  requirePassword?: boolean;
   onShiftOpened: () => void;
 }
 
@@ -24,11 +26,14 @@ interface OpenShiftFormValues {
   branchId: string;
   locationId: string;
   note: string;
+  password?: string;
 }
 
 export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
   const { t } = useTranslation();
-  const { open, onClose, branches, locations, defaultBranchId, defaultLocationId, onShiftOpened } = props;
+  const { open, onClose, branches, locations, defaultBranchId, defaultLocationId, requirePassword, onShiftOpened } = props;
+  const { data: settings } = useSettingsQuery();
+  const isPasswordRequired = requirePassword ?? Boolean(settings?.requirePasswordOnShiftOpen);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -42,6 +47,7 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
       branchId: defaultBranchId ? String(defaultBranchId) : '',
       locationId: defaultLocationId ? String(defaultLocationId) : '',
       note: '',
+      password: '',
     },
   });
 
@@ -75,6 +81,7 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
         branchId: effectiveBranchId,
         locationId: defaultLoc?.id ? String(defaultLoc.id) : '',
         note: '',
+        password: '',
       });
     }
   }, [open, defaultBranchId, defaultLocationId, branchList, locationList, reset]);
@@ -88,6 +95,7 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
         branchId: values.branchId ? Number(values.branchId) : null,
         locationId: values.locationId ? Number(values.locationId) : null,
         note: String(values.note || '').trim(),
+        password: values.password ? String(values.password).trim() : undefined,
       });
       setIsSuccess(true);
       setTimeout(() => {
@@ -157,6 +165,20 @@ export function PosOpenShiftModal(props: PosOpenShiftModalProps) {
               </select>
             </Field>
           )}
+
+          {isPasswordRequired ? (
+            <Field label={t('pos.pos_workspace.pos_open_shift_modal.password_label', "كلمة مرور المستخدم الحالي (تأكيد الفتح)")}>
+              <input
+                type="password"
+                placeholder={t('pos.pos_workspace.pos_open_shift_modal.password_placeholder', "أدخل كلمة المرور لتأكيد فتح الوردية")}
+                required
+                {...register('password', { required: isPasswordRequired })}
+                disabled={isPending}
+                autoComplete="off"
+                data-lpignore="true"
+              />
+            </Field>
+          ) : null}
 
           <Field label={t('pos.pos_workspace.pos_open_shift_modal.s9', "ملاحظة الافتتاح")}>
             <textarea rows={2} {...register('note')} disabled={isPending} />
