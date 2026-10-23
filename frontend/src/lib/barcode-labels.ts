@@ -97,11 +97,11 @@ function getBarcodeLabelNameFontSize(productName: string, preset: BarcodePrintPr
   const length = Array.from(String(productName || '')).length;
   const isThermal = preset.family === 'thermal';
   const base = isThermal
-    ? (compact ? 11 : 13.5)
+    ? (compact ? (preset.labelHeightMm <= 25 ? 9.5 : preset.labelWidthMm <= 40 ? 10.5 : 11.5) : 13)
     : (compact || preset.maxLabelsPerPage >= 65 ? 8.2 : preset.maxLabelsPerPage >= 48 ? 9 : 10.5);
-  const widthPenalty = Math.max(0, length - Math.floor(preset.labelWidthMm / 2.4)) * 0.16;
-  const heightPenalty = preset.labelHeightMm < 25 ? 0.8 : 0;
-  return Math.max(7.5, Math.min(base, base - widthPenalty - heightPenalty));
+  const widthPenalty = Math.max(0, length - Math.floor(preset.labelWidthMm / 2.6)) * 0.18;
+  const heightPenalty = preset.labelHeightMm <= 25 ? 1.2 : preset.labelHeightMm <= 30 ? 0.6 : 0;
+  return Math.max(7, Math.min(base, base - widthPenalty - heightPenalty));
 }
 
 export function getBarcodeCardData(product: Product, unit?: ProductUnit | null) {
@@ -140,10 +140,17 @@ export function buildSingleLabelHtml(
   // Barcode height scaled proportionally (~35-44% of label height to leave ample room for text while maximizing scan accuracy)
   const isShelf = preset.isShelfLabel;
   const showFoodStatement = customization?.showFoodStatement ?? false;
+  const isSmallHeight = preset.labelHeightMm <= 25;
+  const isMediumHeight = preset.labelHeightMm <= 30;
+
   const svgHeightMm = isShelf
-    ? Math.max(8, Math.min(13, preset.labelHeightMm * 0.32))
+    ? Math.max(7, Math.min(13, preset.labelHeightMm * 0.32))
     : showFoodStatement
-    ? Math.max(8, Math.min(12, preset.labelHeightMm * 0.35))
+    ? Math.max(6.5, Math.min(11, preset.labelHeightMm * 0.32))
+    : isSmallHeight
+    ? Math.max(7.5, Math.min(9.5, preset.labelHeightMm * 0.36))
+    : isMediumHeight
+    ? Math.max(9, Math.min(12, preset.labelHeightMm * 0.40))
     : Math.max(10, Math.min(15, preset.labelHeightMm * 0.44));
 
   // Food statement & dates (بطاقة بيان السلع الغذائية والمعبأة وفق القرارات التموينية)
@@ -434,32 +441,34 @@ export function printBatchBarcodeLabels(
     subtitle: `${preset.pageLabel} · ${preset.label}`,
     pageSize: isThermal ? 'auto' : 'A4',
     orientation: 'portrait',
+    hideHeader: true,
     extraStyles: `
       ${thermalPageRule}
       .print-header{display:none!important;}
-      .print-shell{padding:0!important;}
-      .print-content{gap:0!important;}
+      .print-shell{padding:0!important;margin:0!important;max-width:100%!important;}
+      .print-content{gap:0!important;margin:0!important;padding:0!important;}
       .barcode-print-page{width:100%;box-sizing:border-box;}
       .barcode-print-page.page-break{page-break-after:always;break-after:page;}
-      .barcode-print-page-thermal{width:${preset.labelWidthMm}mm;height:${preset.labelHeightMm}mm;overflow:hidden;page-break-after:always;break-after:page;}
+      .barcode-print-page-thermal{width:${preset.labelWidthMm}mm;height:${preset.labelHeightMm}mm;max-width:${preset.labelWidthMm}mm;max-height:${preset.labelHeightMm}mm;overflow:hidden;page-break-after:always;break-after:page;margin:0;padding:0;box-sizing:border-box;}
       .barcode-print-page-thermal:last-child{page-break-after:avoid;break-after:avoid;}
       .barcode-print-grid{display:grid;align-items:stretch;width:100%;box-sizing:border-box;}
-      .barcode-print-grid-thermal{height:100%;}
+      .barcode-print-grid-thermal{height:100%!important;max-height:100%!important;width:100%!important;display:flex;flex-direction:column;box-sizing:border-box;}
+      .barcode-print-grid-thermal .barcode-label-card{height:100%!important;min-height:0!important;max-height:100%!important;width:100%!important;border:none!important;border-radius:0!important;padding:0.3mm 0.6mm!important;box-sizing:border-box!important;}
       .barcode-label-card{border:1px dashed #94a3b8;border-radius:6px;padding:1.4mm 2mm;text-align:center;display:flex;flex-direction:column;justify-content:space-between;min-height:${preset.labelHeightMm}mm;height:${preset.labelHeightMm}mm;background:#fff;overflow:hidden;box-sizing:border-box;}
       .barcode-label-card.compact{padding:1.2mm 1.6mm;}
       .barcode-label-card.barcode-label-card-empty{visibility:hidden!important;border:none!important;background:transparent!important;}
-      .barcode-label-header{width:100%;margin-bottom:0.5mm;}
-      .barcode-label-store{font-size:7.5px;font-weight:700;color:#334155;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;margin-bottom:0.3mm;}
+      .barcode-label-header{width:100%;margin-bottom:0.4mm;}
+      .barcode-label-store{font-size:7.5px;font-weight:700;color:#334155;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;direction:rtl;margin-bottom:0.2mm;}
       .barcode-label-name{font-weight:900;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;direction:rtl;color:#000;}
-      .barcode-label-body{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;flex:0 0 auto;margin:0.4mm 0;}
-      .barcode-label-svg{display:flex;align-items:center;justify-content:center;width:100%;}
-      .barcode-label-svg svg{width:100%;height:100%;display:block;}
-      .barcode-label-text{font-size:${preset.maxLabelsPerPage >= 65 ? 8.2 : preset.maxLabelsPerPage >= 48 ? 8.8 : 9.5}px;font-weight:800;direction:ltr;letter-spacing:.3px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:clip;margin-top:0.3mm;color:#000;}
-      .barcode-label-bottom-row{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:0.5mm;padding-top:0.4mm;border-top:0.5px dotted #94a3b8;}
+      .barcode-label-body{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;flex:0 0 auto;margin:0.2mm 0;}
+      .barcode-label-svg{display:flex;align-items:center;justify-content:center;width:100%;max-width:100%;overflow:hidden;}
+      .barcode-label-svg svg{width:100%;height:100%;max-width:100%;max-height:100%;display:block;}
+      .barcode-label-text{font-size:${isThermal ? (preset.labelHeightMm <= 25 ? '8.2px' : '9px') : (preset.maxLabelsPerPage >= 65 ? 8.2 : preset.maxLabelsPerPage >= 48 ? 8.8 : 9.5)}px;font-weight:800;direction:ltr;letter-spacing:.3px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:clip;margin-top:0.2mm;color:#000;}
+      .barcode-label-bottom-row{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:0.3mm;padding-top:0.3mm;border-top:0.5px dotted #94a3b8;}
       .barcode-label-meta-tags{display:flex;align-items:center;gap:1.5mm;}
       .barcode-label-unit-badge{font-size:7.8px;font-weight:800;color:#000;background:#fff;border:0.5px solid #000;border-radius:2px;padding:0.2mm 1mm;line-height:1.1;}
       .barcode-label-sku{font-size:7px;color:#334155;font-weight:600;}
-      .barcode-label-price{font-size:${preset.maxLabelsPerPage >= 65 ? 8.6 : preset.maxLabelsPerPage >= 48 ? 9.2 : 10.5}px;font-weight:900;color:#000;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-inline-start:auto;}
+      .barcode-label-price{font-size:${isThermal ? (preset.labelHeightMm <= 25 ? '10.5px' : '12px') : (preset.maxLabelsPerPage >= 65 ? 8.6 : preset.maxLabelsPerPage >= 48 ? 9.2 : 10.5)}px;font-weight:900;color:#000;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-inline-start:auto;}
       .barcode-label-missing{font-size:9px;color:#b91c1c;display:flex;align-items:center;justify-content:center;height:100%;}
       
       /* Food Statement - بطاقة بيان التموين: خلفية بيضاء نقية بنسبة 100% بدون أي رمادي وإطار أسود ناصع للطباعة الحرارية */
