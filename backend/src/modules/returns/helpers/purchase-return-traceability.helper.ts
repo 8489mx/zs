@@ -9,6 +9,7 @@ export interface TraceableSerial {
 export interface TraceableBatch {
   id: number;
   quantity: number | string;
+  batch_number?: string | null;
 }
 
 /** Determine exactly which purchased, still-in-stock serials leave inventory. */
