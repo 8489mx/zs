@@ -25,6 +25,12 @@
 - Product master data cannot overwrite the WAC of stock on hand. Positive opening stock posts an inventory debit and opening capital credit in the same transaction as the product and stock movement; old unposted opening balances require tenant-scoped reconciliation.
 - Landed costs apply only to posted purchases and post on their recognition date through the central period-checked journal. Split inventory and COGS by replaying classified global stock movements after the receipt through the weighted-average pool. Unclassified or missing movement history blocks automatic allocation rather than guessing.
 
+### Payroll, loans and employee attendance (October 2026)
+
+- Serialize payroll period creation per tenant. A run with frequency `all` conflicts with every overlapping frequency; draft recalculation, review and item adjustments lock the run before checking its status, so approval cannot race a late edit.
+- Approving a loan locks the employee and draft, checks that scheduled installments equal principal, and recomputes total active debt against the salary ceiling. Only administrators may use immediate loan disbursement; employee portal advances create a complete cent-balanced installment schedule and an ID-derived document number atomically.
+- Mobile punches lock the employee before reading or writing the day's attendance row, including the first check-in when no row exists. Reject invalid GPS coordinates or an absent/invalid current branch geofence instead of accepting an unrestricted punch. Portal and mobile attendance dates follow the tenant timezone. Employee payslips expose only approved payroll.
+
 ---
 
 ## 1. كيف تقرأ هذا المشروع قبل أن تكتب فيه سطراً

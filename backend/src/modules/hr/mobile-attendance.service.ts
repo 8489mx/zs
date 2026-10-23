@@ -238,7 +238,8 @@ export class MobileAttendanceService {
     };
 
     // Check today's punch status
-    const today = new Date().toISOString().slice(0, 10);
+    const tenantTimezone = await getTenantTimezone(this.db, employeeUser.tenantId);
+    const today = todayTenantDate(tenantTimezone);
     const record = await this.anyDb
       .selectFrom('hr_attendance_records')
       .selectAll()
@@ -250,8 +251,8 @@ export class MobileAttendanceService {
     const todayStatus = {
       hasCheckedIn: Boolean(record?.check_in_at),
       hasCheckedOut: Boolean(record?.check_out_at),
-      checkInTime: record?.check_in_at ? new Date(record.check_in_at).toLocaleTimeString('ar-EG') : undefined,
-      checkOutTime: record?.check_out_at ? new Date(record.check_out_at).toLocaleTimeString('ar-EG') : undefined,
+      checkInTime: record?.check_in_at ? formatTimeInTimezone(record.check_in_at, tenantTimezone) : undefined,
+      checkOutTime: record?.check_out_at ? formatTimeInTimezone(record.check_out_at, tenantTimezone) : undefined,
       distanceMeters: record?.distance_meters ? Number(record.distance_meters) : undefined,
     };
 
@@ -401,51 +402,64 @@ export class MobileAttendanceService {
     const lat = Number(payload.latitude);
     const lng = Number(payload.longitude);
 
-    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+    if (payload.latitude == null || payload.longitude == null ||
+        String(payload.latitude).trim() === '' || String(payload.longitude).trim() === '' ||
+        !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 ||
+        Math.abs(lng) > 180 || (lat === 0 && lng === 0)) {
       throw new AppError('إحداثيات الـ GPS غير صالحة، يرجى تفعيل الموقع الجغرافي بالهاتف', 'GPS_REQUIRED', 400);
     }
 
-    // Refresh branch coordinates
-    let targetLat = user.branchLat;
-    let targetLng = user.branchLng;
-    let radius = user.geofenceRadiusMeters || 100;
-
-    if (user.branchId) {
-      const br = await this.anyDb
+    // Always use the currently configured branch fence. A missing or invalid
+    // fence must not silently turn a GPS attendance punch into an anywhere punch.
+    if (!user.branchId) throw new AppError('لا يوجد فرع مهيأ للبصمة الجغرافية', 'GEOFENCE_NOT_CONFIGURED', 400);
+    const br = await this.anyDb
         .selectFrom('branches')
         .select(['latitude', 'longitude', 'geofence_radius_meters'])
         .where('id', '=', user.branchId)
         .where('tenant_id', '=', user.tenantId)
         .executeTakeFirst();
-      if (br && br.latitude != null && br.longitude != null) {
-        targetLat = Number(br.latitude);
-        targetLng = Number(br.longitude);
-        radius = Number(br.geofence_radius_meters || 100);
-      }
+    const targetLat = Number(br?.latitude);
+    const targetLng = Number(br?.longitude);
+    const radius = Number(br?.geofence_radius_meters ?? 100);
+    if (!br || br.latitude == null || br.longitude == null ||
+        !Number.isFinite(targetLat) || !Number.isFinite(targetLng) ||
+        Math.abs(targetLat) > 90 || Math.abs(targetLng) > 180 ||
+        !Number.isFinite(radius) || radius <= 0 || radius > 10000) {
+      throw new AppError('النطاق الجغرافي للفرع غير مهيأ أو غير صالح', 'GEOFENCE_NOT_CONFIGURED', 400);
     }
 
-    let distanceMeters = 0;
-    if (targetLat != null && targetLng != null && targetLat !== 0 && targetLng !== 0) {
-      distanceMeters = calculateDistanceMeters(lat, lng, targetLat, targetLng);
-      if (distanceMeters > radius) {
-        throw new AppError(
-          `أنت خارج نطاق الفرع! المسافة الحالية (${distanceMeters} متر)، والحد الأقصى المسموح للبصمة هو (${radius} متر).`,
-          'OUTSIDE_GEOFENCE',
-          403,
-        );
-      }
+    const distanceMeters = calculateDistanceMeters(lat, lng, targetLat, targetLng);
+    if (distanceMeters > radius) {
+      throw new AppError(
+        `أنت خارج نطاق الفرع! المسافة الحالية (${distanceMeters} متر)، والحد الأقصى المسموح للبصمة هو (${radius} متر).`,
+        'OUTSIDE_GEOFENCE',
+        403,
+      );
     }
 
     const tenantTimezone = await getTenantTimezone(this.db, user.tenantId);
     const today = todayTenantDate(tenantTimezone);
     const now = new Date();
 
-    const existing = await this.anyDb
+    // Serialize punches even when today's attendance row does not exist yet.
+    // Locking only that row leaves two first check-ins free to race each other.
+    return this.db.transaction().execute(async (trx) => {
+    const employee = await trx.selectFrom('hr_employees').select(['id', 'status'])
+      .where('id', '=', user.employeeId).where('tenant_id', '=', user.tenantId)
+      .forUpdate().executeTakeFirst();
+    if (employee?.status !== 'active') {
+      throw new AppError('تم إيقاف حساب الموظف', 'EMPLOYEE_INACTIVE', 401);
+    }
+    // Attendance GPS columns are present in the database but missing from the
+    // generated Database type; keep the existing writes while using this trx.
+    const writeDb: any = trx;
+    const existing = await trx
       .selectFrom('hr_attendance_records')
       .selectAll()
       .where('employee_id', '=', user.employeeId)
       .where('work_date', '=', today)
       .where('tenant_id', '=', user.tenantId)
+      .forUpdate()
       .executeTakeFirst();
 
     if (punchType === 'check_in') {
@@ -458,7 +472,7 @@ export class MobileAttendanceService {
       }
 
       if (existing) {
-        await this.anyDb
+        await writeDb
           .updateTable('hr_attendance_records')
           .set({
             status: 'present',
@@ -477,7 +491,7 @@ export class MobileAttendanceService {
           .where('tenant_id', '=', user.tenantId)
           .execute();
       } else {
-        await this.anyDb
+        await writeDb
           .insertInto('hr_attendance_records')
           .values({
             employee_id: user.employeeId,
@@ -520,7 +534,7 @@ export class MobileAttendanceService {
         );
       }
 
-      await this.anyDb
+      await writeDb
         .updateTable('hr_attendance_records')
         .set({
           check_out_at: now,
@@ -542,6 +556,7 @@ export class MobileAttendanceService {
         message: 'تم تسجيل انصرافك بنجاح. يوم سعيد! ✓',
       };
     }
+    });
   }
 
   /**
@@ -552,12 +567,22 @@ export class MobileAttendanceService {
     tenantId: string,
     payload: { latitude: number; longitude: number; geofenceRadiusMeters?: number },
   ) {
+    const latitude = Number(payload.latitude);
+    const longitude = Number(payload.longitude);
+    const radius = payload.geofenceRadiusMeters == null ? 100 : Number(payload.geofenceRadiusMeters);
+    if (payload.latitude == null || payload.longitude == null ||
+        String(payload.latitude).trim() === '' || String(payload.longitude).trim() === '' ||
+        !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+        Math.abs(latitude) > 90 || Math.abs(longitude) > 180 ||
+        !Number.isFinite(radius) || radius <= 0 || radius > 10000) {
+      throw new AppError('إحداثيات الفرع أو نصف قطر البصمة غير صالح', 'INVALID_GEOFENCE', 400);
+    }
     await this.anyDb
       .updateTable('branches')
       .set({
-        latitude: payload.latitude,
-        longitude: payload.longitude,
-        geofence_radius_meters: payload.geofenceRadiusMeters || 100,
+        latitude,
+        longitude,
+        geofence_radius_meters: radius,
         updated_at: new Date(),
       })
       .where('id', '=', branchId)

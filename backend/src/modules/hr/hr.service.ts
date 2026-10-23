@@ -1309,10 +1309,14 @@ export class HrService {
     if (repaymentMode === 'monthly_salary_installment' && !(Number(payload.monthlyInstallmentAmount || 0) > 0) && !(Number(payload.installmentCount || 0) > 0)) {
       throw new AppError('Monthly installment amount or installment count is required', 'HR_LOAN_INSTALLMENT_REQUIRED', 400);
     }
+    if (payload.autoDisburse && !['admin', 'super_admin'].includes(auth.role)) {
+      throw new AppError('Immediate disbursement requires administrator approval', 'HR_LOAN_AUTO_DISBURSE_FORBIDDEN', 403);
+    }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       const employee = await trx.selectFrom('hr_employees').select(['id', 'status', 'display_name', 'first_name'])
         .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId)
+        .forUpdate()
         .executeTakeFirst();
       if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
       if (employee.status !== 'active') throw new AppError('Cannot grant loan to inactive employee', 'HR_EMPLOYEE_INACTIVE', 400);
@@ -1392,24 +1396,25 @@ export class HrService {
   }
 
   async updateLoan(id: number, payload: UpsertEmployeeLoanDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const existing = await sql<{ status: string }>`SELECT status FROM hr_employee_loans WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    if (!existing.rows.length) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
-    if (existing.rows[0].status !== 'draft') throw new AppError('Only draft loans can be edited', 'HR_LOAN_EDIT_LOCKED', 400);
-
     const amount = Number(payload.principalAmount || 0);
     const issueDate = normalizeDateOnly(payload.issueDate);
+    if (!Number.isFinite(amount) || amount <= 0) throw new AppError('Loan amount is invalid', 'HR_LOAN_AMOUNT_INVALID', 400);
     if (!issueDate) throw new AppError('Loan issue date is required', 'HR_LOAN_ISSUE_DATE_REQUIRED', 400);
     const plan = this.normalizeRepaymentPlan({ ...payload, issueDate }, amount);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       const employeeId = toId(payload.employeeId);
       if (!employeeId || !(await trx.selectFrom('hr_employees').select('id')
-        .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId).executeTakeFirst())) {
+        .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId).forUpdate().executeTakeFirst())) {
         throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
       }
+      const current = await trx.selectFrom('hr_employee_loans').select(['status', 'loan_no'])
+        .where('id', '=', id).where('tenant_id', '=', auth.tenantId || '').forUpdate().executeTakeFirst();
+      if (!current) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
+      if (current.status !== 'draft') throw new AppError('Only draft loans can be edited', 'HR_LOAN_EDIT_LOCKED', 400);
       await sql`
         UPDATE hr_employee_loans
-        SET loan_no = ${clean(payload.loanNo)}, loan_type = ${clean(payload.loanType) || 'advance'}, principal_amount = ${amount},
+        SET loan_no = ${clean(payload.loanNo) || current.loan_no}, loan_type = ${clean(payload.loanType) || 'advance'}, principal_amount = ${amount},
             remaining_amount = ${amount}, installment_count = ${plan.installmentCount}, installment_amount = ${plan.installmentAmount},
             repayment_mode = ${plan.repaymentMode}, monthly_installment_amount = ${plan.monthlyInstallmentAmount},
             issue_date = ${issueDate}, first_due_date = ${plan.firstDueDate}, salary_due_date = ${plan.salaryDueDate}, branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)},
@@ -1435,19 +1440,49 @@ export class HrService {
   }
 
   async approveLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const loanRes = await sql<{ id: number; created_by: string; status: string }>`
-      SELECT id, created_by, status FROM hr_employee_loans WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1
-    `.execute(this.db);
-    const loan = loanRes.rows[0];
-    if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
-    if (loan.status !== 'draft') throw new AppError('Only draft loans can be approved', 'HR_LOAN_STATUS_INVALID', 400);
-
-    // Maker-Checker: A creator cannot approve their own loan unless they are super_admin or admin
-    if (String(loan.created_by) === String(auth.userId) && auth.role !== 'super_admin' && auth.role !== 'admin') {
-      throw new AppError('لا يجوز لمنشئ طلب السلفة اعتماده بنفسه (مبدأ فصل المهام الرقابي)', 'HR_LOAN_MAKER_CHECKER_VIOLATION', 403);
-    }
-
-    await sql`UPDATE hr_employee_loans SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const candidate = await trx.selectFrom('hr_employee_loans').select('employee_id')
+        .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!candidate) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
+      // All approvals for this employee serialize before checking cumulative debt.
+      const employee = await trx.selectFrom('hr_employees').select(['id', 'status'])
+        .where('id', '=', Number(candidate.employee_id)).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (employee?.status !== 'active') throw new AppError('Employee is not active', 'HR_EMPLOYEE_NOT_ACTIVE', 400);
+      const loan = await trx.selectFrom('hr_employee_loans')
+        .select(['id', 'employee_id', 'created_by', 'status', 'principal_amount'])
+        .where('id', '=', id).where('tenant_id', '=', tenantId).forUpdate().executeTakeFirst();
+      if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
+      if (Number(loan.employee_id) !== Number(candidate.employee_id)) throw new AppError('Loan employee changed', 'HR_LOAN_EMPLOYEE_CHANGED', 409);
+      if (loan.status !== 'draft') throw new AppError('Only draft loans can be approved', 'HR_LOAN_STATUS_INVALID', 400);
+      if (loan.created_by != null && String(loan.created_by) === String(auth.userId) && auth.role !== 'super_admin' && auth.role !== 'admin') {
+        throw new AppError('لا يجوز لمنشئ طلب السلفة اعتماده بنفسه (مبدأ فصل المهام الرقابي)', 'HR_LOAN_MAKER_CHECKER_VIOLATION', 403);
+      }
+      const amount = Number(loan.principal_amount);
+      if (!Number.isFinite(amount) || amount <= 0) throw new AppError('Loan amount is invalid', 'HR_LOAN_AMOUNT_INVALID', 400);
+      const schedule = await sql<{ count: string; total: string }>`
+        SELECT COUNT(*)::text AS count, COALESCE(SUM(amount), 0)::text AS total
+        FROM hr_employee_loan_installments WHERE loan_id = ${id} AND tenant_id = ${tenantId}
+      `.execute(trx);
+      if (!Number(schedule.rows[0]?.count) || Math.abs(Number(schedule.rows[0]?.total) - amount) > 0.01) {
+        throw new AppError('Loan installments must add up to its principal before approval', 'HR_LOAN_SCHEDULE_INVALID', 400);
+      }
+      const activeDebt = await sql<{ total: string }>`
+        SELECT COALESCE(SUM(remaining_amount), 0)::text AS total FROM hr_employee_loans
+        WHERE employee_id = ${candidate.employee_id} AND tenant_id = ${tenantId}
+          AND status IN ('approved', 'paid', 'partially_repaid', 'disbursed')
+      `.execute(trx);
+      const contract = await trx.selectFrom('hr_employment_contracts').select('base_salary')
+        .where('employee_id', '=', Number(candidate.employee_id)).where('tenant_id', '=', tenantId)
+        .where('status', '=', 'active').orderBy('start_date', 'desc').executeTakeFirst();
+      const monthlyWage = Number(contract?.base_salary || 0);
+      const ceiling = monthlyWage > 0 ? monthlyWage * 3 : 50000;
+      if (Number(activeDebt.rows[0]?.total || 0) + amount > ceiling) {
+        throw new AppError('قيمة السلفة تتجاوز الحد الأقصى المسموح به للموظف', 'HR_LOAN_CEILING_EXCEEDED', 400);
+      }
+      await sql`UPDATE hr_employee_loans SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND status = 'draft' AND tenant_id = ${tenantId}`.execute(trx);
+    });
     await this.audit.log('Approve HR employee loan', `Employee loan #${id} approved by ${auth.username}`, auth);
     return { ok: true, ...(await this.listLoans({}, auth)) };
   }
@@ -1455,7 +1490,7 @@ export class HrService {
   async disburseLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await sql<Record<string, unknown>>`
-        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
+        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
       `.execute(trx);
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
@@ -1477,7 +1512,7 @@ export class HrService {
   async repayLoan(id: number, payload: LoanRepaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await sql<Record<string, unknown>>`
-        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
+        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
       `.execute(trx);
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
@@ -1756,15 +1791,8 @@ export class HrService {
     };
   }
 
-  private async getPayrollRunStatus(db: Kysely<Database>, runId: number, tenantId: string): Promise<string> {
-    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} LIMIT 1`.execute(db);
-    const status = clean(result.rows[0]?.status);
-    if (!status) throw new AppError('Payroll run not found', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
-    return status;
-  }
-
   private async getPayrollRunStatusForUpdate(db: Kysely<Database>, runId: number, tenantId: string): Promise<string> {
-    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} FOR UPDATE LIMIT 1`.execute(db);
+    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} LIMIT 1 FOR UPDATE`.execute(db);
     const status = clean(result.rows[0]?.status);
     if (!status) throw new AppError('Payroll run not found', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
     return status;
@@ -2650,19 +2678,19 @@ export class HrService {
 
     let runId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
-      // The old month-only uniqueness silently reused a WEEKLY run for every
-      // subsequent week. Serialize overlapping period checks within tenant/frequency.
-      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId + ':' + payFreq}))`.execute(trx);
+      // The "all" frequency overlaps every specific frequency, so serialize
+      // all period checks for the tenant under the same advisory lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const overlapping = await sql<{
-        id: number; status: string; period_month: string;
+        id: number; status: string; period_month: string; pay_frequency: string;
         start_date_text: string; end_date_text: string;
       }>`
-        SELECT id, status, period_month,
+        SELECT id, status, period_month, pay_frequency,
           to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
           to_char(end_date, 'YYYY-MM-DD') AS end_date_text
         FROM hr_payroll_runs
         WHERE tenant_id = ${tenantId}
-          AND pay_frequency = ${payFreq}
+          AND (pay_frequency = ${payFreq} OR pay_frequency = 'all' OR ${payFreq} = 'all')
           AND status <> 'cancelled'
           AND start_date <= ${endDate}::date
           AND end_date >= ${startDate}::date
@@ -2675,6 +2703,9 @@ export class HrService {
       }
       const existing = overlapping.rows[0];
       if (existing) {
+        if (existing.pay_frequency !== payFreq) {
+          throw new AppError('يوجد مسير برواتب دورية مختلفة في هذه الفترة', 'HR_PAYROLL_FREQUENCY_OVERLAP', 409);
+        }
         if (existing.period_month !== periodMonth) {
           throw new AppError('هذه الفترة موجودة بالفعل تحت شهر مرتب مختلف', 'HR_PAYROLL_MONTH_CONFLICT', 409);
         }
@@ -2701,7 +2732,7 @@ export class HrService {
 
   async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
       await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
     });
@@ -2711,7 +2742,7 @@ export class HrService {
 
   async applyAttendanceDeductions(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
 
       const runResult = await sql<{ period_month: string, start_date_text: string, end_date_text: string }>`SELECT period_month, to_char(start_date, 'YYYY-MM-DD') AS start_date_text, to_char(end_date, 'YYYY-MM-DD') AS end_date_text FROM hr_payroll_runs WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(trx);
@@ -2818,7 +2849,7 @@ export class HrService {
 
   async reviewPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft') throw new AppError('Only draft payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
       
       // Auto-recalculate before reviewing to ensure all new loans/deductions are captured
@@ -3048,9 +3079,11 @@ export class HrService {
   }
 
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const status = await this.getPayrollRunStatus(this.db, id, auth.tenantId || '');
-    if (['approved', 'paid'].includes(status)) throw new AppError('Approved or paid payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
-    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status NOT IN ('approved', 'paid') AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
+      if (['approved', 'paid'].includes(status)) throw new AppError('Approved or paid payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
+      await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
+    });
     await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
   }
@@ -3194,23 +3227,31 @@ export class HrService {
   }
 
   async updatePayrollRunItem(id: number, payload: UpsertPayrollItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
-    if (item.runStatus !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
     const status = clean(payload.status);
     if (status && !['draft', 'excluded'].includes(status)) throw new AppError('Payroll item status is invalid', 'HR_PAYROLL_ITEM_STATUS_INVALID', 400);
-    await sql`
-      UPDATE hr_payroll_run_items
-      SET status = ${status || item.itemStatus || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
+    let runId = 0;
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const item = await this.getPayrollItemRun(trx, id, auth.tenantId || '');
+      runId = item.runId;
+      const runStatus = await this.getPayrollRunStatusForUpdate(trx, runId, auth.tenantId || '');
+      if (runStatus !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
+      await sql`
+        UPDATE hr_payroll_run_items
+        SET status = ${status || item.itemStatus || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
+      `.execute(trx);
+    });
     await this.audit.log('Update HR payroll item', `Payroll item #${id} updated by ${auth.username}`, auth);
-    return this.getPayrollRun(item.runId, auth);
+    return this.getPayrollRun(runId, auth);
   }
 
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
-    if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+    let runId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const item = await this.getPayrollItemRun(trx, id, auth.tenantId || '');
+      runId = item.runId;
+      const runStatus = await this.getPayrollRunStatusForUpdate(trx, runId, auth.tenantId || '');
+      if (runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
       await sql`
         INSERT INTO hr_payroll_item_adjustments (tenant_id, account_id, payroll_item_id, adjustment_type, label, amount, notes)
         VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
@@ -3219,7 +3260,7 @@ export class HrService {
       await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${item.runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
     });
     await this.audit.log('Create HR payroll adjustment', `Payroll item #${id} adjustment added by ${auth.username}`, auth);
-    return this.getPayrollRun(item.runId, auth);
+    return this.getPayrollRun(runId, auth);
   }
 
   async deletePayrollAdjustment(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -3231,13 +3272,14 @@ export class HrService {
         FROM hr_payroll_item_adjustments a
         JOIN hr_payroll_run_items i ON i.id = a.payroll_item_id
         JOIN hr_payroll_runs r ON r.id = i.run_id
-        WHERE a.id = ${id} AND i.tenant_id = ${auth.tenantId} AND r.tenant_id = ${auth.tenantId}
+        WHERE a.id = ${id} AND a.tenant_id = ${auth.tenantId} AND i.tenant_id = ${auth.tenantId} AND r.tenant_id = ${auth.tenantId}
         LIMIT 1
       `.execute(trx);
       const row = result.rows[0];
       if (!row) throw new AppError('Payroll adjustment not found', 'HR_PAYROLL_ADJUSTMENT_NOT_FOUND', 404);
-      if (clean(row.run_status) !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
       runId = Number(row.run_id || 0);
+      const runStatus = await this.getPayrollRunStatusForUpdate(trx, runId, auth.tenantId || '');
+      if (runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
       itemId = Number(row.payroll_item_id || 0);
       await sql`DELETE FROM hr_payroll_item_adjustments WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
       await this.recalculatePayrollItemTotals(trx, itemId, requireTenantScope(auth).tenantId);
@@ -4937,6 +4979,7 @@ export class HrService {
         .select(['id', 'display_name', 'status'])
         .where('id', '=', employeeId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirst();
       if (!employee) throw new AppError('الموظف غير موجود أو لا يتبع المنشأة الحالية', 'HR_EMPLOYEE_NOT_FOUND', 404);
       if (employee.status !== 'active') throw new AppError('لا يمكن صرف سلفة لموظف غير نشط', 'HR_EMPLOYEE_INACTIVE', 400);

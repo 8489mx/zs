@@ -1,10 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Kysely, sql } from '../../database/kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { getTenantTimezone, todayTenantDate, formatTimeInTimezone } from '../../common/utils/tenant-timezone.util';
 import {
   PORTAL_TOKEN_TTL_MS,
   signPortalToken,
@@ -18,6 +21,14 @@ const PORTAL_TOKEN_ERRORS: PortalTokenErrorSpec = {
   signature: { message: 'رمز الجلسة غير صالح أو تم التلاعب به', code: 'INVALID_SIGNATURE' },
   expired: { message: 'انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول', code: 'TOKEN_EXPIRED' },
 };
+
+export function advanceDueDate(today: string, monthsAhead: number): string {
+  const [year, month, day] = today.split('-').map(Number);
+  const first = new Date(Date.UTC(year, month - 1 + monthsAhead, 1));
+  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  first.setUTCDate(Math.min(day, lastDay));
+  return first.toISOString().slice(0, 10);
+}
 
 export interface PortalEmployeeUser {
   employeeId: number;
@@ -378,15 +389,15 @@ export class EmployeePortalService {
    * Get employee dashboard overview
    */
   async getDashboard(employeeId: number, tenantId: string) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayTenantDate(await getTenantTimezone(this.db, tenantId));
     const currentMonth = today.slice(0, 7); // YYYY-MM
 
     // 1. Employee Profile
     const employee = await this.anyDb
       .selectFrom('hr_employees as e')
-      .leftJoin('branches as b', 'b.id', 'e.branch_id')
-      .leftJoin('hr_departments as d', 'd.id', 'e.department_id')
-      .leftJoin('hr_positions as pos', 'pos.id', 'e.position_id')
+      .leftJoin('branches as b', (join: any) => join.onRef('b.id', '=', 'e.branch_id').onRef('b.tenant_id', '=', 'e.tenant_id'))
+      .leftJoin('hr_departments as d', (join: any) => join.onRef('d.id', '=', 'e.department_id').onRef('d.tenant_id', '=', 'e.tenant_id'))
+      .leftJoin('hr_positions as pos', (join: any) => join.onRef('pos.id', '=', 'e.position_id').onRef('pos.tenant_id', '=', 'e.tenant_id'))
       .select([
         'e.id',
         'e.employee_no',
@@ -444,7 +455,7 @@ export class EmployeePortalService {
     // 6. Latest payslip
     const latestPayslip = await this.anyDb
       .selectFrom('hr_payroll_run_items as item')
-      .leftJoin('hr_payroll_runs as run', 'run.id', 'item.run_id')
+      .innerJoin('hr_payroll_runs as run', (join: any) => join.onRef('run.id', '=', 'item.run_id').onRef('run.tenant_id', '=', 'item.tenant_id'))
       .select([
         'item.id',
         'item.run_id',
@@ -460,7 +471,8 @@ export class EmployeePortalService {
       ])
       .where('item.employee_id', '=', employeeId)
       .where('item.tenant_id', '=', tenantId)
-      .where('item.status', 'in', ['approved', 'paid', 'reviewed'])
+      .where('run.status', 'in', ['approved', 'paid'])
+      .where('item.status', '=', 'approved')
       .orderBy('run.period_month', 'desc')
       .executeTakeFirst();
 
@@ -530,7 +542,8 @@ export class EmployeePortalService {
    * Get attendance log for month
    */
   async getAttendance(employeeId: number, tenantId: string, month?: string) {
-    const targetMonth = month || new Date().toISOString().slice(0, 7);
+    const tenantTimezone = await getTenantTimezone(this.db, tenantId);
+    const targetMonth = month || todayTenantDate(tenantTimezone).slice(0, 7);
     const records = await this.anyDb
       .selectFrom('hr_attendance_records')
       .selectAll()
@@ -543,8 +556,8 @@ export class EmployeePortalService {
     return records.map((r: any) => ({
       id: r.id,
       date: String(r.work_date).slice(0, 10),
-      checkInTime: r.check_in_at ? new Date(r.check_in_at).toLocaleTimeString('ar-EG') : '-',
-      checkOutTime: r.check_out_at ? new Date(r.check_out_at).toLocaleTimeString('ar-EG') : '-',
+      checkInTime: r.check_in_at ? formatTimeInTimezone(r.check_in_at, tenantTimezone) : '-',
+      checkOutTime: r.check_out_at ? formatTimeInTimezone(r.check_out_at, tenantTimezone) : '-',
       workHours: Number(r.work_hours || 0),
       overtimeHours: Number(r.overtime_hours || 0),
       lateMinutes: Number(r.late_minutes || 0),
@@ -560,7 +573,7 @@ export class EmployeePortalService {
   async getPayslips(employeeId: number, tenantId: string) {
     const items = await this.anyDb
       .selectFrom('hr_payroll_run_items as item')
-      .leftJoin('hr_payroll_runs as run', 'run.id', 'item.run_id')
+      .innerJoin('hr_payroll_runs as run', (join: any) => join.onRef('run.id', '=', 'item.run_id').onRef('run.tenant_id', '=', 'item.tenant_id'))
       .select([
         'item.id',
         'item.run_id',
@@ -577,6 +590,8 @@ export class EmployeePortalService {
       ])
       .where('item.employee_id', '=', employeeId)
       .where('item.tenant_id', '=', tenantId)
+      .where('run.status', 'in', ['approved', 'paid'])
+      .where('item.status', '=', 'approved')
       .orderBy('run.period_month', 'desc')
       .execute();
 
@@ -790,35 +805,60 @@ export class EmployeePortalService {
     body: { amount: number; reason: string; repaymentMonths?: number },
   ) {
     const amount = Number(body.amount);
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000 ||
+        Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
       throw new AppError('قيمة السلفة المطلوبة يجب أن تكون أكبر من الصفر', 'INVALID_AMOUNT', 400);
     }
 
-    const months = Math.max(1, Number(body.repaymentMonths || 1));
-    const installmentAmount = Math.round((amount / months) * 100) / 100;
-    const today = new Date().toISOString().slice(0, 10);
+    const months = Number(body.repaymentMonths ?? 1);
+    if (!Number.isSafeInteger(months) || months < 1 || months > 120) {
+      throw new AppError('عدد أشهر السداد يجب أن يكون بين 1 و120', 'INVALID_REPAYMENT_MONTHS', 400);
+    }
+    const totalCents = Math.round(amount * 100);
+    const installmentCents = Math.floor(totalCents / months);
+    if (installmentCents <= 0) throw new AppError('قيمة القسط الشهري غير صالحة', 'INVALID_INSTALLMENT', 400);
+    const installmentAmount = installmentCents / 100;
+    const today = todayTenantDate(await getTenantTimezone(this.db, tenantId));
 
-    const inserted = await this.anyDb
+    const inserted = await this.db.transaction().execute(async (trx) => {
+      const loan = await trx
       .insertInto('hr_employee_loans')
       .values({
         employee_id: employeeId,
         tenant_id: tenantId,
         account_id: accountId,
-        loan_no: `ADV-REQ-${Date.now().toString().slice(-6)}`,
+        loan_no: `ADV-REQ-${randomUUID()}`,
         loan_type: 'advance',
         principal_amount: amount,
         paid_amount: 0,
         remaining_amount: amount,
         installment_count: months,
         installment_amount: installmentAmount,
+        repayment_mode: 'monthly_salary_installment',
+        monthly_installment_amount: installmentAmount,
+        first_due_date: advanceDueDate(today, 1),
         status: 'draft',
         issue_date: today,
         notes: `طلب سلفة من الموظف: ${body.reason || 'بدون تفاصيل'} (سداد على ${months} شهر)`,
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .returningAll()
-      .executeTakeFirst();
+      .executeTakeFirstOrThrow();
+      const loanNo = formatDailyDocumentNumber('LOAN', Number(loan.id));
+      await trx.updateTable('hr_employee_loans').set({ loan_no: loanNo })
+        .where('id', '=', Number(loan.id)).where('tenant_id', '=', tenantId).execute();
+      for (let installmentNo = 1; installmentNo <= months; installmentNo += 1) {
+        const cents = installmentNo === months
+          ? totalCents - installmentCents * (months - 1) : installmentCents;
+        await trx.insertInto('hr_employee_loan_installments').values({
+          tenant_id: tenantId, account_id: accountId, loan_id: Number(loan.id),
+          installment_no: installmentNo, due_date: advanceDueDate(today, installmentNo),
+          amount: cents / 100, paid_amount: 0, status: 'pending',
+        }).execute();
+      }
+      return { ...loan, loan_no: loanNo };
+    });
 
     return {
       success: true,
