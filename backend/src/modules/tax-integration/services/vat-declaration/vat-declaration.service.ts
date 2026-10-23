@@ -48,7 +48,13 @@ export class VatDeclarationService {
         sql<number>`COALESCE(SUM(subtotal - discount), 0)`.as('net_sales'),
         sql<number>`COALESCE(SUM(tax_amount), 0)`.as('total_tax'),
         sql<number>`COALESCE(SUM(total), 0)`.as('gross_sales'),
-        sql<number>`COALESCE(SUM(CASE WHEN tax_rate > 0 THEN (subtotal - discount) ELSE 0 END), 0)`.as('standard_rated_base'),
+        sql<number>`COALESCE(SUM(
+          CASE
+            WHEN tax_rate > 0 AND prices_include_tax = TRUE THEN ((subtotal - discount) - tax_amount)
+            WHEN tax_rate > 0 THEN (subtotal - discount)
+            ELSE 0
+          END
+        ), 0)`.as('standard_rated_base'),
         sql<number>`COALESCE(SUM(CASE WHEN tax_rate > 0 THEN tax_amount ELSE 0 END), 0)`.as('standard_rated_tax'),
         sql<number>`COALESCE(SUM(CASE WHEN tax_rate = 0 THEN (subtotal - discount) ELSE 0 END), 0)`.as('zero_rated_base'),
       ])
@@ -79,7 +85,13 @@ export class VatDeclarationService {
         sql<number>`COALESCE(SUM(subtotal - discount), 0)`.as('net_purchases'),
         sql<number>`COALESCE(SUM(tax_amount), 0)`.as('total_tax'),
         sql<number>`COALESCE(SUM(total), 0)`.as('gross_purchases'),
-        sql<number>`COALESCE(SUM(CASE WHEN tax_rate > 0 THEN (subtotal - discount) ELSE 0 END), 0)`.as('standard_rated_base'),
+        sql<number>`COALESCE(SUM(
+          CASE
+            WHEN tax_rate > 0 AND prices_include_tax = TRUE THEN ((subtotal - discount) - tax_amount)
+            WHEN tax_rate > 0 THEN (subtotal - discount)
+            ELSE 0
+          END
+        ), 0)`.as('standard_rated_base'),
         sql<number>`COALESCE(SUM(CASE WHEN tax_rate > 0 THEN tax_amount ELSE 0 END), 0)`.as('standard_rated_tax'),
         sql<number>`COALESCE(SUM(CASE WHEN tax_rate = 0 THEN (subtotal - discount) ELSE 0 END), 0)`.as('zero_rated_base'),
       ])

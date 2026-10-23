@@ -130,7 +130,7 @@ export class AgedDebtsService {
                        rows between unbounded preceding and 1 preceding), 0) as prior_unpaid
         from ${invoiceTable} i
         join partners p on p.id = ${partnerFk}
-        where i.tenant_id = ${auth.tenantId} and i.status <> 'cancelled'
+        where i.tenant_id = ${auth.tenantId} and i.status = 'posted'
           and i.total - coalesce(i.paid_amount, 0) > 0.01
           and i.created_at between ${threeYearsAgo} and ${asOfDate}
           ${branchFilter}

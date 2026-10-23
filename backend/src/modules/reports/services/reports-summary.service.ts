@@ -67,8 +67,10 @@ export class ReportsSummaryService {
       partner_id: number; current_amount: number; days_31_to_60: number; days_61_to_90: number;
     }>`
       with ordered as (
-        select s.customer_id as partner_id, s.total, s.created_at, c.balance,
-               coalesce(sum(s.total) over (
+        select s.customer_id as partner_id,
+               greatest(0, s.total - coalesce(s.paid_amount, 0)) as total,
+               s.created_at, c.balance,
+               coalesce(sum(greatest(0, s.total - coalesce(s.paid_amount, 0))) over (
                  partition by s.customer_id order by s.created_at desc, s.id desc
                  rows between unbounded preceding and 1 preceding
                ), 0) as prior_total
@@ -76,6 +78,7 @@ export class ReportsSummaryService {
         join customers c on c.id = s.customer_id and c.tenant_id = s.tenant_id
         where s.tenant_id = ${tenantId} and c.balance > 0
           and s.payment_type = 'credit' and s.status = 'posted'
+          and s.total - coalesce(s.paid_amount, 0) > 0.01
       ), allocated as (
         select partner_id, created_at, greatest(0, least(total, balance - prior_total)) as amount
         from ordered
@@ -120,8 +123,10 @@ export class ReportsSummaryService {
       partner_id: number; current_amount: number; days_31_to_60: number; days_61_to_90: number;
     }>`
       with ordered as (
-        select p.supplier_id as partner_id, p.total, p.created_at, s.balance,
-               coalesce(sum(p.total) over (
+        select p.supplier_id as partner_id,
+               greatest(0, p.total - coalesce(p.paid_amount, 0)) as total,
+               p.created_at, s.balance,
+               coalesce(sum(greatest(0, p.total - coalesce(p.paid_amount, 0))) over (
                  partition by p.supplier_id order by p.created_at desc, p.id desc
                  rows between unbounded preceding and 1 preceding
                ), 0) as prior_total
@@ -129,6 +134,7 @@ export class ReportsSummaryService {
         join suppliers s on s.id = p.supplier_id and s.tenant_id = p.tenant_id
         where p.tenant_id = ${tenantId} and s.balance > 0
           and p.payment_type = 'credit' and p.status = 'posted'
+          and p.total - coalesce(p.paid_amount, 0) > 0.01
       ), allocated as (
         select partner_id, created_at, greatest(0, least(total, balance - prior_total)) as amount
         from ordered

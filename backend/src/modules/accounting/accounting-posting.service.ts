@@ -125,6 +125,7 @@ export class AccountingPostingService {
       .where('source_id', '=', saleId)
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['draft', 'posted'])
+      .where('reversed_by_entry_id', 'is', null)
       .orderBy('id', 'desc')
       .executeTakeFirst();
   }
@@ -459,6 +460,7 @@ export class AccountingPostingService {
       createdBy: number | null;
       postedBy: number | null;
       lines: JournalLineDraft[];
+      reversalOfEntryId?: number | null;
     },
   ): Promise<number> {
     if (queryable && !queryable.isTransaction && typeof queryable.transaction === 'function') {
@@ -620,6 +622,7 @@ export class AccountingPostingService {
         status: 'posted',
         branch_id: params.branchId,
         location_id: params.locationId,
+        reversal_of_entry_id: params.reversalOfEntryId ?? null,
         created_by: params.createdBy && Number(params.createdBy) > 0 ? Number(params.createdBy) : null,
         posted_by: params.postedBy && Number(params.postedBy) > 0 ? Number(params.postedBy) : null,
         posted_at: sql`NOW()`,
@@ -634,6 +637,15 @@ export class AccountingPostingService {
       .where('id', '=', entryId)
       .where('tenant_id', '=', params.tenantId)
       .execute();
+
+    if (params.reversalOfEntryId && Number(params.reversalOfEntryId) > 0) {
+      await queryable
+        .updateTable('journal_entries')
+        .set({ reversed_by_entry_id: entryId, updated_at: sql`NOW()` } as any)
+        .where('id', '=', Number(params.reversalOfEntryId))
+        .where('tenant_id', '=', params.tenantId)
+        .execute();
+    }
 
     await queryable
         .insertInto('journal_entry_lines')
@@ -1152,22 +1164,37 @@ export class AccountingPostingService {
   async reverseSaleJournal(queryable: DbOrTx, saleId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
-    const existingReversal = await this.getExistingSaleReversalJournal(queryable, saleId, scope.tenantId);
-    if (existingReversal) {
-      this.logger.warn(`Skipping duplicate sale reversal journal for sale ${saleId}; existing entry ${existingReversal.id}`);
-      return { reversed: false, journalEntryId: Number(existingReversal.id) };
-    }
 
-    const sourceJournal = await queryable
+    // Historical reversals (before reversed_by_entry_id linking) are not linked to their source.
+    // Count postings vs reversals so a retried cancel can never reverse an already-offset entry.
+    const counts = await queryable
       .selectFrom('journal_entries')
-      .select(['id', 'branch_id', 'location_id', 'created_by'])
-      .where('source_type', '=', 'sale')
+      .select([
+        sql<number>`COUNT(*) FILTER (WHERE source_type IN ('sale', 'sale_edit'))`.as('postings'),
+        sql<number>`COUNT(*) FILTER (WHERE source_type = 'sale_reversal')`.as('reversals'),
+      ])
       .where('source_id', '=', saleId)
       .where('status', '=', 'posted')
       .where('tenant_id', '=', scope.tenantId)
-      .orderBy('id', 'desc')
       .executeTakeFirst();
+    const activePostings = Number(counts?.postings || 0) - Number(counts?.reversals || 0);
+
+    const sourceJournal = activePostings > 0 ? await queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'branch_id', 'location_id', 'created_by'])
+      .where('source_type', 'in', ['sale', 'sale_edit'])
+      .where('source_id', '=', saleId)
+      .where('status', '=', 'posted')
+      .where('reversed_by_entry_id', 'is', null)
+      .where('tenant_id', '=', scope.tenantId)
+      .orderBy('id', 'desc')
+      .executeTakeFirst() : undefined;
     if (!sourceJournal) {
+      const existingReversal = await this.getExistingSaleReversalJournal(queryable, saleId, scope.tenantId);
+      if (existingReversal) {
+        this.logger.warn(`Skipping duplicate sale reversal journal for sale ${saleId}; existing entry ${existingReversal.id}`);
+        return { reversed: false, journalEntryId: Number(existingReversal.id) };
+      }
       this.logger.warn(`No posted sale journal found for sale ${saleId}; skipping accounting reversal`);
       return { reversed: false, journalEntryId: null };
     }
@@ -1218,6 +1245,19 @@ export class AccountingPostingService {
       postedBy: auth.userId,
       lines: reversalLines,
     });
+
+    await queryable
+      .updateTable('journal_entries')
+      .set({ reversed_by_entry_id: entryId, updated_at: sql`NOW()` } as any)
+      .where('id', '=', Number(sourceJournal.id))
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
+    await queryable
+      .updateTable('journal_entries')
+      .set({ reversal_of_entry_id: Number(sourceJournal.id), updated_at: sql`NOW()` } as any)
+      .where('id', '=', entryId)
+      .where('tenant_id', '=', scope.tenantId)
+      .execute();
 
     this.logger.warn(`Posted sale reversal journal for sale ${saleId} as entry ${entryId}`);
     return { reversed: true, journalEntryId: entryId };
@@ -2361,7 +2401,8 @@ export class AccountingPostingService {
         '1122': { name_ar: 'أوراق قبض في الخزينة', name_en: 'Notes Receivable in Safe', type: 'asset', group: 'current_assets', balance: 'debit' },
         '1121': { name_ar: 'أوراق قبض برسم التحصيل', name_en: 'Notes Receivable Under Collection', type: 'asset', group: 'current_assets', balance: 'debit' },
         '2135': { name_ar: 'أوراق دفع', name_en: 'Notes Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
-        '2125': { name_ar: 'أمانات ضريبة الخصم والإضافة', name_en: 'Withholding Tax Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '2125': { name_ar: 'بضاعة مستلمة غير مفوترة (GRNI)', name_en: 'Goods Received Not Invoiced', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '2126': { name_ar: 'أمانات ضريبة الخصم والإضافة', name_en: 'Withholding Tax Payable', type: 'liability', group: 'tax', balance: 'credit' },
         '1155': { name_ar: 'ضرائب مخصومة لدى الغير', name_en: 'Withholding Tax Receivable', type: 'asset', group: 'current_assets', balance: 'debit' },
         '6800': { name_ar: 'مصاريف بنكية', name_en: 'Bank Fees', type: 'expense', group: 'operating_expenses', balance: 'debit' },
         '1110': { name_ar: 'الخزينة', name_en: 'Cash', type: 'asset', group: 'cash_bank', balance: 'debit' },
@@ -4557,7 +4598,10 @@ export class AccountingPostingService {
     if (cheque.type === 'receivable') {
       let customerArId = Number(settings?.customer_receivable_account_id || 0);
       if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
-      const safeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+      // The cheque row is read before the status update, so status is the pre-cancel state.
+      const notesAccountId = cheque.status === 'under_collection'
+        ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121')
+        : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
 
       this.addLine(lines, {
         accountId: customerArId,
@@ -4570,7 +4614,7 @@ export class AccountingPostingService {
         locationId: null,
       });
       this.addLine(lines, {
-        accountId: safeAccountId,
+        accountId: notesAccountId,
         description: `إلغاء/رد ورقة قبض #${cheque.cheque_number}`,
         debit: 0,
         credit: amount,
@@ -4582,7 +4626,7 @@ export class AccountingPostingService {
     } else {
       let supplierApId = Number(settings?.supplier_payable_account_id || 0);
       if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
-      const payablePdcId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2120');
+      const payablePdcId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
 
       this.addLine(lines, {
         accountId: payablePdcId,
@@ -4619,6 +4663,7 @@ export class AccountingPostingService {
       createdBy: auth.userId,
       postedBy: auth.userId,
       lines,
+      reversalOfEntryId: cheque.journal_entry_id ? Number(cheque.journal_entry_id) : null,
     });
     return { posted: true, journalEntryId: entryId };
   }
@@ -4646,50 +4691,90 @@ export class AccountingPostingService {
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     const lines: JournalLineDraft[] = [];
+    let description = '';
 
     if (cheque.type === 'receivable' && previousStatus === 'bounced') {
       let customerArId = Number(settings?.customer_receivable_account_id || 0);
       if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
       const safeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
-
       this.addLine(lines, {
         accountId: safeAccountId,
         description: `إعادة إيداع شيك مرتد في الخزينة #${cheque.cheque_number}`,
-        debit: amount,
-        credit: 0,
-        partnerType: 'none',
-        partnerId: null,
-        branchId: null,
-        locationId: null,
+        debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
       });
       this.addLine(lines, {
         accountId: customerArId,
         description: `تسوية مديونية العميل ${cheque.partner_name} بعد استعادة الشيك للخزينة #${cheque.cheque_number}`,
-        debit: 0,
-        credit: amount,
+        debit: 0, credit: amount,
         partnerType: cheque.partner_id ? 'customer' : 'none',
         partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
-        branchId: null,
-        locationId: null,
+        branchId: null, locationId: null,
       });
-
-      const entryId = await this.insertPostedJournal(queryable, {
-        sourceType: 'pdc_cheque_restore',
-        sourceId: chequeId,
-        tenantId: scope.tenantId,
-        accountId: scope.accountId,
-        entryDate: new Date(),
-        description: `قيد استعادة شيك مرتد #${cheque.cheque_number} إلى الخزينة`,
-        branchId: null,
-        locationId: null,
-        createdBy: auth.userId,
-        postedBy: auth.userId,
-        lines,
+      description = `قيد استعادة شيك مرتد #${cheque.cheque_number} إلى الخزينة`;
+    } else if (cheque.type === 'receivable' && previousStatus === 'under_collection') {
+      const safeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
+      const underCollectionId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121');
+      this.addLine(lines, {
+        accountId: safeAccountId,
+        description: `سحب شيك #${cheque.cheque_number} من التحصيل وإعادته للخزينة`,
+        debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
       });
-      return { posted: true, journalEntryId: entryId };
+      this.addLine(lines, {
+        accountId: underCollectionId,
+        description: `إقفال ورقة قبض برسم التحصيل #${cheque.cheque_number}`,
+        debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
+      });
+      description = `قيد سحب شيك #${cheque.cheque_number} من التحصيل إلى الخزينة`;
+    } else if (cheque.type === 'payable' && previousStatus === 'bounced') {
+      let supplierApId = Number(settings?.supplier_payable_account_id || 0);
+      if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
+      const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
+      this.addLine(lines, {
+        accountId: supplierApId,
+        description: `إعادة إصدار ورقة دفع مرتدة #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
+        debit: amount, credit: 0,
+        partnerType: cheque.partner_id ? 'supplier' : 'none',
+        partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
+        branchId: null, locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: notesPayableId,
+        description: `ورقة دفع قائمة #${cheque.cheque_number}`,
+        debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
+      });
+      description = `قيد إعادة إصدار ورقة دفع مرتدة #${cheque.cheque_number}`;
+    } else {
+      return { posted: false, journalEntryId: null };
     }
 
-    return { posted: false, journalEntryId: null };
+    const priorSourceType = previousStatus === 'under_collection'
+      ? 'pdc_cheque_deposit'
+      : (cheque.type === 'receivable' ? 'pdc_cheque_bounce' : 'pdc_cheque_payable_bounce');
+    const priorEntry = await queryable
+      .selectFrom('journal_entries')
+      .select(['id'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('source_type', '=', priorSourceType)
+      .where('source_id', '=', chequeId)
+      .where('reversed_by_entry_id', 'is', null)
+      .orderBy('id', 'desc')
+      .executeTakeFirst();
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'pdc_cheque_restore',
+      sourceId: chequeId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description,
+      branchId: null,
+      locationId: null,
+      createdBy: auth.userId,
+      postedBy: auth.userId,
+      lines,
+      reversalOfEntryId: priorEntry?.id ? Number(priorEntry.id) : null,
+    });
+    return { posted: true, journalEntryId: entryId };
   }
 
   async postWithholdingTaxRemittance(queryable: DbOrTx, transactionId: number, paymentMethod: 'bank' | 'cash', auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
@@ -4709,57 +4794,56 @@ export class AccountingPostingService {
     if (taxAmount <= 0) return { posted: false, journalEntryId: null };
 
     const lines: JournalLineDraft[] = [];
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    const partnerId = tx.partner_id ? Number(tx.partner_id) : null;
     if (tx.direction === 'payable') {
-      // WHT deducted from supplier and now paid to tax authority
-      const whtPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2125');
-      let paymentAccountId = paymentMethod === 'cash'
+      // The withheld part of the supplier liability is reclassified to WHT payable, then remitted.
+      let supplierApId = Number(settings?.supplier_payable_account_id || 0);
+      if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
+      const whtPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2126');
+      const paymentAccountId = paymentMethod === 'cash'
         ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110')
         : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
 
       this.addLine(lines, {
+        accountId: supplierApId,
+        description: `استقطاع ضريبة خصم وإضافة من مستحقات المورد ${tx.partner_name} - فاتورة #${tx.invoice_number}`,
+        debit: taxAmount, credit: 0,
+        partnerType: partnerId ? 'supplier' : 'none', partnerId,
+        branchId: null, locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: whtPayableId,
+        description: `أمانات ضريبة خصم وإضافة نموذج 41 - فاتورة #${tx.invoice_number}`,
+        debit: 0, credit: taxAmount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
+      });
+      this.addLine(lines, {
         accountId: whtPayableId,
         description: `سداد ضريبة خصم وإضافة نموذج 41 - فاتورة #${tx.invoice_number}`,
-        debit: taxAmount,
-        credit: 0,
-        partnerType: 'none',
-        partnerId: null,
-        branchId: null,
-        locationId: null,
+        debit: taxAmount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
       });
       this.addLine(lines, {
         accountId: paymentAccountId,
         description: `سداد وتوريد ضريبة الخصم والإضافة لمصلحة الضرائب (${paymentMethod === 'cash' ? 'نقداً' : 'بنكياً'})`,
-        debit: 0,
-        credit: taxAmount,
-        partnerType: 'none',
-        partnerId: null,
-        branchId: null,
-        locationId: null,
+        debit: 0, credit: taxAmount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
       });
     } else {
-      // WHT deducted by customer from our invoice, now credited/cleared
+      // Tax withheld by the customer is a credit against our income tax; it settles part of the customer's debt.
+      let customerArId = Number(settings?.customer_receivable_account_id || 0);
+      if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
       const whtReceivableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1155');
-      const vatPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2120');
 
       this.addLine(lines, {
-        accountId: vatPayableId,
-        description: `مقاصة ضريبة خصم وإضافة مع ضريبة المبيعات - فاتورة #${tx.invoice_number}`,
-        debit: taxAmount,
-        credit: 0,
-        partnerType: 'none',
-        partnerId: null,
-        branchId: null,
-        locationId: null,
+        accountId: whtReceivableId,
+        description: `ضريبة خصم وإضافة مخصومة لدى العميل - فاتورة #${tx.invoice_number}`,
+        debit: taxAmount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
       });
       this.addLine(lines, {
-        accountId: whtReceivableId,
-        description: `إقفال ضريبة مخصومة لدى الغير - فاتورة #${tx.invoice_number}`,
-        debit: 0,
-        credit: taxAmount,
-        partnerType: 'none',
-        partnerId: null,
-        branchId: null,
-        locationId: null,
+        accountId: customerArId,
+        description: `تسوية مديونية العميل ${tx.partner_name} بقيمة الضريبة المخصومة - فاتورة #${tx.invoice_number}`,
+        debit: 0, credit: taxAmount,
+        partnerType: partnerId ? 'customer' : 'none', partnerId,
+        branchId: null, locationId: null,
       });
     }
 
@@ -5020,4 +5104,332 @@ export class AccountingPostingService {
     }
   }
 
+  /**
+   * Cash drawer manual cash_in and cash_out double-entry posting
+   */
+  async postCashDrawerMovement(
+    queryable: DbOrTx,
+    txnId: number,
+    movementType: 'cash_in' | 'cash_out' | string,
+    amount: number,
+    note: string,
+    branchId: number | null,
+    locationId: number | null,
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const moneyAmount = this.toMoney(amount);
+    if (moneyAmount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let cashAccountId = Number(settings?.cash_account_id || 0);
+    if (!(cashAccountId > 0)) cashAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110');
+
+    const lines: JournalLineDraft[] = [];
+    if (movementType === 'cash_in') {
+      const incomeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+      this.addLine(lines, {
+        accountId: cashAccountId,
+        description: `توريد نقدية للدرج: ${note}`,
+        debit: moneyAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+      this.addLine(lines, {
+        accountId: incomeAccountId,
+        description: `إيرادات / توريدات نقدية متفرقة: ${note}`,
+        debit: 0,
+        credit: moneyAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    } else if (movementType === 'cash_out') {
+      let expenseAccountId = Number(settings?.expenses_account_id || 0);
+      if (!(expenseAccountId > 0)) expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6950');
+      this.addLine(lines, {
+        accountId: expenseAccountId,
+        description: `صرف نقدية من الدرج: ${note}`,
+        debit: moneyAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+      this.addLine(lines, {
+        accountId: cashAccountId,
+        description: `سحب نقدية من الدرج: ${note}`,
+        debit: 0,
+        credit: moneyAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId,
+        locationId,
+      });
+    } else {
+      return { posted: false, journalEntryId: null };
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: `cash_drawer_${movementType}`,
+      sourceId: txnId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد حركة درج نقدية #${txnId} (${movementType === 'cash_in' ? 'توريد' : 'صرف'})`,
+      branchId,
+      locationId,
+      createdBy: auth.userId,
+      postedBy: auth.userId,
+      lines,
+    });
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  /**
+   * Customer opening balance double-entry posting
+   */
+  async postCustomerOpeningBalance(
+    queryable: DbOrTx,
+    customerId: number,
+    amount: number,
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const absAmount = this.toMoney(Math.abs(amount));
+    if (absAmount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let arAccountId = Number(settings?.customer_receivable_account_id || 0);
+    if (!(arAccountId > 0)) arAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+    const openingEquityId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '3200');
+
+    const customer = await queryable
+      .selectFrom('customers')
+      .select(['id', 'name'])
+      .where('id', '=', customerId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const custName = customer?.name || `عميل #${customerId}`;
+
+    const lines: JournalLineDraft[] = [];
+    if (amount > 0) {
+      this.addLine(lines, {
+        accountId: arAccountId,
+        description: `رصيد افتتاحي - مديونية على العميل ${custName}`,
+        debit: absAmount,
+        credit: 0,
+        partnerType: 'customer',
+        partnerId: customerId,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: openingEquityId,
+        description: `رصيد افتتاحي حقوق ملكية - عميل ${custName}`,
+        debit: 0,
+        credit: absAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    } else {
+      this.addLine(lines, {
+        accountId: openingEquityId,
+        description: `رصيد افتتاحي حقوق ملكية - دائنية للعميل ${custName}`,
+        debit: absAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: arAccountId,
+        description: `رصيد افتتاحي - دائنية للعميل ${custName}`,
+        debit: 0,
+        credit: absAmount,
+        partnerType: 'customer',
+        partnerId: customerId,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'customer_opening_balance',
+      sourceId: customerId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد رصيد افتتاحي للعميل ${custName}`,
+      branchId: null,
+      locationId: null,
+      createdBy: auth.userId,
+      postedBy: auth.userId,
+      lines,
+    });
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  /**
+   * Supplier opening balance double-entry posting
+   */
+  async postSupplierOpeningBalance(
+    queryable: DbOrTx,
+    supplierId: number,
+    amount: number,
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const absAmount = this.toMoney(Math.abs(amount));
+    if (absAmount <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let apAccountId = Number(settings?.supplier_payable_account_id || 0);
+    if (!(apAccountId > 0)) apAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
+    const openingEquityId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '3200');
+
+    const supplier = await queryable
+      .selectFrom('suppliers')
+      .select(['id', 'name'])
+      .where('id', '=', supplierId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const supName = supplier?.name || `مورد #${supplierId}`;
+
+    const lines: JournalLineDraft[] = [];
+    if (amount > 0) {
+      this.addLine(lines, {
+        accountId: openingEquityId,
+        description: `رصيد افتتاحي حقوق ملكية - التزام للمورد ${supName}`,
+        debit: absAmount,
+        credit: 0,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: apAccountId,
+        description: `رصيد افتتاحي - التزام للمورد ${supName}`,
+        debit: 0,
+        credit: absAmount,
+        partnerType: 'supplier',
+        partnerId: supplierId,
+        branchId: null,
+        locationId: null,
+      });
+    } else {
+      this.addLine(lines, {
+        accountId: apAccountId,
+        description: `رصيد افتتاحي - دفعة مقدمة / مديونية على المورد ${supName}`,
+        debit: absAmount,
+        credit: 0,
+        partnerType: 'supplier',
+        partnerId: supplierId,
+        branchId: null,
+        locationId: null,
+      });
+      this.addLine(lines, {
+        accountId: openingEquityId,
+        description: `رصيد افتتاحي حقوق ملكية - مورد ${supName}`,
+        debit: 0,
+        credit: absAmount,
+        partnerType: 'none',
+        partnerId: null,
+        branchId: null,
+        locationId: null,
+      });
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'supplier_opening_balance',
+      sourceId: supplierId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد رصيد افتتاحي للمورد ${supName}`,
+      branchId: null,
+      locationId: null,
+      createdBy: auth.userId,
+      postedBy: auth.userId,
+      lines,
+    });
+    return { posted: true, journalEntryId: entryId };
+  }
+
+  /**
+   * Customer installment plan finance interest double-entry posting
+   */
+  async postCustomerInstallmentInterest(
+    queryable: DbOrTx,
+    planId: number,
+    auth: AuthContext,
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const plan = await queryable
+      .selectFrom('customer_installment_plans')
+      .selectAll()
+      .where('id', '=', planId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!plan) return { posted: false, journalEntryId: null };
+    const interest = this.toMoney(plan.interest_amount);
+    if (interest <= 0) return { posted: false, journalEntryId: null };
+
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    let arAccountId = Number(settings?.customer_receivable_account_id || 0);
+    if (!(arAccountId > 0)) arAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
+    const financeIncomeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: arAccountId,
+      description: `فوائد تقسيط - خطة تقسيط #${plan.plan_number}`,
+      debit: interest,
+      credit: 0,
+      partnerType: plan.customer_id ? 'customer' : 'none',
+      partnerId: plan.customer_id ? Number(plan.customer_id) : null,
+      branchId: plan.branch_id ? Number(plan.branch_id) : null,
+      locationId: null,
+    });
+    this.addLine(lines, {
+      accountId: financeIncomeId,
+      description: `إيرادات فوائد تقسيط - خطة تقسيط #${plan.plan_number}`,
+      debit: 0,
+      credit: interest,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: plan.branch_id ? Number(plan.branch_id) : null,
+      locationId: null,
+    });
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'customer_installment_interest',
+      sourceId: planId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: plan.start_date ? new Date(plan.start_date) : new Date(),
+      description: `قيد فوائد تمويل خطة تقسيط #${plan.plan_number}`,
+      branchId: plan.branch_id ? Number(plan.branch_id) : null,
+      locationId: null,
+      createdBy: plan.created_by ? Number(plan.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines,
+    });
+    return { posted: true, journalEntryId: entryId };
+  }
 }

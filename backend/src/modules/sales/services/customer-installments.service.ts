@@ -150,6 +150,23 @@ export class CustomerInstallmentsService {
         .values(installmentsToInsert as any)
         .execute();
 
+      // If there is finance interest, debit customer debt and post GL interest income
+      if (interestAmount > 0) {
+        const fullDesc = `فوائد تمويل خطة تقسيط #${planNumber}`;
+        await this.salesFinance.addCustomerPaymentLedgerEntry(
+          trx,
+          Number(dto.customerId),
+          interestAmount,
+          fullDesc,
+          'customer_installment_plan',
+          planId,
+          auth,
+          dto.branchId ? Number(dto.branchId) : null,
+          null,
+        );
+        await this.accountingPosting.postCustomerInstallmentInterest(trx, planId, auth);
+      }
+
       // If there is a down payment, record in customer payments, subledger, treasury, and accounting
       if (downPayment > 0) {
         const insertedPayment = await trx

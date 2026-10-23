@@ -413,6 +413,17 @@ export class PdcChequesService {
             .where('tenant_id', '=', tenantId)
             .execute();
         }
+        if (inserted.partner_id) {
+          await this.syncCustomerSubLedger(
+            trx,
+            authContext,
+            Number(inserted.partner_id),
+            -amount,
+            'cheque_received',
+            `استلام شيك قبض #${dto.chequeNumber}`,
+            inserted.id,
+          );
+        }
       } else if (type === 'payable' && status === 'issued') {
         const postRes = await this.accountingPostingService.postPdcChequeIssue(trx, inserted.id, authContext);
         if (postRes.posted && postRes.journalEntryId) {
@@ -423,6 +434,17 @@ export class PdcChequesService {
             .where('id', '=', inserted.id)
             .where('tenant_id', '=', tenantId)
             .execute();
+        }
+        if (inserted.partner_id) {
+          await this.syncSupplierSubLedger(
+            trx,
+            authContext,
+            Number(inserted.partner_id),
+            -amount,
+            'cheque_issued',
+            `إصدار شيك دفع #${dto.chequeNumber}`,
+            inserted.id,
+          );
         }
       }
 
@@ -628,11 +650,33 @@ export class PdcChequesService {
             nextJournalId = postRes.journalEntryId;
             updateFields.journal_entry_id = nextJournalId;
           }
+          if (existing.partner_id) {
+            await this.syncCustomerSubLedger(
+              trx,
+              authContext,
+              Number(existing.partner_id),
+              Number(existing.amount),
+              'cheque_bounced',
+              `ارتداد شيك قبض #${existing.cheque_number}`,
+              id,
+            );
+          }
         } else {
           const postRes = await this.accountingPostingService.postPdcChequePayableBounce(trx, id, authContext);
           if (postRes.posted && postRes.journalEntryId) {
             nextJournalId = postRes.journalEntryId;
             updateFields.journal_entry_id = nextJournalId;
+          }
+          if (existing.partner_id) {
+            await this.syncSupplierSubLedger(
+              trx,
+              authContext,
+              Number(existing.partner_id),
+              Number(existing.amount),
+              'cheque_bounced',
+              `ارتداد شيك دفع #${existing.cheque_number}`,
+              id,
+            );
           }
         }
       } else if (actionDto.action === 'endorse') {
@@ -646,9 +690,20 @@ export class PdcChequesService {
           nextJournalId = postRes.journalEntryId;
           updateFields.journal_entry_id = nextJournalId;
         }
+        if (actionDto.endorsedToSupplierId) {
+          await this.syncSupplierSubLedger(
+            trx,
+            authContext,
+            Number(actionDto.endorsedToSupplierId),
+            -Number(existing.amount),
+            'cheque_endorsed',
+            `سداد بتظهير شيك قبض #${existing.cheque_number}`,
+            id,
+          );
+        }
       } else if (actionDto.action === 'cancel' || actionDto.action === 'return') {
-        // Reverse earlier posted receipt/issue journal (ZS-047)
-        if (existing.journal_entry_id) {
+        // Reverse earlier posted receipt/issue journal ONLY if not already bounced (ZS-047)
+        if (existing.journal_entry_id && existing.status !== 'bounced') {
           const postRes = await this.accountingPostingService.postPdcChequeCancelOrReturn(
             trx,
             id,
@@ -659,10 +714,31 @@ export class PdcChequesService {
             nextJournalId = postRes.journalEntryId;
             updateFields.journal_entry_id = nextJournalId;
           }
+          if (existing.type === 'receivable' && existing.partner_id) {
+            await this.syncCustomerSubLedger(
+              trx,
+              authContext,
+              Number(existing.partner_id),
+              Number(existing.amount),
+              'cheque_returned',
+              `رد/إلغاء شيك قبض #${existing.cheque_number}`,
+              id,
+            );
+          } else if (existing.type === 'payable' && existing.partner_id) {
+            await this.syncSupplierSubLedger(
+              trx,
+              authContext,
+              Number(existing.partner_id),
+              Number(existing.amount),
+              'cheque_returned',
+              `رد/إلغاء شيك دفع #${existing.cheque_number}`,
+              id,
+            );
+          }
         }
       } else if (actionDto.action === 'restore_to_safe') {
-        // Reverse earlier bounce effect if restoring from bounced status (ZS-048)
-        if (existing.status === 'bounced') {
+        // Reverse earlier bounce effect or deposit effect when restoring to safe (ZS-048)
+        if (existing.status === 'bounced' || existing.status === 'under_collection') {
           const postRes = await this.accountingPostingService.postPdcChequeRestore(
             trx,
             id,
@@ -672,6 +748,29 @@ export class PdcChequesService {
           if (postRes.posted && postRes.journalEntryId) {
             nextJournalId = postRes.journalEntryId;
             updateFields.journal_entry_id = nextJournalId;
+          }
+        }
+        if (existing.status === 'bounced') {
+          if (existing.type === 'receivable' && existing.partner_id) {
+            await this.syncCustomerSubLedger(
+              trx,
+              authContext,
+              Number(existing.partner_id),
+              -Number(existing.amount),
+              'cheque_restored',
+              `استعادة شيك مرتد إلى الخزينة #${existing.cheque_number}`,
+              id,
+            );
+          } else if (existing.type === 'payable' && existing.partner_id) {
+            await this.syncSupplierSubLedger(
+              trx,
+              authContext,
+              Number(existing.partner_id),
+              -Number(existing.amount),
+              'cheque_restored',
+              `إعادة إدراج شيك مرتد بالخزينة #${existing.cheque_number}`,
+              id,
+            );
           }
         }
       }
@@ -716,6 +815,92 @@ export class PdcChequesService {
         updated_at: updated.updated_at ? new Date(updated.updated_at).toISOString() : '',
       };
     });
+  }
+
+  private async syncCustomerSubLedger(
+    trx: any,
+    auth: AuthContext,
+    customerId: number,
+    amount: number,
+    entryType: string,
+    note: string,
+    chequeId: number,
+  ): Promise<void> {
+    const tenantId = String(auth.tenantId || '');
+    const accountId = String(auth.accountId || tenantId);
+    const updated = await trx
+      .updateTable('customers')
+      .set({
+        balance: sql`COALESCE(balance, 0) + ${amount}`,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', customerId)
+      .where('tenant_id', '=', tenantId)
+      .returning(['balance'])
+      .executeTakeFirst();
+
+    if (!updated) return;
+
+    await trx
+      .insertInto('customer_ledger')
+      .values({
+        customer_id: customerId,
+        entry_type: entryType,
+        amount: amount,
+        balance_after: Number(Number(updated.balance).toFixed(2)),
+        note: note,
+        reference_type: 'pdc_cheque',
+        reference_id: chequeId,
+        created_by: auth.userId ? Number(auth.userId) : null,
+        branch_id: null,
+        location_id: null,
+        tenant_id: tenantId,
+        account_id: accountId,
+      })
+      .execute();
+  }
+
+  private async syncSupplierSubLedger(
+    trx: any,
+    auth: AuthContext,
+    supplierId: number,
+    amount: number,
+    entryType: string,
+    note: string,
+    chequeId: number,
+  ): Promise<void> {
+    const tenantId = String(auth.tenantId || '');
+    const accountId = String(auth.accountId || tenantId);
+    const updated = await trx
+      .updateTable('suppliers')
+      .set({
+        balance: sql`COALESCE(balance, 0) + ${amount}`,
+        updated_at: sql`NOW()`,
+      })
+      .where('id', '=', supplierId)
+      .where('tenant_id', '=', tenantId)
+      .returning(['balance'])
+      .executeTakeFirst();
+
+    if (!updated) return;
+
+    await trx
+      .insertInto('supplier_ledger')
+      .values({
+        supplier_id: supplierId,
+        entry_type: entryType,
+        amount: amount,
+        balance_after: Number(Number(updated.balance).toFixed(2)),
+        note: note,
+        reference_type: 'pdc_cheque',
+        reference_id: chequeId,
+        created_by: auth.userId ? Number(auth.userId) : null,
+        branch_id: null,
+        location_id: null,
+        tenant_id: tenantId,
+        account_id: accountId,
+      })
+      .execute();
   }
 
   /**

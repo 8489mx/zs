@@ -810,9 +810,25 @@ export class CashDrawerService {
       if (!lockedShift) throw new AppError('الوردية غير موجودة', 'SHIFT_NOT_FOUND', 404);
       if (String(lockedShift.status || 'open') !== 'open') throw new AppError('لا يمكن تسجيل حركة على وردية مغلقة', 'SHIFT_CLOSED', 400);
 
-      await sql`insert into treasury_transactions (txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id) values (${movementType}, ${signedAmount}, ${`وردية ${shift.doc_no || shift.id}: ${note}`}, 'cashier_shift', ${shiftId}, ${shift.branch_id ? Number(shift.branch_id) : null}, ${shift.location_id ? Number(shift.location_id) : null}, ${auth.userId}, ${scope.tenantId}, ${scope.accountId})`.execute(trx);
+      const insertRes = await sql<{ id: number }>`insert into treasury_transactions (txn_type, amount, note, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id) values (${movementType}, ${signedAmount}, ${`وردية ${shift.doc_no || shift.id}: ${note}`}, 'cashier_shift', ${shiftId}, ${shift.branch_id ? Number(shift.branch_id) : null}, ${shift.location_id ? Number(shift.location_id) : null}, ${auth.userId}, ${scope.tenantId}, ${scope.accountId}) returning id`.execute(trx);
       const expectedCash = await this.computeShiftExpectedCashFromShift(lockedShift as ShiftRow, auth, undefined, undefined, trx);
       await sql`update cashier_shifts set expected_cash = ${expectedCash} where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
+
+      if (movementType === 'cash_in' || movementType === 'cash_out') {
+        const txnId = Number(insertRes.rows?.[0]?.id || 0);
+        if (txnId > 0) {
+          await this.accountingPosting.postCashDrawerMovement(
+            trx,
+            txnId,
+            movementType,
+            amount,
+            `وردية ${shift.doc_no || shift.id}: ${note}`,
+            shift.branch_id ? Number(shift.branch_id) : null,
+            shift.location_id ? Number(shift.location_id) : null,
+            auth,
+          );
+        }
+      }
     });
 
     const listing = await this.listCashierShifts({}, auth);

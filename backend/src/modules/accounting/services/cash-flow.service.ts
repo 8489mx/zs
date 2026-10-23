@@ -157,50 +157,62 @@ export class CashFlowService {
       .select([
         'acc.account_type',
         'acc.code',
+        'acc.name_ar',
+        'acc.name_en',
         sql<number>`COALESCE(SUM(jel.debit), 0)`.as('total_debit'),
         sql<number>`COALESCE(SUM(jel.credit), 0)`.as('total_credit'),
       ])
       .where('je.tenant_id', '=', tenantId)
       .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
+      .where('je.source_type', 'not in', ['fiscal_year_closing', 'fiscal_year_reopen'])
       .where('je.entry_date', '>=', fromDate)
       .where('je.entry_date', '<=', toDate);
 
     if (params.branchId) {
       pnlQuery = pnlQuery.where('jel.branch_id', '=', params.branchId);
     }
-    const pnlRows = await pnlQuery.groupBy(['acc.account_type', 'acc.code']).execute();
+    const pnlRows = await pnlQuery.groupBy(['acc.account_type', 'acc.code', 'acc.name_ar', 'acc.name_en']).execute();
 
     let netProfit = 0;
     let depreciationExpense = 0;
+    let contraAssetDepreciation = 0;
 
     for (const r of pnlRows) {
       const type = String(r.account_type || '').toLowerCase();
       const code = String(r.code || '');
+      const nameAr = String(r.name_ar || '');
+      const nameEn = String(r.name_en || '').toLowerCase();
       const deb = Number(r.total_debit || 0);
       const cred = Number(r.total_credit || 0);
 
-      if (type === 'revenue') {
+      if (type === 'revenue' || type === 'contra_revenue') {
         netProfit += cred - deb;
-      } else if (type === 'expense') {
+      } else if (type === 'expense' || type === 'contra_expense') {
         netProfit -= deb - cred;
-        // Check if depreciation expense (usually 6950 or code containing 69)
-        if (code.startsWith('695') || code.includes('depreciation')) {
+        if (code === '6960' || nameAr.includes('إهلاك') || nameEn.includes('depreciation')) {
           depreciationExpense += deb - cred;
         }
+      } else if (type === 'contra_asset' || code.startsWith('129')) {
+        contraAssetDepreciation += cred - deb;
       }
+    }
+
+    if (depreciationExpense === 0 && contraAssetDepreciation !== 0) {
+      depreciationExpense = contraAssetDepreciation;
     }
 
     netProfit = this.toMoney(netProfit);
     depreciationExpense = this.toMoney(depreciationExpense);
 
     // 5. Working capital changes during the period
-    // Working Capital Accounts: Receivables (113), Inventory (114), Payables (211), Taxes (213)
+    // Working Capital Accounts: Receivables & Advances (113, 116, 117), Inventory (114), Payables & Accrued Liabilities (211, 2125, 2130, 2135, 2140, 2150), Taxes (1150, 1155, 2120, 2126)
     let wcQuery = (this.db as any)
       .selectFrom('journal_entry_lines as jel')
       .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
       .innerJoin('accounting_accounts as acc', 'acc.id', 'jel.account_id')
       .select([
+        'acc.id',
         'acc.account_type',
         'acc.code',
         'acc.is_receivable',
@@ -219,25 +231,32 @@ export class CashFlowService {
     if (params.branchId) {
       wcQuery = wcQuery.where('jel.branch_id', '=', params.branchId);
     }
-    const wcRows = await wcQuery.groupBy(['acc.account_type', 'acc.code', 'acc.is_receivable', 'acc.is_payable', 'acc.is_inventory', 'acc.is_tax']).execute();
+    const wcRows = await wcQuery.groupBy(['acc.id', 'acc.account_type', 'acc.code', 'acc.is_receivable', 'acc.is_payable', 'acc.is_inventory', 'acc.is_tax']).execute();
 
     let changeInReceivables = 0; // Increase is cash outflow (-)
     let changeInInventory = 0;   // Increase is cash outflow (-)
     let changeInPayables = 0;    // Increase is cash inflow (+)
     let changeInTaxes = 0;       // Increase is cash inflow (+)
+    const cashAccountIdSet = new Set<number>(cashAccountIds);
 
     for (const r of wcRows) {
-      const isRec = r.is_receivable || String(r.code).startsWith('113');
-      const isInv = r.is_inventory || String(r.code).startsWith('114');
-      const isPay = r.is_payable || String(r.code).startsWith('211');
-      const isTax = r.is_tax || String(r.code).startsWith('213');
+      const accId = Number(r.id);
+      if (cashAccountIdSet.has(accId)) continue;
+
+      const code = String(r.code || '');
+      const type = String(r.account_type || '').toLowerCase();
+      const isTax = Boolean(r.is_tax) || ['1150', '1155', '2120', '2126'].includes(code);
+      const isInv = !isTax && (Boolean(r.is_inventory) || code.startsWith('114'));
+      const isRec = !isTax && !isInv && (Boolean(r.is_receivable) || code.startsWith('113') || code.startsWith('116') || code.startsWith('117') || (type === 'asset' && code.startsWith('11')));
+      const isPay = !isTax && (Boolean(r.is_payable) || code.startsWith('211') || ['2125', '2130', '2135', '2140', '2150'].includes(code) || (type === 'liability' && code.startsWith('21')));
 
       const netDebit = Number(r.period_debit || 0) - Number(r.period_credit || 0);
+      const netCredit = Number(r.period_credit || 0) - Number(r.period_debit || 0);
 
       if (isRec) changeInReceivables -= netDebit; // if debit > credit, receivables increased -> cash decreased
       if (isInv) changeInInventory -= netDebit;
-      if (isPay) changeInPayables += (Number(r.period_credit || 0) - Number(r.period_debit || 0));
-      if (isTax) changeInTaxes += (Number(r.period_credit || 0) - Number(r.period_debit || 0));
+      if (isPay) changeInPayables += netCredit;
+      if (isTax) changeInTaxes += netCredit;
     }
 
     changeInReceivables = this.toMoney(changeInReceivables);
@@ -298,7 +317,7 @@ export class CashFlowService {
     ];
     const totalInvesting = this.toMoney(investingLines.reduce((s, l) => s + l.amount, 0));
 
-    // 7. Financing activities (Capital, Loans, Owner Drawings)
+    // 7. Financing activities (Capital, Retained/Opening Equity, Loans, Owner Drawings)
     let financingQuery = (this.db as any)
       .selectFrom('journal_entry_lines as jel')
       .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
@@ -312,11 +331,12 @@ export class CashFlowService {
       .where('je.tenant_id', '=', tenantId)
       .where('jel.tenant_id', '=', tenantId)
       .where('je.status', '=', 'posted')
+      .where('je.source_type', 'not in', ['fiscal_year_closing', 'fiscal_year_reopen'])
       .where('je.entry_date', '>=', fromDate)
       .where('je.entry_date', '<=', toDate)
       .where((eb: any) =>
         eb.or([
-          eb('acc.account_type', '=', 'equity'),
+          eb('acc.account_type', 'in', ['equity', 'contra_equity']),
           eb('acc.code', 'like', '22%'), // Long term debt
         ]),
       );
@@ -335,15 +355,15 @@ export class CashFlowService {
       const deb = Number(r.f_debit || 0);
       const cred = Number(r.f_credit || 0);
 
-      if (code.startsWith('31')) {
-        // Capital
-        capitalContributions += (cred - deb);
-      } else if (code.startsWith('33') || r.account_group === 'drawings') {
+      if (code.startsWith('33') || r.account_group === 'drawings') {
         // Drawings
         ownerDrawings -= (deb - cred);
       } else if (code.startsWith('22')) {
         // Long term debt
         loansChange += (cred - deb);
+      } else if (code.startsWith('3')) {
+        // Capital & Retained/Opening Balance Equity (excluding fiscal_year_closing/reopen)
+        capitalContributions += (cred - deb);
       }
     }
 

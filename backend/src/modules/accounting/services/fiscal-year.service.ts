@@ -49,7 +49,7 @@ export function fiscalProfitAndLossCategory(account: { code: string; account_typ
   const code = String(account.code || '');
   const type = String(account.account_type || '').toLowerCase();
   if (type === 'revenue' || type === 'contra_revenue' || code.startsWith('4') || code.startsWith('71')) return 'revenue';
-  if (type === 'expense' || type === 'operating_expenses' || type === 'cogs' ||
+  if (type === 'expense' || type === 'operating_expenses' || type === 'cogs' || type === 'contra_expense' ||
       code.startsWith('5') || code.startsWith('6') || code.startsWith('72')) return 'expense';
   return null;
 }

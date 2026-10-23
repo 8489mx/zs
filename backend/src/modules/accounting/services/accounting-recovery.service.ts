@@ -157,6 +157,7 @@ export class AccountingRecoveryService implements OnApplicationBootstrap, OnModu
                 await this.posting.postDamagedStock(trx, Number(row.source_id), auth);
                 break;
               case 'shift_variance':
+              case 'cashier_shift_variance':
                 await this.posting.postCashierShiftVariance(trx, Number(row.source_id), auth);
                 break;
               default:

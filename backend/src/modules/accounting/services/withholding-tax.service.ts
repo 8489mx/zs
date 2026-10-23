@@ -443,6 +443,9 @@ export class WithholdingTaxService {
         );
         if (!postRes.journalEntryId) throw new BadRequestException('تعذر ترحيل قيد سداد ضريبة الاستقطاع.');
         paymentRef = paymentRef || `JE-${postRes.journalEntryId}`;
+        if (postRes.posted && existing.partner_id) {
+          await this.syncPartnerSubLedger(trx, auth, existing);
+        }
       }
 
       const updated = await trx
@@ -486,6 +489,34 @@ export class WithholdingTaxService {
         updated_at: updated.updated_at ? new Date(updated.updated_at).toISOString() : '',
       };
     });
+  }
+
+  private async syncPartnerSubLedger(trx: any, auth: AuthContext, tx: any): Promise<void> {
+    const tenantId = String(auth.tenantId || '');
+    const accountId = String(auth.accountId || tenantId);
+    const amount = -this.toMoney(tx.tax_amount);
+    const partnerId = Number(tx.partner_id);
+    const isSupplier = tx.direction === 'payable';
+    const table = isSupplier ? 'suppliers' : 'customers';
+    const updated = await trx.updateTable(table)
+      .set({ balance: sql`COALESCE(balance, 0) + ${amount}`, updated_at: sql`NOW()` })
+      .where('id', '=', partnerId).where('tenant_id', '=', tenantId)
+      .returning(['balance']).executeTakeFirst();
+    if (!updated) throw new BadRequestException('الشريك المرتبط بمعاملة الخصم والإضافة غير موجود.');
+    await trx.insertInto(isSupplier ? 'supplier_ledger' : 'customer_ledger').values({
+      [isSupplier ? 'supplier_id' : 'customer_id']: partnerId,
+      entry_type: 'withholding_tax',
+      amount,
+      balance_after: Number(Number(updated.balance).toFixed(2)),
+      note: `ضريبة خصم وإضافة - فاتورة #${tx.invoice_number}`,
+      reference_type: 'withholding_tax',
+      reference_id: Number(tx.id),
+      created_by: auth.userId ? Number(auth.userId) : null,
+      branch_id: null,
+      location_id: null,
+      tenant_id: tenantId,
+      account_id: accountId,
+    }).execute();
   }
 
   /**

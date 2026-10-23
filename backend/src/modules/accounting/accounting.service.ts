@@ -1016,6 +1016,10 @@ export class AccountingService {
       throw new BadRequestException('لا توجد سطور في هذا القيد لعكسها');
     }
 
+    if (lines.some((line: any) => Boolean(line.is_reconciled))) {
+      throw new BadRequestException('لا يمكن عكس قيد يومي تمت تسوية أحد سطوره في التسوية البنكية.');
+    }
+
     const result = await this.db.transaction().execute(async (trx) => {
       await lockAccountingPeriod(trx, scope.tenantId);
       // Re-read the original under a row lock. The guards above ran on an unlocked read, so two
@@ -1023,7 +1027,7 @@ export class AccountingService {
       // entry would be reversed twice — doubling the reversal's effect on the ledger.
       const lockedEntry = await trx
         .selectFrom('journal_entries')
-        .select(['id', 'status', 'reversed_by_entry_id'])
+        .select(['id', 'status', 'reversed_by_entry_id', 'entry_date'])
         .where('id', '=', entryId)
         .where('tenant_id', '=', scope.tenantId)
         .forUpdate()
@@ -1033,9 +1037,20 @@ export class AccountingService {
       if (lockedEntry.status !== 'posted') throw new BadRequestException('لا يمكن عكس قيد غير مرحل أو تم إلغاؤه مسبقاً');
       if (lockedEntry.reversed_by_entry_id) throw new BadRequestException('تم عكس هذا القيد بالفعل مسبقاً');
 
+      const lockedLines = await trx
+        .selectFrom('journal_entry_lines')
+        .select(['id', 'is_reconciled'])
+        .where('journal_entry_id', '=', entryId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+      if (lockedLines.some((line: any) => Boolean(line.is_reconciled))) {
+        throw new BadRequestException('لا يمكن عكس قيد يومي تمت تسوية أحد سطوره في التسوية البنكية.');
+      }
+
       // A reversal is a new posting and must respect the period lock like any other. Without this,
       // reversing into a closed fiscal year silently rewrites that year's balances after sign-off.
       const reversalDate = new Date();
+      await this.assertNotInLockedPeriod(scope.tenantId, lockedEntry.entry_date, { auth, queryable: trx });
       await this.assertNotInLockedPeriod(scope.tenantId, reversalDate, { auth, queryable: trx });
 
       const tempEntryNo = `JE-TMP-${randomUUID()}`;
@@ -1211,8 +1226,9 @@ export class AccountingService {
         cogs = this.toMoney(cogs + expenseMovement);
       }
 
-      const isOperatingExpense = (accountType === 'expense' || accountGroup === 'operating_expenses')
-        && !this.inCodes(code, COGS_CODES);
+      const isOperatingExpense = (accountType === 'expense' || accountType === 'contra_expense' || accountGroup === 'operating_expenses')
+        && !this.inCodes(code, COGS_CODES)
+        && accountGroup !== 'cogs';
       if (isOperatingExpense) {
         operatingExpenses = this.toMoney(operatingExpenses + expenseMovement);
         const current = expenseBreakdown.get(code) || { accountCode: code, accountNameAr, amount: 0 };
@@ -2161,7 +2177,7 @@ export class AccountingService {
       .select(['id', 'code'])
       .where('tenant_id', '=', tenantId)
       .where((eb: any) => eb.or([
-        eb('code', '=', '6950'),
+        eb('code', '=', '6960'),
         eb('name_ar', 'like', '%إهلاك%').and('account_type', '=', 'expense'),
       ]))
       .executeTakeFirst();
@@ -2181,12 +2197,12 @@ export class AccountingService {
       const created = await trx
         .insertInto('accounting_accounts')
         .values({
-          code: '6950',
+          code: '6960',
           name_ar: 'مصروف إهلاك الأصول الثابتة',
           name_en: 'Depreciation Expense',
           account_type: 'expense',
           normal_balance: 'debit',
-          sort_order: 6950,
+          sort_order: 6960,
           parent_id: parentRow ? Number(parentRow.id) : null,
           account_group: 'operating_expenses',
           allow_manual_entries: true,
@@ -2871,6 +2887,8 @@ export class AccountingService {
         'l.credit',
       ])
       .where('l.tenant_id', '=', scope.tenantId)
+      .where('e.tenant_id', '=', scope.tenantId)
+      .where('e.status', '=', 'posted')
       .where('l.cost_center_id', '=', costCenterId);
 
     if (filters?.fromDate) {
@@ -2892,9 +2910,9 @@ export class AccountingService {
       const credit = Number(line.credit || 0);
       totalDebit += debit;
       totalCredit += credit;
-      if (line.accountType === 'expense') {
+      if (line.accountType === 'expense' || line.accountType === 'contra_expense') {
         totalExpenses += (debit - credit);
-      } else if (line.accountType === 'revenue') {
+      } else if (line.accountType === 'revenue' || line.accountType === 'contra_revenue') {
         totalRevenues += (credit - debit);
       }
     }
@@ -3092,10 +3110,12 @@ export class AccountingService {
     // Fetch GL unreconciled journal lines for this bank account
     const glLines = await (this.db as any)
       .selectFrom('journal_entry_lines as jel')
-      .innerJoin('journal_entries as je', 'je.id', 'jel.journal_entry_id')
+      .innerJoin('journal_entries as je', (join: any) =>
+        join.onRef('je.id', '=', 'jel.journal_entry_id').onRef('je.tenant_id', '=', 'jel.tenant_id'),
+      )
       .where('jel.account_id', '=', statement.accountId)
       .where('je.status', '=', 'posted')
-      .where(sql`jel.is_reconciled = false OR jel.is_reconciled IS NULL`)
+      .where(sql`(jel.is_reconciled = false OR jel.is_reconciled IS NULL)`)
       .where(this.tenantPredicate(auth, 'jel'))
       .select([
         'jel.id',

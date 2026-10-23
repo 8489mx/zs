@@ -12,12 +12,14 @@ import { buildCustomerSearchPredicate, buildSupplierSearchPredicate, calculatePa
 import { generatePhoneSearchVariants } from '../../core/utils/phone-utils';
 import { getCustomerRepBalancesMap } from '../delivery-reps/services/van-common.util';
 import { extractCustomerVisitDays } from '../delivery-reps/van-routes-schedule.util';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 
 @Injectable()
 export class PartnersService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   private tenantId(actor: AuthContext): string {
@@ -81,6 +83,8 @@ export class PartnersService {
     }).execute();
 
     await this.db.updateTable('customers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(actor)).execute();
+
+    await this.accountingPosting.postCustomerOpeningBalance(this.db, customerId, openingBalance, actor);
   }
 
   private async addSupplierOpeningBalance(supplierId: number, amount: number, actor: AuthContext): Promise<void> {
@@ -102,6 +106,8 @@ export class PartnersService {
     }).execute();
 
     await this.db.updateTable('suppliers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(actor)).execute();
+
+    await this.accountingPosting.postSupplierOpeningBalance(this.db, supplierId, openingBalance, actor);
   }
 
   async listCustomers(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {

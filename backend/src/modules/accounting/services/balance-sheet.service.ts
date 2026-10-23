@@ -79,12 +79,11 @@ export class BalanceSheetService {
       compareDate.setHours(23, 59, 59, 999);
     }
 
-    // 1. Fetch all accounting accounts
+    // 1. Fetch all accounting accounts (including inactive ones that may carry historical posted balances)
     const accounts = await (this.db as any)
       .selectFrom('accounting_accounts')
       .selectAll()
       .where('tenant_id', '=', tenantId)
-      .where('is_active', '=', true)
       .orderBy('code', 'asc')
       .execute();
 
@@ -162,10 +161,10 @@ export class BalanceSheetService {
       const cb = compareBalanceByAccountId.get(accId) || { debit: 0, credit: 0 };
 
       // Normal balance calculation
-      // Assets: Debit - Credit
-      // Liabilities & Equity: Credit - Debit
-      // Revenues: Credit - Debit (increases profit)
-      // Expenses: Debit - Credit (decreases profit)
+      // Assets & Contra-Assets: Debit - Credit (contra-assets naturally have Credit > Debit -> negative)
+      // Liabilities & Equity: Credit - Debit (drawings naturally have Debit > Credit -> negative)
+      // Revenues & Contra-Revenues: Credit - Debit (increases/decreases profit)
+      // Expenses & Contra-Expenses: Debit - Credit (decreases profit)
       let amount = 0;
       let compareAmount = 0;
 
@@ -173,16 +172,10 @@ export class BalanceSheetService {
       const group = String(acc.account_group || '').toLowerCase();
       const code = String(acc.code || '');
 
-      if (type === 'asset') {
-        // Special check: Accumulated depreciation is contra-asset (code 1290 or credit balance)
-        const isContraAsset = code.startsWith('129') || group === 'accumulated_depreciation';
-        amount = isContraAsset ? this.toMoney(b.credit - b.debit) : this.toMoney(b.debit - b.credit);
-        compareAmount = isContraAsset ? this.toMoney(cb.credit - cb.debit) : this.toMoney(cb.debit - cb.credit);
-
-        if (isContraAsset) {
-          amount = -Math.abs(amount);
-          compareAmount = -Math.abs(compareAmount);
-        }
+      if (type === 'asset' || type === 'contra_asset') {
+        const isContraAsset = type === 'contra_asset' || code.startsWith('129') || group === 'accumulated_depreciation';
+        amount = this.toMoney(b.debit - b.credit);
+        compareAmount = this.toMoney(cb.debit - cb.credit);
 
         const row = this.createAccountRow(acc, amount, hasCompare ? compareAmount : undefined);
 
@@ -191,7 +184,7 @@ export class BalanceSheetService {
         } else {
           if (amount !== 0 || compareAmount !== 0) currentAssetsRows.push(row);
         }
-      } else if (type === 'liability') {
+      } else if (type === 'liability' || type === 'contra_liability') {
         amount = this.toMoney(b.credit - b.debit);
         compareAmount = this.toMoney(cb.credit - cb.debit);
         const row = this.createAccountRow(acc, amount, hasCompare ? compareAmount : undefined);
@@ -201,26 +194,19 @@ export class BalanceSheetService {
         } else {
           if (amount !== 0 || compareAmount !== 0) currentLiabilitiesRows.push(row);
         }
-      } else if (type === 'equity') {
-        // Check drawings / owner distributions (debit balance contra-equity)
-        const isContraEquity = code.startsWith('33') || group === 'drawings';
-        amount = isContraEquity ? this.toMoney(b.debit - b.credit) : this.toMoney(b.credit - b.debit);
-        compareAmount = isContraEquity ? this.toMoney(cb.debit - cb.credit) : this.toMoney(cb.credit - cb.debit);
-
-        if (isContraEquity) {
-          amount = -Math.abs(amount);
-          compareAmount = -Math.abs(compareAmount);
-        }
+      } else if (type === 'equity' || type === 'contra_equity') {
+        amount = this.toMoney(b.credit - b.debit);
+        compareAmount = this.toMoney(cb.credit - cb.debit);
 
         const row = this.createAccountRow(acc, amount, hasCompare ? compareAmount : undefined);
         if (amount !== 0 || compareAmount !== 0) equityRows.push(row);
-      } else if (type === 'revenue') {
+      } else if (type === 'revenue' || type === 'contra_revenue') {
         const rev = this.toMoney(b.credit - b.debit);
         currentPeriodNetProfit += rev;
         if (hasCompare) {
           compareCurrentPeriodNetProfit += this.toMoney(cb.credit - cb.debit);
         }
-      } else if (type === 'expense') {
+      } else if (type === 'expense' || type === 'contra_expense') {
         const exp = this.toMoney(b.debit - b.credit);
         currentPeriodNetProfit -= exp;
         if (hasCompare) {

@@ -141,7 +141,8 @@ export class ForexRevaluationService {
         if (userForeign === undefined) {
           throw new BadRequestException(`يجب إدخال الرصيد الفعلي بالعملة الأجنبية للحساب [${acc.code}].`);
         }
-        const foreignBalance = Math.round(userForeign * 100) / 100;
+        const signedForeign = localBalance < 0 && userForeign > 0 ? -userForeign : userForeign;
+        const foreignBalance = Math.round(signedForeign * 100) / 100;
         const { revaluedLocal, difference: diff } = calculateForexDifference(localBalance, foreignBalance, closingRate);
 
         lines.push({
@@ -325,6 +326,15 @@ export class ForexRevaluationService {
       } as any)
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    if (createdEntryId) {
+      await trx
+        .updateTable('journal_entries')
+        .set({ source_id: Number(runRow.id), updated_at: sql`NOW()` as any } as any)
+        .where('id', '=', createdEntryId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+    }
 
     // Insert detail lines
     const lineRows = preview.lines.map((l) => ({
