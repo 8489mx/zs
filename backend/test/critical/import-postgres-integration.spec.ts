@@ -331,6 +331,8 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       cancelled_by BIGINT,
       cancelled_at TIMESTAMPTZ,
       cancel_reason TEXT,
+      reversal_of_entry_id BIGINT,
+      reversed_by_entry_id BIGINT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );

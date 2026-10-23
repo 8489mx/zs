@@ -226,6 +226,8 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       cancelled_by BIGINT,
       cancelled_at TIMESTAMPTZ,
       cancel_reason TEXT,
+      reversal_of_entry_id BIGINT,
+      reversed_by_entry_id BIGINT,
       created_at TIMESTAMPTZ DEFAULT NOW(),
       updated_at TIMESTAMPTZ DEFAULT NOW()
     );
@@ -672,6 +674,7 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       shipment_id UUID NOT NULL REFERENCES import_shipments(id),
       state VARCHAR(50) DEFAULT 'posted',
       review_reason TEXT,
+      journal_entry_id BIGINT,
       posted_at TIMESTAMPTZ,
       created_by BIGINT,
       created_at TIMESTAMPTZ DEFAULT NOW()

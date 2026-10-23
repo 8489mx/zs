@@ -609,24 +609,27 @@ export class AccountingPostingService {
     }
 
     const tempEntryNo = `JE-TMP-${randomUUID()}`;
+    const insertPayload: Record<string, any> = {
+      entry_no: tempEntryNo,
+      tenant_id: params.tenantId,
+      account_id: params.accountId,
+      entry_date: params.entryDate,
+      description: params.description,
+      source_type: params.sourceType,
+      source_id: params.sourceId,
+      status: 'posted',
+      branch_id: params.branchId,
+      location_id: params.locationId,
+      created_by: params.createdBy && Number(params.createdBy) > 0 ? Number(params.createdBy) : null,
+      posted_by: params.postedBy && Number(params.postedBy) > 0 ? Number(params.postedBy) : null,
+      posted_at: sql`NOW()`,
+    };
+    if (params.reversalOfEntryId && Number(params.reversalOfEntryId) > 0) {
+      insertPayload.reversal_of_entry_id = Number(params.reversalOfEntryId);
+    }
     const inserted = await queryable
       .insertInto('journal_entries')
-      .values({
-        entry_no: tempEntryNo,
-        tenant_id: params.tenantId,
-        account_id: params.accountId,
-        entry_date: params.entryDate,
-        description: params.description,
-        source_type: params.sourceType,
-        source_id: params.sourceId,
-        status: 'posted',
-        branch_id: params.branchId,
-        location_id: params.locationId,
-        reversal_of_entry_id: params.reversalOfEntryId ?? null,
-        created_by: params.createdBy && Number(params.createdBy) > 0 ? Number(params.createdBy) : null,
-        posted_by: params.postedBy && Number(params.postedBy) > 0 ? Number(params.postedBy) : null,
-        posted_at: sql`NOW()`,
-      } as any)
+      .values(insertPayload)
       .returning('id')
       .executeTakeFirstOrThrow();
 
