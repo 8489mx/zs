@@ -156,16 +156,15 @@ function testForbiddenPatternsAreGone(): void {
     'an incomplete foundation must raise, not return quietly',
   );
 
-  // والأهم: الفشل في الترحيل صار صفاً دائماً، لا سطر سجل.
-  const salesWrite = read('modules/sales/services/sales-write.service.ts');
-  assert.ok(
-    /recordPostingFailure\(trx, scope, 'sale', id, message\)/.test(salesWrite),
-    'a sale whose journal fails must leave a durable, queryable record — a log line is how 2,281 invoices went unnoticed',
-  );
-  assert.ok(
-    /clearPostingFailure\(trx, scope, 'sale', id\)/.test(salesWrite),
-    'a later success must close the earlier failure, or the queue never drains',
-  );
+  // New sales must fail atomically; durable recovery remains for historical failures.
+  for (const path of ['modules/sales/services/sales-write.service.ts', 'modules/delivery-reps/van-sales.service.ts']) {
+    const salesWrite = read(path);
+    assert.ok(!/recordPostingFailure\(/.test(salesWrite),
+      'new sale transactions must propagate journal errors, not commit an unposted invoice into the recovery queue');
+    assert.ok(/await this\.accountingPosting\.postSale\(trx,/.test(salesWrite));
+    assert.ok(/clearPostingFailure\(trx,/.test(salesWrite),
+      'a successful posting must still resolve a historical failure');
+  }
 
   const posting = read('modules/accounting/accounting-posting.service.ts');
   assert.ok(

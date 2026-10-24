@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
+import { missingSourcePostingIssues } from './accounting-integrity';
 import { nextAccountingDay } from './engines/accounting-date.engine';
 
 /** Caller holds accounting-period lock; deferred postings must settle before sign-off. */
@@ -10,14 +11,6 @@ export async function assertAccountingCloseReady(db: Kysely<Database>, tenantId:
   const pending = await db.selectFrom('accounting_posting_failures').select('id')
     .where('tenant_id', '=', tenantId).where('resolved_at', 'is', null).limit(1).executeTakeFirst();
   if (pending) throw new BadRequestException('توجد قيود فاشلة بانتظار الاسترداد؛ يجب تسويتها قبل إقفال الدفاتر.');
-  const missing = await sql<{ id: number }>`
-    select s.id from sales s
-    where s.tenant_id = ${tenantId} and s.status = 'posted'
-      and s.created_at >= ${start}::date and s.created_at < ${nextAccountingDay(end)}
-      and not exists (
-        select 1 from journal_entries j where j.tenant_id = s.tenant_id and j.source_id = s.id
-          and j.source_type in ('sale', 'sale_edit') and j.status = 'posted' and j.reversed_by_entry_id is null
-      ) limit 1
-  `.execute(db);
+  const missing = await sql`SELECT * FROM (${missingSourcePostingIssues(tenantId, start, nextAccountingDay(end))}) AS missing_sources LIMIT 1`.execute(db);
   if (missing.rows.length) throw new BadRequestException('توجد فواتير مرحلة بدون قيد محاسبي نشط؛ يلزم استكمال الترحيل قبل الإقفال.');
 }

@@ -54,8 +54,8 @@ export class SalesFinanceService {
       .set({ balance: sql`COALESCE(balance, 0) + ${amount}`, updated_at: sql`NOW()` })
       .where('id', '=', customerId)
       .where(this.tenantPredicate(auth))
-      .where(sql<boolean>`${amount} <= 0 OR (NOT COALESCE(is_credit_blocked, FALSE)
-        AND (COALESCE(credit_limit, 0) <= 0 OR COALESCE(balance, 0) + ${amount} <= credit_limit + 0.001))`)
+      .where(sql<boolean>`(${amount}::numeric <= 0 OR (NOT COALESCE(is_credit_blocked, FALSE)
+        AND (COALESCE(credit_limit, 0) <= 0 OR COALESCE(balance, 0) + ${amount} <= credit_limit + 0.001)))`)
       .returning(['balance'])
       .executeTakeFirst();
     if (!updatedCustomer) throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);

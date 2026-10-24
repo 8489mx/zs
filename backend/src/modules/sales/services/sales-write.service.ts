@@ -1976,14 +1976,9 @@ export class SalesWriteService {
         }
       }
 
-      try {
-        await this.accountingPosting.postSale(trx, id, auth);
-        await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error(`Failed to post accounting journal for sale ${id}: ${message}`, error instanceof Error ? error.stack : String(error));
-        await this.accountingPosting.recordPostingFailure(trx, scope, 'sale', id, message);
-      }
+      // A journal failure must roll back stock, tenders and the invoice together.
+      await this.accountingPosting.postSale(trx, id, auth);
+      await this.accountingPosting.clearPostingFailure(trx, scope, 'sale', id);
 
       // Commit idempotency record atomically inside the business transaction
       if (idemCtx?.idempotencyKey && idemCtx?.operationType) {

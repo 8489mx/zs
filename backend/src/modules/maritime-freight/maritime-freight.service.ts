@@ -1,3 +1,4 @@
+import { calculateCarrierCreditBaseAmount } from './engines/carrier-credit.engine';
 import { assertBusinessAccountingDate } from '../accounting/accounting-boundaries';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { ensureDomainSupplier } from '../accounting/partner-subledger';
@@ -4878,7 +4879,7 @@ export class MaritimeFreightService {
       const job = await trx.selectFrom('maritime_jobs').selectAll().where('tenant_id', '=', tenantId).where('id', '=', String(dispute.job_id) as any).forUpdate().executeTakeFirstOrThrow();
       if (creditAmount > 0) {
         if (!invoice.journal_entry_id || !invoice.shipping_line_id) throw new BadRequestException('يجب ترحيل فاتورة الناقل وربط الخط الملاحي قبل إشعارها الدائن.');
-        const originalExpense = await trx.selectFrom('journal_entry_lines').select(['account_id', 'debit'])
+        const originalExpense = await trx.selectFrom('journal_entry_lines').select(['account_id', 'debit', 'cost_center_id', 'branch_id', 'location_id'])
           .where('tenant_id', '=', tenantId).where('journal_entry_id', '=', invoice.journal_entry_id).where('debit', '>', 0).executeTakeFirstOrThrow();
         const previousCredits = await trx.selectFrom('maritime_carrier_disputes').select(sql<number>`coalesce(sum(credit_note_amount), 0)`.as('amount'))
           .where('tenant_id', '=', tenantId).where('invoice_id', '=', invoice.id).where('id', '!=', dispute.id)
@@ -4886,15 +4887,21 @@ export class MaritimeFreightService {
         if (creditAmount + Number(previousCredits.amount) > Number(invoice.total_invoiced_amount) + 0.001) throw new BadRequestException('الإشعارات الدائنة المتراكمة تتجاوز قيمة فاتورة الناقل.');
         const ratio = creditAmount / Number(invoice.total_invoiced_amount);
         if (!Number.isFinite(ratio) || ratio <= 0 || ratio > 1) throw new BadRequestException('قيمة الإشعار لا تطابق الفاتورة الأصلية.');
-        const baseCredit = Number((Number(originalExpense.debit) * ratio).toFixed(2));
+        const baseCredit = calculateCarrierCreditBaseAmount(Number(invoice.total_invoiced_amount), Number(originalExpense.debit), Number(previousCredits.amount), creditAmount);
         const supplierId = await ensureDomainSupplier(trx, tenantId, 'shipping_line', invoice.shipping_line_id, invoice.carrier_name || 'خط ملاحي');
         const payableId = await this.accountingPosting.resolveSystemAccountByCode(trx, tenantId, '2110');
+        const originalPayable = await trx.selectFrom('journal_entry_lines')
+          .select(['cost_center_id', 'branch_id', 'location_id'])
+          .where('tenant_id', '=', tenantId).where('journal_entry_id', '=', invoice.journal_entry_id)
+          .where('account_id', '=', payableId).where('partner_type', '=', 'supplier').where('partner_id', '=', supplierId)
+          .where('credit', '>', 0).executeTakeFirst();
+        if (!originalPayable) throw new BadRequestException('هوية مورد الفاتورة لا تطابق القيد الأصلي؛ يلزم مراجعة الربط قبل الإشعار الدائن.');
         const description = `إشعار دائن ناقل ${dto.creditNoteNumber || ''} - النزاع ${dispute.dispute_number}`;
         await this.accountingPosting.postDomainJournal(trx, {
           tenantId, accountId: tenantId, entryDate: new Date(), sourceType: 'maritime_carrier_credit_note', sourceId: Number(dispute.id), description, createdBy: auth.userId || null,
           lines: [
-            { accountId: payableId, description, debit: baseCredit, credit: 0, partnerType: 'supplier', partnerId: supplierId, costCenterId: job.cost_center_id ? Number(job.cost_center_id) : null },
-            { accountId: Number(originalExpense.account_id), description, debit: 0, credit: baseCredit, partnerType: 'none', partnerId: null, costCenterId: job.cost_center_id ? Number(job.cost_center_id) : null },
+            { accountId: payableId, description, debit: baseCredit, credit: 0, partnerType: 'supplier', partnerId: supplierId, costCenterId: originalPayable.cost_center_id, branchId: originalPayable.branch_id, locationId: originalPayable.location_id },
+            { accountId: Number(originalExpense.account_id), description, debit: 0, credit: baseCredit, partnerType: 'none', partnerId: null, costCenterId: originalExpense.cost_center_id, branchId: originalExpense.branch_id, locationId: originalExpense.location_id },
           ],
         });
         const carrierCost = Number(job.carrier_cost_total || 0) - baseCredit;

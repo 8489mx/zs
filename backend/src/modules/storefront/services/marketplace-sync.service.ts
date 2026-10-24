@@ -408,8 +408,8 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async getSettingJson<T>(key: string, tenantId: string, defaultValue: T): Promise<T> {
-    const row = await this.db
+  private async getSettingJson<T>(key: string, tenantId: string, defaultValue: T, executor: Kysely<Database> = this.db): Promise<T> {
+    const row = await executor
       .selectFrom('settings')
       .select(['value'])
       .where('key', '=', key)
@@ -1555,7 +1555,7 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
         return { ok: true, journalEntryId: Number(record.journalEntryId), journalEntryNo: String(record.journalEntryNo), settlement: record };
       }
       // Legacy settlements remain immutable; never repost an already-reconciled key.
-      const legacy = await this.getSettingJson<MarketplaceSettlementRecord[]>('marketplace_settlements', scope.tenantId, []);
+      const legacy = await this.getSettingJson<MarketplaceSettlementRecord[]>('marketplace_settlements', scope.tenantId, [], trx);
       if (legacy.some(record => record.settlementId === input.settlementId && record.marketplace === input.marketplace && record.journalEntryId)) throw new BadRequestException('الكشف مرحل سابقاً؛ يلزم مراجعته دون إعادة ترحيله.');
       const document = await sql<{ id: number }>`insert into accounting_marketplace_settlements (tenant_id, marketplace, settlement_key, payload)
         values (${scope.tenantId}, ${input.marketplace}, ${input.settlementId}, '{}'::jsonb) returning id`.execute(trx);

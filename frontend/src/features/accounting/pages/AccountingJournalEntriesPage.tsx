@@ -259,7 +259,7 @@ export function AccountingJournalEntriesPage() {
               >
                 {t('accounting.accounting_journal_entries_page.s17', "العودة للقيود اليومية")}
               </Button>
-              {detailEntry && detailEntry.status === 'posted' && detailEntry.sourceType === 'manual' && !detailEntry.reversedByEntryId && (
+              {detailEntry?.canReverse && (
                 <Button
                   type="button"
                   variant="danger"

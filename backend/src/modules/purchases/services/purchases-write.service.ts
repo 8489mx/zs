@@ -7,6 +7,7 @@ import { AppError } from '../../../common/errors/app-error';
 import { assertUntrackedStockMutation } from '../../inventory/helpers/inventory-tracked-stock.helper';
 import { reversePurchaseTrackedStock } from '../helpers/purchase-cancellation-trace.helper';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
+import { purchaseReceiptBaseUnitCost } from '../engines/purchase-receipt-cost.engine';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -165,7 +166,7 @@ export class PurchasesWriteService {
   ): Promise<Record<string, unknown>> {
     const purchaseResult = await this.queryService.getPurchaseById(purchaseId, auth);
     const purchases = await this.queryService.listPurchases({ page: 1, pageSize: 25 }, auth);
-    return { ok: true, purchase: purchaseResult.purchase, purchases: purchases.purchases, ...extras };
+    return { ok: true, purchaseId, purchase: purchaseResult.purchase, purchases: purchases.purchases, ...extras };
   }
 
   async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
@@ -183,7 +184,12 @@ export class PurchasesWriteService {
       });
       // If operation was already processed, return the cached result.
       if (existingResult?.status === 'committed' && existingResult.responsePayload) {
-        return existingResult.responsePayload;
+        const cached = existingResult.responsePayload;
+        const purchaseId = Number(cached.purchaseId || existingResult.documentId);
+        if (!Number.isSafeInteger(purchaseId) || purchaseId <= 0) {
+          throw new AppError('Committed purchase requires recovery', 'PURCHASE_RECOVERY_REQUIRED', 422);
+        }
+        return this.buildPurchaseMutationResponse(purchaseId, auth, { repricingInsights: cached.repricingInsights || null });
       }
       if (existingResult?.status === 'failed') {
         throw new AppError(existingResult.errorCode || 'Operation previously failed', 'PURCHASE_IDEMPOTENCY_FAILED', 400);
@@ -1576,6 +1582,10 @@ export class PurchasesWriteService {
         const qtyToReceive = Number(rec.receivedQty || 0);
         const currentReceived = Number(item.received_qty || 0);
         const newReceivedQty = currentReceived + qtyToReceive;
+        const unitMultiplier = Number(item.unit_multiplier ?? 1);
+        const effectiveUnitCost = purchaseReceiptBaseUnitCost(
+          Number(item.unit_cost), unitMultiplier, Number(purchase.tax_rate || 0), Boolean(purchase.prices_include_tax),
+        );
 
         await trx
           .updateTable('purchase_items')
@@ -1600,7 +1610,7 @@ export class PurchasesWriteService {
               branch_id: purchase.branch_id ?? null,
               location_id: item.location_id ?? purchase.location_id,
               status: 'in_stock' as const,
-              cost_price: Number(item.unit_cost || 0),
+              cost_price: Number(effectiveUnitCost.toFixed(6)),
               purchase_id: purchaseId,
               purchase_item_id: item.id,
               warranty_end_date: null,
@@ -1613,7 +1623,6 @@ export class PurchasesWriteService {
           }
         }
 
-        const unitMultiplier = Number(item.unit_multiplier || 1);
         const { increasedQty } = calculatePurchaseStockIncrease(qtyToReceive, unitMultiplier, 0);
         const itemLocationId = item.location_id ?? purchase.location_id;
         const branchId = purchase.branch_id;
@@ -1635,7 +1644,6 @@ export class PurchasesWriteService {
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .executeTakeFirst();
         const oldCost = Number(oldCostProduct?.cost_price || 0);
-        const effectiveUnitCost = Number(item.unit_cost || 0);
         const totalQty = oldQty + increasedQty;
         const newCost = (increasedQty > 0 && totalQty > 0.00001)
           ? ((oldQty * oldCost) + (increasedQty * effectiveUnitCost)) / totalQty
@@ -1654,6 +1662,8 @@ export class PurchasesWriteService {
           qty: increasedQty,
           before_qty: stockChange.scopeBefore,
           after_qty: stockChange.scopeAfter,
+          unit_cost: Number(effectiveUnitCost.toFixed(6)),
+          total_cost: Number((effectiveUnitCost * increasedQty).toFixed(2)),
           reason: 'purchase_receipt',
           note: `استلام بضاعة لأمر شراء PUR-${purchaseId}`,
           reference_type: 'purchase',

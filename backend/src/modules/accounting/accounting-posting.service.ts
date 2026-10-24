@@ -13,7 +13,8 @@ import { AccountingTenantFoundationService } from './accounting-tenant-foundatio
 import { AppError } from '../../common/errors/app-error';
 import { calculateSalesReturnCost } from './engines/sales-return-cost.engine';
 import { allocatePayrollAccrual } from '../hr/engines/payroll-accrual-allocation.engine';
-import { lockAccountingPeriod } from './accounting-period-lock';
+import { assertAutomatedJournalPeriodOpen, lockAccountingPeriod } from './accounting-period-lock';
+import { assertTaxPeriodOpen } from './accounting-tax-lock';
 import { randomUUID } from 'node:crypto';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
@@ -82,7 +83,7 @@ export class AccountingPostingService {
   }
 
   private toMoney(value: unknown): number {
-    const amount = Number(value || 0);
+    const amount = Number(value ?? 0);
     if (!Number.isFinite(amount)) throw new AppError('Journal amount must be finite', 'INVALID_JOURNAL_AMOUNT', 400);
     return Number(amount.toFixed(2));
   }
@@ -258,6 +259,7 @@ export class AccountingPostingService {
   private addLine(lines: JournalLineDraft[], next: JournalLineDraft): void {
     const debit = this.toMoney(next.debit);
     const credit = this.toMoney(next.credit);
+    if (Number(next.debit) < 0 || Number(next.credit) < 0) throw new AppError('Journal amounts cannot be negative', 'INVALID_JOURNAL_LINE', 400);
     if (debit <= 0 && credit <= 0) return;
     if (debit > 0 && credit > 0) throw new AppError('Journal line cannot be both debit and credit', 'INVALID_JOURNAL_LINE', 400);
 
@@ -267,6 +269,8 @@ export class AccountingPostingService {
         && line.partnerId === next.partnerId
         && line.branchId === next.branchId
         && line.locationId === next.locationId
+        && (line.costCenterId ?? null) === (next.costCenterId ?? null)
+        && (line.debit > 0) === (debit > 0)
         && line.description === next.description,
     );
     if (existing) {
@@ -482,7 +486,10 @@ export class AccountingPostingService {
       return queryable.transaction().execute((trx: any) => this.insertPostedJournal(trx, params));
     }
     await lockAccountingPeriod(queryable, params.tenantId);
-    const deduplicate = ['contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'marketplace_settlement', 'maritime_carrier_credit_note', 'customer_installment_interest', 'installment_interest_accrual'].includes(params.sourceType);
+    // The early source lookups can race when recovery workers use different
+    // connections. Recheck under the same transaction lock as the insert.
+    const oncePerSource = ['sale', 'purchase', 'sales_return', 'purchase_return', 'customer_payment', 'supplier_payment', 'supplier_payment_schedule_settlement', 'expense'].includes(params.sourceType);
+    const deduplicate = oncePerSource || ['contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'marketplace_settlement', 'maritime_carrier_credit_note', 'customer_installment_interest', 'installment_interest_accrual'].includes(params.sourceType);
     let dedupKey = deduplicate ? `${params.sourceType}:${params.sourceId}` : null;
     if (params.sourceType.startsWith('pdc_cheque_')) {
       const cheque = await queryable.selectFrom('accounting_cheques').select('posting_sequence')
@@ -493,15 +500,31 @@ export class AccountingPostingService {
       if (prior) return Number(prior.id);
     }
     if (deduplicate) {
-      const prior = await queryable.selectFrom('journal_entries').select('id')
+      let priorQuery = queryable.selectFrom('journal_entries').select('id')
         .where('tenant_id', '=', params.tenantId).where('source_type', '=', params.sourceType).where('source_id', '=', params.sourceId)
-        .where('status', '=', 'posted').where('reversed_by_entry_id', 'is', null).executeTakeFirst();
+        .where('status', '=', 'posted');
+      if (!oncePerSource) priorQuery = priorQuery.where('reversed_by_entry_id', 'is', null);
+      const prior = await priorQuery.executeTakeFirst();
       if (prior) return Number(prior.id);
     }
 
+    if (params.reversalOfEntryId) {
+      const original = await queryable.selectFrom('journal_entries')
+        .select(['id', 'status', 'reversed_by_entry_id'])
+        .where('tenant_id', '=', params.tenantId).where('id', '=', params.reversalOfEntryId)
+        .forUpdate().executeTakeFirst();
+      if (!original || original.status !== 'posted' || original.reversed_by_entry_id) {
+        throw new AppError('Original journal is missing, unposted or already reversed', 'JOURNAL_REVERSAL_INVALID', 409);
+      }
+    }
     if (!params.lines?.length) throw new AppError(`No journal lines for ${params.sourceType} #${params.sourceId}`, 'EMPTY_JOURNAL', 400);
 
-    const lines = params.lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) }));
+    const lines = params.lines.map((line) => {
+      if (Number(line.debit) < 0 || Number(line.credit) < 0) {
+        throw new AppError('Journal amounts cannot be negative', 'INVALID_JOURNAL_LINE', 400);
+      }
+      return { ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) };
+    });
     for (const line of lines) {
       if (!(Number(line.accountId) > 0)) throw new AppError(`Missing account for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
       if (line.debit < 0 || line.credit < 0 || (line.debit > 0 && line.credit > 0) || (line.debit === 0 && line.credit === 0)) {
@@ -582,8 +605,10 @@ export class AccountingPostingService {
       isFiscalTransition = true;
     }
 
-    if (!isFiscalTransition) {
-      await assertBusinessAccountingDate(queryable, params.tenantId, params.entryDate, lockedAccounts.some((account: any) => account.is_tax || account.account_group === 'tax' || ['1150', '1155', '2120', '2126', '2146'].includes(account.code)));
+    if (isFiscalTransition) {
+      await assertTaxPeriodOpen(queryable, params.tenantId, params.entryDate, lines.map((line) => line.accountId));
+    } else {
+      await assertAutomatedJournalPeriodOpen(queryable, params.tenantId, params.entryDate, lines.map((line) => line.accountId));
     }
 
     for (const [table, field, values] of [
@@ -1209,7 +1234,7 @@ export class AccountingPostingService {
 
     const sourceLines = await queryable
       .selectFrom('journal_entry_lines')
-      .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
+      .select(['account_id', 'cost_center_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
       .where('tenant_id', '=', scope.tenantId)
       .orderBy('id', 'asc')
@@ -1217,6 +1242,7 @@ export class AccountingPostingService {
 
     const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
       accountId: Number(line.account_id),
+      costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
       description: `عكس: ${line.description || 'قيد بيع'}`,
       debit: this.toMoney(line.credit),
       credit: this.toMoney(line.debit),
@@ -1244,20 +1270,8 @@ export class AccountingPostingService {
       createdBy: sourceJournal.created_by ? Number(sourceJournal.created_by) : auth.userId,
       postedBy: auth.userId,
       lines: reversalLines,
+      reversalOfEntryId: Number(sourceJournal.id),
     });
-
-    await queryable
-      .updateTable('journal_entries')
-      .set({ reversed_by_entry_id: entryId, updated_at: sql`NOW()` } as any)
-      .where('id', '=', Number(sourceJournal.id))
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
-    await queryable
-      .updateTable('journal_entries')
-      .set({ reversal_of_entry_id: Number(sourceJournal.id), updated_at: sql`NOW()` } as any)
-      .where('id', '=', entryId)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
 
     this.logger.warn(`Posted sale reversal journal for sale ${saleId} as entry ${entryId}`);
     return { reversed: true, journalEntryId: entryId };
@@ -1937,7 +1951,7 @@ export class AccountingPostingService {
 
     const sourceLines = await queryable
       .selectFrom('journal_entry_lines')
-      .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
+      .select(['account_id', 'cost_center_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
       .where('tenant_id', '=', scope.tenantId)
       .orderBy('id', 'asc')
@@ -1945,6 +1959,7 @@ export class AccountingPostingService {
 
     const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
       accountId: Number(line.account_id),
+      costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
       description: `عكس: ${line.description || 'قيد شراء'}`,
       debit: this.toMoney(line.credit),
       credit: this.toMoney(line.debit),
@@ -1972,6 +1987,7 @@ export class AccountingPostingService {
       createdBy: sourceJournal.created_by ? Number(sourceJournal.created_by) : auth.userId,
       postedBy: auth.userId,
       lines: reversalLines,
+      reversalOfEntryId: Number(sourceJournal.id),
     });
 
     this.logger.warn(`Posted purchase reversal journal for purchase ${purchaseId} as entry ${entryId}`);
@@ -2443,10 +2459,16 @@ export class AccountingPostingService {
       };
       const known = knownAccounts[code];
       if (known) {
+        const settings = await queryable.selectFrom('accounting_settings').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', 1).executeTakeFirst();
+        const ownerAccountId = settings?.account_id || (await queryable.selectFrom('accounting_accounts')
+          .select('account_id').where('tenant_id', '=', tenantId).executeTakeFirst())?.account_id;
+        if (!ownerAccountId) throw new AppError('Accounting foundation must exist before creating system accounts', 'ACCOUNTING_FOUNDATION_REQUIRED', 409);
         const created = await queryable
           .insertInto('accounting_accounts')
           .values({
             tenant_id: tenantId,
+            account_id: ownerAccountId,
             code,
             name_ar: known.name_ar,
             name_en: known.name_en,

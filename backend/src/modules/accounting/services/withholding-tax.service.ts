@@ -335,8 +335,8 @@ export class WithholdingTaxService {
           'p.supplier_id',
           's.id as owned_supplier_id',
           's.name as supplier_name',
-          's.company_name',
-          's.tax_number',
+          sql<string>`s.metadata->>'companyName'`.as('company_name'),
+          sql<string>`s.metadata->>'taxNumber'`.as('tax_number'),
         ])
         .execute();
 
@@ -356,12 +356,12 @@ export class WithholdingTaxService {
         .select(['source_id'])
         .execute();
 
-      const existingSet = new Set(existing.map((e: any) => e.source_id));
+      const existingSet = new Set(existing.map((e: any) => String(e.source_id)));
       let addedCount = 0;
       let addedTax = 0;
 
       for (const p of purchases) {
-        if (existingSet.has(p.purchase_id)) continue;
+        if (existingSet.has(String(p.purchase_id))) continue;
 
         const dateStr = this.formatDate(p.created_at);
         const period = this.determineQuarterAndYear(dateStr);
