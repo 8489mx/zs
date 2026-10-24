@@ -142,6 +142,7 @@ interface StockCountComposerCardProps {
   warehouses?: Location[];
   locations?: Location[];
   locationStocks?: Array<{ productId: number | string; locationId: number | string; qty: number }>;
+  isLoadingCatalog?: boolean;
   form: { branchId: string; locationId: string; note: string; managerPin: string; productId: string; countedQty: string; reason: string; itemNote: string };
   items: StockCountItem[];
   canReviewStock: boolean;
@@ -164,6 +165,7 @@ export function StockCountComposerCard({
   warehouses,
   locations,
   locationStocks,
+  isLoadingCatalog,
   form,
   items,
   canReviewStock,
@@ -338,7 +340,7 @@ export function StockCountComposerCard({
 
   const scopeProducts = useMemo(() => {
     let baseProducts = products;
-    if (form.locationId && locationStocks) {
+    if (form.locationId && locationStocks && locationStocks.length > 0) {
       baseProducts = products.filter((product) =>
         locationStocks.some(
           (s) => String(s.productId) === String(product.id) && String(s.locationId) === String(form.locationId)
@@ -542,6 +544,10 @@ export function StockCountComposerCard({
   }
 
   function handleStartCount() {
+    if (isLoadingCatalog) {
+      setStartCountMessage('جارٍ تحميل بيانات أصناف ومخزون المخزن، يرجى الانتظار ثوانٍ معدودة...');
+      return;
+    }
     if (!form.locationId) {
       setStartCountMessage('اختر المخزن أولًا قبل بدء الجرد.');
       return;
@@ -560,6 +566,17 @@ export function StockCountComposerCard({
       handlePopulateScopeItems();
     }
   }
+
+  useEffect(() => {
+    if (
+      isCountStarted &&
+      (countType === 'full' || countType === 'category' || countType === 'supplier') &&
+      items.length === 0 &&
+      scopeProducts.length > 0
+    ) {
+      handlePopulateScopeItems();
+    }
+  }, [isCountStarted, countType, items.length, scopeProducts.length]);
 
   function handleBackToSetup() {
     setIsCountStarted(false);
@@ -697,17 +714,22 @@ export function StockCountComposerCard({
               </div>
             </div>
             <div className="stock-count-method-grid">
-              {countTypeOptions.map((entry) => (
-                <button
-                  key={entry.key}
-                  type="button"
-                  className={`stock-count-method-card ${countType === entry.key ? 'stock-count-method-card--active' : ''}`}
-                  onClick={() => setCountType(entry.key)}
-                >
-                  <strong>{entry.label}</strong>
-                  <span>{entry.description}</span>
-                </button>
-              ))}
+              {countTypeOptions.map((entry) => {
+                const countBadge = entry.key === 'full' && form.locationId && scopeProducts.length > 0
+                  ? ` (${scopeProducts.length} صنف)`
+                  : '';
+                return (
+                  <button
+                    key={entry.key}
+                    type="button"
+                    className={`stock-count-method-card ${countType === entry.key ? 'stock-count-method-card--active' : ''}`}
+                    onClick={() => setCountType(entry.key)}
+                  >
+                    <strong>{entry.label}{countBadge}</strong>
+                    <span>{entry.description}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -780,7 +802,14 @@ export function StockCountComposerCard({
                 <span>{t('inventory.sections.inventory_composer_cards.s41', "إظهار كمية النظام أثناء الإدخال الإلكتروني")}</span>
               </label>
               <div className="stock-count-start-actions">
-                <Button type="button" variant="primary" onClick={handleStartCount}>{t('inventory.sections.inventory_composer_cards.s42', "ابدأ جلسة الجرد")}</Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleStartCount}
+                  disabled={isLoadingCatalog}
+                >
+                  {isLoadingCatalog ? 'جارٍ تحميل بيانات المخزن...' : t('inventory.sections.inventory_composer_cards.s42', "ابدأ جلسة الجرد")}
+                </Button>
               </div>
             </div>
             {!canReviewStock ? <div className="surface-note" style={{ marginTop: 8 }}>{t('inventory.sections.inventory_composer_cards.s43', "وضع العد المخفي مفعل لهذا المستخدم لضمان عد فعلي بدون التأثر برصيد النظام.")}</div> : null}
@@ -1065,23 +1094,40 @@ export function StockCountComposerCard({
                   </tr>
                 </thead>
                 <tbody>
-                  {pagination.rows.map((item, index) => (
-                    <tr key={item.id}>
-                      <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>{pagination.rangeStart + index}</td>
-                      <td>
-                        <strong>{item.productName}</strong>
-                        <div style={{ marginTop: 4, display: 'grid', gap: 3 }}>
-                          <textarea rows={2} style={{ fontSize: 11, minWidth: 130 }} placeholder="السيريالات الموجودة فعلاً (رقم في كل سطر)"
-                            value={(item.countedSerials || []).join('\n')}
-                            onChange={event => updateCountItemById(item.id, {
-                              countedSerials: event.target.value.split(/[\n,،]+/).map(s => s.trim()).filter(Boolean),
-                            })} />
-                          <textarea rows={2} style={{ fontSize: 11, minWidth: 130 }}
-                            placeholder="رصيد التشغيلات: رقم:كمية؛ الجديدة NEW:الرقم:YYYY-MM-DD:كمية"
-                            value={item.batchCountsText || ''}
-                            onChange={event => updateCountItemById(item.id, { batchCountsText: event.target.value })} />
-                        </div>
-                      </td>
+                  {pagination.rows.map((item, index) => {
+                    const prod = products.find((p) => String(p.id) === String(item.productId));
+                    const isSerialized = Boolean(prod?.trackSerials || (item.countedSerials && item.countedSerials.length > 0));
+                    const hasBatchTracking = Boolean(item.batchCountsText);
+                    return (
+                      <tr key={item.id}>
+                        <td style={{ textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>{pagination.rangeStart + index}</td>
+                        <td>
+                          <strong>{item.productName}</strong>
+                          {(isSerialized || hasBatchTracking) ? (
+                            <div style={{ marginTop: 4, display: 'grid', gap: 3 }}>
+                              {isSerialized ? (
+                                <textarea
+                                  rows={2}
+                                  style={{ fontSize: 11, minWidth: 130 }}
+                                  placeholder="السيريالات الموجودة فعلاً (رقم في كل سطر)"
+                                  value={(item.countedSerials || []).join('\n')}
+                                  onChange={event => updateCountItemById(item.id, {
+                                    countedSerials: event.target.value.split(/[\n,،]+/).map(s => s.trim()).filter(Boolean),
+                                  })}
+                                />
+                              ) : null}
+                              {hasBatchTracking ? (
+                                <textarea
+                                  rows={2}
+                                  style={{ fontSize: 11, minWidth: 130 }}
+                                  placeholder="رصيد التشغيلات: رقم:كمية؛ الجديدة NEW:الرقم:YYYY-MM-DD:كمية"
+                                  value={item.batchCountsText || ''}
+                                  onChange={event => updateCountItemById(item.id, { batchCountsText: event.target.value })}
+                                />
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </td>
                       {canShowExpectedCount ? <td style={{ textAlign: 'center' }} className="muted">{item.expectedQty || 0}</td> : null}
                       <td style={{ textAlign: 'center' }}>
                         <input
@@ -1126,7 +1172,8 @@ export function StockCountComposerCard({
                         <Button type="button" variant="secondary" onClick={() => removeCountItemById(item.id)}>{t('inventory.sections.inventory_composer_cards.s84', "إزالة")}</Button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
                             {/* Slim Bottom Footer Bar */}
