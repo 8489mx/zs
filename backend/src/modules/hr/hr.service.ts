@@ -128,7 +128,6 @@ function nextMonthDate(value?: string | null): string {
 function addMonths(value: string, months: number): string {
   const normalized = normalizeDateOnly(value);
   if (!normalized) return nextMonthDate();
-  const [year, month, day] = normalized.split('-').map(Number);
   return addLoanInstallmentMonths(normalized, months);
 }
 

@@ -51,6 +51,14 @@ export function text(value: unknown) {
   return String(value || '').trim() || '—';
 }
 
+/** Escape text interpolated into printWindow.document.write HTML markup. */
+export function payrollPrintHtmlText(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, ch => (
+    ch === '&' ? '&amp;' : ch === '<' ? '&lt;' : ch === '>' ? '&gt;'
+      : ch === '"' ? '&quot;' : '&#39;'
+  ));
+}
+
 export function normalize(value: unknown) {
   return String(value || '').trim().toLowerCase();
 }

@@ -93,6 +93,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-PAY-CARRY-1: Approval fails closed whenever an included employee has positive `carried_forward_deduction` (non-loan deferred operational deduction), because that numeric field and note are not a persisted debt or automatic next-run repayment. Loan installment deferral remains tracked in loan schedules. Future legally reviewed receivable/carry-forward subledger is needed for fully automated multi-period deductions. No tests run.
 
+- HR-SEC-PRINT-1: Payroll print HTML now escapes employee names/codes and all variable text interpolated into document.write. Deferred operational deductions no longer misleadingly claim automatic forwarding; the corresponding approval remains blocked. Removed unused variables from loan date helper. Tests NOT run.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
