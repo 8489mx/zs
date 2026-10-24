@@ -1403,7 +1403,7 @@ export class SettingsDemoDataService {
         .selectFrom('products')
         .select(['id'])
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .where(sql<boolean>`metadata::text LIKE '%"is_demo":true%' OR metadata::text LIKE '%"is_demo": true%'`)
+        .where(sql<boolean>`(metadata::text LIKE '%"is_demo":true%' OR metadata::text LIKE '%"is_demo": true%')`)
         .execute();
 
       const demoProductIds = demoProducts.map((p) => Number(p.id));
@@ -1461,13 +1461,13 @@ export class SettingsDemoDataService {
 
       await trx.deleteFrom('suppliers')
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .where(sql<boolean>`metadata::text LIKE '%"is_demo":true%' OR metadata::text LIKE '%"is_demo": true%'`)
+        .where(sql<boolean>`(metadata::text LIKE '%"is_demo":true%' OR metadata::text LIKE '%"is_demo": true%')`)
         .execute()
         .catch(() => undefined);
 
       await trx.deleteFrom('customers')
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .where(sql<boolean>`metadata::text LIKE '%"is_demo":true%' OR metadata::text LIKE '%"is_demo": true%'`)
+        .where(sql<boolean>`(metadata::text LIKE '%"is_demo":true%' OR metadata::text LIKE '%"is_demo": true%')`)
         .execute()
         .catch(() => undefined);
 

@@ -23,7 +23,10 @@ const DB_CONFIG = {
 };
 
 function createDb(maxConnections = 5): Kysely<Database> {
-  const pool = new Pool({ ...DB_CONFIG, max: maxConnections, idleTimeoutMillis: 1000 });
+  const pool = new Pool({ ...DB_CONFIG, max: maxConnections, idleTimeoutMillis: 1000,
+    connectionTimeoutMillis: 2000, statement_timeout: 5000,
+    options: '-c idle_in_transaction_session_timeout=10000',
+  });
   return new Kysely<Database>({
     dialect: new PostgresDialect({ pool }),
   });
@@ -45,6 +48,12 @@ async function runCoreAuditSuite() {
   const authCache = new AuthCacheService();
 
   try {
+    // Fresh migrations intentionally contain no administrator credentials.
+    // Provision this disposable fixture through the real bootstrap service.
+    await new BootstrapAdminService(db, new ConfigService({
+      PLATFORM_TENANT_ID: 'zs', APP_MODE: 'CLOUD_SAAS',
+      PLATFORM_SUPERADMIN_PASSWORD: 'DisposableCoreAudit!2026#Only',
+    })).onApplicationBootstrap();
     // -------------------------------------------------------------------------
     // TEST 1: CORE-001 Platform Root Administrator Provisioning Safety
     // -------------------------------------------------------------------------

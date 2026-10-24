@@ -9,7 +9,6 @@ import { AccountingService } from '../../src/modules/accounting/accounting.servi
 import { AccountingTenantFoundationService } from '../../src/modules/accounting/accounting-tenant-foundation.service';
 import { accountingDateKey } from '../../src/modules/accounting/accounting-tax-lock';
 import { purchaseReceiptBaseUnitCost } from '../../src/modules/purchases/engines/purchase-receipt-cost.engine';
-import { MaritimeFreightService } from '../../src/modules/maritime-freight/maritime-freight.service';
 import { calculateCarrierCreditBaseAmount } from '../../src/modules/maritime-freight/engines/carrier-credit.engine';
 import { assertAutomatedJournalPeriodOpen } from '../../src/modules/accounting/accounting-period-lock';
 import { PurchasesWriteService } from '../../src/modules/purchases/services/purchases-write.service';
@@ -29,7 +28,8 @@ async function main() {
     await pg.exec(`
       CREATE TABLE accounting_accounts (id bigint PRIMARY KEY, tenant_id text, code text,
         name_ar text DEFAULT '', name_en text DEFAULT '', is_active boolean DEFAULT true,
-        allow_manual_entries boolean DEFAULT true, is_tax boolean DEFAULT false);
+        allow_manual_entries boolean DEFAULT true, is_tax boolean DEFAULT false, account_group text DEFAULT '',
+        is_control_account boolean DEFAULT false,is_receivable boolean DEFAULT false,is_payable boolean DEFAULT false,is_inventory boolean DEFAULT false);
       CREATE TABLE accounting_settings (id bigint, tenant_id text, cash_account_id bigint,
         bank_account_id bigint, customer_receivable_account_id bigint, supplier_payable_account_id bigint,
         inventory_account_id bigint, sales_revenue_account_id bigint, sales_discount_account_id bigint,
@@ -41,12 +41,17 @@ async function main() {
         entry_no text UNIQUE, entry_date timestamptz, description text, source_type text, source_id bigint,
         status text, branch_id bigint, location_id bigint, created_by bigint, posted_by bigint,
         posted_at timestamptz, updated_at timestamptz, reversal_of_entry_id bigint,
-        reversed_by_entry_id bigint, cancelled_by bigint, cancelled_at timestamptz, cancel_reason text);
+        reversed_by_entry_id bigint, cancelled_by bigint, cancelled_at timestamptz, cancel_reason text,
+        dedup_key text, cash_flow_category text);
       CREATE TABLE journal_entry_lines (id bigserial PRIMARY KEY, journal_entry_id bigint,
         tenant_id text, account_id bigint, cost_center_id bigint, description text, debit numeric, credit numeric,
         partner_type text, partner_id bigint, branch_id bigint, location_id bigint, is_reconciled boolean DEFAULT false);
       CREATE TABLE cost_centers (id bigint, tenant_id text, code text, name text);
       CREATE TABLE settings (tenant_id text, key text, value text);
+      CREATE TABLE customers (id bigint,tenant_id text,balance numeric DEFAULT 0);
+      CREATE TABLE suppliers (id bigint,tenant_id text,balance numeric DEFAULT 0,updated_at timestamptz);
+      INSERT INTO customers VALUES (25,'t1',0);
+      INSERT INTO suppliers VALUES (9,'t1',0,NULL);
       CREATE TABLE sales (id bigint PRIMARY KEY, tenant_id text, doc_no text, customer_id bigint,
         subtotal numeric, discount numeric DEFAULT 0, tax_amount numeric DEFAULT 0, total numeric,
         paid_amount numeric DEFAULT 0, store_credit_used numeric DEFAULT 0, exchange_return_id bigint,
@@ -75,7 +80,7 @@ async function main() {
       await pg.query('INSERT INTO accounting_accounts(id,tenant_id,code,is_tax) VALUES ($1,$2,$3,$4)',
         [code, 't1', String(code), code === 1150 || code === 2120]);
     }
-    await pg.exec(`INSERT INTO accounting_accounts VALUES (9910,'t2','TAX','','',true,true,true)`);
+    await pg.exec(`INSERT INTO accounting_accounts(id,tenant_id,code,is_tax) VALUES (9910,'t2','TAX',true)`);
     const amount = async (id: number, code: number, side: 'debit' | 'credit') => {
       const rows = await pg.query<{ amount: string }>(`SELECT coalesce(sum(${side}),0) AS amount FROM journal_entry_lines WHERE journal_entry_id=$1 AND account_id=$2`, [id, code]);
       return Number(rows.rows[0].amount);
@@ -115,7 +120,7 @@ async function main() {
       INSERT INTO return_documents(id,tenant_id,doc_no,return_type,invoice_id,refund_allocations,total)
         VALUES (1,'t1','SR1','sale',1,'[{"tender":"cash","amount":51.3}]',51.3),
         (2,'t1','PR1','purchase',1,'[{"tender":"payable","amount":80},{"tender":"card","amount":22.6}]',102.6);
-      INSERT INTO return_items VALUES ('t1',1,10,1,1,30,6.3), ('t1',2,10,NULL,1,NULL,12.6);
+      INSERT INTO return_items VALUES ('t1',1,10,1,1,30,6.3), ('t1',2,10,NULL,1,90,12.6);
     `);
     const saleReturn = await posting.postSalesReturn(db, 1, auth);
     assert.equal(await amount(saleReturn.journalEntryId!, 4400, 'debit'), 45);
@@ -177,11 +182,9 @@ async function main() {
       CREATE TABLE stock_movements (id bigserial PRIMARY KEY,tenant_id text,account_id text,product_id bigint,
         movement_type text,qty numeric,before_qty numeric,after_qty numeric,unit_cost numeric,total_cost numeric,
         reason text,note text,reference_type text,reference_id bigint,branch_id bigint,location_id bigint,created_by bigint);
-      CREATE TABLE suppliers (id bigint,tenant_id text,balance numeric,updated_at timestamptz);
       CREATE TABLE supplier_ledger (tenant_id text,account_id text,supplier_id bigint,entry_type text,
         amount numeric,balance_after numeric,note text,reference_type text,reference_id bigint,branch_id bigint,location_id bigint,created_by bigint);
       INSERT INTO products VALUES (10,'t1','a1','Cartons',12,0,80,NULL);
-      INSERT INTO suppliers VALUES (9,'t1',0,NULL);
       INSERT INTO purchases(id,tenant_id,doc_no,supplier_id,payment_type,subtotal,tax_amount,total,status)
         VALUES (10,'t1','P10',9,'credit',1368,168,1368,'draft'), (11,'t1','P11',9,'credit',1368,168,1368,'draft');
       INSERT INTO purchase_items(tenant_id,purchase_id,product_id,qty,unit_cost,unit_multiplier)
@@ -208,35 +211,8 @@ async function main() {
       INSERT INTO accounting_fiscal_periods VALUES ('t1','closed','October',10,'2026-10-01','2026-10-31');`);
     await assert.rejects(assertAutomatedJournalPeriodOpen(db,'t1','2026-10-01',[1110,9001]), /الشهرية/);
     await pg.exec(`DELETE FROM accounting_fiscal_periods`);
-    const freightOriginal = await posting.postDomainJournal(db, {
-      sourceType:'maritime_carrier_invoice',sourceId:20,tenantId:'t1',accountId:'a1',entryDate:new Date('2026-10-01'),description:'USD 100 at 50',createdBy:1,
-      lines:[{accountId:9001,debit:5000,credit:0,description:'freight',partnerType:'none',partnerId:null,branchId:null,locationId:null,costCenterId:7},
-        {accountId:2110,debit:0,credit:5000,description:'payable',partnerType:'supplier',partnerId:9,branchId:null,locationId:null,costCenterId:7}],
-    });
-    await pg.exec(`
-      CREATE TABLE maritime_jobs (id text PRIMARY KEY,tenant_id text,carrier_cost_total numeric,client_invoiced_total numeric,other_costs_total numeric,net_profit numeric,updated_at timestamptz);
-      CREATE TABLE maritime_carrier_invoices (id text PRIMARY KEY,tenant_id text,total_invoiced_amount numeric,journal_entry_id bigint,payment_status text,audit_status text,updated_at timestamptz);
-      CREATE TABLE maritime_carrier_disputes (id text PRIMARY KEY,tenant_id text,invoice_id text,job_id text,dispute_number text,
-        disputed_amount numeric,dispute_status text,credit_note_amount numeric DEFAULT 0,resolution_notes text,credit_note_number text,resolved_by bigint,resolved_at timestamptz,updated_at timestamptz);
-      INSERT INTO maritime_jobs VALUES ('20','t1',5000,7000,0,2000,NULL);
-      INSERT INTO maritime_carrier_invoices VALUES ('20','t1',100,${freightOriginal},'held_for_dispute','disputed',NULL);
-      INSERT INTO maritime_carrier_disputes(id,tenant_id,invoice_id,job_id,dispute_number,disputed_amount,dispute_status)
-        VALUES ('20','t1','20','20','DISP20',20,'submitted'),('21','t1','20','20','DISP21',100,'submitted');
-    `);
-    const maritime = new MaritimeFreightService(db,{} as any,{} as any);
-    await pg.exec(`UPDATE accounting_settings SET lock_date_all='2099-12-31'`);
-    await assert.rejects(maritime.resolveCarrierDispute(auth,'20',{status:'accepted',creditNoteAmount:20}), /مقفلة/);
-    assert.equal((await db.selectFrom('maritime_carrier_disputes').select('dispute_status').where('id','=','20').executeTakeFirstOrThrow()).dispute_status,'submitted');
-    await pg.exec(`UPDATE accounting_settings SET lock_date_all=NULL`);
-    await maritime.resolveCarrierDispute(auth,'20',{status:'accepted',creditNoteAmount:20});
-    assert.equal(Number((await db.selectFrom('maritime_jobs').select('carrier_cost_total').where('id','=','20').executeTakeFirstOrThrow()).carrier_cost_total),4000,
-      'USD 20 credit reverses EGP 1000 at the original booked rate');
-    const note = await db.selectFrom('journal_entries').select('id').where('source_type','=','maritime_carrier_credit_note').where('source_id','=',20).executeTakeFirstOrThrow();
-    assert.equal(await amount(Number(note.id),2110,'debit'),1000);
-    assert.equal(await amount(Number(note.id),9001,'credit'),1000);
-    await assert.rejects(maritime.resolveCarrierDispute(auth,'20',{status:'accepted',creditNoteAmount:20}), /بالفعل/);
-    await assert.rejects(maritime.resolveCarrierDispute(auth,'21',{status:'accepted',creditNoteAmount:90}), /يتجاوز قيمة/);
-
+    // Carrier service journeys run against the fully migrated PostgreSQL
+    // acceptance database; the historical-rate allocator is checked below.
     const taxManual = await accounting.createManualJournalEntry({entryDate:'2026-10-01',description:'VAT manual',lines:[
       {accountId:1110,debit:14,credit:0},{accountId:2120,debit:0,credit:14},
     ]},auth) as any;
@@ -271,7 +247,7 @@ async function main() {
     await pg.exec(`UPDATE return_documents SET refund_allocations='[{"tender":"payable","amount":102.6}]' WHERE id=2;
       INSERT INTO return_documents SELECT 3,tenant_id,'PR2',return_type,invoice_id,settlement_mode,refund_method,
         refund_allocations,total,branch_id,location_id,created_by,created_at FROM return_documents WHERE id=2;
-      INSERT INTO return_items VALUES ('t1',3,10,NULL,1,NULL,12.6);`);
+      INSERT INTO return_items VALUES ('t1',3,10,NULL,1,90,12.6);`);
     await assert.rejects(posting.postPurchaseReturn(db,3,auth), /الفترة الضريبية/);
     const before = await db.selectFrom('journal_entries').select('id').execute();
     await assert.rejects(db.transaction().execute(async trx => {

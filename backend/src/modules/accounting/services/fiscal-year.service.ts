@@ -894,7 +894,7 @@ export class FiscalYearService {
       await trx.updateTable('accounting_fiscal_years')
         .set({
           status: 'open', closing_entry_id: null, closed_at: null, closed_by: null,
-          closing_notes: sql`CONCAT(COALESCE(closing_notes, ''), ${reopenLog})` as any,
+          closing_notes: sql`CONCAT(COALESCE(closing_notes, ''), ${reopenLog}::text)` as any,
           updated_at: sql`NOW()` as any,
         })
         .where('id', '=', id).where('tenant_id', '=', tenantId).execute();
@@ -1299,7 +1299,7 @@ export class FiscalYearService {
           status: 'open',
           closed_at: null,
           closed_by: null,
-          closing_notes: sql`CONCAT(COALESCE(closing_notes, ''), ${reopenNote})` as any,
+          closing_notes: sql`CONCAT(COALESCE(closing_notes, ''), ${reopenNote}::text)` as any,
           // اللقطة استُهلكت؛ إقفال لاحق يلتقط قيمة القفل السارية وقتها لا قيمة قديمة.
           previous_lock_date_all: null,
           updated_at: sql`NOW()` as any,

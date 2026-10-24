@@ -54,7 +54,9 @@
     "check:architecture": "node scripts/check-architecture-guardrails.cjs",
     "db:check-connection": "ts-node src/database/check-connection.ts",
     "test:arch02": "ts-node test/critical/arch02-accounting-engines.spec.ts",
-    "test:accounting-commercial": "ts-node test/critical/accounting-commercial-posting.spec.ts"
+    "test:accounting-commercial": "ts-node test/critical/accounting-commercial-posting.spec.ts",
+    "test:accounting:postgres": "ts-node test/acceptance/core-accounting.postgres.spec.ts",
+    "check:accounting-integrity": "ts-node scripts/check-accounting-integrity.ts"
   },
   "dependencies": {
     "@nestjs/common": "11.1.18",

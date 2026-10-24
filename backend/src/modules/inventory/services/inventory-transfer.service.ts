@@ -270,7 +270,7 @@ export class InventoryTransferService {
       }
 
       if (!effectiveToLocationId) throw new AppError('مخزن الاستلام غير محدد', 'TRANSFER_DESTINATION_MISSING', 409);
-      const verifiedDestination = await this.scope.assertLocationScope(Number(effectiveToLocationId), auth, false, 'write');
+      const verifiedDestination = await this.scope.assertLocationScope(Number(effectiveToLocationId), auth, false, 'write', trx);
       if (transfer.to_branch_id != null && Number(verifiedDestination.branchId) !== Number(transfer.to_branch_id)) {
         throw new AppError('فرع وجهة التحويل لا يطابق موقع الاستلام', 'TRANSFER_DESTINATION_BRANCH_MISMATCH', 409);
       }
@@ -389,7 +389,7 @@ export class InventoryTransferService {
       const transfer = await trx.selectFrom('stock_transfers').selectAll().where('id', '=', transferId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
       if (!transfer) throw new AppError('Transfer not found', 'TRANSFER_NOT_FOUND', 404);
       if (!['sent'].includes(transfer.status || 'sent')) throw new AppError('Only sent transfers can be cancelled', 'TRANSFER_STATUS_INVALID', 400);
-      await this.scope.assertLocationScope(Number(transfer.from_location_id), auth, true, 'write');
+      await this.scope.assertLocationScope(Number(transfer.from_location_id), auth, true, 'write', trx);
       const items = await trx.selectFrom('stock_transfer_items').select(['product_id', 'qty', 'serial_tracking', 'batch_tracking']).where('transfer_id', '=', transferId).where(this.tenantPredicate(auth)).orderBy('product_id', 'asc').execute();
       await lockStockProducts(trx, { ...scope, productIds: items.map((item) => Number(item.product_id)) });
       for (const item of items) {

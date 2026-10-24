@@ -1,0 +1,59 @@
+name: Accounting PostgreSQL acceptance
+
+on:
+  pull_request:
+  push:
+    branches: [main, fix/accounting-core-commercial-integrity]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  accounting-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zs_core_audit_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d zs_core_audit_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      NODE_ENV: test
+      APP_MODE: CLOUD_SAAS
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 5433
+      DATABASE_NAME: zs_core_audit_test
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_SSL: 'false'
+      SESSION_CSRF_SECRET: disposable-ci-accounting-csrf-secret
+      ACCEPTANCE_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5433/zs_core_audit_test
+      DOTENV_CONFIG_PATH: /dev/null
+      TS_NODE_TRANSPILE_ONLY: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - name: Typecheck production code and acceptance tests
+        run: npm run typecheck
+        working-directory: backend
+      - name: Apply the complete migration history to an empty database
+        run: npm run migration:run
+        working-directory: backend
+      - name: Real database core and accounting acceptance
+        run: |
+          npx ts-node test/critical/core-integrity-audit.spec.ts
+          npm run test:accounting:postgres
+        working-directory: backend

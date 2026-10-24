@@ -166,7 +166,7 @@ export class PurchasesWriteService {
   ): Promise<Record<string, unknown>> {
     const purchaseResult = await this.queryService.getPurchaseById(purchaseId, auth);
     const purchases = await this.queryService.listPurchases({ page: 1, pageSize: 25 }, auth);
-    return { ok: true, purchase: purchaseResult.purchase, purchases: purchases.purchases, ...extras };
+    return { ok: true, purchaseId, purchase: purchaseResult.purchase, purchases: purchases.purchases, ...extras };
   }
 
   async createPurchase(payload: UpsertPurchaseDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
@@ -184,7 +184,12 @@ export class PurchasesWriteService {
       });
       // If operation was already processed, return the cached result.
       if (existingResult?.status === 'committed' && existingResult.responsePayload) {
-        return existingResult.responsePayload;
+        const cached = existingResult.responsePayload;
+        const purchaseId = Number(cached.purchaseId || existingResult.documentId);
+        if (!Number.isSafeInteger(purchaseId) || purchaseId <= 0) {
+          throw new AppError('Committed purchase requires recovery', 'PURCHASE_RECOVERY_REQUIRED', 422);
+        }
+        return this.buildPurchaseMutationResponse(purchaseId, auth, { repricingInsights: cached.repricingInsights || null });
       }
       if (existingResult?.status === 'failed') {
         throw new AppError(existingResult.errorCode || 'Operation previously failed', 'PURCHASE_IDEMPOTENCY_FAILED', 400);

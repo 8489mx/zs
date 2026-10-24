@@ -486,7 +486,10 @@ export class AccountingPostingService {
       return queryable.transaction().execute((trx: any) => this.insertPostedJournal(trx, params));
     }
     await lockAccountingPeriod(queryable, params.tenantId);
-    const deduplicate = ['contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'marketplace_settlement', 'maritime_carrier_credit_note', 'customer_installment_interest', 'installment_interest_accrual'].includes(params.sourceType);
+    // The early source lookups can race when recovery workers use different
+    // connections. Recheck under the same transaction lock as the insert.
+    const oncePerSource = ['sale', 'purchase', 'sales_return', 'purchase_return', 'customer_payment', 'supplier_payment', 'supplier_payment_schedule_settlement', 'expense'].includes(params.sourceType);
+    const deduplicate = oncePerSource || ['contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'marketplace_settlement', 'maritime_carrier_credit_note', 'customer_installment_interest', 'installment_interest_accrual'].includes(params.sourceType);
     let dedupKey = deduplicate ? `${params.sourceType}:${params.sourceId}` : null;
     if (params.sourceType.startsWith('pdc_cheque_')) {
       const cheque = await queryable.selectFrom('accounting_cheques').select('posting_sequence')
@@ -497,9 +500,11 @@ export class AccountingPostingService {
       if (prior) return Number(prior.id);
     }
     if (deduplicate) {
-      const prior = await queryable.selectFrom('journal_entries').select('id')
+      let priorQuery = queryable.selectFrom('journal_entries').select('id')
         .where('tenant_id', '=', params.tenantId).where('source_type', '=', params.sourceType).where('source_id', '=', params.sourceId)
-        .where('status', '=', 'posted').where('reversed_by_entry_id', 'is', null).executeTakeFirst();
+        .where('status', '=', 'posted');
+      if (!oncePerSource) priorQuery = priorQuery.where('reversed_by_entry_id', 'is', null);
+      const prior = await priorQuery.executeTakeFirst();
       if (prior) return Number(prior.id);
     }
 
@@ -2454,10 +2459,16 @@ export class AccountingPostingService {
       };
       const known = knownAccounts[code];
       if (known) {
+        const settings = await queryable.selectFrom('accounting_settings').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', 1).executeTakeFirst();
+        const ownerAccountId = settings?.account_id || (await queryable.selectFrom('accounting_accounts')
+          .select('account_id').where('tenant_id', '=', tenantId).executeTakeFirst())?.account_id;
+        if (!ownerAccountId) throw new AppError('Accounting foundation must exist before creating system accounts', 'ACCOUNTING_FOUNDATION_REQUIRED', 409);
         const created = await queryable
           .insertInto('accounting_accounts')
           .values({
             tenant_id: tenantId,
+            account_id: ownerAccountId,
             code,
             name_ar: known.name_ar,
             name_en: known.name_en,

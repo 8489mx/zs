@@ -8247,3 +8247,11 @@
 - Deferred purchase receipt excludes recoverable inclusive VAT and converts cartons to base-unit inventory cost before WAC and serial valuation.
 - Carrier dispute credits post atomically, prevent repeat/over-crediting and reverse historical booked FX amounts.
 - Executable PostgreSQL accounting scenarios are available through `npm --prefix backend run test:accounting-commercial`. No historical production balances are automatically rewritten.
+
+## Core/accounting executable acceptance — 24 October 2026
+
+- `test:accounting:postgres` executes real production financial services on a fully migrated disposable PostgreSQL database, including simultaneous requests, rollback, WAC, VAT, partner-ledger reconciliation, cheque FX, carrier credits and fiscal close/reopen.
+- Credit sales and demo cleanup now keep complete SQL disjunctions within tenant/object scope. Database composite constraints additionally protect new accounting/branch references.
+- One-time commercial journal recovery is checked within the posting lock; purchase retries return the normal document response. Inventory transfers and marketplace settlements support a single connection without escaping their transaction for scope/settings reads.
+- `check:accounting-integrity -- TENANT_ID` produces an explicit-tenant JSON reconciliation report using a read-only snapshot. Historical discrepancies require review; no automatic ledger rewrite is performed.
+- `.github/workflows/accounting-acceptance.yml` keeps the disposable real-database acceptance repeatable. Detailed numerical evidence and remaining production/desktop boundaries are in `docs/audit_packs/2026-10-24-core-accounting-postgres-acceptance.md`.
