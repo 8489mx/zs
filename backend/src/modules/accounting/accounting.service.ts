@@ -1,3 +1,6 @@
+import { tenantBaseCurrency } from './accounting-currency';
+import { assertHierarchyParent } from './accounting-boundaries';
+import { assertAccountingCloseReady } from './accounting-close-readiness';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
@@ -24,6 +27,7 @@ import {
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 import { AccountingPostingService } from './accounting-posting.service';
 import { lockAccountingPeriod } from './accounting-period-lock';
+import { nextAccountingDay } from './engines/accounting-date.engine';
 import { calculateAssetDepreciation, validateFixedAssetTerms } from './engines/fixed-asset-depreciation.engine';
 import { randomUUID } from 'node:crypto';
 
@@ -161,9 +165,12 @@ export class AccountingService {
 
     const rowsById = new Map(rows.map((row) => [String(row.id), row]));
     const depthById = new Map<string, number>();
+    const visiting = new Set<string>();
     const computeDepth = (id: string): number => {
       const cached = depthById.get(id);
       if (typeof cached === 'number') return cached;
+      if (visiting.has(id)) throw new BadRequestException('توجد دورة في دليل الحسابات؛ يلزم تصحيح الروابط.');
+      visiting.add(id);
       const row = rowsById.get(id);
       if (!row || !row.parent_id) {
         depthById.set(id, 0);
@@ -171,6 +178,7 @@ export class AccountingService {
       }
       const parentDepth = computeDepth(String(row.parent_id));
       const depth = parentDepth + 1;
+      visiting.delete(id);
       depthById.set(id, depth);
       return depth;
     };
@@ -252,7 +260,7 @@ export class AccountingService {
     const scope = requireTenantScope(auth);
     const row = await this.db
       .selectFrom('accounting_accounts')
-      .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries'])
+      .select(['id', 'code', 'name_ar', 'account_type', 'is_active', 'allow_manual_entries', 'is_control_account', 'is_tax', 'is_receivable', 'is_payable', 'is_inventory'])
       .where('tenant_id', '=', scope.tenantId)
       .where('code', '=', code)
       .executeTakeFirst();
@@ -372,9 +380,8 @@ export class AccountingService {
     const lines: OpeningBalanceLine[] = [];
     this.addOpeningLine(lines, cash, 'رصيد افتتاحي - الخزينة', cashOpening, 0);
     this.addOpeningLine(lines, bank, 'رصيد افتتاحي - البنك', bankOpening, 0);
-    this.addOpeningLine(lines, receivable, 'رصيد افتتاحي - العملاء', operational.customerReceivables, 0);
-    this.addOpeningLine(lines, inventory, 'رصيد افتتاحي - المخزون', operational.inventoryValue, 0);
-    this.addOpeningLine(lines, payable, 'رصيد افتتاحي - الموردون', 0, operational.supplierPayables);
+    // Customer, supplier and inventory openings are posted by their source documents.
+    // Current operational balances must never be posted a second time here.
 
     const debitBeforeCapital = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
     const creditBeforeCapital = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
@@ -385,7 +392,7 @@ export class AccountingService {
       this.addOpeningLine(lines, capital, 'موازنة الأرصدة الافتتاحية - رأس المال', Math.abs(balancingCapital), 0);
     }
 
-    const warnings: string[] = [];
+    const warnings: string[] = ['هذا القيد يثبت افتتاحية الخزينة والبنك فقط؛ افتتاحيات الشركاء والمخزون تثبت من مستنداتها.'];
     if (!lines.length) {
       warnings.push('لا توجد أرصدة افتتاحية ذات قيمة للترحيل.');
     }
@@ -531,6 +538,8 @@ export class AccountingService {
     if (Object.keys(updateData).length > 1) { // more than just updated_at
       await this.db.transaction().execute(async (trx) => {
         await lockAccountingPeriod(trx, scope.tenantId);
+        const closingDates = [dto.lockDateAll, dto.lockDateNonAdviser, dto.lockDateTax].filter((day): day is string => Boolean(day)).sort();
+        if (closingDates.length) await assertAccountingCloseReady(trx, scope.tenantId, '1900-01-01', closingDates[closingDates.length - 1]);
         await trx.updateTable('accounting_settings').set(updateData)
           .where('tenant_id', '=', scope.tenantId).where('id', '=', 1).execute();
       });
@@ -578,8 +587,8 @@ export class AccountingService {
       rowsQuery = rowsQuery.where('je.entry_date', '>=', dateFrom);
     }
     if (dateTo) {
-      countQuery = countQuery.where('entry_date', '<=', dateTo);
-      rowsQuery = rowsQuery.where('je.entry_date', '<=', dateTo);
+      countQuery = countQuery.where('entry_date', '<', nextAccountingDay(dateTo));
+      rowsQuery = rowsQuery.where('je.entry_date', '<', nextAccountingDay(dateTo));
     }
     if (filters.status) {
       countQuery = countQuery.where('status', '=', filters.status);
@@ -683,6 +692,8 @@ export class AccountingService {
         sourceType: entry.source_type || 'manual',
         sourceId: entry.source_id ? String(entry.source_id) : '',
         status: entry.status,
+        reversedByEntryId: entry.reversed_by_entry_id ? String(entry.reversed_by_entry_id) : null,
+        reversalOfEntryId: entry.reversal_of_entry_id ? String(entry.reversal_of_entry_id) : null,
         branchId: entry.branch_id ? String(entry.branch_id) : '',
         locationId: entry.location_id ? String(entry.location_id) : '',
         createdBy: entry.created_by ? String(entry.created_by) : '',
@@ -858,7 +869,7 @@ export class AccountingService {
     // Verify all accounts belong to tenant and allow manual entries
     const existingAccounts = await this.db
       .selectFrom('accounting_accounts')
-      .select(['id', 'code', 'name_ar', 'is_active', 'allow_manual_entries'])
+      .select(['id', 'code', 'name_ar', 'is_active', 'allow_manual_entries', 'is_control_account', 'is_tax', 'is_receivable', 'is_payable', 'is_inventory'])
       .where('tenant_id', '=', scope.tenantId)
       .where('id', 'in', Array.from(accountIds))
       .execute();
@@ -871,6 +882,7 @@ export class AccountingService {
       if (!acc.is_active) {
         throw new BadRequestException(`الحساب [${acc.code} - ${acc.name_ar}] غير نشط.`);
       }
+      if (acc.is_control_account || acc.is_receivable || acc.is_payable || acc.is_inventory || ['1130', '1140', '2110'].includes(acc.code)) throw new BadRequestException('الحساب الرقابي يُعدّل من مستند الشريك أو المخزون لضمان تطابق الأستاذ المساعد.');
       if (!acc.allow_manual_entries) {
         throw new BadRequestException(`الحساب [${acc.code} - ${acc.name_ar}] لا يسمح بإدخال قيود يدوية.`);
       }
@@ -898,18 +910,21 @@ export class AccountingService {
       await this.assertNotInLockedPeriod(scope.tenantId, entryDate, { auth, queryable: trx });
       await this.assertJournalReferences(trx, scope.tenantId, validatedLines.map((line) => ({ ...line, branchId })));
       const lockedAccounts = await trx.selectFrom('accounting_accounts')
-        .select(['id', 'code', 'name_ar', 'is_active', 'allow_manual_entries'])
+        .select(['id', 'code', 'name_ar', 'is_active', 'allow_manual_entries', 'is_control_account', 'is_tax', 'is_receivable', 'is_payable', 'is_inventory'])
         .where('tenant_id', '=', scope.tenantId)
         .where('id', 'in', Array.from(accountIds).sort((a, b) => a - b))
         .orderBy('id', 'asc').forUpdate().execute();
       if (lockedAccounts.length !== accountIds.size) {
         throw new BadRequestException('واحد أو أكثر من الحسابات المحددة غير موجود في شجرة الحسابات.');
       }
+      const mapping = await trx.selectFrom('accounting_settings').select(['customer_receivable_account_id', 'supplier_payable_account_id', 'inventory_account_id']).where('tenant_id', '=', scope.tenantId).where('id', '=', 1).executeTakeFirst();
+      const mappedControls = new Set(Object.values(mapping || {}).map(Number));
       for (const account of lockedAccounts) {
-        if (!account.is_active || !account.allow_manual_entries) {
+        if (!account.is_active || !account.allow_manual_entries || account.is_control_account || account.is_receivable || account.is_payable || account.is_inventory || mappedControls.has(Number(account.id))) {
           throw new BadRequestException(`الحساب [${account.code} - ${account.name_ar}] غير نشط أو لا يسمح بقيود يدوية.`);
         }
       }
+      await this.assertNotInLockedPeriod(scope.tenantId, entryDate, { auth, queryable: trx, isTaxOperation: lockedAccounts.some(account => account.is_tax || ['1150', '1155', '2120', '2126', '2146'].includes(account.code)) });
       const tempEntryNo = `JE-TMP-${randomUUID()}`;
       const inserted = await trx
         .insertInto('journal_entries')
@@ -920,6 +935,7 @@ export class AccountingService {
           entry_date: entryDate,
           description: String(dto.description || '').trim(),
           source_type: 'manual',
+          cash_flow_category: dto.cashFlowCategory || null,
           source_id: null,
           status: 'posted',
           branch_id: branchId,
@@ -997,6 +1013,8 @@ export class AccountingService {
       throw new NotFoundException('القيد اليومي غير موجود');
     }
 
+    if (entry.source_type !== 'manual') throw new BadRequestException('يجب عكس القيد الآلي من المستند الأصلي لضمان تزامن المخزون والأستاذ المساعد.');
+
     if (entry.status !== 'posted') {
       throw new BadRequestException('لا يمكن عكس قيد غير مرحل أو تم إلغاؤه مسبقاً');
     }
@@ -1027,7 +1045,7 @@ export class AccountingService {
       // entry would be reversed twice — doubling the reversal's effect on the ledger.
       const lockedEntry = await trx
         .selectFrom('journal_entries')
-        .select(['id', 'status', 'reversed_by_entry_id', 'entry_date'])
+        .select(['id', 'status', 'reversed_by_entry_id', 'entry_date', 'cash_flow_category'])
         .where('id', '=', entryId)
         .where('tenant_id', '=', scope.tenantId)
         .forUpdate()
@@ -1049,9 +1067,11 @@ export class AccountingService {
 
       // A reversal is a new posting and must respect the period lock like any other. Without this,
       // reversing into a closed fiscal year silently rewrites that year's balances after sign-off.
+      const taxAccounts = await trx.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', scope.tenantId).where('id', 'in', lines.map(line => Number(line.account_id))).where(eb => eb.or([eb('is_tax', '=', true), eb('code', 'in', ['1150', '1155', '2120', '2126', '2146'])])).execute();
+      const isTaxOperation = taxAccounts.length > 0;
       const reversalDate = new Date();
-      await this.assertNotInLockedPeriod(scope.tenantId, lockedEntry.entry_date, { auth, queryable: trx });
-      await this.assertNotInLockedPeriod(scope.tenantId, reversalDate, { auth, queryable: trx });
+      await this.assertNotInLockedPeriod(scope.tenantId, lockedEntry.entry_date, { auth, queryable: trx, isTaxOperation });
+      await this.assertNotInLockedPeriod(scope.tenantId, reversalDate, { auth, queryable: trx, isTaxOperation });
 
       const tempEntryNo = `JE-TMP-${randomUUID()}`;
       const inserted = await trx
@@ -1063,6 +1083,7 @@ export class AccountingService {
           entry_date: reversalDate,
           description: `قيد عكسي للقيد رقم ${entry.entry_no}: ${trimmedReason}`,
           source_type: `${entry.source_type}_reversal`,
+          cash_flow_category: lockedEntry.cash_flow_category || null,
           source_id: entry.id,
           status: 'posted',
           branch_id: entry.branch_id,
@@ -1152,6 +1173,7 @@ export class AccountingService {
         sql<number>`COALESCE(SUM(l.credit), 0)`.as('credit'),
       ])
       .where('je.status', '=', 'posted')
+      .where('je.source_type', 'not in', ['fiscal_year_closing', 'fiscal_year_reopen'])
       .where(this.tenantPredicate(auth, 'je'))
       .where(this.tenantPredicate(auth, 'l'));
 
@@ -1159,7 +1181,7 @@ export class AccountingService {
       query = query.where('je.entry_date', '>=', dateFrom);
     }
     if (dateTo) {
-      query = query.where('je.entry_date', '<=', dateTo);
+      query = query.where('je.entry_date', '<', nextAccountingDay(dateTo));
     }
     if (branchId) {
       query = query.where('je.branch_id', '=', branchId);
@@ -1386,8 +1408,8 @@ export class AccountingService {
       .where(this.tenantPredicate(auth));
 
     if (dateTo) {
-      customerLedgerQuery = customerLedgerQuery.where('created_at', '<=', dateTo);
-      supplierLedgerQuery = supplierLedgerQuery.where('created_at', '<=', dateTo);
+      customerLedgerQuery = customerLedgerQuery.where('created_at', '<', nextAccountingDay(dateTo));
+      supplierLedgerQuery = supplierLedgerQuery.where('created_at', '<', nextAccountingDay(dateTo));
     }
     if (branchId) {
       customerLedgerQuery = customerLedgerQuery.where('branch_id', '=', branchId);
@@ -1480,7 +1502,7 @@ export class AccountingService {
       .where('a.code', 'in', ['1110', '1120']);
 
     if (dateFrom) query = query.where('je.entry_date', '>=', dateFrom);
-    if (dateTo) query = query.where('je.entry_date', '<=', dateTo);
+    if (dateTo) query = query.where('je.entry_date', '<', nextAccountingDay(dateTo));
     if (branchId) query = query.where('je.branch_id', '=', branchId);
     if (locationId) query = query.where('je.location_id', '=', locationId);
 
@@ -1582,7 +1604,7 @@ export class AccountingService {
     if (lowStockOnly) query = query.where(sql<boolean>`ROUND(${stockQty}, 2) > 0 AND ROUND(${stockQty}, 2) <= ROUND(p.min_stock_qty, 2)`);
 
     const totalsRow = await query.clearSelect().select([
-      sql<number>`COALESCE(SUM(ROUND(ROUND(${stockQty}, 2) * ROUND(COALESCE(p.cost_price, 0), 2), 2)), 0)`.as('total_inventory_value'),
+      sql<number>`COALESCE(SUM(ROUND(${stockQty} * COALESCE(p.cost_price, 0), 2)), 0)`.as('total_inventory_value'),
       sql<number>`COALESCE(SUM(ROUND(ROUND(${stockQty}, 2) * ROUND(COALESCE(p.retail_price, 0), 2), 2)), 0)`.as('total_retail_value'),
       sql<number>`COUNT(*)::int`.as('item_count'),
       sql<number>`COUNT(*) FILTER (WHERE ROUND(${stockQty}, 2) > 0 AND ROUND(${stockQty}, 2) <= ROUND(p.min_stock_qty, 2))::int`.as('low_stock_count'),
@@ -1593,9 +1615,9 @@ export class AccountingService {
     const rows = await query.orderBy('p.name', 'asc').execute();
     const items = rows
       .map((row) => {
-        const quantityOnHand = this.toMoney(row.stock_qty);
+        const quantityOnHand = Number(row.stock_qty);
         const minStockQty = this.toMoney(row.min_stock_qty);
-        const unitCost = this.toMoney(row.cost_price);
+        const unitCost = Number(row.cost_price);
         const unitRetailPrice = this.toMoney(row.retail_price);
         const inventoryValue = this.toMoney(quantityOnHand * unitCost);
         const retailPotentialValue = this.toMoney(quantityOnHand * unitRetailPrice);
@@ -1929,143 +1951,151 @@ export class AccountingService {
   async createAccount(dto: CreateAccountDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
-    
-    const existing = await this.db.selectFrom('accounting_accounts')
-      .select('id')
-      .where('code', '=', dto.code)
-      .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
-    if (existing) throw new BadRequestException('Account code already exists');
-    
-    let parentId = dto.parentId || null;
-    let normalBalance = dto.normalBalance;
-    
-    if (parentId) {
-      const parent = await this.db.selectFrom('accounting_accounts')
-        .select(['id', 'normal_balance'])
-        .where('id', '=', parentId)
+    return this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      await assertHierarchyParent(trx, 'accounting_accounts', scope.tenantId, null, dto.parentId == null ? null : Number(dto.parentId));
+
+      const existing = await trx.selectFrom('accounting_accounts')
+        .select('id')
+        .where('code', '=', dto.code)
         .where('tenant_id', '=', scope.tenantId)
         .executeTakeFirst();
-      if (!parent) throw new BadRequestException('Parent account not found');
-      normalBalance = parent.normal_balance;
-    }
-    
-    const result = await this.db.insertInto('accounting_accounts')
-      .values({
-        tenant_id: scope.tenantId,
-        code: dto.code,
-        name_ar: dto.nameAr,
-        name_en: dto.nameEn || '',
-        account_type: dto.accountType as any,
-        account_group: '', 
-        parent_id: parentId,
-        normal_balance: normalBalance as any,
-        is_active: dto.isActive ?? true,
-        is_system: false,
-        allow_manual_entries: true,
-        is_control_account: false,
-        is_cash_bank: false,
-        is_receivable: false,
-        is_payable: false,
-        is_inventory: false,
-        is_tax: false,
-        description_ar: '',
-        sort_order: 0,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-      
-    return { ok: true, accountId: String(result.id) };
+      if (existing) throw new BadRequestException('Account code already exists');
+
+      let parentId = dto.parentId || null;
+      let normalBalance = dto.normalBalance;
+
+      if (parentId) {
+        const parent = await trx.selectFrom('accounting_accounts')
+          .select(['id', 'normal_balance'])
+          .where('id', '=', parentId)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        if (!parent) throw new BadRequestException('Parent account not found');
+        normalBalance = parent.normal_balance;
+      }
+
+      const result = await trx.insertInto('accounting_accounts')
+        .values({
+          tenant_id: scope.tenantId,
+          code: dto.code,
+          name_ar: dto.nameAr,
+          name_en: dto.nameEn || '',
+          account_type: dto.accountType as any,
+          account_group: '',
+          parent_id: parentId,
+          normal_balance: normalBalance as any,
+          is_active: dto.isActive ?? true,
+          is_system: false,
+          allow_manual_entries: true,
+          is_control_account: false,
+          is_cash_bank: false,
+          is_receivable: false,
+          is_payable: false,
+          is_inventory: false,
+          is_tax: false,
+          description_ar: '',
+          sort_order: 0,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return { ok: true, accountId: String(result.id) };
+    });
   }
 
   async updateAccount(id: number, dto: UpdateAccountDto, auth: AuthContext): Promise<Record<string, unknown>> {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
-    
-    const existing = await this.db.selectFrom('accounting_accounts')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
-      
-    if (!existing) throw new NotFoundException('Account not found');
-    
-    if (dto.code && dto.code !== existing.code) {
-      const codeCheck = await this.db.selectFrom('accounting_accounts')
-        .select('id')
-        .where('code', '=', dto.code)
+    return this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      await assertHierarchyParent(trx, 'accounting_accounts', scope.tenantId, id, dto.parentId == null ? null : Number(dto.parentId));
+
+      const existing = await trx.selectFrom('accounting_accounts')
+        .selectAll()
+        .where('id', '=', id)
         .where('tenant_id', '=', scope.tenantId)
         .executeTakeFirst();
-      if (codeCheck) throw new BadRequestException('Account code already exists');
-    }
-    
-    const hasTransactions = await this.db.selectFrom('journal_entry_lines')
-      .select('id')
-      .where('account_id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .limit(1)
-      .executeTakeFirst();
-      
-    let updateData: any = {};
-    
-    if (existing.is_system) {
-      if (dto.nameAr) updateData.name_ar = dto.nameAr;
-      if (dto.nameEn !== undefined) updateData.name_en = dto.nameEn;
-    } else {
-      if (dto.nameAr) updateData.name_ar = dto.nameAr;
-      if (dto.nameEn !== undefined) updateData.name_en = dto.nameEn;
-      if (dto.isActive !== undefined) updateData.is_active = dto.isActive;
-      
-      if (hasTransactions) {
-        if (dto.code) updateData.code = dto.code;
+
+      if (!existing) throw new NotFoundException('Account not found');
+
+      if (dto.code && dto.code !== existing.code) {
+        const codeCheck = await trx.selectFrom('accounting_accounts')
+          .select('id')
+          .where('code', '=', dto.code)
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        if (codeCheck) throw new BadRequestException('Account code already exists');
+      }
+
+      const hasTransactions = await trx.selectFrom('journal_entry_lines')
+        .select('id')
+        .where('account_id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .limit(1)
+        .executeTakeFirst();
+
+      let updateData: any = {};
+
+      if (existing.is_system) {
+        if (dto.nameAr) updateData.name_ar = dto.nameAr;
+        if (dto.nameEn !== undefined) updateData.name_en = dto.nameEn;
       } else {
-        if (dto.code) updateData.code = dto.code;
-        if (dto.accountType) updateData.account_type = dto.accountType;
-        if (dto.normalBalance) updateData.normal_balance = dto.normalBalance;
-        if (dto.parentId !== undefined) {
-          updateData.parent_id = dto.parentId;
-          if (dto.parentId) {
-             const parent = await this.db.selectFrom('accounting_accounts').select('normal_balance').where('id', '=', dto.parentId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
-             if (parent) updateData.normal_balance = parent.normal_balance;
+        if (dto.nameAr) updateData.name_ar = dto.nameAr;
+        if (dto.nameEn !== undefined) updateData.name_en = dto.nameEn;
+        if (dto.isActive !== undefined) updateData.is_active = dto.isActive;
+
+        if (hasTransactions) {
+          if (dto.code) updateData.code = dto.code;
+        } else {
+          if (dto.code) updateData.code = dto.code;
+          if (dto.accountType) updateData.account_type = dto.accountType;
+          if (dto.normalBalance) updateData.normal_balance = dto.normalBalance;
+          if (dto.parentId !== undefined) {
+            updateData.parent_id = dto.parentId;
+            if (dto.parentId) {
+               const parent = await trx.selectFrom('accounting_accounts').select('normal_balance').where('id', '=', dto.parentId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+               if (parent) updateData.normal_balance = parent.normal_balance;
+            }
           }
         }
       }
-    }
 
-    // IAS 21 monetary/revaluation-currency metadata (O1): safe to change regardless of
-    // is_system or transaction history — it never touches identity or posted balances,
-    // only which accounts forex-revaluation.previewRevaluation() picks up.
-    if (dto.isMonetary !== undefined) {
-      if (dto.isMonetary && !['asset', 'liability'].includes(existing.account_type)) {
-        throw new BadRequestException('إعادة تقييم العملة متاحة للحسابات النقدية من نوع أصل أو التزام فقط.');
+      // IAS 21 monetary/revaluation-currency metadata (O1): safe to change regardless of
+      // is_system or transaction history — it never touches identity or posted balances,
+      // only which accounts forex-revaluation.previewRevaluation() picks up.
+      if (dto.isMonetary !== undefined) {
+        if (dto.isMonetary && !['asset', 'liability'].includes(existing.account_type)) {
+          throw new BadRequestException('إعادة تقييم العملة متاحة للحسابات النقدية من نوع أصل أو التزام فقط.');
+        }
+        updateData.is_monetary = dto.isMonetary;
+        if (!dto.isMonetary) {
+          // A non-monetary account can never legitimately carry a revaluation currency.
+          updateData.revaluation_currency = null;
+        }
       }
-      updateData.is_monetary = dto.isMonetary;
-      if (!dto.isMonetary) {
-        // A non-monetary account can never legitimately carry a revaluation currency.
-        updateData.revaluation_currency = null;
+      if (dto.revaluationCurrency !== undefined) {
+        const cleanCurrency = String(dto.revaluationCurrency || '').trim().toUpperCase() || null;
+        const willBeMonetary = dto.isMonetary !== undefined ? dto.isMonetary : Boolean(existing.is_monetary);
+        if (cleanCurrency && !willBeMonetary) {
+          throw new BadRequestException('لا يمكن تحديد عملة إعادة التقييم لحساب غير نقدي (is_monetary = false)');
+        }
+        if (cleanCurrency && !/^[A-Z]{3}$/.test(cleanCurrency)) {
+          throw new BadRequestException('رمز عملة إعادة التقييم يجب أن يتكون من ثلاثة أحرف.');
+        }
+        updateData.revaluation_currency = cleanCurrency;
       }
-    }
-    if (dto.revaluationCurrency !== undefined) {
-      const cleanCurrency = String(dto.revaluationCurrency || '').trim().toUpperCase() || null;
-      const willBeMonetary = dto.isMonetary !== undefined ? dto.isMonetary : Boolean(existing.is_monetary);
-      if (cleanCurrency && !willBeMonetary) {
-        throw new BadRequestException('لا يمكن تحديد عملة إعادة التقييم لحساب غير نقدي (is_monetary = false)');
-      }
-      if (cleanCurrency && !/^[A-Z]{3}$/.test(cleanCurrency)) {
-        throw new BadRequestException('رمز عملة إعادة التقييم يجب أن يتكون من ثلاثة أحرف.');
-      }
-      updateData.revaluation_currency = cleanCurrency;
-    }
 
-    if (Object.keys(updateData).length > 0) {
-      await this.db.updateTable('accounting_accounts')
-        .set({ ...updateData, updated_at: sql`NOW()` })
-        .where('id', '=', id)
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
-    }
-    
-    return { ok: true };
+      if (Object.keys(updateData).length > 0) {
+        await trx.updateTable('accounting_accounts')
+          .set({ ...updateData, updated_at: sql`NOW()` })
+          .where('id', '=', id)
+          .where('tenant_id', '=', scope.tenantId)
+          .execute();
+      }
+
+      return { ok: true };
+    });
   }
 
   async deleteAccount(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -2551,59 +2581,58 @@ export class AccountingService {
   // --- Multi-Currency & Exchange Rates (العملات المتعددة وأسعار الصرف) ---
   async listCurrencies(auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
-    let rows = await this.db
-      .selectFrom('currency_exchange_rates')
-      .selectAll()
-      .where('tenant_id', '=', scope.tenantId)
-      .orderBy('is_base', 'desc')
-      .orderBy('currency_code', 'asc')
-      .execute();
-
-    if (rows.length === 0) {
-      const defaultCurrencies = [
-        { code: 'EGP', name: 'الجنيه المصري', rate: 1.0, isBase: true, symbol: 'ج.م' },
-        { code: 'USD', name: 'الدولار الأمريكي', rate: 49.5, isBase: false, symbol: '$' },
-        { code: 'SAR', name: 'الريال السعودي', rate: 13.2, isBase: false, symbol: 'ر.س' },
-        { code: 'EUR', name: 'اليورو الأوروبي', rate: 53.8, isBase: false, symbol: '€' },
-        { code: 'AED', name: 'الدرهم الإماراتي', rate: 13.48, isBase: false, symbol: 'د.إ' },
-      ];
-
-      for (const c of defaultCurrencies) {
-        await this.db
-          .insertInto('currency_exchange_rates')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            currency_code: c.code,
-            currency_name: c.name,
-            exchange_rate: c.rate,
-            is_base: c.isBase,
-            symbol: c.symbol,
-          } as any)
-          .onConflict((oc) => oc.columns(['tenant_id', 'currency_code']).doNothing())
-          .execute();
-      }
-
-      rows = await this.db
+    return this.db.transaction().execute(async trx => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      let rows = await trx
         .selectFrom('currency_exchange_rates')
         .selectAll()
         .where('tenant_id', '=', scope.tenantId)
         .orderBy('is_base', 'desc')
         .orderBy('currency_code', 'asc')
         .execute();
-    }
 
-    return {
-      currencies: rows.map((r) => ({
-        id: String(r.id),
-        code: r.currency_code,
-        name: r.currency_name,
-        exchangeRate: Number(r.exchange_rate),
-        isBase: Boolean(r.is_base),
-        symbol: r.symbol,
-        updatedAt: r.updated_at,
-      })),
-    };
+      const baseCurrency = await tenantBaseCurrency(trx, scope.tenantId);
+      if (rows.length === 0) {
+        // Never seed sample market rates into live financial conversion tables.
+        const defaultCurrencies = [{ code: baseCurrency, name: baseCurrency, rate: 1, isBase: true, symbol: baseCurrency }];
+
+        for (const c of defaultCurrencies) {
+          await trx
+            .insertInto('currency_exchange_rates')
+            .values({
+              tenant_id: scope.tenantId,
+              account_id: scope.accountId,
+              currency_code: c.code,
+              currency_name: c.name,
+              exchange_rate: c.rate,
+              is_base: c.isBase,
+              symbol: c.symbol,
+            } as any)
+            .onConflict((oc) => oc.columns(['tenant_id', 'currency_code']).doNothing())
+            .execute();
+        }
+
+        rows = await trx
+          .selectFrom('currency_exchange_rates')
+          .selectAll()
+          .where('tenant_id', '=', scope.tenantId)
+          .orderBy('is_base', 'desc')
+          .orderBy('currency_code', 'asc')
+          .execute();
+      }
+
+      return {
+        currencies: rows.map((r) => ({
+          id: String(r.id),
+          code: r.currency_code,
+          name: r.currency_name,
+          exchangeRate: Number(r.exchange_rate),
+          isBase: Boolean(r.is_base),
+          symbol: r.symbol,
+          updatedAt: r.updated_at,
+        })),
+      };
+    });
   }
 
   async upsertCurrency(
@@ -2612,45 +2641,45 @@ export class AccountingService {
   ): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const code = String(body.currencyCode || '').trim().toUpperCase();
-    if (!code) throw new BadRequestException('رمز العملة مطلوب.');
+    if (!/^[A-Z]{3}$/.test(code)) throw new BadRequestException('رمز العملة مطلوب.');
 
     const name = String(body.currencyName || code).trim();
-    const rate = Number(body.exchangeRate || 1);
+    const rate = Number(body.exchangeRate);
+    if (!Number.isFinite(rate) || rate <= 0) throw new BadRequestException('سعر الصرف يجب أن يكون موجباً ومحدوداً.');
     const isBase = Boolean(body.isBase);
     const symbol = String(body.symbol || '').trim();
 
-    if (isBase) {
-      await this.db
-        .updateTable('currency_exchange_rates')
-        .set({ is_base: false })
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
-    }
+    if (isBase && rate !== 1) throw new BadRequestException('سعر عملة الأساس يجب أن يساوي واحداً.');
+    return this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      const baseCurrency = await tenantBaseCurrency(trx, scope.tenantId);
+      if (isBase !== (code === baseCurrency)) throw new BadRequestException('عملة الأساس تحدد من الإعدادات العامة قبل تسجيل أي عملة أو حركة مالية.');
 
-    const row = await this.db
-      .insertInto('currency_exchange_rates')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-        currency_code: code,
-        currency_name: name,
-        exchange_rate: rate,
-        is_base: isBase,
-        symbol,
-      } as any)
-      .onConflict((oc) =>
-        oc.columns(['tenant_id', 'currency_code']).doUpdateSet({
+      const row = await trx
+        .insertInto('currency_exchange_rates')
+        .values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          currency_code: code,
           currency_name: name,
           exchange_rate: rate,
           is_base: isBase,
           symbol,
-          updated_at: sql`NOW()`,
-        })
-      )
-      .returningAll()
-      .executeTakeFirstOrThrow();
+        } as any)
+        .onConflict((oc) =>
+          oc.columns(['tenant_id', 'currency_code']).doUpdateSet({
+            currency_name: name,
+            exchange_rate: rate,
+            is_base: isBase,
+            symbol,
+            updated_at: sql`NOW()`,
+          })
+        )
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
-    return { ok: true, currency: row };
+      return { ok: true, currency: row };
+    });
   }
 
   async convertCurrency(
@@ -2658,13 +2687,12 @@ export class AccountingService {
     auth: AuthContext,
   ): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    await tenantBaseCurrency(this.db, scope.tenantId);
     const fromCode = String(body.fromCurrency || '').trim().toUpperCase();
     const toCode = String(body.toCurrency || '').trim().toUpperCase();
     const amount = Number(body.amount || 0);
 
-    if (fromCode === toCode) {
-      return { convertedAmount: amount, rate: 1 };
-    }
+    if (!Number.isFinite(amount) || !/^[A-Z]{3}$/.test(fromCode) || !/^[A-Z]{3}$/.test(toCode)) throw new BadRequestException('مبلغ أو رمز عملة غير صالح.');
 
     const rates = await this.db
       .selectFrom('currency_exchange_rates')
@@ -2676,8 +2704,10 @@ export class AccountingService {
     const fromRow = rates.find((r) => r.currency_code === fromCode);
     const toRow = rates.find((r) => r.currency_code === toCode);
 
-    const fromRate = fromRow ? Number(fromRow.exchange_rate) : 1;
-    const toRate = toRow ? Number(toRow.exchange_rate) : 1;
+    if (!fromRow || !toRow) throw new BadRequestException('العملة غير مسجلة؛ لا يجوز افتراض سعر صرف.');
+    const fromRate = Number(fromRow.exchange_rate);
+    const toRate = Number(toRow.exchange_rate);
+    if (![fromRate, toRate].every(rate => Number.isFinite(rate) && rate > 0)) throw new BadRequestException('سعر صرف مسجل غير صالح.');
 
     const amountInBase = fromRow?.is_base ? amount : amount * fromRate;
     const convertedAmount = toRow?.is_base ? amountInBase : amountInBase / toRate;
@@ -2700,7 +2730,7 @@ export class AccountingService {
     const scope = requireTenantScope(auth);
     const rows = await (this.db as any)
       .selectFrom('cost_centers as cc')
-      .leftJoin('cost_centers as p', 'cc.parent_id', 'p.id')
+      .leftJoin('cost_centers as p', (join: any) => join.onRef('cc.parent_id', '=', 'p.id').onRef('cc.tenant_id', '=', 'p.tenant_id'))
       .select([
         'cc.id',
         'cc.code',
@@ -2737,43 +2767,47 @@ export class AccountingService {
   ) {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
-    const code = String(body.code || '').trim().toUpperCase();
-    const name = String(body.name || '').trim();
-    if (!code || !name) {
-      throw new BadRequestException('كود واسم مركز التكلفة مطلوبان.');
-    }
-    const dimension = body.dimension ? String(body.dimension).trim() : 'operational';
-    const budgetAmount = body.budgetAmount !== undefined ? Number(body.budgetAmount) : 0;
-    const parentId = body.parentId ? Number(body.parentId) : null;
-    const description = body.description ? String(body.description).trim() : null;
-    const isActive = body.isActive !== false;
+    return this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      await assertHierarchyParent(trx, 'cost_centers', scope.tenantId, null, body.parentId == null ? null : Number(body.parentId));
+      const code = String(body.code || '').trim().toUpperCase();
+      const name = String(body.name || '').trim();
+      if (!code || !name) {
+        throw new BadRequestException('كود واسم مركز التكلفة مطلوبان.');
+      }
+      const dimension = body.dimension ? String(body.dimension).trim() : 'operational';
+      const budgetAmount = body.budgetAmount !== undefined ? Number(body.budgetAmount) : 0;
+      const parentId = body.parentId ? Number(body.parentId) : null;
+      const description = body.description ? String(body.description).trim() : null;
+      const isActive = body.isActive !== false;
 
-    const inserted = await this.db
-      .insertInto('cost_centers')
-      .values({
-        tenant_id: scope.tenantId,
-        code,
-        name,
-        dimension,
-        budget_amount: budgetAmount,
-        parent_id: parentId,
-        description,
-        is_active: isActive,
-      } as any)
-      .returningAll()
-      .executeTakeFirstOrThrow();
+      const inserted = await trx
+        .insertInto('cost_centers')
+        .values({
+          tenant_id: scope.tenantId,
+          code,
+          name,
+          dimension,
+          budget_amount: budgetAmount,
+          parent_id: parentId,
+          description,
+          is_active: isActive,
+        } as any)
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
-    return {
-      ok: true,
-      costCenter: {
-        ...inserted,
-        id: Number(inserted.id),
-        dimension: (inserted as any).dimension || 'operational',
-        budgetAmount: Number((inserted as any).budget_amount || 0),
-        parentId: inserted.parent_id ? Number(inserted.parent_id) : null,
-        isActive: Boolean(inserted.is_active),
-      },
-    };
+      return {
+        ok: true,
+        costCenter: {
+          ...inserted,
+          id: Number(inserted.id),
+          dimension: (inserted as any).dimension || 'operational',
+          budgetAmount: Number((inserted as any).budget_amount || 0),
+          parentId: inserted.parent_id ? Number(inserted.parent_id) : null,
+          isActive: Boolean(inserted.is_active),
+        },
+      };
+    });
   }
 
   async updateCostCenter(
@@ -2783,40 +2817,44 @@ export class AccountingService {
   ) {
     this.assertAccountingAccess(auth);
     const scope = requireTenantScope(auth);
-    const updates: Record<string, unknown> = {
-      updated_at: sql`NOW()`,
-    };
-    if (body.code !== undefined) updates.code = String(body.code).trim().toUpperCase();
-    if (body.name !== undefined) updates.name = String(body.name).trim();
-    if (body.dimension !== undefined) updates.dimension = String(body.dimension).trim();
-    if (body.budgetAmount !== undefined) updates.budget_amount = Number(body.budgetAmount);
-    if (body.parentId !== undefined) updates.parent_id = body.parentId ? Number(body.parentId) : null;
-    if (body.description !== undefined) updates.description = body.description ? String(body.description).trim() : null;
-    if (body.isActive !== undefined) updates.is_active = Boolean(body.isActive);
+    return this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      await assertHierarchyParent(trx, 'cost_centers', scope.tenantId, id, body.parentId == null ? null : Number(body.parentId));
+      const updates: Record<string, unknown> = {
+        updated_at: sql`NOW()`,
+      };
+      if (body.code !== undefined) updates.code = String(body.code).trim().toUpperCase();
+      if (body.name !== undefined) updates.name = String(body.name).trim();
+      if (body.dimension !== undefined) updates.dimension = String(body.dimension).trim();
+      if (body.budgetAmount !== undefined) updates.budget_amount = Number(body.budgetAmount);
+      if (body.parentId !== undefined) updates.parent_id = body.parentId ? Number(body.parentId) : null;
+      if (body.description !== undefined) updates.description = body.description ? String(body.description).trim() : null;
+      if (body.isActive !== undefined) updates.is_active = Boolean(body.isActive);
 
-    const updated = await this.db
-      .updateTable('cost_centers')
-      .set(updates as any)
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .returningAll()
-      .executeTakeFirst();
+      const updated = await trx
+        .updateTable('cost_centers')
+        .set(updates as any)
+        .where('id', '=', id)
+        .where('tenant_id', '=', scope.tenantId)
+        .returningAll()
+        .executeTakeFirst();
 
-    if (!updated) {
-      throw new NotFoundException('مركز التكلفة غير موجود.');
-    }
+      if (!updated) {
+        throw new NotFoundException('مركز التكلفة غير موجود.');
+      }
 
-    return {
-      ok: true,
-      costCenter: {
-        ...updated,
-        id: Number(updated.id),
-        dimension: (updated as any).dimension || 'operational',
-        budgetAmount: Number((updated as any).budget_amount || 0),
-        parentId: updated.parent_id ? Number(updated.parent_id) : null,
-        isActive: Boolean(updated.is_active),
-      },
-    };
+      return {
+        ok: true,
+        costCenter: {
+          ...updated,
+          id: Number(updated.id),
+          dimension: (updated as any).dimension || 'operational',
+          budgetAmount: Number((updated as any).budget_amount || 0),
+          parentId: updated.parent_id ? Number(updated.parent_id) : null,
+          isActive: Boolean(updated.is_active),
+        },
+      };
+    });
   }
 
   async deleteCostCenter(id: number, auth: AuthContext) {
@@ -2895,7 +2933,7 @@ export class AccountingService {
       query = query.where('e.entry_date', '>=', new Date(filters.fromDate));
     }
     if (filters?.toDate) {
-      query = query.where('e.entry_date', '<=', new Date(filters.toDate));
+      query = query.where('e.entry_date', '<', nextAccountingDay(filters.toDate));
     }
 
     const lines = await query.orderBy('e.entry_date', 'desc').execute();

@@ -21,6 +21,16 @@
 
 ### Accounting ledger hardening (October 2026)
 
+ARCH02 local implementation and unexecuted acceptance work are tracked in [the ARCH02 closure register](docs/audits/ARCH02_FIX_STATUS_2026-10-24.md). Its implementation status is not evidence that tests, migrations, builds, or environment checks passed.
+
+- Use exclusive UTC next-day bounds for report/closing cutoffs. Block sign-off on unresolved postings, missing sales journals and due financing accruals.
+- Keep operational partner/inventory openings out of the aggregate cash/bank opening journal. Partner creation, opening balance, subledger and GL share one transaction.
+- Domain postings own their shared subledger synchronization. Never use shipping-line/subcontractor IDs as supplier IDs; retain explicit tenant-scoped mappings. Manual control-account entries and aggregate control-account FX revaluation cannot bypass that ownership.
+- Cheque transitions use type/state validation, stable sequence-based event identities, immutable base-currency snapshots and actual action dates. Set reversal links only when all accounting dimensions exactly offset; incurred bank fees remain incurred.
+- Value a receipt from the stock ledger's reconciled `globalAfter - receiptQty`, under product locks. Keep unit costs at six decimal places and document money at currency precision. Manufacturing consumes actual cost snapshots and posts on completion, with conversion costs separate from materials.
+- Defer financing income and recognize it through the effective-interest schedule. Settings currency and base-rate metadata must agree; base currency cannot be reinterpreted after rates/books are initialized. Historical ambiguity requires reviewed reconciliation, not inferred monetary evidence.
+- Non-cash journals do not generate cash flow. Show ambiguous mixed cash flows as unclassified until attribution is available. Preserve explicit manual cash-flow classification when reversing its journal.
+
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
 - Serialize tenant journal postings, drafts, lock changes, and month/year transitions with the same transaction advisory lock. Year-end closing and reopening entries can bypass an existing month lock only after validating the fiscal year state and end date.
 - Allocate final journal numbers from the inserted row ID under the tenant unique index; use a UUID for the temporary number. Recheck and lock manually selected accounts inside the posting transaction so deactivation cannot race the posting.

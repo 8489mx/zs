@@ -1,3 +1,4 @@
+import { lockAccountingPeriod } from '../accounting-period-lock';
 import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -308,95 +309,104 @@ export class WithholdingTaxService {
     dto: ExtractFromPurchasesDto,
   ): Promise<{ extracted_count: number; total_tax_added: number; message: string }> {
     const tenantId = String(auth.tenantId || '');
-    const fromDate = dto.fromDate;
-    const toDate = dto.toDate;
-    const whtType = dto.defaultWhtType || 'goods';
-    const rate = dto.defaultWhtRate !== undefined ? Number(dto.defaultWhtRate) : 1.00;
+    return this.db.transaction().execute(async (trx) => {
+      await lockAccountingPeriod(trx, tenantId);
+      const fromDate = dto.fromDate;
+      const toDate = dto.toDate;
+      const whtType = dto.defaultWhtType || 'goods';
+      const rate = dto.defaultWhtRate !== undefined ? Number(dto.defaultWhtRate) : 1.00;
 
-    // Fetch purchases that exceed 300 EGP and are not cancelled
-    const purchases = await (this.db as any)
-      .selectFrom('purchases as p')
-      .leftJoin('suppliers as s', 's.id', 'p.supplier_id')
-      .where('p.tenant_id', '=', tenantId)
-      .where('p.status', '!=', 'cancelled')
-      .where(sql<boolean>`p.created_at >= ${fromDate}::date AND p.created_at <= (${toDate}::date + interval '1 day')`)
-      .where('p.subtotal', '>=', 300) // Egyptian legal minimum threshold for Form 41
-      .select([
-        'p.id as purchase_id',
-        'p.doc_no',
-        'p.subtotal',
-        'p.discount',
-        'p.created_at',
-        'p.supplier_id',
-        's.name as supplier_name',
-        's.company_name',
-        's.tax_number',
-      ])
-      .execute();
+      if (!Number.isFinite(rate) || rate <= 0 || rate > 100) throw new BadRequestException('نسبة الخصم غير صالحة.');
 
-    if (purchases.length === 0) {
-      return { extracted_count: 0, total_tax_added: 0, message: 'لا توجد فواتير شراء خاضعة للخصم والإضافة في هذه الفترة' };
-    }
-
-    // Check existing extracted purchases to avoid duplication
-    const purchaseIds = purchases.map((p: any) => p.purchase_id);
-    const existing = await (this.db as any)
-      .selectFrom('withholding_tax_transactions')
-      .where('tenant_id', '=', tenantId)
-      .where('source_type', '=', 'purchase')
-      .where('source_id', 'in', purchaseIds)
-      .select(['source_id'])
-      .execute();
-
-    const existingSet = new Set(existing.map((e: any) => e.source_id));
-    let addedCount = 0;
-    let addedTax = 0;
-
-    for (const p of purchases) {
-      if (existingSet.has(p.purchase_id)) continue;
-
-      const dateStr = this.formatDate(p.created_at);
-      const period = this.determineQuarterAndYear(dateStr);
-      const baseAmount = this.toMoney(Number(p.subtotal || 0) - Number(p.discount || 0));
-      if (baseAmount < 300) continue;
-
-      const taxAmount = this.toMoney(baseAmount * (rate / 100));
-      const partnerName = p.company_name || p.supplier_name || `مورد رقم ${p.supplier_id || ''}`;
-
-      await (this.db as any)
-        .insertInto('withholding_tax_transactions')
-        .values({
-          tenant_id: tenantId,
-          direction: 'payable',
-          source_type: 'purchase',
-          source_id: p.purchase_id,
-          invoice_number: p.doc_no || `PUR-${p.purchase_id}`,
-          invoice_date: dateStr,
-          partner_type: 'supplier',
-          partner_id: p.supplier_id,
-          partner_name: partnerName,
-          tax_id_number: p.tax_number || null,
-          wht_type: whtType,
-          wht_rate: rate,
-          base_amount: baseAmount,
-          tax_amount: taxAmount,
-          quarter: period.quarter,
-          tax_year: period.year,
-          status: 'draft',
-          notes: `استيراد آلي من فاتورة الشراء رقم ${p.doc_no || p.purchase_id}`,
-          created_by: auth.userId ? Number(auth.userId) : null,
-        })
+      // Fetch purchases that exceed 300 EGP and are not cancelled
+      const purchases = await (trx as any)
+        .selectFrom('purchases as p')
+        .leftJoin('suppliers as s', (join: any) => join.onRef('s.id', '=', 'p.supplier_id').onRef('s.tenant_id', '=', 'p.tenant_id'))
+        .where('p.tenant_id', '=', tenantId)
+        .where('p.status', '=', 'posted')
+        .where(sql<boolean>`p.created_at >= ${fromDate}::date AND p.created_at < (${toDate}::date + interval '1 day')`)
+        .where('p.subtotal', '>=', 300) // Egyptian legal minimum threshold for Form 41
+        .select([
+          'p.id as purchase_id',
+          'p.doc_no',
+          'p.subtotal',
+          'p.discount',
+          'p.created_at',
+          'p.supplier_id',
+          's.id as owned_supplier_id',
+          's.name as supplier_name',
+          's.company_name',
+          's.tax_number',
+        ])
         .execute();
 
-      addedCount++;
-      addedTax = this.toMoney(addedTax + taxAmount);
-    }
+      if (purchases.length === 0) {
+        return { extracted_count: 0, total_tax_added: 0, message: 'لا توجد فواتير شراء خاضعة للخصم والإضافة في هذه الفترة' };
+      }
 
-    return {
-      extracted_count: addedCount,
-      total_tax_added: addedTax,
-      message: `تم استيراد ${addedCount} معاملة بنجاح بإجمالي ضريبة خصم ${addedTax} ج.م`,
-    };
+      if (purchases.some((purchase: any) => purchase.supplier_id && !purchase.owned_supplier_id)) throw new BadRequestException('توجد فاتورة بمورد خارج المنشأة؛ يلزم مطابقتها قبل استخراج الضريبة.');
+
+      // Check existing extracted purchases to avoid duplication
+      const purchaseIds = purchases.map((p: any) => p.purchase_id);
+      const existing = await (trx as any)
+        .selectFrom('withholding_tax_transactions')
+        .where('tenant_id', '=', tenantId)
+        .where('source_type', '=', 'purchase')
+        .where('source_id', 'in', purchaseIds)
+        .select(['source_id'])
+        .execute();
+
+      const existingSet = new Set(existing.map((e: any) => e.source_id));
+      let addedCount = 0;
+      let addedTax = 0;
+
+      for (const p of purchases) {
+        if (existingSet.has(p.purchase_id)) continue;
+
+        const dateStr = this.formatDate(p.created_at);
+        const period = this.determineQuarterAndYear(dateStr);
+        const baseAmount = this.toMoney(Number(p.subtotal || 0) - Number(p.discount || 0));
+        if (baseAmount < 300) continue;
+
+        const taxAmount = this.toMoney(baseAmount * (rate / 100));
+        const partnerName = p.company_name || p.supplier_name || `مورد رقم ${p.supplier_id || ''}`;
+
+        await (trx as any)
+          .insertInto('withholding_tax_transactions')
+          .values({
+            tenant_id: tenantId,
+            direction: 'payable',
+            source_type: 'purchase',
+            source_id: p.purchase_id,
+            extraction_key: `purchase:${p.purchase_id}`,
+            invoice_number: p.doc_no || `PUR-${p.purchase_id}`,
+            invoice_date: dateStr,
+            partner_type: 'supplier',
+            partner_id: p.supplier_id,
+            partner_name: partnerName,
+            tax_id_number: p.tax_number || null,
+            wht_type: whtType,
+            wht_rate: rate,
+            base_amount: baseAmount,
+            tax_amount: taxAmount,
+            quarter: period.quarter,
+            tax_year: period.year,
+            status: 'draft',
+            notes: `استيراد آلي من فاتورة الشراء رقم ${p.doc_no || p.purchase_id}`,
+            created_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+
+        addedCount++;
+        addedTax = this.toMoney(addedTax + taxAmount);
+      }
+
+      return {
+        extracted_count: addedCount,
+        total_tax_added: addedTax,
+        message: `تم استيراد ${addedCount} معاملة بنجاح بإجمالي ضريبة خصم ${addedTax} ج.م`,
+      };
+    });
   }
 
   /**

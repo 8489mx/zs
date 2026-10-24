@@ -1,3 +1,4 @@
+import { tenantBaseCurrency } from '../accounting-currency';
 import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Kysely, sql } from '../../../database/kysely';
@@ -7,6 +8,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 import { AccountingPostingService } from '../accounting-posting.service';
 import { lockAccountingPeriod } from '../accounting-period-lock';
+import { nextAccountingDay } from '../engines/accounting-date.engine';
 import { calculateForexDifference, forexOffsetCode } from '../engines/forex-difference.engine';
 
 /** A string DTO body is not runtime validation; PostgreSQL numeric accepts 'NaN'. */
@@ -72,6 +74,7 @@ export class ForexRevaluationService {
     const closingRate = validateForexClosingRate(dto.closingRate);
 
     if (!currencyCode) throw new BadRequestException('رمز العملة مطلوب.');
+    if (currencyCode === await tenantBaseCurrency(queryable, tenantId)) throw new BadRequestException('عملة الأساس لا يعاد تقييمها.');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dto.periodDate) ||
         Number.isNaN(new Date(dto.periodDate).getTime()) ||
         new Date(dto.periodDate).toISOString().slice(0, 10) !== dto.periodDate) {
@@ -99,7 +102,7 @@ export class ForexRevaluationService {
     // named "مخزون بضاعة USD" would have been revalued, which is a material misstatement.
     const accounts = await queryable
       .selectFrom('accounting_accounts')
-      .select(['id', 'code', 'name_ar', 'name_en', 'account_type', 'normal_balance'])
+      .select(['id', 'code', 'name_ar', 'name_en', 'account_type', 'normal_balance', 'is_control_account', 'is_receivable', 'is_payable', 'is_inventory'])
       .where('tenant_id', '=', tenantId)
       .where('is_active', '=', true)
       .where('is_monetary', '=', true)
@@ -116,7 +119,7 @@ export class ForexRevaluationService {
       .where('l.tenant_id', '=', tenantId)
       .where('l.account_id', 'in', accountIds)
       .where('h.status', '=', 'posted')
-      .where('h.entry_date', '<=', dto.periodDate as any)
+      .where('h.entry_date', '<', nextAccountingDay(dto.periodDate))
       .groupBy('l.account_id')
       .execute() : [];
     const balanceByAccount = new Map(balances.map((row) => [Number(row.account_id), Number(row.balance || 0)]));
@@ -134,7 +137,10 @@ export class ForexRevaluationService {
       userItemMap.set(Number(item.accountId), item.foreignBalance);
     }
 
+    const mapped = await queryable.selectFrom('accounting_settings').select(['customer_receivable_account_id', 'supplier_payable_account_id', 'inventory_account_id']).where('tenant_id', '=', tenantId).where('id', '=', 1).executeTakeFirst();
+    const controlIds = new Set(Object.values(mapped || {}).map(Number));
     for (const acc of accounts) {
+      if (acc.is_control_account || acc.is_receivable || acc.is_payable || acc.is_inventory || ['1130', '1140', '2110'].includes(acc.code) || controlIds.has(Number(acc.id))) throw new BadRequestException('إعادة تقييم الحساب الرقابي تتطلب مراكز عملة مفصلة للشركاء؛ استخدم حساب فروق مستقل إلى حين توفيرها.');
       const localBalance = balanceByAccount.get(Number(acc.id)) || 0;
       if (Math.abs(localBalance) > 0.01) {
         const userForeign = userItemMap.get(Number(acc.id));

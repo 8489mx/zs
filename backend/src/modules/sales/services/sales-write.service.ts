@@ -1,3 +1,5 @@
+import { valueStockReceipt } from '../../accounting/inventory-valuation';
+import { assertBusinessAccountingDate } from '../../accounting/accounting-boundaries';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Kysely, sql, type Transaction } from '../../../database/kysely';
 import { AppError } from '../../../common/errors/app-error';
@@ -491,17 +493,17 @@ export class SalesWriteService {
       if (shortfall <= 0) continue;
 
       const qtyToProduce = shortfall;
-      const baseShortfall = Number((qtyToProduce / (item.unitMultiplier || 1)).toFixed(3)); // we need to produce in base unit since BOM is per base unit
+      const baseShortfall = Number(qtyToProduce.toFixed(3)); // requiredQty and availableQty are already base stock units
       
       const bom = await trx.selectFrom('manufacturing_boms')
-        .select(['expected_cost', 'quantity'])
+        .select(['expected_cost', 'quantity', 'overhead_cost'])
         .where('id', '=', item.bomId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .executeTakeFirst();
       if (!bom) continue;
 
       const bomQuantity = Number(bom.quantity || 1);
-      const totalCost = Number((Number(bom.expected_cost) * (qtyToProduce / bomQuantity)).toFixed(3));
+      let totalCost = Number((Number(bom.overhead_cost || 0) * (baseShortfall / bomQuantity)).toFixed(2));
       const wo = await trx.insertInto('manufacturing_work_orders').values({
         bom_id: item.bomId,
         quantity_to_produce: baseShortfall,
@@ -527,9 +529,8 @@ export class SalesWriteService {
       for (const line of [...bomLines].sort((a, b) => Number(a.component_product_id) - Number(b.component_product_id))) {
         const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
         const lineMultiplier = Number(line.unit_multiplier || 1);
-        const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity);
+        const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (baseShortfall / bomQuantity);
         const requiredMaterialQty = Number((quantityConsumedInSelectedUnit * lineMultiplier).toFixed(3));
-        const lineTotalCost = Number((Number(line.expected_cost) * quantityConsumedInSelectedUnit).toFixed(3));
 
         // Recursive BOM check
         const componentStock = await previewAssignedLocationStockQty(trx, {
@@ -560,11 +561,16 @@ export class SalesWriteService {
            }
         }
 
+        const material = await trx.selectFrom('products').select('cost_price').where('tenant_id', '=', scope.tenantId).where('id', '=', Number(line.component_product_id)).executeTakeFirstOrThrow();
+        const actualUnitCost = Number(material.cost_price);
+        if (!Number.isFinite(actualUnitCost) || actualUnitCost < 0) throw new AppError('Invalid material cost', 'MANUFACTURING_COST_INVALID', 409);
+        const lineTotalCost = Number((requiredMaterialQty * actualUnitCost).toFixed(2));
+        totalCost += lineTotalCost;
         await trx.insertInto('manufacturing_wo_consumptions').values({
           work_order_id: woId,
           component_product_id: Number(line.component_product_id),
           quantity_consumed: requiredMaterialQty,
-          unit_cost: Number(line.expected_cost),
+          unit_cost: actualUnitCost,
           line_total: lineTotalCost,
         }).execute();
 
@@ -581,6 +587,7 @@ export class SalesWriteService {
         await trx.insertInto('stock_movements').values({
           product_id: Number(line.component_product_id),
           movement_type: 'manufacturing_consumption',
+          unit_cost: actualUnitCost, total_cost: lineTotalCost,
           qty: -requiredMaterialQty,
           before_qty: stockChange.scopeBefore,
           after_qty: stockChange.scopeAfter,
@@ -608,6 +615,7 @@ export class SalesWriteService {
       await trx.insertInto('stock_movements').values({
         product_id: item.productId,
         movement_type: 'manufacturing_production',
+        unit_cost: totalCost / baseShortfall, total_cost: Number(totalCost.toFixed(2)),
         qty: baseShortfall,
         before_qty: fgStockChange.scopeBefore,
         after_qty: fgStockChange.scopeAfter,
@@ -622,17 +630,8 @@ export class SalesWriteService {
         account_id: scope.accountId,
       }).execute();
 
-      const finishedProduct = await trx.selectFrom('products').select(['stock_qty', 'cost_price']).where('id', '=', item.productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst();
-      if (finishedProduct) {
-        const oldStock = Number(finishedProduct.stock_qty || 0);
-        const oldCost = Number(finishedProduct.cost_price || 0);
-        const newCost = oldStock >= 0 ? (oldStock * oldCost + totalCost) / (oldStock + baseShortfall) : totalCost / baseShortfall;
-        await trx.updateTable('products')
-          .set({ cost_price: newCost, updated_at: sql`NOW()` })
-          .where('id', '=', item.productId)
-          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-          .execute();
-      }
+      await valueStockReceipt(trx, scope.tenantId, item.productId, fgStockChange.globalAfter, baseShortfall, totalCost);
+      await trx.updateTable('manufacturing_work_orders').set({ completed_at: new Date(), total_cost: totalCost } as any).where('tenant_id', '=', scope.tenantId).where('id', '=', woId).execute();
 
       const posting = await this.accountingPosting.postManufacturingWorkOrder(trx, woId, auth);
       if (!posting.journalEntryId) throw new AppError(`Manufacturing work order ${woId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
@@ -919,6 +918,7 @@ export class SalesWriteService {
 
     const txStartedAt = Date.now();
     const saleId = await this.tx.runInTransaction(this.db, async (trx) => {
+      await assertBusinessAccountingDate(trx, scope.tenantId, new Date(), true);
       let exchange: ExchangeReturnContext | undefined;
       if (isExchange) {
         const original = await trx.selectFrom('sales').select(['id', 'customer_id', 'branch_id'])
@@ -1546,6 +1546,12 @@ export class SalesWriteService {
 
       await this.lockSaleStockRows(trx, scope, preparedItems);
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
+      const currentCosts = await trx.selectFrom('products').select(['id', 'cost_price']).where('tenant_id', '=', scope.tenantId).where('id', 'in', [...new Set(preparedItems.map(item => Number(item.productId)))]).execute();
+      const currentCostByProduct = new Map(currentCosts.map(product => [Number(product.id), Number(product.cost_price)]));
+      for (const item of preparedItems) {
+        const modifierCost = (item.modifiers || []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
+        item.costPrice = Number(((currentCostByProduct.get(Number(item.productId)) || 0) * Number(item.unitMultiplier || 1) + modifierCost).toFixed(6));
+      }
 
       // Deadlock prevention: stock rows (products + product_location_stock) must always be
       // locked in a deterministic global order. Client-supplied item order is arbitrary, so two
@@ -2656,6 +2662,12 @@ export class SalesWriteService {
 
       await this.lockSaleStockRows(trx, scope, preparedItems);
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
+      const currentCosts = await trx.selectFrom('products').select(['id', 'cost_price']).where('tenant_id', '=', scope.tenantId).where('id', 'in', [...new Set(preparedItems.map(item => Number(item.productId)))]).execute();
+      const currentCostByProduct = new Map(currentCosts.map(product => [Number(product.id), Number(product.cost_price)]));
+      for (const item of preparedItems) {
+        const modifierCost = (item.modifiers || []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
+        item.costPrice = Number(((currentCostByProduct.get(Number(item.productId)) || 0) * Number(item.unitMultiplier || 1) + modifierCost).toFixed(6));
+      }
 
       // Deadlock prevention: identical canonical lock ordering as createSale (see note there).
       const stockOrderedItems = [...preparedItems].sort((a, b) => Number(a.productId || 0) - Number(b.productId || 0));

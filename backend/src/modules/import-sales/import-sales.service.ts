@@ -2517,7 +2517,7 @@ export class ImportSalesService {
             tenant_id: tenantId,
             account_id: supplier.account_id || tenantId,
             supplier_id: supplier.id,
-            amount: contractValue,
+            amount: -contractValue,
             amount_foreign: cleanForeign,
             note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
             created_by: userId,
@@ -2575,7 +2575,7 @@ export class ImportSalesService {
           account_id: supplier.account_id ? String(supplier.account_id) : tenantId,
           supplier_id: supplier.id,
           entry_type: 'payment',
-          amount: contractValue,
+          amount: -contractValue,
           balance_after: newSupplierBalance,
           note: `حوالة خارجية FT-${paymentId} (${cleanForeign} ${currency || 'USD'})` +
             (forexVarianceEgp !== 0 ? ` [فروق صرف: ${forexVarianceEgp.toFixed(2)} ج.م]` : ''),

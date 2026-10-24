@@ -1,3 +1,4 @@
+import { valueStockReceipt } from '../accounting/inventory-valuation';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
@@ -556,7 +557,7 @@ export class ReturnsService {
       pendingQtyByProduct.set(requestItem.productId, (pendingQtyByProduct.get(requestItem.productId) || 0) + requestItem.qty);
       pendingQtyByLine.set(saleLineId, (pendingQtyByLine.get(saleLineId) || 0) + requestItem.qty);
 
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials', 'cost_price']).where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const preparedLine = buildSaleReturnLine(saleItem, product, requestItem, {
         qty: returnedQtyByLine.get(saleLineId) || 0,
@@ -650,6 +651,7 @@ export class ReturnsService {
                 const branchId = locData.branch_id ?? sale.branch_id;
 
                const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true, disableAutoDrain: true });
+               await valueStockReceipt(trx, scope.tenantId, requestItem.productId, stockChange.globalAfter, returnToThis, returnedUnitCost * returnToThis);
                await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * returnToThis).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
             }
          }
@@ -662,6 +664,7 @@ export class ReturnsService {
          }
       } else {
          const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true, disableAutoDrain: true });
+         await valueStockReceipt(trx, scope.tenantId, requestItem.productId, stockChange.globalAfter, preparedLine.stockDelta, returnedUnitCost * preparedLine.stockDelta);
          await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * preparedLine.stockDelta).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
 
@@ -846,7 +849,7 @@ export class ReturnsService {
     if (!purchase) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
     const purchaseItems = await trx.selectFrom('purchase_items').selectAll().where('purchase_id', '=', Number(payload.invoiceId)).where(this.tenantPredicate(auth)).orderBy('id', 'asc').forUpdate().execute();
-    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; allocatedTax: number; saleItemId?: number; purchaseItemId?: number }> = [];
+    const normalizedLines: Array<{ productId: number; productName: string; qty: number; unitTotal: number; lineTotal: number; allocatedTax: number; costPrice: number; saleItemId?: number; purchaseItemId?: number }> = [];
 
     // Purchase items hold after-discount values. Distribute the invoice's actual
     // input VAT to original lines in cents, including the last-line remainder.
@@ -939,7 +942,7 @@ export class ReturnsService {
       pendingQtyByLine.set(purchaseLineId, (pendingQtyByLine.get(purchaseLineId) || 0) + requestItem.qty);
 
       const availableQty = await previewConsumableStockQty(trx, { productId: requestItem.productId, branchId: purchase.branch_id, locationId: purchaseItem.location_id ?? purchase.location_id, tenantId: scope.tenantId, accountId: scope.accountId });
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials'])
+      const product = await trx.selectFrom('products').select(['id', 'stock_qty', 'track_serials', 'cost_price'])
         .where('id', '=', requestItem.productId).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const sourceTax = taxByLine.get(purchaseLineId) || 0;
@@ -1012,8 +1015,8 @@ export class ReturnsService {
       }
 
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return', disableAutoDrain: true });
-      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, purchaseItemId: purchaseLineId });
+      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: Number(product.cost_price), total_cost: Number((preparedLine.stockDelta * Number(product.cost_price)).toFixed(2)), reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: Number(product.cost_price) * Number(purchaseItem.unit_multiplier || 1), purchaseItemId: purchaseLineId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines);
@@ -1075,7 +1078,7 @@ export class ReturnsService {
       refundAllocations: allocations, total, note: String(payload.note || '').trim(),
       branchId: purchase.branch_id, locationId: purchase.location_id,
     }, auth);
-    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, allocatedTax: line.allocatedTax, purchaseItemId: line.purchaseItemId }, auth);
+    for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, allocatedTax: line.allocatedTax, costPrice: line.costPrice, purchaseItemId: line.purchaseItemId }, auth);
     if (payableCents > 0 && purchase.supplier_id) {
       await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -(payableCents / 100), 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
     }

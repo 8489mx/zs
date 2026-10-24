@@ -158,6 +158,8 @@ export interface AccountingAccountTable {
 }
 
 export interface JournalEntryTable {
+  dedup_key?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  cash_flow_category?: ColumnType<'operating' | 'investing' | 'financing' | null, string | null | undefined, string | null | undefined>;
   id: Generated<number>;
   tenant_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   account_id: ColumnType<string | null, string | null | undefined, string | null | undefined>;
@@ -1445,6 +1447,7 @@ export interface ManufacturingWorkOrderTable {
   start_date: ColumnType<Date | null, string | null | undefined, string | null | undefined>;
   end_date: ColumnType<Date | null, string | null | undefined, string | null | undefined>;
   total_cost: number;
+  completed_at: ColumnType<Date | null, string | Date | null | undefined, string | Date | null | undefined>;
   note: string;
   created_by: number | null;
   created_at: ColumnType<Date, string | undefined, never>;
@@ -3263,6 +3266,7 @@ export interface StorefrontAbandonedCartTable {
 }
 
 export interface AccountingChequeTable {
+  posting_sequence?: ColumnType<number, number | undefined, number | undefined>;
   id: Generated<number>;
   tenant_id: string;
   account_id: number | null;
@@ -3274,6 +3278,11 @@ export interface AccountingChequeTable {
   partner_type: string;
   partner_id: number | null;
   partner_name: string;
+  base_amount: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  base_currency: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  exchange_rate: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  settlement_base_amount: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  last_action_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
   amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   currency: ColumnType<string, string | undefined, string | undefined>;
   issue_date: ColumnType<Date | string, Date | string | undefined, Date | string | undefined>;
@@ -4774,6 +4783,8 @@ export interface ContractingSubcontractorTable {
 }
 
 export interface ContractingSubcontractorPaymentTable {
+  request_key?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
+  request_fingerprint?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   id: Generated<number>;
   tenant_id: string;
   project_id: string | null;

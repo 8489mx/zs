@@ -66,6 +66,7 @@ export class CustomerInstallmentsService {
     }
 
     const interestRatePercent = Number(dto.interestRatePercent || 0);
+    if (!Number.isFinite(interestRatePercent) || interestRatePercent < 0) throw new AppError('Invalid interest rate', 'INVALID_INTEREST_RATE', 400);
     const interestAmount = this.roundCurrency((financedAmount * interestRatePercent) / 100);
     const totalWithInterest = this.roundCurrency(financedAmount + interestAmount);
     const installmentCount = Number(dto.installmentCount);

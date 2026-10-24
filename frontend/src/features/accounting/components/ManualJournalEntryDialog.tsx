@@ -57,6 +57,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState('');
   const [reference, setReference] = useState('');
+  const [cashFlowCategory, setCashFlowCategory] = useState<'' | 'operating' | 'investing' | 'financing'>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [lines, setLines] = useState<JournalLineRow[]>([
@@ -78,7 +79,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
 
   const activeAccounts = useMemo(() => {
     const list = accountsQuery.data?.accounts || [];
-    return list.filter((a: AccountingAccount) => a.isActive && a.allowManualEntries);
+    return list.filter((a: AccountingAccount) => a.isActive && a.allowManualEntries && !a.isControlAccount && !a.flags.isReceivable && !a.flags.isPayable && !a.flags.isInventory);
   }, [accountsQuery.data]);
 
   const accountOptions = useMemo(() => {
@@ -129,6 +130,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
 
       return accountingApi.createJournalEntry({
         entryDate,
+        cashFlowCategory: cashFlowCategory || undefined,
         description: description.trim(),
         reference: reference.trim() || undefined,
         lines: payloadLines,
@@ -149,6 +151,7 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
     setEntryDate(new Date().toISOString().slice(0, 10));
     setDescription('');
     setReference('');
+    setCashFlowCategory('');
     setErrorMessage(null);
     setLines([createEmptyRow(), createEmptyRow()]);
   }
@@ -243,6 +246,12 @@ export function ManualJournalEntryDialog({ open, onClose, onSuccess }: ManualJou
             </h4>
           </div>
 
+          <Field label={t('accounting.arch02.cashFlowCategory', 'تصنيف التدفق النقدي')} hint={t('accounting.arch02.cashFlowHint', 'حدد التصنيف عند بيع أصل أو وجود تمويل غير نقدي ضمن القيد')}>
+            <CustomSelect value={cashFlowCategory} onChange={value => setCashFlowCategory(value as typeof cashFlowCategory)} options={[
+              { value: '', label: t('accounting.arch02.automaticCategory', 'تلقائي للقيود البسيطة') }, { value: 'operating', label: t('accounting.arch02.operating', 'تشغيلي') },
+              { value: 'investing', label: t('accounting.arch02.investing', 'استثماري') }, { value: 'financing', label: t('accounting.arch02.financing', 'تمويلي') },
+            ]} />
+          </Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '14px' }}>
             <Field label={t('accounting.manual_journal_entry_dialog.s6', "تاريخ القيد *")} hint={t('accounting.manual_journal_entry_dialog.s7', "تاريخ إثبات الحركة")}>
               <input

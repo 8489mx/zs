@@ -74,6 +74,7 @@ export function CashFlowStatementPage() {
     addSection(report.operatingActivities);
     addSection(report.investingActivities);
     addSection(report.financingActivities);
+    if (report.unclassifiedActivities) addSection(report.unclassifiedActivities);
     lines.push(`"صافي التغير في النقدية",${report.netCashFlow},""`);
     lines.push(`"رصيد النقدية أول المدة",${report.beginningCash},""`);
     lines.push(`"رصيد النقدية آخر المدة",${report.endingCash},""`);
@@ -309,6 +310,10 @@ export function CashFlowStatementPage() {
             <CashFlowSectionCard section={report.operatingActivities} />
             <CashFlowSectionCard section={report.investingActivities} />
             <CashFlowSectionCard section={report.financingActivities} />
+            {report.isClassified === false && (
+              <div className="alert alert-warning">{t('accounting.arch02.mixedFlowsWarning', 'توجد تدفقات مختلطة تحتاج توزيعاً محاسبياً قبل اعتماد تصنيف القائمة؛ المبالغ مدرجة ضمن صافي النقدية.')}</div>
+            )}
+            {report.unclassifiedActivities && report.isClassified === false && <CashFlowSectionCard section={report.unclassifiedActivities} />}
 
             {/* Reconciliation Box at Bottom */}
             <Card

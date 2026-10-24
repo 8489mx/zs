@@ -318,6 +318,10 @@ export class CreateManualJournalEntryDto {
   @IsString()
   reference?: string;
 
+  @IsOptional()
+  @IsIn(['operating', 'investing', 'financing'])
+  cashFlowCategory?: 'operating' | 'investing' | 'financing';
+
   lines!: CreateJournalLineDto[];
 }
 

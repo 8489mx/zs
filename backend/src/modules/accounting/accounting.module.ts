@@ -1,3 +1,4 @@
+import { InstallmentInterestSchedulerService } from './services/installment-interest-scheduler.service';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
 import { AuthFoundationModule } from '../../core/auth/auth.module';
@@ -23,6 +24,7 @@ import { ArCollectionsService } from './services/ar-collections.service';
   imports: [DatabaseModule, AuthFoundationModule],
   controllers: [AccountingController, ArCollectionsController],
   providers: [
+    InstallmentInterestSchedulerService,
     AccountingService,
     AccountingPostingService,
     AccountingTenantFoundationService,

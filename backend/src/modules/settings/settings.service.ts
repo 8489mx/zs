@@ -1,3 +1,5 @@
+import { lockAccountingPeriod } from '../accounting/accounting-period-lock';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
 import { Inject, Injectable } from '@nestjs/common';
 import { sql, type Kysely } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
@@ -612,9 +614,23 @@ export class SettingsService {
     // the next sync switches off.
     delete normalizedPayload[PLAN_MANAGED_MODULES_SETTING_KEY];
 
-    for (const [key, value] of Object.entries(normalizedPayload)) {
-      await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db);
-    }
+    await this.db.transaction().execute(async trx => {
+      if ('currency' in normalizedPayload) {
+        await lockAccountingPeriod(trx, scope.tenantId);
+        const requested = String(normalizedPayload.currency || '').trim().toUpperCase();
+        if (!/^[A-Z]{3}$/.test(requested)) throw new AppError('رمز العملة غير صالح', 'INVALID_CURRENCY', 400);
+        const current = await tenantBaseCurrency(trx, scope.tenantId);
+        if (requested !== current) {
+          const posted = await trx.selectFrom('journal_entries').select('id').where('tenant_id', '=', scope.tenantId).where('status', '=', 'posted').limit(1).executeTakeFirst();
+          const rate = await trx.selectFrom('currency_exchange_rates').select('id').where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
+          if (posted || rate) throw new AppError('تغيير عملة الأساس بعد تهيئة أسعار الصرف أو الترحيل يتطلب تحويل دفاتر معتمداً', 'BASE_CURRENCY_LOCKED', 400);
+        }
+        normalizedPayload.currency = requested;
+      }
+      for (const [key, value] of Object.entries(normalizedPayload)) {
+        await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(trx);
+      }
+    });
     this.invalidateSettingsCache(scope.tenantId);
     await this.audit.log('تعديل الإعدادات', `تم تعديل الإعدادات بواسطة ${actor.username}`, actor);
     return this.getSettings(actor);
