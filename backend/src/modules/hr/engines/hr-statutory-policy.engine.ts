@@ -83,6 +83,15 @@ export function calculateHrStatutoryAmounts(
     employerInsurance = money(wage * Number(ins.employerPct) / 100);
   }
   if (p.hrIncomeTaxEnabled && employee.taxable) {
+    // Annualised /12 withholding assumes one complete calendar-month run.
+    // Weekly, biweekly, partial and cross-month runs require a distinct
+    // effective-dated tax method; never silently tax them as full months.
+    const yyyyMm = period.from.slice(0, 7);
+    const [year, month] = yyyyMm.split('-').map(Number);
+    const monthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+    if (period.from !== yyyyMm + '-01' || period.to !== monthEnd) {
+      throw new Error('الضريبة الشهرية تتطلب مسير شهر ميلادي كامل؛ لا توجد قاعدة معتمدة لهذه الفترة الجزئية');
+    }
     const monthly = Number(employee.taxableMonthlyWage);
     if (!Number.isFinite(monthly) || monthly < 0) throw new Error('الدخل الخاضع للضريبة غير صالح');
     const taxableAnnual = Math.max(0, monthly * 12 - Number(p.taxPersonalExemption));
