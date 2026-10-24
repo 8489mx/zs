@@ -26,7 +26,6 @@ import { referenceDataApi } from '@/services/reference-data.api';
 import { DownloadIcon, PackageIcon, PlusCircleIcon } from '@/shared/components/icons/AppIcons';
 
 function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate, isArrived }: { item: ShipmentItem, shipmentId: string, arrivalRate: number, pricingRate: number, isArrived?: boolean }) {
-  const { t } = useTranslation();
   const updateMutation = useUpdateShipmentItemMutation(shipmentId);
   const [receivedQty, setReceivedQty] = useState(item.received_quantity || '');
   const [retailMargin, setRetailMargin] = useState(item.target_retail_margin || '');

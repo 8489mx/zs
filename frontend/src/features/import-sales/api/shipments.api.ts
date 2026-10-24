@@ -22,6 +22,8 @@ export interface Shipment {
   bill_of_lading?: string;
   pricing_exchange_rate?: string;
   cost_allocation_method?: 'value' | 'weight' | 'cbm';
+  project_id?: string | null;
+  supplier_id?: number | null;
 }
 
 export interface ShipmentItem {

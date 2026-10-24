@@ -58,14 +58,7 @@ export function ChinaProformasTab() {
     },
   });
 
-  // Fetch Products for PI line items
-  const { data: products = [] } = useQuery({
-    queryKey: ['products-catalog-import'],
-    queryFn: async () => {
-      const res = await http<any>('/api/products?limit=500');
-      return Array.isArray(res) ? res : res?.items || res?.rows || res?.data || [];
-    },
-  });
+
 
   const handleSelectProject = (pId: string) => {
     setProjectId(pId);

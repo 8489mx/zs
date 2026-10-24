@@ -1507,9 +1507,10 @@ export class ImportSalesService {
       }
 
       let scopeAccountId = tenantId;
-      if (shipment.supplier_id) {
+      const rawShipmentSupplier = (shipment as any)?.supplier_id;
+      if (rawShipmentSupplier) {
         const sup = await trx.selectFrom('suppliers').select('account_id')
-          .where('tenant_id', '=', tenantId).where('id', '=', Number(shipment.supplier_id)).executeTakeFirst();
+          .where('tenant_id', '=', tenantId).where('id', '=', Number(rawShipmentSupplier)).executeTakeFirst();
         if (sup?.account_id) scopeAccountId = sup.account_id;
       }
 
@@ -1535,7 +1536,8 @@ export class ImportSalesService {
       }
       if (cat) categoryId = Number(cat.id);
 
-      const projectSupplierId = project.supplier_id ? Number(project.supplier_id) : (shipment.supplier_id ? Number(shipment.supplier_id) : null);
+      const rawSupplierId = (project as any)?.supplier_id || rawShipmentSupplier || feas?.supplierId || null;
+      const projectSupplierId = rawSupplierId ? Number(rawSupplierId) : null;
 
       const defaultOems: Record<string, string> = {
         'طقم تيل فرامل وبطانات مكابح شاحنات وتريلات ثقيلة': 'WG9100440030',

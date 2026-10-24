@@ -238,7 +238,7 @@ export default function ChinaSourcingPage() {
                 <span>إضافة مصنع / مورد دولي جديد</span>
               </Button>
               <Button
-                variant="outline"
+                variant="secondary"
                 onClick={() => setIsQcModalOpen(true)}
                 style={{
                   height: '38px',
