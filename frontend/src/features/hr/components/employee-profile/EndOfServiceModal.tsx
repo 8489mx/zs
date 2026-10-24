@@ -1,8 +1,5 @@
-import { useTranslation } from 'react-i18next';
-import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { FormEvent, useState } from 'react';
-import { hrApi } from '@/features/hr/api/hr.api';
-import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { Card } from '@/shared/ui/card';
@@ -17,38 +14,33 @@ interface Props {
   onSuccess: () => void;
 }
 
+function todayInBrowserCalendar(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+/** This is ONLY an administrative termination, never a gratuity preview.
+ * Official wage/leave/EOS settlement is handled by /hr/settlements.
+ */
 export function EndOfServiceModal({ employeeId, employeeName, isOpen, onClose, onSuccess }: Props) {
-  const { t } = useTranslation();
+  const navigate = useNavigate();
   const mutations = useHrMutations();
-  const [endOfServiceDate, setEndOfServiceDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endOfServiceDate, setEndOfServiceDate] = useState(todayInBrowserCalendar);
   const [endOfServiceReason, setEndOfServiceReason] = useState('');
   const [error, setError] = useState('');
-
-  const previewQuery = useQuery({
-    queryKey: ['eos-preview', employeeId, endOfServiceDate],
-    queryFn: () => hrApi.getEndOfServicePreview(employeeId, endOfServiceDate),
-    enabled: isOpen && !!endOfServiceDate,
-  });
-
-  const preview = previewQuery.data?.preview;
-
   const isPending = mutations.endOfService.isPending;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
-
     if (!endOfServiceDate) {
       setError('تاريخ إنهاء الخدمة مطلوب.');
+      return;
     }
-
     try {
       await mutations.endOfService.mutateAsync({
         id: employeeId,
-        payload: {
-          endOfServiceDate,
-          endOfServiceReason: endOfServiceReason.trim() || undefined,
-        },
+        payload: { endOfServiceDate, endOfServiceReason: endOfServiceReason.trim() || undefined },
       });
       onSuccess();
       onClose();
@@ -61,73 +53,41 @@ export function EndOfServiceModal({ employeeId, employeeName, isOpen, onClose, o
 
   return (
     <DialogShell open={isOpen} onClose={onClose} width="500px">
-      <Card title={t('hr.employee_profile.end_of_service_modal.s0', "إنهاء خدمة الموظف")} className="dialog-card">
-      <div style={{ padding: '16px' }}>
-      <form onSubmit={(e) => { void handleSubmit(e); }}>
-        <p className="muted" style={{ marginBottom: 16 }}>
-          {t('hr.employee_profile.end_of_service_modal.s1', "أنت على وشك إنهاء خدمة الموظف")} <strong>{employeeName}</strong>.
-          <br />
-          {t('hr.employee_profile.end_of_service_modal.s2', "سيتم تغيير حالة الموظف إلى \"تم إنهاء الخدمة\"، وسيتم إنهاء عقده النشط (إن وجد) بتاريخ اليوم أو التاريخ المحدد أدناه.")}
-        </p>
-
-        <div className="form-grid">
-          <div className="field">
-            <span>{t('hr.employee_profile.end_of_service_modal.s3', "تاريخ إنهاء الخدمة")}</span>
-            <input
-              type="date"
-              value={endOfServiceDate}
-              onChange={(e) => setEndOfServiceDate(e.target.value)}
-              required
-            />
+      <Card title="إنهاء الخدمة الإداري المباشر" className="dialog-card">
+        <div style={{ padding: 16 }}>
+          <p className="muted" style={{ marginBottom: 12 }}>
+            أنت على وشك إنهاء خدمة الموظف <strong>{employeeName}</strong> وتحديث حالة الموظف وعقوده.
+          </p>
+          <p style={{ padding: 12, background: 'var(--bg-subtle)', borderRadius: 8, marginBottom: 16 }}>
+            <strong>هذه العملية لا تحسب أو تصرف مكافأة نهاية الخدمة.</strong>
+            {' '}أي مستحقات، إجازات، رواتب غير مصروفة أو سلف يجب تسويتها ومراجعتها أولاً من شاشة المخالصات.
+            النظام سيمنع الإنهاء المباشر عند وجود عهد أو سلف أو مخالصة غير مقفلة أو تعارض مع مرتب معتمد.
+          </p>
+          <div style={{ marginBottom: 16 }}>
+            <Button type="button" variant="secondary" disabled={isPending} onClick={() => { onClose(); navigate('/hr/settlements'); }}>
+              فتح مخالصات نهاية الخدمة
+            </Button>
           </div>
-          <div className="field field-wide">
-            <span>{t('hr.employee_profile.end_of_service_modal.s4', "السبب (اختياري)")}</span>
-            <input
-              type="text"
-              value={endOfServiceReason}
-              onChange={(e) => setEndOfServiceReason(e.target.value)}
-              placeholder={t('hr.employee_profile.end_of_service_modal.s5', "مثال: استقالة، انتهاء العقد...")}
-            />
-          </div>
+          <form onSubmit={(e) => { void handleSubmit(e); }}>
+            <div className="form-grid">
+              <label className="field">
+                <span>تاريخ إنهاء الخدمة الفعلي</span>
+                <input type="date" value={endOfServiceDate} onChange={e => setEndOfServiceDate(e.target.value)} required />
+              </label>
+              <label className="field field-wide">
+                <span>سبب إنهاء الخدمة</span>
+                <input type="text" value={endOfServiceReason} onChange={e => setEndOfServiceReason(e.target.value)} placeholder="مثال: استقالة، انتهاء العقد" />
+              </label>
+            </div>
+            {error && <div className="error-box" style={{ marginTop: 12 }}>{error}</div>}
+            <div className="actions compact-actions" style={{ marginTop: 24, justifyContent: 'flex-end' }}>
+              <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>إلغاء</Button>
+              <Button type="submit" disabled={isPending} className="danger">
+                {isPending ? 'جاري التنفيذ...' : 'تأكيد الإنهاء الإداري'}
+              </Button>
+            </div>
+          </form>
         </div>
-
-        
-        {previewQuery.isLoading ? <div style={{ margin: '20px 0', textAlign: 'center' }}>{t('hr.employee_profile.end_of_service_modal.s6', "جاري الحساب...")}</div> : null}
-        {preview && !previewQuery.isLoading ? (
-          <div style={{ margin: '20px 0', border: '1px solid var(--border-color)', borderRadius: 8, padding: 16, backgroundColor: 'var(--surface-color)' }}>
-            <h4 style={{ margin: '0 0 16px 0' }}>{t('hr.employee_profile.end_of_service_modal.s7', "تفاصيل التسوية المالية")}</h4>
-            <table className="table" style={{ width: '100%', marginBottom: 0 }}>
-              <tbody>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s8', "تاريخ التعيين")}</td><td>{preview.hireDate?.slice(0,10)}</td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s9', "تاريخ إنهاء الخدمة")}</td><td>{preview.endDate}</td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s10', "سنوات الخدمة")}</td><td>{preview.yearsWorked} {t('hr.employee_profile.end_of_service_modal.s11', "سنة")}</td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s12', "الراتب الأساسي")}</td><td>{preview.baseSalary} <CurrencySymbol /></td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s13', "أجر اليوم الواحد")}</td><td>{preview.dailyRate} <CurrencySymbol /></td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s14', "مكافأة نهاية الخدمة (قانون العمل)")}</td><td>{preview.severancePay} <CurrencySymbol /></td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s15', "رصيد الإجازات المتبقي")}</td><td>{preview.remainingLeaves} {t('hr.employee_profile.end_of_service_modal.s16', "يوم")}</td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s17', "بدل نقدي للإجازات")}</td><td>{preview.leaveEncashment} <CurrencySymbol /></td></tr>
-                <tr><td>{t('hr.employee_profile.end_of_service_modal.s18', "سلف غير مسددة (تخصم)")}</td><td style={{ color: 'var(--danger-color)' }}>{preview.unpaidLoans} <CurrencySymbol /></td></tr>
-                <tr style={{ fontWeight: 'bold', fontSize: '1.1em', backgroundColor: 'var(--border-color)' }}>
-                  <td>{t('hr.employee_profile.end_of_service_modal.s19', "إجمالي التسوية المستحقة للموظف")}</td>
-                  <td>{preview.finalSettlementAmount} <CurrencySymbol /></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        ) : null}
-
-        {error ? <div className="error-box" style={{ marginTop: 12 }}>{error}</div> : null}
-
-        <div className="actions compact-actions" style={{ marginTop: 24, justifyContent: 'flex-end' }}>
-          <Button type="button" variant="secondary" onClick={onClose} disabled={isPending}>
-            {t('hr.employee_profile.end_of_service_modal.s20', "إلغاء")}
-          </Button>
-          <Button type="submit" disabled={isPending} className="danger">
-            {isPending ? t('hr.employee_profile.end_of_service_modal.s21', "جاري التنفيذ...") : t('hr.employee_profile.end_of_service_modal.s22', "تأكيد إنهاء الخدمة")}
-          </Button>
-        </div>
-      </form>
-      </div>
       </Card>
     </DialogShell>
   );

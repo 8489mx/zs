@@ -185,7 +185,7 @@ export function EmployeeProfilePage() {
               )}
               {canEditSalaryAdjustments && employee && (
                 <Button variant="secondary" onClick={() => setShowEndOfServiceModal(true)} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
-                  {t('hr.employee_profile_page.s4', "مستحقات نهاية الخدمة")}
+                  إنهاء الخدمة الإداري
                 </Button>
               )}
             </div>
