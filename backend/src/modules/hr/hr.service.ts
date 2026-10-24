@@ -50,33 +50,12 @@ import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
-import { summarizeHourlyAttendance, prorateMonthlyWage } from './engines/hourly-attendance-pay.engine';
+import { summarizeHourlyAttendance, calculateEffectiveContractPay, payrollCalendarMonthFraction, type EffectiveSalaryContract } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
-
-/**
- * Fraction of a calendar-month payroll during which this contract was in force.
- * Full-month statutory payrolls are supported; any other statutory period is
- * explicitly blocked in the policy engine until a verified method is supplied.
- */
-export function payrollServiceFraction(
-  range: { from: string; to: string },
-  service: { from: string; to: string },
-): number {
-  const from = [range.from, service.from].sort().at(-1)!;
-  const to = [range.to, service.to].sort()[0];
-  if (from > to) return 0;
-  const first = Date.parse(from + 'T00:00:00Z');
-  const last = Date.parse(to + 'T00:00:00Z');
-  const monthParts = range.from.slice(0, 7).split('-').map(Number);
-  const daysInMonth = new Date(Date.UTC(monthParts[0], monthParts[1], 0)).getUTCDate();
-  const calendarDays = (last - first) / 86400000 + 1;
-  if (!Number.isFinite(calendarDays) || daysInMonth <= 0) throw new RangeError('Invalid payroll service dates');
-  return Math.max(0, Math.min(1, calendarDays / daysInMonth));
-}
 
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
@@ -2062,10 +2041,7 @@ export class HrService {
         SELECT *
         FROM hr_employment_contracts c
         WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
-          AND (
-            c.status = 'active'
-            OR (e.status = 'terminated' AND c.status = 'ended')
-          )
+          AND c.status IN ('active', 'ended')
           AND c.start_date <= ${range.to}::date
           AND (c.end_date IS NULL OR c.end_date >= ${range.from}::date)
         ORDER BY c.start_date DESC NULLS LAST,
@@ -2102,6 +2078,31 @@ export class HrService {
     `.execute(db);
 
     const empIds = employees.rows.map(e => Number(e.employee_id)).filter(id => id > 0);
+    const contractRows = empIds.length
+      ? await sql<Record<string, unknown>>`
+          SELECT employee_id, id, base_salary,
+            to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
+            to_char(end_date, 'YYYY-MM-DD') AS end_date_text
+          FROM hr_employment_contracts
+          WHERE tenant_id = ${tenantId}
+            AND employee_id IN (${sql.join(empIds)})
+            AND status IN ('active', 'ended')
+            AND start_date <= ${range.to}::date
+            AND (end_date IS NULL OR end_date >= ${range.from}::date)
+          ORDER BY employee_id, start_date, id
+        `.execute(db) : { rows: [] as Record<string, unknown>[] };
+    const contractHistory = new Map<number, EffectiveSalaryContract[]>();
+    for (const row of contractRows.rows) {
+      const employeeId = Number(row.employee_id);
+      const item: EffectiveSalaryContract = {
+        id: Number(row.id),
+        startDate: String(row.start_date_text),
+        endDate: row.end_date_text ? String(row.end_date_text) : null,
+        baseSalary: Number(row.base_salary),
+      };
+      if (!contractHistory.has(employeeId)) contractHistory.set(employeeId, []);
+      contractHistory.get(employeeId)!.push(item);
+    }
     // A rebuilt draft/reviewed run must not retain a payable item for someone
     // who no longer qualifies (terminated and settled, deactivated, or excluded
     // by pay frequency). Preserve history/adjustments by excluding, not deleting.
@@ -2138,11 +2139,9 @@ export class HrService {
     for (const e of employees.rows) {
       const id = Number(e.employee_id);
       const hire = e.hire_date ? String(e.hire_date).slice(0, 10) : range.from;
-      const contractStart = e.contract_start_date ? String(e.contract_start_date).slice(0, 10) : range.from;
-      const contractEnd = e.contract_end_date ? String(e.contract_end_date).slice(0, 10) : range.to;
       const employmentEnd = e.end_of_service_date ? String(e.end_of_service_date).slice(0, 10) : range.to;
-      const from = [range.from, hire, contractStart].sort().at(-1)!;
-      const to = [range.to, contractEnd, employmentEnd].sort()[0];
+      const from = [range.from, hire].sort().at(-1)!;
+      const to = [range.to, employmentEnd].sort()[0];
       payRangeByEmployee.set(id, { from, to });
     }
     for (const e of employees.rows) {
@@ -2156,10 +2155,19 @@ export class HrService {
         hourlyWorkByEmployee.set(employeeId, work);
         baseSalMap.set(employeeId, work.baseWage);
       } else {
-        const monthlySalary = Number(e.base_salary || 0);
-        contractualMonthlySalary.set(employeeId, monthlySalary);
         const payRange = payRangeByEmployee.get(employeeId)!;
-        baseSalMap.set(employeeId, prorateMonthlyWage(monthlySalary, payRange.from, payRange.to));
+        try {
+          const result = calculateEffectiveContractPay(
+            contractHistory.get(employeeId) || [], payRange.from, payRange.to,
+          );
+          contractualMonthlySalary.set(employeeId, result.referenceMonthlySalary);
+          baseSalMap.set(employeeId, result.baseWage);
+        } catch (error) {
+          throw new AppError(
+            `عقود راتب الموظف #${employeeId} خلال الفترة غير مكتملة أو متداخلة: ${error instanceof Error ? error.message : 'راجع العقود'}`,
+            'HR_PAYROLL_CONTRACT_PERIOD_INVALID', 409,
+          );
+        }
       }
     }
     const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary);
@@ -2180,18 +2188,14 @@ export class HrService {
       const itemId = Number(existingItem?.id || 0);
       const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId, tenantId) : { allowance: 0, deduction: 0 };
       const isHourly = clean(employee.compensation_type) === 'hourly';
-      let baseSalary = money(employee.base_salary);
-      
-      if (isHourly) {
-        baseSalary = hourlyWorkByEmployee.get(employeeId)?.baseWage || 0;
-      } else {
-        // Partial monthly pay periods also require a proportionate base salary.
-        const payRange = payRangeByEmployee.get(employeeId)!;
-        baseSalary = prorateMonthlyWage(baseSalary, payRange.from, payRange.to);
-      }
-      
-      const monthlyBase = money(employee.base_salary);
-      const ratio = !isHourly && monthlyBase > 0 ? Math.max(0, Math.min(1, baseSalary / monthlyBase)) : 1;
+      // The base wage was computed across ALL valid historical contract segments.
+      // Never re-prorate using just the latest contract, which drops earned days
+      // before a mid-month promotion/salary change.
+      const baseSalary = isHourly
+        ? (hourlyWorkByEmployee.get(employeeId)?.baseWage || 0)
+        : Number(baseSalMap.get(employeeId) || 0);
+      const payRange = payRangeByEmployee.get(employeeId)!;
+      const ratio = isHourly ? 1 : payrollCalendarMonthFraction(payRange.from, payRange.to);
       const compensationAllowance = money(Number(employee.allowance_amount || 0) * ratio);
       const compensationDeduction = money(Number(employee.deduction_amount || 0) * ratio);
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId);
@@ -2209,11 +2213,15 @@ export class HrService {
 
       for (const adj of empAdjustmentsResult.rows) {
         let val = Number(adj.amount || 0);
-        // If amount_type is days, convert to money based on baseSalary
-        if (clean(adj.amount_type) === 'days') val = (baseSalary / 30) * val;
+        // Days/hours adjustments use the effective full daily/hourly rate.
+        // Using an already prorated period wage here undercounts midmonth staff.
+        const referenceHours = Number(employee.expected_daily_hours || 8) || 8;
+        const dayWage = isHourly
+          ? Number(employee.hourly_rate || 0) * referenceHours
+          : Number(contractualMonthlySalary.get(employeeId) || 0) / 30;
+        if (clean(adj.amount_type) === 'days') val = dayWage * val;
         if (clean(adj.amount_type) === 'hours') {
-          const referenceHours = Number(employee.expected_daily_hours || 8) || 8;
-          const rate = isHourly ? Number(employee.hourly_rate || 0) : (Number(employee.base_salary || 0) / 30 / referenceHours);
+          const rate = dayWage / referenceHours;
           val = rate * val;
         }
 
@@ -2266,7 +2274,7 @@ export class HrService {
           },
           configuredInsuranceSalary: Number(employee.insurance_salary || 0)
             * (policies.insuranceProratePartialEmployment === true
-              ? payrollServiceFraction(range, payRangeByEmployee.get(employeeId)!)
+              ? payrollCalendarMonthFraction(payRange.from, payRange.to)
               : 1),
           line: {
             employeeId,
