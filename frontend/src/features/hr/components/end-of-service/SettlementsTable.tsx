@@ -15,6 +15,8 @@ interface SettlementsTableProps {
   settlements: SettlementRecord[];
   loading: boolean;
   postingId: number | null;
+  canPostAccounting: boolean;
+  canDelete: boolean;
   onPostAccounting: (settlement: SettlementRecord) => void;
   onPrint: (settlement: SettlementRecord) => void;
   onDelete: (id: number) => void;
@@ -24,6 +26,8 @@ export function SettlementsTable({
   settlements,
   loading,
   postingId,
+  canPostAccounting,
+  canDelete,
   onPostAccounting,
   onPrint,
   onDelete,
@@ -125,7 +129,7 @@ export function SettlementsTable({
                     <span>{t('hr.end_of_service.settlements_table.s23', "طباعة A4")}</span>
                   </Button>
 
-                  {s.status !== 'posted' && (
+                  {canPostAccounting && s.status !== 'posted' && (
                     <Button
                       type="button"
                       variant="primary"
@@ -139,7 +143,7 @@ export function SettlementsTable({
                     </Button>
                   )}
 
-                  {s.status !== 'posted' && (
+                  {canDelete && s.status !== 'posted' && (
                     <button
                       type="button"
                       onClick={() => onDelete(s.id)}
