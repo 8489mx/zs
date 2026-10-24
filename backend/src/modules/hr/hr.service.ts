@@ -5041,6 +5041,8 @@ export class HrService {
         status: string;
         employee_id: number;
         days_count: number;
+        start_date_text: string;
+        end_date_text: string;
         leave_type_id: number | null;
         leave_type: string | null;
         deducts_from_balance: boolean | null;
@@ -5052,6 +5054,8 @@ export class HrService {
           r.status,
           r.employee_id,
           r.days_count,
+          to_char(r.start_date, 'YYYY-MM-DD') AS start_date_text,
+          to_char(r.end_date, 'YYYY-MM-DD') AS end_date_text,
           r.leave_type_id,
           r.leave_type,
           t.deducts_from_balance,
@@ -5071,6 +5075,18 @@ export class HrService {
       if (status === 'approved') return;
       if (['cancelled', 'rejected'].includes(status)) throw new AppError('Cannot approve this leave request', 'HR_LEAVE_APPROVE_LOCKED', 400);
 
+      const booked = await sql<{ id: number }>`
+        SELECT r.id FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${auth.tenantId} AND i.employee_id = ${row.employee_id}
+          AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+          AND r.start_date <= ${row.end_date_text}::date AND r.end_date >= ${row.start_date_text}::date
+        LIMIT 1
+      `.execute(trx);
+      if (booked.rows.length) {
+        throw new AppError('إجازة تقع ضمن مسير مرتبات معتمد؛ يلزم تسوية مالية مستقلة',
+          'HR_LEAVE_POSTED_PAYROLL_LOCKED', 409);
+      }
       const deductsFromBalance = row.deducts_from_balance === true || (
         row.leave_type_id == null && (
           !row.leave_type ||
@@ -5153,6 +5169,8 @@ export class HrService {
         status: string;
         employee_id: number;
         days_count: number;
+        start_date_text: string;
+        end_date_text: string;
         leave_type_id: number | null;
         leave_type: string | null;
         deducts_from_balance: boolean | null;
@@ -5162,6 +5180,8 @@ export class HrService {
           r.status,
           r.employee_id,
           r.days_count,
+          to_char(r.start_date, 'YYYY-MM-DD') AS start_date_text,
+          to_char(r.end_date, 'YYYY-MM-DD') AS end_date_text,
           r.leave_type_id,
           r.leave_type,
           t.deducts_from_balance
@@ -5178,6 +5198,20 @@ export class HrService {
       if (status === 'cancelled') return;
 
       const wasApproved = status === 'approved';
+      if (wasApproved) {
+        const booked = await sql<{ id: number }>`
+          SELECT r.id FROM hr_payroll_runs r
+          JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+          WHERE r.tenant_id = ${auth.tenantId} AND i.employee_id = ${row.employee_id}
+            AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+            AND r.start_date <= ${row.end_date_text}::date AND r.end_date >= ${row.start_date_text}::date
+          LIMIT 1
+        `.execute(trx);
+        if (booked.rows.length) {
+          throw new AppError('إجازة تقع ضمن مسير مرتبات معتمد؛ يلزم تسوية مالية مستقلة',
+            'HR_LEAVE_POSTED_PAYROLL_LOCKED', 409);
+        }
+      }
       const deductsFromBalance = row.deducts_from_balance === true || (
         row.leave_type_id == null && (
           !row.leave_type ||

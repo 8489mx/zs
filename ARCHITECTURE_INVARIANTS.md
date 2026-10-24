@@ -111,6 +111,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-ATT-POSTED-1: Admin attendance day upsert, punch edits and bulk imports explicitly reject changes to dates included in an approved/paid employee payroll line, under the tenant payroll transaction lock. Prevents retroactive attendance edits from silently contradicting accrued journal entries and immutable payslips. The mobile punch transaction formatting is normalized. No tests run.
 
+- HR-LEAVE-POSTED-1: Approved leave changes and approvals overlapping an employee's posted/paid payroll are blocked under the tenant payroll lock; historic posted wage/absence calculations and leave counters remain immutable. A separately approved financial adjustment is required for historical corrections.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
