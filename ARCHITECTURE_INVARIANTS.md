@@ -151,6 +151,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-PAY-39 (25 October 2026): **P0 reviewed-snapshot invalidation**. Explicit payroll recalculation, apply-attendance recalculation and automatic quick-advance rebuilding now demote previously reviewed runs and their reviewed line items to DRAFT and clear reviewed_by/reviewed_at. Previously, a late loan deduction or recalculation silently changed a reviewed snapshot while leaving approval immediately available. A human must re-run /review before /approve. Existing approved/paid runs remain immutable. Transactional shared payroll lock is required.
 - Regression integration verification pending; no tests, builds, typechecks or guards were executed.
 
+- HR-PAY-40 (25 October 2026): Manually entered payroll-item monetary adjustments and employee `amount_type=money` adjustments must be strictly positive with exact two-decimal precision. Previously a fractional-cent input could silently change when the 2-decimal ledger posted. Day/hour units can still be fractional and are converted by the effective-dated calculation engine. KWD/OMR remain blocked pending integrated 3-decimal support.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

@@ -1360,6 +1360,13 @@ export class HrService {
       || !['allowance', 'deduction'].includes(clean(payload.adjustmentType))) {
       throw new AppError('مبلغ أو نوع أو تاريخ تسوية الموظف غير صحيح', 'HR_EMPLOYEE_ADJUSTMENT_INVALID', 400);
     }
+    // Days/hours may be fractional units; monetary adjustments must be exact
+    // cents to avoid silently converting an entered amount during GL posting.
+    if (clean(payload.amountType) === 'money') {
+      try { requireTwoDecimalLoanMoney(Number(payload.amount)); } catch {
+        throw new AppError('التسوية النقدية يجب أن تكون بدقة منزلتين عشريتين دون تقريب', 'HR_EMPLOYEE_ADJUSTMENT_MONEY_PRECISION_INVALID', 400);
+      }
+    }
     await this.tx.runInTransaction(this.db, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const employee = await sql<{ id: number }>`
@@ -3968,8 +3975,10 @@ export class HrService {
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
-    if (typeof payload.amount !== 'number' || !Number.isFinite(payload.amount) || payload.amount <= 0) {
-      throw new AppError('مبلغ التعديل يجب أن يكون موجبًا وصحيحًا', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
+    try {
+      requireTwoDecimalLoanMoney(Number(payload.amount));
+    } catch {
+      throw new AppError('مبلغ تعديل المرتب يجب أن يكون موجبًا وبدقة منزلتين عشريتين دون تقريب', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
     }
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
