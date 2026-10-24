@@ -1163,32 +1163,92 @@ export class HrService {
   }
 
   async upsertContract(employeeId: number, id: number | null, payload: UpsertEmploymentContractDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId } = requireTenantScope(auth);
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
-    const tenantCurrencySetting = await sql<{ value: string }>`
-      SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
-    `.execute(this.db);
-    const tenantCurrency = clean(tenantCurrencySetting.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
-    const contractCurrency = clean(payload.currency || tenantCurrency).toUpperCase();
-    if (!/^[A-Z]{3}$/.test(tenantCurrency)) {
-      throw new AppError('حدد عملة منشأتك قبل تسجيل عقد العمل', 'HR_CONTRACT_TENANT_CURRENCY_REQUIRED', 400);
+    const startDate = normalizeDateOnly(payload.startDate);
+    const endDate = payload.endDate ? normalizeDateOnly(payload.endDate) : null;
+    const baseSalary = Number(payload.baseSalary);
+    if (!startDate || (payload.endDate && !endDate) || (endDate && endDate < startDate)
+      || !Number.isFinite(baseSalary) || baseSalary < 0) {
+      throw new AppError('تواريخ العقد أو الأجر الأساسي غير صحيحة', 'HR_CONTRACT_PERIOD_AMOUNT_INVALID', 400);
     }
-    if (contractCurrency !== tenantCurrency) {
-      throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة؛ التحويلات تحتاج سياسة محاسبية مستقلة',
-        'HR_CONTRACT_CURRENCY_MISMATCH', 400);
-    }
-    if (id) {
-      await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${contractCurrency}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    } else {
-      await this.tx.runInTransaction(this.db, async (trx) => {
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      // This lock serializes salary-history edits with payroll creation, reviews,
+      // recalculation and approval. Historical approved lines are immutable.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const tenantCurrencySetting = await sql<{ value: string }>`
+        SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
+      `.execute(trx);
+      const tenantCurrency = clean(tenantCurrencySetting.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+      const contractCurrency = clean(payload.currency || tenantCurrency).toUpperCase();
+      if (!/^[A-Z]{3}$/.test(tenantCurrency)) {
+        throw new AppError('حدد عملة منشأتك قبل تسجيل عقد العمل', 'HR_CONTRACT_TENANT_CURRENCY_REQUIRED', 400);
+      }
+      if (contractCurrency !== tenantCurrency) {
+        throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة', 'HR_CONTRACT_CURRENCY_MISMATCH', 400);
+      }
+      const oldContract = id ? await sql<{
+        start_date: string; end_date: string | null;
+      }>`
+        SELECT to_char(start_date, 'YYYY-MM-DD') AS start_date,
+               to_char(end_date, 'YYYY-MM-DD') AS end_date
+        FROM hr_employment_contracts
+        WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        FOR UPDATE
+      `.execute(trx) : null;
+      if (id && !oldContract?.rows.length) {
+        throw new AppError('عقد العمل غير موجود', 'HR_CONTRACT_NOT_FOUND', 404);
+      }
+      // Block changes affecting *either* the old or proposed validity span.
+      // A future effective-dated contract is permitted; changing a past salary
+      // after the ledger has accrued it requires a separate adjustment process.
+      const oldStart = oldContract?.rows[0]?.start_date || startDate;
+      const oldEnd = oldContract?.rows[0]?.end_date || null;
+      const booked = await sql<{ id: number }>`
+        SELECT r.id FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${tenantId} AND i.employee_id = ${employeeId}
+          AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+          AND (
+            (r.end_date >= ${startDate}::date AND r.start_date <= COALESCE(${endDate}::date, 'infinity'::date))
+            ${id ? sql`OR (r.end_date >= ${oldStart}::date AND r.start_date <= COALESCE(${oldEnd}::date, 'infinity'::date))` : sql``}
+          )
+        LIMIT 1
+      `.execute(trx);
+      if (booked.rows.length) {
+        throw new AppError('العقد يغيّر فترة سبق اعتماد رواتبها؛ سجّل تعديلًا أو عقدًا مستقبليًا بدل تعديل التاريخ المالي', 'HR_CONTRACT_APPROVED_PERIOD_LOCKED', 409);
+      }
+      if (id) {
+        await sql`
+          UPDATE hr_employment_contracts
+          SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'},
+              status = ${clean(payload.status) || 'draft'}, start_date = ${startDate}::date,
+              end_date = ${endDate}::date, base_salary = ${baseSalary}, currency = ${contractCurrency},
+              notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        `.execute(trx);
+      } else {
         const requestedNo = clean(payload.contractNo);
         const temporaryNo = requestedNo || `CON-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const inserted = await sql<{ id: number }>`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${temporaryNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${contractCurrency}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId}) RETURNING id`.execute(trx);
+        const inserted = await sql<{ id: number }>`
+          INSERT INTO hr_employment_contracts
+            (tenant_id, account_id, employee_id, contract_no, contract_type,
+             status, start_date, end_date, base_salary, currency, notes, created_by, updated_by)
+          VALUES (${tenantId}, ${auth.accountId}, ${employeeId}, ${temporaryNo},
+                  ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'},
+                  ${startDate}::date, ${endDate}::date, ${baseSalary}, ${contractCurrency},
+                  ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+          RETURNING id
+        `.execute(trx);
         if (!requestedNo) {
           const contractId = Number(inserted.rows[0].id);
-          await sql`UPDATE hr_employment_contracts SET contract_no = ${formatDailyDocumentNumber('CON', contractId)} WHERE id = ${contractId} AND tenant_id = ${auth.tenantId}`.execute(trx);
+          await sql`
+            UPDATE hr_employment_contracts SET contract_no = ${formatDailyDocumentNumber('CON', contractId)}
+            WHERE id = ${contractId} AND tenant_id = ${tenantId}
+          `.execute(trx);
         }
-      });
-    }
+      }
+    });
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employment contract`, `Employee #${employeeId} contract saved by ${auth.username}`, auth);
     return this.listContracts(employeeId, auth);
   }
@@ -1200,12 +1260,69 @@ export class HrService {
   }
 
   async upsertCompensation(employeeId: number, id: number | null, payload: UpsertCompensationPackageDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId } = requireTenantScope(auth);
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
-    if (id) {
-      await sql`UPDATE hr_compensation_packages SET contract_id = ${toId(payload.contractId)}, package_name = ${clean(payload.packageName)}, allowance_amount = ${Number(payload.allowanceAmount || 0)}, deduction_amount = ${Number(payload.deductionAmount || 0)}, effective_from = ${payload.effectiveFrom || null}, effective_to = ${payload.effectiveTo || null}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    } else {
-      await sql`INSERT INTO hr_compensation_packages (tenant_id, account_id, employee_id, contract_id, package_name, allowance_amount, deduction_amount, effective_from, effective_to, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${toId(payload.contractId)}, ${clean(payload.packageName)}, ${Number(payload.allowanceAmount || 0)}, ${Number(payload.deductionAmount || 0)}, ${payload.effectiveFrom || null}, ${payload.effectiveTo || null}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
+    const from = payload.effectiveFrom ? normalizeDateOnly(payload.effectiveFrom) : null;
+    const to = payload.effectiveTo ? normalizeDateOnly(payload.effectiveTo) : null;
+    const allowance = Number(payload.allowanceAmount);
+    const deduction = Number(payload.deductionAmount);
+    if ((payload.effectiveFrom && !from) || (payload.effectiveTo && !to)
+      || (from && to && from > to)
+      || !Number.isFinite(allowance) || allowance < 0
+      || !Number.isFinite(deduction) || deduction < 0) {
+      throw new AppError('تواريخ أو مبالغ البدلات الثابتة غير صحيحة', 'HR_COMPENSATION_INVALID', 400);
     }
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const previous = id ? await sql<{ start_date: string | null; end_date: string | null }>`
+        SELECT to_char(effective_from, 'YYYY-MM-DD') AS start_date,
+               to_char(effective_to, 'YYYY-MM-DD') AS end_date
+        FROM hr_compensation_packages
+        WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        FOR UPDATE
+      `.execute(trx) : null;
+      if (id && !previous?.rows.length) {
+        throw new AppError('باقة البدلات غير موجودة', 'HR_COMPENSATION_NOT_FOUND', 404);
+      }
+      const oldFrom = previous?.rows[0]?.start_date || null;
+      const oldTo = previous?.rows[0]?.end_date || null;
+      const booked = await sql<{ id: number }>`
+        SELECT r.id FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${tenantId} AND i.employee_id = ${employeeId}
+          AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+          AND (
+            (r.end_date >= COALESCE(${from}::date, '-infinity'::date)
+                AND r.start_date <= COALESCE(${to}::date, 'infinity'::date))
+            ${id ? sql`OR (r.end_date >= COALESCE(${oldFrom}::date, '-infinity'::date)
+                AND r.start_date <= COALESCE(${oldTo}::date, 'infinity'::date))` : sql``}
+          )
+        LIMIT 1
+      `.execute(trx);
+      if (booked.rows.length) {
+        throw new AppError('لا يمكن تعديل بدلات فترة مرتبات معتمدة؛ استخدم تسوية مستقلة', 'HR_COMPENSATION_APPROVED_PERIOD_LOCKED', 409);
+      }
+      if (id) {
+        await sql`
+          UPDATE hr_compensation_packages
+          SET contract_id = ${toId(payload.contractId)}, package_name = ${clean(payload.packageName)},
+              allowance_amount = ${allowance}, deduction_amount = ${deduction},
+              effective_from = ${from}::date, effective_to = ${to}::date,
+              notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        `.execute(trx);
+      } else {
+        await sql`
+          INSERT INTO hr_compensation_packages
+            (tenant_id, account_id, employee_id, contract_id, package_name,
+             allowance_amount, deduction_amount, effective_from, effective_to,
+             notes, created_by, updated_by)
+          VALUES (${tenantId}, ${auth.accountId}, ${employeeId}, ${toId(payload.contractId)},
+                  ${clean(payload.packageName)}, ${allowance}, ${deduction},
+                  ${from}::date, ${to}::date, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+        `.execute(trx);
+      }
+    });
     await this.audit.log(`${id ? 'Update' : 'Create'} HR compensation`, `Employee #${employeeId} compensation saved by ${auth.username}`, auth);
     return this.listCompensation(employeeId, auth);
   }
@@ -3523,9 +3640,9 @@ export class HrService {
     }
 
     const configuredCurrency = clean(tenantSettings.currency).toUpperCase();
-    const currency = clean(payload.currency || configuredCurrency || 'EGP').toUpperCase();
-    if (configuredCurrency && configuredCurrency !== currency) {
-      throw new AppError('عملة ملف التحويل مختلفة عن عملة المنشأة؛ راجع إعدادات الشركة', 'HR_PAYROLL_EXPORT_CURRENCY_MISMATCH', 400);
+    const currency = clean(payload.currency || configuredCurrency).toUpperCase();
+    if (!/^[A-Z]{3}$/.test(configuredCurrency) || configuredCurrency !== currency || ['KWD', 'OMR'].includes(currency)) {
+      throw new AppError('عملة كشف التحويل غير مدعومة أو لا تطابق عملة المنشأة؛ ملفات العملات ذات 3 منازل موقوفة حتى تطوير الدقة', 'HR_PAYROLL_EXPORT_CURRENCY_MISMATCH', 409);
     }
 
     let totalNetPay = 0;
@@ -3591,7 +3708,7 @@ export class HrService {
     ].join(','));
     const csvContent = [csvHeaders.join(','), ...csvLines].join('\r\n');
 
-    await this.audit.log('Export HR payroll WPS', `Payroll run #${id} exported as WPS/SIF by ${auth.username} (${totalEmployees} employees, total: ${totalNetPay})`, auth);
+    await this.audit.log('Export HR payroll bank review CSV', `Payroll run #${id} exported as REVIEW CSV (not certified WPS) by ${auth.username} (${totalEmployees} employees, total: ${totalNetPay})`, auth);
 
     return {
       ok: true,

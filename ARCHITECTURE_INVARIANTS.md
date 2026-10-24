@@ -70,6 +70,10 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - Awaiting: end-to-end tenant/currency and legal-country acceptance tests, official country-dependent residency/nationality coverage and statutory settlement/WPS certification. KWD/OMR still intentionally blocked pending coordinated 3-decimal migration.
 - Numeric tests authored but NOT executed; no build, typecheck or guards invoked.
 
+- HR-PAY-25 (24 October follow-up): Salary-contract and fixed-compensation mutations acquire the tenant payroll lock and reject edits overlapping any approved/paid employee payslip (both original and proposed validity intervals). Future salary/allowance changes require new effective-dated entries; booked historic payroll must use independent adjustments.
+- HR-WPS-2: Bank review CSV cannot default to EGP when tenant currency is missing and cannot export 2-decimal KWD/OMR data. Audit events clearly label it an un-certified REVIEW CSV rather than falsely claiming an official WPS/SIF export.
+- Both safeguards are code-reviewed only; no test/build/typecheck/guards executed. Historical salary amendment UX and statutorily verified WPS formats remain pending.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

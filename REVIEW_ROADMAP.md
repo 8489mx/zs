@@ -27,7 +27,8 @@
 - Reviewed delta for HR line engines, loan allocation, salary approvals, finance posting and their critical numerical specs.
 - Hardened cross-frequency overlap, due-loan allocation, reconciled accrual, immutable payroll editing, cancellation recovery, unresolved hourly attendance approval, tenant-wide serialization of run changes, earned-insurance wage basis, and jurisdiction/currency mismatch blocking. Code committed to the HR branch only; no test/build/typecheck/guard has been run.
 - **Not certified/closed**: payroll rules by citizenship, residency and case for EG/SA/KW/QA/OM, nonmonthly statutory conversion, KWD/OMR triple-decimal precision, bank/WPS acceptance, actual full integration and UAT. These remain release blockers, not assumed verified.
-- See ARCHITECTURE_INVARIANTS.md HR-PAY-16..19 for invariants and exact scope of review.
+- Contract/allowance effective-date changes touching approved payroll are blocked. Bank export remains a clearly labelled review-only CSV, with no default currency and no premature KWD/OMR output.
+- See ARCHITECTURE_INVARIANTS.md HR-PAY-16..25 for invariants and exact scope of review.
 
 ---
 
