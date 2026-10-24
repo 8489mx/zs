@@ -91,6 +91,12 @@ export class EndOfServiceService {
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['active', 'ended'])
       .where('start_date', '<=', input.terminationDate as any)
+      // A historic contract that expired before termination is NOT a valid
+      // salary basis for an EOS gratuity or unused leave payout.
+      .where((eb: any) => eb.or([
+        eb('end_date', 'is', null),
+        eb('end_date', '>=', input.terminationDate as any),
+      ]))
       .orderBy('start_date', 'desc')
       .orderBy('id', 'desc')
       .executeTakeFirst();
@@ -105,9 +111,7 @@ export class EndOfServiceService {
       const other = Number(latestContract.other_allowances || 0);
       totalSalary = Number(latestContract.gross_salary || (basicSalary + housing + transport + other));
     } else {
-      const empAny = employee as any;
-      basicSalary = Number(empAny.base_salary || empAny.basic_salary || 0);
-      totalSalary = basicSalary;
+      throw new BadRequestException('لا يوجد عقد راتب صالح يغطي تاريخ إنهاء الخدمة؛ راجع العقد قبل تسعير المخالصة');
     }
 
     if (!Number.isFinite(totalSalary) || totalSalary <= 0 || !Number.isFinite(basicSalary) || basicSalary < 0) {

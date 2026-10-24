@@ -125,6 +125,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-PORTAL-ADV-2: Portal advance issuance and first installment dates now use the company's configured local calendar day via shared tenant-timezone utility, rather than UTC date which can be yesterday for Egypt/GCC around midnight. Tests not run.
 
+- HR-EOS-CONTRACT-1: EOS gratuity/leave valuation must use a salary contract actually effective ON the termination date; do not silently pick a contract that started before termination but already ended years earlier, or fall back to an unrelated employee profile field. Missing effective contracts fail closed for HR review. Code-only, tests not executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
