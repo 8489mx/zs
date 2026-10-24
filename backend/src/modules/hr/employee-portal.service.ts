@@ -726,8 +726,8 @@ export class EmployeePortalService {
         days_count: daysCount,
         status: 'pending',
         reason: body.reason || '',
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       }).returningAll().executeTakeFirstOrThrow();
       return saved;
     });
@@ -819,8 +819,8 @@ export class EmployeePortalService {
         status: 'draft',
         issue_date: today,
         notes: `طلب سلفة من الموظف: ${body.reason || 'بدون تفاصيل'} (سداد على ${months} شهر)`,
-        created_at: new Date(),
-        updated_at: new Date(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .returningAll()
       .executeTakeFirst();
