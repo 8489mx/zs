@@ -4140,6 +4140,27 @@ export class HrService {
     };
   }
 
+  /** Booked payroll is immutable; changing underlying attendance after GL
+   * accrual silently contradicts a financial snapshot and its bank file.
+   * Call while holding the tenant-wide payroll lock inside the SAME trx.
+   */
+  private async assertAttendanceDayNotPosted(
+    trx: Kysely<Database>, employeeId: number, workDate: string, tenantId: string,
+  ): Promise<void> {
+    const booked = await sql<{ id: number }>`
+      SELECT r.id FROM hr_payroll_runs r
+      JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+      WHERE r.tenant_id = ${tenantId} AND i.employee_id = ${employeeId}
+        AND i.status = 'approved' AND r.status IN ('approved', 'paid')
+        AND ${workDate}::date BETWEEN r.start_date AND r.end_date
+      LIMIT 1
+    `.execute(trx);
+    if (booked.rows.length) {
+      throw new AppError('لا يمكن تعديل حضور يوم دخل مسير مرتبات معتمد؛ سجّل تسوية محاسبية مستقلة',
+        'HR_ATTENDANCE_POSTED_PERIOD_LOCKED', 409);
+    }
+  }
+
   async bulkSaveAttendance(payload: BulkSaveAttendanceDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     const workDate = normalizeDateOnly(payload.workDate);
@@ -4153,6 +4174,7 @@ export class HrService {
       for (const row of payload.rows) {
         const employeeId = toId(row.employeeId);
         if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
+        await this.assertAttendanceDayNotPosted(trx, employeeId, workDate, auth.tenantId || '');
         const status = normalizeAttendanceStatus(row.status);
         if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
         const checkInAt = row.checkInAt ? new Date(row.checkInAt) : null;
@@ -4223,6 +4245,7 @@ export class HrService {
     // "تم تسجيل الحضور بالفعل"، وبدء وردية جديدة مرتين يمحو وردية مكتملة بصمت — F1.
     const auditEntry = await this.db.transaction().execute(async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      await this.assertAttendanceDayNotPosted(trx, employeeId, workDate, auth.tenantId || '');
       const existingCheck = await sql<{ check_in_at: Date | null; check_out_at: Date | null; notes: string | null }>`
         SELECT check_in_at, check_out_at, notes FROM hr_attendance_records
         WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
@@ -4370,6 +4393,9 @@ export class HrService {
           skipped++;
           continue;
         }
+        // Do not partially import a batch that rewrites booked wages: the
+        // transaction rolls back and surfaces an explicit payroll-period gate.
+        await this.assertAttendanceDayNotPosted(trx, Number(emp.id), workDate, auth.tenantId || '');
 
         const checkInAt = record.checkInAt ? new Date(record.checkInAt) : null;
         const checkOutAt = record.checkOutAt ? new Date(record.checkOutAt) : null;

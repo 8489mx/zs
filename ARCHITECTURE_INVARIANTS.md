@@ -109,6 +109,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-ATT-MOBILE-1: Mobile attendance punch now uses an employee-row-locked transaction covering the read/check/insert-or-update path; eliminates duplicate tap races and maintains active-employee tenant scope. It refuses punch edits on days included in approved/paid payroll and rejects nonfinite/out-of-range GPS coordinates. It does NOT tenant-serialize ordinary peak-time mobile punches; explicit payroll-period concurrency integration still needs tests.
 
+- HR-ATT-POSTED-1: Admin attendance day upsert, punch edits and bulk imports explicitly reject changes to dates included in an approved/paid employee payroll line, under the tenant payroll transaction lock. Prevents retroactive attendance edits from silently contradicting accrued journal entries and immutable payslips. The mobile punch transaction formatting is normalized. No tests run.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

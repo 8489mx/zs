@@ -567,7 +567,8 @@ export class MobileAttendanceService {
         distanceMeters,
         message: 'تم تسجيل انصرافك بنجاح. يوم سعيد! ✓',
       };
-    }    });
+    }
+    });
   }
 
   /**
