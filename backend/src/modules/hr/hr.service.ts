@@ -260,11 +260,18 @@ export class HrService {
       maxDeductionPct: 1.0,
     };
     if (result.rows.length === 0) return defaults;
+    let parsed: unknown;
     try {
-      return { ...defaults, ...JSON.parse(result.rows[0].value as string) };
+      parsed = JSON.parse(result.rows[0].value as string);
     } catch {
-      return defaults;
+      throw new AppError('سياسات الرواتب المحفوظة غير صالحة؛ راجع إعداداتها قبل الاحتساب',
+        'HR_PAYROLL_POLICY_CORRUPT', 409);
     }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new AppError('سياسات الرواتب المحفوظة ليست كائناً صالحاً',
+        'HR_PAYROLL_POLICY_CORRUPT', 409);
+    }
+    return { ...defaults, ...parsed };
   }
 
   async updatePayrollPolicies(auth: any, policies: any) {
@@ -2676,7 +2683,12 @@ export class HrService {
     const fromDate = String(run.start_date_text || `${periodMonth}-01`);
     const toDate = String(run.end_date_text || new Date(Number(periodMonth.split('-')[0]), Number(periodMonth.split('-')[1]), 0).toISOString().slice(0, 10));
     const range = { from: fromDate, to: toDate };
-    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId, tenantId);
+    // An approved/paid payslip is an immutable financial snapshot. Its presentation
+    // must not be recomputed using current (possibly newer) tax, leave or attendance
+    // policies, which can change independently after approval.
+    const reviewByEmployeeId = ['approved', 'paid'].includes(clean(run.status))
+      ? new Map<number, any>()
+      : await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId, tenantId);
     const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
     const adjustmentResult = itemIds.length
       ? await sql<Record<string, unknown>>`
@@ -2783,7 +2795,7 @@ export class HrService {
 
   async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
       await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
     });
@@ -2815,11 +2827,13 @@ export class HrService {
 
   async reviewPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
-      if (status !== 'draft') throw new AppError('Only draft payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
-      
-      // Auto-recalculate before reviewing to ensure all new loans/deductions are captured
-      await this.rebuildPayrollRunItems(trx, id, 'draft', auth.tenantId || '');
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
+      if (status !== 'draft' && status !== 'reviewed') {
+        throw new AppError('Only draft or reviewed payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
+      }
+      // A reviewed run can be re-reviewed after a statutory rule or attendance
+      // correction; all items are recalculated against current approved inputs.
+      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
 
       await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
