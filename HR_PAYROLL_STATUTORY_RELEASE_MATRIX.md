@@ -24,6 +24,9 @@ This file is an **unverified implementation checklist**. It is NOT an approved t
 - Oman Social Protection Fund's published contribution branches and effective dates vary by program, https://www.spf.gov.om/faq/%D9%85%D8%A7-%D9%87%D9%8A-%D9%86%D8%B3%D8%A8-%D8%A7%D9%84%D8%A7%D8%B4%D8%AA%D8%B1%D8%A7%D9%83%D8%A7%D8%AA-%D8%A7%D9%84%D8%AA%D9%8A-%D8%B3%D9%8A%D8%B3%D8%AF%D8%AF%D9%87%D8%A7-%D8%A7%D9%84%D8%B9%D8%A7/ ; resident/nonresident scope also needs explicit verification.
 - Before release: confirm employee program and branch categories, service dates and **3-decimal** salary, GL and banking. **OMR payroll is currently blocked**.
 
+## Additional deduction safety gate
+- Approval blocks when a non-loan operational deduction has been deferred by a payroll cap. The current `carried_forward_deduction` is informational; automatic legally compliant recovery is not implemented and must NOT be represented as a posted debt. Staff must resolve it and re-review the payroll or implement a documented carry-forward ledger, accounting mapping and next-period deduction policy.
+
 ## Remaining product-wide gates
 1. Persist and review **per-employee** nationality/residency/social-insurance scheme, with effective dates and official decision evidence; existing two boolean employee tax/insurance flags are insufficient for certified multi-country compliance.
 2. Implement officially verified weekly/biweekly/partial-period tax and social insurance proration; existing engine safely refuses statutory withholding for non-monthly period runs.

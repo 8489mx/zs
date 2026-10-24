@@ -3561,6 +3561,25 @@ export class HrService {
         );
       }
 
+      // A loan's unpaid part remains in installments and will be due in a
+      // future payroll. By contrast, carried_forward_deduction contains
+      // attendance/leave/asset/other reductions with NO durable receivable
+      // or next-run replay. Approval must fail instead of silently writing off
+      // that remainder under an apparently "carried forward" label.
+      const untrackedDeferred = await sql<{ employee_id: number; amount: string }>`
+        SELECT employee_id, carried_forward_deduction::text AS amount
+        FROM hr_payroll_run_items
+        WHERE run_id = ${id} AND tenant_id = ${auth.tenantId}
+          AND status = 'reviewed' AND carried_forward_deduction > 0
+        LIMIT 1
+      `.execute(trx);
+      if (untrackedDeferred.rows.length) {
+        const row = untrackedDeferred.rows[0];
+        throw new AppError(
+          `الموظف #${row.employee_id} عليه استقطاعات مؤجلة بقيمة ${row.amount} لا توجد آلية آمنة لترحيلها تلقائيًا؛ يلزم تسوية معتمدة قبل اعتماد المسير`,
+          'HR_PAYROLL_UNTRACKED_CARRIED_FORWARD', 409,
+        );
+      }
       await this.settlePayrollLoanDeductions(trx, id, auth);
 
       const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
