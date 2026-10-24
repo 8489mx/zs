@@ -107,6 +107,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-ATT-LOCK-1: Admin bulk attendance, individual punch edit and import acquire the payroll-tenant advisory lock. Attendance-exception approval/skipping now locks its row in the same transaction, checks that the affected work day is not already part of approved/paid payroll, and validates finite nonnegative approved minutes bounded by the actual exception duration. This prevents retroactive alteration of approved payroll attendance exceptions. Mobile/other attendance write paths still require independent audit; no tests run.
 
+- HR-ATT-MOBILE-1: Mobile attendance punch now uses an employee-row-locked transaction covering the read/check/insert-or-update path; eliminates duplicate tap races and maintains active-employee tenant scope. It refuses punch edits on days included in approved/paid payroll and rejects nonfinite/out-of-range GPS coordinates. It does NOT tenant-serialize ordinary peak-time mobile punches; explicit payroll-period concurrency integration still needs tests.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
