@@ -48,7 +48,7 @@ import {
 } from './attendance-punch.engine';
 import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
-import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireStoredHrMoney, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
@@ -1056,6 +1056,9 @@ export class HrService {
               if (!currencySetting || currencySetting !== contractCurrency) {
                 throw new AppError('عملة العقد يجب أن تطابق عملة المنشأة المحددة في الإعدادات', 'HR_INITIAL_CONTRACT_CURRENCY_MISMATCH', 400);
               }
+              try { requireStoredHrMoney(contractSalary); } catch {
+                throw new AppError('راتب العقد الأولي يجب أن يكون بدقة منزلتين دون تقريب', 'HR_INITIAL_CONTRACT_MONEY_PRECISION_INVALID', 400);
+              }
               const insertedContract = await sql<{ id: number }>`
                 INSERT INTO hr_employment_contracts (
                   tenant_id, account_id, employee_id, contract_no, contract_type,
@@ -1221,6 +1224,9 @@ export class HrService {
       if (contractCurrency !== tenantCurrency) {
         throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة', 'HR_CONTRACT_CURRENCY_MISMATCH', 400);
       }
+      try { requireStoredHrMoney(baseSalary); } catch {
+        throw new AppError('قيمة الراتب يجب أن تكون غير سالبة وبدقة منزلتين دون تقريب؛ عملات الثلاث منازل تنتظر تحديث التخزين', 'HR_CONTRACT_MONEY_PRECISION_INVALID', 400);
+      }
       const oldContract = id ? await sql<{
         start_date: string; end_date: string | null; base_salary: string;
         currency: string; contract_no: string; contract_type: string; status: string;
@@ -1322,6 +1328,9 @@ export class HrService {
       || !Number.isFinite(allowance) || allowance < 0
       || !Number.isFinite(deduction) || deduction < 0) {
       throw new AppError('تواريخ أو مبالغ البدلات الثابتة غير صحيحة', 'HR_COMPENSATION_INVALID', 400);
+    }
+    try { requireStoredHrMoney(allowance); requireStoredHrMoney(deduction); } catch {
+      throw new AppError('البدلات والخصومات الثابتة يجب أن تكون بدقة منزلتين دون تقريب', 'HR_COMPENSATION_MONEY_PRECISION_INVALID', 400);
     }
     await this.tx.runInTransaction(this.db, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
