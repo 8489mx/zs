@@ -2994,6 +2994,7 @@ export class HrService {
         COALESCE(SUM(i.allowance_amount), 0) AS total_allowance_amount,
         COALESCE(SUM(i.deduction_amount), 0) AS total_deduction_amount,
         COALESCE(SUM(i.loan_deduction_amount), 0) AS total_loan_deduction_amount,
+        COALESCE(SUM(i.asset_recovery_deduction_amount), 0) AS total_asset_recovery_deduction_amount,
         COALESCE(SUM(i.employee_social_insurance), 0) AS total_employee_social_insurance,
         COALESCE(SUM(i.employer_social_insurance), 0) AS total_employer_social_insurance,
         COALESCE(SUM(i.income_tax), 0) AS total_income_tax,
