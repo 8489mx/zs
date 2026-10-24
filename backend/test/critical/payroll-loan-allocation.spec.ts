@@ -1,11 +1,20 @@
 import { strict as assert } from 'node:assert';
-import { allocateLoanDeduction, calculatePayrollLoanDueTotal } from '../../src/modules/hr/payroll-loan-allocation.engine';
+import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths } from '../../src/modules/hr/payroll-loan-allocation.engine';
 
 /**
  * يحرس العطل الفعلي: خصم شهر واحد يغطي قسطين من **نفس القرض**، وكان رصيد القرض
  * يُحسب من لقطة قديمة في الدورة الثانية فيختل تصالح المسدَّد مع المتبقي.
  */
 function run(): void {
+  assert.equal(addLoanInstallmentMonths('2026-01-31', 1), '2026-02-28');
+  assert.equal(addLoanInstallmentMonths('2024-01-31', 1), '2024-02-29');
+  assert.throws(() => addLoanInstallmentMonths('2026-02-30', 1), /Invalid/);
+  assert.deepEqual(calculateLoanInstallmentSchedule(100, 3).installmentValues, [33.33, 33.33, 33.34]);
+  assert.deepEqual(calculateLoanInstallmentSchedule(100, 1, 30).installmentValues, [30, 30, 30, 10]);
+  assert.throws(() => calculateLoanInstallmentSchedule(1, 150), /count/);
+  assert.throws(() => calculateLoanInstallmentSchedule(10.001, 3), /two decimal/);
+  assert.throws(() => calculateLoanInstallmentSchedule(100, Infinity), /count/);
+
   // The production due-total calculation caps two due installments against
   // ONE loan outstanding balance before the reviewer approves the payroll.
   assert.equal(calculatePayrollLoanDueTotal([

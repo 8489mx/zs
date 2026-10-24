@@ -46,7 +46,7 @@ import {
   startsNewSession,
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
-import { allocateLoanDeduction, calculatePayrollLoanDueTotal } from './payroll-loan-allocation.engine';
+import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
@@ -129,8 +129,7 @@ function addMonths(value: string, months: number): string {
   const normalized = normalizeDateOnly(value);
   if (!normalized) return nextMonthDate();
   const [year, month, day] = normalized.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1 + months, day));
-  return date.toISOString().slice(0, 10);
+  return addLoanInstallmentMonths(normalized, months);
 }
 
 function normalizePayrollMonth(value: unknown): string {
@@ -382,51 +381,33 @@ export class HrService {
   }
 
   private normalizeRepaymentPlan(payload: UpsertEmployeeLoanDto, amount: number): {
-    repaymentMode: string;
-    installmentCount: number;
-    installmentAmount: number;
-    monthlyInstallmentAmount: number | null;
-    firstDueDate: string | null;
-    salaryDueDate: string | null;
+    repaymentMode: string; installmentCount: number; installmentAmount: number;
+    installmentValues: number[]; monthlyInstallmentAmount: number | null;
+    firstDueDate: string | null; salaryDueDate: string | null;
   } {
     const repaymentMode = ['deduct_next_salary', 'monthly_salary_installment', 'manual_cash'].includes(clean(payload.repaymentMode))
-      ? clean(payload.repaymentMode)
-      : 'manual_cash';
+      ? clean(payload.repaymentMode) : 'manual_cash';
     const issueDate = normalizeDateOnly(payload.issueDate);
-    const salaryDueDate = normalizeDateOnly(payload.salaryDueDate);
-    const firstDueDate = normalizeDateOnly(payload.firstDueDate) || salaryDueDate || (repaymentMode === 'manual_cash' ? issueDate : nextMonthDate(issueDate));
-    const monthlyAmount = Number(payload.monthlyInstallmentAmount || 0);
-    if (repaymentMode === 'deduct_next_salary') {
-      return {
-        repaymentMode,
-        installmentCount: 1,
-        installmentAmount: amount,
-        monthlyInstallmentAmount: null,
-        firstDueDate,
-        salaryDueDate,
-      };
+    if (!issueDate) throw new AppError('تاريخ إصدار السلفة غير صحيح', 'HR_LOAN_ISSUE_DATE_REQUIRED', 400);
+    const salaryDueDate = payload.salaryDueDate ? normalizeDateOnly(payload.salaryDueDate) : null;
+    const selectedDueDate = payload.firstDueDate ? normalizeDateOnly(payload.firstDueDate) : null;
+    if ((payload.salaryDueDate && !salaryDueDate) || (payload.firstDueDate && !selectedDueDate))
+      throw new AppError('تاريخ استحقاق القسط غير صحيح', 'HR_LOAN_DUE_DATE_INVALID', 400);
+    const firstDueDate = selectedDueDate || salaryDueDate
+      || (repaymentMode === 'manual_cash' ? issueDate : nextMonthDate(issueDate));
+    let plan: ReturnType<typeof calculateLoanInstallmentSchedule>;
+    try {
+      plan = repaymentMode === 'deduct_next_salary'
+        ? calculateLoanInstallmentSchedule(amount, 1)
+        : repaymentMode === 'monthly_salary_installment' && Number(payload.monthlyInstallmentAmount || 0) > 0
+          ? calculateLoanInstallmentSchedule(amount, 1, Number(payload.monthlyInstallmentAmount))
+          : calculateLoanInstallmentSchedule(amount, Number(payload.installmentCount || 1));
+    } catch (error) {
+      throw new AppError(error instanceof Error ? error.message : 'خطة تقسيط غير صحيحة', 'HR_LOAN_INSTALLMENT_PLAN_INVALID', 400);
     }
-    if (repaymentMode === 'monthly_salary_installment' && monthlyAmount > 0) {
-      const installmentAmount = Math.min(monthlyAmount, amount);
-      return {
-        repaymentMode,
-        installmentCount: Math.max(1, Math.ceil(amount / installmentAmount)),
-        installmentAmount,
-        monthlyInstallmentAmount: installmentAmount,
-        firstDueDate,
-        salaryDueDate,
-      };
-    }
-    const installmentCount = Math.max(1, Math.floor(Number(payload.installmentCount || 1)));
-    const installmentAmount = Math.min(amount, Math.round(amount / installmentCount));
-    return {
-      repaymentMode,
-      installmentCount,
-      installmentAmount,
-      monthlyInstallmentAmount: null,
-      firstDueDate,
-      salaryDueDate,
-    };
+    return { repaymentMode, ...plan,
+      monthlyInstallmentAmount: repaymentMode === 'monthly_salary_installment' ? plan.installmentAmount : null,
+      firstDueDate, salaryDueDate };
   }
 
   async listMasterData(kind: MasterKind, query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -1685,9 +1666,7 @@ export class HrService {
 
       for (let i = 1; i <= plan.installmentCount; i += 1) {
         const dueDate = plan.firstDueDate ? addMonths(plan.firstDueDate, i - 1) : null;
-        const installmentValue = i === plan.installmentCount
-          ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
-          : plan.installmentAmount;
+        const installmentValue = plan.installmentValues[i - 1];
         await sql`INSERT INTO hr_employee_loan_installments (tenant_id, account_id, loan_id, installment_no, due_date, amount) VALUES (${auth.tenantId}, ${auth.accountId}, ${loanId}, ${i}, ${dueDate}, ${installmentValue})`.execute(trx);
       }
 
@@ -1746,9 +1725,7 @@ export class HrService {
 
       await sql`DELETE FROM hr_employee_loan_installments WHERE loan_id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
       for (let i = 1; i <= plan.installmentCount; i += 1) {
-        const installmentValue = i === plan.installmentCount
-          ? Math.max(0, Number((amount - plan.installmentAmount * (plan.installmentCount - 1)).toFixed(2)))
-          : plan.installmentAmount;
+        const installmentValue = plan.installmentValues[i - 1];
         const dueDate = plan.firstDueDate ? addMonths(plan.firstDueDate, i - 1) : null;
         await sql`
           INSERT INTO hr_employee_loan_installments (tenant_id, account_id, loan_id, installment_no, due_date, amount)
