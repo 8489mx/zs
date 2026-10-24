@@ -20,6 +20,7 @@ export interface SettlementCalculateInput {
   contractType?: string;
   lawType?: 'saudi' | 'egyptian' | 'custom';
   customGratuityDaysPerYear?: number;
+  pendingSalaryAmount?: number;
   customEntitlements?: number;
   noticePeriodAmount?: number;
   assetsDeduction?: number;
@@ -60,7 +61,8 @@ export class EndOfServiceService {
       throw new NotFoundException('الموظف غير موجود أو لا ينتمي لهذه المنشأة');
     }
 
-    const hireDate = new Date(employee.hire_date || new Date());
+    if (!employee.hire_date) throw new BadRequestException('يجب تسجيل تاريخ تعيين الموظف قبل احتساب المخالصة');
+    const hireDate = new Date(employee.hire_date);
     const terminationDate = new Date(input.terminationDate || new Date());
 
     if (terminationDate < hireDate) {
@@ -81,6 +83,9 @@ export class EndOfServiceService {
       .selectAll()
       .where('employee_id', '=', input.employeeId)
       .where('tenant_id', '=', tenantId)
+      .where('status', 'in', ['active', 'ended'])
+      .where('start_date', '<=', input.terminationDate as any)
+      .orderBy('start_date', 'desc')
       .orderBy('id', 'desc')
       .executeTakeFirst();
 
@@ -104,6 +109,9 @@ export class EndOfServiceService {
     // Determine gratuity via pure engine
     if (!input.lawType) throw new BadRequestException('يجب تحديد قانون العمل؛ لا يجوز افتراض قانون دولة');
     const lawType = input.lawType;
+    if (lawType === 'egyptian') {
+      throw new BadRequestException('مكافأة نهاية الخدمة المصرية ليست نسبة موحدة من سنوات الخدمة. لا تستخدم الحسبة الآلية؛ راجع القانون والعقد ثم استخدم سياسة مخصصة معتمدة.');
+    }
     const reason = input.terminationReason || 'resignation';
     const gratuity = calculateGratuity({
       serviceYearsDecimal,
@@ -116,7 +124,7 @@ export class EndOfServiceService {
 
     // Leave Encashment: reconcile live used annual leaves from approved requests if not yet synced
     const empAny = employee as any;
-    const annualBalance = Number(empAny.annual_leave_balance || 21);
+    const annualBalance = Number(empAny.annual_leave_balance ?? 0);
     let usedLeaves = Number(empAny.used_annual_leaves || 0);
 
     if (usedLeaves === 0) {
@@ -138,9 +146,14 @@ export class EndOfServiceService {
     const remainingLeaveDays = Math.max(0, annualBalance - usedLeaves);
     const leaveEncashmentAmount = calculateLeaveEncashment(remainingLeaveDays, dailyWage);
 
-    // Current month salary (days until termination in month)
-    const termDay = terminationDate.getDate();
-    const pendingSalaryAmount = Number((Math.min(termDay, 30) * dailyWage).toFixed(2));
+    // Never guess unpaid wages from the termination calendar day: the employee
+    // may already have been paid through the normal payroll. HR must reconcile
+    // salary runs and explicitly confirm the remaining payable amount.
+    if (input.pendingSalaryAmount == null || !Number.isFinite(Number(input.pendingSalaryAmount))
+      || Number(input.pendingSalaryAmount) < 0) {
+      throw new BadRequestException('حدد قيمة المرتب المتبقي بعد مراجعة ما تم صرفه في كشوف المرتبات');
+    }
+    const pendingSalaryAmount = Number(Number(input.pendingSalaryAmount).toFixed(2));
 
     // Unpaid loans
     const loansRes = await sql<Record<string, unknown>>`
@@ -148,7 +161,7 @@ export class EndOfServiceService {
       FROM hr_employee_loans 
       WHERE employee_id = ${input.employeeId} 
         AND tenant_id = ${tenantId} 
-        AND status IN ('approved', 'disbursed', 'partially_repaid')
+        AND status IN ('disbursed', 'paid', 'partially_repaid')
     `.execute(this.db);
     const unpaidLoansDeduction = Number(loansRes.rows[0]?.total_unpaid || 0);
 
@@ -310,30 +323,8 @@ export class EndOfServiceService {
         .execute();
       inserted.settlement_no = settlementNo;
 
-      // If confirmed termination requested, terminate employee and end contract
-      if (dto.confirmTermination) {
-        await trx
-          .updateTable('hr_employees')
-          .set({
-            status: 'terminated',
-            end_of_service_date: dto.terminationDate as any,
-            end_of_service_reason: dto.terminationReason,
-            updated_by: auth.userId ? Number(auth.userId) : null,
-            updated_at: new Date() as any,
-          })
-          .where('id', '=', dto.employeeId)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-
-        await sql`
-          UPDATE hr_employment_contracts
-          SET status = 'ended',
-              end_date = ${dto.terminationDate},
-              updated_by = ${auth.userId ? Number(auth.userId) : null},
-              updated_at = NOW()
-          WHERE employee_id = ${dto.employeeId} AND status = 'active' AND tenant_id = ${tenantId}
-        `.execute(trx);
-      }
+      // A draft is not an approved financial settlement; termination happens
+      // only when its accounting posting succeeds within the posting transaction.
 
       return {
         ok: true,
@@ -578,6 +569,22 @@ export class EndOfServiceService {
         }
       }
 
+      // A settlement becomes final only together with its journal and HR state.
+      await sql`
+        UPDATE hr_employees
+        SET status = 'terminated',
+            end_of_service_date = ${settlement.termination_date},
+            end_of_service_reason = ${settlement.termination_reason},
+            updated_at = NOW()
+        WHERE id = ${settlement.employee_id} AND tenant_id = ${tenantId}
+      `.execute(trx);
+      await sql`
+        UPDATE hr_employment_contracts
+        SET status = 'ended',
+            end_date = ${settlement.termination_date},
+            updated_at = NOW()
+        WHERE employee_id = ${settlement.employee_id} AND tenant_id = ${tenantId} AND status = 'active'
+      `.execute(trx);
       // Update settlement record
       await (trx as any)
         .updateTable('hr_end_of_service_settlements')

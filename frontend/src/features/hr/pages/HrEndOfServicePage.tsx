@@ -28,8 +28,9 @@ export function HrEndOfServicePage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | ''>('');
   const [terminationDate, setTerminationDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [terminationReason, setTerminationReason] = useState('resignation');
-  const [lawType, setLawType] = useState<'saudi' | 'egyptian' | 'custom'>('saudi');
-  const [customDaysPerYear, setCustomDaysPerYear] = useState(15);
+  const [lawType, setLawType] = useState<'saudi' | 'egyptian' | 'custom' | ''>('');
+  const [customDaysPerYear, setCustomDaysPerYear] = useState(0);
+  const [pendingSalaryAmount, setPendingSalaryAmount] = useState<number | ''>('');
   const [noticePeriodAmount, setNoticePeriodAmount] = useState(0);
   const [customEntitlements, setCustomEntitlements] = useState(0);
   const [assetsDeduction, setAssetsDeduction] = useState(0);
@@ -68,8 +69,8 @@ export function HrEndOfServicePage() {
   };
 
   const handleCalculatePreview = async () => {
-    if (!selectedEmployeeId) {
-      setFeedback({ text: 'يرجى اختيار الموظف أولاً', error: true });
+    if (!selectedEmployeeId || !lawType || pendingSalaryAmount === '') {
+      setFeedback({ text: 'اختر الموظف ونظام العمل وحدد المرتب المتبقي بعد مراجعة ما تم صرفه.', error: true });
       return;
     }
     setCalculating(true);
@@ -81,6 +82,7 @@ export function HrEndOfServicePage() {
         terminationReason,
         lawType,
         customGratuityDaysPerYear: customDaysPerYear,
+        pendingSalaryAmount: Number(pendingSalaryAmount),
         noticePeriodAmount,
         customEntitlements,
         assetsDeduction,
@@ -95,8 +97,8 @@ export function HrEndOfServicePage() {
   };
 
   const handleSaveSettlement = async () => {
-    if (!selectedEmployeeId || !preview) {
-      setFeedback({ text: 'يرجى احتساب المستحقات أولاً قبل الحفظ', error: true });
+    if (!selectedEmployeeId || !preview || !lawType || pendingSalaryAmount === '') {
+      setFeedback({ text: 'يرجى احتساب المستحقات واستكمال نظام العمل والمرتب المتبقي أولاً', error: true });
       return;
     }
     setSaving(true);
@@ -108,6 +110,7 @@ export function HrEndOfServicePage() {
         terminationReason,
         lawType,
         customGratuityDaysPerYear: customDaysPerYear,
+        pendingSalaryAmount: Number(pendingSalaryAmount),
         noticePeriodAmount,
         customEntitlements,
         assetsDeduction,
@@ -129,6 +132,9 @@ export function HrEndOfServicePage() {
   const resetForm = () => {
     setSelectedEmployeeId('');
     setPreview(null);
+    setLawType('');
+    setCustomDaysPerYear(0);
+    setPendingSalaryAmount('');
     setNoticePeriodAmount(0);
     setCustomEntitlements(0);
     setAssetsDeduction(0);
@@ -310,6 +316,8 @@ export function HrEndOfServicePage() {
         lawType={lawType}
         onLawTypeChange={setLawType}
         customDaysPerYear={customDaysPerYear}
+        pendingSalaryAmount={pendingSalaryAmount}
+        onPendingSalaryChange={setPendingSalaryAmount}
         onCustomDaysChange={setCustomDaysPerYear}
         noticePeriodAmount={noticePeriodAmount}
         onNoticePeriodChange={setNoticePeriodAmount}

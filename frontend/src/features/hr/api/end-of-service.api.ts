@@ -87,6 +87,7 @@ export interface CreateSettlementInput {
   contractType?: string;
   lawType?: 'saudi' | 'egyptian' | 'custom';
   customGratuityDaysPerYear?: number;
+  pendingSalaryAmount?: number;
   customEntitlements?: number;
   noticePeriodAmount?: number;
   assetsDeduction?: number;
@@ -106,6 +107,7 @@ export const endOfServiceApi = {
     contractType?: string;
     lawType?: string;
     customGratuityDaysPerYear?: number;
+    pendingSalaryAmount?: number;
     customEntitlements?: number;
     noticePeriodAmount?: number;
     assetsDeduction?: number;

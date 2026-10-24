@@ -3,7 +3,7 @@
  *
  * Implements statutory labor law calculation algorithms:
  * - Saudi Labor Law: Article 84 (Service Gratuity) & Article 85 (Resignation scale) & Article 80 (Gross Misconduct).
- * - Egyptian Labor Law: Article 125.
+ * - Egyptian Labor Law 14/2025: automatic statutory gratuity disabled until legally validated.
  * - Custom / Policy-driven calculation.
  * - Entitlement absorption invariants: Payout deductions are strictly bounded by total entitlements.
  *
@@ -70,7 +70,7 @@ export function calculateGratuity(params: GratuityCalculationParams): GratuityCa
   const serviceYears = Math.max(0, Number(params.serviceYearsDecimal || 0));
   const totalSalary = Math.max(0, Number(params.totalSalary || 0));
   const dailyWage = Math.max(0, Number(params.dailyWage || (totalSalary / 30)));
-  const lawType = params.lawType || 'saudi';
+  const lawType = params.lawType;
   const reason = params.reason || 'resignation';
 
   let gratuityPercentage = 100;
@@ -102,17 +102,18 @@ export function calculateGratuity(params: GratuityCalculationParams): GratuityCa
       gratuityPercentage = 100;
     }
   } else if (lawType === 'egyptian') {
-    // Egyptian Labor Law: Art. 125:
-    // Half month wage for each of the first 5 years, and a full month wage for each following year.
-    const first5Years = Math.min(serviceYears, 5);
-    const subsequentYears = Math.max(0, serviceYears - 5);
-    baseGratuity = (first5Years * 0.5 * totalSalary) + (subsequentYears * 1.0 * totalSalary);
+    // Egyptian Labour Law 14/2025 does not provide a universal 15/30-day
+    // gratuity formula. A wrong statutory settlement must fail closed.
+    throw new RangeError('Egyptian EOS must be calculated against the applicable legal grounds or an expressly agreed policy');
+  } else if (lawType === 'custom') {
+    const daysPerYear = Number(params.customGratuityDaysPerYear);
+    if (!Number.isFinite(daysPerYear) || daysPerYear < 0 || daysPerYear > 365) {
+      throw new RangeError('Custom EOS days per year must be expressly provided between 0 and 365');
+    }
+    baseGratuity = daysPerYear * dailyWage * serviceYears;
     gratuityPercentage = 100;
   } else {
-    // Custom policy
-    const daysPerYear = params.customGratuityDaysPerYear || 15;
-    baseGratuity = (daysPerYear * dailyWage) * serviceYears;
-    gratuityPercentage = 100;
+    throw new RangeError('Unsupported end-of-service jurisdiction');
   }
 
   let gratuityAmount = 0;

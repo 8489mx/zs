@@ -15,10 +15,12 @@ interface CreateSettlementModalProps {
   onTerminationDateChange: (val: string) => void;
   terminationReason: string;
   onTerminationReasonChange: (val: string) => void;
-  lawType: 'saudi' | 'egyptian' | 'custom';
-  onLawTypeChange: (val: 'saudi' | 'egyptian' | 'custom') => void;
+  lawType: 'saudi' | 'egyptian' | 'custom' | '';
+  onLawTypeChange: (val: 'saudi' | 'egyptian' | 'custom' | '') => void;
   customDaysPerYear: number;
   onCustomDaysChange: (val: number) => void;
+  pendingSalaryAmount: number | '';
+  onPendingSalaryChange: (val: number | '') => void;
   noticePeriodAmount: number;
   onNoticePeriodChange: (val: number) => void;
   customEntitlements: number;
@@ -55,6 +57,8 @@ export function CreateSettlementModal({
   onLawTypeChange,
   customDaysPerYear,
   onCustomDaysChange,
+  pendingSalaryAmount,
+  onPendingSalaryChange,
   noticePeriodAmount,
   onNoticePeriodChange,
   customEntitlements,
@@ -161,8 +165,9 @@ export function CreateSettlementModal({
               onChange={e => onLawTypeChange(e.target.value as any)}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
             >
+              <option value="">-- اختر نظام العمل --</option>
               <option value="saudi">{t('hr.end_of_service.create_settlement_modal.s11', "نظام العمل السعودي (مكافأة تدرجية)")}</option>
-              <option value="egyptian">{t('hr.end_of_service.create_settlement_modal.s12', "قانون العمل المصري (شهر عن كل سنة)")}</option>
+              <option value="egyptian" disabled>قانون العمل المصري (تحتاج الحسبة القانونية إلى اعتماد)</option>
               <option value="custom">{t('hr.end_of_service.create_settlement_modal.s13', "مخصص (حسب اللائحة الداخلية)")}</option>
             </select>
           </div>
@@ -170,7 +175,7 @@ export function CreateSettlementModal({
           {lawType === 'custom' && (
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                {t('hr.end_of_service.create_settlement_modal.s14', "أيام الأجر عن كل سنة خدمة")}
+                أيام الأجر لكل سنة حسب لائحة مُعتمدة (أدخلها صراحة)
               </label>
               <input
                 type="number"
@@ -180,6 +185,19 @@ export function CreateSettlementModal({
               />
             </div>
           )}
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: 6 }}>
+            المرتب المتبقي المستحق بعد مراجعة كشوف المرتبات *
+          </label>
+          <input type="number" min={0} step="0.01" value={pendingSalaryAmount}
+            onChange={(event) => onPendingSalaryChange(event.target.value === '' ? '' : Number(event.target.value))}
+            placeholder="أدخل صفر إذا تم صرف الراتب بالكامل"
+            style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 8 }} />
+          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.76rem' }}>
+            لا يتم إضافة أجر الأيام تلقائيًا لمنع صرف الراتب مرتين.
+          </p>
         </div>
 
         {/* Adjustments & Custodies */}
@@ -245,7 +263,7 @@ export function CreateSettlementModal({
                 checked={confirmTermination}
                 onChange={e => onConfirmTerminationChange(e.target.checked)}
               />
-              <span>{t('hr.end_of_service.create_settlement_modal.s21', "تحديث حالة الموظف لـ (منتهي الخدمة / inactive) تلقائياً")}</span>
+              <span>تحديث حالة الموظف عند ترحيل المخالصة محاسبياً، وليس عند حفظ المسودة</span>
             </label>
           </div>
         </div>
