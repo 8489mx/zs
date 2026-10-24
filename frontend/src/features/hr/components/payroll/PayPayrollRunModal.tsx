@@ -11,6 +11,8 @@ interface PayPayrollRunModalProps {
   selectedRun?: HrPayrollRun;
   payChannel: 'cash' | 'bank';
   onPayChannelChange: (val: 'cash' | 'bank') => void;
+  paymentReference: string;
+  onPaymentReferenceChange: (val: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   isPending: boolean;
   canApprovePayroll: boolean;
@@ -23,6 +25,8 @@ export function PayPayrollRunModal({
   selectedRun,
   payChannel,
   onPayChannelChange,
+  paymentReference,
+  onPaymentReferenceChange,
   onSubmit,
   isPending,
   canApprovePayroll,
@@ -51,6 +55,15 @@ export function PayPayrollRunModal({
                 <option value="bank">{t('hr.payroll.pay_payroll_run_modal.s5', "تحويل بنكي")}</option>
               </select>
             </label>
+            {payChannel === 'bank' && (
+              <label className="field field-wide">
+                <span>المرجع الفعلي للتحويل البنكي *</span>
+                <input type="text" required maxLength={160} value={paymentReference}
+                  onChange={e => onPaymentReferenceChange(e.target.value)}
+                  placeholder="رقم العملية/مرجع التحويل من البنك" />
+                <small>إدخال الرقم لا يؤكد وصول التحويل؛ راجع كشف البنك قبل تسجيل الصرف.</small>
+              </label>
+            )}
             {formError && <div className="field-wide error-box">{formError}</div>}
             <div className="actions compact-actions field-wide" style={{ marginTop: '16px' }}>
               <Button type="submit" disabled={isPending}>

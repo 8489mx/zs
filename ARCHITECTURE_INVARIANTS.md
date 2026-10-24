@@ -81,6 +81,77 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - Awaiting: end-to-end tenant/currency and legal-country acceptance tests, official country-dependent residency/nationality coverage and statutory settlement/WPS certification. KWD/OMR still intentionally blocked pending coordinated 3-decimal migration.
 - Numeric tests authored but NOT executed; no build, typecheck or guards invoked.
 
+- HR-PAY-25 (24 October follow-up): Salary-contract and fixed-compensation mutations acquire the tenant payroll lock and reject edits overlapping any approved/paid employee payslip (both original and proposed validity intervals). Future salary/allowance changes require new effective-dated entries; booked historic payroll must use independent adjustments.
+- HR-WPS-2: Bank review CSV cannot default to EGP when tenant currency is missing and cannot export 2-decimal KWD/OMR data. Audit events clearly label it an un-certified REVIEW CSV rather than falsely claiming an official WPS/SIF export.
+- Both safeguards are code-reviewed only; no test/build/typecheck/guards executed. Historical salary amendment UX and statutorily verified WPS formats remain pending.
+
+- HR-PAY-26: Employee-adjustment create/delete must serialize against payroll materialization, validate positive amounts and tenant ownership, and delete only still-pending rows under a row lock.
+- HR-PAY-27: Prospective closing of an already-accrued open-ended contract is allowed when its original wage, identity and start date remain unchanged and its new end date falls after the most recent posted pay period. Historical rewrites remain rejected.
+- Authored changes on HR branch only; tests/build/typecheck/guards NOT executed.
+
+- HR-UI-28 (24 October follow-up): Statutory jurisdiction/date/source review stays visible when tax and insurance are disabled, since payroll approval now mandates a reviewed jurisdiction even for exemptions. The insured "earned_base" UI label reflects all earned compensation net of unpaid time, not merely base salary.
+- Country-specific legal rules and certified WPS files remain release-blocked; see HR_PAYROLL_STATUTORY_RELEASE_MATRIX.md for official sources and unresolved decisions.
+
+- HR-SEC-4: A compensation package's optional contract foreign key must refer to a contract of the SAME employee and tenant. Prevents cross-tenant foreign-key linking despite tenant-scoped package CRUD.
+- HR-WPS-3: Review export UI no longer invents EGP when tenant currency is temporarily unavailable. CSV filename and heading explicitly say review-only, not bank-accepted WPS.
+- Code-only review; no test/build/typecheck/guard executions.
+
+- HR-LOAN-NEW-1 (24 October): Loan installments now use a production cent-exact bounded pure schedule and month-end clamping; prevent 0/negative installments, whole-unit rounding errors and invalid month transitions. Regression tests authored, not run.
+
+- HR-LOAN-NEW-2: Editing drafts now rechecks and locks the loan status within the installment rewrite transaction. Prevents updating an approved loan after stale pre-transaction status check. Loan's employee owner stays immutable. Approval checks RETURNING row count for concurrent conflicts; the create ceiling serializes via employee FOR UPDATE, and disbursement/repayment joins tenant-scope the employee. Test execution still deferred.
+
+- HR-PAY-REENTRY-1: Eligibility changes automatically re-include previously system-excluded payroll employees upon draft/review rebuild; manager-excluded employees remain excluded via explicit provenance marker. Regression tests authored, not executed.
+
+- HR-PAY-CARRY-1: Approval fails closed whenever an included employee has positive `carried_forward_deduction` (non-loan deferred operational deduction), because that numeric field and note are not a persisted debt or automatic next-run repayment. Loan installment deferral remains tracked in loan schedules. Future legally reviewed receivable/carry-forward subledger is needed for fully automated multi-period deductions. No tests run.
+
+- HR-SEC-PRINT-1: Payroll print HTML now escapes employee names/codes and all variable text interpolated into document.write. Deferred operational deductions no longer misleadingly claim automatic forwarding; the corresponding approval remains blocked. Removed unused variables from loan date helper. Tests NOT run.
+
+- HR-PAY-BANK-1: Bank salary payment now requires a nonblank transaction reference in both validated backend and payroll payment UI, retained in the immutable paid run; cash payments do not require a fictitious bank reference. Recording a reference does not mean integration with bank confirmation. Pure regression assertions authored, not executed.
+
+- HR-LOAN-NEW-3: Manual employee loan repayments require positive cent-exact values and full reconciliation between the repayment and paid installments; no treasury cash posting or employee loan ledger is allowed if an unmatched remainder persists. Legacy inconsistent installment histories are intentionally blocked for manual correction. Tests authored, not executed.
+
+- HR-LOAN-NEW-4: A loan's legal/tenant configured exposure ceiling is revalidated atomically at approval, not only draft creation. Approvals of separate drafts lock the same employee row, re-read live outstanding approved/disbursed loans and effective current salary, and refuse exceeding the ceiling. Maker-checker and draft status check run within the locked transaction. Code-reviewed, tests not executed.
+
+- HR-LEAVE-SQL-1: PostgreSQL requires LIMIT before FOR UPDATE. Fixed both admin leave approval/cancellation status-lock queries; old ordering caused approval/cancel to fail before balance mutation. Further concurrent rejection hardening follows.
+
+- HR-LEAVE-RACE-1: Leave approval/rejection/cancellation now acquire the tenant payroll transaction lock before leave row status decisions. Reject rechecks status under FOR UPDATE in one transaction instead of a stale independent SELECT and unguarded UPDATE; prevents approved leave being overwritten as rejected while used leave balance stays debited. No tests run.
+
+- HR-ATT-LOCK-1: Admin bulk attendance, individual punch edit and import acquire the payroll-tenant advisory lock. Attendance-exception approval/skipping now locks its row in the same transaction, checks that the affected work day is not already part of approved/paid payroll, and validates finite nonnegative approved minutes bounded by the actual exception duration. This prevents retroactive alteration of approved payroll attendance exceptions. Mobile/other attendance write paths still require independent audit; no tests run.
+
+- HR-ATT-MOBILE-1: Mobile attendance punch now uses an employee-row-locked transaction covering the read/check/insert-or-update path; eliminates duplicate tap races and maintains active-employee tenant scope. It refuses punch edits on days included in approved/paid payroll and rejects nonfinite/out-of-range GPS coordinates. It does NOT tenant-serialize ordinary peak-time mobile punches; explicit payroll-period concurrency integration still needs tests.
+
+- HR-ATT-POSTED-1: Admin attendance day upsert, punch edits and bulk imports explicitly reject changes to dates included in an approved/paid employee payroll line, under the tenant payroll transaction lock. Prevents retroactive attendance edits from silently contradicting accrued journal entries and immutable payslips. The mobile punch transaction formatting is normalized. No tests run.
+
+- HR-LEAVE-POSTED-1: Approved leave changes and approvals overlapping an employee's posted/paid payroll are blocked under the tenant payroll lock; historic posted wage/absence calculations and leave counters remain immutable. A separately approved financial adjustment is required for historical corrections.
+
+- HR-ATT-TENANT-1: Bulk attendance save validates all employee IDs against the authenticated tenant and active employee status in a single preflight query. Duplicate employee rows are rejected rather than silently last-write-wins. The tenant payroll transaction lock protects the check and subsequent mutations.
+
+- HR-LEAVE-EMPLOYMENT-1: Both admin and employee-portal leave creation validate leave dates against the same tenant-scoped employee's hire date and end-of-service date under employee row lock. Disallows approvals/deduction days outside service employment periods, including future days beyond termination. No tests run.
+
+- HR-PORTAL-ADV-1: Employee portal advance requests now validate cent-accurate positive principal and an integer bounded repayment schedule. The draft loan and full canonical loan-installment rows are atomically inserted and tenant/active-employee verified; unique loan document numbers use inserted ID. The previous portal route created NO installments, rounded an installment without reconciliation, and used a collision-prone six-digit timestamp identifier. Tests not run.
+
+- HR-EOS-LOAN-5: End-of-service posting rechecks that each employee loan principal deduction was FULLY distributed to actual loan-installment rows; rejects any remainder inside the same transaction, rolling back loan statuses, employee settlement, journal, and treasury entries instead of silently writing off installments. Code reviewed, tests not executed.
+
+- HR-EOS-PAYROLL-1: EOS posting with positive manually recorded unpaid salary is blocked if the same employee already has an approved/paid payslip covering the termination date. Prevents double-recording wages from an old EOS draft that was calculated before payroll finalized; requires reconciliation and fresh settlement instead. Runtime tests not executed.
+
+- HR-PORTAL-ADV-2: Portal advance issuance and first installment dates now use the company's configured local calendar day via shared tenant-timezone utility, rather than UTC date which can be yesterday for Egypt/GCC around midnight. Tests not run.
+
+- HR-EOS-CONTRACT-1: EOS gratuity/leave valuation must use a salary contract actually effective ON the termination date; do not silently pick a contract that started before termination but already ended years earlier, or fall back to an unrelated employee profile field. Missing effective contracts fail closed for HR review. Code-only, tests not executed.
+
+- HR-LOAN-29 (25 October 2026): Every admin loan mutation (create, draft update, approve, disburse, manual repay) obtains the tenant payroll advisory transaction lock before any employee/loan row lock. This serializes salary loan-deduction previews and accrual settlement with disbursement/manual repayment and prevents replaying stale balances or deadlocking on mixed loan/installment lock order. No tests were run under the pending user test authorization.
+
+- HR-LOAN-30 (25 October 2026): Loan deduction preview and locked payroll settlement both require that the loan was actually disbursed on or before the payroll end date. Quick cash advances use the same tenant payroll advisory lock and employee row lock; only impacted, not historic, draft/review runs are recalculated.
+- HR-LOAN-31: Non-administrator loan creators cannot bypass maker-checker using autoDisburse. Salary ceiling lookups use date-effective contracts rather than an unordered historic/future active contract; quick advances use the tenant-local date.
+- Changes committed without executing tests/build/typecheck/guards, per user instruction.
+
+- HR-PAY-32 (25 October 2026): Employee day/hour adjustments are valued at the exact effective salary contract on the adjustment date, not an average from the payroll period; valid money adjustments remain fixed. Backdated time-unit adjustments outside the payroll period block with an explicit reconciliation error rather than using a fabricated rate. Synthetic regression tests added but not executed.
+
+- HR-SEC-33 (25 October 2026): Full employee financial statement requires a salary/payroll permission at controller and service, instead of broadly allowing employee or loan-only permissions. Standalone loan/ledger routes remain independent.
+- HR-PAY-34: Current base wage in statement resolves the contract valid on the tenant-local date. Posted payslips remain persisted snapshots.
+- Tests, Build, Typecheck and guards were not executed.
+
+- HR-EOS-35 (25 October 2026): Final EOS posting acquires the tenant-wide payroll advisory transaction lock BEFORE settlement and loan rows, preventing salary accrual/manual loan repayment/EOS deadlocks and double deduction. Posted EOS journals cannot use a draft that predates any changed employee contracts or leave requests; future active contracts after termination must be addressed first. The contract end-date write excludes future-starting contracts. User-authorized runtime regression tests remain pending.
+
 ### Accounting ledger hardening (October 2026)
 
 ARCH02 local implementation and unexecuted acceptance work are tracked in [the ARCH02 closure register](docs/audits/ARCH02_FIX_STATUS_2026-10-24.md). Its implementation status is not evidence that tests, migrations, builds, or environment checks passed.

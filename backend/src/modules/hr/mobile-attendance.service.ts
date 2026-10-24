@@ -401,7 +401,8 @@ export class MobileAttendanceService {
     const lat = Number(payload.latitude);
     const lng = Number(payload.longitude);
 
-    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0 || lng === 0
+      || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
       throw new AppError('إحداثيات الـ GPS غير صالحة، يرجى تفعيل الموقع الجغرافي بالهاتف', 'GPS_REQUIRED', 400);
     }
 
@@ -440,7 +441,32 @@ export class MobileAttendanceService {
     const today = todayTenantDate(tenantTimezone);
     const now = new Date();
 
-    const existing = await this.anyDb
+    return this.db.transaction().execute(async trx => {
+      // Locking the employee row ensures double mobile punches cannot both
+      // observe an empty attendance row before either inserts or checks out.
+      // Do not tenant-serialize all mobile punches at peak check-in time.
+      const employees = await sql<{ id: number; status: string }>`
+        SELECT id, status FROM hr_employees
+        WHERE id = ${user.employeeId} AND tenant_id = ${user.tenantId}
+        FOR UPDATE
+      `.execute(trx);
+      if (!employees.rows.length || employees.rows[0].status !== 'active') {
+        throw new AppError('ملف الموظف غير نشط أو غير تابع للمنشأة', 'HR_MOBILE_EMPLOYEE_INACTIVE', 403);
+      }
+      const closedPayroll = await sql<{ id: number }>`
+        SELECT r.id FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${user.tenantId} AND i.employee_id = ${user.employeeId}
+          AND i.status = 'approved' AND r.status IN ('approved', 'paid')
+          AND ${today}::date BETWEEN r.start_date AND r.end_date
+        LIMIT 1
+      `.execute(trx);
+      if (closedPayroll.rows.length) {
+        throw new AppError('لا يمكن تعديل بصمة يوم أُغلقت رواتبه؛ اطلب تسوية إدارية',
+          'HR_MOBILE_ATTENDANCE_APPROVED_PAYROLL', 409);
+      }
+      const db: any = trx;
+    const existing = await db
       .selectFrom('hr_attendance_records')
       .selectAll()
       .where('employee_id', '=', user.employeeId)
@@ -458,7 +484,7 @@ export class MobileAttendanceService {
       }
 
       if (existing) {
-        await this.anyDb
+        await db
           .updateTable('hr_attendance_records')
           .set({
             status: 'present',
@@ -477,7 +503,7 @@ export class MobileAttendanceService {
           .where('tenant_id', '=', user.tenantId)
           .execute();
       } else {
-        await this.anyDb
+        await db
           .insertInto('hr_attendance_records')
           .values({
             employee_id: user.employeeId,
@@ -520,7 +546,7 @@ export class MobileAttendanceService {
         );
       }
 
-      await this.anyDb
+      await db
         .updateTable('hr_attendance_records')
         .set({
           check_out_at: now,
@@ -542,6 +568,7 @@ export class MobileAttendanceService {
         message: 'تم تسجيل انصرافك بنجاح. يوم سعيد! ✓',
       };
     }
+    });
   }
 
   /**

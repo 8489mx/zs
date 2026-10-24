@@ -542,7 +542,7 @@ export class HrController {
   }
 
   @Get('employees/:id/financial-statement')
-  @RequireAnyPermission('hrLoans', 'hrPayrollView', 'hrSalaryView', 'hrEmployees')
+  @RequireAnyPermission('hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove', 'hrSalaryView', 'hrSalaryManage')
   getEmployeeFinancialStatement(
     @Param('id', ParseIntPipe) id: number,
     @Query() query: Record<string, unknown>,

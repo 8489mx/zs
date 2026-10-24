@@ -162,6 +162,44 @@ export function calculateEffectiveCompensationPay(
   return { allowance: Number(allowance.toFixed(2)), deduction: Number(deduction.toFixed(2)) };
 }
 
+/** Converts a dated day/hour adjustment using the salary contract actually
+ * effective on that date. Backdated time-unit items outside this payroll
+ * period need an explicit reviewed monetary amount, not a guessed blended rate.
+ */
+export function calculateDatedPayrollAdjustment(params: {
+  amount: number;
+  amountType: 'money' | 'days' | 'hours';
+  date: string;
+  period: { from: string; to: string };
+  contracts: EffectiveSalaryContract[];
+  isHourly: boolean;
+  hourlyRate: number;
+  expectedDailyHours: number;
+}): number {
+  const { amount, amountType, date, period, contracts, isHourly, hourlyRate, expectedDailyHours } = params;
+  if (!Number.isFinite(amount) || amount <= 0) throw new RangeError('Invalid employee adjustment amount');
+  if (amountType === 'money') return Number(amount.toFixed(2));
+  if (amountType !== 'days' && amountType !== 'hours') throw new RangeError('Invalid employee adjustment unit');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < period.from || date > period.to) {
+    throw new RangeError('Time-unit adjustment date must be inside this payroll period');
+  }
+  if (!Number.isFinite(expectedDailyHours) || expectedDailyHours <= 0 || expectedDailyHours > 24) {
+    throw new RangeError('Invalid employee daily hours');
+  }
+  let dailyWage: number;
+  if (isHourly) {
+    if (!Number.isFinite(hourlyRate) || hourlyRate <= 0) throw new RangeError('Invalid hourly salary');
+    dailyWage = hourlyRate * expectedDailyHours;
+  } else {
+    const effective = contracts.filter(c => c.startDate <= date && (!c.endDate || c.endDate >= date));
+    if (effective.length !== 1 || !Number.isFinite(effective[0].baseSalary) || effective[0].baseSalary <= 0) {
+      throw new RangeError('Adjustment date must match exactly one salary contract');
+    }
+    dailyWage = effective[0].baseSalary / 30;
+  }
+  return Number((amount * (amountType === 'hours' ? dailyWage / expectedDailyHours : dailyWage)).toFixed(2));
+}
+
 export interface ApprovedOvertimeDay {
   date: string;
   minutes: number;

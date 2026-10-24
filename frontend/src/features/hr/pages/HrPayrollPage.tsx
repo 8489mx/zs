@@ -18,6 +18,7 @@ import {
   employeeMatches,
   itemNeedsReview,
   money,
+  payrollPrintHtmlText,
   normalize,
   statusLabel,
   text,
@@ -74,6 +75,7 @@ export function HrPayrollPage() {
   const [showPayRun, setShowPayRun] = useState(false);
   const [showWpsModal, setShowWpsModal] = useState(false);
   const [payChannel, setPayChannel] = useState<'cash' | 'bank'>('cash');
+  const [paymentReference, setPaymentReference] = useState('');
 
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
   const payrollRunDetails = useHrPayrollRun(selectedRunId || undefined);
@@ -367,8 +369,17 @@ export function HrPayrollPage() {
     if (!selectedRunId) return;
     try {
       setFormError('');
-      await mutations.payPayrollRun?.mutateAsync({ id: selectedRunId, payload: { paymentChannel: payChannel } });
+      const transferRef = paymentReference.trim();
+      if (payChannel === 'bank' && !transferRef) {
+        setFormError('المرجع الفعلي للتحويل البنكي مطلوب قبل تسجيل الصرف.');
+        return;
+      }
+      await mutations.payPayrollRun?.mutateAsync({
+        id: selectedRunId,
+        payload: { paymentChannel: payChannel, paymentReference: payChannel === 'bank' ? transferRef : undefined },
+      });
       setShowPayRun(false);
+      setPaymentReference('');
       toast.success('تم تسجيل صرف المرتبات بنجاح.');
     } catch (err) {
       setFormError(getErrorMessage(err));
@@ -406,7 +417,7 @@ export function HrPayrollPage() {
     printWindow.document.write(`
       <html dir="rtl" lang="ar">
         <head>
-          <title>كشف تسليم الرواتب - ${text(selectedRun?.periodMonth)}</title>
+          <title>كشف تسليم الرواتب - ${payrollPrintHtmlText(text(selectedRun?.periodMonth))}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
             @page { size: A4 portrait; margin: 10mm 12mm; }
@@ -437,7 +448,7 @@ export function HrPayrollPage() {
             </div>
             <div class="header-center">
               <h1>كشف تسليم الرواتب</h1>
-              <p>خاص بشهر: ${text(selectedRun?.periodMonth)} | الحالة: ${statusLabel(selectedRun?.status)}</p>
+              <p>خاص بشهر: ${payrollPrintHtmlText(text(selectedRun?.periodMonth))} | الحالة: ${payrollPrintHtmlText(statusLabel(selectedRun?.status))}</p>
             </div>
             <div class="header-meta" style="text-align: left;">
               <span style="color: #475569; font-size: 10.5px;">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</span><br>
@@ -458,15 +469,15 @@ export function HrPayrollPage() {
               ${filteredRunItems.map((row, index) => `
                 <tr>
                   <td style="text-align: center; color: #64748b; white-space: nowrap;">${index + 1}</td>
-                  <td style="text-align: center; color: #64748b; white-space: nowrap;">${text(row.employeeNo)}</td>
-                  <td style="font-weight: 600; white-space: nowrap;">${text(row.employeeName)}</td>
-                  <td class="amount" style="text-align: center;">${money(row.netPay)}</td>
+                  <td style="text-align: center; color: #64748b; white-space: nowrap;">${payrollPrintHtmlText(text(row.employeeNo))}</td>
+                  <td style="font-weight: 600; white-space: nowrap;">${payrollPrintHtmlText(text(row.employeeName))}</td>
+                  <td class="amount" style="text-align: center;">${payrollPrintHtmlText(money(row.netPay))}</td>
                   <td></td>
                 </tr>
               `).join('')}
               <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 12.5px;">
                 <td colspan="3" style="text-align: left; padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; white-space: nowrap;">إجمالي الرواتب المستحقة:</td>
-                <td class="amount" style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 13px; text-align: center;">${money(summary.totalNet)}</td>
+                <td class="amount" style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 13px; text-align: center;">${payrollPrintHtmlText(money(summary.totalNet))}</td>
                 <td style="border: 1px solid #cbd5e1; background-color: #f8fafc;"></td>
               </tr>
             </tbody>
@@ -862,6 +873,8 @@ export function HrPayrollPage() {
         selectedRun={selectedRun}
         payChannel={payChannel}
         onPayChannelChange={setPayChannel}
+        paymentReference={paymentReference}
+        onPaymentReferenceChange={setPaymentReference}
         onSubmit={handlePayRun}
         isPending={mutations.payPayrollRun?.isPending ?? false}
         canApprovePayroll={canApprovePayroll}

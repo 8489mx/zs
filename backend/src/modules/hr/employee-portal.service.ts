@@ -3,6 +3,9 @@ import { Kysely, sql } from '../../database/kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
+import { calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
+import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { getTenantTimezone, todayTenantDate } from '../../common/utils/tenant-timezone.util';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import {
@@ -695,12 +698,19 @@ export class EmployeePortalService {
     // Shared employee lock serializes portal and HR-created requests for the
     // same employee, eliminating concurrent overlapping annual leave requests.
     const inserted = await this.db.transaction().execute(async (trx) => {
-      const employee = await sql<{ id: number }>`
-        SELECT id FROM hr_employees
+      const employee = await sql<{ id: number; hire_date: string | null; end_date: string | null }>`
+        SELECT id, to_char(hire_date, 'YYYY-MM-DD') AS hire_date,
+               to_char(end_of_service_date, 'YYYY-MM-DD') AS end_date
+        FROM hr_employees
         WHERE id = ${employeeId} AND tenant_id = ${tenantId} AND status = 'active'
         FOR UPDATE
       `.execute(trx);
-      if (!employee.rows.length) throw new AppError('الموظف غير نشط', 'EMPLOYEE_INACTIVE', 403);
+      const employeeService = employee.rows[0];
+      if (!employeeService) throw new AppError('الموظف غير نشط', 'EMPLOYEE_INACTIVE', 403);
+      if ((employeeService.hire_date && start < employeeService.hire_date)
+        || (employeeService.end_date && end > employeeService.end_date)) {
+        throw new AppError('تاريخ الإجازة يجب أن يقع داخل مدة خدمة الموظف', 'LEAVE_OUTSIDE_EMPLOYMENT', 400);
+      }
       const leaveType = await sql<{ id: number }>`
         SELECT id FROM hr_leave_types
         WHERE id = ${leaveTypeId} AND tenant_id = ${tenantId} AND is_active = TRUE
@@ -794,41 +804,67 @@ export class EmployeePortalService {
     accountId: string,
     body: { amount: number; reason: string; repaymentMonths?: number },
   ) {
-    const amount = Number(body.amount);
-    if (!amount || amount <= 0) {
-      throw new AppError('قيمة السلفة المطلوبة يجب أن تكون أكبر من الصفر', 'INVALID_AMOUNT', 400);
+    let amount: number;
+    let schedule: ReturnType<typeof calculateLoanInstallmentSchedule>;
+    try {
+      amount = requireTwoDecimalLoanMoney(Number(body.amount));
+      const count = body.repaymentMonths == null ? 1 : Number(body.repaymentMonths);
+      schedule = calculateLoanInstallmentSchedule(amount, count);
+    } catch (error) {
+      throw new AppError(error instanceof Error ? error.message : 'مبلغ السلفة أو عدد الأقساط غير صحيح',
+        'HR_PORTAL_ADVANCE_INVALID', 400);
     }
-
-    const months = Math.max(1, Number(body.repaymentMonths || 1));
-    const installmentAmount = Math.round((amount / months) * 100) / 100;
-    const today = new Date().toISOString().slice(0, 10);
-
-    const inserted = await this.anyDb
-      .insertInto('hr_employee_loans')
-      .values({
-        employee_id: employeeId,
-        tenant_id: tenantId,
-        account_id: accountId,
-        loan_no: `ADV-REQ-${Date.now().toString().slice(-6)}`,
-        loan_type: 'advance',
-        principal_amount: amount,
-        paid_amount: 0,
-        remaining_amount: amount,
-        installment_count: months,
-        installment_amount: installmentAmount,
-        status: 'draft',
-        issue_date: today,
-        notes: `طلب سلفة من الموظف: ${body.reason || 'بدون تفاصيل'} (سداد على ${months} شهر)`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .returningAll()
-      .executeTakeFirst();
-
+    const today = todayTenantDate(await getTenantTimezone(this.db, tenantId));
+    const due = addLoanInstallmentMonths(today, 1);
+    const loan = await this.db.transaction().execute(async trx => {
+      // A portal draft must generate an installment plan just like an HR-created
+      // loan. Without these rows its salary deductions can never be allocated.
+      const emp = await sql<{ id: number; status: string }>`
+        SELECT id, status FROM hr_employees
+        WHERE id = ${employeeId} AND tenant_id = ${tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!emp.rows.length || emp.rows[0].status !== 'active') {
+        throw new AppError('لا يمكن طلب سلفة لموظف غير نشط', 'HR_PORTAL_ADVANCE_EMPLOYEE_INACTIVE', 403);
+      }
+      const inserted = await sql<{ id: number }>`
+        INSERT INTO hr_employee_loans
+          (tenant_id, account_id, employee_id, loan_no, loan_type,
+           principal_amount, paid_amount, remaining_amount, installment_count,
+           installment_amount, repayment_mode, monthly_installment_amount,
+           status, issue_date, first_due_date, salary_due_date, notes)
+        VALUES
+          (${tenantId}, ${accountId}, ${employeeId},
+           ${`ADV-REQ-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`}, 'advance',
+           ${amount}, 0, ${amount}, ${schedule.installmentCount},
+           ${schedule.installmentAmount}, 'monthly_salary_installment', ${schedule.installmentAmount},
+           'draft', ${today}::date, ${due}::date, ${due}::date,
+           ${'طلب سلفة من الموظف: ' + String(body.reason || 'بدون تفاصيل').slice(0, 600)})
+        RETURNING id
+      `.execute(trx);
+      const loanId = Number(inserted.rows[0]?.id || 0);
+      if (!Number.isSafeInteger(loanId) || loanId <= 0) throw new Error('Failed to create portal advance');
+      const no = formatDailyDocumentNumber('LOAN', loanId);
+      await sql`
+        UPDATE hr_employee_loans SET loan_no = ${no}
+        WHERE id = ${loanId} AND tenant_id = ${tenantId}
+      `.execute(trx);
+      for (let i = 0; i < schedule.installmentValues.length; i += 1) {
+        const dueDate = addLoanInstallmentMonths(due, i);
+        await sql`
+          INSERT INTO hr_employee_loan_installments
+            (tenant_id, account_id, loan_id, installment_no, due_date, amount)
+          VALUES (${tenantId}, ${accountId}, ${loanId}, ${i + 1},
+                  ${dueDate}::date, ${schedule.installmentValues[i]})
+        `.execute(trx);
+      }
+      return { id: loanId, loan_no: no, principal_amount: amount,
+        installment_count: schedule.installmentCount, installment_amount: schedule.installmentAmount,
+        repayment_mode: 'monthly_salary_installment', status: 'draft' };
+    });
     return {
       success: true,
-      message: 'تم تسجيل طلب السلفة بنجاح وهو قيد المراجعة والاعتماد من الحسابات والإدارة',
-      advance: inserted,
+      message: 'تم تسجيل طلب السلفة وجدول أقساطه وهو قيد مراجعة الحسابات والإدارة',
+      advance: loan,
     };
   }
 }

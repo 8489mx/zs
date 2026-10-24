@@ -95,6 +95,26 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
   });
 }
 
+/** Preserve the distinction between system and user exclusions on rebuild. */
+export const AUTO_PAYROLL_EXCLUSION_NOTE = 'استبعاد آلي: الموظف غير مستحق في فترة المسير';
+export const MANUAL_PAYROLL_EXCLUSION_NOTE = 'استبعاد يدوي من مسؤول المرتبات';
+export function canReincludeAutoExcludedPayrollItem(status: string, notes: string): boolean {
+  return status === 'excluded' && notes.includes(AUTO_PAYROLL_EXCLUSION_NOTE)
+    && !notes.includes(MANUAL_PAYROLL_EXCLUSION_NOTE);
+}
+
+/** A paid bank payroll must retain a bank-supplied traceable reference.
+ * This checks audit completeness, not settlement confirmation from the bank.
+ */
+export function requireBankPayrollPaymentReference(channel: string, reference?: string | null): string {
+  if (!['cash', 'bank'].includes(channel)) throw new RangeError('Invalid payroll payment channel');
+  const ref = String(reference || '').trim();
+  if (channel === 'bank' && (!ref || ref.length > 160)) {
+    throw new RangeError('رقم مرجع التحويل البنكي مطلوب قبل تسجيل المرتبات كمدفوعة');
+  }
+  return ref;
+}
+
 // Payroll line storage and GL posting currently round to 2 decimals.
 // KWD and OMR are 3-decimal currencies; accepting them here would silently
 // lose fils/baisa. Extend ALL posting/storage paths before enabling them.

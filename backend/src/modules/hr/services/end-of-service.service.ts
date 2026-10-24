@@ -91,6 +91,12 @@ export class EndOfServiceService {
       .where('tenant_id', '=', tenantId)
       .where('status', 'in', ['active', 'ended'])
       .where('start_date', '<=', input.terminationDate as any)
+      // A historic contract that expired before termination is NOT a valid
+      // salary basis for an EOS gratuity or unused leave payout.
+      .where((eb: any) => eb.or([
+        eb('end_date', 'is', null),
+        eb('end_date', '>=', input.terminationDate as any),
+      ]))
       .orderBy('start_date', 'desc')
       .orderBy('id', 'desc')
       .executeTakeFirst();
@@ -105,9 +111,7 @@ export class EndOfServiceService {
       const other = Number(latestContract.other_allowances || 0);
       totalSalary = Number(latestContract.gross_salary || (basicSalary + housing + transport + other));
     } else {
-      const empAny = employee as any;
-      basicSalary = Number(empAny.base_salary || empAny.basic_salary || 0);
-      totalSalary = basicSalary;
+      throw new BadRequestException('لا يوجد عقد راتب صالح يغطي تاريخ إنهاء الخدمة؛ راجع العقد قبل تسعير المخالصة');
     }
 
     if (!Number.isFinite(totalSalary) || totalSalary <= 0 || !Number.isFinite(basicSalary) || basicSalary < 0) {
@@ -461,6 +465,9 @@ export class EndOfServiceService {
     const { tenantId } = requireTenantScope(auth);
 
     return await this.db.transaction().execute(async (trx) => {
+      // Use the same lock order as payroll approval, loan disbursement and
+      // manual repayments. An EOS journal may settle the very same loan.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const settlement = await (trx as any)
         .selectFrom('hr_end_of_service_settlements')
         .selectAll()
@@ -475,6 +482,58 @@ export class EndOfServiceService {
 
       if (settlement.journal_entry_id || settlement.status === 'posted') {
         throw new BadRequestException('تم ترحيل قيد هذه المخالصة مسبقاً برقم قيد مرتبط');
+      }
+
+      // EOS gratuity and annual-leave encashment were calculated from specific
+      // employment and leave records. Never post a stale draft after those
+      // underlying values change without recalculating the full settlement.
+      const changedFinancialBasis = await sql<{ contract_changed: boolean; leave_changed: boolean; future_contract: boolean }>`
+        SELECT
+          EXISTS (
+            SELECT 1 FROM hr_employment_contracts c
+            WHERE c.tenant_id = ${tenantId} AND c.employee_id = ${settlement.employee_id}
+              AND (c.created_at > ${settlement.created_at}::timestamp
+                OR c.updated_at > ${settlement.created_at}::timestamp)
+          ) AS contract_changed,
+          EXISTS (
+            SELECT 1 FROM hr_leave_requests lr
+            WHERE lr.tenant_id = ${tenantId} AND lr.employee_id = ${settlement.employee_id}
+              AND (lr.created_at > ${settlement.created_at}::timestamp
+                OR lr.updated_at > ${settlement.created_at}::timestamp)
+          ) AS leave_changed,
+          EXISTS (
+            SELECT 1 FROM hr_employment_contracts c
+            WHERE c.tenant_id = ${tenantId} AND c.employee_id = ${settlement.employee_id}
+              AND c.status = 'active' AND c.start_date > ${settlement.termination_date}::date
+          ) AS future_contract
+      `.execute(trx);
+      if (changedFinancialBasis.rows[0]?.contract_changed || changedFinancialBasis.rows[0]?.leave_changed) {
+        throw new BadRequestException('تغيرت عقود أو إجازات الموظف بعد إعداد المخالصة؛ احذف المسودة وأعد الحساب والمراجعة قبل الترحيل');
+      }
+      if (changedFinancialBasis.rows[0]?.future_contract) {
+        throw new BadRequestException('يوجد عقد نشط يبدأ بعد تاريخ إنهاء الخدمة؛ عالج العقود المستقبلية قبل ترحيل المخالصة');
+      }
+
+      // Payroll accrual can have occurred after the EOS draft was computed.
+      // If payroll already covers the termination date, a nonzero manually
+      // entered unpaid salary cannot also be posted as an EOS entitlement:
+      // require HR/accounting to reconcile the payroll and regenerate a draft.
+      if (Number(settlement.pending_salary_amount || 0) > 0) {
+        const overlappingPayroll = await sql<{ id: number }>`
+          SELECT r.id FROM hr_payroll_runs r
+          JOIN hr_payroll_run_items i
+            ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+          WHERE r.tenant_id = ${tenantId}
+            AND i.employee_id = ${settlement.employee_id}
+            AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+            AND ${settlement.termination_date}::date BETWEEN r.start_date AND r.end_date
+          LIMIT 1
+        `.execute(trx);
+        if (overlappingPayroll.rows.length) {
+          throw new BadRequestException(
+            'الراتب المتأخر في المخالصة يتداخل مع مسير مرتبات معتمد؛ راجع المبالغ وأعد إنشاء المخالصة لمنع ازدواج الصرف',
+          );
+        }
       }
 
       // Custody clearance gate: If employee has unreturned assets, custody must be cleared or deducted
@@ -575,6 +634,14 @@ export class EndOfServiceService {
 
             remainingInstallmentDeduction = Number((remainingInstallmentDeduction - applied).toFixed(2));
           }
+          // Loan principal, detailed installments and EOS GL have to reconcile
+          // in the same transaction. Historic missing installments must not
+          // silently disappear from the employee repayment subledger.
+          if (remainingInstallmentDeduction > 0.005) {
+            throw new BadRequestException(
+              'أقساط السلفة لا تغطي كامل الخصم من المخالصة؛ أصلح جدول الأقساط قبل الترحيل',
+            );
+          }
 
           // Record in hr_employee_ledger
           await sql`
@@ -610,7 +677,8 @@ export class EndOfServiceService {
         SET status = 'ended',
             end_date = ${settlement.termination_date},
             updated_at = NOW()
-        WHERE employee_id = ${settlement.employee_id} AND tenant_id = ${tenantId} AND status = 'active'
+        WHERE employee_id = ${settlement.employee_id} AND tenant_id = ${tenantId}
+          AND status = 'active' AND start_date <= ${settlement.termination_date}::date
       `.execute(trx);
       // Update settlement record
       await (trx as any)

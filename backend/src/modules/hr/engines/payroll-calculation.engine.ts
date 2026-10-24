@@ -327,7 +327,7 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
 
   const carriedForwardDeduction = toMoney(deferredAttendance + deferredLeave + deferredAsset + deferredOther);
   if (carriedForwardDeduction > 0) {
-    notes.push(`تم ترحيل ${carriedForwardDeduction} من الجزاءات والاستقطاعات للشهر القادم لبلوغ سقف الخصم القانوني`);
+    notes.push(`استقطاع مؤجل بقيمة ${carriedForwardDeduction} يحتاج تسوية موثقة قبل اعتماد المسير؛ لم يُرحّل تلقائيًا`);
   }
 
   const totalDeductions = toMoney(

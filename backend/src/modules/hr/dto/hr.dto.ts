@@ -708,6 +708,7 @@ export class CreateEmployeeAdjustmentDto {
 
   @Type(() => Number)
   @IsNumber()
+  @Min(0.01)
   amount!: number;
 
   @IsDateString()

@@ -49,6 +49,48 @@ export function calculatePayrollLoanDueTotal(rows: Array<{
   return dueCents / 100;
 }
 
+/** Clamp due dates to target month's last calendar day (31 Jan -> 28/29 Feb). */
+export function addLoanInstallmentMonths(dateOnly: string, offset: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateOnly);
+  if (!match || !Number.isSafeInteger(offset) || Math.abs(offset) > 6000) throw new RangeError('Invalid installment date');
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  const original = new Date(Date.UTC(year, month - 1, day));
+  if (original.toISOString().slice(0, 10) !== dateOnly) throw new RangeError('Invalid calendar date');
+  const target = new Date(Date.UTC(year, month - 1 + offset, 1));
+  const maxDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), Math.min(day, maxDay))).toISOString().slice(0, 10);
+}
+
+/** Persisted manual loan money must use the same two-decimal units as the GL. */
+export function requireTwoDecimalLoanMoney(value: number): number {
+  const cents = Math.round(value * 100);
+  if (!Number.isFinite(value) || value <= 0 || !Number.isSafeInteger(cents)
+    || Math.abs(value - cents / 100) > 0.000001) {
+    throw new RangeError('Loan repayment requires a positive two-decimal monetary amount');
+  }
+  return cents / 100;
+}
+
+/** Strictly positive, bounded, cent-accurate installments with exact principal reconciliation. */
+export function calculateLoanInstallmentSchedule(principal: number, countRequested: number, monthly?: number) {
+  const total = Math.round(principal * 100);
+  if (!Number.isFinite(principal) || principal <= 0 || !Number.isSafeInteger(total)
+      || Math.abs(principal - total / 100) > 0.000001) throw new RangeError('Loan principal requires two decimal places');
+  const installment = monthly === undefined ? 0 : Math.round(monthly * 100);
+  if (monthly !== undefined && (!Number.isFinite(monthly) || monthly <= 0
+      || !Number.isSafeInteger(installment) || Math.abs(monthly - installment / 100) > 0.000001)) {
+    throw new RangeError('Monthly installment requires two decimal places');
+  }
+  const count = monthly === undefined ? countRequested : Math.ceil(total / Math.min(total, installment));
+  if (!Number.isSafeInteger(count) || count < 1 || count > 360 || count > total) {
+    throw new RangeError('Invalid installment count (maximum 360 and at least one cent each)');
+  }
+  const per = monthly === undefined ? Math.floor(total / count) : Math.min(total, installment);
+  const values = Array.from({length: count}, (_, i) => (i === count - 1 ? total - per * (count - 1) : per) / 100);
+  if (values.some(x => x <= 0)) throw new RangeError('Invalid non-positive installment');
+  return { installmentCount: count, installmentAmount: per / 100, installmentValues: values };
+}
+
 export type LoanAllocationInput = {
   /** ما تبقى من مبلغ خصم الراتب الذي لم يوزَّع بعد */
   remainingToDeduct: number;
