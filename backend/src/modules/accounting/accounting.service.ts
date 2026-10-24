@@ -24,6 +24,7 @@ import {
 import { AccountingTenantFoundationService } from './accounting-tenant-foundation.service';
 import { AccountingPostingService } from './accounting-posting.service';
 import { lockAccountingPeriod } from './accounting-period-lock';
+import { accountingDateKey, assertTaxPeriodOpen } from './accounting-tax-lock';
 import { calculateAssetDepreciation, validateFixedAssetTerms } from './engines/fixed-asset-depreciation.engine';
 import { randomUUID } from 'node:crypto';
 
@@ -85,7 +86,7 @@ export class AccountingService {
   }
 
   private toMoney(value: unknown): number {
-    const amount = Number(value || 0);
+    const amount = Number(value ?? 0);
     if (!Number.isFinite(amount)) throw new BadRequestException('قيمة القيد يجب أن تكون رقمًا صالحًا.');
     return Number(amount.toFixed(2));
   }
@@ -662,6 +663,7 @@ export class AccountingService {
         'l.partner_id',
         'l.branch_id',
         'l.location_id',
+        'l.is_reconciled',
         'a.code as account_code',
         'a.name_ar as account_name_ar',
         'a.name_en as account_name_en',
@@ -683,6 +685,9 @@ export class AccountingService {
         sourceType: entry.source_type || 'manual',
         sourceId: entry.source_id ? String(entry.source_id) : '',
         status: entry.status,
+        canReverse: entry.status === 'posted' && entry.source_type === 'manual' &&
+          !entry.reversal_of_entry_id && !entry.reversed_by_entry_id &&
+          !lines.some((line: { is_reconciled: boolean }) => line.is_reconciled),
         branchId: entry.branch_id ? String(entry.branch_id) : '',
         locationId: entry.location_id ? String(entry.location_id) : '',
         createdBy: entry.created_by ? String(entry.created_by) : '',
@@ -734,12 +739,12 @@ export class AccountingService {
       .where('id', '=', 1)
       .executeTakeFirst();
 
-    const dateStr = typeof entryDate === 'string' ? entryDate.slice(0, 10) : entryDate.toISOString().slice(0, 10);
+    const dateStr = accountingDateKey(entryDate);
 
     if (settings) {
       // 1. Hard lock (All users)
       if (settings.lock_date_all) {
-        const lockAllStr = String(settings.lock_date_all).slice(0, 10);
+        const lockAllStr = accountingDateKey(settings.lock_date_all);
         if (dateStr <= lockAllStr) {
           throw new BadRequestException(
             `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن إضافة أو تعديل قيود في فترة مغلقة.`
@@ -749,7 +754,7 @@ export class AccountingService {
 
       // 2. Operational lock (Non-advisers)
       if (settings.lock_date_non_adviser) {
-        const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
+        const lockNonAdvStr = accountingDateKey(settings.lock_date_non_adviser);
         const isAdviser = options?.auth?.role === 'admin' || options?.auth?.role === 'super_admin';
         if (!isAdviser && dateStr <= lockNonAdvStr) {
           throw new BadRequestException(
@@ -760,7 +765,7 @@ export class AccountingService {
 
       // 3. Tax lock
       if (options?.isTaxOperation && settings.lock_date_tax) {
-        const lockTaxStr = String(settings.lock_date_tax).slice(0, 10);
+        const lockTaxStr = accountingDateKey(settings.lock_date_tax);
         if (dateStr <= lockTaxStr) {
           throw new BadRequestException(
             `الفترة الضريبية مقفلة حتى تاريخ ${lockTaxStr}. لا يمكن إجراء عمليات تؤثر على ضريبة هذه الفترة المغلقة.`
@@ -824,8 +829,12 @@ export class AccountingService {
       }
       accountIds.add(accId);
 
-      const debit = this.toMoney(line.debit || 0);
-      const credit = this.toMoney(line.credit || 0);
+      const debit = this.toMoney(line.debit ?? 0);
+      const credit = this.toMoney(line.credit ?? 0);
+
+      if (Number(line.debit) < 0 || Number(line.credit) < 0) {
+        throw new BadRequestException('مبالغ المدين والدائن يجب ألا تكون سالبة.');
+      }
 
       if (debit <= 0 && credit <= 0) {
         throw new BadRequestException('يجب تحديد مبلغ مدين أو دائن أكبر من الصفر لكل سطر.');
@@ -896,6 +905,7 @@ export class AccountingService {
     const writeJournal = async (trx: Kysely<Database>) => {
       await lockAccountingPeriod(trx, scope.tenantId);
       await this.assertNotInLockedPeriod(scope.tenantId, entryDate, { auth, queryable: trx });
+      await assertTaxPeriodOpen(trx, scope.tenantId, entryDate, validatedLines.map((line) => line.accountId));
       await this.assertJournalReferences(trx, scope.tenantId, validatedLines.map((line) => ({ ...line, branchId })));
       const lockedAccounts = await trx.selectFrom('accounting_accounts')
         .select(['id', 'code', 'name_ar', 'is_active', 'allow_manual_entries'])
@@ -1005,6 +1015,10 @@ export class AccountingService {
       throw new BadRequestException('تم عكس هذا القيد بالفعل مسبقاً');
     }
 
+    if (entry.source_type !== 'manual' || entry.reversal_of_entry_id) {
+      throw new BadRequestException('يجب إلغاء أو تسوية القيد الآلي من المستند الأصلي للحفاظ على المخزون وأرصدة الأطراف. العكس المباشر متاح للقيود اليدوية فقط.');
+    }
+
     const lines = await this.db
       .selectFrom('journal_entry_lines')
       .selectAll()
@@ -1027,7 +1041,7 @@ export class AccountingService {
       // entry would be reversed twice — doubling the reversal's effect on the ledger.
       const lockedEntry = await trx
         .selectFrom('journal_entries')
-        .select(['id', 'status', 'reversed_by_entry_id', 'entry_date'])
+        .selectAll()
         .where('id', '=', entryId)
         .where('tenant_id', '=', scope.tenantId)
         .forUpdate()
@@ -1036,13 +1050,18 @@ export class AccountingService {
       if (!lockedEntry) throw new NotFoundException('القيد اليومي غير موجود');
       if (lockedEntry.status !== 'posted') throw new BadRequestException('لا يمكن عكس قيد غير مرحل أو تم إلغاؤه مسبقاً');
       if (lockedEntry.reversed_by_entry_id) throw new BadRequestException('تم عكس هذا القيد بالفعل مسبقاً');
+      if (lockedEntry.source_type !== 'manual' || lockedEntry.reversal_of_entry_id) {
+        throw new BadRequestException('يجب تسوية القيد الآلي من المستند الأصلي.');
+      }
 
       const lockedLines = await trx
         .selectFrom('journal_entry_lines')
-        .select(['id', 'is_reconciled'])
+        .selectAll()
         .where('journal_entry_id', '=', entryId)
         .where('tenant_id', '=', scope.tenantId)
+        .orderBy('id', 'asc').forUpdate()
         .execute();
+      if (!lockedLines.length) throw new BadRequestException('لا توجد سطور في هذا القيد لعكسها');
       if (lockedLines.some((line: any) => Boolean(line.is_reconciled))) {
         throw new BadRequestException('لا يمكن عكس قيد يومي تمت تسوية أحد سطوره في التسوية البنكية.');
       }
@@ -1052,6 +1071,11 @@ export class AccountingService {
       const reversalDate = new Date();
       await this.assertNotInLockedPeriod(scope.tenantId, lockedEntry.entry_date, { auth, queryable: trx });
       await this.assertNotInLockedPeriod(scope.tenantId, reversalDate, { auth, queryable: trx });
+      await assertTaxPeriodOpen(trx, scope.tenantId, reversalDate, lockedLines.map((line) => Number(line.account_id)));
+      await trx.selectFrom('accounting_accounts').select('id')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', 'in', Array.from(new Set(lockedLines.map((line) => Number(line.account_id)))).sort((a, b) => a - b))
+        .orderBy('id', 'asc').forUpdate().execute();
 
       const tempEntryNo = `JE-TMP-${randomUUID()}`;
       const inserted = await trx
@@ -1086,7 +1110,7 @@ export class AccountingService {
         .execute();
 
       // Mirror lines: swap debit and credit
-      const reversalLines = lines.map((l) => ({
+      const reversalLines = lockedLines.map((l) => ({
         journal_entry_id: revId,
         tenant_id: scope.tenantId,
         account_id: l.account_id,
@@ -1766,6 +1790,7 @@ export class AccountingService {
     const inserted = await this.db.transaction().execute(async (trx) => {
       await lockAccountingPeriod(trx, scope.tenantId);
       await this.assertNotInLockedPeriod(scope.tenantId, input.entryDate ?? new Date(), { auth, queryable: trx });
+      await assertTaxPeriodOpen(trx, scope.tenantId, input.entryDate ?? new Date(), validation.lines.map((line) => line.accountId));
       await this.assertJournalReferences(trx, scope.tenantId, validation.lines.map((line) => ({
         ...line, branchId: line.branchId ?? input.branchId ?? null,
         locationId: line.locationId ?? input.locationId ?? null,

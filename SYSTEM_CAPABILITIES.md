@@ -8194,4 +8194,13 @@
   - `frontend/src/features/inventory/components/InventoryWorkspace.tsx`
   - `frontend/src/features/inventory/lib/inventory-workspace.helpers.ts`
   - `frontend/src/styles/partials/stock-count-workflow-polish.css`
-  - `SYSTEM_CAPABILITIES.md`
+  - `SYSTEM_CAPABILITIES.md`
+
+## Accounting and commercial integrity — 24 October 2026
+
+- Normal and field invoices now commit together with their accounting journal; posting errors roll back the commercial transaction.
+- Hard, operational, monthly and account-derived tax locks cover central posting and legacy GRN, maritime and marketplace writers.
+- Direct journal reversal is restricted to original manual entries. Commercial cancellation preserves cost centers and links each reversal to its original entry.
+- Deferred purchase receipt excludes recoverable inclusive VAT and converts cartons to base-unit inventory cost before WAC and serial valuation.
+- Carrier dispute credits post atomically, prevent repeat/over-crediting and reverse historical booked FX amounts.
+- Executable PostgreSQL accounting scenarios are available through `npm --prefix backend run test:accounting-commercial`. No historical production balances are automatically rewritten.

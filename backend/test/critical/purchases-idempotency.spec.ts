@@ -37,13 +37,18 @@ const mockDb: any = {
 };
 
 function buildChain(): any {
+  const predicates: Array<(row: any) => boolean> = [];
+  const matches = (row: any) => predicates.every(predicate => predicate(row));
   const h: any = {
-    where: () => h,
+    where: (column: string, operator: string, value: unknown) => {
+      predicates.push(row => operator === 'is' && value === null ? row[column] == null : row[column] === value);
+      return h;
+    },
     executeTakeFirst: async () => {
-      const vals = Object.values(operations);
+      const vals = Object.values(operations).filter(matches);
       return vals.length > 0 ? vals[vals.length - 1] : undefined;
     },
-    execute: async () => [],
+    execute: async () => Object.values(operations).filter(matches),
   };
   return h;
 }

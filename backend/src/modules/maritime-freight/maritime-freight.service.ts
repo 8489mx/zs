@@ -4,6 +4,8 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { assertAutomatedJournalPeriodOpen } from '../accounting/accounting-period-lock';
+import { calculateCarrierCreditBaseAmount } from './engines/carrier-credit.engine';
 import { boundedPage } from '../../common/utils/bounded-page';
 import { CreateMaritimeInquiryDto } from './dto/create-inquiry.dto';
 import { CreateMaritimeRfqDto } from './dto/create-rfq.dto';
@@ -165,7 +167,7 @@ export class MaritimeFreightService {
       baseAmount = Number(opening.debit);
     }
     const entryDate = new Date();
-    await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
+    await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate, [assetId, otherId]);
     const description = `تأمين حاوية ${containerId}: ${event} (${amount} ${currency})`;
     const [entry] = await trx.insertInto('journal_entries').values({
       entry_no: `JRN-TMP-DEP-${crypto.randomUUID()}`, tenant_id: tenantId, account_id: tenantId,
@@ -3333,24 +3335,8 @@ export class MaritimeFreightService {
     return null;
   }
 
-  /**
-   * Fiscal period lock check shared by every ad-hoc journal posted in this file outside the
-   * canonical accounting-posting service. Same string-date comparison as insertPostedJournal.
-   */
-  private async assertMaritimeJournalPeriodOpen(trx: any, tenantId: string, entryDate: Date): Promise<void> {
-    const entryDateStr = entryDate.toISOString().slice(0, 10);
-    const settings = await trx
-      .selectFrom('accounting_settings')
-      .select(['lock_date_all'])
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', 1)
-      .executeTakeFirst();
-    const lockAllStr = settings?.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : '';
-    if (lockAllStr && entryDateStr <= lockAllStr) {
-      throw new BadRequestException(
-        `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن الترحيل في فترة مغلقة.`,
-      );
-    }
+  private async assertMaritimeJournalPeriodOpen(trx: Kysely<Database>, tenantId: string, entryDate: Date, accountIds: number[]): Promise<void> {
+    await assertAutomatedJournalPeriodOpen(trx, tenantId, entryDate, accountIds);
   }
 
   async issueJobSalesInvoice(
@@ -3418,7 +3404,7 @@ export class MaritimeFreightService {
     const desc = (dto?.notes || `فاتورة مبيعات خدمات ملاحية - العملية #${job.job_number} (${job.customer_name})`) + fxSuffix;
 
     const { updatedJob, entryId, entryNo } = await this.db.transaction().execute(async (trx: any) => {
-      await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
+      await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate, [customerAccId, revenueAccId]);
 
       const [inserted] = await trx
         .insertInto('journal_entries')
@@ -3599,7 +3585,7 @@ export class MaritimeFreightService {
     const desc = (dto.description || `سند مصروفات ملاحية (${dto.expenseType === 'carrier' ? 'نولون الخط الملاحي' : 'مصروفات موانئ وتخليص'}) - العملية #${job.job_number}`) + fxSuffix;
 
     const { updatedJob, entryId, entryNo } = await this.db.transaction().execute(async (trx: any) => {
-      await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate);
+      await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate, [expenseAccId, creditAccId]);
 
       const [inserted] = await trx
         .insertInto('journal_entries')
@@ -4657,8 +4643,6 @@ export class MaritimeFreightService {
   ): Promise<number> {
     const { job, totalAmount } = params;
 
-    await this.assertMaritimeJournalPeriodOpen(trx, tenantId, params.entryDate);
-
     const expenseAccId = await this.resolveAccountId(tenantId, '6400', '5100');
     const creditAccId = await this.resolveAccountId(tenantId, '2110');
     if (!expenseAccId || !creditAccId) {
@@ -4666,6 +4650,8 @@ export class MaritimeFreightService {
         'تعذر ترحيل فاتورة الناقل: حساب مصروف الشحن (6400/5100) أو حساب الذمم الدائنة (2110) غير متاح في شجرة الحسابات. يرجى تهيئتهما أولاً.',
       );
     }
+
+    await this.assertMaritimeJournalPeriodOpen(trx, tenantId, params.entryDate, [expenseAccId, creditAccId]);
 
     const exchangeRate = await this.resolveFreightExchangeRate(tenantId, params.currency, params.exchangeRate);
     const baseTotalAmount = Math.round(totalAmount * exchangeRate * 100) / 100;
@@ -5126,136 +5112,87 @@ export class MaritimeFreightService {
       creditNoteAmount?: number;
     },
   ) {
-    const { tenantId } = requireTenantScope(auth);
-
-    const dispute = await this.db
-      .selectFrom('maritime_carrier_disputes')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', Number(disputeId) as any)
-      .executeTakeFirst();
-
-    if (!dispute) throw new NotFoundException('مذكرة النزاع غير موجودة');
-
-    const creditAmount = Number(dto.creditNoteAmount || 0);
-
-    const [updatedDispute] = await this.db
-      .updateTable('maritime_carrier_disputes')
-      .set({
-        dispute_status: dto.status,
-        resolution_notes: dto.resolutionNotes || null,
-        credit_note_number: dto.creditNoteNumber || null,
-        credit_note_amount: creditAmount,
-        resolved_by: auth.userId ? Number(auth.userId) : null,
-        resolved_at: sql`NOW()`,
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', Number(disputeId) as any)
-      .returningAll()
-      .execute();
-
-    // If accepted and credit note received, adjust ledger
-    if ((dto.status === 'accepted' || dto.status === 'partially_accepted') && creditAmount > 0) {
-      const job = await this.getJobById(auth, String(dispute.job_id));
-      let costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
-      const expenseAccId = await this.resolveAccountId(tenantId, '6400', '5100');
-      const creditAccId = await this.resolveAccountId(tenantId, '2110');
-
-      if (expenseAccId && creditAccId) {
-        const desc = `إشعار دائن خط ملاحي #${dto.creditNoteNumber || 'CN'} (تسوية نزاع #${dispute.dispute_number}) - الشحنة #${job.job_number}`;
-        const tempNo = `TMP-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-        const [inserted] = await this.db
-          .insertInto('journal_entries')
-          .values({
-            entry_no: tempNo,
-            tenant_id: tenantId,
-            account_id: tenantId,
-            entry_date: new Date(),
-            description: desc,
-            source_type: 'maritime_carrier_credit_note',
-            source_id: Number(job.id),
-            status: 'posted',
-            created_by: auth.userId ? Number(auth.userId) : null,
-            posted_by: auth.userId ? Number(auth.userId) : null,
-            posted_at: sql`NOW()`,
-          } as any)
-          .returning('id')
-          .execute();
-
-        const entryId = Number(inserted.id);
-        const entryNo = `JE-${String(entryId).padStart(8, '0')}`;
-        await this.db
-          .updateTable('journal_entries')
-          .set({ entry_no: entryNo, updated_at: sql`NOW()` } as any)
-          .where('id', '=', entryId)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-
-        await this.db
-          .insertInto('journal_entry_lines')
-          .values([
-            {
-              journal_entry_id: entryId,
-              tenant_id: tenantId,
-              account_id: creditAccId,
-              cost_center_id: costCenterId,
-              description: desc,
-              debit: creditAmount,
-              credit: 0,
-              partner_type: 'supplier',
-              partner_id: null,
-            } as any,
-            {
-              journal_entry_id: entryId,
-              tenant_id: tenantId,
-              account_id: expenseAccId,
-              cost_center_id: costCenterId,
-              description: desc,
-              debit: 0,
-              credit: creditAmount,
-              partner_type: 'none',
-              partner_id: null,
-            } as any,
-          ])
-          .execute();
-
-        const newCarrierCost = Math.max(0, Number(job.carrier_cost_total || 0) - creditAmount);
-        const revenue = Number(job.client_invoiced_total || 0);
-        const otherCosts = Number(job.other_costs_total || 0);
-        const newNetProfit = revenue - (newCarrierCost + otherCosts);
-
-        await this.db
-          .updateTable('maritime_jobs')
-          .set({
-            carrier_cost_total: newCarrierCost,
-            net_profit: newNetProfit,
-            updated_at: sql`NOW()`,
-          })
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', job.id as any)
-          .execute();
-      }
+    const { tenantId, accountId } = requireTenantScope(auth);
+    const creditAmount = Number(dto.creditNoteAmount ?? 0);
+    if (!Number.isFinite(creditAmount) || creditAmount < 0 ||
+      !['accepted', 'rejected', 'partially_accepted'].includes(dto.status) ||
+      (dto.status === 'rejected' && creditAmount > 0)) {
+      throw new BadRequestException('حالة التسوية أو مبلغ الإشعار الدائن غير صالح');
     }
-
-    // Release hold on invoice
-    await this.db
-      .updateTable('maritime_carrier_invoices')
-      .set({
-        payment_status: 'unpaid',
-        audit_status: dto.status === 'rejected' ? 'approved_override' : 'matched',
-        updated_at: sql`NOW()`,
-      })
-      .where('tenant_id', '=', tenantId)
-      .where('id', '=', Number(dispute.invoice_id) as any)
-      .execute();
-
-    return {
-      success: true,
-      dispute: updatedDispute,
-      message: `تم تسوية النزاع المالي بنجاح (${dto.status})`,
-    };
+    return this.db.transaction().execute(async (trx) => {
+      const dispute = await trx.selectFrom('maritime_carrier_disputes').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', disputeId).forUpdate().executeTakeFirst();
+      if (!dispute) throw new NotFoundException('مذكرة النزاع غير موجودة');
+      if (['accepted', 'rejected', 'partially_accepted'].includes(dispute.dispute_status)) {
+        throw new BadRequestException('تمت تسوية النزاع بالفعل؛ لا يمكن ترحيل الإشعار الدائن مرة أخرى');
+      }
+      const invoice = await trx.selectFrom('maritime_carrier_invoices').selectAll()
+        .where('tenant_id', '=', tenantId).where('id', '=', String(dispute.invoice_id)).forUpdate().executeTakeFirst();
+      if (!invoice) throw new NotFoundException('فاتورة الناقل غير موجودة');
+      if (creditAmount > Number(dispute.disputed_amount) + 0.001) {
+        throw new BadRequestException('الإشعار الدائن يتجاوز مبلغ النزاع');
+      }
+      if (creditAmount > 0) {
+        const prior = await trx.selectFrom('maritime_carrier_disputes')
+          .select(sql<number>`COALESCE(SUM(credit_note_amount), 0)`.as('credited'))
+          .where('tenant_id', '=', tenantId).where('invoice_id', '=', dispute.invoice_id)
+          .where('dispute_status', 'in', ['accepted', 'partially_accepted']).executeTakeFirst();
+        const invoiceAmount = Number(invoice.total_invoiced_amount);
+        if (!(invoiceAmount > 0) || creditAmount + Number(prior?.credited || 0) > invoiceAmount + 0.001) {
+          throw new BadRequestException('إجمالي الإشعارات الدائنة يتجاوز قيمة فاتورة الناقل');
+        }
+        const original = invoice.journal_entry_id ? await trx.selectFrom('journal_entries').selectAll()
+          .where('tenant_id', '=', tenantId).where('id', '=', invoice.journal_entry_id).executeTakeFirst() : null;
+        if (!original || original.status !== 'posted' || original.reversed_by_entry_id) {
+          throw new BadRequestException('يلزم قيد فاتورة ناقل مرحل وغير معكوس قبل ترحيل الإشعار الدائن');
+        }
+        const sourceLines = await trx.selectFrom('journal_entry_lines').selectAll()
+          .where('tenant_id', '=', tenantId).where('journal_entry_id', '=', original.id).orderBy('id', 'asc').execute();
+        const debitLine = sourceLines.find(line => Number(line.debit) > 0);
+        const creditLine = sourceLines.find(line => Number(line.credit) > 0);
+        if (sourceLines.length !== 2 || !debitLine || !creditLine || Number(debitLine.debit) !== Number(creditLine.credit)) {
+          throw new BadRequestException('قيد فاتورة الناقل يحتاج مراجعة قبل توزيع الإشعار الدائن');
+        }
+        // Reverse the historical booked rate. A foreign-currency credit is not a base-currency amount.
+        const priorCredit = Number(prior?.credited || 0);
+        const baseCredit = calculateCarrierCreditBaseAmount(invoiceAmount, Number(debitLine.debit), priorCredit, creditAmount);
+        const entryDate = new Date();
+        await this.assertMaritimeJournalPeriodOpen(trx, tenantId, entryDate, sourceLines.map(line => Number(line.account_id)));
+        const job = await trx.selectFrom('maritime_jobs').selectAll()
+          .where('tenant_id', '=', tenantId).where('id', '=', String(dispute.job_id)).forUpdate().executeTakeFirst();
+        if (!job) throw new NotFoundException('أمر الشحن غير موجود');
+        if (baseCredit > Number(job.carrier_cost_total || 0) + 0.001) {
+          throw new BadRequestException('الإشعار الدائن يتجاوز تكلفة الناقل المسجلة');
+        }
+        const description = `إشعار دائن خط ملاحي #${dto.creditNoteNumber || 'CN'} (تسوية نزاع #${dispute.dispute_number})`;
+        const entry = await trx.insertInto('journal_entries').values({
+          tenant_id: tenantId, account_id: accountId, entry_no: `JE-TMP-${crypto.randomUUID()}`,
+          entry_date: entryDate, description, source_type: 'maritime_carrier_credit_note', source_id: Number(dispute.id),
+          status: 'posted', created_by: Number(auth.userId) || null, posted_by: Number(auth.userId) || null, posted_at: sql`NOW()`,
+        } as any).returning('id').executeTakeFirstOrThrow();
+        await trx.updateTable('journal_entries').set({entry_no: `JE-${String(entry.id).padStart(8, '0')}`})
+          .where('tenant_id', '=', tenantId).where('id', '=', entry.id).execute();
+        await trx.insertInto('journal_entry_lines').values(sourceLines.map(line => ({
+          journal_entry_id: entry.id, tenant_id: tenantId, account_id: line.account_id,
+          cost_center_id: line.cost_center_id, description, debit: Number(line.credit) > 0 ? baseCredit : 0,
+          credit: Number(line.debit) > 0 ? baseCredit : 0, partner_type: line.partner_type,
+          partner_id: line.partner_id, branch_id: line.branch_id, location_id: line.location_id,
+        }))).execute();
+        const carrierCost = Math.round((Number(job.carrier_cost_total || 0) - baseCredit) * 100) / 100;
+        await trx.updateTable('maritime_jobs').set({carrier_cost_total: carrierCost,
+          net_profit: Number(job.client_invoiced_total || 0) - carrierCost - Number(job.other_costs_total || 0), updated_at: sql`NOW()`})
+          .where('tenant_id', '=', tenantId).where('id', '=', job.id).execute();
+      }
+      const updatedDispute = await trx.updateTable('maritime_carrier_disputes').set({
+        dispute_status: dto.status, resolution_notes: dto.resolutionNotes || null,
+        credit_note_number: dto.creditNoteNumber || null, credit_note_amount: creditAmount,
+        resolved_by: Number(auth.userId) || null, resolved_at: sql`NOW()`, updated_at: sql`NOW()`,
+      }).where('tenant_id', '=', tenantId).where('id', '=', dispute.id).returningAll().executeTakeFirstOrThrow();
+      await trx.updateTable('maritime_carrier_invoices').set({payment_status: 'unpaid',
+        audit_status: dto.status === 'rejected' ? 'approved_override' : 'matched', updated_at: sql`NOW()`})
+        .where('tenant_id', '=', tenantId).where('id', '=', invoice.id).execute();
+      return {success: true, dispute: updatedDispute, message: `تم تسوية النزاع المالي بنجاح (${dto.status})`};
+    });
   }
 
   async listJobCarrierInvoices(auth: AuthContext, jobId: string) {

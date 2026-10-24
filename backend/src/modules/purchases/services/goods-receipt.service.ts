@@ -10,6 +10,7 @@ import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from 
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
 import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { allocateGrnAccrual, allocateGrniBillPortion } from '../engines/grni-settlement.engine';
+import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-period-lock';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { normalizeBillNumber } from '../engines/duplicate-bill-detector.engine';
@@ -577,33 +578,6 @@ export class GoodsReceiptService {
       if (totalGrniAmount > 0) {
         const entryDate = grn.receivedAt ? new Date(grn.receivedAt) : new Date();
 
-        // Enforce fiscal period lock check
-        const settings = await trx
-          .selectFrom('accounting_settings')
-          .selectAll()
-          .where('tenant_id', '=', scope.tenantId)
-          .where('id', '=', 1)
-          .executeTakeFirst();
-
-        // Compare as YYYY-MM-DD strings, matching insertPostedJournal. Comparing Date objects let a
-        // receipt timestamped 09:00 on the lock date pass here while being blocked everywhere else.
-        const entryDateStr = entryDate.toISOString().slice(0, 10);
-        const lockAllStr = settings?.lock_date_all ? String(settings.lock_date_all).slice(0, 10) : '';
-        if (lockAllStr && entryDateStr <= lockAllStr) {
-          throw new UnprocessableEntityException(`لا يمكن ترحيل إذن الاستلام في فترة محاسبية مقفلة (تاريخ القفل: ${lockAllStr})`);
-        }
-        const lockOperationalStr = settings?.lock_date_non_adviser ? String(settings.lock_date_non_adviser).slice(0, 10) : '';
-        if (lockOperationalStr && entryDateStr <= lockOperationalStr) {
-          throw new UnprocessableEntityException(`لا يمكن ترحيل إذن الاستلام في فترة تشغيلية مقفلة حتى ${lockOperationalStr}`);
-        }
-        const closedPeriod = await trx.selectFrom('accounting_fiscal_periods')
-          .select('id').where('tenant_id', '=', scope.tenantId).where('status', '=', 'closed')
-          .where('start_date', '<=', entryDateStr).where('end_date', '>=', entryDateStr)
-          .executeTakeFirst();
-        if (closedPeriod) {
-          throw new UnprocessableEntityException('لا يمكن ترحيل إذن الاستلام داخل فترة مالية شهرية مقفلة');
-        }
-
         const grniAccount = await this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '2125');
         const invAccount = await this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '1140');
 
@@ -615,6 +589,8 @@ export class GoodsReceiptService {
             'تعذر ترحيل إذن الاستلام: حساب استحقاق البضاعة المستلمة (2125) أو حساب المخزون (1140) غير متاح في شجرة الحسابات.',
           );
         }
+
+        await assertAutomatedJournalPeriodOpen(trx, scope.tenantId, entryDate, [Number(grniAccount), Number(invAccount)]);
 
         // Insert with a collision-proof temporary number, then rename by id.
         // COUNT(*)+1 made two concurrent postings on the same day generate the same entry_no.

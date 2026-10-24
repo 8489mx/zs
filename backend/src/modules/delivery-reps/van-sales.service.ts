@@ -2516,13 +2516,9 @@ export class VanSalesService {
       }
 
       // Post GL journal after customer_ledger so split sales can read their exact credit portion
-      try {
-        await this.accountingPosting.postSale(trx, createdSaleId, systemAuth);
-        await this.accountingPosting.clearPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        await this.accountingPosting.recordPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId, message);
-      }
+      // Field stock, rep custody, customer debt and GL either all commit or all roll back.
+      await this.accountingPosting.postSale(trx, createdSaleId, systemAuth);
+      await this.accountingPosting.clearPostingFailure(trx, { tenantId, accountId }, 'sale', createdSaleId);
     });
 
     return {

@@ -8,7 +8,8 @@ import { AccountingTenantFoundationService } from './accounting-tenant-foundatio
 import { AppError } from '../../common/errors/app-error';
 import { calculateSalesReturnCost } from './engines/sales-return-cost.engine';
 import { allocatePayrollAccrual } from '../hr/engines/payroll-accrual-allocation.engine';
-import { lockAccountingPeriod } from './accounting-period-lock';
+import { assertAutomatedJournalPeriodOpen, lockAccountingPeriod } from './accounting-period-lock';
+import { assertTaxPeriodOpen } from './accounting-tax-lock';
 import { randomUUID } from 'node:crypto';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
@@ -72,7 +73,7 @@ export class AccountingPostingService {
   }
 
   private toMoney(value: unknown): number {
-    const amount = Number(value || 0);
+    const amount = Number(value ?? 0);
     if (!Number.isFinite(amount)) throw new AppError('Journal amount must be finite', 'INVALID_JOURNAL_AMOUNT', 400);
     return Number(amount.toFixed(2));
   }
@@ -248,6 +249,7 @@ export class AccountingPostingService {
   private addLine(lines: JournalLineDraft[], next: JournalLineDraft): void {
     const debit = this.toMoney(next.debit);
     const credit = this.toMoney(next.credit);
+    if (Number(next.debit) < 0 || Number(next.credit) < 0) throw new AppError('Journal amounts cannot be negative', 'INVALID_JOURNAL_LINE', 400);
     if (debit <= 0 && credit <= 0) return;
     if (debit > 0 && credit > 0) throw new AppError('Journal line cannot be both debit and credit', 'INVALID_JOURNAL_LINE', 400);
 
@@ -257,6 +259,8 @@ export class AccountingPostingService {
         && line.partnerId === next.partnerId
         && line.branchId === next.branchId
         && line.locationId === next.locationId
+        && (line.costCenterId ?? null) === (next.costCenterId ?? null)
+        && (line.debit > 0) === (debit > 0)
         && line.description === next.description,
     );
     if (existing) {
@@ -467,9 +471,23 @@ export class AccountingPostingService {
       return queryable.transaction().execute((trx: any) => this.insertPostedJournal(trx, params));
     }
     await lockAccountingPeriod(queryable, params.tenantId);
+    if (params.reversalOfEntryId) {
+      const original = await queryable.selectFrom('journal_entries')
+        .select(['id', 'status', 'reversed_by_entry_id'])
+        .where('tenant_id', '=', params.tenantId).where('id', '=', params.reversalOfEntryId)
+        .forUpdate().executeTakeFirst();
+      if (!original || original.status !== 'posted' || original.reversed_by_entry_id) {
+        throw new AppError('Original journal is missing, unposted or already reversed', 'JOURNAL_REVERSAL_INVALID', 409);
+      }
+    }
     if (!params.lines?.length) throw new AppError(`No journal lines for ${params.sourceType} #${params.sourceId}`, 'EMPTY_JOURNAL', 400);
 
-    const lines = params.lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) }));
+    const lines = params.lines.map((line) => {
+      if (Number(line.debit) < 0 || Number(line.credit) < 0) {
+        throw new AppError('Journal amounts cannot be negative', 'INVALID_JOURNAL_LINE', 400);
+      }
+      return { ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) };
+    });
     for (const line of lines) {
       if (!(Number(line.accountId) > 0)) throw new AppError(`Missing account for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
       if (line.debit < 0 || line.credit < 0 || (line.debit > 0 && line.credit > 0) || (line.debit === 0 && line.credit === 0)) {
@@ -551,61 +569,10 @@ export class AccountingPostingService {
       isFiscalTransition = true;
     }
 
-    // Validate Period Lock Dates
-    const settings = await queryable
-      .selectFrom('accounting_settings')
-      .select(['lock_date_all', 'lock_date_non_adviser', 'lock_date_tax'])
-      .where('tenant_id', '=', params.tenantId)
-      .where('id', '=', 1)
-      .executeTakeFirst();
-
-    if (settings && !isFiscalTransition) {
-      const dateStr = params.entryDate instanceof Date
-        ? params.entryDate.toISOString().slice(0, 10)
-        : String(params.entryDate || '').slice(0, 10);
-
-      if (settings.lock_date_all) {
-        const lockAllStr = String(settings.lock_date_all).slice(0, 10);
-        if (dateStr <= lockAllStr) {
-          throw new AppError(
-            `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
-            'ACCOUNTING_PERIOD_LOCKED',
-            422,
-          );
-        }
-      }
-
-      if (settings.lock_date_non_adviser) {
-        const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
-        if (dateStr <= lockNonAdvStr) {
-          const operationalSources = ['sale', 'sale_edit', 'sale_cancel', 'sale_reversal', 'sales_return', 'return', 'purchase', 'purchase_cancel', 'purchase_reversal', 'supplier_payment', 'customer_payment', 'expense', 'treasury_expense', 'import_late_expense', 'import_partner_capital', 'import_partner_payout', 'import_container_deposit', 'import_container_refund', 'import_broker_advance', 'import_broker_expense', 'import_container_preorder'];
-          if (operationalSources.includes(params.sourceType)) {
-            throw new AppError(
-              `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`,
-              'ACCOUNTING_PERIOD_LOCKED_OPERATIONAL',
-              422,
-            );
-          }
-        }
-      }
-    }
-
-    // Direct check against closed monthly periods (البند O6)
-    const closedMonthlyPeriod = await queryable
-      .selectFrom('accounting_fiscal_periods')
-      .select(['name', 'period_number'])
-      .where('tenant_id', '=', params.tenantId)
-      .where('status', '=', 'closed')
-      .where('start_date', '<=', (params.entryDate instanceof Date ? params.entryDate.toISOString().slice(0, 10) : String(params.entryDate || '').slice(0, 10)) as any)
-      .where('end_date', '>=', (params.entryDate instanceof Date ? params.entryDate.toISOString().slice(0, 10) : String(params.entryDate || '').slice(0, 10)) as any)
-      .executeTakeFirst();
-
-    if (closedMonthlyPeriod && !isFiscalTransition) {
-      throw new AppError(
-        `الفترة المحاسبية الشهرية [${closedMonthlyPeriod.name}] مقفلة. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
-        'ACCOUNTING_PERIOD_LOCKED',
-        422,
-      );
+    if (isFiscalTransition) {
+      await assertTaxPeriodOpen(queryable, params.tenantId, params.entryDate, lines.map((line) => line.accountId));
+    } else {
+      await assertAutomatedJournalPeriodOpen(queryable, params.tenantId, params.entryDate, lines.map((line) => line.accountId));
     }
 
     const tempEntryNo = `JE-TMP-${randomUUID()}`;
@@ -1212,7 +1179,7 @@ export class AccountingPostingService {
 
     const sourceLines = await queryable
       .selectFrom('journal_entry_lines')
-      .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
+      .select(['account_id', 'cost_center_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
       .where('tenant_id', '=', scope.tenantId)
       .orderBy('id', 'asc')
@@ -1220,6 +1187,7 @@ export class AccountingPostingService {
 
     const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
       accountId: Number(line.account_id),
+      costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
       description: `عكس: ${line.description || 'قيد بيع'}`,
       debit: this.toMoney(line.credit),
       credit: this.toMoney(line.debit),
@@ -1247,20 +1215,8 @@ export class AccountingPostingService {
       createdBy: sourceJournal.created_by ? Number(sourceJournal.created_by) : auth.userId,
       postedBy: auth.userId,
       lines: reversalLines,
+      reversalOfEntryId: Number(sourceJournal.id),
     });
-
-    await queryable
-      .updateTable('journal_entries')
-      .set({ reversed_by_entry_id: entryId, updated_at: sql`NOW()` } as any)
-      .where('id', '=', Number(sourceJournal.id))
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
-    await queryable
-      .updateTable('journal_entries')
-      .set({ reversal_of_entry_id: Number(sourceJournal.id), updated_at: sql`NOW()` } as any)
-      .where('id', '=', entryId)
-      .where('tenant_id', '=', scope.tenantId)
-      .execute();
 
     this.logger.warn(`Posted sale reversal journal for sale ${saleId} as entry ${entryId}`);
     return { reversed: true, journalEntryId: entryId };
@@ -1930,7 +1886,7 @@ export class AccountingPostingService {
 
     const sourceLines = await queryable
       .selectFrom('journal_entry_lines')
-      .select(['account_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
+      .select(['account_id', 'cost_center_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
       .where('journal_entry_id', '=', Number(sourceJournal.id))
       .where('tenant_id', '=', scope.tenantId)
       .orderBy('id', 'asc')
@@ -1938,6 +1894,7 @@ export class AccountingPostingService {
 
     const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
       accountId: Number(line.account_id),
+      costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
       description: `عكس: ${line.description || 'قيد شراء'}`,
       debit: this.toMoney(line.credit),
       credit: this.toMoney(line.debit),
@@ -1965,6 +1922,7 @@ export class AccountingPostingService {
       createdBy: sourceJournal.created_by ? Number(sourceJournal.created_by) : auth.userId,
       postedBy: auth.userId,
       lines: reversalLines,
+      reversalOfEntryId: Number(sourceJournal.id),
     });
 
     this.logger.warn(`Posted purchase reversal journal for purchase ${purchaseId} as entry ${entryId}`);

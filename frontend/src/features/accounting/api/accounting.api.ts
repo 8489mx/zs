@@ -51,6 +51,7 @@ export type JournalEntryLine = {
 };
 
 export type JournalEntryDetail = {
+  canReverse?: boolean;
   id: string;
   entryNo: string;
   entryDate: string;

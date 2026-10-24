@@ -7,6 +7,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AuditService } from '../../../core/audit/audit.service';
 import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
+import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-period-lock';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 
 export interface AmazonConfig {
@@ -1646,6 +1647,7 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
     const journalDescription = `تسوية كشف حساب مبيعات ${input.marketplace.toUpperCase()} رقم ${input.settlementId} للفترة ${input.periodStart} إلى ${input.periodEnd}`;
 
     const journalResult = await this.db.transaction().execute(async (trx) => {
+      await assertAutomatedJournalPeriodOpen(trx, scope.tenantId, entryDate, lines.map(line => line.accountId));
       const tempEntryNo = `TEMP-JV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       const inserted = await trx
