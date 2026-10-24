@@ -747,29 +747,54 @@ export class HrService {
 
   async endOfService(id: number, payload: EndOfServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(auth);
-    if (!normalizeDateOnly(payload.endOfServiceDate)) {
-      throw new AppError('تاريخ نهاية الخدمة مطلوب', 'HR_EOS_END_DATE_REQUIRED', 400);
+    const terminationDate = normalizeDateOnly(payload.endOfServiceDate);
+    if (!terminationDate) {
+      throw new AppError('تاريخ نهاية الخدمة غير صحيح', 'HR_EOS_END_DATE_REQUIRED', 400);
     }
-    await this.tx.runInTransaction(this.db, async (trx) => {
-      const employee = await sql<{ id: number; status: string }>`
-        SELECT id, status FROM hr_employees WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
+    await this.tx.runInTransaction(this.db, async trx => {
+      // Lock in the same order as payroll approval and statutory settlement.
+      // A concurrent approval must not use an employee state that termination
+      // rewrites while its financial snapshot is being accrued.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const employee = await sql<{ id: number; status: string; hire_date: string | null }>`
+        SELECT id, status, to_char(hire_date, 'YYYY-MM-DD') AS hire_date
+        FROM hr_employees WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
       `.execute(trx);
       if (!employee.rows.length) throw new NotFoundException('Employee not found');
       if (employee.rows[0].status === 'terminated') {
         throw new AppError('انتهت خدمة هذا الموظف بالفعل', 'HR_EOS_ALREADY_TERMINATED', 400);
       }
+      const hireDate = employee.rows[0].hire_date;
+      if (hireDate && terminationDate < hireDate) {
+        throw new AppError('تاريخ إنهاء الخدمة يسبق تاريخ التعيين', 'HR_EOS_BEFORE_HIRE', 400);
+      }
+      // A salary already accrued through a later day must NEVER be silently
+      // invalidated by backdating termination or truncating its salary contract.
+      const postedSalary = await sql<{ id: number }>`
+        SELECT r.id
+        FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${tenantId} AND i.employee_id = ${id}
+          AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+          AND r.end_date > ${terminationDate}::date
+        LIMIT 1
+      `.execute(trx);
+      if (postedSalary.rows.length) {
+        throw new AppError(
+          'لا يمكن إنهاء خدمة الموظف بأثر رجعي داخل فترة مرتبات معتمدة؛ يلزم تسوية مالية منفصلة',
+          'HR_EOS_APPROVED_PAYROLL_CONFLICT', 409,
+        );
+      }
       const unpaidLoans = await sql<{ id: number }>`
         SELECT id FROM hr_employee_loans
         WHERE employee_id = ${id} AND tenant_id = ${tenantId}
           AND status IN ('disbursed', 'paid', 'partially_repaid')
-          AND remaining_amount > 0
-        LIMIT 1
+          AND remaining_amount > 0 LIMIT 1
       `.execute(trx);
       const openAssets = await sql<{ id: number }>`
         SELECT id FROM hr_employee_assets
         WHERE employee_id = ${id} AND tenant_id = ${tenantId}
-          AND status NOT IN ('returned', 'cancelled')
-        LIMIT 1
+          AND status NOT IN ('returned', 'cancelled') LIMIT 1
       `.execute(trx);
       const unsettled = await sql<{ id: number }>`
         SELECT id FROM hr_end_of_service_settlements
@@ -781,19 +806,25 @@ export class HrService {
       }
       await sql`
         UPDATE hr_employees
-        SET status = 'terminated', end_of_service_date = ${payload.endOfServiceDate}::date,
+        SET status = 'terminated', end_of_service_date = ${terminationDate}::date,
             end_of_service_reason = ${payload.endOfServiceReason || null},
             updated_by = ${auth.userId}, updated_at = NOW()
         WHERE id = ${id} AND tenant_id = ${tenantId}
       `.execute(trx);
+      // Keep historical contract end dates unchanged. Close live contracts
+      // only up to service termination; never make end_date < start_date.
       await sql`
         UPDATE hr_employment_contracts
-        SET status = 'ended', end_date = ${payload.endOfServiceDate}::date,
+        SET status = 'ended',
+            end_date = CASE
+              WHEN start_date <= ${terminationDate}::date
+               AND (end_date IS NULL OR end_date > ${terminationDate}::date)
+              THEN ${terminationDate}::date ELSE end_date END,
             updated_by = ${auth.userId}, updated_at = NOW()
         WHERE employee_id = ${id} AND status = 'active' AND tenant_id = ${tenantId}
       `.execute(trx);
     });
-    await this.audit.log('End of Service', `Ended service for employee #${id} on ${payload.endOfServiceDate}`, auth);
+    await this.audit.log('End of Service', `Ended service for employee #${id} on ${terminationDate}`, auth);
     return { success: true, openAssets: 0, unpaidLoans: 0 };
   }
 
