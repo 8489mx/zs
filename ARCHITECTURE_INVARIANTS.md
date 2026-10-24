@@ -139,6 +139,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-PAY-34: Current base wage in statement resolves the contract valid on the tenant-local date. Posted payslips remain persisted snapshots.
 - Tests, Build, Typecheck and guards were not executed.
 
+- HR-EOS-35 (25 October 2026): Final EOS posting acquires the tenant-wide payroll advisory transaction lock BEFORE settlement and loan rows, preventing salary accrual/manual loan repayment/EOS deadlocks and double deduction. Posted EOS journals cannot use a draft that predates any changed employee contracts or leave requests; future active contracts after termination must be addressed first. The contract end-date write excludes future-starting contracts. User-authorized runtime regression tests remain pending.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

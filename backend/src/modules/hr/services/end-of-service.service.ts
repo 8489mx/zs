@@ -465,6 +465,9 @@ export class EndOfServiceService {
     const { tenantId } = requireTenantScope(auth);
 
     return await this.db.transaction().execute(async (trx) => {
+      // Use the same lock order as payroll approval, loan disbursement and
+      // manual repayments. An EOS journal may settle the very same loan.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const settlement = await (trx as any)
         .selectFrom('hr_end_of_service_settlements')
         .selectAll()
@@ -479,6 +482,36 @@ export class EndOfServiceService {
 
       if (settlement.journal_entry_id || settlement.status === 'posted') {
         throw new BadRequestException('تم ترحيل قيد هذه المخالصة مسبقاً برقم قيد مرتبط');
+      }
+
+      // EOS gratuity and annual-leave encashment were calculated from specific
+      // employment and leave records. Never post a stale draft after those
+      // underlying values change without recalculating the full settlement.
+      const changedFinancialBasis = await sql<{ contract_changed: boolean; leave_changed: boolean; future_contract: boolean }>`
+        SELECT
+          EXISTS (
+            SELECT 1 FROM hr_employment_contracts c
+            WHERE c.tenant_id = ${tenantId} AND c.employee_id = ${settlement.employee_id}
+              AND (c.created_at > ${settlement.created_at}::timestamp
+                OR c.updated_at > ${settlement.created_at}::timestamp)
+          ) AS contract_changed,
+          EXISTS (
+            SELECT 1 FROM hr_leave_requests lr
+            WHERE lr.tenant_id = ${tenantId} AND lr.employee_id = ${settlement.employee_id}
+              AND (lr.created_at > ${settlement.created_at}::timestamp
+                OR lr.updated_at > ${settlement.created_at}::timestamp)
+          ) AS leave_changed,
+          EXISTS (
+            SELECT 1 FROM hr_employment_contracts c
+            WHERE c.tenant_id = ${tenantId} AND c.employee_id = ${settlement.employee_id}
+              AND c.status = 'active' AND c.start_date > ${settlement.termination_date}::date
+          ) AS future_contract
+      `.execute(trx);
+      if (changedFinancialBasis.rows[0]?.contract_changed || changedFinancialBasis.rows[0]?.leave_changed) {
+        throw new BadRequestException('تغيرت عقود أو إجازات الموظف بعد إعداد المخالصة؛ احذف المسودة وأعد الحساب والمراجعة قبل الترحيل');
+      }
+      if (changedFinancialBasis.rows[0]?.future_contract) {
+        throw new BadRequestException('يوجد عقد نشط يبدأ بعد تاريخ إنهاء الخدمة؛ عالج العقود المستقبلية قبل ترحيل المخالصة');
       }
 
       // Payroll accrual can have occurred after the EOS draft was computed.
@@ -644,7 +677,8 @@ export class EndOfServiceService {
         SET status = 'ended',
             end_date = ${settlement.termination_date},
             updated_at = NOW()
-        WHERE employee_id = ${settlement.employee_id} AND tenant_id = ${tenantId} AND status = 'active'
+        WHERE employee_id = ${settlement.employee_id} AND tenant_id = ${tenantId}
+          AND status = 'active' AND start_date <= ${settlement.termination_date}::date
       `.execute(trx);
       // Update settlement record
       await (trx as any)
