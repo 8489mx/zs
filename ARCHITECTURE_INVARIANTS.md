@@ -129,6 +129,10 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LOAN-29 (25 October 2026): Every admin loan mutation (create, draft update, approve, disburse, manual repay) obtains the tenant payroll advisory transaction lock before any employee/loan row lock. This serializes salary loan-deduction previews and accrual settlement with disbursement/manual repayment and prevents replaying stale balances or deadlocking on mixed loan/installment lock order. No tests were run under the pending user test authorization.
 
+- HR-LOAN-30 (25 October 2026): Loan deduction preview and locked payroll settlement both require that the loan was actually disbursed on or before the payroll end date. Quick cash advances use the same tenant payroll advisory lock and employee row lock; only impacted, not historic, draft/review runs are recalculated.
+- HR-LOAN-31: Non-administrator loan creators cannot bypass maker-checker using autoDisburse. Salary ceiling lookups use date-effective contracts rather than an unordered historic/future active contract; quick advances use the tenant-local date.
+- Changes committed without executing tests/build/typecheck/guards, per user instruction.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

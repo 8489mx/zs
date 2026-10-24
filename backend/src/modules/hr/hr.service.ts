@@ -1608,6 +1608,9 @@ export class HrService {
     const issueDate = normalizeDateOnly(payload.issueDate);
     const repaymentMode = clean(payload.repaymentMode) || 'manual_cash';
     if (!employeeId) throw new AppError('Employee is required', 'HR_LOAN_EMPLOYEE_REQUIRED', 400);
+    if (payload.autoDisburse && auth.role !== 'admin' && auth.role !== 'super_admin') {
+      throw new AppError('الصرف التلقائي للسلفة للإدارة فقط؛ استخدم الاعتماد والصرف المنفصل', 'HR_LOAN_AUTO_DISBURSE_FORBIDDEN', 403);
+    }
     if (!(amount > 0)) throw new AppError('Loan amount must be greater than zero', 'HR_LOAN_AMOUNT_INVALID', 400);
     if (!issueDate) throw new AppError('Loan issue date is required', 'HR_LOAN_ISSUE_DATE_REQUIRED', 400);
     if (!['deduct_next_salary', 'monthly_salary_installment', 'manual_cash'].includes(repaymentMode)) {
@@ -1643,6 +1646,9 @@ export class HrService {
         .where('employee_id', '=', employeeId)
         .where('tenant_id', '=', requireTenantScope(auth).tenantId)
         .where('status', '=', 'active')
+        .where('start_date', '<=', issueDate)
+        .where(eb => eb.or([eb('end_date', 'is', null), eb('end_date', '>=', issueDate)]))
+        .orderBy('start_date', 'desc')
         .executeTakeFirst();
       const monthlyWage = Number(contract?.base_salary || 0);
       const maxLoanCeiling = monthlyWage > 0 ? monthlyWage * 3 : 50000;
@@ -2195,6 +2201,7 @@ export class HrService {
       WHERE l.employee_id = ${employeeId} AND l.tenant_id = ${tenantId}
         AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
         AND l.status IN ('paid', 'partially_repaid', 'disbursed')
+        AND COALESCE(l.disbursed_at::date, l.issue_date) <= ${dueCutoff}::date
         AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
         AND (
           l.repayment_mode = 'deduct_next_salary'
@@ -3341,6 +3348,7 @@ export class HrService {
           AND l.tenant_id = ${tenantId}
           AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
           AND l.status IN ('paid', 'partially_repaid', 'disbursed')
+          AND COALESCE(l.disbursed_at::date, l.issue_date) <= ${dueCutoff}::date
           AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
           AND (
             l.repayment_mode = 'deduct_next_salary'
@@ -5791,15 +5799,18 @@ export class HrService {
 
     const reason = clean(payload.notes);
     if (!reason) throw new AppError('تفاصيل المسحوب وسبب الصرف مطلوبة', 'HR_ADVANCE_REASON_REQUIRED', 400);
+    const localLoanDate = todayTenantDate(await getTenantTimezone(this.db, tenantId));
     const notes = payload.shiftId ? `${reason} [وردية كاشير #${Number(payload.shiftId)}]` : reason;
     let createdLoanId = 0;
     
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       // 1. Validate employee is active in this tenant
       const employee = await trx.selectFrom('hr_employees')
         .select(['id', 'display_name', 'status'])
         .where('id', '=', employeeId)
         .where('tenant_id', '=', tenantId)
+        .forUpdate()
         .executeTakeFirst();
       if (!employee) throw new AppError('الموظف غير موجود أو لا يتبع المنشأة الحالية', 'HR_EMPLOYEE_NOT_FOUND', 404);
       if (employee.status !== 'active') throw new AppError('لا يمكن صرف سلفة لموظف غير نشط', 'HR_EMPLOYEE_INACTIVE', 400);
@@ -5819,6 +5830,9 @@ export class HrService {
         .where('employee_id', '=', employeeId)
         .where('tenant_id', '=', tenantId)
         .where('status', '=', 'active')
+        .where('start_date', '<=', localLoanDate)
+        .where(eb => eb.or([eb('end_date', 'is', null), eb('end_date', '>=', localLoanDate)]))
+        .orderBy('start_date', 'desc')
         .executeTakeFirst();
       const baseSalary = Number(contract?.base_salary || 0);
       const quickCap = baseSalary > 0 ? baseSalary : 5000;
@@ -5841,7 +5855,7 @@ export class HrService {
         VALUES (
           ${tenantId}, ${accountId}, ${employeeId}, ${tempNo}, 'advance', ${amount}, ${amount}, 
           1, ${amount}, 'deduct_next_salary',
-          CURRENT_DATE, NOW(), 'paid', ${notes}, ${auth.userId}, ${auth.userId}
+          ${localLoanDate}::date, NOW(), 'paid', ${notes}, ${auth.userId}, ${auth.userId}
         )
         RETURNING id
       `.execute(trx);
@@ -5851,7 +5865,7 @@ export class HrService {
       const canonicalNo = formatDailyDocumentNumber('LOAN', loanId);
       await sql`UPDATE hr_employee_loans SET loan_no = ${canonicalNo} WHERE id = ${loanId} AND tenant_id = ${tenantId}`.execute(trx);
       
-      const dueStr = new Date().toISOString().slice(0, 10);
+      const dueStr = localLoanDate;
       
       await sql`
         INSERT INTO hr_employee_loan_installments (
@@ -5917,6 +5931,14 @@ export class HrService {
         FROM hr_payroll_runs
         WHERE tenant_id = ${tenantId}
           AND status IN ('draft', 'reviewed')
+          AND end_date >= ${localLoanDate}::date
+          AND EXISTS (
+            SELECT 1 FROM hr_payroll_run_items item
+            WHERE item.run_id = hr_payroll_runs.id
+              AND item.tenant_id = ${tenantId}
+              AND item.employee_id = ${employeeId}
+              AND item.status <> 'excluded'
+          )
         ORDER BY id DESC
       `.execute(trx);
       for (const run of activeRuns.rows) {
