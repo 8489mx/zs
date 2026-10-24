@@ -2093,7 +2093,8 @@ export class HrService {
     // Read all punches for the run once, then share the exact same totals with payroll review.
     const hourlyWorkByEmployee = new Map<number, ReturnType<typeof summarizeHourlyAttendance>>();
     const punches = empIds.length ? await sql<Record<string, unknown>>`
-      SELECT employee_id, status, check_in_at, check_out_at
+      SELECT employee_id, status, check_in_at, check_out_at,
+        to_char(work_date, 'YYYY-MM-DD') AS work_date_text
       FROM hr_attendance_records
       WHERE tenant_id = ${tenantId}
         AND employee_id IN (${sql.join(empIds)})
@@ -2122,7 +2123,11 @@ export class HrService {
     for (const e of employees.rows) {
       const employeeId = Number(e.employee_id);
       if (e.compensation_type === 'hourly') {
-        const work = summarizeHourlyAttendance(punchesByEmployee.get(employeeId) || [], Number(e.hourly_rate || 0));
+        const earned = payRangeByEmployee.get(employeeId)!;
+        const eligiblePunches = (punchesByEmployee.get(employeeId) || []).filter(
+          punch => String(punch.work_date_text) >= earned.from && String(punch.work_date_text) <= earned.to,
+        );
+        const work = summarizeHourlyAttendance(eligiblePunches, Number(e.hourly_rate || 0));
         hourlyWorkByEmployee.set(employeeId, work);
         baseSalMap.set(employeeId, work.baseWage);
       } else {
@@ -2346,6 +2351,17 @@ export class HrService {
       WHERE ar.employee_id IN (${sql.join(employeeIds)}) AND ar.tenant_id = ${tenantId}
         AND ar.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
         AND ar.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+        -- One date may appear as both 'absent' and an approved leave.
+        -- Do not charge absence on the same day as an approved (paid or unpaid)
+        -- leave, because unpaid leave has its own deduction and paid leave is exempt.
+        AND NOT (
+          ar.status = 'absent' AND EXISTS (
+            SELECT 1 FROM hr_leave_requests lr
+            WHERE lr.tenant_id = ar.tenant_id AND lr.employee_id = ar.employee_id
+              AND lr.status = 'approved'
+              AND ar.work_date BETWEEN lr.start_date AND lr.end_date
+          )
+        )
     `.execute(db);
 
     const exceptionsResult = await sql<Record<string, unknown>>`
@@ -2362,6 +2378,12 @@ export class HrService {
       WHERE ex.employee_id IN (${sql.join(employeeIds)}) AND ex.tenant_id = ${tenantId}
         AND ex.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
         AND ex.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+        AND NOT EXISTS (
+          SELECT 1 FROM hr_leave_requests lr
+          WHERE lr.tenant_id = ex.tenant_id AND lr.employee_id = ex.employee_id
+            AND lr.status = 'approved'
+            AND ex.work_date BETWEEN lr.start_date AND lr.end_date
+        )
       GROUP BY ex.employee_id
     `.execute(db);
 
