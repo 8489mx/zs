@@ -695,12 +695,19 @@ export class EmployeePortalService {
     // Shared employee lock serializes portal and HR-created requests for the
     // same employee, eliminating concurrent overlapping annual leave requests.
     const inserted = await this.db.transaction().execute(async (trx) => {
-      const employee = await sql<{ id: number }>`
-        SELECT id FROM hr_employees
+      const employee = await sql<{ id: number; hire_date: string | null; end_date: string | null }>`
+        SELECT id, to_char(hire_date, 'YYYY-MM-DD') AS hire_date,
+               to_char(end_of_service_date, 'YYYY-MM-DD') AS end_date
+        FROM hr_employees
         WHERE id = ${employeeId} AND tenant_id = ${tenantId} AND status = 'active'
         FOR UPDATE
       `.execute(trx);
-      if (!employee.rows.length) throw new AppError('الموظف غير نشط', 'EMPLOYEE_INACTIVE', 403);
+      const employeeService = employee.rows[0];
+      if (!employeeService) throw new AppError('الموظف غير نشط', 'EMPLOYEE_INACTIVE', 403);
+      if ((employeeService.hire_date && start < employeeService.hire_date)
+        || (employeeService.end_date && end > employeeService.end_date)) {
+        throw new AppError('تاريخ الإجازة يجب أن يقع داخل مدة خدمة الموظف', 'LEAVE_OUTSIDE_EMPLOYMENT', 400);
+      }
       const leaveType = await sql<{ id: number }>`
         SELECT id FROM hr_leave_types
         WHERE id = ${leaveTypeId} AND tenant_id = ${tenantId} AND is_active = TRUE

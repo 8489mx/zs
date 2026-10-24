@@ -5005,12 +5005,19 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       // All requests for the same employee lock the same row. That prevents two
       // concurrent requests from both seeing an empty overlapping interval.
-      const employee = await sql<{ id: number }>`
-        SELECT id FROM hr_employees
+      const employee = await sql<{ id: number; hire_date: string | null; end_date: string | null }>`
+        SELECT id, to_char(hire_date, 'YYYY-MM-DD') AS hire_date,
+               to_char(end_of_service_date, 'YYYY-MM-DD') AS end_date
+        FROM hr_employees
         WHERE id = ${employeeId} AND tenant_id = ${tenantId}
         FOR UPDATE
       `.execute(trx);
-      if (!employee.rows.length) throw new AppError('Employee not found', 'HR_LEAVE_EMPLOYEE_REQUIRED', 404);
+      const activeService = employee.rows[0];
+      if (!activeService) throw new AppError('Employee not found', 'HR_LEAVE_EMPLOYEE_REQUIRED', 404);
+      if ((activeService.hire_date && startDate < activeService.hire_date)
+        || (activeService.end_date && endDate > activeService.end_date)) {
+        throw new AppError('تواريخ الإجازة خارج مدة خدمة الموظف المعتمدة', 'HR_LEAVE_OUTSIDE_EMPLOYMENT', 409);
+      }
       if (leaveTypeId) {
         const typeCheck = await sql<{ id: number }>`
           SELECT id FROM hr_leave_types WHERE id = ${leaveTypeId} AND tenant_id = ${tenantId}

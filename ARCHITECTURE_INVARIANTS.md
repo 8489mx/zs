@@ -115,6 +115,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-ATT-TENANT-1: Bulk attendance save validates all employee IDs against the authenticated tenant and active employee status in a single preflight query. Duplicate employee rows are rejected rather than silently last-write-wins. The tenant payroll transaction lock protects the check and subsequent mutations.
 
+- HR-LEAVE-EMPLOYMENT-1: Both admin and employee-portal leave creation validate leave dates against the same tenant-scoped employee's hire date and end-of-service date under employee row lock. Disallows approvals/deduction days outside service employment periods, including future days beyond termination. No tests run.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
