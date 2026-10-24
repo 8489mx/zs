@@ -892,6 +892,13 @@ export class HrService {
     if (nationalId && !/^\d{6,20}$/.test(nationalId)) {
       throw new AppError('رقم الهوية الوطنية أو الإقامة يجب أن يكون من 6 إلى 20 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
     }
+    if (payload.status === 'terminated') {
+      throw new AppError('إنهاء الخدمة لا يتم بتعديل ملف الموظف؛ استخدم مسار نهاية الخدمة والمخالصات', 'HR_TERMINATION_WORKFLOW_REQUIRED', 400);
+    }
+    if (payload.annualLeaveBalance !== undefined &&
+      (!Number.isFinite(Number(payload.annualLeaveBalance)) || Number(payload.annualLeaveBalance) < 0)) {
+      throw new AppError('رصيد الإجازة السنوية غير صحيح', 'HR_ANNUAL_LEAVE_BALANCE_INVALID', 400);
+    }
     if (id && payload.initialContractBaseSalary !== undefined) {
       throw new AppError('لا يمكن إنشاء عقد أولي عند تعديل موظف قائم', 'HR_INITIAL_CONTRACT_CREATE_ONLY', 400);
     }
@@ -907,6 +914,14 @@ export class HrService {
 
     try {
       if (id) {
+        const existingStatus = await sql<{ status: string }>`
+          SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}
+          LIMIT 1
+        `.execute(this.db);
+        if (!existingStatus.rows.length) throw new NotFoundException('Employee not found');
+        if (existingStatus.rows[0].status === 'terminated' && payload.status && payload.status !== 'terminated') {
+          throw new AppError('لا يمكن إعادة تفعيل موظف انتهت خدمته بمجرد تعديل ملفه', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
+        }
         if (employeeNo) {
           await this.ensureEmployeeNoAvailable(this.db, employeeNo, id, auth);
         }
@@ -916,7 +931,8 @@ export class HrService {
               national_id = ${nationalId || null},
               pin_hash = COALESCE(${pinRecord?.hash ?? null}, pin_hash),
               pin_salt = COALESCE(${pinRecord?.salt ?? null}, pin_salt),
-              status = ${clean(payload.status) || 'active'}, department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
+              status = COALESCE(NULLIF(${clean(payload.status)}, ''), status),
+              annual_leave_balance = COALESCE(${payload.annualLeaveBalance ?? null}, annual_leave_balance), department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
               branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
               compensation_type = ${compensationType},
               pay_frequency = ${payFrequency},
@@ -957,8 +973,8 @@ export class HrService {
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           const insertResult = await sql<{ id: number }>`
-            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, pin_hash, pin_salt, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, bank_name, bank_account_number, iban, bank_swift_code, created_by, updated_by)
-            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${pinRecord?.hash ?? null}, ${pinRecord?.salt ?? null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${clean(payload.bankName) || null}, ${clean(payload.bankAccountNumber) || null}, ${clean(payload.iban) || null}, ${clean(payload.bankSwiftCode) || null}, ${auth.userId}, ${auth.userId})
+            INSERT INTO hr_employees (tenant_id, account_id, employee_no, national_id, pin_hash, pin_salt, user_id, first_name, last_name, display_name, status, department_id, job_title_id, position_id, branch_id, location_id, hire_date, notes, compensation_type, pay_frequency, hourly_rate, expected_daily_hours, scheduled_check_in_time, scheduled_check_out_time, grace_minutes, overtime_policy, attendance_policy, commission_type, commission_value, commission_target, delay_policy, has_social_insurance, insurance_salary, has_income_tax, bank_name, bank_account_number, iban, bank_swift_code, annual_leave_balance, created_by, updated_by)
+            VALUES (${auth.tenantId}, ${auth.accountId}, ${nextEmployeeNo}, ${nationalId || null}, ${pinRecord?.hash ?? null}, ${pinRecord?.salt ?? null}, ${toId(payload.userId)}, ${firstName}, ${lastName}, ${displayName}, ${clean(payload.status) || 'active'}, ${toId(payload.departmentId)}, ${toId(payload.jobTitleId)}, ${toId(payload.positionId)}, ${toId(payload.branchId)}, ${toId(payload.locationId)}, ${hireDate}, ${clean(payload.notes)}, ${compensationType}, ${payFrequency}, ${compensationType === 'hourly' ? Number(hourlyRate || 0) : null}, ${compensationType === 'hourly' ? Number(expectedDailyHours || 0) : null}, ${scheduledCheckInTime || null}, ${scheduledCheckOutTime || null}, ${graceMinutes}, ${overtimePolicy}, ${attendancePolicy}, ${clean(payload.commissionType) || 'inherit'}, ${payload.commissionValue == null ? null : Number(payload.commissionValue)}, ${payload.commissionTarget == null ? null : Number(payload.commissionTarget)}, ${clean(payload.delayPolicy) || 'inherit'}, ${Boolean(payload.hasSocialInsurance)}, ${payload.insuranceSalary == null ? null : Number(payload.insuranceSalary)}, ${Boolean(payload.hasIncomeTax)}, ${clean(payload.bankName) || null}, ${clean(payload.bankAccountNumber) || null}, ${clean(payload.iban) || null}, ${clean(payload.bankSwiftCode) || null}, ${payload.annualLeaveBalance ?? 21}, ${auth.userId}, ${auth.userId})
             RETURNING id
           `.execute(trx);
           const newId = insertResult.rows[0]?.id;
@@ -1018,7 +1034,14 @@ export class HrService {
 
   async updateEmployeeStatus(id: number, status: string, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.assertEmployeeBelongsToTenant(id, auth);
-    const validStatus = ['active', 'inactive', 'deactivated', 'terminated'].includes(status) ? status : 'active';
+    if (status === 'terminated') {
+      throw new AppError('استخدم إجراء إنهاء الخدمة المعتمد وليس تعديل حالة الموظف', 'HR_TERMINATION_WORKFLOW_REQUIRED', 400);
+    }
+    const existing = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    if (existing.rows[0]?.status === 'terminated') {
+      throw new AppError('لا يمكن تعديل حالة موظف انتهت خدمته بدون إجراءات إعادة تعيين', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
+    }
+    const validStatus = ['active', 'inactive', 'deactivated'].includes(status) ? status : 'active';
     await sql`UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log('Update HR employee status', `Employee #${id} status changed to ${validStatus} by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
@@ -1049,6 +1072,9 @@ export class HrService {
   }
 
   async deactivateEmployee(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const status = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    if (!status.rows.length) throw new NotFoundException('Employee not found');
+    if (status.rows[0].status === 'terminated') throw new AppError('لا يمكن إلغاء تفعيل موظف انتهت خدمته', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
     await sql`UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     await this.audit.log('Deactivate HR employee', `Employee #${id} deactivated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
