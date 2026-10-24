@@ -42,7 +42,11 @@ assert.throws(() => validateHrStatutoryPolicy({
 }), /نسبة/);
 assert.throws(() => calculateHrStatutoryAmounts(policy, { from: '2026-10-08', to: '2026-10-14' }, {
   insured: true, taxable: true, insuranceWage: 10000, taxableMonthlyWage: 10000,
-}), /شهر ميلادي كامل/);
+}), /شهرًا ميلاديًا كاملًا/);
+assert.throws(() => calculateHrStatutoryAmounts({ ...policy, hrIncomeTaxEnabled: false },
+  { from: '2026-10-08', to: '2026-10-14' }, {
+    insured: true, taxable: false, insuranceWage: 10000, taxableMonthlyWage: 0,
+  }), /شهرًا ميلاديًا كاملًا/);
 assert.deepEqual(calculateHrStatutoryAmounts({
   hrSocialInsuranceEnabled: false, hrIncomeTaxEnabled: false,
 }, { from: '2026-10-08', to: '2026-10-14' }, {

@@ -73,6 +73,18 @@ export function calculateHrStatutoryAmounts(
 ) {
   validateHrStatutoryPolicy(p, period);
   let employeeInsurance = 0, employerInsurance = 0, incomeTax = 0;
+  // The configured min/max insurable salary is a monthly base. Applying its full
+  // floor to weekly payroll causes excess withholding; a verified pay-frequency
+  // conversion is required before nonmonthly statutory calculation is enabled.
+  if ((p.hrSocialInsuranceEnabled && employee.insured) || (p.hrIncomeTaxEnabled && employee.taxable)) {
+    const yyyyMm = period.from.slice(0, 7);
+    const [year, month] = yyyyMm.split('-').map(Number);
+    const monthEnd = Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12
+      ? new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10) : '';
+    if (period.from !== yyyyMm + '-01' || period.to !== monthEnd) {
+      throw new Error('حساب الضريبة أو التأمينات يتطلب شهرًا ميلاديًا كاملًا؛ راجع قواعد الفترات الجزئية أولاً');
+    }
+  }
   if (p.hrSocialInsuranceEnabled && employee.insured) {
     const ins = p.insuranceConfig!;
     let wage = Number(employee.insuranceWage);
@@ -83,15 +95,6 @@ export function calculateHrStatutoryAmounts(
     employerInsurance = money(wage * Number(ins.employerPct) / 100);
   }
   if (p.hrIncomeTaxEnabled && employee.taxable) {
-    // Annualised /12 withholding assumes one complete calendar-month run.
-    // Weekly, biweekly, partial and cross-month runs require a distinct
-    // effective-dated tax method; never silently tax them as full months.
-    const yyyyMm = period.from.slice(0, 7);
-    const [year, month] = yyyyMm.split('-').map(Number);
-    const monthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-    if (period.from !== yyyyMm + '-01' || period.to !== monthEnd) {
-      throw new Error('الضريبة الشهرية تتطلب مسير شهر ميلادي كامل؛ لا توجد قاعدة معتمدة لهذه الفترة الجزئية');
-    }
     const monthly = Number(employee.taxableMonthlyWage);
     if (!Number.isFinite(monthly) || monthly < 0) throw new Error('الدخل الخاضع للضريبة غير صالح');
     const taxableAnnual = Math.max(0, monthly * 12 - Number(p.taxPersonalExemption));
