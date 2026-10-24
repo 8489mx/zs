@@ -18,6 +18,37 @@
  * المستدعي ملزم بتمرير `loanRemaining`/`loanPaid` مقروءين حديثاً داخل نفس المعاملة.
  */
 
+/** Sum scheduled installments without ever exceeding each loan's live outstanding principal.
+ * Input rows must already be filtered to the payroll period's DUE installments.
+ * Using cents avoids false surplus when two installments share a nearly repaid loan.
+ */
+export function calculatePayrollLoanDueTotal(rows: Array<{
+  loanId: number; installmentAmount: number; installmentPaid: number; loanRemaining: number;
+}>): number {
+  const balances = new Map<number, number>();
+  let dueCents = 0;
+  const toCents = (value: number): number => {
+    if (!Number.isFinite(value) || value < 0) throw new RangeError('Invalid payroll loan balance or installment');
+    const result = Math.round(value * 100);
+    if (!Number.isSafeInteger(result)) throw new RangeError('Payroll loan balance exceeds safe currency precision');
+    return result;
+  };
+  for (const row of rows) {
+    if (!Number.isSafeInteger(row.loanId) || row.loanId <= 0) {
+      throw new RangeError('Invalid payroll loan ID');
+    }
+    const amount = toCents(row.installmentAmount);
+    const paid = toCents(row.installmentPaid);
+    const outstanding = toCents(row.loanRemaining);
+    if (paid > amount) throw new RangeError('Payroll installment paid amount exceeds original amount');
+    const available = balances.get(row.loanId) ?? outstanding;
+    const applied = Math.min(amount - paid, available);
+    dueCents += applied;
+    balances.set(row.loanId, available - applied);
+  }
+  return dueCents / 100;
+}
+
 export type LoanAllocationInput = {
   /** ما تبقى من مبلغ خصم الراتب الذي لم يوزَّع بعد */
   remainingToDeduct: number;

@@ -46,9 +46,11 @@ import {
   startsNewSession,
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
-import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
-import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
-import { summarizeHourlyAttendance, prorateMonthlyWage } from './engines/hourly-attendance-pay.engine';
+import { allocateLoanDeduction, calculatePayrollLoanDueTotal } from './payroll-loan-allocation.engine';
+import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from './engines/hr-payroll-run.engine';
+import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
+import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
@@ -99,14 +101,18 @@ function isUniqueViolation(error: unknown): boolean {
 
 function normalizeDateOnly(value: unknown): string | null {
   const text = clean(value);
-  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+  if (isoMatch) {
+    const result = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const dt = new Date(result + 'T00:00:00Z');
+    return Number.isFinite(dt.getTime()) && dt.toISOString().slice(0, 10) === result ? result : null;
+  }
   const usMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const month = Number(usMatch[1]);
     const day = Number(usMatch[2]);
     if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      return `${usMatch[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      return normalizeDateOnly(`${usMatch[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
     }
   }
   return null;
@@ -129,7 +135,8 @@ function addMonths(value: string, months: number): string {
 
 function normalizePayrollMonth(value: unknown): string {
   const text = clean(value);
-  return /^\d{4}-\d{2}$/.test(text) ? text : '';
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(text)) return '';
+  return text;
 }
 
 function monthRange(periodMonth: string): { from: string; to: string } {
@@ -235,7 +242,7 @@ export class HrService {
       latenessGracePeriodMinutes: 15,
       latenessFirstTimePenalty: 0,
       latenessRepeatPenaltyMultiplier: 1,
-      overtimeMultiplier: 1,
+      overtimeMultiplier: 1.5,
       hrDelayPolicyEnabled: false,
       hrDelayPolicyFirstTimeDeduction: 0.25,
       hrDelayPolicySecondTimeDeduction: 0.5,
@@ -245,26 +252,56 @@ export class HrService {
       hrCommissionValue: 0,
       hrCommissionTarget: 0,
       hrSocialInsuranceEnabled: false,
-      hrSocialInsuranceEmployeePct: 11,
-      hrSocialInsuranceEmployerPct: 18.75,
+      hrSocialInsuranceEmployeePct: 0,
+      hrSocialInsuranceEmployerPct: 0,
       hrIncomeTaxEnabled: false,
+      statutoryCountry: '',
+      statutoryEffectiveFrom: '',
+      statutoryEffectiveTo: '',
+      statutoryLegalReference: '',
+      statutoryReviewed: false,
+      taxPersonalExemption: 0,
+      taxBrackets: [],
+      insuranceConfig: null,
       maxDeductionPct: 1.0,
     };
     if (result.rows.length === 0) return defaults;
+    let parsed: unknown;
     try {
-      return { ...defaults, ...JSON.parse(result.rows[0].value as string) };
+      parsed = JSON.parse(result.rows[0].value as string);
     } catch {
-      return defaults;
+      throw new AppError('سياسات الرواتب المحفوظة غير صالحة؛ راجع إعداداتها قبل الاحتساب',
+        'HR_PAYROLL_POLICY_CORRUPT', 409);
     }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new AppError('سياسات الرواتب المحفوظة ليست كائناً صالحاً',
+        'HR_PAYROLL_POLICY_CORRUPT', 409);
+    }
+    return { ...defaults, ...parsed };
   }
 
   async updatePayrollPolicies(auth: any, policies: any) {
+    if (!policies || typeof policies !== 'object' || Array.isArray(policies)) {
+      throw new AppError('بيانات سياسات المرتبات غير صحيحة', 'HR_PAYROLL_POLICY_INVALID', 400);
+    }
+    try { validateHrStatutoryPolicy(policies as HrStatutoryPolicy); } catch (error) {
+      throw new AppError(error instanceof Error ? error.message : 'قواعد الاستقطاعات غير صحيحة', 'HR_STATUTORY_POLICY_INVALID', 400);
+    }
+    const { tenantId, accountId } = requireTenantScope(auth);
     const jsonStr = JSON.stringify(policies);
-    await sql`
-      INSERT INTO hr_hr_settings (tenant_id, account_id, key, value, updated_by, updated_at)
-      VALUES (${auth.tenantId}, ${auth.tenantId}, 'payroll_policies', ${jsonStr}, ${auth.userId}, NOW())
-      ON CONFLICT (tenant_id, key) DO UPDATE SET value = ${jsonStr}, updated_by = ${auth.userId}, updated_at = NOW()
-    `.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      // Approval obtains this same lock, so a new policy cannot arrive after
+      // validation but before the associated immutable payroll is posted.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-policy:' + tenantId}))`.execute(trx);
+      await sql`
+        INSERT INTO hr_hr_settings (tenant_id, account_id, key, value, updated_by, updated_at)
+        VALUES (${tenantId}, ${accountId}, 'payroll_policies', ${jsonStr}, ${auth.userId}, NOW())
+        ON CONFLICT (tenant_id, key)
+        DO UPDATE SET value = ${jsonStr}, updated_by = ${auth.userId}, updated_at = NOW()
+      `.execute(trx);
+    });
+    await this.audit.log('Update HR payroll policies',
+      `Statutory payroll settings updated for country ${clean(policies.statutoryCountry) || 'unconfigured'} by ${auth.username}`, auth);
     return { success: true };
   }
 
@@ -1132,16 +1169,28 @@ export class HrService {
 
   async upsertContract(employeeId: number, id: number | null, payload: UpsertEmploymentContractDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const tenantCurrencySetting = await sql<{ value: string }>`
+      SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
+    `.execute(this.db);
+    const tenantCurrency = clean(tenantCurrencySetting.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+    const contractCurrency = clean(payload.currency || tenantCurrency).toUpperCase();
+    if (!/^[A-Z]{3}$/.test(tenantCurrency)) {
+      throw new AppError('حدد عملة منشأتك قبل تسجيل عقد العمل', 'HR_CONTRACT_TENANT_CURRENCY_REQUIRED', 400);
+    }
+    if (contractCurrency !== tenantCurrency) {
+      throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة؛ التحويلات تحتاج سياسة محاسبية مستقلة',
+        'HR_CONTRACT_CURRENCY_MISMATCH', 400);
+    }
     if (id) {
-      await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+      await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${contractCurrency}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     } else {
       await this.tx.runInTransaction(this.db, async (trx) => {
         const requestedNo = clean(payload.contractNo);
         const temporaryNo = requestedNo || `CON-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const inserted = await sql<{ id: number }>`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${temporaryNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId}) RETURNING id`.execute(trx);
+        const inserted = await sql<{ id: number }>`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${temporaryNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${contractCurrency}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId}) RETURNING id`.execute(trx);
         if (!requestedNo) {
           const contractId = Number(inserted.rows[0].id);
-          await sql`UPDATE hr_employment_contracts SET contract_no = ${`CON-${String(contractId).padStart(4, '0')}`} WHERE id = ${contractId} AND tenant_id = ${auth.tenantId}`.execute(trx);
+          await sql`UPDATE hr_employment_contracts SET contract_no = ${formatDailyDocumentNumber('CON', contractId)} WHERE id = ${contractId} AND tenant_id = ${auth.tenantId}`.execute(trx);
         }
       });
     }
@@ -1874,7 +1923,7 @@ export class HrService {
   }
 
   private async getPayrollRunStatusForUpdate(db: Kysely<Database>, runId: number, tenantId: string): Promise<string> {
-    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} FOR UPDATE LIMIT 1`.execute(db);
+    const result = await sql<{ status: string }>`SELECT status FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} LIMIT 1 FOR UPDATE`.execute(db);
     const status = clean(result.rows[0]?.status);
     if (!status) throw new AppError('Payroll run not found', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
     return status;
@@ -1903,6 +1952,7 @@ export class HrService {
         i.amount,
         i.paid_amount,
         i.status,
+        l.remaining_amount AS loan_remaining,
         to_char(COALESCE(i.due_date, l.first_due_date, l.salary_due_date), 'YYYY-MM-DD') AS due_date_text
       FROM hr_employee_loan_installments i
       JOIN hr_employee_loans l ON l.id = i.loan_id AND l.tenant_id = i.tenant_id
@@ -1916,17 +1966,21 @@ export class HrService {
         )
       ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC
     `.execute(db);
-    let total = 0;
     const notes: string[] = [];
-    for (const installment of result.rows) {
-      const amount = money(installment.amount);
-      const paidAmount = money(installment.paid_amount);
-      const remaining = Number((amount - paidAmount).toFixed(2));
-      if (remaining > 0) {
-        total = Number((total + remaining).toFixed(2));
-      } else {
-        notes.push(`Loan #${installment.loan_id} installment #${installment.installment_id} has no remaining due amount`);
-      }
+    const eligible = result.rows.map(installment => ({
+      loanId: Number(installment.loan_id),
+      installmentAmount: Number(installment.amount),
+      installmentPaid: Number(installment.paid_amount || 0),
+      loanRemaining: Number(installment.loan_remaining),
+    }));
+    let total: number;
+    try {
+      total = calculatePayrollLoanDueTotal(eligible);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : 'أرصدة السلف والأقساط غير متطابقة',
+        'HR_PAYROLL_LOAN_BALANCE_INVALID', 409,
+      );
     }
     return { amount: total, notes };
   }
@@ -1997,13 +2051,14 @@ export class HrService {
         e.display_name,
         c.id AS contract_id,
         c.base_salary,
-        cp.allowance_amount,
-        cp.deduction_amount,
         e.compensation_type,
         e.hourly_rate,
         e.expected_daily_hours,
         e.hire_date,
         e.end_of_service_date,
+        e.has_social_insurance,
+        e.insurance_salary,
+        e.has_income_tax,
         c.start_date AS contract_start_date,
         c.end_date AS contract_end_date
       FROM hr_employees e
@@ -2011,25 +2066,13 @@ export class HrService {
         SELECT *
         FROM hr_employment_contracts c
         WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
-          AND (
-            c.status = 'active'
-            OR (e.status = 'terminated' AND c.status = 'ended')
-          )
+          AND c.status IN ('active', 'ended')
           AND c.start_date <= ${range.to}::date
           AND (c.end_date IS NULL OR c.end_date >= ${range.from}::date)
         ORDER BY c.start_date DESC NULLS LAST,
                  c.id DESC
         LIMIT 1
       ) c ON TRUE
-      LEFT JOIN LATERAL (
-        SELECT *
-        FROM hr_compensation_packages cp
-        WHERE cp.employee_id = e.id AND cp.tenant_id = e.tenant_id
-          AND (cp.effective_from IS NULL OR cp.effective_from <= ${range.to})
-          AND (cp.effective_to IS NULL OR cp.effective_to >= ${range.from})
-        ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
-        LIMIT 1
-      ) cp ON TRUE
       WHERE e.tenant_id = ${tenantId}
         AND (
           e.status = 'active'
@@ -2046,16 +2089,100 @@ export class HrService {
           )
         )
         AND (e.hire_date IS NULL OR e.hire_date <= ${range.to}::date)
+        AND (e.end_of_service_date IS NULL OR e.end_of_service_date >= ${range.from}::date)
         ${payFreq === 'all' ? sql`` : sql`AND COALESCE(e.pay_frequency, 'monthly') = ${payFreq}`}
       ORDER BY e.id ASC
     `.execute(db);
 
     const empIds = employees.rows.map(e => Number(e.employee_id)).filter(id => id > 0);
+    const currencySetting = await sql<{ value: string }>`
+      SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
+    `.execute(db);
+    const payrollCurrency = clean(currencySetting.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+    try {
+      requirePayrollMonetaryCurrency(payrollCurrency, payrollCurrency);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : 'عملة مسير الرواتب غير مدعومة',
+        'HR_PAYROLL_CURRENCY_UNSUPPORTED', 409,
+      );
+    }
+    const contractRows = empIds.length
+      ? await sql<Record<string, unknown>>`
+          SELECT employee_id, id, base_salary, currency,
+            to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
+            to_char(end_date, 'YYYY-MM-DD') AS end_date_text
+          FROM hr_employment_contracts
+          WHERE tenant_id = ${tenantId}
+            AND employee_id IN (${sql.join(empIds)})
+            AND status IN ('active', 'ended')
+            AND start_date <= ${range.to}::date
+            AND (end_date IS NULL OR end_date >= ${range.from}::date)
+          ORDER BY employee_id, start_date, id
+        `.execute(db) : { rows: [] as Record<string, unknown>[] };
+    const contractHistory = new Map<number, EffectiveSalaryContract[]>();
+    for (const row of contractRows.rows) {
+      const employeeId = Number(row.employee_id);
+      try {
+        requirePayrollMonetaryCurrency(payrollCurrency, clean(row.currency));
+      } catch (error) {
+        throw new AppError(
+          `عملة عقد الموظف #${employeeId}: ${error instanceof Error ? error.message : 'عملة غير صحيحة'}`,
+          'HR_PAYROLL_CONTRACT_CURRENCY_MISMATCH', 409,
+        );
+      }
+      const item: EffectiveSalaryContract = {
+        id: Number(row.id),
+        startDate: String(row.start_date_text),
+        endDate: row.end_date_text ? String(row.end_date_text) : null,
+        baseSalary: Number(row.base_salary),
+      };
+      if (!contractHistory.has(employeeId)) contractHistory.set(employeeId, []);
+      contractHistory.get(employeeId)!.push(item);
+    }
+    const packageRows = empIds.length
+      ? await sql<Record<string, unknown>>`
+          SELECT employee_id, id, allowance_amount, deduction_amount,
+            to_char(effective_from, 'YYYY-MM-DD') AS start_date_text,
+            to_char(effective_to, 'YYYY-MM-DD') AS end_date_text
+          FROM hr_compensation_packages
+          WHERE tenant_id = ${tenantId}
+            AND employee_id IN (${sql.join(empIds)})
+            AND (effective_from IS NULL OR effective_from <= ${range.to}::date)
+            AND (effective_to IS NULL OR effective_to >= ${range.from}::date)
+          ORDER BY employee_id, effective_from NULLS FIRST, id
+        `.execute(db) : { rows: [] as Record<string, unknown>[] };
+    const packageHistory = new Map<number, EffectiveCompensationPackage[]>();
+    for (const row of packageRows.rows) {
+      const employeeId = Number(row.employee_id);
+      const item: EffectiveCompensationPackage = {
+        id: Number(row.id),
+        startDate: row.start_date_text ? String(row.start_date_text) : null,
+        endDate: row.end_date_text ? String(row.end_date_text) : null,
+        allowanceAmount: Number(row.allowance_amount),
+        deductionAmount: Number(row.deduction_amount),
+      };
+      if (!packageHistory.has(employeeId)) packageHistory.set(employeeId, []);
+      packageHistory.get(employeeId)!.push(item);
+    }
+    // A rebuilt draft/reviewed run must not retain a payable item for someone
+    // who no longer qualifies (terminated and settled, deactivated, or excluded
+    // by pay frequency). Preserve history/adjustments by excluding, not deleting.
+    await sql`
+      UPDATE hr_payroll_run_items i
+      SET status = 'excluded',
+          notes = CONCAT_WS(' | ', NULLIF(i.notes, ''), 'استبعاد آلي: الموظف غير مستحق في فترة المسير'),
+          updated_at = NOW()
+      WHERE i.run_id = ${runId} AND i.tenant_id = ${tenantId}
+        AND i.status IN ('draft', 'reviewed')
+        AND ${empIds.length ? sql`i.employee_id NOT IN (${sql.join(empIds)})` : sql`TRUE`}
+    `.execute(db);
     // The previous hourly formula credited 30 theoretical days, regardless of actual punches.
     // Read all punches for the run once, then share the exact same totals with payroll review.
     const hourlyWorkByEmployee = new Map<number, ReturnType<typeof summarizeHourlyAttendance>>();
     const punches = empIds.length ? await sql<Record<string, unknown>>`
-      SELECT employee_id, status, check_in_at, check_out_at
+      SELECT employee_id, status, check_in_at, check_out_at,
+        to_char(work_date, 'YYYY-MM-DD') AS work_date_text
       FROM hr_attendance_records
       WHERE tenant_id = ${tenantId}
         AND employee_id IN (${sql.join(empIds)})
@@ -2070,31 +2197,51 @@ export class HrService {
     }
     const baseSalMap = new Map<number, number>();
     const contractualMonthlySalary = new Map<number, number>();
+    const compensationByEmployee = new Map<number, { allowance: number; deduction: number }>();
     const payRangeByEmployee = new Map<number, { from: string; to: string }>();
     for (const e of employees.rows) {
       const id = Number(e.employee_id);
       const hire = e.hire_date ? String(e.hire_date).slice(0, 10) : range.from;
-      const contractStart = e.contract_start_date ? String(e.contract_start_date).slice(0, 10) : range.from;
-      const contractEnd = e.contract_end_date ? String(e.contract_end_date).slice(0, 10) : range.to;
       const employmentEnd = e.end_of_service_date ? String(e.end_of_service_date).slice(0, 10) : range.to;
-      const from = [range.from, hire, contractStart].sort().at(-1)!;
-      const to = [range.to, contractEnd, employmentEnd].sort()[0];
+      const from = [range.from, hire].sort().at(-1)!;
+      const to = [range.to, employmentEnd].sort()[0];
       payRangeByEmployee.set(id, { from, to });
+      try {
+        compensationByEmployee.set(id, calculateEffectiveCompensationPay(packageHistory.get(id) || [], from, to));
+      } catch (error) {
+        throw new AppError(
+          `البدلات والاستقطاعات الثابتة للموظف #${id} متداخلة أو غير صحيحة: ${error instanceof Error ? error.message : 'راجع الباقات'}`,
+          'HR_PAYROLL_COMPENSATION_PERIOD_INVALID', 409,
+        );
+      }
     }
     for (const e of employees.rows) {
       const employeeId = Number(e.employee_id);
       if (e.compensation_type === 'hourly') {
-        const work = summarizeHourlyAttendance(punchesByEmployee.get(employeeId) || [], Number(e.hourly_rate || 0));
+        const earned = payRangeByEmployee.get(employeeId)!;
+        const eligiblePunches = (punchesByEmployee.get(employeeId) || []).filter(
+          punch => String(punch.work_date_text) >= earned.from && String(punch.work_date_text) <= earned.to,
+        );
+        const work = summarizeHourlyAttendance(eligiblePunches, Number(e.hourly_rate || 0));
         hourlyWorkByEmployee.set(employeeId, work);
         baseSalMap.set(employeeId, work.baseWage);
       } else {
-        const monthlySalary = Number(e.base_salary || 0);
-        contractualMonthlySalary.set(employeeId, monthlySalary);
         const payRange = payRangeByEmployee.get(employeeId)!;
-        baseSalMap.set(employeeId, prorateMonthlyWage(monthlySalary, payRange.from, payRange.to));
+        try {
+          const result = calculateEffectiveContractPay(
+            contractHistory.get(employeeId) || [], payRange.from, payRange.to,
+          );
+          contractualMonthlySalary.set(employeeId, result.referenceMonthlySalary);
+          baseSalMap.set(employeeId, result.baseWage);
+        } catch (error) {
+          throw new AppError(
+            `عقود راتب الموظف #${employeeId} خلال الفترة غير مكتملة أو متداخلة: ${error instanceof Error ? error.message : 'راجع العقود'}`,
+            'HR_PAYROLL_CONTRACT_PERIOD_INVALID', 409,
+          );
+        }
       }
     }
-    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary);
+    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary, contractHistory);
     const policies = await this.getPayrollPolicies(db, tenantId);
     const maxDeductionPct = policies.maxDeductionPct !== undefined ? Number(policies.maxDeductionPct) : 1.0;
 
@@ -2112,20 +2259,16 @@ export class HrService {
       const itemId = Number(existingItem?.id || 0);
       const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId, tenantId) : { allowance: 0, deduction: 0 };
       const isHourly = clean(employee.compensation_type) === 'hourly';
-      let baseSalary = money(employee.base_salary);
-      
-      if (isHourly) {
-        baseSalary = hourlyWorkByEmployee.get(employeeId)?.baseWage || 0;
-      } else {
-        // Partial monthly pay periods also require a proportionate base salary.
-        const payRange = payRangeByEmployee.get(employeeId)!;
-        baseSalary = prorateMonthlyWage(baseSalary, payRange.from, payRange.to);
-      }
-      
-      const monthlyBase = money(employee.base_salary);
-      const ratio = !isHourly && monthlyBase > 0 ? Math.max(0, Math.min(1, baseSalary / monthlyBase)) : 1;
-      const compensationAllowance = money(Number(employee.allowance_amount || 0) * ratio);
-      const compensationDeduction = money(Number(employee.deduction_amount || 0) * ratio);
+      // The base wage was computed across ALL valid historical contract segments.
+      // Never re-prorate using just the latest contract, which drops earned days
+      // before a mid-month promotion/salary change.
+      const baseSalary = isHourly
+        ? (hourlyWorkByEmployee.get(employeeId)?.baseWage || 0)
+        : Number(baseSalMap.get(employeeId) || 0);
+      const payRange = payRangeByEmployee.get(employeeId)!;
+      const fixedCompensation = compensationByEmployee.get(employeeId) || { allowance: 0, deduction: 0 };
+      const compensationAllowance = fixedCompensation.allowance;
+      const compensationDeduction = fixedCompensation.deduction;
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
@@ -2141,11 +2284,15 @@ export class HrService {
 
       for (const adj of empAdjustmentsResult.rows) {
         let val = Number(adj.amount || 0);
-        // If amount_type is days, convert to money based on baseSalary
-        if (clean(adj.amount_type) === 'days') val = (baseSalary / 30) * val;
+        // Days/hours adjustments use the effective full daily/hourly rate.
+        // Using an already prorated period wage here undercounts midmonth staff.
+        const referenceHours = Number(employee.expected_daily_hours || 8) || 8;
+        const dayWage = isHourly
+          ? Number(employee.hourly_rate || 0) * referenceHours
+          : Number(contractualMonthlySalary.get(employeeId) || 0) / 30;
+        if (clean(adj.amount_type) === 'days') val = dayWage * val;
         if (clean(adj.amount_type) === 'hours') {
-          const referenceHours = Number(employee.expected_daily_hours || 8) || 8;
-          const rate = isHourly ? Number(employee.hourly_rate || 0) : (Number(employee.base_salary || 0) / 30 / referenceHours);
+          const rate = dayWage / referenceHours;
           val = rate * val;
         }
 
@@ -2167,6 +2314,7 @@ export class HrService {
           UPDATE hr_employee_adjustments
           SET status = 'applied', applied_in_run_id = ${runId}
           WHERE id IN (${sql.join(appliedAdjIds)})
+            AND tenant_id = ${tenantId} AND employee_id = ${employeeId}
         `.execute(db);
       }
 
@@ -2177,34 +2325,50 @@ export class HrService {
       const attendanceDeduction = isHourly ? 0 : Number(review?.suggestedAttendanceDeductionAmount || 0);
       const leaveDeduction = isHourly ? 0 : Number(review?.suggestedLeaveDeductionAmount || 0);
       const overtimeAllowance = isHourly
-        ? Number((Number(review?.suggestedOvertimeAllowanceAmount || 0) / 3).toFixed(2))
+        ? calculateHourlyOvertimePremium({
+            calculatedHourlyRate: Number(employee.hourly_rate || 0),
+            overtimeMinutes: Number(review?.approvedOvertimeMinutes || 0),
+            overtimeMultiplier: Number(policies.overtimeMultiplier ?? 1.5),
+          })
         : Number(review?.suggestedOvertimeAllowanceAmount || 0);
       const commissionAllowance = Number(review?.suggestedCommissionAllowanceAmount || 0);
-      const employeeSocialInsurance = Number(review?.suggestedSocialInsuranceDeductionAmount || 0);
-      const employerSocialInsurance = Number(review?.suggestedEmployerInsuranceAmount || 0);
-      const incomeTax = Number(review?.suggestedIncomeTaxDeductionAmount || 0);
-
-      // A zero/low wage must not silently absorb statutory deductions then
-      // create an unbalanced GL entry when the payroll is approved.
-      if (employeeSocialInsurance + incomeTax > baseSalary + compensationAllowance + adjustments.allowance + empAdjAllowance + overtimeAllowance + commissionAllowance + 0.005) {
-        throw new AppError(`تأمينات وضريبة الموظف #${employeeId} أكبر من إجمالي الأجر في الفترة؛ راجع بيانات التأمين والضريبة`, 'HR_PAYROLL_STATUTORY_EXCEEDS_GROSS', 400);
+      // The source of truth for statutory amounts is the COMPLETE payroll line:
+      // contractual salary + prorated compensation + manual earnings + approved
+      // overtime/commission, not the attendance review's incomplete preview.
+      let lineOutput: ReturnType<typeof calculateHrPayrollRunLine>;
+      try {
+        lineOutput = calculateHrPayrollRunLine({
+          policy: policies as HrStatutoryPolicy,
+          period: range,
+          eligibility: {
+            insured: employee.has_social_insurance === true,
+            taxable: employee.has_income_tax === true,
+          },
+          employmentMonthFraction: Math.min(1, payrollCalendarMonthFraction(payRange.from, payRange.to)),
+          configuredInsuranceSalary: Number(employee.insurance_salary || 0)
+            * (policies.insuranceProratePartialEmployment === true
+              ? Math.min(1, payrollCalendarMonthFraction(payRange.from, payRange.to))
+              : 1),
+          line: {
+            employeeId,
+            baseSalary,
+            allowanceAmount: Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2)),
+            overtimeAmount: overtimeAllowance,
+            commissionAmount: commissionAllowance,
+            attendanceDeduction,
+            leaveDeduction,
+            assetRecoveryDeduction: Number(empAdjAssetRecoveryDeduction.toFixed(2)),
+            otherDeductions: Number((compensationDeduction + adjustments.deduction + empAdjDeduction).toFixed(2)),
+            scheduledLoanDeduction: Number(loanDeduction.amount || 0),
+            maxDeductionPct,
+          },
+        });
+      } catch (error) {
+        throw new AppError(
+          `تعذر حساب مرتب الموظف #${employeeId}: ${error instanceof Error ? error.message : 'راجع سياسات المرتبات'}`,
+          'HR_PAYROLL_LINE_CALCULATION_INVALID', 409,
+        );
       }
-      const lineOutput = calculateEmployeePayrollLine({
-        employeeId,
-        baseSalary,
-        allowanceAmount: Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2)),
-        overtimeAmount: overtimeAllowance,
-        commissionAmount: commissionAllowance,
-        employeeSocialInsurance,
-        employerSocialInsurance,
-        incomeTax,
-        attendanceDeduction,
-        leaveDeduction,
-        assetRecoveryDeduction: Number(empAdjAssetRecoveryDeduction.toFixed(2)),
-        otherDeductions: Number((compensationDeduction + adjustments.deduction + empAdjDeduction).toFixed(2)),
-        scheduledLoanDeduction: Number(loanDeduction.amount || 0),
-        maxDeductionPct,
-      });
 
       const totalAllowance = Number((lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount).toFixed(2));
       const penaltyDeduction = Number((lineOutput.attendanceDeduction + lineOutput.leaveDeduction).toFixed(2));
@@ -2217,6 +2381,8 @@ export class HrService {
         isHourly && (hourlyWorkByEmployee.get(employeeId)?.invalidCount || 0) > 0
           ? `هناك ${hourlyWorkByEmployee.get(employeeId)!.invalidCount} حركة حضور غير صحيحة تحتاج تصحيحًا` : '',
         ...loanDeduction.notes,
+        lineOutput.employeeSocialInsurance > 0 ? `حصة تأمين الموظف: ${lineOutput.employeeSocialInsurance}` : '',
+        lineOutput.incomeTax > 0 ? `ضريبة الدخل: ${lineOutput.incomeTax}` : '',
         ...lineOutput.notes,
       ].filter(Boolean);
       const existingCleanNotes = clean(existingItem?.notes)
@@ -2249,7 +2415,7 @@ export class HrService {
               status = ${itemStatus},
               notes = ${notes},
               updated_at = NOW()
-          WHERE id = ${itemId}
+          WHERE id = ${itemId} AND tenant_id = ${tenantId} AND run_id = ${runId}
         `.execute(db);
       } else {
         await sql`
@@ -2281,14 +2447,14 @@ export class HrService {
     baseSalaryByEmployeeId: Map<number, number>,
     tenantId: string,
     contractualMonthlySalary?: Map<number, number>,
+    effectiveContracts?: Map<number, EffectiveSalaryContract[]>,
   ): Promise<Map<number, any>> {
     const reviewByEmployeeId = new Map<number, any>();
     if (!employeeIds.length) return reviewByEmployeeId;
 
     const empResult = await sql<Record<string, unknown>>`
-      SELECT e.id, e.tenant_id, e.user_id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, e.commission_type, e.commission_value, e.commission_target, e.delay_policy, e.has_social_insurance, e.insurance_salary, e.has_income_tax, c.base_salary
+      SELECT e.id, e.tenant_id, e.user_id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, e.commission_type, e.commission_value, e.commission_target, e.delay_policy, e.has_social_insurance, e.insurance_salary, e.has_income_tax
       FROM hr_employees e
-      LEFT JOIN hr_employment_contracts c ON c.employee_id = e.id AND c.tenant_id = e.tenant_id AND c.status = 'active'
       WHERE e.id IN (${sql.join(employeeIds)}) AND e.tenant_id = ${tenantId}
     `.execute(db);
     const empDetails = new Map<number, any>();
@@ -2296,36 +2462,85 @@ export class HrService {
 
     const attendanceResult = await sql<Record<string, unknown>>`
       SELECT
-        employee_id,
-        to_char(work_date, 'YYYY-MM-DD') AS work_date_text,
-        status
-      FROM hr_attendance_records
-      WHERE employee_id IN (${sql.join(employeeIds)}) AND tenant_id = ${tenantId}
-        AND work_date >= ${range.from}::date
-        AND work_date <= ${range.to}::date
+        ar.employee_id,
+        to_char(ar.work_date, 'YYYY-MM-DD') AS work_date_text,
+        ar.status
+      FROM hr_attendance_records ar
+      JOIN hr_employees e ON e.id = ar.employee_id AND e.tenant_id = ar.tenant_id
+      WHERE ar.employee_id IN (${sql.join(employeeIds)}) AND ar.tenant_id = ${tenantId}
+        AND ar.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
+        AND ar.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+        -- One date may appear as both 'absent' and an approved leave.
+        -- Do not charge absence on the same day as an approved (paid or unpaid)
+        -- leave, because unpaid leave has its own deduction and paid leave is exempt.
+        AND NOT (
+          ar.status = 'absent' AND EXISTS (
+            SELECT 1 FROM hr_leave_requests lr
+            WHERE lr.tenant_id = ar.tenant_id AND lr.employee_id = ar.employee_id
+              AND lr.status = 'approved'
+              AND ar.work_date BETWEEN lr.start_date AND lr.end_date
+          )
+        )
     `.execute(db);
 
     const exceptionsResult = await sql<Record<string, unknown>>`
       SELECT
-        employee_id,
-        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
-        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS early_leave_minutes,
-        COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out', 'extra_hours') AND status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes,
-        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS late_incidents_count,
-        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS early_leave_incidents_count,
-        COALESCE(SUM(CASE WHEN status = 'needs_review' THEN 1 ELSE 0 END), 0) AS unresolved_exceptions_count
-      FROM hr_attendance_exceptions
-      WHERE employee_id IN (${sql.join(employeeIds)}) AND tenant_id = ${tenantId}
-        AND work_date >= ${range.from}::date
-        AND work_date <= ${range.to}::date
-      GROUP BY employee_id
+        ex.employee_id,
+        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
+        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS early_leave_minutes,
+        COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out', 'extra_hours') AND ex.status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes,
+        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS late_incidents_count,
+        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS early_leave_incidents_count,
+        COALESCE(SUM(CASE WHEN ex.status = 'needs_review' THEN 1 ELSE 0 END), 0) AS unresolved_exceptions_count
+      FROM hr_attendance_exceptions ex
+      JOIN hr_employees e ON e.id = ex.employee_id AND e.tenant_id = ex.tenant_id
+      WHERE ex.employee_id IN (${sql.join(employeeIds)}) AND ex.tenant_id = ${tenantId}
+        AND ex.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
+        AND ex.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+        AND NOT EXISTS (
+          SELECT 1 FROM hr_leave_requests lr
+          WHERE lr.tenant_id = ex.tenant_id AND lr.employee_id = ex.employee_id
+            AND lr.status = 'approved'
+            AND ex.work_date BETWEEN lr.start_date AND lr.end_date
+        )
+      GROUP BY ex.employee_id
     `.execute(db);
+
+    // Retrieve approved overtime per DAY, so salary changes within a period
+    // are paid at the contract wage effective on each approved attendance day.
+    // No dated history is necessary when simply displaying an older payslip.
+    const datedOvertimeByEmployee = new Map<number, ApprovedOvertimeDay[]>();
+    if (effectiveContracts) {
+      const datedOvertime = await sql<Record<string, unknown>>`
+        SELECT ex.employee_id, to_char(ex.work_date, 'YYYY-MM-DD') AS work_date_text,
+          COALESCE(SUM(COALESCE(ex.approved_duration_minutes, ex.duration_minutes)), 0) AS minutes
+        FROM hr_attendance_exceptions ex
+        JOIN hr_employees e ON e.id = ex.employee_id AND e.tenant_id = ex.tenant_id
+        WHERE ex.tenant_id = ${tenantId} AND ex.employee_id IN (${sql.join(employeeIds)})
+          AND ex.status = 'approved'
+          AND ex.exception_type IN ('early_check_in', 'late_check_out', 'extra_hours')
+          AND ex.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
+          AND ex.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+        GROUP BY ex.employee_id, ex.work_date
+      `.execute(db);
+      for (const row of datedOvertime.rows) {
+        const employeeId = Number(row.employee_id);
+        if (!datedOvertimeByEmployee.has(employeeId)) datedOvertimeByEmployee.set(employeeId, []);
+        datedOvertimeByEmployee.get(employeeId)!.push({
+          date: String(row.work_date_text),
+          minutes: Number(row.minutes),
+        });
+      }
+    }
 
     // Restrict approved leave days to the payroll interval. Previously a
     // leave spanning two months deducted its FULL days_count in both runs.
     const leaveDaysInRange = sql<number>`
       (COALESCE(lr.days_count, 0) * (
-        GREATEST(0, LEAST(lr.end_date, ${range.to}::date) - GREATEST(lr.start_date, ${range.from}::date) + 1)::numeric
+        GREATEST(0,
+          LEAST(lr.end_date, ${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+          - GREATEST(lr.start_date, ${range.from}::date, COALESCE(e.hire_date, ${range.from}::date)) + 1
+        )::numeric
         / GREATEST(1, lr.end_date - lr.start_date + 1)
       ))
     `;
@@ -2335,6 +2550,7 @@ export class HrService {
         COALESCE(SUM(${leaveDaysInRange}), 0) AS approved_leave_days,
         COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN ${leaveDaysInRange} ELSE 0 END), 0) AS unpaid_leave_days
       FROM hr_leave_requests lr
+      JOIN hr_employees e ON e.id = lr.employee_id AND e.tenant_id = lr.tenant_id
       LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id AND lt.tenant_id = lr.tenant_id
       WHERE lr.employee_id IN (${sql.join(employeeIds)}) AND lr.tenant_id = ${tenantId}
         AND lr.status = 'approved'
@@ -2367,12 +2583,9 @@ export class HrService {
     let hrDelayPolicyThirdTime = 0;
     let hrDelayPolicyFourthTime = 0;
     let hrCommissionType = 'none';
+    let overtimeMultiplier = 1.5;
     let hrCommissionValue = 0;
     let hrCommissionTarget = 0;
-    let hrSocialInsuranceEnabled = false;
-    let hrSocialInsuranceEmployeePct = 11;
-    let hrSocialInsuranceEmployerPct = 18.75;
-    let hrIncomeTaxEnabled = false;
 
     let hrWeekendDays = ['friday', 'saturday'];
     
@@ -2384,12 +2597,12 @@ export class HrService {
       hrDelayPolicyThirdTime = Number(globalPolicies.hrDelayPolicyThirdTimeDeduction || 0);
       hrDelayPolicyFourthTime = Number(globalPolicies.hrDelayPolicyFourthTimeDeduction || 0);
       hrCommissionType = globalPolicies.hrCommissionType || 'none';
+      overtimeMultiplier = Number(globalPolicies.overtimeMultiplier ?? 1.5);
+      if (!Number.isFinite(overtimeMultiplier) || overtimeMultiplier < 1 || overtimeMultiplier > 5) {
+        throw new AppError('مضاعف العمل الإضافي يجب أن يكون بين 1 و5', 'HR_OVERTIME_MULTIPLIER_INVALID', 400);
+      }
       hrCommissionValue = Number(globalPolicies.hrCommissionValue || 0);
       hrCommissionTarget = Number(globalPolicies.hrCommissionTarget || 0);
-      hrSocialInsuranceEnabled = globalPolicies.hrSocialInsuranceEnabled === true;
-      hrSocialInsuranceEmployeePct = Number(globalPolicies.hrSocialInsuranceEmployeePct || 11);
-      hrSocialInsuranceEmployerPct = Number(globalPolicies.hrSocialInsuranceEmployerPct || 18.75);
-      hrIncomeTaxEnabled = globalPolicies.hrIncomeTaxEnabled === true;
       hrWeekendDays = (globalPolicies.hrWeekendDays || 'friday,saturday').split(',').map((d: string) => d.trim().toLowerCase());
     }
 
@@ -2498,7 +2711,24 @@ export class HrService {
 
       const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + delayDeduction).toFixed(2));
       const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
-      const suggestedOvertimeAllowanceAmount = Number((calculatedHourlyRate * (overtimeMinutes / 60) * 1.5).toFixed(2));
+      let suggestedOvertimeAllowanceAmount: number;
+      try {
+        suggestedOvertimeAllowanceAmount = !isHourly && effectiveContracts
+          ? calculateHistoricalOvertimePay(
+              datedOvertimeByEmployee.get(employeeId) || [],
+              effectiveContracts.get(employeeId) || [],
+              expectedHours,
+              overtimeMultiplier,
+            )
+          : calculateOvertime({
+              calculatedHourlyRate, overtimeMinutes, overtimeMultiplier,
+            });
+      } catch (error) {
+        throw new AppError(
+          `تعذر احتساب إضافي الموظف #${employeeId}: ${error instanceof Error ? error.message : 'راجع العقود'}`,
+          'HR_OVERTIME_EFFECTIVE_CONTRACT_INVALID', 409,
+        );
+      }
 
       // Determine Commission Allowance
       let commissionValue = 0;
@@ -2523,45 +2753,13 @@ export class HrService {
         commissionValue = cVal;
       }
       
-      // Calculate Social Insurance Deduction
-      let suggestedSocialInsuranceDeductionAmount = 0;
-      let suggestedEmployerInsuranceAmount = 0;
-      if (hrSocialInsuranceEnabled && emp.has_social_insurance) {
-        const fullMonthlyBase = Number(contractualMonthlySalary?.get(employeeId) || 0);
-        const periodRatio = !isHourly && fullMonthlyBase > 0 ? Math.max(0, baseSalary / fullMonthlyBase) : 1;
-        const configuredInsuranceSalary = Number(emp.insurance_salary || 0);
-        const insSalary = configuredInsuranceSalary > 0
-          ? configuredInsuranceSalary * periodRatio : baseSalary;
-        suggestedSocialInsuranceDeductionAmount = Number((insSalary * (hrSocialInsuranceEmployeePct / 100)).toFixed(2));
-        suggestedEmployerInsuranceAmount = Number((insSalary * (hrSocialInsuranceEmployerPct / 100)).toFixed(2));
-      }
+      // Tax/insurance is deliberately NOT computed at attendance review stage:
+      // this view does not include compensation packages and manual adjustments.
+      // The canonical payroll line recalculates withholding after all earnings.
+      const suggestedSocialInsuranceDeductionAmount = 0;
+      const suggestedEmployerInsuranceAmount = 0;
+      const suggestedIncomeTaxDeductionAmount = 0;
 
-      // Calculate Income Tax Deduction
-      let suggestedIncomeTaxDeductionAmount = 0;
-      if (hrIncomeTaxEnabled && emp.has_income_tax) {
-        // Simplified standard brackets (monthly):
-        // 1- up to 3333 -> 0%
-        // 2- 3334 to 4583 -> 10%
-        // 3- 4584 to 6250 -> 15%
-        // 4- 6251 to 16666 -> 20%
-        // 5- >16666 -> 22.5%
-        // (Rough monthly approximation for 2024 Egypt, we'll keep it simple for now and can be overridden via settings if needed)
-        const taxableIncome = baseSalary - suggestedSocialInsuranceDeductionAmount + commissionValue + suggestedOvertimeAllowanceAmount;
-        let tax = 0;
-        if (taxableIncome > 3333) {
-          if (taxableIncome <= 4583) {
-            tax = (taxableIncome - 3333) * 0.10;
-          } else if (taxableIncome <= 6250) {
-            tax = (4583 - 3333) * 0.10 + (taxableIncome - 4583) * 0.15;
-          } else if (taxableIncome <= 16666) {
-            tax = (4583 - 3333) * 0.10 + (6250 - 4583) * 0.15 + (taxableIncome - 6250) * 0.20;
-          } else {
-            tax = (4583 - 3333) * 0.10 + (6250 - 4583) * 0.15 + (16666 - 6250) * 0.20 + (taxableIncome - 16666) * 0.225;
-          }
-        }
-        suggestedIncomeTaxDeductionAmount = Number(tax.toFixed(2));
-      }
-      
       let notesStr = `مراجعة: غياب ${attendanceAbsentDays} يوم.`;
       if (totalIncidents > 0) notesStr += ` (${totalIncidents}) مرات تأخير/انصراف مبكر باجمالي ${Math.floor((lateMinutes+earlyLeaveMinutes)/60)}س و${(lateMinutes+earlyLeaveMinutes)%60}د. سياسة: ${delayPolicyMode}.`;
       if (unpaidLeaveDays > 0) notesStr += ` إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
@@ -2687,7 +2885,12 @@ export class HrService {
     const fromDate = String(run.start_date_text || `${periodMonth}-01`);
     const toDate = String(run.end_date_text || new Date(Number(periodMonth.split('-')[0]), Number(periodMonth.split('-')[1]), 0).toISOString().slice(0, 10));
     const range = { from: fromDate, to: toDate };
-    const reviewByEmployeeId = await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId, tenantId);
+    // An approved/paid payslip is an immutable financial snapshot. Its presentation
+    // must not be recomputed using current (possibly newer) tax, leave or attendance
+    // policies, which can change independently after approval.
+    const reviewByEmployeeId = ['approved', 'paid'].includes(clean(run.status))
+      ? new Map<number, any>()
+      : await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId, tenantId);
     const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
     const adjustmentResult = itemIds.length
       ? await sql<Record<string, unknown>>`
@@ -2734,9 +2937,9 @@ export class HrService {
     const month = monthRange(periodMonth);
     const startDate = payload.startDate ? normalizeDateOnly(payload.startDate) : month.from;
     const endDate = payload.endDate ? normalizeDateOnly(payload.endDate) : month.to;
-    const periodLengthDays = Math.floor(
-      (Date.parse(endDate + 'T00:00:00Z') - Date.parse(startDate + 'T00:00:00Z')) / 86400000
-    );
+    const periodLengthDays = startDate && endDate
+      ? Math.floor((Date.parse(endDate + 'T00:00:00Z') - Date.parse(startDate + 'T00:00:00Z')) / 86400000)
+      : NaN;
     if (!startDate || !endDate || !Number.isFinite(periodLengthDays) || periodLengthDays < 0 || periodLengthDays > 366) {
       throw new AppError('اختر تاريخ بداية ونهاية صحيحين لفترة القبض', 'HR_PAYROLL_PERIOD_INVALID', 400);
     }
@@ -2745,24 +2948,43 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       // The old month-only uniqueness silently reused a WEEKLY run for every
       // subsequent week. Serialize overlapping period checks within tenant/frequency.
-      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId + ':' + payFreq}))`.execute(trx);
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const overlapping = await sql<{
-        id: number; status: string; period_month: string;
+        id: number; status: string; period_month: string; pay_frequency: string;
         start_date_text: string; end_date_text: string;
       }>`
-        SELECT id, status, period_month,
+        SELECT id, status, period_month, pay_frequency,
           to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
           to_char(end_date, 'YYYY-MM-DD') AS end_date_text
         FROM hr_payroll_runs
         WHERE tenant_id = ${tenantId}
-          AND pay_frequency = ${payFreq}
           AND status <> 'cancelled'
           AND start_date <= ${endDate}::date
           AND end_date >= ${startDate}::date
+          AND (
+            pay_frequency = ${payFreq}
+            OR pay_frequency = 'all'
+            OR ${payFreq} = 'all'
+            OR EXISTS (
+              SELECT 1 FROM hr_payroll_run_items prior_item
+              JOIN hr_employees eligible
+                ON eligible.id = prior_item.employee_id AND eligible.tenant_id = prior_item.tenant_id
+              WHERE prior_item.run_id = hr_payroll_runs.id
+                AND prior_item.tenant_id = hr_payroll_runs.tenant_id
+                AND prior_item.status <> 'excluded'
+                AND COALESCE(eligible.pay_frequency, 'monthly') = ${payFreq}
+            )
+          )
         ORDER BY id DESC
         FOR UPDATE
       `.execute(trx);
 
+      if (overlapping.rows.some(row => row.pay_frequency !== payFreq)) {
+        throw new AppError(
+          'لا يمكن إنشاء مسير بدورية مختلفة يغطي أيام موظفين موجودين في مسير آخر؛ راجع المسير المتداخل',
+          'HR_PAYROLL_CROSS_FREQUENCY_OVERLAP', 409,
+        );
+      }
       if (overlapping.rows.some(row => row.start_date_text !== startDate || row.end_date_text !== endDate)) {
         throw new AppError('يوجد كشف مرتبات آخر يتداخل مع هذه الفترة. اختر فترة غير متداخلة لمنع تكرار الصرف.', 'HR_PAYROLL_PERIOD_OVERLAP', 409);
       }
@@ -2794,7 +3016,8 @@ export class HrService {
 
   async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
       await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
     });
@@ -2805,6 +3028,7 @@ export class HrService {
   async applyAttendanceDeductions(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, tenantId);
       if (status !== 'draft' && status !== 'reviewed') {
         throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
@@ -2826,11 +3050,14 @@ export class HrService {
 
   async reviewPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
-      if (status !== 'draft') throw new AppError('Only draft payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
-      
-      // Auto-recalculate before reviewing to ensure all new loans/deductions are captured
-      await this.rebuildPayrollRunItems(trx, id, 'draft', auth.tenantId || '');
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
+      if (status !== 'draft' && status !== 'reviewed') {
+        throw new AppError('Only draft or reviewed payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
+      }
+      // A reviewed run can be re-reviewed after a statutory rule or attendance
+      // correction; all items are recalculated against current approved inputs.
+      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
 
       await sql`UPDATE hr_payroll_run_items SET status = 'reviewed', updated_at = NOW() WHERE run_id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(trx);
       await sql`UPDATE hr_payroll_runs SET status = 'reviewed', reviewed_by = ${auth.userId}, reviewed_at = NOW(), updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(trx);
@@ -2841,6 +3068,12 @@ export class HrService {
 
   private async settlePayrollLoanDeductions(trx: Kysely<Database>, runId: number, auth: AuthContext): Promise<void> {
     const { tenantId } = requireTenantScope(auth);
+    const payrollPeriod = await sql<{ end_date: string }>`
+      SELECT to_char(end_date, 'YYYY-MM-DD') AS end_date
+      FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} LIMIT 1
+    `.execute(trx);
+    const dueCutoff = payrollPeriod.rows[0]?.end_date;
+    if (!dueCutoff) throw new AppError('مسير المرتبات غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
     const items = await trx
       .selectFrom('hr_payroll_run_items')
       .select(['id', 'employee_id', 'loan_deduction_amount'])
@@ -2868,6 +3101,10 @@ export class HrService {
           AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
           AND l.status IN ('paid', 'partially_repaid', 'disbursed')
           AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
+          AND (
+            l.repayment_mode = 'deduct_next_salary'
+            OR COALESCE(i.due_date, l.first_due_date, l.salary_due_date) <= ${dueCutoff}::date
+          )
         ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC, l.id ASC
         FOR UPDATE
       `.execute(trx);
@@ -2935,7 +3172,8 @@ export class HrService {
         const ledgerId = ledgerRes.rows[0]?.id;
 
         await sql`
-          UPDATE hr_payroll_loan_deduction_allocations SET ledger_id = ${ledgerId} WHERE id = ${allocId}
+          UPDATE hr_payroll_loan_deduction_allocations SET ledger_id = ${ledgerId}
+          WHERE id = ${allocId} AND tenant_id = ${tenantId}
         `.execute(trx);
       }
 
@@ -2947,34 +3185,99 @@ export class HrService {
 
   async approvePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Lock order matches run creation: tenant-wide payroll lock BEFORE row lock.
+      // Weekly, monthly and all-employees runs cannot approve the same person twice.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
 
-      // Statutory calculations in the legacy review are hard-coded to an
-      // approximate 2024 Egyptian monthly bracket table and flat social rates.
-      // They are NOT certified for Egypt 2026 or any Gulf jurisdiction.
-      // Until a legally reviewed, effective-dated country engine is available,
-      // financially binding approval must fail closed rather than post bad tax
-      // and pension liabilities into the general ledger.
+      // Serialize statutory policy edits with approval/posting. The same lock
+      // is held by updatePayrollPolicies; no update can slip between the policy
+      // verification below and the committed ledger journal.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-policy:' + auth.tenantId}))`.execute(trx);
+      // HR must maintain legal sources and residency/employee exemptions.
       const policies = await this.getPayrollPolicies(trx, auth.tenantId || '');
-      if (policies.hrIncomeTaxEnabled === true || policies.hrSocialInsuranceEnabled === true) {
-        const statutoryEmployees = await sql<{ count: string }>`
-          SELECT COUNT(*)::text AS count
-          FROM hr_payroll_run_items i
-          JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
-          WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId}
-            AND i.status = 'reviewed'
-            AND (
-              (${policies.hrIncomeTaxEnabled === true} AND e.has_income_tax = TRUE)
-              OR (${policies.hrSocialInsuranceEnabled === true} AND e.has_social_insurance = TRUE)
-            )
+      const unconfiguredEmployee = await sql<{ display_name: string }>`
+        SELECT e.display_name
+        FROM hr_payroll_run_items i
+        JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+        WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId} AND i.status = 'reviewed'
+          AND (
+            (e.has_income_tax = TRUE AND ${policies.hrIncomeTaxEnabled !== true})
+            OR (e.has_social_insurance = TRUE AND ${policies.hrSocialInsuranceEnabled !== true})
+          )
+        LIMIT 1
+      `.execute(trx);
+      if (unconfiguredEmployee.rows.length) {
+        throw new AppError(
+          `الموظف ${unconfiguredEmployee.rows[0].display_name} عليه استقطاعات نظامية ولكن تم تعطيل سياسة احتسابها`,
+          'HR_PAYROLL_EMPLOYEE_STATUTORY_DISABLED', 409,
+        );
+      }
+      const payrollPeriod = await sql<{ start_date: string; end_date: string }>`
+        SELECT to_char(start_date, 'YYYY-MM-DD') AS start_date,
+               to_char(end_date, 'YYYY-MM-DD') AS end_date
+        FROM hr_payroll_runs WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1
+      `.execute(trx);
+      const period = payrollPeriod.rows[0];
+      if (!period) throw new AppError('مسير الرواتب غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
+      try {
+        validateHrStatutoryPolicy(policies as HrStatutoryPolicy, {
+          from: period.start_date,
+          to: period.end_date,
+        }, true);
+        const currencyRows = await sql<{ value: string }>`
+          SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
         `.execute(trx);
-        if (Number(statutoryEmployees.rows[0]?.count || 0) > 0) {
-          throw new AppError(
-            'لا يمكن اعتماد الرواتب مع استقطاعات ضريبية/تأمينية محسوبة بقواعد تقريبية غير معتمدة. يلزم محرك تشريعي موثق ومؤرخ للدولة قبل الاعتماد.',
-            'HR_PAYROLL_STATUTORY_RULES_UNVERIFIED', 409,
-          );
-        }
+        const tenantCurrency = clean(currencyRows.rows[0]?.value).replace(/^"|"$/g, '');
+        requireHrPayrollJurisdictionCurrency(policies.statutoryCountry, tenantCurrency);
+      } catch (error) {
+        throw new AppError(
+          error instanceof Error ? error.message : 'قواعد الضرائب والتأمينات غير معتمدة',
+          'HR_PAYROLL_STATUTORY_RULES_UNVERIFIED', 409,
+        );
+      }
+      // A reviewer must re-review changed statutory settings rather than approve
+      // totals calculated against an earlier rule version.
+      const policyChangedAfterReview = await sql<{ stale: boolean }>`
+        SELECT EXISTS (
+          SELECT 1 FROM hr_hr_settings s
+          JOIN hr_payroll_runs r ON r.tenant_id = s.tenant_id
+          WHERE r.id = ${id} AND r.tenant_id = ${auth.tenantId}
+            AND s.key = 'payroll_policies'
+            AND s.updated_at > r.reviewed_at
+        ) AS stale
+      `.execute(trx);
+      if (policyChangedAfterReview.rows[0]?.stale) {
+        throw new AppError(
+          'تم تغيير سياسات الاستقطاعات بعد مراجعة الكشف؛ أعد مراجعة المرتبات قبل الاعتماد',
+          'HR_PAYROLL_POLICY_CHANGED_AFTER_REVIEW', 409,
+        );
+      }
+      const duplicatePay = await sql<{ display_name: string }>`
+        SELECT e.display_name
+        FROM hr_payroll_run_items current_item
+        JOIN hr_payroll_runs current_run ON current_run.id = current_item.run_id
+          AND current_run.tenant_id = current_item.tenant_id
+        JOIN hr_payroll_run_items prior_item ON prior_item.employee_id = current_item.employee_id
+          AND prior_item.tenant_id = current_item.tenant_id
+          AND prior_item.run_id <> current_item.run_id AND prior_item.status <> 'excluded'
+        JOIN hr_payroll_runs prior_run ON prior_run.id = prior_item.run_id
+          AND prior_run.tenant_id = prior_item.tenant_id
+        JOIN hr_employees e ON e.id = current_item.employee_id
+          AND e.tenant_id = current_item.tenant_id
+        WHERE current_item.run_id = ${id} AND current_item.tenant_id = ${auth.tenantId}
+          AND current_item.status = 'reviewed'
+          AND prior_run.status <> 'cancelled'
+          AND prior_run.start_date <= current_run.end_date
+          AND prior_run.end_date >= current_run.start_date
+        LIMIT 5
+      `.execute(trx);
+      if (duplicatePay.rows.length) {
+        throw new AppError(
+          `الموظف/الموظفون ${duplicatePay.rows.map(r => r.display_name).join('، ')} مدرجون في مسير متداخل؛ امنع صرف نفس الأيام مرتين`,
+          'HR_PAYROLL_EMPLOYEE_PERIOD_COLLISION', 409,
+        );
       }
       // Never post/settle a payroll that silently contains only zero wages.
       // A zero-wage employee with no punches can be legitimate; a completely
@@ -3013,6 +3316,33 @@ export class HrService {
         const names = missingRates.rows.map(row => String(row.display_name)).join('، ');
         throw new AppError(`يوجد موظفون بدون أجر ساعة أو عقد براتب نشط وصحيح: ${names}`, 'HR_PAYROLL_MISSING_EMPLOYEE_RATES', 400);
       }
+      // Hourly base salary counts only completed punches. An unclosed or
+      // malformed paid work session must never be silently omitted at approval.
+      const invalidHourlyPunch = await sql<{ display_name: string }>`
+        SELECT DISTINCT e.display_name
+        FROM hr_payroll_run_items i
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+        JOIN hr_attendance_records a ON a.employee_id = e.id AND a.tenant_id = e.tenant_id
+        WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId}
+          AND i.status = 'reviewed' AND e.compensation_type = 'hourly'
+          AND a.work_date BETWEEN GREATEST(r.start_date, COALESCE(e.hire_date, r.start_date))
+              AND LEAST(r.end_date, COALESCE(e.end_of_service_date, r.end_date))
+          AND a.status NOT IN ('absent', 'leave')
+          AND (
+            (a.check_in_at IS NULL AND a.check_out_at IS NOT NULL)
+            OR (a.check_in_at IS NOT NULL AND a.check_out_at IS NULL)
+            OR (a.check_in_at IS NOT NULL AND a.check_out_at IS NOT NULL
+              AND (a.check_out_at <= a.check_in_at OR a.check_out_at > a.check_in_at + INTERVAL '24 hours'))
+          )
+        LIMIT 5
+      `.execute(trx);
+      if (invalidHourlyPunch.rows.length) {
+        throw new AppError(
+          `يوجد دوام ساعات غير مكتمل أو غير صالح للموظفين: ${invalidHourlyPunch.rows.map(r => r.display_name).join('، ')}؛ صحح الحضور قبل اعتماد المرتبات`,
+          'HR_PAYROLL_HOURLY_PUNCH_UNRESOLVED', 409,
+        );
+      }
       // A reviewed payroll still cannot be approved with disputed attendance.
       const pendingAttendance = await sql<{ pending: string }>`
         SELECT COUNT(*)::text AS pending
@@ -3031,6 +3361,34 @@ export class HrService {
           'HR_PAYROLL_ATTENDANCE_PENDING', 400,
         );
       }
+      // A reviewer approves a concrete financial snapshot, not an arbitrary
+      // historic cached amount. Rebuild the SAME payroll engine under the run
+      // row lock, and reject if a salary, contract, attendance, loan or
+      // adjustment has changed since the review. A thrown error rolls back
+      // all temporary recalculation changes including adjustment status.
+      const reviewSnapshot = async () => {
+        const snapshot = await sql<Record<string, unknown>>`
+          SELECT employee_id, status, contract_id, base_salary, allowance_amount,
+                 deduction_amount, loan_deduction_amount,
+                 asset_recovery_deduction_amount, employee_social_insurance,
+                 employer_social_insurance, income_tax, penalty_deduction,
+                 carried_forward_deduction, gross_pay, net_pay
+          FROM hr_payroll_run_items
+          WHERE run_id = ${id} AND tenant_id = ${auth.tenantId}
+          ORDER BY employee_id ASC
+        `.execute(trx);
+        return JSON.stringify(snapshot.rows);
+      };
+      const reviewedAmounts = await reviewSnapshot();
+      await this.rebuildPayrollRunItems(trx, id, 'reviewed', auth.tenantId || '');
+      const recalculatedAmounts = await reviewSnapshot();
+      if (reviewedAmounts !== recalculatedAmounts) {
+        throw new AppError(
+          'تغيرت بيانات المرتبات أو الحضور أو السلف بعد المراجعة؛ يجب إعادة مراجعة الكشف قبل الاعتماد النهائي',
+          'HR_PAYROLL_REVIEW_STALE', 409,
+        );
+      }
+
       await this.settlePayrollLoanDeductions(trx, id, auth);
 
       const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
@@ -3085,9 +3443,28 @@ export class HrService {
   }
 
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const status = await this.getPayrollRunStatus(this.db, id, auth.tenantId || '');
-    if (['approved', 'paid'].includes(status)) throw new AppError('Approved or paid payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
-    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status NOT IN ('approved', 'paid') AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, tenantId);
+      if (status === 'cancelled') return; // idempotent; do not release any other run
+      if (!['draft', 'reviewed'].includes(status)) {
+        throw new AppError('Approved or paid payroll runs cannot be cancelled', 'HR_PAYROLL_CANCEL_LOCKED', 400);
+      }
+      // Draft/review materialization marks pending employee adjustments as
+      // applied. Cancelling without releasing those entries loses legitimate
+      // bonuses and deductions from every later payroll.
+      await sql`
+        UPDATE hr_employee_adjustments
+        SET status = 'pending', applied_in_run_id = NULL
+        WHERE tenant_id = ${tenantId} AND applied_in_run_id = ${id}
+          AND status = 'applied'
+      `.execute(trx);
+      await sql`
+        UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${tenantId} AND status IN ('draft', 'reviewed')
+      `.execute(trx);
+    });
     await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
   }
@@ -3244,23 +3621,53 @@ export class HrService {
   }
 
   async updatePayrollRunItem(id: number, payload: UpsertPayrollItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
-    if (item.runStatus !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
-    const status = clean(payload.status);
-    if (status && !['draft', 'excluded'].includes(status)) throw new AppError('Payroll item status is invalid', 'HR_PAYROLL_ITEM_STATUS_INVALID', 400);
-    await sql`
-      UPDATE hr_payroll_run_items
-      SET status = ${status || item.itemStatus || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
+    const { tenantId } = requireTenantScope(auth);
+    let runId = 0;
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      // Run lock serializes item exclusion against review/approval and freezes
+      // the financial snapshot before either committed status may change.
+      const locked = await sql<{ run_id: number; run_status: string; item_status: string }>`
+        SELECT r.id AS run_id, r.status AS run_status, i.status AS item_status
+        FROM hr_payroll_run_items i
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        WHERE i.id = ${id} AND i.tenant_id = ${tenantId}
+        FOR UPDATE OF r, i
+      `.execute(trx);
+      const item = locked.rows[0];
+      if (!item) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
+      if (item.run_status !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
+      const status = clean(payload.status);
+      if (status && !['draft', 'excluded'].includes(status)) throw new AppError('Payroll item status is invalid', 'HR_PAYROLL_ITEM_STATUS_INVALID', 400);
+      runId = Number(item.run_id);
+      await sql`
+        UPDATE hr_payroll_run_items
+        SET status = ${status || item.item_status || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
+        WHERE id = ${id} AND run_id = ${runId} AND tenant_id = ${tenantId}
+      `.execute(trx);
+    });
     await this.audit.log('Update HR payroll item', `Payroll item #${id} updated by ${auth.username}`, auth);
-    return this.getPayrollRun(item.runId, auth);
+    return this.getPayrollRun(runId, auth);
   }
 
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+    if (typeof payload.amount !== 'number' || !Number.isFinite(payload.amount) || payload.amount <= 0) {
+      throw new AppError('مبلغ التعديل يجب أن يكون موجبًا وصحيحًا', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
+    }
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      // Recheck while holding the same payroll-run row lock as review/approval.
+      const locked = await sql<{ status: string }>`
+        SELECT r.status FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE i.id = ${id} AND i.tenant_id = ${auth.tenantId}
+        FOR UPDATE OF r
+      `.execute(trx);
+      if (locked.rows[0]?.status !== 'draft') {
+        throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+      }
       await sql`
         INSERT INTO hr_payroll_item_adjustments (tenant_id, account_id, payroll_item_id, adjustment_type, label, amount, notes)
         VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
@@ -3276,13 +3683,14 @@ export class HrService {
     let runId = 0;
     let itemId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const result = await sql<{ payroll_item_id: number; run_id: number; run_status: string }>`
         SELECT a.payroll_item_id, i.run_id, r.status AS run_status
         FROM hr_payroll_item_adjustments a
-        JOIN hr_payroll_run_items i ON i.id = a.payroll_item_id
-        JOIN hr_payroll_runs r ON r.id = i.run_id
-        WHERE a.id = ${id} AND i.tenant_id = ${auth.tenantId} AND r.tenant_id = ${auth.tenantId}
-        LIMIT 1
+        JOIN hr_payroll_run_items i ON i.id = a.payroll_item_id AND i.tenant_id = a.tenant_id
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        WHERE a.id = ${id} AND a.tenant_id = ${auth.tenantId}
+        FOR UPDATE OF r, i
       `.execute(trx);
       const row = result.rows[0];
       if (!row) throw new AppError('Payroll adjustment not found', 'HR_PAYROLL_ADJUSTMENT_NOT_FOUND', 404);

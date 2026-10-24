@@ -55,7 +55,7 @@ export class HrController {
   @Put('settings/payroll-policies')
   @RequireAnyPermission('hrPayrollManage', 'hrSalaryManage')
   async updatePayrollPolicies(@Req() req: RequestWithAuth, @Body() body: any) {
-    return this.hr.updatePayrollPolicies({ tenantId: req.authContext!.tenantId, userId: req.authContext!.userId } as any, body);
+    return this.hr.updatePayrollPolicies(req.authContext!, body);
   }
 
   constructor(private readonly hr: HrService) {}
