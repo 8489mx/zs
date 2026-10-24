@@ -751,6 +751,12 @@ export class HrService {
     if (!terminationDate) {
       throw new AppError('تاريخ نهاية الخدمة غير صحيح', 'HR_EOS_END_DATE_REQUIRED', 400);
     }
+    // This endpoint ends employment IMMEDIATELY, rather than scheduling a
+    // future notice period. Future dates would exclude earned future wages.
+    const companyToday = todayTenantDate(await getTenantTimezone(this.db, tenantId));
+    if (terminationDate > companyToday) {
+      throw new AppError('لا يمكن إنهاء خدمة الموظف فعليًا بتاريخ مستقبلي؛ استخدم جدولة منفصلة', 'HR_EOS_FUTURE_TERMINATION_INVALID', 400);
+    }
     await this.tx.runInTransaction(this.db, async trx => {
       // Lock in the same order as payroll approval and statutory settlement.
       // A concurrent approval must not use an employee state that termination
@@ -838,6 +844,9 @@ export class HrService {
     const salary = Number(input.salary);
     if (!Number.isFinite(salary) || salary <= 0) {
       throw new AppError('يجب تحديد راتب أساسي صحيح أكبر من صفر قبل تعيين المرشح', 'HR_RECRUITMENT_SALARY_REQUIRED', 400);
+    }
+    try { requireStoredHrMoney(salary); } catch {
+      throw new AppError('راتب المرشح يجب أن يكون بدقة منزلتين دون تقريب', 'HR_RECRUITMENT_SALARY_PRECISION_INVALID', 400);
     }
     const firstName = clean(input.firstName);
     const lastName = clean(input.lastName);
