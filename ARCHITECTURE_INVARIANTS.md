@@ -78,6 +78,9 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-PAY-27: Prospective closing of an already-accrued open-ended contract is allowed when its original wage, identity and start date remain unchanged and its new end date falls after the most recent posted pay period. Historical rewrites remain rejected.
 - Authored changes on HR branch only; tests/build/typecheck/guards NOT executed.
 
+- HR-UI-28 (24 October follow-up): Statutory jurisdiction/date/source review stays visible when tax and insurance are disabled, since payroll approval now mandates a reviewed jurisdiction even for exemptions. The insured "earned_base" UI label reflects all earned compensation net of unpaid time, not merely base salary.
+- Country-specific legal rules and certified WPS files remain release-blocked; see HR_PAYROLL_STATUTORY_RELEASE_MATRIX.md for official sources and unresolved decisions.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

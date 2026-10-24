@@ -349,10 +349,10 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
                 <span>{t('hr.settings.hr_settings_static_sections.s49', "تفعيل ضريبة كسب العمل")}</span>
               </label>
 
-              {(draft.hrSocialInsuranceEnabled || draft.hrIncomeTaxEnabled) && (
+              {(
                 <div style={{ flexBasis: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 10, padding: 12, border: '1px solid #fdba74', borderRadius: 8, background: '#fff7ed' }}>
                   <p style={{ gridColumn: '1 / -1', margin: 0, color: '#9a3412', fontSize: 12, fontWeight: 700 }}>
-                    الاستقطاعات النظامية تتطلب قواعد خاصة بالدولة وتاريخ السريان ومراجعة مختص. لا توجد نسب قانونية معتمدة مضافة تلقائياً.
+                    حدد دولة المنشأة وتاريخ سريان القواعد ومصدر مراجعتها حتى لو لم تُفعّل الاستقطاعات. الحساب القانوني غير المؤكد يوقف اعتماد الرواتب؛ لا توجد نسب افتراضية.
                   </p>
                   <label>الدولة
                     <select value={statutoryDraft.statutoryCountry} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryCountry: e.target.value, statutoryReviewed: false })} style={{ display: 'block', width: '100%' }}>
@@ -376,7 +376,7 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
                         <select value={statutoryDraft.insuranceWageBasis} onChange={e => setStatutoryDraft({ ...statutoryDraft, insuranceWageBasis: e.target.value, statutoryReviewed: false })} style={{ display: 'block', width: '100%' }}>
                           <option value="">اختر الأساس</option>
                           <option value="employee_insurance_salary">الأجر التأميني المحدد بملف الموظف</option>
-                          <option value="earned_base">الراتب الأساسي المستحق للفترة</option>
+                          <option value="earned_base">إجمالي الأجر المكتسب بعد خصومات الحضور والإجازات (يشمل البدلات والإضافي والعمولات)</option>
                         </select>
                       </label>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
