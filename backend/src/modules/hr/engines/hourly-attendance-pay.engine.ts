@@ -53,3 +53,70 @@ export function prorateMonthlyWage(monthlySalary: number, from: string, to: stri
   }
   return Number((Math.max(0, monthlySalary) * portion).toFixed(2));
 }
+
+/**
+ * Multiple non-overlapping effective salary contracts can exist inside one
+ * payroll period. The latest-contract-only strategy silently underpays staff
+ * promoted mid-month. Resolve each calendar-day segment instead.
+ */
+export interface EffectiveSalaryContract {
+  id: number;
+  startDate: string;
+  endDate: string | null;
+  baseSalary: number;
+}
+
+export function payrollCalendarMonthFraction(from: string, to: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return 0;
+  const start = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  const span = (end.getTime() - start.getTime()) / 86400000;
+  if (!Number.isFinite(span) || span > 366) throw new RangeError('Payroll period exceeds supported 366-day range');
+  let fraction = 0;
+  for (let day = new Date(start); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
+    fraction += 1 / new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + 1, 0)).getUTCDate();
+  }
+  return fraction;
+}
+
+export function calculateEffectiveContractPay(
+  contracts: EffectiveSalaryContract[],
+  from: string,
+  to: string,
+): { baseWage: number; referenceMonthlySalary: number; latestContractId: number; serviceFraction: number } {
+  if (from > to) return { baseWage: 0, referenceMonthlySalary: 0, latestContractId: 0, serviceFraction: 0 };
+  const serviceFraction = payrollCalendarMonthFraction(from, to);
+  if (!serviceFraction) throw new RangeError('Invalid payroll service period');
+  const sorted = [...contracts].sort((a, b) => a.startDate.localeCompare(b.startDate) || a.id - b.id);
+  let nextUncoveredDay = from;
+  let earned = 0;
+  let latestContractId = 0;
+  for (const contract of sorted) {
+    if (!Number.isFinite(contract.baseSalary) || contract.baseSalary <= 0) {
+      throw new RangeError('Employment contract must have a valid positive monthly salary');
+    }
+    const begin = [from, contract.startDate].sort().at(-1)!;
+    const end = [to, contract.endDate || to].sort()[0];
+    if (begin > end) continue;
+    if (begin !== nextUncoveredDay) {
+      throw new RangeError(begin < nextUncoveredDay
+        ? 'Overlapping salary contracts in payroll period'
+        : 'Uncovered employment days between salary contracts');
+    }
+    earned += prorateMonthlyWage(contract.baseSalary, begin, end);
+    latestContractId = contract.id;
+    const next = new Date(end + 'T00:00:00Z');
+    next.setUTCDate(next.getUTCDate() + 1);
+    nextUncoveredDay = next.toISOString().slice(0, 10);
+  }
+  if (nextUncoveredDay <= to) {
+    throw new RangeError('Employee has no salary contract covering all worked days');
+  }
+  const baseWage = Number(earned.toFixed(2));
+  return {
+    baseWage,
+    referenceMonthlySalary: Number((baseWage / serviceFraction).toFixed(2)),
+    latestContractId,
+    serviceFraction,
+  };
+}
