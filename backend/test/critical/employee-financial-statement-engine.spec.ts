@@ -151,10 +151,41 @@ const result3 = buildEmployeeFinancialStatement({
   ledger: [],
 });
 
-assert.equal(result3.summary.totalPenalties, 150);
-assert.equal(result3.summary.netFinancialBalance, -150);
-assert.equal(result3.summary.balanceStatus, 'debit');
+assert.equal(result3.summary.totalPenalties, 0);
+assert.equal(result3.summary.netFinancialBalance, 0);
+assert.equal(result3.summary.balanceStatus, 'settled');
 assert.equal(result3.transactions[0].category, 'penalty');
-assert.equal(result3.transactions[0].debit, 150);
+assert.equal(result3.transactions[0].debit, 0);
 
 console.log('✅ كافة اختبارات محرك كشف الحساب المالي للموظف نجحت 100%!');
+
+// Unpaid approved loans are not withdrawals, and a salaried employee's
+// withholding is not money the employer still owes them.
+const approvedOnly = buildEmployeeFinancialStatement({
+  employee: sampleEmployee, payrollItems: [], loans: [{
+    id: 88, loanType: 'advance', principalAmount: 500, paidAmount: 0,
+    remainingAmount: 500, status: 'approved', createdAt: '2026-10-10',
+  }], adjustments: [], ledger: [],
+});
+assert.equal(approvedOnly.summary.netFinancialBalance, 0);
+assert.equal(approvedOnly.summary.totalWithdrawals, 0);
+assert.equal(approvedOnly.transactions.length, 0);
+
+const withheld = buildEmployeeFinancialStatement({
+  employee: sampleEmployee,
+  payrollItems: [{
+    ...payrollItems[0], grossPay: 6000, netPay: 4000,
+    deductionAmount: 1000, loanDeductionAmount: 1000,
+  }, { ...payrollItems[0], id: 51, itemStatus: 'excluded', grossPay: 20000, netPay: 20000 }],
+  loans, adjustments: [{
+    id: 100, adjustmentType: 'allowance', amount: 500, date: '2026-10-15',
+    status: 'applied', appliedInRunId: 10,
+  }], ledger: [],
+});
+assert.equal(withheld.summary.totalGrossEarnings, 6000);
+assert.equal(withheld.summary.totalAllowances, 0);
+assert.equal(withheld.summary.totalPaidSalaries, 4000);
+assert.equal(withheld.summary.netFinancialBalance, 0);
+assert.equal(withheld.monthlyBreakdown[0].grossSalary, 6000);
+assert.equal(withheld.monthlyBreakdown[0].netMonth, 0);
+assert.equal(withheld.transactions.find(t => t.category === 'salary_entitlement')?.credit, 5000);

@@ -141,6 +141,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-EOS-35 (25 October 2026): Final EOS posting acquires the tenant-wide payroll advisory transaction lock BEFORE settlement and loan rows, preventing salary accrual/manual loan repayment/EOS deadlocks and double deduction. Posted EOS journals cannot use a draft that predates any changed employee contracts or leave requests; future active contracts after termination must be addressed first. The contract end-date write excludes future-starting contracts. User-authorized runtime regression tests remain pending.
 
+- HR-FIN-36 (25 October 2026): Employee financial statement never treats an approved-but-undisbursed loan as cash received. Adjustments pending or already absorbed in payroll display as zero-balance informational records rather than double-posted receivables. The wage credit in the employee running ledger is net payable PLUS actual payroll loan offset, not tax/insurance/attendance/assets wrongly treated as employee cash. Excluded payroll items are excluded from monthly aggregates; monthly net movement reconciles to normalized transactions. Loan repayments are dated to the repayment ledger, not the loan disbursement. Synthetic regression cases added but NOT executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
