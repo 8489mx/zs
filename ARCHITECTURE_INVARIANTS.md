@@ -20,6 +20,7 @@
 - HR-WPS-1: Never export bank payroll with fake identity/account details or before approval. Generic SCR/EDR SIF is not a country-certified WPS file; only review CSV is currently available.
 - HR-LEAVE-1: Leave requests must be tenant-bound, date-valid and non-overlapping under employee-row lock. Display employee annual leave from the same annual_leave_balance/used_annual_leaves counter maintained by HR approval/cancellation; never count all leave types as annual.
 - HR-PAY-3: Recalculate manual payroll adjustments using the original full payroll engine. Rebuilding from base salary alone loses overtime/commissions and can alter loan and statutory deductions.
+- HR-SEC-2: Daily attendance joins must scope all employee, department, job title and punch tables by tenant_id. Review-only bank CSV text must escape formulas, quotes and control characters.
 - Open release blockers: Egypt/Saudi/Kuwait/Qatar/Oman effective-dated labor, tax, social insurance, EOS and WPS rules; leave accrual/rotas; bank acceptance; payroll numerical and cross-tenant HTTP tests; UAT.
 - This change set has NOT been typechecked, built, or test-executed: production readiness cannot be asserted.
 

@@ -3069,13 +3069,20 @@ export class HrService {
 
     // Standard CSV export
     const csvHeaders = ['رقم الموظف', 'اسم الموظف', 'الهوية / الإقامة', 'البنك', 'الآيبان / الحساب', 'السويفت', 'الراتب الأساسي', 'البدلات', 'الخصومات', 'صافي الراتب'];
+    // Spreadsheet cells can execute formulas even inside quoted CSV fields.
+    // Preserve bank identifiers as literal text and escape all quotes and line breaks.
+    const csvCell = (value: unknown): string => {
+      let s = String(value ?? '').replace(/[\r\n\t]/g, ' ').trim();
+      if (/^[=+@-]/.test(s)) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    };
     const csvLines = mappedRecords.map((r) => [
-      `"${r.employeeNo}"`,
-      `"${r.displayName}"`,
-      `"${r.nationalId}"`,
-      `"${r.bankName}"`,
-      `"${r.iban || r.bankAccountNumber}"`,
-      `"${r.bankSwiftCode}"`,
+      csvCell(r.employeeNo),
+      csvCell(r.displayName),
+      csvCell(r.nationalId),
+      csvCell(r.bankName),
+      csvCell(r.iban || r.bankAccountNumber),
+      csvCell(r.bankSwiftCode),
       r.baseSalary.toFixed(2),
       r.allowances.toFixed(2),
       r.deductions.toFixed(2),
@@ -3269,9 +3276,9 @@ export class HrService {
         e.grace_minutes,
         e.department_id
       FROM hr_employees e
-      LEFT JOIN hr_departments d ON d.id = e.department_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
-      LEFT JOIN hr_attendance_records a ON a.employee_id = e.id AND a.work_date = ${workDate}::date
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+      LEFT JOIN hr_attendance_records a ON a.employee_id = e.id AND a.tenant_id = e.tenant_id AND a.work_date = ${workDate}::date
       WHERE ${this.tenantPredicate(auth, 'e')}
         AND e.status IN ('active', 'inactive')
         AND (${requestedEmployeeId}::BIGINT IS NULL OR e.id = ${requestedEmployeeId})
