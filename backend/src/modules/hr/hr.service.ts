@@ -47,7 +47,7 @@ import {
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
-import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
+import { calculateEmployeePayrollLine, calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrStatutoryAmounts, validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, prorateMonthlyWage } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
@@ -236,7 +236,7 @@ export class HrService {
       latenessGracePeriodMinutes: 15,
       latenessFirstTimePenalty: 0,
       latenessRepeatPenaltyMultiplier: 1,
-      overtimeMultiplier: 1,
+      overtimeMultiplier: 1.5,
       hrDelayPolicyEnabled: false,
       hrDelayPolicyFirstTimeDeduction: 0.25,
       hrDelayPolicySecondTimeDeduction: 0.5,
@@ -2203,7 +2203,11 @@ export class HrService {
       const attendanceDeduction = isHourly ? 0 : Number(review?.suggestedAttendanceDeductionAmount || 0);
       const leaveDeduction = isHourly ? 0 : Number(review?.suggestedLeaveDeductionAmount || 0);
       const overtimeAllowance = isHourly
-        ? Number((Number(review?.suggestedOvertimeAllowanceAmount || 0) / 3).toFixed(2))
+        ? calculateHourlyOvertimePremium({
+            calculatedHourlyRate: Number(employee.hourly_rate || 0),
+            overtimeMinutes: Number(review?.approvedOvertimeMinutes || 0),
+            overtimeMultiplier: Number(policies.overtimeMultiplier ?? 1.5),
+          })
         : Number(review?.suggestedOvertimeAllowanceAmount || 0);
       const commissionAllowance = Number(review?.suggestedCommissionAllowanceAmount || 0);
       const employeeSocialInsurance = Number(review?.suggestedSocialInsuranceDeductionAmount || 0);
@@ -2393,6 +2397,7 @@ export class HrService {
     let hrDelayPolicyThirdTime = 0;
     let hrDelayPolicyFourthTime = 0;
     let hrCommissionType = 'none';
+    let overtimeMultiplier = 1.5;
     let hrCommissionValue = 0;
     let hrCommissionTarget = 0;
     let statutoryPolicy: HrStatutoryPolicy = {};
@@ -2407,6 +2412,10 @@ export class HrService {
       hrDelayPolicyThirdTime = Number(globalPolicies.hrDelayPolicyThirdTimeDeduction || 0);
       hrDelayPolicyFourthTime = Number(globalPolicies.hrDelayPolicyFourthTimeDeduction || 0);
       hrCommissionType = globalPolicies.hrCommissionType || 'none';
+      overtimeMultiplier = Number(globalPolicies.overtimeMultiplier ?? 1.5);
+      if (!Number.isFinite(overtimeMultiplier) || overtimeMultiplier < 1 || overtimeMultiplier > 5) {
+        throw new AppError('مضاعف العمل الإضافي يجب أن يكون بين 1 و5', 'HR_OVERTIME_MULTIPLIER_INVALID', 400);
+      }
       hrCommissionValue = Number(globalPolicies.hrCommissionValue || 0);
       hrCommissionTarget = Number(globalPolicies.hrCommissionTarget || 0);
       statutoryPolicy = globalPolicies as HrStatutoryPolicy;
@@ -2521,7 +2530,11 @@ export class HrService {
 
       const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + delayDeduction).toFixed(2));
       const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
-      const suggestedOvertimeAllowanceAmount = Number((calculatedHourlyRate * (overtimeMinutes / 60) * 1.5).toFixed(2));
+      const suggestedOvertimeAllowanceAmount = calculateOvertime({
+        calculatedHourlyRate,
+        overtimeMinutes,
+        overtimeMultiplier,
+      });
 
       // Determine Commission Allowance
       let commissionValue = 0;

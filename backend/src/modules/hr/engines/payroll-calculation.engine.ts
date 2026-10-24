@@ -148,6 +148,17 @@ export function calculateOvertime(params: OvertimeParams): number {
 }
 
 /**
+ * Hourly attendance base wage already includes the ordinary 1x wage for all
+ * punched minutes. The incremental payroll allowance is ONLY (multiplier - 1)x.
+ */
+export function calculateHourlyOvertimePremium(params: OvertimeParams): number {
+  const hours = Math.max(0, Number(params.overtimeMinutes || 0)) / 60;
+  const rate = Math.max(0, Number(params.calculatedHourlyRate || 0));
+  const multiplier = Math.max(1, Number(params.overtimeMultiplier ?? 1.5));
+  return toMoney(hours * rate * (multiplier - 1));
+}
+
+/**
  * Calculates progressive penalty deduction for attendance delays / early leaves.
  */
 export function calculateProgressiveDelayDeduction(params: ProgressiveDelayParams): number {

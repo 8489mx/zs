@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import {
   calculateDailyRate,
   calculateOvertime,
+  calculateHourlyOvertimePremium,
   calculateProgressiveDelayDeduction,
   calculateSocialInsurance,
   calculateIncomeTax,
@@ -32,6 +33,16 @@ function testOvertimeAndDailyRates() {
   });
   // 2 hours * 50 * 1.5 = 150.00
   assert.equal(overtimePay, 150.0, 'أجر الإضافي لساعتين بمعدل 1.5x هو 150.00');
+  // Hourly base includes 2h * 50 = 100 already; only the additional 50 is owed.
+  assert.equal(calculateHourlyOvertimePremium({
+    overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 1.5,
+  }), 50);
+  assert.equal(calculateHourlyOvertimePremium({
+    overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 2,
+  }), 100);
+  assert.equal(calculateHourlyOvertimePremium({
+    overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 1,
+  }), 0);
 
   // 1.3 Hourly employee daily rate
   const hourlyRateCalc = calculateDailyRate({
