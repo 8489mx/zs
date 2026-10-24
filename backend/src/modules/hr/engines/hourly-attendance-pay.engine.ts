@@ -92,12 +92,12 @@ export function calculateEffectiveContractPay(
   let earned = 0;
   let latestContractId = 0;
   for (const contract of sorted) {
-    if (!Number.isFinite(contract.baseSalary) || contract.baseSalary <= 0) {
-      throw new RangeError('Employment contract must have a valid positive monthly salary');
-    }
     const begin = [from, contract.startDate].sort().at(-1)!;
     const end = [to, contract.endDate || to].sort()[0];
     if (begin > end) continue;
+    if (!Number.isFinite(contract.baseSalary) || contract.baseSalary <= 0) {
+      throw new RangeError('Employment contract must have a valid positive monthly salary');
+    }
     if (begin !== nextUncoveredDay) {
       throw new RangeError(begin < nextUncoveredDay
         ? 'Overlapping salary contracts in payroll period'
@@ -119,4 +119,43 @@ export function calculateEffectiveContractPay(
     latestContractId,
     serviceFraction,
   };
+}
+
+/**
+ * Effective-dated fixed monthly compensation packages. Unlike a base salary
+ * contract, a period with no package simply carries zero allowances.
+ * Overlapping packages are ambiguous and rejected instead of double-paying.
+ */
+export interface EffectiveCompensationPackage {
+  id: number;
+  startDate: string | null;
+  endDate: string | null;
+  allowanceAmount: number;
+  deductionAmount: number;
+}
+
+export function calculateEffectiveCompensationPay(
+  packages: EffectiveCompensationPackage[], from: string, to: string,
+): { allowance: number; deduction: number } {
+  if (from > to) return { allowance: 0, deduction: 0 };
+  const sorted = [...packages].sort(
+    (a, b) => (a.startDate || '').localeCompare(b.startDate || '') || a.id - b.id,
+  );
+  let lastEnd = '';
+  let allowance = 0;
+  let deduction = 0;
+  for (const item of sorted) {
+    const begin = [from, item.startDate || from].sort().at(-1)!;
+    const end = [to, item.endDate || to].sort()[0];
+    if (begin > end) continue;
+    if (lastEnd && begin <= lastEnd) throw new RangeError('Overlapping compensation packages in payroll period');
+    if (!Number.isFinite(item.allowanceAmount) || item.allowanceAmount < 0
+      || !Number.isFinite(item.deductionAmount) || item.deductionAmount < 0) {
+      throw new RangeError('Invalid compensation package amounts');
+    }
+    allowance += prorateMonthlyWage(item.allowanceAmount, begin, end);
+    deduction += prorateMonthlyWage(item.deductionAmount, begin, end);
+    lastEnd = end;
+  }
+  return { allowance: Number(allowance.toFixed(2)), deduction: Number(deduction.toFixed(2)) };
 }
