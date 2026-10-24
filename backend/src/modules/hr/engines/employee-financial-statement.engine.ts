@@ -405,8 +405,16 @@ export function buildEmployeeFinancialStatement(params: {
     if (item.periodMonth) monthsSet.add(item.periodMonth);
   }
   for (const loan of loans) {
+    if (!['paid', 'partially_repaid', 'repaid', 'disbursed'].includes(loan.status)) continue;
     const d = (loan.disbursedAt || loan.createdAt || loan.issueDate || '').slice(0, 7);
     if (d && /^\d{4}-\d{2}$/.test(d)) monthsSet.add(d);
+  }
+  // A month with only manual repayments (and no loan disbursement or payroll)
+  // still carries an actual financial movement and must not disappear.
+  for (const entry of ledger) {
+    if (entry.entryType !== 'loan_repayment' || entry.repaymentMethod !== 'manual_cash') continue;
+    const month = String(entry.createdAt || '').slice(0, 7);
+    if (/^\d{4}-\d{2}$/.test(month)) monthsSet.add(month);
   }
 
   const sortedMonths = Array.from(monthsSet).sort().reverse();

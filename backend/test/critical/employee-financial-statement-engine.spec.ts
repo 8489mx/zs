@@ -189,3 +189,19 @@ assert.equal(withheld.summary.netFinancialBalance, 0);
 assert.equal(withheld.monthlyBreakdown[0].grossSalary, 6000);
 assert.equal(withheld.monthlyBreakdown[0].netMonth, 0);
 assert.equal(withheld.transactions.find(t => t.category === 'salary_entitlement')?.credit, 5000);
+
+// Manual repayment in a later month must appear as a standalone month, even
+// if there is no payroll or new advance disbursement in that later month.
+const laterRepayment = buildEmployeeFinancialStatement({
+  employee: sampleEmployee, payrollItems: [], loans: [{
+    id: 701, loanType: 'advance', principalAmount: 200, paidAmount: 200,
+    remainingAmount: 0, status: 'repaid', disbursedAt: '2026-09-10 10:00:00',
+  }], adjustments: [], ledger: [{
+    id: 702, entryType: 'loan_repayment', amount: -200, balanceAfter: 0,
+    repaymentMethod: 'manual_cash', createdAt: '2026-10-14 12:00:00',
+  }],
+});
+const octoberRepayments = laterRepayment.monthlyBreakdown.find(x => x.month === '2026-10');
+assert.equal(octoberRepayments?.repayments, 200);
+assert.equal(octoberRepayments?.netMonth, 200);
+assert.equal(laterRepayment.summary.netFinancialBalance, 0);

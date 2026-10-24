@@ -153,6 +153,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-PAY-40 (25 October 2026): Manually entered payroll-item monetary adjustments and employee `amount_type=money` adjustments must be strictly positive with exact two-decimal precision. Previously a fractional-cent input could silently change when the 2-decimal ledger posted. Day/hour units can still be fractional and are converted by the effective-dated calculation engine. KWD/OMR remain blocked pending integrated 3-decimal support.
 
+- HR-FIN-41 (25 October 2026): Include standalone manual-cash loan repayment months in employee financial statement monthly breakdown even when no payroll or new loan exists that month. Exclude undisbursed approved loan commitments from the month selector; monthly movement is derived from the real repayment ledger date. Synthetic regression added, not executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
