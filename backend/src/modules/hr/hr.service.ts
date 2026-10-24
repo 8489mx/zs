@@ -2939,31 +2939,44 @@ export class HrService {
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
 
-      // Statutory calculations in the legacy review are hard-coded to an
-      // approximate 2024 Egyptian monthly bracket table and flat social rates.
-      // They are NOT certified for Egypt 2026 or any Gulf jurisdiction.
-      // Until a legally reviewed, effective-dated country engine is available,
-      // financially binding approval must fail closed rather than post bad tax
-      // and pension liabilities into the general ledger.
+      // Never post a payroll with unchecked legacy statutory defaults.
+      // Re-check the effective-dated, user-reviewed country policy at approval.
+      // HR must maintain its legal source, exemptions and applicable employee flags.
       const policies = await this.getPayrollPolicies(trx, auth.tenantId || '');
-      if (policies.hrIncomeTaxEnabled === true || policies.hrSocialInsuranceEnabled === true) {
-        const statutoryEmployees = await sql<{ count: string }>`
-          SELECT COUNT(*)::text AS count
-          FROM hr_payroll_run_items i
-          JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
-          WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId}
-            AND i.status = 'reviewed'
-            AND (
-              (${policies.hrIncomeTaxEnabled === true} AND e.has_income_tax = TRUE)
-              OR (${policies.hrSocialInsuranceEnabled === true} AND e.has_social_insurance = TRUE)
-            )
-        `.execute(trx);
-        if (Number(statutoryEmployees.rows[0]?.count || 0) > 0) {
-          throw new AppError(
-            'لا يمكن اعتماد الرواتب مع استقطاعات ضريبية/تأمينية محسوبة بقواعد تقريبية غير معتمدة. يلزم محرك تشريعي موثق ومؤرخ للدولة قبل الاعتماد.',
-            'HR_PAYROLL_STATUTORY_RULES_UNVERIFIED', 409,
-          );
-        }
+      const payrollPeriod = await sql<{ start_date: string; end_date: string }>`
+        SELECT to_char(start_date, 'YYYY-MM-DD') AS start_date,
+               to_char(end_date, 'YYYY-MM-DD') AS end_date
+        FROM hr_payroll_runs WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1
+      `.execute(trx);
+      const period = payrollPeriod.rows[0];
+      if (!period) throw new AppError('مسير الرواتب غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
+      try {
+        validateHrStatutoryPolicy(policies as HrStatutoryPolicy, {
+          from: period.start_date,
+          to: period.end_date,
+        });
+      } catch (error) {
+        throw new AppError(
+          error instanceof Error ? error.message : 'قواعد الضرائب والتأمينات غير معتمدة',
+          'HR_PAYROLL_STATUTORY_RULES_UNVERIFIED', 409,
+        );
+      }
+      // A reviewer must re-review changed statutory settings rather than approve
+      // totals calculated against an earlier rule version.
+      const policyChangedAfterReview = await sql<{ stale: boolean }>`
+        SELECT EXISTS (
+          SELECT 1 FROM hr_hr_settings s
+          JOIN hr_payroll_runs r ON r.tenant_id = s.tenant_id
+          WHERE r.id = ${id} AND r.tenant_id = ${auth.tenantId}
+            AND s.key = 'payroll_policies'
+            AND s.updated_at > r.reviewed_at
+        ) AS stale
+      `.execute(trx);
+      if (policyChangedAfterReview.rows[0]?.stale) {
+        throw new AppError(
+          'تم تغيير سياسات الاستقطاعات بعد مراجعة الكشف؛ أعد مراجعة المرتبات قبل الاعتماد',
+          'HR_PAYROLL_POLICY_CHANGED_AFTER_REVIEW', 409,
+        );
       }
       // Never post/settle a payroll that silently contains only zero wages.
       // A zero-wage employee with no punches can be legitimate; a completely
