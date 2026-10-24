@@ -27,6 +27,10 @@ export function validateStageTransition(
     return { valid: true };
   }
 
+  if (nextStage === 'hired' && currentStage !== 'hired') {
+    return { valid: false, reason: 'يجب استخدام إجراء التعيين الرسمي لإنشاء ملف الموظف والعقد' };
+  }
+
   if (currentStage === 'hired') {
     return {
       valid: false,

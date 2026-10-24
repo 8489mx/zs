@@ -829,6 +829,84 @@ export class HrService {
     return { success: true, openAssets: openAssets.length, unpaidLoans: unpaidLoans.length };
   }
 
+  /** Shared, atomic HR onboarding path for recruitment transactions. */
+  async createEmployeeFromRecruitment(
+    trx: Kysely<Database>,
+    input: { firstName: string; lastName: string; phone: string; email?: string; branchId?: number; salary: number },
+    auth: AuthContext,
+  ): Promise<number> {
+    const { tenantId, accountId } = requireTenantScope(auth);
+    const salary = Number(input.salary);
+    if (!Number.isFinite(salary) || salary <= 0) {
+      throw new AppError('يجب تحديد راتب أساسي صحيح أكبر من صفر قبل تعيين المرشح', 'HR_RECRUITMENT_SALARY_REQUIRED', 400);
+    }
+    const firstName = clean(input.firstName);
+    const lastName = clean(input.lastName);
+    if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
+    const branchId = toId(input.branchId);
+    if (branchId) {
+      const branches = await sql<{ id: number }>`SELECT id FROM branches WHERE id = ${branchId} AND tenant_id = ${tenantId} LIMIT 1`.execute(trx);
+      if (!branches.rows.length) throw new AppError('فرع الموظف غير تابع للمنشأة', 'HR_BRANCH_INVALID', 400);
+    }
+    // Serialize generated employee numbers across concurrent recruitment hires.
+    await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-employee:' + tenantId}))`.execute(trx);
+    const employeeNo = await this.nextAvailableEmployeeNo(trx, auth);
+    const timezone = await getTenantTimezone(trx, tenantId);
+    const hireDate = todayTenantDate(timezone);
+    const result = await sql<{ id: number }>`
+      INSERT INTO hr_employees (
+        tenant_id, account_id, employee_no, first_name, last_name, display_name,
+        status, branch_id, hire_date, compensation_type, pay_frequency, created_by, updated_by
+      ) VALUES (
+        ${tenantId}, ${accountId}, ${employeeNo}, ${firstName}, ${lastName}, ${(firstName+' '+lastName).trim()},
+        'active', ${branchId}, ${hireDate}::date, 'monthly', 'monthly', ${auth.userId}, ${auth.userId}
+      ) RETURNING id
+    `.execute(trx);
+    const employeeId = Number(result.rows[0]?.id);
+    if (!employeeId) throw new AppError('تعذر إنشاء الموظف', 'HR_RECRUITMENT_CREATE_FAILED', 500);
+    const mobile = clean(input.phone);
+    if (mobile) {
+      await sql`
+        INSERT INTO hr_employee_contacts (
+          tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by
+        ) VALUES (
+          ${tenantId}, ${accountId}, ${employeeId}, 'mobile', ${mobile}, 'الموبايل الأساسي', TRUE, '', ${auth.userId}, ${auth.userId}
+        )
+      `.execute(trx);
+    }
+    const email = clean(input.email);
+    if (email) {
+      await sql`
+        INSERT INTO hr_employee_contacts (
+          tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by
+        ) VALUES (
+          ${tenantId}, ${accountId}, ${employeeId}, 'email', ${email}, 'البريد الإلكتروني', FALSE, '', ${auth.userId}, ${auth.userId}
+        )
+      `.execute(trx);
+    }
+    const configuredCurrency = await sql<{ value: string }>`
+      SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
+    `.execute(trx);
+    const rawCurrency = clean(configuredCurrency.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+    const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : 'EGP';
+    const tempNo = `CON-TMP-${employeeId}`;
+    await sql`
+      INSERT INTO hr_employment_contracts (
+        tenant_id, account_id, employee_id, contract_no, contract_type, status,
+        start_date, base_salary, currency, notes, created_by, updated_by
+      ) VALUES (
+        ${tenantId}, ${accountId}, ${employeeId}, ${tempNo}, 'standard', 'active',
+        ${hireDate}::date, ${salary}, ${currency}, '', ${auth.userId}, ${auth.userId}
+      )
+    `.execute(trx);
+    await sql`
+      UPDATE hr_employment_contracts
+      SET contract_no = ${`CON-${String(employeeId).padStart(4,'0')}`}
+      WHERE employee_id = ${employeeId} AND contract_no = ${tempNo} AND tenant_id = ${tenantId}
+    `.execute(trx);
+    return employeeId;
+  }
+
   async upsertEmployee(id: number | null, payload: UpsertEmployeeDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const firstName = clean(payload.firstName);
     const lastName = clean(payload.lastName);

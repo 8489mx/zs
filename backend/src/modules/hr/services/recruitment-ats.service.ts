@@ -13,6 +13,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 import { HrService } from '../hr.service';
+import { AuditService } from '../../../core/audit/audit.service';
 import {
   CreateJobOpeningDto,
   CreateApplicantDto,
@@ -30,6 +31,7 @@ export class RecruitmentAtsService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly hrService: HrService,
+    private readonly audit: AuditService,
   ) {}
 
   private assertAccess(auth: AuthContext): void {
@@ -300,95 +302,51 @@ export class RecruitmentAtsService {
     dto: HireApplicantDto,
   ): Promise<{ success: boolean; employeeId: number }> {
     this.assertAccess(auth);
-    const scope = requireTenantScope(auth);
-    const tenantId = scope.tenantId;
-
-    const applicant = await (this.db as any)
-      .selectFrom('recruitment_applicants')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
-
-    if (!applicant) {
-      throw new NotFoundException('Applicant not found');
-    }
-
-    if (applicant.stage === 'hired' || applicant.hired_employee_id) {
-      throw new BadRequestException('تم توظيف هذا المرشح بالفعل مسبقاً');
-    }
-
-    // Check job opening if linked
-    let job: any = null;
-    if (applicant.job_id) {
-      job = await (this.db as any)
-        .selectFrom('recruitment_job_openings')
-        .selectAll()
-        .where('id', '=', applicant.job_id)
-        .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
-
-      if (job) {
-        const capacity = checkJobOpeningHeadcount(job.headcount, job.hired_count);
-        if (!capacity.canHire) {
-          throw new BadRequestException('اكتمل العدد المطلوب لهذه الوظيفة بالفعل');
+    const { tenantId } = requireTenantScope(auth);
+    const result = await this.db.transaction().execute(async (trx) => {
+      const applicant = await (trx as any).selectFrom('recruitment_applicants')
+        .selectAll().where('id', '=', id).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!applicant) throw new NotFoundException('Applicant not found');
+      if (applicant.stage === 'hired' || applicant.hired_employee_id) {
+        throw new BadRequestException('تم تعيين هذا المرشح بالفعل');
+      }
+      let job: any = null;
+      if (applicant.job_id) {
+        job = await (trx as any).selectFrom('recruitment_job_openings')
+          .selectAll().where('id', '=', applicant.job_id).where('tenant_id', '=', tenantId)
+          .forUpdate().executeTakeFirst();
+        if (!job || job.status === 'closed') throw new BadRequestException('الوظيفة غير متاحة للتعيين');
+        if (!checkJobOpeningHeadcount(job.headcount, job.hired_count).canHire) {
+          throw new BadRequestException('اكتمل العدد المطلوب لهذه الوظيفة');
         }
       }
-    }
+      const parts = String(applicant.full_name || '').trim().split(/\s+/);
+      const employeeId = await this.hrService.createEmployeeFromRecruitment(trx, {
+        firstName: parts[0] || '',
+        lastName: parts.slice(1).join(' '),
+        phone: String(applicant.phone || ''),
+        email: String(applicant.email || ''),
+        branchId: dto.branchId,
+        salary: dto.customSalary !== undefined ? dto.customSalary : Number(applicant.expected_salary || 0),
+      }, auth);
 
-    // Split name into first and last name
-    const parts = (applicant.full_name || '').trim().split(/\s+/);
-    const firstName = parts[0] || 'موظف';
-    const lastName = parts.slice(1).join(' ') || 'جديد';
-
-    // Create official employee record via HrService
-    const createdEmpResult: any = await this.hrService.upsertEmployee(
-      null,
-      {
-        firstName,
-        lastName,
-        phone: applicant.phone,
-        email: applicant.email || undefined,
-        branchId: dto.branchId || undefined,
-        basicSalary: dto.customSalary !== undefined ? dto.customSalary : Number(applicant.expected_salary || 0),
-        status: 'active',
-      } as any,
-      auth,
-    );
-
-    const employeeId = createdEmpResult?.id;
-
-    // Link applicant and update job headcount in transaction
-    await (this.db as any).transaction().execute(async (trx: any) => {
-      await trx
-        .updateTable('recruitment_applicants')
-        .set({
-          stage: 'hired',
-          hired_employee_id: employeeId,
-          updated_at: new Date(),
-        })
-        .where('id', '=', id)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
+      await (trx as any).updateTable('recruitment_applicants')
+        .set({ stage: 'hired', hired_employee_id: employeeId, updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', tenantId).execute();
       if (job) {
-        const newHiredCount = Number(job.hired_count || 0) + 1;
-        const shouldClose = newHiredCount >= Number(job.headcount);
-
-        await trx
-          .updateTable('recruitment_job_openings')
+        const hiredCount = Number(job.hired_count || 0) + 1;
+        await (trx as any).updateTable('recruitment_job_openings')
           .set({
-            hired_count: newHiredCount,
-            status: shouldClose ? 'closed' : job.status,
+            hired_count: hiredCount,
+            status: hiredCount >= Number(job.headcount) ? 'closed' : job.status,
             updated_at: new Date(),
-          })
-          .where('id', '=', job.id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
+          }).where('id', '=', job.id).where('tenant_id', '=', tenantId).execute();
       }
+      return { success: true, employeeId };
     });
-
-    return { success: true, employeeId };
+    await this.audit.log('Hire HR applicant', `Applicant #${id} hired as employee #${result.employeeId}`, auth);
+    return result;
   }
 
   /**

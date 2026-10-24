@@ -31,11 +31,13 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
   const [notes, setNotes] = useState(applicant?.interview_notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isHiring, setIsHiring] = useState(false);
+  const [hireSalary, setHireSalary] = useState(String(applicant?.expected_salary || ''));
 
   useEffect(() => {
     if (applicant) {
       setCurrentStage(applicant.stage);
       setNotes(applicant.interview_notes || '');
+      setHireSalary(String(applicant.expected_salary || ''));
     }
   }, [applicant]);
 
@@ -46,7 +48,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
     { value: 'screening', label: '2. فحص السيرة الذاتية (Screening)' },
     { value: 'interview', label: '3. المقابلة الشخصية (Interview)' },
     { value: 'offer', label: '4. تقديم عرض العمل (Job Offer)' },
-    { value: 'hired', label: '5. تم التوظيف والتعيين (Hired)' },
+    ...(applicant.stage === 'hired' ? [{ value: 'hired', label: '5. تم التوظيف والتعيين (Hired)' }] : []),
     { value: 'rejected', label: 'مرفوض / غير مؤهل (Rejected)' },
   ];
 
@@ -65,9 +67,14 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
   };
 
   const handleHireToEmployee = async () => {
+    const salary = Number(hireSalary);
+    if (!Number.isFinite(salary) || salary <= 0) {
+      toast.error('أدخل راتبًا أساسيًا أكبر من صفر قبل اعتماد التعيين.');
+      return;
+    }
     const confirmed = await systemConfirm({
       title: 'تحويل المرشح إلى موظف رسمي (Hire to Employee)',
-      message: `هل أنت متأكد من تعيين المرشح "${applicant.full_name}" رسمياً؟ سيتم إنشاء ملف موظف معتمد تلقائياً في دليل الموظفين براتب أساسي قدره ${applicant.expected_salary ? formatCurrency(applicant.expected_salary) : 'المحدد بالوظيفة'} وخصم شاغر من الوظيفة.`,
+      message: `هل أنت متأكد من تعيين المرشح "${applicant.full_name}" رسمياً؟ سيتم إنشاء ملف موظف معتمد تلقائياً في دليل الموظفين براتب أساسي قدره ${formatCurrency(salary)} وعقد نشط، وخصم شاغر من الوظيفة.`,
       confirmText: 'تأكيد التعيين الفوري',
       cancelText: 'إلغاء',
     });
@@ -75,7 +82,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
 
     setIsHiring(true);
     try {
-      const res = await recruitmentAtsApi.hire(applicant.id);
+      const res = await recruitmentAtsApi.hire(applicant.id, salary);
       toast.success(`تم بنجاح تعيين المرشح كموظف رسمي في المنظومة (كود الموظف #${res.employeeId})`);
       onUpdated();
       onClose();
@@ -196,6 +203,14 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
           />
         </div>
 
+        {applicant.stage !== 'hired' && (
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600 }}>
+            الراتب الأساسي المعتمد عند التعيين
+            <input type="number" min="0.01" step="0.01" value={hireSalary}
+              onChange={(event) => setHireSalary(event.target.value)}
+              style={{ display: 'block', width: '100%', marginTop: '5px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px' }} />
+          </label>
+        )}
         {/* 1-Click Hire CTA Banner */}
         <div
           style={{
