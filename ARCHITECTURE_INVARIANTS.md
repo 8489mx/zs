@@ -81,6 +81,10 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-UI-28 (24 October follow-up): Statutory jurisdiction/date/source review stays visible when tax and insurance are disabled, since payroll approval now mandates a reviewed jurisdiction even for exemptions. The insured "earned_base" UI label reflects all earned compensation net of unpaid time, not merely base salary.
 - Country-specific legal rules and certified WPS files remain release-blocked; see HR_PAYROLL_STATUTORY_RELEASE_MATRIX.md for official sources and unresolved decisions.
 
+- HR-SEC-4: A compensation package's optional contract foreign key must refer to a contract of the SAME employee and tenant. Prevents cross-tenant foreign-key linking despite tenant-scoped package CRUD.
+- HR-WPS-3: Review export UI no longer invents EGP when tenant currency is temporarily unavailable. CSV filename and heading explicitly say review-only, not bank-accepted WPS.
+- Code-only review; no test/build/typecheck/guard executions.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

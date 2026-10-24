@@ -34,7 +34,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
 
   // Auto-sync with tenant settings
   useEffect(() => {
-    const cur = currencyCode || (settings as any)?.currency || 'EGP';
+    const cur = currencyCode || (settings as any)?.currency || '';
     if (!currency) setCurrency(cur);
     if (!payerBankRoutingCode) {
       setPayerBankRoutingCode('');
@@ -51,7 +51,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
     setIsLoading(true);
     setError('');
     try {
-      const activeCur = (overrideCur || currency || currencyCode || (settings as any)?.currency || 'EGP').trim().toUpperCase();
+      const activeCur = (overrideCur || currency || currencyCode || (settings as any)?.currency || '').trim().toUpperCase();
       const res = await hrApi.generatePayrollWps(runId, {
         payerCrNo: payerCrNo.trim() || undefined,
         payerBankRoutingCode: payerBankRoutingCode.trim() || undefined,
@@ -67,9 +67,9 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
   }
 
   useEffect(() => {
-    const cur = currencyCode || (settings as any)?.currency || 'EGP';
-    void handleGenerate(cur);
-  }, [runId]);
+    const cur = currencyCode || (settings as any)?.currency || '';
+    if (cur) void handleGenerate(cur);
+  }, [runId, currencyCode, (settings as any)?.currency]);
 
   function downloadFile(content: string, fileName: string, mimeType: string) {
     const blob = new Blob([content], { type: mimeType });
@@ -94,7 +94,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
     const cleanMonth = (wpsData.periodMonth || runMonth || 'payroll').replace('-', '_');
     // Prepend BOM for Excel Arabic character compatibility
     const bomCsv = '\uFEFF' + wpsData.csvContent;
-    downloadFile(bomCsv, `Payroll_Bank_Transfer_${cleanMonth}_run${runId}.csv`, 'text/csv;charset=utf-8');
+    downloadFile(bomCsv, `Payroll_Review_Only_${cleanMonth}_run${runId}.csv`, 'text/csv;charset=utf-8');
   }
 
   async function handleCopySif() {
@@ -111,7 +111,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
   const summary = wpsData?.summary;
   const records = wpsData?.records || [];
 
-  const activeCurrency = currency || summary?.currency || currencyCode || 'EGP';
+  const activeCurrency = currency || summary?.currency || currencyCode || '';
   const activeSymbol = getCurrencySymbol(activeCurrency as any) || currencySymbol || activeCurrency;
 
   const wpsStandardDesc = 'تصدير CSV للمراجعة فقط، وليس ملف حماية أجور معتمد. صيغة WPS الرسمية تحتاج ربطًا مستقلًا بمتطلبات الدولة والبنك.';
@@ -127,7 +127,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
         <div style={{ paddingBottom: '10px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ width: '3px', height: '18px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
-            {t('hr.payroll.payroll_wps_export_modal.s0', "تصدير ملف حماية الأجور والتحويلات البنكية (WPS / SIF)")}
+            {t('hr.payroll.payroll_wps_export_modal.s0', "تصدير كشف مراجعة الرواتب البنكية (CSV غير معتمد)")}
           </h3>
         </div>
         

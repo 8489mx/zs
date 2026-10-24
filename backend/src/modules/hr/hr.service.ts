@@ -1291,6 +1291,17 @@ export class HrService {
     }
     await this.tx.runInTransaction(this.db, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const contractId = toId(payload.contractId);
+      if (contractId) {
+        const linkedContract = await sql<{ id: number }>`
+          SELECT id FROM hr_employment_contracts
+          WHERE id = ${contractId} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          LIMIT 1
+        `.execute(trx);
+        if (!linkedContract.rows.length) {
+          throw new AppError('العقد المرتبط بالبدلات غير تابع لهذا الموظف أو المنشأة', 'HR_COMPENSATION_CONTRACT_SCOPE_INVALID', 400);
+        }
+      }
       const previous = id ? await sql<{ start_date: string | null; end_date: string | null }>`
         SELECT to_char(effective_from, 'YYYY-MM-DD') AS start_date,
                to_char(effective_to, 'YYYY-MM-DD') AS end_date
