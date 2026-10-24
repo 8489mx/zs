@@ -50,7 +50,7 @@ import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
-import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage } from './engines/hourly-attendance-pay.engine';
+import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
@@ -2193,7 +2193,7 @@ export class HrService {
         }
       }
     }
-    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary);
+    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary, contractHistory);
     const policies = await this.getPayrollPolicies(db, tenantId);
     const maxDeductionPct = policies.maxDeductionPct !== undefined ? Number(policies.maxDeductionPct) : 1.0;
 
@@ -2398,14 +2398,14 @@ export class HrService {
     baseSalaryByEmployeeId: Map<number, number>,
     tenantId: string,
     contractualMonthlySalary?: Map<number, number>,
+    effectiveContracts?: Map<number, EffectiveSalaryContract[]>,
   ): Promise<Map<number, any>> {
     const reviewByEmployeeId = new Map<number, any>();
     if (!employeeIds.length) return reviewByEmployeeId;
 
     const empResult = await sql<Record<string, unknown>>`
-      SELECT e.id, e.tenant_id, e.user_id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, e.commission_type, e.commission_value, e.commission_target, e.delay_policy, e.has_social_insurance, e.insurance_salary, e.has_income_tax, c.base_salary
+      SELECT e.id, e.tenant_id, e.user_id, e.compensation_type, e.hourly_rate, e.expected_daily_hours, e.commission_type, e.commission_value, e.commission_target, e.delay_policy, e.has_social_insurance, e.insurance_salary, e.has_income_tax
       FROM hr_employees e
-      LEFT JOIN hr_employment_contracts c ON c.employee_id = e.id AND c.tenant_id = e.tenant_id AND c.status = 'active'
       WHERE e.id IN (${sql.join(employeeIds)}) AND e.tenant_id = ${tenantId}
     `.execute(db);
     const empDetails = new Map<number, any>();
@@ -2456,6 +2456,33 @@ export class HrService {
         )
       GROUP BY ex.employee_id
     `.execute(db);
+
+    // Retrieve approved overtime per DAY, so salary changes within a period
+    // are paid at the contract wage effective on each approved attendance day.
+    // No dated history is necessary when simply displaying an older payslip.
+    const datedOvertimeByEmployee = new Map<number, ApprovedOvertimeDay[]>();
+    if (effectiveContracts) {
+      const datedOvertime = await sql<Record<string, unknown>>`
+        SELECT ex.employee_id, to_char(ex.work_date, 'YYYY-MM-DD') AS work_date_text,
+          COALESCE(SUM(COALESCE(ex.approved_duration_minutes, ex.duration_minutes)), 0) AS minutes
+        FROM hr_attendance_exceptions ex
+        JOIN hr_employees e ON e.id = ex.employee_id AND e.tenant_id = ex.tenant_id
+        WHERE ex.tenant_id = ${tenantId} AND ex.employee_id IN (${sql.join(employeeIds)})
+          AND ex.status = 'approved'
+          AND ex.exception_type IN ('early_check_in', 'late_check_out', 'extra_hours')
+          AND ex.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
+          AND ex.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+        GROUP BY ex.employee_id, ex.work_date
+      `.execute(db);
+      for (const row of datedOvertime.rows) {
+        const employeeId = Number(row.employee_id);
+        if (!datedOvertimeByEmployee.has(employeeId)) datedOvertimeByEmployee.set(employeeId, []);
+        datedOvertimeByEmployee.get(employeeId)!.push({
+          date: String(row.work_date_text),
+          minutes: Number(row.minutes),
+        });
+      }
+    }
 
     // Restrict approved leave days to the payroll interval. Previously a
     // leave spanning two months deducted its FULL days_count in both runs.
@@ -2635,11 +2662,24 @@ export class HrService {
 
       const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + delayDeduction).toFixed(2));
       const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
-      const suggestedOvertimeAllowanceAmount = calculateOvertime({
-        calculatedHourlyRate,
-        overtimeMinutes,
-        overtimeMultiplier,
-      });
+      let suggestedOvertimeAllowanceAmount: number;
+      try {
+        suggestedOvertimeAllowanceAmount = !isHourly && effectiveContracts
+          ? calculateHistoricalOvertimePay(
+              datedOvertimeByEmployee.get(employeeId) || [],
+              effectiveContracts.get(employeeId) || [],
+              expectedHours,
+              overtimeMultiplier,
+            )
+          : calculateOvertime({
+              calculatedHourlyRate, overtimeMinutes, overtimeMultiplier,
+            });
+      } catch (error) {
+        throw new AppError(
+          `تعذر احتساب إضافي الموظف #${employeeId}: ${error instanceof Error ? error.message : 'راجع العقود'}`,
+          'HR_OVERTIME_EFFECTIVE_CONTRACT_INVALID', 409,
+        );
+      }
 
       // Determine Commission Allowance
       let commissionValue = 0;
