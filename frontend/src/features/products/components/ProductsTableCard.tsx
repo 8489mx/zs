@@ -416,14 +416,14 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           <table aria-label={__t('products.products_table_card.s9', "قائمة الأصناف")} style={{ tableLayout: 'fixed', width: '100%', minWidth: '100%' }}>
             <colgroup>
               <col style={{ width: '38px' }} />
-              <col style={{ width: '28%' }} />
+              <col style={{ width: '27%' }} />
               <col style={{ width: '13%' }} />
               <col style={{ width: '7%' }} />
               <col style={{ width: '17%' }} />
               <col style={{ width: '13%' }} />
               <col style={{ width: '7%' }} />
-              <col style={{ width: '56px' }} />
-              <col style={{ width: '104px' }} />
+              <col style={{ width: '84px' }} />
+              <col style={{ width: '110px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -527,7 +527,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           {product.stock}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         {product.notes ? (
                           <button
                             type="button"
@@ -539,18 +539,21 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
+                              justifyContent: 'center',
                               gap: '4px',
-                              padding: '2px 8px',
+                              padding: '2px 7px',
                               borderRadius: '6px',
-                              fontSize: '0.75rem',
+                              fontSize: '0.74rem',
                               fontWeight: 700,
                               background: '#eff6ff',
                               color: '#1d4ed8',
                               border: '1px solid #bfdbfe',
                               cursor: 'pointer',
+                              boxSizing: 'border-box',
                             }}
                           >
-                            <span><FileTextIcon size={12} style={{ marginInlineEnd: '4px' }} />{__t('products.products_table_card.s17', "ملاحظة")}</span>
+                            <FileTextIcon size={12} />
+                            <span>{__t('products.products_table_card.s17', "ملاحظة")}</span>
                           </button>
                         ) : (
                           <span style={{ color: '#cbd5e1' }}>—</span>
@@ -699,7 +702,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           {totalStock}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         {group.representative.notes ? (
                           <button
                             type="button"
@@ -711,18 +714,21 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
+                              justifyContent: 'center',
                               gap: '4px',
-                              padding: '2px 8px',
+                              padding: '2px 7px',
                               borderRadius: '6px',
-                              fontSize: '0.75rem',
+                              fontSize: '0.74rem',
                               fontWeight: 700,
                               background: '#eff6ff',
                               color: '#1d4ed8',
                               border: '1px solid #bfdbfe',
                               cursor: 'pointer',
+                              boxSizing: 'border-box',
                             }}
                           >
-                            <span><FileTextIcon size={12} style={{ marginInlineEnd: '4px' }} />{__t('products.products_table_card.s38', "ملاحظة")}</span>
+                            <FileTextIcon size={12} />
+                            <span>{__t('products.products_table_card.s38', "ملاحظة")}</span>
                           </button>
                         ) : (
                           <span style={{ color: '#cbd5e1' }}>—</span>
@@ -804,7 +810,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             {product.stock}
                           </span>
                         </td>
-                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap', width: '80px' }}>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {product.notes ? (
                             <button
                               type="button"
@@ -816,18 +822,21 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
+                                justifyContent: 'center',
                                 gap: '4px',
-                                padding: '2px 8px',
+                                padding: '2px 7px',
                                 borderRadius: '6px',
-                                fontSize: '0.75rem',
+                                fontSize: '0.74rem',
                                 fontWeight: 700,
                                 background: '#eff6ff',
                                 color: '#1d4ed8',
                                 border: '1px solid #bfdbfe',
                                 cursor: 'pointer',
+                                boxSizing: 'border-box',
                               }}
                             >
-                              <span><FileTextIcon size={12} style={{ marginInlineEnd: '4px' }} />{__t('products.products_table_card.s62', "ملاحظة")}</span>
+                              <FileTextIcon size={12} />
+                              <span>{__t('products.products_table_card.s62', "ملاحظة")}</span>
                             </button>
                           ) : (
                             <span style={{ color: '#cbd5e1' }}>—</span>
