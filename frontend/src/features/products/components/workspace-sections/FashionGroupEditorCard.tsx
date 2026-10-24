@@ -13,7 +13,8 @@ import { queryKeys } from '@/app/query-keys';
 import { productsApi } from '@/features/products/api/products.api';
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { formatCurrency } from '@/lib/format';
-import { Trash2Icon } from '@/shared/components/icons/AppIcons';
+import { Trash2Icon, SlidersIcon } from '@/shared/components/icons/AppIcons';
+import { QuickStockAdjustmentDialog, useInventoryActionCatalog } from '@/features/inventory';
 import { systemConfirm, systemAlert, toast } from '@/shared/components/system-alert';
 import type { Category, Product, Supplier, Location } from '@/types/domain';
 import {
@@ -130,6 +131,9 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
   const [barcodePrefix, setBarcodePrefix] = useState('');
   const [generationError, setGenerationError] = useState('');
   const [consolidateStockOnSave, setConsolidateStockOnSave] = useState(false);
+  const [zeroRemovedStockOnSave, setZeroRemovedStockOnSave] = useState(false);
+  const [selectedProductForAdjustment, setSelectedProductForAdjustment] = useState<Product | null>(null);
+  const inventoryCatalog = useInventoryActionCatalog();
 
   // Query refresh must not overwrite an unsaved model/variant matrix.
   const lastHydratedRef = useRef<{
@@ -257,10 +261,16 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         if (row.id && !source) throw new Error('صنف فرعي غير موجود في المجموعة');
         return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source, toCommonDraft(seedProduct, groupProducts).defaultLocationId), id: source ? Number(source.id) : undefined };
       });
-      await productsApi.saveFashionGroup(styleCode, { rows: payloadRows, consolidateStock: Boolean(consolidateStockOnSave) });
+      await productsApi.saveFashionGroup(styleCode, {
+        rows: payloadRows,
+        consolidateStock: Boolean(consolidateStockOnSave),
+        zeroRemovedStock: Boolean(zeroRemovedStockOnSave),
+      });
       return cleanRows;
     },
     onSuccess: async () => {
+      setConsolidateStockOnSave(false);
+      setZeroRemovedStockOnSave(false);
       lastHydratedRef.current = null;
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
       await queryClient.invalidateQueries({ queryKey: queryKeys.productsPage(`variant-group:${styleCode || product.id}`) });
@@ -583,13 +593,79 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
   async function removeDraftRow(index: number) {
     const row = variantRows[index];
     if (row?.id && Number(row.stock || 0) > 0) {
-      await systemAlert({
-        title: 'لا يمكن حذف صنف له رصيد مخزني',
-        message: `الصنف الفرعي (${variantLabel(row)}) لديه رصيد حالي (${row.stock} قطعة).\n\nالنظام المحاسبي يمنع حذف أي صنف له رصيد لحماية المخزون من العجز.\n\nإذا كنت ترغب في إلغاء المقاس وجعله لوناً فقط، يمكنك مسح خانة المقاس في الجدول مباشرة، أو استخدام زر "توليد وتحديث شبكة الفروع" لنقل الرصيد تلقائياً.`,
+      const confirmed = await systemConfirm({
+        title: 'تصفير رصيد المقاس وحذفه',
+        message: `الصنف الفرعي (${variantLabel(row)}) لديه رصيد حالي (${row.stock} قطعة).\n\nهل ترغب في تصفير رصيده تلقائياً بحركة تسوية مخزنية رسمية عند حفظ المجموعة واعتماد حذفه؟`,
+        confirmText: 'نعم، صفّر الرصيد واحذف المقاس',
+        cancelText: 'إلغاء',
+        variant: 'danger',
       });
-      return;
+      if (!confirmed) return;
+      setZeroRemovedStockOnSave(true);
     }
     setVariantRows((current) => current.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  function handleOpenQuickAdjustment(row: VariantDraft) {
+    if (!row.id) return;
+    const found = groupProducts.find((p) => String(p.id) === String(row.id));
+    if (found) {
+      setSelectedProductForAdjustment(found);
+    } else {
+      const fallbackProd: Product = {
+        ...seedProduct,
+        id: row.id,
+        name: commonDraft.name ? `${commonDraft.name} - ${variantLabel(row)}` : row.color || 'صنف فرعي',
+        barcode: row.barcode,
+        sku: row.sku,
+        color: row.color,
+        size: row.size,
+        stock: Number(row.stock || 0),
+        costPrice: row.costPrice,
+        retailPrice: row.retailPrice,
+      };
+      setSelectedProductForAdjustment(fallbackProd);
+    }
+  }
+
+  function handleCloseStockAdjustment() {
+    const adjustedProductId = selectedProductForAdjustment?.id;
+    setSelectedProductForAdjustment(null);
+    queryClient.invalidateQueries({ queryKey: queryKeys.productsPage(`variant-group:${styleCode || product.id}`) });
+    if (adjustedProductId) {
+      queryClient.invalidateQueries({ queryKey: ['product', adjustedProductId] });
+    }
+    queryClient.invalidateQueries({ queryKey: queryKeys.products });
+    queryClient.invalidateQueries({ queryKey: ['location-stocks'] });
+    inventoryCatalog.locationStocksQuery.refetch();
+    groupQuery.refetch().then((res) => {
+      const refreshed = res.data || [];
+      if (refreshed.length && adjustedProductId) {
+        const found = refreshed.find((p) => String(p.id) === String(adjustedProductId));
+        if (found) {
+          setVariantRows((current) => current.map((r) => String(r.id) === String(adjustedProductId) ? {
+            ...r,
+            stock: Number(found.stock || 0),
+            originalStock: Number(found.stock || 0),
+          } : r));
+        }
+      }
+    });
+  }
+
+  async function handleZeroAllStocks() {
+    const hasStock = variantRows.some((r) => Number(r.stock || 0) > 0);
+    if (!hasStock) return;
+    const confirmed = await systemConfirm({
+      title: 'تصفير أرصدة كافة المقاسات',
+      message: 'هل أنت متأكد من تصفير أرصدة كافة الأصناف الفرعية المعروضة في الجدول إلى (0)؟\n\nسيتم تسجيل حركات تسوية مخزنية رسمية عند الضغط على "حفظ المجموعة".',
+      confirmText: 'نعم، صفّر الأرصدة',
+      cancelText: 'تراجع',
+      variant: 'warning',
+    });
+    if (!confirmed) return;
+    setVariantRows((current) => current.map((r) => ({ ...r, stock: 0 })));
+    toast.success('تم تصفير الأرصدة في الجدول، اضغط على "حفظ المجموعة" لاعتماد التسوية');
   }
 
   function resetDraft() {
@@ -1104,64 +1180,81 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
 
       {/* 3. Child Variants Matrix Card */}
       <div className="product-compact-card">
-        <div className="product-compact-card-header">
-          <h3 className="product-compact-card-title">{t('products.workspace_sections.fashion_group_editor_card.s29', "جدول الأصناف الفرعية والباركودات")}</h3>
+        <div className="product-compact-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'nowrap' }}>
+          <h3 className="product-compact-card-title" style={{ whiteSpace: 'nowrap', margin: 0, flexShrink: 0 }}>
+            {t('products.workspace_sections.fashion_group_editor_card.s29', "جدول الأصناف الفرعية والباركودات")}
+          </h3>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'nowrap', overflowX: 'auto', whiteSpace: 'nowrap' }}>
             <Button
               type="button"
               variant="primary"
               onClick={addVariantRow}
               disabled={mutation.isPending}
-              style={{ fontSize: '0.78rem', padding: '4px 12px' }}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s30', "+ إضافة صنف فرعي يدوي")}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s30', "+ إضافة صنف فرعي يدوي")}
+              + إضافة صنف
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={pruneZeroStockRows}
               disabled={mutation.isPending || !variantRows.some((r) => Number(r.stock || 0) === 0)}
-              style={{ fontSize: '0.78rem', padding: '4px 10px', color: '#b45309', borderColor: '#fde68a', background: '#fefce8' }}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', color: '#b45309', borderColor: '#fde68a', background: '#fefce8', whiteSpace: 'nowrap' }}
               title={t('products.workspace_sections.fashion_group_editor_card.s30_prune_tip', "حذف كافة الأصناف الفرعية التي رصيدها صفر دفعة واحدة بنقرة واحدة")}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s30_prune', "حذف الأصناف ذات الرصيد 0")}
+              حذف رصيد 0
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleZeroAllStocks}
+              disabled={mutation.isPending || !variantRows.some((r) => Number(r.stock || 0) > 0)}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', color: '#64748b', whiteSpace: 'nowrap' }}
+              title="تصفير أرصدة كافة المقاسات المعروضة في الجدول تمهيداً للتسوية أو الحذف"
+            >
+              تصفير الأرصدة
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={generateSequentialBarcodes}
               disabled={mutation.isPending || !variantRows.length || !commonDraft.styleCode.trim()}
-              style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s31', "توليد باركودات متسلسلة")}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s31', "توليد باركودات متسلسلة")}
+              توليد باركودات
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={generateSequentialSkus}
               disabled={mutation.isPending || !variantRows.length}
-              style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s32', "توليد أكواد SKU")}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s32', "توليد أكواد SKU")}
+              توليد SKU
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={clearAllBarcodes}
               disabled={mutation.isPending || !variantRows.length}
-              style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s33', "مسح كل الباركودات")}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s33', "مسح كل الباركودات")}
+              مسح الباركودات
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={resetDraft}
               disabled={mutation.isPending || !hasDraftChanges}
-              style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+              style={{ fontSize: '0.74rem', padding: '3px 8px', whiteSpace: 'nowrap' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s34', "إعادة القيم الأصلية")}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s34', "إعادة القيم الأصلية")}
+              إعادة الأصل
             </Button>
           </div>
         </div>
@@ -1188,7 +1281,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 <th style={{ padding: '8px 8px', minWidth: '120px' }}>{t('products.workspace_sections.fashion_group_editor_card.s38', "الباركود")}</th>
                 <th style={{ padding: '8px 8px', minWidth: '95px' }}>{t('products.workspace_sections.fashion_group_editor_card.s39', "سعر البيع (")}{getGlobalCurrencySymbol()})</th>
                 <th style={{ padding: '8px 8px', minWidth: '95px' }}>{t('products.workspace_sections.fashion_group_editor_card.s40', "سعر الشراء (")}{getGlobalCurrencySymbol()})</th>
-                <th style={{ padding: '8px 8px', width: '70px', textAlign: 'center' }}>{t('products.workspace_sections.fashion_group_editor_card.s41', "الرصيد")}</th>
+                <th style={{ padding: '8px 6px', minWidth: '120px', textAlign: 'center' }}>{t('products.workspace_sections.fashion_group_editor_card.s41', "الرصيد")}</th>
                 <th style={{ padding: '8px 8px', minWidth: '140px' }}>{t('products.workspace_sections.fashion_group_editor_card.s42', "الاسم النهائي للصنف")}</th>
                 <th style={{ padding: '8px 8px', width: '110px', textAlign: 'center' }}>{t('products.workspace_sections.fashion_group_editor_card.s43', "التسعير المخصص")}</th>
                 <th style={{ padding: '8px 6px', width: '40px', textAlign: 'center' }}>{t('products.workspace_sections.fashion_group_editor_card.s44', "حذف")}</th>
@@ -1273,15 +1366,65 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                           disabled={mutation.isPending}
                         />
                       </td>
-                      <td style={{ padding: '6px 6px', textAlign: 'center' }}>
-                        {row.id ? (
-                          <span style={{ fontWeight: 800, color: (row.stock || 0) > 0 ? '#15803d' : '#94a3b8', fontSize: '0.8rem' }}>
-                            {row.stock || 0}
-                          </span>
-                        ) : (
+                      <td style={{ padding: '6px 4px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '3px', direction: 'ltr' }}>
+                          {row.id ? (
+                            <button
+                              type="button"
+                              title="تسوية تفصيلية للمخزون"
+                              onClick={() => handleOpenQuickAdjustment(row)}
+                              disabled={mutation.isPending}
+                              style={{
+                                height: '26px',
+                                width: '26px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '5px',
+                                border: '1px solid #bfdbfe',
+                                background: '#eff6ff',
+                                color: '#1d4ed8',
+                                cursor: 'pointer',
+                                padding: 0,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <SlidersIcon size={12} />
+                            </button>
+                          ) : null}
+                          {Number(row.stock || 0) > 0 ? (
+                            <button
+                              type="button"
+                              title="تصفير الرصيد إلى 0"
+                              onClick={() => updateRow(index, { stock: 0 })}
+                              disabled={mutation.isPending}
+                              style={{
+                                height: '26px',
+                                padding: '0 5px',
+                                fontSize: '0.68rem',
+                                fontWeight: 800,
+                                borderRadius: '5px',
+                                border: '1px solid #e2e8f0',
+                                background: '#f8fafc',
+                                color: '#64748b',
+                                cursor: 'pointer',
+                                flexShrink: 0,
+                              }}
+                            >
+                              0
+                            </button>
+                          ) : null}
                           <input
                             className="purchase-prototype-field-input"
-                            style={{ height: '30px', padding: '0 6px', fontSize: '0.78rem', textAlign: 'center', fontWeight: 700, width: '64px' }}
+                            style={{
+                              height: '28px',
+                              padding: '0 4px',
+                              fontSize: '0.78rem',
+                              textAlign: 'center',
+                              fontWeight: 800,
+                              width: '52px',
+                              color: (row.stock || 0) > 0 ? '#15803d' : '#94a3b8',
+                            }}
                             type="number"
                             min={0}
                             step="1"
@@ -1289,7 +1432,12 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                             onChange={(event) => updateRow(index, { stock: Math.max(0, Number(event.target.value || 0)) })}
                             disabled={mutation.isPending}
                           />
-                        )}
+                        </div>
+                        {row.originalStock !== undefined && Number(row.stock || 0) !== Number(row.originalStock || 0) ? (
+                          <div style={{ fontSize: '0.64rem', color: '#b45309', fontWeight: 700, marginTop: '2px' }}>
+                            سابقاً: {row.originalStock}
+                          </div>
+                        ) : null}
                       </td>
                       <td style={{ padding: '6px 6px' }}>
                         <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.78rem', display: 'block', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={fullName}>
@@ -1498,6 +1646,18 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
           />
         </div>
       </div>
+
+      {selectedProductForAdjustment && (
+        <QuickStockAdjustmentDialog
+          open={Boolean(selectedProductForAdjustment)}
+          onClose={handleCloseStockAdjustment}
+          product={selectedProductForAdjustment}
+          branches={inventoryCatalog.branchesQuery.data || []}
+          locations={locations || []}
+          locationStocks={Array.isArray(inventoryCatalog.locationStocksQuery.data) ? inventoryCatalog.locationStocksQuery.data : []}
+          canManageInventory={true}
+        />
+      )}
     </div>
   );
 }

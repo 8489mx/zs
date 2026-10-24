@@ -227,9 +227,12 @@ export function ProductsWorkspace() {
           product={controller.productToArchive}
           isBusy={controller.toggleArchiveMutation.isPending}
           onCancel={() => controller.setProductToArchive(null)}
-          onConfirm={async () => {
+          onConfirm={async (options) => {
             if (!controller.productToArchive) return;
-            await controller.toggleArchiveMutation.mutateAsync(controller.productToArchive.id);
+            await controller.toggleArchiveMutation.mutateAsync({
+              productId: String(controller.productToArchive.id),
+              options,
+            });
           }}
         />
 

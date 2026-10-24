@@ -1806,7 +1806,9 @@ export class CatalogProductService {
       if (barcode) seenBarcodes.add(barcode);
       if (sku) seenSkus.add(sku);
       if (id) seenIds.add(id);
-      if (id && value.stock !== undefined) throw new AppError('Use inventory adjustment to change stock', 'STOCK_UPDATE_FORBIDDEN', 400);
+      if (value.stock !== undefined && (!Number.isFinite(Number(value.stock)) || Number(value.stock) < 0)) {
+        throw new AppError('الكمية يجب أن تكون رقماً موجباً أو صفراً', 'INVALID_STOCK_QTY', 400);
+      }
       await this.ensureCategoryAndSupplierInTenant(value, actor);
       if (!id) {
         if (!value.warehouseId && fallbackWarehouseId) value.warehouseId = fallbackWarehouseId;
@@ -1911,9 +1913,55 @@ export class CatalogProductService {
               } as any).execute();
             }
           }
+        } else if (payload.zeroRemovedStock) {
+          for (const removedProduct of removedWithStock) {
+            const removedId = Number(removedProduct.id);
+            const locStocks = await trx.selectFrom('product_location_stock')
+              .selectAll().where('product_id', '=', removedId)
+              .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+
+            for (const ls of locStocks) {
+              const qtyToDeduct = Number(ls.qty || 0);
+              if (qtyToDeduct <= 0) continue;
+
+              await applyStockDelta(trx, {
+                productId: removedId,
+                locationId: Number(ls.location_id),
+                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                delta: -qtyToDeduct,
+                tenantId: this.tenantId(actor),
+                accountId: actor.accountId,
+                disableAutoDrain: true,
+                allowNegative: false,
+              });
+
+              const unitCost = Number(removedProduct.cost_price || 0);
+              const insertedMovement = await trx.insertInto('stock_movements').values({
+                product_id: removedId,
+                movement_type: 'deduct',
+                qty: -qtyToDeduct,
+                before_qty: qtyToDeduct,
+                after_qty: 0,
+                unit_cost: unitCost,
+                total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
+                reason: 'fashion_matrix_adjustment',
+                note: `تسوية وتصفير رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) عند تعديل الموديل`,
+                reference_type: 'inventory_adjustment',
+                reference_id: removedId,
+                location_id: Number(ls.location_id),
+                branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
+                created_by: actor.userId,
+                ...this.tenantFields(actor),
+              } as any).returning('id').executeTakeFirst();
+
+              if (insertedMovement?.id && this.accountingPosting) {
+                await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+              }
+            }
+          }
         } else {
           const names = removedWithStock.map((p) => `${p.name || p.color || p.size || p.id} (رصيد: ${p.stock_qty})`).join('، ');
-          throw new AppError(`لا يمكن إخفاء المقاسات التالية لأن لها رصيد مخزني: ${names}. يرجى تسوية رصيدها أولاً أو تفعيل خيار دمج الأرصدة`, 'FASHION_VARIANT_HAS_STOCK', 409);
+          throw new AppError(`لا يمكن إخفاء المقاسات التالية لأن لها رصيد مخزني: ${names}. يرجى تسوية رصيدها أولاً أو تفعيل خيار دمج أو تصفير الأرصدة`, 'FASHION_VARIANT_HAS_STOCK', 409);
         }
       }
       const outsiderProducts = await trx.selectFrom('products')
@@ -1969,6 +2017,63 @@ export class CatalogProductService {
           if (Number(prior.cost_price) !== value.costPrice && Math.abs(Number(prior.stock_qty || 0)) > 0.0001) {
             throw new AppError('Use a valuation adjustment to change the cost of stock on hand', 'STOCK_COST_EDIT_FORBIDDEN', 422);
           }
+
+          if (value.stock !== undefined && value.stock !== null) {
+            const targetStock = Math.max(0, Number(value.stock));
+            const currentStock = Number(prior.stock_qty || 0);
+            const stockDelta = Number((targetStock - currentStock).toFixed(3));
+
+            if (Math.abs(stockDelta) > 0.0001) {
+              const locStock = await trx.selectFrom('product_location_stock')
+                .selectAll().where('product_id', '=', id)
+                .where(this.tenantPredicate(actor)).orderBy('qty', 'desc').limit(1).executeTakeFirst();
+              const effectiveLocationId = locStock?.location_id 
+                ? Number(locStock.location_id) 
+                : (value.warehouseId || (prior.default_location_id ? Number(prior.default_location_id) : (fallbackWarehouseId || null)));
+
+              if (!effectiveLocationId) {
+                throw new AppError('حدد مخزنًا لتسوية رصيد الصنف', 'LOCATION_REQUIRED', 400);
+              }
+
+              await applyStockDelta(trx, {
+                productId: id,
+                locationId: effectiveLocationId,
+                branchId: locStock?.branch_id ? Number(locStock.branch_id) : undefined,
+                delta: stockDelta,
+                tenantId: this.tenantId(actor),
+                accountId: actor.accountId,
+                disableAutoDrain: true,
+                allowNegative: false,
+              });
+
+              const unitCost = Number(value.costPrice || prior.cost_price || 0);
+              const absDelta = Math.abs(stockDelta);
+              const insertedMovement = await trx.insertInto('stock_movements').values({
+                product_id: id,
+                movement_type: stockDelta > 0 ? 'add' : 'deduct',
+                qty: stockDelta,
+                before_qty: currentStock,
+                after_qty: targetStock,
+                unit_cost: unitCost,
+                total_cost: Number((absDelta * unitCost).toFixed(2)),
+                reason: 'fashion_matrix_adjustment',
+                note: stockDelta > 0
+                  ? `تسوية زيادة رصيد المقاس (${value.color || ''} / ${value.size || ''}) من شاشة الموديل`
+                  : `تسوية خفض/تصفير رصيد المقاس (${value.color || ''} / ${value.size || ''}) من شاشة الموديل`,
+                reference_type: 'inventory_adjustment',
+                reference_id: id,
+                location_id: effectiveLocationId,
+                branch_id: locStock?.branch_id ? Number(locStock.branch_id) : undefined,
+                created_by: actor.userId,
+                ...this.tenantFields(actor),
+              } as any).returning('id').executeTakeFirst();
+
+              if (insertedMovement?.id && this.accountingPosting) {
+                await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+              }
+            }
+          }
+
           await trx.updateTable('products').set({
             name: value.name, barcode: value.barcode || null, sku: value.sku || null,
             item_type: value.itemType, item_kind: groupKind, style_code: newStyle,
@@ -2296,14 +2401,62 @@ export class CatalogProductService {
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
 
-  async toggleProductArchive(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
+  async toggleProductArchive(id: number, actor: AuthContext, options?: { zeroStock?: boolean }): Promise<Record<string, unknown>> {
     const result = await this.db.transaction().execute(async (trx) => {
       const product = await trx.selectFrom('products').selectAll()
         .where('id', '=', id).where(this.tenantPredicate(actor)).forUpdate().executeTakeFirst();
       if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
       const nextActive = !Boolean(product.is_active);
-      if (!nextActive && (Math.abs(Number(product.stock_qty || 0)) > 0.0001 || Number(product.reserved_qty || 0) > 0)) {
-        throw new AppError('لا يمكن أرشفة صنف عليه مخزون أو كميات محجوزة. صفّر رصيده أولاً.', 'PRODUCT_HAS_STOCK', 409);
+
+      if (!nextActive) {
+        if (Number(product.reserved_qty || 0) > 0) {
+          throw new AppError('لا يمكن أرشفة صنف عليه كميات محجوزة في طلبيات معلقة. أتمم الطلبيات أولاً.', 'PRODUCT_HAS_RESERVATIONS', 409);
+        }
+
+        if (options?.zeroStock && Math.abs(Number(product.stock_qty || 0)) > 0.0001) {
+          const locStocks = await trx.selectFrom('product_location_stock')
+            .selectAll().where('product_id', '=', id)
+            .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+
+          for (const ls of locStocks) {
+            const qtyToDeduct = Number(ls.qty || 0);
+            if (qtyToDeduct <= 0) continue;
+
+            await applyStockDelta(trx, {
+              productId: id,
+              locationId: Number(ls.location_id),
+              branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+              delta: -qtyToDeduct,
+              tenantId: this.tenantId(actor),
+              accountId: actor.accountId,
+              disableAutoDrain: true,
+              allowNegative: false,
+            });
+
+            const unitCost = Number(product.cost_price || 0);
+            const insertedMovement = await trx.insertInto('stock_movements').values({
+              product_id: id,
+              movement_type: 'deduct',
+              qty: -qtyToDeduct,
+              before_qty: qtyToDeduct,
+              after_qty: 0,
+              unit_cost: unitCost,
+              total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
+              reason: 'archive_stock_zeroing',
+              note: `تسوية وتصفير رصيد الصنف (${product.name}) عند الأرشفة والتعطيل`,
+              reference_type: 'inventory_adjustment',
+              reference_id: id,
+              location_id: Number(ls.location_id),
+              branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
+              created_by: actor.userId,
+              ...this.tenantFields(actor),
+            } as any).returning('id').executeTakeFirst();
+
+            if (insertedMovement?.id && this.accountingPosting) {
+              await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+            }
+          }
+        }
       }
       if (nextActive) {
         // Re-activating a historic variant must not collide with a newer active item.

@@ -150,8 +150,12 @@ export class CatalogController {
 
   @Post('products/:id/toggle-archive')
   @RequirePermissions('products')
-  toggleProductArchive(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
-    return this.catalogService.toggleProductArchive(id, req.authContext!);
+  toggleProductArchive(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { zeroStock?: boolean } | undefined,
+    @Req() req: RequestWithAuth,
+  ): Promise<Record<string, unknown>> {
+    return this.catalogService.toggleProductArchive(id, req.authContext!, body);
   }
 
   @HttpRemove('products/:id')

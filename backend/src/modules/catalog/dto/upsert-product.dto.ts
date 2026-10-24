@@ -407,6 +407,10 @@ export class SaveFashionGroupDto {
   @IsOptional()
   @IsBoolean()
   consolidateStock?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  zeroRemovedStock?: boolean;
 }
 
 export type NormalizedUpsertProduct = {

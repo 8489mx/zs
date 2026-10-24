@@ -92,11 +92,11 @@ export function EditProductForm({
     setArchiveConfirmOpen(true);
   };
 
-  const handleConfirmArchive = async () => {
+  const handleConfirmArchive = async (options?: { zeroStock?: boolean }) => {
     if (!product) return;
     try {
       setIsTogglingArchive(true);
-      const res = await productsApi.toggleArchive(product.id);
+      const res = await productsApi.toggleArchive(product.id, options);
       await queryClient.invalidateQueries({ queryKey: ['product', productId] });
       await queryClient.invalidateQueries({ queryKey: queryKeys.products });
       toast.success(res.message);

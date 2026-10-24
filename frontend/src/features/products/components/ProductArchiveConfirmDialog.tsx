@@ -13,7 +13,7 @@ export interface ProductArchiveConfirmDialogProps {
     isActive?: boolean;
   } | null;
   isBusy?: boolean;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: (options?: { zeroStock?: boolean }) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -39,7 +39,7 @@ export function ProductArchiveConfirmDialog({
     <DialogShell
       open={open}
       onClose={isBusy ? () => {} : onCancel}
-      width="min(540px, 94vw)"
+      width="min(560px, 94vw)"
       zIndex={10000}
     >
       <div
@@ -154,7 +154,7 @@ export function ProductArchiveConfirmDialog({
                 {t('products.product_archive_confirm_dialog.s7', "تنبيه رصيد مخزني متبقٍ (")}{currentStock} {t('products.product_archive_confirm_dialog.s8', "قطعة)")}
               </div>
               <div style={{ fontSize: '0.8rem', color: '#b45309' }}>
-                {t('products.product_archive_confirm_dialog.s9', "هذا الصنف يحتوي على كمية مسجلة بالمخزن. أرشفة الصنف ستمنع بيعه أو سحبه في الكاشير ونقاط البيع والفواتير الجديدة، مع بقاء رصيده وقيمته مسجلين دفترياً في تقارير المخزون والميزانية لحين تسويته أو صرفه.")}
+                {t('products.product_archive_confirm_dialog.s9', "هذا الصنف يحتوي على كمية مسجلة بالمخزن. يمكنك أرشفته مع إبقاء رصيده وقيمته دفترياً بالميزانية، أو أرشفته مع تصفير رصيده آلياً بقيد تسوية مخزنية نظامية معتمدة.")}
               </div>
             </div>
           ) : null}
@@ -185,6 +185,7 @@ export function ProductArchiveConfirmDialog({
             marginTop: '20px',
             paddingTop: '16px',
             borderTop: '1px solid #f1f5f9',
+            flexWrap: 'wrap',
           }}
         >
           <Button
@@ -192,28 +193,63 @@ export function ProductArchiveConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={isBusy}
-            style={{ minWidth: '90px' }}
+            style={{ minWidth: '85px' }}
           >
             {t('products.product_archive_confirm_dialog.s15', "تراجع")}
           </Button>
-          <Button
-            variant="primary"
-            type="button"
-            onClick={onConfirm}
-            disabled={isBusy}
-            style={{
-              minWidth: '130px',
-              fontWeight: 700,
-              background: isActivating ? '#059669' : '#170e5e',
-              borderColor: isActivating ? '#059669' : '#170e5e',
-            }}
-          >
-            {isBusy
-              ? t('products.product_archive_confirm_dialog.s16', "جارٍ التنفيذ...")
-              : isActivating
-              ? t('products.product_archive_confirm_dialog.s17', "تأكيد التنشيط")
-              : t('products.product_archive_confirm_dialog.s18', "تأكيد الأرشفة والتعطيل")}
-          </Button>
+
+          {!isActivating && hasRemainingStock ? (
+            <>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => onConfirm({ zeroStock: false })}
+                disabled={isBusy}
+                style={{
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  borderColor: '#cbd5e1',
+                }}
+                title={t('products.product_archive_confirm_dialog.keep_stock_title', "أرشفة وتجميد الصنف مع بقاء رصيده وقيمته الحالية في كارت الصنف والميزانية")}
+              >
+                {isBusy ? t('products.product_archive_confirm_dialog.s16', "جارٍ التنفيذ...") : t('products.product_archive_confirm_dialog.archive_keep_stock', "أرشفة (مع إبقاء الرصيد)")}
+              </Button>
+
+              <Button
+                variant="primary"
+                type="button"
+                onClick={() => onConfirm({ zeroStock: true })}
+                disabled={isBusy}
+                style={{
+                  fontWeight: 700,
+                  background: '#d97706',
+                  borderColor: '#b45309',
+                }}
+                title={t('products.product_archive_confirm_dialog.zero_stock_title', "أرشفة الصنف وتصفير رصيده آلياً بقيد تسوية مخزنية نظامية")}
+              >
+                {isBusy ? t('products.product_archive_confirm_dialog.s16', "جارٍ التنفيذ...") : t('products.product_archive_confirm_dialog.archive_zero_stock', "أرشفة مع تصفير الرصيد آلياً")}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="primary"
+              type="button"
+              onClick={() => onConfirm()}
+              disabled={isBusy}
+              style={{
+                minWidth: '130px',
+                fontWeight: 700,
+                background: isActivating ? '#059669' : '#170e5e',
+                borderColor: isActivating ? '#059669' : '#170e5e',
+              }}
+            >
+              {isBusy
+                ? t('products.product_archive_confirm_dialog.s16', "جارٍ التنفيذ...")
+                : isActivating
+                ? t('products.product_archive_confirm_dialog.s17', "تأكيد التنشيط")
+                : t('products.product_archive_confirm_dialog.s18', "تأكيد الأرشفة والتعطيل")}
+            </Button>
+          )}
         </div>
       </div>
     </DialogShell>

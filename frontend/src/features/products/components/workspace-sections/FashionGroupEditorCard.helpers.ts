@@ -28,6 +28,7 @@ export type VariantDraft = {
   retailPrice: number;
   wholesalePrice: number;
   stock?: number;
+  originalStock?: number;
   minStock?: number;
 };
 
@@ -115,6 +116,7 @@ export function toVariantRows(products: Product[]) {
         retailPrice,
         wholesalePrice,
         stock: Number(entry.stock ?? 0),
+        originalStock: Number(entry.stock ?? 0),
         minStock: Number(entry.minStock ?? 0),
       };
     })
@@ -188,7 +190,7 @@ export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Pr
     supplierId: common.supplierId ? Number(common.supplierId) : undefined,
     warehouseId: ((source && originalLocationId === common.defaultLocationId ? source.defaultLocationId : common.defaultLocationId) || '') ? Number(source && originalLocationId === common.defaultLocationId ? source.defaultLocationId : common.defaultLocationId) : undefined,
     notes: common.notes || '',
-    stock: row.id ? undefined : Number(row.stock || 0),
+    stock: Number(row.stock || 0),
     units: [
       {
         name: 'قطعة',

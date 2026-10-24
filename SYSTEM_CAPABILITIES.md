@@ -8238,3 +8238,59 @@
   - `frontend/src/features/products/components/workspace-sections/FashionGroupEditorCard.tsx`
   - `frontend/src/features/products/hooks/useCreateProductMutation.ts`
   - `SYSTEM_CAPABILITIES.md`
+
+---
+
+## 257. منظومة التسوية المخزنية اللحظية والتصفير التلقائي لموديلات الملابس والمتغيرات (Fashion Variants Inline Stock Adjustment & Auto-Reconciliation Engine - 24 October 2026)
+- **الحالة:** مكتملة بنسبة 100% ومطبقة ومحمية في الواجهة والباك إند.
+- **التفاصيل التشغيلية والمحاسبية:**
+  1. **التسوية المباشرة التلقائية من داخل جدول الموديل (Inline Stock Adjustment on Save):**
+     - تحويل خانة "الرصيد" في جدول فروع الموديل بـ `FashionGroupEditorCard` إلى حقل إدخال رقمي متاح دائماً لكافة الأصناف (الجديدة والمحفوظة مسبقاً).
+     - عند قيام المستخدم بتعديل رصيد أي مقاس (زيادة أو خفض أو تصفير) والضغط على "حفظ المجموعة"، يقوم الباك إند (`saveFashionGroup`) بحساب الفارق $\Delta = \text{newStock} - \text{oldStock}$ تلقائياً، واستدعاء محرك المخزون المالي المعتمد `applyStockDelta` مع تسجيل حركة تسوية مخزنية رسمية `stock_movements` بنوع `add` أو `deduct` ومبرر `fashion_matrix_adjustment` مع ترحيل القيد المحاسبي المزدوج تلقائياً عبر `AccountingPostingService.postInventoryAdjustment`.
+  2. **زر التصفير السريع الفردي والمجمّع (Quick Zero Buttons):**
+     - إضافة زر تصفير سريع `[0]` بجانب حقل الرصيد لكل صنف فرعي لتصفير رصيد أي مقاس بنقرة واحدة تمهيداً لحذفه أو تسويته.
+     - إضافة زر مجمّع `[تصفير أرصدة الجدول]` في شريط أدوات الجدول يتيح تصفير أرصدة كافة المقاسات المعروضة في خطوة واحدة مع تأكيد تفاعلي آمن.
+  3. **زر التسوية التفصيلية المنفردة لكل مقاس (In-Grid Modal Trigger via QuickStockAdjustmentDialog):**
+     - تزويد كل صنف فرعي محفوظ بزر أيقونة تشغيلية (`SlidersIcon`) يفتح نافذة `QuickStockAdjustmentDialog` لنفس هذا المقاس بعينه، لإجراء تسوية تفصيلية (اختيار مخزن، تسجيل تالف، إضافة ملاحظات) وتحديث الرصيد لحظياً بالجدول وقاعدة البيانات.
+  4. **خيار التصفير المخزني التلقائي عند الحذف (zeroRemovedStock):**
+     - دعم خيار `zeroRemovedStock` في `SaveFashionGroupDto` والواجهة، بحيث إذا قام المستخدم بحذف مقاسات ذات رصيد مخزني وأكد رغبته في التصفير، يقوم الباك إند بتسوية وتصفير أرصدتها تلقائياً عبر حركات مخزنية قياسية بدلاً من رفض العملية بخطأ 409.
+  5. **مؤشر الرصيد السابق:**
+     - عرض تلميح مرئي أنيق (`سابقاً: X`) تحت حقل الرصيد المعدل لتوضيح الفارق للمستخدم قبل الحفظ.
+- **الملفات المنفذة والمعدلة:**
+  - `backend/src/modules/catalog/dto/upsert-product.dto.ts`
+  - `backend/src/modules/catalog/services/catalog-product.service.ts`
+  - `frontend/src/features/products/api/products.api.ts`
+  - `frontend/src/features/products/components/workspace-sections/FashionGroupEditorCard.helpers.ts`
+  - `frontend/src/features/products/components/workspace-sections/FashionGroupEditorCard.tsx`
+  - `SYSTEM_CAPABILITIES.md`
+---
+
+## 258. الأرشفة الذكية للأصناف القياسية والتسوية المخزنية الآلية المحاسبية (Standard Products Smart Archive & Auto-Reconciliation Engine - 25 October 2026)
+- **الحالة:** مكتملة بنسبة 100% ومطبقة ومحمية في الواجهة والباك إند.
+- **المشكلة المعالجة:**
+  - سابقاً، كان النظام يمنع أرشفة أو تعطيل أي صنف قياسي يحتوي على رصيد مخزني بخطأ قاطع (PRODUCT_HAS_STOCK - 409)، مما كان يربك المستخدمين والتجار عند رغبتهم في إيقاف صنف أو استبعاده من البيع دون الاضطرار لعمليات جرد وتسوية يدوية معقدة ومنفصلة.
+  - كان الحذف الفعلي (Hard Delete) ممنوعاً حماية للقيود المحاسبية والفواتير المترابطة، بينما الأرشفة (Soft Archive) كانت محجوبة بسبب الرصيد المتبقي.
+- **التفاصيل التشغيلية والمحاسبية المنفذة:**
+  1. **إتاحة أرشفة الأصناف ذات الرصيد مع التحصين ضد الحجوزات النشطة:**
+     - إزالة شرط المنع الحتمي للأرشفة عند وجود رصيد (`stock_qty > 0`) في خدمة الكتالوج (`catalog-product.service.ts`).
+     - الإبقاء على الفحص الوقائي الإلزامي للحجوزات المعلقة (`reserved_qty > 0`) لمنع أرشفة صنف مرتبط بطلبات جارية أو شحنات قيد التسليم.
+  2. **خيار التصفير المخزني الآلي المحاسبي (`zeroStock: true`):**
+     - عند طلب الأرشفة مع خيار التصفير، يقوم الباك إند بالمرور على كافة أرصدة المواقع المخزنية للصنف (`product_location_stock`).
+     - تنفيذ تسوية خصم آلية عبر `applyStockDelta` وتسجيل حركة مخزنية رسمية في `stock_movements` بنوع `deduct` ومبرر `archive_stock_zeroing`.
+     - توليد وترحيل القيد المحاسبي المزدوج تلقائياً عبر محرك الحسابات `AccountingPostingService.postInventoryAdjustment` لضمان اتزان ميزانية العمومية وكارت الصنف.
+  3. **الواجهة التفاعلية الذكية في نافذة تأكيد الأرشفة الموحدة (`ProductArchiveConfirmDialog`):**
+     - عند أرشفة صنف قياسي يحمل رصيداً مخزنياً، تعرض النافذة خيارين تشغيليين واضحين:
+       - **[أرشفة (مع إبقاء الرصيد)]**: تجميد الصنف وإخفاؤه فوراً من شاشات الكاشير ونقاط البيع والفواتير الجديدة، مع الحفاظ التام على رصيده وقيمته الدفترية في كارت الصنف والميزانية لحين تسويته أو صرفه.
+       - **[أرشفة مع تصفير الرصيد آلياً]**: أرشفة وتجميد الصنف مع تصفير رصيده المتبقي فوراً بقيد تسوية مخزنية نظامية معتمدة.
+  4. **التكامل عبر شاشات المنظومة (Single Source of Truth):**
+     - دعم سير العمل الموحد عبر جدول الأصناف الرئيسي (`ProductsWorkspace`) وشاشة تعديل الصنف (`EditProductForm`) دون أي تكرار أو ازدواجية برمجية.
+- **الملفات المنفذة والمعدلة:**
+  - `backend/src/modules/catalog/catalog.controller.ts`
+  - `backend/src/modules/catalog/catalog.service.ts`
+  - `backend/src/modules/catalog/services/catalog-product.service.ts`
+  - `frontend/src/features/products/api/products.api.ts`
+  - `frontend/src/features/products/components/ProductArchiveConfirmDialog.tsx`
+  - `frontend/src/features/products/components/ProductsWorkspace.tsx`
+  - `frontend/src/features/products/components/EditProductForm.tsx`
+  - `frontend/src/features/products/hooks/useProductsWorkspaceController.ts`
+  - `SYSTEM_CAPABILITIES.md`

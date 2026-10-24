@@ -49,7 +49,11 @@ export function useProductsWorkspaceController(groupFashion = false) {
   });
 
   const toggleArchiveMutation = useMutation({
-    mutationFn: (productId: string) => productsApi.toggleArchive(productId),
+    mutationFn: (arg: string | { productId: string; options?: { zeroStock?: boolean } }) => {
+      const productId = typeof arg === 'string' ? arg : arg.productId;
+      const options = typeof arg === 'string' ? undefined : arg.options;
+      return productsApi.toggleArchive(productId, options);
+    },
     onSuccess: async (data) => {
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
       if (selectedProduct && String(selectedProduct.id) === String(productToArchive?.id || '')) {
