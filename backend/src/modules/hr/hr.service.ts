@@ -57,6 +57,27 @@ import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
 import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 
+/**
+ * Fraction of a calendar-month payroll during which this contract was in force.
+ * Full-month statutory payrolls are supported; any other statutory period is
+ * explicitly blocked in the policy engine until a verified method is supplied.
+ */
+export function payrollServiceFraction(
+  range: { from: string; to: string },
+  service: { from: string; to: string },
+): number {
+  const from = [range.from, service.from].sort().at(-1)!;
+  const to = [range.to, service.to].sort()[0];
+  if (from > to) return 0;
+  const first = Date.parse(from + 'T00:00:00Z');
+  const last = Date.parse(to + 'T00:00:00Z');
+  const monthParts = range.from.slice(0, 7).split('-').map(Number);
+  const daysInMonth = new Date(Date.UTC(monthParts[0], monthParts[1], 0)).getUTCDate();
+  const calendarDays = (last - first) / 86400000 + 1;
+  if (!Number.isFinite(calendarDays) || daysInMonth <= 0) throw new RangeError('Invalid payroll service dates');
+  return Math.max(0, Math.min(1, calendarDays / daysInMonth));
+}
+
 type MasterKind = 'departments' | 'job-titles' | 'positions';
 type MasterConfig = {
   table: 'hr_departments' | 'hr_job_titles' | 'hr_positions';
@@ -2243,7 +2264,10 @@ export class HrService {
             insured: employee.has_social_insurance === true,
             taxable: employee.has_income_tax === true,
           },
-          configuredInsuranceSalary: Number(employee.insurance_salary || 0),
+          configuredInsuranceSalary: Number(employee.insurance_salary || 0)
+            * (policies.insuranceProratePartialEmployment === true
+              ? payrollServiceFraction(range, payRangeByEmployee.get(employeeId)!)
+              : 1),
           line: {
             employeeId,
             baseSalary,

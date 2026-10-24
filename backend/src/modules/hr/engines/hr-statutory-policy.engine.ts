@@ -18,6 +18,8 @@ export interface HrStatutoryPolicy {
   taxDeductEmployeeInsurance?: boolean;
   /** Source of insurable earnings for this tenant's reviewed policy. */
   insuranceWageBasis?: 'employee_insurance_salary' | 'earned_base';
+  /** Explicit decision for employees working less than a complete month. */
+  insuranceProratePartialEmployment?: boolean;
   /** Progressive annual taxable-income bracket upper bounds; rate in percent. */
   taxBrackets?: { max: number | null; rate: number }[];
 }
@@ -46,8 +48,9 @@ export function validateHrStatutoryPolicy(p: HrStatutoryPolicy, period?: { from:
     throw new Error('فترة الراتب خارج سريان قواعد الضريبة والتأمينات');
   }
   if (p.hrSocialInsuranceEnabled) {
-    if (!['employee_insurance_salary', 'earned_base'].includes(String(p.insuranceWageBasis || ''))) {
-      throw new Error('حدد أساس الأجر التأميني صراحةً في سياسة الشركة');
+    if (!['employee_insurance_salary', 'earned_base'].includes(String(p.insuranceWageBasis || ''))
+      || typeof p.insuranceProratePartialEmployment !== 'boolean') {
+      throw new Error('حدد أساس الأجر التأميني وقاعدة احتساب الخدمة الجزئية صراحةً');
     }
     const c = p.insuranceConfig;
     if (!c || c.employeePct == null || c.employerPct == null) throw new Error('نسب التأمينات غير محددة');

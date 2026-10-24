@@ -10,6 +10,7 @@ const base: HrPayrollRunLineInput = {
     statutoryReviewed: true, statutoryLegalReference: 'synthetic reviewed test',
     hrSocialInsuranceEnabled: true, hrIncomeTaxEnabled: true,
     insuranceWageBasis: 'employee_insurance_salary',
+    insuranceProratePartialEmployment: true,
     taxableEarningsBasis: 'gross_after_attendance_leave',
     taxDeductEmployeeInsurance: true,
     insuranceConfig: { employeePct: 10, employerPct: 15, maxSalary: 10000 },

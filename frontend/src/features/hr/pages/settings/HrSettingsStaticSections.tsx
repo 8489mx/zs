@@ -157,6 +157,10 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
     statutoryEffectiveTo: '',
     statutoryLegalReference: '',
     statutoryReviewed: false,
+    insuranceWageBasis: '',
+    insuranceProratePartialEmployment: false,
+    taxableEarningsBasis: '',
+    taxDeductEmployeeInsurance: false,
   });
   const [taxBracketsText, setTaxBracketsText] = useState('[]');
   const [statutoryInputError, setStatutoryInputError] = useState('');
@@ -170,6 +174,10 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
         statutoryEffectiveTo: String(source.statutoryEffectiveTo || ''),
         statutoryLegalReference: String(source.statutoryLegalReference || ''),
         statutoryReviewed: source.statutoryReviewed === true,
+        insuranceWageBasis: String(source.insuranceWageBasis || ''),
+        insuranceProratePartialEmployment: source.insuranceProratePartialEmployment === true,
+        taxableEarningsBasis: String(source.taxableEarningsBasis || ''),
+        taxDeductEmployeeInsurance: source.taxDeductEmployeeInsurance === true,
       });
       setTaxBracketsText(JSON.stringify(source.taxBrackets || []));
       setDraft({
@@ -364,6 +372,17 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
                   </label>
                   {draft.hrSocialInsuranceEnabled && (
                     <>
+                      <label>أساس الأجر التأميني
+                        <select value={statutoryDraft.insuranceWageBasis} onChange={e => setStatutoryDraft({ ...statutoryDraft, insuranceWageBasis: e.target.value, statutoryReviewed: false })} style={{ display: 'block', width: '100%' }}>
+                          <option value="">اختر الأساس</option>
+                          <option value="employee_insurance_salary">الأجر التأميني المحدد بملف الموظف</option>
+                          <option value="earned_base">الراتب الأساسي المستحق للفترة</option>
+                        </select>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={statutoryDraft.insuranceProratePartialEmployment} onChange={e => setStatutoryDraft({ ...statutoryDraft, insuranceProratePartialEmployment: e.target.checked, statutoryReviewed: false })}/>
+                        احتساب الأجر التأميني بنسبة أيام الخدمة عند التعيين أو انتهاء الخدمة وسط الشهر
+                      </label>
                       <label>حصة الموظف (%)<input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employeePct} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employeePct: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
                       <label>حصة الشركة (%)<input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employerPct} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employerPct: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
                       <label>أدنى أجر تأميني<input type="number" min="0" value={draft.insuranceConfig.minSalary} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, minSalary: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
@@ -372,6 +391,17 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
                   )}
                   {draft.hrIncomeTaxEnabled && (
                     <>
+                      <label>وعاء الدخل الخاضع للضريبة
+                        <select value={statutoryDraft.taxableEarningsBasis} onChange={e => setStatutoryDraft({ ...statutoryDraft, taxableEarningsBasis: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}>
+                          <option value="">اختر الوعاء</option>
+                          <option value="gross">إجمالي المستحقات قبل خصومات الحضور</option>
+                          <option value="gross_after_attendance_leave">المستحقات بعد خصومات الحضور والإجازات غير المدفوعة</option>
+                        </select>
+                      </label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="checkbox" checked={statutoryDraft.taxDeductEmployeeInsurance} onChange={e => setStatutoryDraft({ ...statutoryDraft, taxDeductEmployeeInsurance: e.target.checked, statutoryReviewed: false })}/>
+                        خصم حصة تأمينات الموظف قبل حساب وعاء الضريبة
+                      </label>
                       <label>الإعفاء السنوي<input type="number" min="0" value={draft.taxPersonalExemption} onChange={e => { setDraft({ ...draft, taxPersonalExemption: e.target.value }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
                       <label style={{ gridColumn: '1 / -1' }}>شرائح الضريبة السنوية بصيغة JSON (آخر شريحة max: null)
                         <textarea rows={3} value={taxBracketsText} onChange={e => { setTaxBracketsText(e.target.value); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ display: 'block', width: '100%' }}/>
