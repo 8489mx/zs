@@ -2900,21 +2900,19 @@ export class HrService {
     }
 
     const holidaysRes = await sql<Record<string, unknown>>`
-      SELECT start_date, end_date FROM hr_holidays
+      SELECT to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
+             to_char(end_date, 'YYYY-MM-DD') AS end_date_text
+      FROM hr_holidays
       WHERE tenant_id = ${tenantId}
         AND start_date <= ${range.to}::date
         AND end_date >= ${range.from}::date
     `.execute(db);
     
-    const isHoliday = (dateStr: string) => {
-      const d = new Date(dateStr);
-      for (const h of holidaysRes.rows) {
-        const s = new Date(String(h.start_date));
-        const e = new Date(String(h.end_date));
-        if (d >= s && d <= e) return true;
-      }
-      return false;
-    };
+    // DATE columns are tenant calendar dates, not instants. Never convert them
+    // through the server's timezone when deciding paid holidays.
+    const isHoliday = (dateStr: string) => holidaysRes.rows.some(h =>
+      dateStr >= String(h.start_date_text) && dateStr <= String(h.end_date_text),
+    );
 
     // Fetch sales grouped by user_id for the period
     const userIds = empResult.rows.map(r => Number(r.user_id)).filter(id => !isNaN(id) && id > 0);
@@ -2925,7 +2923,9 @@ export class HrService {
         FROM sales_invoices
         WHERE tenant_id = ${tenantId}
           AND created_at >= ${range.from}::date
-          AND created_at <= (${range.to}::date + INTERVAL '1 day')
+          -- Exclusive upper bound: exactly midnight belongs to the NEXT
+          -- payroll period, not both periods (duplicate commissions).
+          AND created_at < (${range.to}::date + INTERVAL '1 day')
           AND status = 'completed'
           AND created_by IN (${sql.join(userIds)})
         GROUP BY created_by
@@ -2946,7 +2946,7 @@ export class HrService {
       for (const rec of attendance.records) {
         if (rec.status === 'absent') {
           const dt = new Date(String(rec.work_date_text));
-          const dayName = dayNames[dt.getDay()];
+          const dayName = dayNames[dt.getUTCDay()];
           if (!hrWeekendDays.includes(dayName) && !isHoliday(String(rec.work_date_text))) {
             attendanceAbsentDays++;
           }
