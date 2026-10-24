@@ -437,7 +437,7 @@ export class EmployeePortalService {
     // 6. Latest payslip
     const latestPayslip = await this.anyDb
       .selectFrom('hr_payroll_run_items as item')
-      .leftJoin('hr_payroll_runs as run', 'run.id', 'item.run_id')
+      .innerJoin('hr_payroll_runs as run', (join: any) => join.onRef('run.id', '=', 'item.run_id').onRef('run.tenant_id', '=', 'item.tenant_id'))
       .select([
         'item.id',
         'item.run_id',
@@ -453,7 +453,8 @@ export class EmployeePortalService {
       ])
       .where('item.employee_id', '=', employeeId)
       .where('item.tenant_id', '=', tenantId)
-      .where('item.status', 'in', ['approved', 'paid', 'reviewed'])
+      .where('item.status', '=', 'approved')
+      .where('run.status', 'in', ['approved', 'paid'])
       .orderBy('run.period_month', 'desc')
       .executeTakeFirst();
 
@@ -502,9 +503,9 @@ export class EmployeePortalService {
       leaveBalances: leaveBalances.map((b: any) => ({
         leaveTypeId: b.leave_type_id,
         name: b.leave_type_name || 'إجازة سنوية',
-        totalDays: Number(b.total_days || 21),
+        totalDays: Number(b.total_days ?? 0),
         usedDays: Number(b.used_days || 0),
-        remainingDays: Number(b.remaining_days || 21),
+        remainingDays: Number(b.remaining_days ?? 0),
       })),
       latestPayslip: latestPayslip ? {
         period: latestPayslip.period_month,
@@ -553,7 +554,7 @@ export class EmployeePortalService {
   async getPayslips(employeeId: number, tenantId: string) {
     const items = await this.anyDb
       .selectFrom('hr_payroll_run_items as item')
-      .leftJoin('hr_payroll_runs as run', 'run.id', 'item.run_id')
+      .innerJoin('hr_payroll_runs as run', (join: any) => join.onRef('run.id', '=', 'item.run_id').onRef('run.tenant_id', '=', 'item.tenant_id'))
       .select([
         'item.id',
         'item.run_id',
@@ -570,6 +571,8 @@ export class EmployeePortalService {
       ])
       .where('item.employee_id', '=', employeeId)
       .where('item.tenant_id', '=', tenantId)
+      .where('item.status', '=', 'approved')
+      .where('run.status', 'in', ['approved', 'paid'])
       .orderBy('run.period_month', 'desc')
       .execute();
 
@@ -623,7 +626,7 @@ export class EmployeePortalService {
 
     const requests = await this.anyDb
       .selectFrom('hr_leave_requests as req')
-      .leftJoin('hr_leave_types as t', 't.id', 'req.leave_type_id')
+      .leftJoin('hr_leave_types as t', (join: any) => join.onRef('t.id', '=', 'req.leave_type_id').onRef('t.tenant_id', '=', 'req.tenant_id'))
       .select([
         'req.id',
         'req.leave_type_id',
@@ -646,9 +649,9 @@ export class EmployeePortalService {
       balances: balances.map((b: any) => ({
         leaveTypeId: b.leave_type_id,
         name: b.leave_type_name,
-        totalDays: Number(b.total_days || 21),
+        totalDays: Number(b.total_days ?? 0),
         usedDays: Number(b.used_days || 0),
-        remainingDays: Number(b.remaining_days || 21),
+        remainingDays: Number(b.remaining_days ?? 0),
       })),
       requests: requests.map((r: any) => ({
         id: r.id,
@@ -674,50 +677,60 @@ export class EmployeePortalService {
     accountId: string,
     body: { leaveTypeId: number; startDate: string; endDate: string; reason?: string },
   ) {
-    const startDate = String(body.startDate || '');
-    const endDate = String(body.endDate || '');
-    const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
-      && !Number.isNaN(Date.parse(value + 'T00:00:00Z'))
-      && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value;
-    if (!validDate(startDate) || !validDate(endDate) || endDate < startDate) {
-      throw new AppError('اختر تاريخ بداية ونهاية صحيحين للإجازة', 'INVALID_DATES', 400);
+    const start = String(body.startDate || '');
+    const end = String(body.endDate || '');
+    const validDate = (value: string): boolean => {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const timestamp = Date.parse(value + 'T00:00:00Z');
+      return Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === value;
+    };
+    if (!validDate(start) || !validDate(end) || end < start) {
+      throw new AppError('تاريخ بداية ونهاية الإجازة غير صحيحين', 'INVALID_LEAVE_DATES', 400);
     }
-    const daysCount = Math.floor(
-      (Date.parse(endDate + 'T00:00:00Z') - Date.parse(startDate + 'T00:00:00Z')) / 86400000
-    ) + 1;
-    if (!Number.isFinite(daysCount) || daysCount <= 0) {
-      throw new AppError('مدة الإجازة غير صحيحة', 'INVALID_LEAVE_DURATION', 400);
+    const leaveTypeId = Number(body.leaveTypeId || 0);
+    if (!Number.isSafeInteger(leaveTypeId) || leaveTypeId <= 0) {
+      throw new AppError('اختر نوع الإجازة', 'INVALID_LEAVE_TYPE', 400);
     }
-
-    // Uses the SAME employee-row lock as the HR admin leave request workflow,
-    // preventing self-service and HR from creating overlapping requests at once.
-    const inserted = await this.anyDb.transaction().execute(async (trx: any) => {
-      const employee = await trx.selectFrom('hr_employees').select(['id', 'status'])
-        .where('id', '=', employeeId).where('tenant_id', '=', tenantId)
-        .forUpdate().executeTakeFirst();
-      if (!employee || employee.status !== 'active') {
-        throw new AppError('الملف الوظيفي غير نشط', 'HR_PORTAL_EMPLOYEE_INACTIVE', 403);
+    const daysCount = Math.floor((Date.parse(end + 'T00:00:00Z') - Date.parse(start + 'T00:00:00Z')) / 86400000) + 1;
+    // Shared employee lock serializes portal and HR-created requests for the
+    // same employee, eliminating concurrent overlapping annual leave requests.
+    const inserted = await this.db.transaction().execute(async (trx) => {
+      const employee = await sql<{ id: number }>`
+        SELECT id FROM hr_employees
+        WHERE id = ${employeeId} AND tenant_id = ${tenantId} AND status = 'active'
+        FOR UPDATE
+      `.execute(trx);
+      if (!employee.rows.length) throw new AppError('الموظف غير نشط', 'EMPLOYEE_INACTIVE', 403);
+      const leaveType = await sql<{ id: number }>`
+        SELECT id FROM hr_leave_types
+        WHERE id = ${leaveTypeId} AND tenant_id = ${tenantId} AND is_active = TRUE
+      `.execute(trx);
+      if (!leaveType.rows.length) throw new AppError('نوع الإجازة غير متاح', 'INVALID_LEAVE_TYPE', 400);
+      const overlap = await sql<{ id: number }>`
+        SELECT id FROM hr_leave_requests
+        WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          AND status IN ('pending', 'approved')
+          AND start_date <= ${end}::date AND end_date >= ${start}::date
+        LIMIT 1
+      `.execute(trx);
+      if (overlap.rows.length) {
+        throw new AppError('يوجد طلب إجازة آخر يتداخل مع الفترة المحددة', 'LEAVE_PERIOD_OVERLAP', 409);
       }
-      const leaveType = await trx.selectFrom('hr_leave_types').select(['id'])
-        .where('id', '=', Number(body.leaveTypeId || 0))
-        .where('tenant_id', '=', tenantId).where('is_active', '=', true)
-        .executeTakeFirst();
-      if (!leaveType) throw new AppError('نوع الإجازة المحدد غير متاح', 'INVALID_LEAVE_TYPE', 400);
-      const overlap = await trx.selectFrom('hr_leave_requests').select('id')
-        .where('employee_id', '=', employeeId).where('tenant_id', '=', tenantId)
-        .where('status', 'in', ['pending', 'approved'])
-        .where('start_date', '<=', endDate).where('end_date', '>=', startDate)
-        .executeTakeFirst();
-      if (overlap) throw new AppError('هناك طلب إجازة متداخل بالفعل', 'HR_LEAVE_OVERLAPPING_REQUEST', 409);
-      return trx.insertInto('hr_leave_requests')
-        .values({
-          employee_id: employeeId, tenant_id: tenantId, account_id: accountId,
-          leave_type_id: Number(leaveType.id), start_date: startDate, end_date: endDate,
-          days_count: daysCount, status: 'pending', reason: body.reason || '',
-          created_at: new Date(), updated_at: new Date(),
-        }).returningAll().executeTakeFirstOrThrow();
+      const saved = await trx.insertInto('hr_leave_requests').values({
+        employee_id: employeeId,
+        tenant_id: tenantId,
+        account_id: accountId,
+        leave_type_id: leaveTypeId,
+        start_date: start,
+        end_date: end,
+        days_count: daysCount,
+        status: 'pending',
+        reason: body.reason || '',
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+      return saved;
     });
-
     return {
       success: true,
       message: 'تم إرسال طلب الإجازة للمراجعة',
