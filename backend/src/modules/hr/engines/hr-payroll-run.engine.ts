@@ -30,6 +30,15 @@ const nonnegative = (n: unknown, label: string): number => {
 /** All financial elements returned by the canonical line engine, including statutory amounts. */
 export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
   const line = input.line;
+  // Never silently accept refunds or negative deductions as negative payroll
+  // amounts. Refunds must be entered as explicit positive allowances.
+  nonnegative(line.otherDeductions, 'otherDeductions');
+  nonnegative(line.assetRecoveryDeduction, 'assetRecoveryDeduction');
+  nonnegative(line.scheduledLoanDeduction, 'scheduledLoanDeduction');
+  const ceiling = line.maxDeductionPct ?? 1;
+  if (!Number.isFinite(ceiling) || ceiling <= 0 || ceiling > 1) {
+    throw new RangeError('Payroll deduction ceiling must be between zero and one');
+  }
   const gross = money(
     nonnegative(line.baseSalary, 'baseSalary') +
     nonnegative(line.allowanceAmount, 'allowanceAmount') +
