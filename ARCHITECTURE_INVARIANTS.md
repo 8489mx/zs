@@ -87,6 +87,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LOAN-NEW-1 (24 October): Loan installments now use a production cent-exact bounded pure schedule and month-end clamping; prevent 0/negative installments, whole-unit rounding errors and invalid month transitions. Regression tests authored, not run.
 
+- HR-LOAN-NEW-2: Editing drafts now rechecks and locks the loan status within the installment rewrite transaction. Prevents updating an approved loan after stale pre-transaction status check. Loan's employee owner stays immutable. Approval checks RETURNING row count for concurrent conflicts; the create ceiling serializes via employee FOR UPDATE, and disbursement/repayment joins tenant-scope the employee. Test execution still deferred.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

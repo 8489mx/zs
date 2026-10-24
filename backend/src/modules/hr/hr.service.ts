@@ -1621,6 +1621,7 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const employee = await trx.selectFrom('hr_employees').select(['id', 'status', 'display_name', 'first_name'])
         .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId)
+        .forUpdate()
         .executeTakeFirst();
       if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
       if (employee.status !== 'active') throw new AppError('Cannot grant loan to inactive employee', 'HR_EMPLOYEE_INACTIVE', 400);
@@ -1705,17 +1706,30 @@ export class HrService {
     const amount = Number(payload.principalAmount || 0);
     const issueDate = normalizeDateOnly(payload.issueDate);
     if (!issueDate) throw new AppError('Loan issue date is required', 'HR_LOAN_ISSUE_DATE_REQUIRED', 400);
+    if (!Number.isFinite(amount) || amount <= 0) throw new AppError('مبلغ السلفة غير صحيح', 'HR_LOAN_AMOUNT_INVALID', 400);
     const plan = this.normalizeRepaymentPlan({ ...payload, issueDate }, amount);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Serializes loan edit with approval/disbursement: never update the
+      // installment schedule using a stale pre-transaction draft snapshot.
+      const locked = await sql<{ status: string; employee_id: number; loan_no: string }>`
+        SELECT status, employee_id, loan_no FROM hr_employee_loans
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId} FOR UPDATE
+      `.execute(trx);
+      const loan = locked.rows[0];
+      if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
+      if (loan.status !== 'draft') throw new AppError('Only draft loans can be edited', 'HR_LOAN_EDIT_LOCKED', 409);
       const employeeId = toId(payload.employeeId);
-      if (!employeeId || !(await trx.selectFrom('hr_employees').select('id')
+      if (!employeeId || employeeId !== Number(loan.employee_id)) {
+        throw new AppError('لا يمكن نقل سلفة موظف لموظف آخر؛ أنشئ طلب سلفة جديدًا', 'HR_LOAN_EMPLOYEE_IMMUTABLE', 409);
+      }
+      if (!(await trx.selectFrom('hr_employees').select('id')
         .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId).executeTakeFirst())) {
         throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
       }
       await sql`
         UPDATE hr_employee_loans
-        SET loan_no = ${clean(payload.loanNo)}, loan_type = ${clean(payload.loanType) || 'advance'}, principal_amount = ${amount},
+        SET loan_no = ${clean(payload.loanNo) || clean(loan.loan_no)}, loan_type = ${clean(payload.loanType) || 'advance'}, principal_amount = ${amount},
             remaining_amount = ${amount}, installment_count = ${plan.installmentCount}, installment_amount = ${plan.installmentAmount},
             repayment_mode = ${plan.repaymentMode}, monthly_installment_amount = ${plan.monthlyInstallmentAmount},
             issue_date = ${issueDate}, first_due_date = ${plan.firstDueDate}, salary_due_date = ${plan.salaryDueDate}, branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)},
@@ -1751,7 +1765,16 @@ export class HrService {
       throw new AppError('لا يجوز لمنشئ طلب السلفة اعتماده بنفسه (مبدأ فصل المهام الرقابي)', 'HR_LOAN_MAKER_CHECKER_VIOLATION', 403);
     }
 
-    await sql`UPDATE hr_employee_loans SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    const updated = await sql<{ id: number }>`
+      UPDATE hr_employee_loans
+      SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(),
+          updated_by = ${auth.userId}, updated_at = NOW()
+      WHERE id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}
+      RETURNING id
+    `.execute(this.db);
+    if (updated.rows.length !== 1) {
+      throw new AppError('حالة السلفة تغيرت قبل الاعتماد؛ أعد فتحها', 'HR_LOAN_APPROVAL_CONFLICT', 409);
+    }
     await this.audit.log('Approve HR employee loan', `Employee loan #${id} approved by ${auth.username}`, auth);
     return { ok: true, ...(await this.listLoans({}, auth)) };
   }
@@ -1759,7 +1782,7 @@ export class HrService {
   async disburseLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await sql<Record<string, unknown>>`
-        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
+        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
       `.execute(trx);
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
@@ -1781,7 +1804,7 @@ export class HrService {
   async repayLoan(id: number, payload: LoanRepaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       const result = await sql<Record<string, unknown>>`
-        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
+        SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
       `.execute(trx);
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
