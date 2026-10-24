@@ -1946,15 +1946,19 @@ export class HrService {
         cp.deduction_amount,
         e.compensation_type,
         e.hourly_rate,
-        e.expected_daily_hours
+        e.expected_daily_hours,
+        e.hire_date,
+        c.start_date AS contract_start_date,
+        c.end_date AS contract_end_date
       FROM hr_employees e
       LEFT JOIN LATERAL (
         SELECT *
         FROM hr_employment_contracts c
         WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
-          AND c.status <> 'cancelled'
-        ORDER BY CASE WHEN c.status = 'active' THEN 0 WHEN c.status = 'draft' THEN 1 ELSE 2 END,
-                 c.start_date DESC NULLS LAST,
+          AND c.status = 'active'
+          AND c.start_date <= ${range.to}::date
+          AND (c.end_date IS NULL OR c.end_date >= ${range.from}::date)
+        ORDER BY c.start_date DESC NULLS LAST,
                  c.id DESC
         LIMIT 1
       ) c ON TRUE
@@ -1968,6 +1972,7 @@ export class HrService {
         LIMIT 1
       ) cp ON TRUE
       WHERE e.status = 'active' AND e.tenant_id = ${tenantId}
+        AND (e.hire_date IS NULL OR e.hire_date <= ${range.to}::date)
         ${payFreq === 'all' ? sql`` : sql`AND COALESCE(e.pay_frequency, 'monthly') = ${payFreq}`}
       ORDER BY e.id ASC
     `.execute(db);
@@ -1992,6 +1997,16 @@ export class HrService {
     }
     const baseSalMap = new Map<number, number>();
     const contractualMonthlySalary = new Map<number, number>();
+    const payRangeByEmployee = new Map<number, { from: string; to: string }>();
+    for (const e of employees.rows) {
+      const id = Number(e.employee_id);
+      const hire = e.hire_date ? String(e.hire_date).slice(0, 10) : range.from;
+      const contractStart = e.contract_start_date ? String(e.contract_start_date).slice(0, 10) : range.from;
+      const contractEnd = e.contract_end_date ? String(e.contract_end_date).slice(0, 10) : range.to;
+      const from = [range.from, hire, contractStart].sort().at(-1)!;
+      const to = [range.to, contractEnd].sort()[0];
+      payRangeByEmployee.set(id, { from, to });
+    }
     for (const e of employees.rows) {
       const employeeId = Number(e.employee_id);
       if (e.compensation_type === 'hourly') {
@@ -2001,7 +2016,8 @@ export class HrService {
       } else {
         const monthlySalary = Number(e.base_salary || 0);
         contractualMonthlySalary.set(employeeId, monthlySalary);
-        baseSalMap.set(employeeId, prorateMonthlyWage(monthlySalary, range.from, range.to));
+        const payRange = payRangeByEmployee.get(employeeId)!;
+        baseSalMap.set(employeeId, prorateMonthlyWage(monthlySalary, payRange.from, payRange.to));
       }
     }
     const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary);
@@ -2028,11 +2044,14 @@ export class HrService {
         baseSalary = hourlyWorkByEmployee.get(employeeId)?.baseWage || 0;
       } else {
         // Partial monthly pay periods also require a proportionate base salary.
-        baseSalary = prorateMonthlyWage(baseSalary, range.from, range.to);
+        const payRange = payRangeByEmployee.get(employeeId)!;
+        baseSalary = prorateMonthlyWage(baseSalary, payRange.from, payRange.to);
       }
       
-      const compensationAllowance = money(employee.allowance_amount);
-      const compensationDeduction = money(employee.deduction_amount);
+      const monthlyBase = money(employee.base_salary);
+      const ratio = !isHourly && monthlyBase > 0 ? Math.max(0, Math.min(1, baseSalary / monthlyBase)) : 1;
+      const compensationAllowance = money(Number(employee.allowance_amount || 0) * ratio);
+      const compensationDeduction = money(Number(employee.deduction_amount || 0) * ratio);
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
@@ -2710,109 +2729,24 @@ export class HrService {
   }
 
   async applyAttendanceDeductions(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    const { tenantId } = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      const status = await this.getPayrollRunStatus(trx, id, auth.tenantId || '');
-      if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can apply attendance deductions', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
-
-      const runResult = await sql<{ period_month: string, start_date_text: string, end_date_text: string }>`SELECT period_month, to_char(start_date, 'YYYY-MM-DD') AS start_date_text, to_char(end_date, 'YYYY-MM-DD') AS end_date_text FROM hr_payroll_runs WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(trx);
-      const periodMonth = runResult.rows[0]?.period_month;
-      if (!periodMonth) throw new AppError('Payroll run not found or invalid', 'HR_PAYROLL_RUN_INVALID', 400);
-
-      const items = await sql<{ employee_id: number; base_salary: number }>`
-        SELECT employee_id, base_salary FROM hr_payroll_run_items WHERE run_id = ${id} AND tenant_id = ${auth.tenantId}
-      `.execute(trx);
-
-      if (items.rows.length === 0) return;
-
-      const employeeIds = items.rows.map(r => Number(r.employee_id));
-      const baseSalaryByEmployeeId = new Map<number, number>();
-      for (const row of items.rows) {
-        baseSalaryByEmployeeId.set(Number(row.employee_id), Number(row.base_salary));
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, tenantId);
+      if (status !== 'draft' && status !== 'reviewed') {
+        throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
       }
-
-      const fromDate = String(runResult.rows[0]?.start_date_text || `${periodMonth}-01`);
-      const toDate = String(runResult.rows[0]?.end_date_text || new Date(Number(periodMonth.split('-')[0]), Number(periodMonth.split('-')[1]), 0).toISOString().slice(0, 10));
-      const range = { from: fromDate, to: toDate };
-      const reviews = await this.calculatePayrollOperationalReview(trx, range, employeeIds, baseSalaryByEmployeeId, requireTenantScope(auth).tenantId);
-
-      const toInsert: { employee_id: number; adjustment_type: string; amount_type: string; amount: number; reason: string; date: string; status: string; applied_in_run_id?: number }[] = [];
-      const adjustmentDate = `${periodMonth}-28`;
-
-      for (const employeeId of employeeIds) {
-        const review = reviews.get(employeeId);
-        if (!review) continue;
-
-        let deduction = 0;
-        let notes = '';
-
-        if (review.suggestedAttendanceDeductionAmount > 0) {
-          deduction += review.suggestedAttendanceDeductionAmount;
-          notes += `تأخير وغياب: ${review.attendanceAbsentDays} غياب، ${review.attendanceLateDays} تأخير، ${review.attendanceHalfDays} نصف يوم. `;
-        }
-        if (review.suggestedLeaveDeductionAmount > 0) {
-          deduction += review.suggestedLeaveDeductionAmount;
-          notes += `إجازات غير مدفوعة: ${review.unpaidLeaveDays} يوم. `;
-        }
-
-        if (deduction > 0) {
-          toInsert.push({
-            employee_id: employeeId,
-            adjustment_type: 'deduction',
-            amount_type: 'amount',
-            amount: deduction,
-            reason: `تسوية تلقائية من مراجعة المرتبات: ${notes.trim()}`,
-            date: adjustmentDate,
-            status: 'pending',
-            applied_in_run_id: id
-          });
-        }
-        if (review.suggestedSocialInsuranceDeductionAmount > 0) {
-          toInsert.push({
-            employee_id: employeeId,
-            adjustment_type: 'deduction',
-            amount_type: 'amount',
-            amount: review.suggestedSocialInsuranceDeductionAmount,
-            reason: `حصة الموظف في التأمينات الاجتماعية`,
-            date: adjustmentDate,
-            status: 'pending',
-            applied_in_run_id: id
-          });
-        }
-        
-        if (review.suggestedIncomeTaxDeductionAmount > 0) {
-          toInsert.push({
-            employee_id: employeeId,
-            adjustment_type: 'deduction',
-            amount_type: 'amount',
-            amount: review.suggestedIncomeTaxDeductionAmount,
-            reason: `ضريبة كسب العمل`,
-            date: adjustmentDate,
-            status: 'pending',
-            applied_in_run_id: id
-          });
-        }
-      }
-
-      // Clean up previous automatic attendance deductions for these employees in this month
+      // Legacy versions inserted the same attendance/insurance/tax deductions twice.
+      // Remove ONLY these auto-generated adjustments; keep human-entered adjustments.
       await sql`
         DELETE FROM hr_employee_adjustments
-        WHERE tenant_id = ${auth.tenantId}
-          AND applied_in_run_id = ${id}
+        WHERE tenant_id = ${tenantId} AND applied_in_run_id = ${id}
+          AND (reason LIKE 'تسوية تلقائية من مراجعة المرتبات:%'
+            OR reason IN ('حصة الموظف في التأمينات الاجتماعية', 'ضريبة كسب العمل'))
       `.execute(trx);
-
-      if (toInsert.length > 0) {
-        for (const adj of toInsert) {
-          await sql`
-            INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, applied_in_run_id, created_by, updated_by, created_at, updated_at)
-            VALUES (${auth.tenantId}, ${adj.employee_id}, ${adj.adjustment_type}, ${adj.amount_type}, ${adj.amount}, ${adj.reason}, ${adj.date}::date, ${adj.status}, ${adj.applied_in_run_id || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
-          `.execute(trx);
-        }
-      }
-
-      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
+      // The canonical payroll engine already includes all approved operational deductions.
+      await this.rebuildPayrollRunItems(trx, id, status, tenantId);
     });
-
-    await this.audit.log('Apply HR attendance deductions', `Attendance deductions applied to payroll run #${id} by ${auth.username}`, auth);
+    await this.audit.log('Recalculate HR payroll deductions', `Payroll run #${id} recalculated by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
   }
 
@@ -4158,11 +4092,11 @@ export class HrService {
         to_char(r.decided_at, 'YYYY-MM-DD HH24:MI') AS decided_at_text,
         to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
       FROM hr_leave_requests r
-      JOIN hr_employees e ON e.id = r.employee_id
-      LEFT JOIN hr_departments d ON d.id = e.department_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
-      -- O24: leave_type_id has no foreign key binding it to the tenant, so the join must scope it.
+      JOIN hr_employees e ON e.id = r.employee_id AND e.tenant_id = r.tenant_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = r.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = r.tenant_id
       LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id AND t.tenant_id = r.tenant_id
+      WHERE r.tenant_id = ${auth.tenantId}
       ORDER BY r.created_at DESC, r.id DESC
     `.execute(this.db);
 

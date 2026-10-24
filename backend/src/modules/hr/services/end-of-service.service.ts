@@ -102,7 +102,8 @@ export class EndOfServiceService {
     const dailyWage = totalSalary > 0 ? totalSalary / 30 : basicSalary / 30;
 
     // Determine gratuity via pure engine
-    const lawType = input.lawType || 'saudi';
+    if (!input.lawType) throw new BadRequestException('يجب تحديد قانون العمل؛ لا يجوز افتراض قانون دولة');
+    const lawType = input.lawType;
     const reason = input.terminationReason || 'resignation';
     const gratuity = calculateGratuity({
       serviceYearsDecimal,
@@ -216,9 +217,13 @@ export class EndOfServiceService {
       pendingSalaryAmount,
       noticePeriodAmount,
       customEntitlements,
-      unpaidLoansDeduction,
-      assetsDeduction,
-      otherDeductions,
+      unpaidLoansOutstanding: unpaidLoansDeduction,
+      unpaidLoansDeduction: absorption.appliedLoans,
+      unabsorbedLoans: absorption.unabsorbedLoans,
+      assetsDeduction: absorption.appliedAssets,
+      unabsorbedAssets: absorption.unabsorbedAssets,
+      otherDeductions: absorption.appliedOther,
+      unabsorbedOther: absorption.unabsorbedOther,
       totalEntitlements: Number(totalEntitlements.toFixed(2)),
       totalDeductions: Number(totalDeductions.toFixed(2)),
       netSettlementAmount,
@@ -243,6 +248,16 @@ export class EndOfServiceService {
     const calc = await this.calculateSettlementPreview(dto, auth);
 
     return await this.db.transaction().execute(async (trx) => {
+      const employee = await trx.selectFrom('hr_employees')
+        .select(['id', 'status'])
+        .where('id', '=', dto.employeeId).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!employee || employee.status === 'terminated') throw new BadRequestException('الموظف انتهت خدمته بالفعل');
+      const duplicate = await sql<{ id: number }>`
+        SELECT id FROM hr_end_of_service_settlements
+        WHERE employee_id = ${dto.employeeId} AND tenant_id = ${tenantId} LIMIT 1
+      `.execute(trx);
+      if (duplicate.rows.length) throw new BadRequestException('يوجد مخالصة سابقة للموظف');
       // Temporary settlement number for collision-proof generation
       const tempNo = `EOS-TMP-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 
@@ -258,7 +273,7 @@ export class EndOfServiceService {
           termination_date: dto.terminationDate,
           contract_type: dto.contractType || 'unspecified',
           termination_reason: dto.terminationReason,
-          law_type: dto.lawType || 'saudi',
+          law_type: calc.gratuity.lawType,
           service_years: calc.servicePeriod.totalYearsDecimal,
           service_months: calc.servicePeriod.months,
           service_days: calc.servicePeriod.days,
