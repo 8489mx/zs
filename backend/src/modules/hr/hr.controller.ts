@@ -392,7 +392,9 @@ export class HrController {
   }
 
   @Post('employees/:id/end-of-service')
-  @RequirePermissions('hrEmployees')
+  // Termination changes payroll eligibility, contracts and accrued obligations.
+  // Employee-directory permission alone must not authorize financial termination.
+  @RequirePermissions('hrEmployees', 'hrSalaryManage')
   endOfService(@Param('id', ParseIntPipe) id: number, @Body() payload: EndOfServiceDto, @Req() req: RequestWithAuth) {
     return this.hr.endOfService(id, payload, req.authContext!);
   }
@@ -428,7 +430,8 @@ export class HrController {
   }
 
   @Get('employees/:employeeId/adjustments')
-  @RequirePermissions('hrEmployees')
+  // Adjustment details include salary additions and deductions.
+  @RequireAnyPermission('hrSalaryView', 'hrSalaryManage', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove')
   listEmployeeAdjustments(@Param('employeeId', ParseIntPipe) employeeId: number, @Req() req: RequestWithAuth) {
     return this.hr.listEmployeeAdjustments(employeeId, req.authContext!);
   }
