@@ -21,6 +21,14 @@
 أي حاجة جديدة تتضاف بعد الكوميت المرجعي، قِسها بـ:
 `git diff 8cf92cdc..HEAD -- <المسار>` — راجع القسم 0 قبل ما تبدأ أي بند.
 
+
+### HR payroll follow-up (24 October 2026, branch fix/hr-stabilization-multicountry-20261024)
+
+- Reviewed delta for HR line engines, loan allocation, salary approvals, finance posting and their critical numerical specs.
+- Hardened cross-frequency overlap, due-loan allocation, reconciled accrual and immutable payroll editing. Code committed to the HR branch only; no test/build/typecheck/guard has been run.
+- **Not certified/closed**: payroll rules by citizenship, residency and case for EG/SA/KW/QA/OM, nonmonthly statutory conversion, KWD/OMR triple-decimal precision, bank/WPS acceptance, actual full integration and UAT. These remain release blockers, not assumed verified.
+- See ARCHITECTURE_INVARIANTS.md HR-PAY-16..19 for invariants and exact scope of review.
+
 ---
 
 ## 0. القاعدة الذهبية — إزاي تتعامل مع موديول "مقفول" لما يتضاف له كود جديد

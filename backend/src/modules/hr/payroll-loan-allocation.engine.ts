@@ -29,7 +29,9 @@ export function calculatePayrollLoanDueTotal(rows: Array<{
   let dueCents = 0;
   const toCents = (value: number): number => {
     if (!Number.isFinite(value) || value < 0) throw new RangeError('Invalid payroll loan balance or installment');
-    return Math.round(value * 100);
+    const result = Math.round(value * 100);
+    if (!Number.isSafeInteger(result)) throw new RangeError('Payroll loan balance exceeds safe currency precision');
+    return result;
   };
   for (const row of rows) {
     if (!Number.isSafeInteger(row.loanId) || row.loanId <= 0) {

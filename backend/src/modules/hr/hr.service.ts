@@ -2939,10 +2939,10 @@ export class HrService {
       // subsequent week. Serialize overlapping period checks within tenant/frequency.
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const overlapping = await sql<{
-        id: number; status: string; period_month: string;
+        id: number; status: string; period_month: string; pay_frequency: string;
         start_date_text: string; end_date_text: string;
       }>`
-        SELECT id, status, period_month,
+        SELECT id, status, period_month, pay_frequency,
           to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
           to_char(end_date, 'YYYY-MM-DD') AS end_date_text
         FROM hr_payroll_runs
@@ -2968,6 +2968,12 @@ export class HrService {
         FOR UPDATE
       `.execute(trx);
 
+      if (overlapping.rows.some(row => row.pay_frequency !== payFreq)) {
+        throw new AppError(
+          'لا يمكن إنشاء مسير بدورية مختلفة يغطي أيام موظفين موجودين في مسير آخر؛ راجع المسير المتداخل',
+          'HR_PAYROLL_CROSS_FREQUENCY_OVERLAP', 409,
+        );
+      }
       if (overlapping.rows.some(row => row.start_date_text !== startDate || row.end_date_text !== endDate)) {
         throw new AppError('يوجد كشف مرتبات آخر يتداخل مع هذه الفترة. اختر فترة غير متداخلة لمنع تكرار الصرف.', 'HR_PAYROLL_PERIOD_OVERLAP', 409);
       }
@@ -3550,23 +3556,48 @@ export class HrService {
   }
 
   async updatePayrollRunItem(id: number, payload: UpsertPayrollItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
-    if (item.runStatus !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
-    const status = clean(payload.status);
-    if (status && !['draft', 'excluded'].includes(status)) throw new AppError('Payroll item status is invalid', 'HR_PAYROLL_ITEM_STATUS_INVALID', 400);
-    await sql`
-      UPDATE hr_payroll_run_items
-      SET status = ${status || item.itemStatus || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
+    const { tenantId } = requireTenantScope(auth);
+    let runId = 0;
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      // Run lock serializes item exclusion against review/approval and freezes
+      // the financial snapshot before either committed status may change.
+      const locked = await sql<{ run_id: number; run_status: string; item_status: string }>`
+        SELECT r.id AS run_id, r.status AS run_status, i.status AS item_status
+        FROM hr_payroll_run_items i
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        WHERE i.id = ${id} AND i.tenant_id = ${tenantId}
+        FOR UPDATE OF r, i
+      `.execute(trx);
+      const item = locked.rows[0];
+      if (!item) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
+      if (item.run_status !== 'draft') throw new AppError('Payroll items can only be edited while the run is draft', 'HR_PAYROLL_ITEM_EDIT_LOCKED', 400);
+      const status = clean(payload.status);
+      if (status && !['draft', 'excluded'].includes(status)) throw new AppError('Payroll item status is invalid', 'HR_PAYROLL_ITEM_STATUS_INVALID', 400);
+      runId = Number(item.run_id);
+      await sql`
+        UPDATE hr_payroll_run_items
+        SET status = ${status || item.item_status || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
+        WHERE id = ${id} AND run_id = ${runId} AND tenant_id = ${tenantId}
+      `.execute(trx);
+    });
     await this.audit.log('Update HR payroll item', `Payroll item #${id} updated by ${auth.username}`, auth);
-    return this.getPayrollRun(item.runId, auth);
+    return this.getPayrollRun(runId, auth);
   }
 
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Recheck while holding the same payroll-run row lock as review/approval.
+      const locked = await sql<{ status: string }>`
+        SELECT r.status FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE i.id = ${id} AND i.tenant_id = ${auth.tenantId}
+        FOR UPDATE OF r
+      `.execute(trx);
+      if (locked.rows[0]?.status !== 'draft') {
+        throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+      }
       await sql`
         INSERT INTO hr_payroll_item_adjustments (tenant_id, account_id, payroll_item_id, adjustment_type, label, amount, notes)
         VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
@@ -3585,10 +3616,10 @@ export class HrService {
       const result = await sql<{ payroll_item_id: number; run_id: number; run_status: string }>`
         SELECT a.payroll_item_id, i.run_id, r.status AS run_status
         FROM hr_payroll_item_adjustments a
-        JOIN hr_payroll_run_items i ON i.id = a.payroll_item_id
-        JOIN hr_payroll_runs r ON r.id = i.run_id
-        WHERE a.id = ${id} AND i.tenant_id = ${auth.tenantId} AND r.tenant_id = ${auth.tenantId}
-        LIMIT 1
+        JOIN hr_payroll_run_items i ON i.id = a.payroll_item_id AND i.tenant_id = a.tenant_id
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        WHERE a.id = ${id} AND a.tenant_id = ${auth.tenantId}
+        FOR UPDATE OF r, i
       `.execute(trx);
       const row = result.rows[0];
       if (!row) throw new AppError('Payroll adjustment not found', 'HR_PAYROLL_ADJUSTMENT_NOT_FOUND', 404);

@@ -53,6 +53,15 @@
 
 Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
+
+### HR payroll integrity follow-up — 24 October 2026 (unexecuted regression gates)
+
+- HR-PAY-16: Cross-frequency runs ('all' versus weekly/monthly, or employees moved between pay frequencies) cannot include overlapping payable days for the same employee. The creation path uses a tenant-wide payroll transaction lock, while the approval path checks overlapping employee line membership under the same lock. A cross-frequency run cannot reuse an existing run ID even when the date range is exactly identical.
+- HR-PAY-17: Scheduled withholding aggregates due installments against each individual loan's actual remaining principal; accrual-side payroll withholding never exceeds debt. Approval allocation uses the SAME period-end due-date boundary as payroll calculation, preventing premature recovery of later installments.
+- HR-PAY-18: Payroll accrual rejects a persisted gross/net/deduction mismatch in integer cents, and confirms that stored operating deductions cover employee insurance plus income tax before GL posting; a balancing plug is prohibited.
+- HR-PAY-19: Payroll item inclusion/exclusion and manual allowance/deduction creation/removal acquire the payroll-run lock and revalidate draft status inside the transaction, preventing edits crossing the reviewed/approved boundary.
+- Verification: numeric regression specs are authored but NOT executed; build/typecheck/guards likewise NOT run. Currency precision for KWD/OMR and complete nationality-specific legislation remain blocked. No main merge or deployment.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
