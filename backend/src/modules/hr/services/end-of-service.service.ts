@@ -476,6 +476,26 @@ export class EndOfServiceService {
         throw new BadRequestException('لا يمكن ترحيل مخالصة موظف لديه عهد غير مستردة دون إخلاء طرف للعهدة أو استقطاع قيمتها');
       }
 
+      // EOS drafts are snapshots: loan repayments may have occurred since creation.
+      // Lock the current loan balances *before* posting the general-ledger credit.
+      // Otherwise the journal could credit a loan that can no longer be recovered.
+      const loansDeduction = Number(settlement.unpaid_loans_deduction || 0);
+      const activeLoans = loansDeduction > 0 ? await sql<Record<string, unknown>>`
+        SELECT * FROM hr_employee_loans
+        WHERE employee_id = ${settlement.employee_id}
+          AND tenant_id = ${tenantId}
+          AND status IN ('disbursed', 'paid', 'partially_repaid')
+          AND remaining_amount > 0
+        ORDER BY id ASC
+        FOR UPDATE
+      `.execute(trx) : { rows: [] as Record<string, unknown>[] };
+      const availableLoanBalance = Number(activeLoans.rows.reduce(
+        (sum, loan) => sum + Number(loan.remaining_amount || 0), 0,
+      ).toFixed(2));
+      if (loansDeduction < 0 || loansDeduction > availableLoanBalance + 0.005) {
+        throw new BadRequestException('رصيد السلف تغير منذ إنشاء المخالصة؛ احذف المسودة وأعد احتسابها قبل الترحيل');
+      }
+
       // Post 1-Click Accounting Journal Entry via AccountingPostingService
       const postingRes = await this.accountingPosting.postEndOfServiceSettlement(
         trx,
@@ -487,19 +507,9 @@ export class EndOfServiceService {
       const entryId = postingRes.journalEntryId;
       if (!entryId) throw new BadRequestException('تعذر ترحيل قيد مخالصة الموظف المحاسبي.');
 
-      // Update employee loans in hr_employee_loans if loan deductions are present
-      const loansDeduction = Number(settlement.unpaid_loans_deduction || 0);
+      // Allocate only the exact balances locked and reconciled above.
       if (loansDeduction > 0) {
         let remainingLoanDeduction = loansDeduction;
-        const activeLoans = await sql<Record<string, unknown>>`
-          SELECT * FROM hr_employee_loans
-          WHERE employee_id = ${settlement.employee_id}
-            AND tenant_id = ${tenantId}
-            AND status IN ('approved', 'disbursed', 'paid', 'partially_repaid')
-            AND remaining_amount > 0
-          ORDER BY id ASC
-          FOR UPDATE
-        `.execute(trx);
 
         for (const loan of activeLoans.rows) {
           if (remainingLoanDeduction <= 0) break;
@@ -566,6 +576,9 @@ export class EndOfServiceService {
           `.execute(trx);
 
           remainingLoanDeduction = Number((remainingLoanDeduction - toDeduct).toFixed(2));
+        }
+        if (remainingLoanDeduction > 0.005) {
+          throw new BadRequestException('تعذر توزيع إجمالي خصومات السلف بالكامل؛ تم إلغاء ترحيل المخالصة');
         }
       }
 
