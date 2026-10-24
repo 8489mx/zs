@@ -50,7 +50,7 @@ import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInsta
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
-import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
+import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
@@ -2518,7 +2518,8 @@ export class HrService {
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
-        SELECT id, adjustment_type, amount_type, amount, accounting_category
+        SELECT id, adjustment_type, amount_type, amount, accounting_category,
+          to_char(date, 'YYYY-MM-DD') AS adjustment_date
         FROM hr_employee_adjustments
         WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId} AND status = 'pending' AND date <= ${range.to}
       `.execute(db);
@@ -2529,17 +2530,23 @@ export class HrService {
       const appliedAdjIds: number[] = [];
 
       for (const adj of empAdjustmentsResult.rows) {
-        let val = Number(adj.amount || 0);
-        // Days/hours adjustments use the effective full daily/hourly rate.
-        // Using an already prorated period wage here undercounts midmonth staff.
-        const referenceHours = Number(employee.expected_daily_hours || 8) || 8;
-        const dayWage = isHourly
-          ? Number(employee.hourly_rate || 0) * referenceHours
-          : Number(contractualMonthlySalary.get(employeeId) || 0) / 30;
-        if (clean(adj.amount_type) === 'days') val = dayWage * val;
-        if (clean(adj.amount_type) === 'hours') {
-          const rate = dayWage / referenceHours;
-          val = rate * val;
+        let val: number;
+        try {
+          val = calculateDatedPayrollAdjustment({
+            amount: Number(adj.amount),
+            amountType: clean(adj.amount_type) as 'money' | 'days' | 'hours',
+            date: clean(adj.adjustment_date),
+            period: payRange,
+            contracts: contractHistory.get(employeeId) || [],
+            isHourly,
+            hourlyRate: Number(employee.hourly_rate || 0),
+            expectedDailyHours: Number(employee.expected_daily_hours || 8),
+          });
+        } catch (error) {
+          throw new AppError(
+            `تسوية الموظف #${employeeId} بتاريخ ${clean(adj.adjustment_date)}: ${error instanceof Error ? error.message : 'راجع نوع التسوية'}`,
+            'HR_PAYROLL_DATED_ADJUSTMENT_INVALID', 409,
+          );
         }
 
         if (clean(adj.adjustment_type) === 'allowance') {

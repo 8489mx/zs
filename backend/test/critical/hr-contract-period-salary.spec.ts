@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert';
-import { calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction } from '../../src/modules/hr/engines/hourly-attendance-pay.engine';
+import { calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction } from '../../src/modules/hr/engines/hourly-attendance-pay.engine';
 
 // Pure examples: 31-day October 2026. 15 days at 3100 + 16 days at 6200.
 const contracts = [
@@ -49,3 +49,17 @@ assert.throws(() => calculateHistoricalOvertimePay([{ date: '2026-10-20', minute
   [contracts[0]], 8, 1.5), /exactly one/);
 assert.throws(() => calculateHistoricalOvertimePay([{ date: '2026-10-20', minutes: 1800 }],
   contracts, 8, 1.5), /Invalid approved/);
+
+// A manual day/hour adjustment follows the wage effective on its specific date,
+// not the prorated average of all salary contracts in a payroll interval.
+const commonAdjustment = {
+  amount: 2, amountType: 'days' as const, period: { from: '2026-10-01', to: '2026-10-31' },
+  contracts, isHourly: false, hourlyRate: 0, expectedDailyHours: 8,
+};
+assert.equal(calculateDatedPayrollAdjustment({ ...commonAdjustment, date: '2026-10-10' }), 206.67);
+assert.equal(calculateDatedPayrollAdjustment({ ...commonAdjustment, date: '2026-10-20' }), 413.33);
+assert.equal(calculateDatedPayrollAdjustment({ ...commonAdjustment, amountType: 'hours', date: '2026-10-10' }), 25.83);
+assert.equal(calculateDatedPayrollAdjustment({ ...commonAdjustment, amountType: 'money', amount: 125, date: '2026-09-10' }), 125);
+assert.throws(() => calculateDatedPayrollAdjustment({ ...commonAdjustment, date: '2026-09-10' }), /inside this payroll/);
+assert.throws(() => calculateDatedPayrollAdjustment({ ...commonAdjustment, date: '2026-10-15',
+  contracts: [{ ...contracts[1], startDate: '2026-10-15' }, contracts[0]] }), /exactly one/);

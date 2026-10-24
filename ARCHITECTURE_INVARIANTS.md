@@ -133,6 +133,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-LOAN-31: Non-administrator loan creators cannot bypass maker-checker using autoDisburse. Salary ceiling lookups use date-effective contracts rather than an unordered historic/future active contract; quick advances use the tenant-local date.
 - Changes committed without executing tests/build/typecheck/guards, per user instruction.
 
+- HR-PAY-32 (25 October 2026): Employee day/hour adjustments are valued at the exact effective salary contract on the adjustment date, not an average from the payroll period; valid money adjustments remain fixed. Backdated time-unit adjustments outside the payroll period block with an explicit reconciliation error rather than using a fabricated rate. Synthetic regression tests added but not executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
