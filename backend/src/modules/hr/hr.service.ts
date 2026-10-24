@@ -4983,6 +4983,7 @@ export class HrService {
   async approveLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const current = await sql<{
         id: number;
         status: string;
@@ -5064,22 +5065,29 @@ export class HrService {
   }
 
   async rejectLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
-    const current = await sql<{ status: string }>`SELECT status FROM hr_leave_requests WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
-    const status = clean(current.rows[0]?.status);
-    if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
-    if (['cancelled', 'approved'].includes(status)) throw new AppError('Cannot reject this leave request', 'HR_LEAVE_REJECT_LOCKED', 400);
-    await sql`
-      UPDATE hr_leave_requests
-      SET status = 'rejected',
-          decision_notes = ${clean(payload.decisionNotes) || null},
-          notes = ${clean(payload.notes) || null},
-          decided_by = ${auth.userId},
-          decided_at = NOW(),
-          updated_by = ${auth.userId},
-          updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async trx => {
+      // Approval/cancellation and rejection must serialize over the same leave
+      // row AND payroll lock. The old unguarded UPDATE could reject an already
+      // approved leave without releasing its annual-leave balance.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const current = await sql<{ status: string }>`
+        SELECT status FROM hr_leave_requests
+        WHERE id = ${id} AND tenant_id = ${tenantId} LIMIT 1 FOR UPDATE
+      `.execute(trx);
+      const status = clean(current.rows[0]?.status);
+      if (!status) throw new AppError('Leave request not found', 'HR_LEAVE_REQUEST_NOT_FOUND', 404);
+      if (['cancelled', 'approved'].includes(status)) {
+        throw new AppError('Cannot reject this leave request', 'HR_LEAVE_REJECT_LOCKED', 409);
+      }
+      await sql`
+        UPDATE hr_leave_requests
+        SET status = 'rejected', decision_notes = ${clean(payload.decisionNotes) || null},
+            notes = ${clean(payload.notes) || null}, decided_by = ${auth.userId},
+            decided_at = NOW(), updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${tenantId} AND status = ${status}
+      `.execute(trx);
+    });
     await this.audit.log('Reject HR leave request', `Leave request #${id} rejected by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);
   }
@@ -5087,6 +5095,7 @@ export class HrService {
   async cancelLeaveRequest(id: number, payload: DecideLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const current = await sql<{
         id: number;
         status: string;

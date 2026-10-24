@@ -103,6 +103,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LEAVE-SQL-1: PostgreSQL requires LIMIT before FOR UPDATE. Fixed both admin leave approval/cancellation status-lock queries; old ordering caused approval/cancel to fail before balance mutation. Further concurrent rejection hardening follows.
 
+- HR-LEAVE-RACE-1: Leave approval/rejection/cancellation now acquire the tenant payroll transaction lock before leave row status decisions. Reject rechecks status under FOR UPDATE in one transaction instead of a stale independent SELECT and unguarded UPDATE; prevents approved leave being overwritten as rejected while used leave balance stays debited. No tests run.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
