@@ -12,6 +12,12 @@ export interface HrStatutoryPolicy {
   statutoryReviewed?: boolean;
   insuranceConfig?: { employeePct: number; employerPct: number; minSalary?: number; maxSalary?: number };
   taxPersonalExemption?: number;
+  /** Explicit wage base; never infer taxable components from currency or country. */
+  taxableEarningsBasis?: 'gross' | 'gross_after_attendance_leave';
+  /** Must be explicitly chosen by a reviewed accountant. */
+  taxDeductEmployeeInsurance?: boolean;
+  /** Source of insurable earnings for this tenant's reviewed policy. */
+  insuranceWageBasis?: 'employee_insurance_salary' | 'earned_base';
   /** Progressive annual taxable-income bracket upper bounds; rate in percent. */
   taxBrackets?: { max: number | null; rate: number }[];
 }
@@ -40,6 +46,9 @@ export function validateHrStatutoryPolicy(p: HrStatutoryPolicy, period?: { from:
     throw new Error('فترة الراتب خارج سريان قواعد الضريبة والتأمينات');
   }
   if (p.hrSocialInsuranceEnabled) {
+    if (!['employee_insurance_salary', 'earned_base'].includes(String(p.insuranceWageBasis || ''))) {
+      throw new Error('حدد أساس الأجر التأميني صراحةً في سياسة الشركة');
+    }
     const c = p.insuranceConfig;
     if (!c || c.employeePct == null || c.employerPct == null) throw new Error('نسب التأمينات غير محددة');
     percent(c.employeePct); percent(c.employerPct);
@@ -49,6 +58,10 @@ export function validateHrStatutoryPolicy(p: HrStatutoryPolicy, period?: { from:
     }
   }
   if (p.hrIncomeTaxEnabled) {
+    if (!['gross', 'gross_after_attendance_leave'].includes(String(p.taxableEarningsBasis || ''))
+      || typeof p.taxDeductEmployeeInsurance !== 'boolean') {
+      throw new Error('حدد وعاء الضريبة وكيفية خصم حصة التأمينات منه صراحةً');
+    }
     if (!Number.isFinite(Number(p.taxPersonalExemption)) || Number(p.taxPersonalExemption) < 0
       || !Array.isArray(p.taxBrackets) || !p.taxBrackets.length) throw new Error('الإعفاء والشرائح الضريبية غير محددين');
     let lower = 0;
