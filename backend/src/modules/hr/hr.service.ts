@@ -5008,8 +5008,8 @@ export class HrService {
         JOIN hr_employees e ON e.id = r.employee_id AND e.tenant_id = r.tenant_id
         LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id AND t.tenant_id = r.tenant_id
         WHERE r.id = ${id} AND r.tenant_id = ${auth.tenantId}
-        FOR UPDATE OF r, e
         LIMIT 1
+        FOR UPDATE OF r, e
       `.execute(trx);
 
       const row = current.rows[0];
@@ -5107,8 +5107,8 @@ export class HrService {
         FROM hr_leave_requests r
         LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id AND t.tenant_id = r.tenant_id
         WHERE r.id = ${id} AND r.tenant_id = ${auth.tenantId}
-        FOR UPDATE OF r
         LIMIT 1
+        FOR UPDATE OF r
       `.execute(trx);
 
       const row = current.rows[0];

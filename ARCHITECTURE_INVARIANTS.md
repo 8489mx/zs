@@ -101,6 +101,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LOAN-NEW-4: A loan's legal/tenant configured exposure ceiling is revalidated atomically at approval, not only draft creation. Approvals of separate drafts lock the same employee row, re-read live outstanding approved/disbursed loans and effective current salary, and refuse exceeding the ceiling. Maker-checker and draft status check run within the locked transaction. Code-reviewed, tests not executed.
 
+- HR-LEAVE-SQL-1: PostgreSQL requires LIMIT before FOR UPDATE. Fixed both admin leave approval/cancellation status-lock queries; old ordering caused approval/cancel to fail before balance mutation. Further concurrent rejection hardening follows.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
