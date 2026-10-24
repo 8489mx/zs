@@ -1188,10 +1188,12 @@ export class HrService {
         throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة', 'HR_CONTRACT_CURRENCY_MISMATCH', 400);
       }
       const oldContract = id ? await sql<{
-        start_date: string; end_date: string | null;
+        start_date: string; end_date: string | null; base_salary: string;
+        currency: string; contract_no: string; contract_type: string; status: string;
       }>`
         SELECT to_char(start_date, 'YYYY-MM-DD') AS start_date,
-               to_char(end_date, 'YYYY-MM-DD') AS end_date
+               to_char(end_date, 'YYYY-MM-DD') AS end_date,
+               base_salary, currency, contract_no, contract_type, status
         FROM hr_employment_contracts
         WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
         FOR UPDATE
@@ -1204,8 +1206,8 @@ export class HrService {
       // after the ledger has accrued it requires a separate adjustment process.
       const oldStart = oldContract?.rows[0]?.start_date || startDate;
       const oldEnd = oldContract?.rows[0]?.end_date || null;
-      const booked = await sql<{ id: number }>`
-        SELECT r.id FROM hr_payroll_runs r
+      const booked = await sql<{ latest_end: string | null }>`
+        SELECT to_char(MAX(r.end_date), 'YYYY-MM-DD') AS latest_end FROM hr_payroll_runs r
         JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
         WHERE r.tenant_id = ${tenantId} AND i.employee_id = ${employeeId}
           AND r.status IN ('approved', 'paid') AND i.status = 'approved'
@@ -1215,7 +1217,22 @@ export class HrService {
           )
         LIMIT 1
       `.execute(trx);
-      if (booked.rows.length) {
+      const latestBookedEnd = booked.rows[0]?.latest_end || null;
+      const previous = oldContract?.rows[0];
+      // An existing open-ended contract may be closed prospectively for a
+      // promotion: its old posted wage and effective starting date must match.
+      const safeFutureClose = Boolean(
+        id && previous && !oldEnd && endDate && latestBookedEnd
+        && endDate >= latestBookedEnd
+        && startDate === previous.start_date
+        && baseSalary === Number(previous.base_salary)
+        && contractCurrency === clean(previous.currency).toUpperCase()
+        && clean(payload.contractNo) === clean(previous.contract_no)
+        && (clean(payload.contractType) || 'standard') === clean(previous.contract_type)
+        && ['active', 'ended'].includes(clean(payload.status))
+        && ['active', 'ended'].includes(clean(previous.status))
+      );
+      if (latestBookedEnd && !safeFutureClose) {
         throw new AppError('العقد يغيّر فترة سبق اعتماد رواتبها؛ سجّل تعديلًا أو عقدًا مستقبليًا بدل تعديل التاريخ المالي', 'HR_CONTRACT_APPROVED_PERIOD_LOCKED', 409);
       }
       if (id) {
@@ -1346,22 +1363,50 @@ export class HrService {
   }
 
   async createEmployeeAdjustment(employeeId: number, payload: CreateEmployeeAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    await sql`
-      INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, date, reason, status, created_by, updated_by)
-      VALUES (${auth.tenantId}, ${employeeId}, ${clean(payload.adjustmentType)}, ${clean(payload.amountType)}, ${Number(payload.amount || 0)}, ${payload.date}, ${clean(payload.reason)}, 'pending', ${auth.userId}, ${auth.userId})
-    `.execute(this.db);
-    await this.audit.log(`Create HR Employee Adjustment`, `Employee #${employeeId} ${payload.adjustmentType} added by ${auth.username}`, auth);
+    const { tenantId } = requireTenantScope(auth);
+    if (!Number.isFinite(Number(payload.amount)) || Number(payload.amount) <= 0
+      || !normalizeDateOnly(payload.date) || !['money', 'days', 'hours'].includes(clean(payload.amountType))
+      || !['allowance', 'deduction'].includes(clean(payload.adjustmentType))) {
+      throw new AppError('مبلغ أو نوع أو تاريخ تسوية الموظف غير صحيح', 'HR_EMPLOYEE_ADJUSTMENT_INVALID', 400);
+    }
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const employee = await sql<{ id: number }>`
+        SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} LIMIT 1
+      `.execute(trx);
+      if (!employee.rows.length) throw new AppError('الموظف غير تابع للمنشأة', 'HR_EMPLOYEE_NOT_FOUND', 404);
+      await sql`
+        INSERT INTO hr_employee_adjustments
+          (tenant_id, employee_id, adjustment_type, amount_type, amount, date,
+           reason, status, created_by, updated_by)
+        VALUES (${tenantId}, ${employeeId}, ${clean(payload.adjustmentType)}, ${clean(payload.amountType)},
+                ${Number(payload.amount)}, ${payload.date}::date, ${clean(payload.reason)},
+                'pending', ${auth.userId}, ${auth.userId})
+      `.execute(trx);
+    });
+    await this.audit.log('Create HR Employee Adjustment',
+      `Employee #${employeeId} ${payload.adjustmentType} added by ${auth.username}`, auth);
     return { success: true };
   }
 
   async deleteEmployeeAdjustment(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const result = await sql<{ status: string }>`SELECT status FROM hr_employee_adjustments WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    const adjustment = result.rows[0];
-    if (!adjustment) throw new AppError('Adjustment not found', 'NOT_FOUND', 404);
-    if (adjustment.status !== 'pending') throw new AppError('Cannot delete applied adjustment', 'CANNOT_DELETE_APPLIED', 400);
-
-    await sql`DELETE FROM hr_employee_adjustments WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    await this.audit.log(`Delete HR Employee Adjustment`, `Adjustment #${id} deleted by ${auth.username}`, auth);
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const result = await sql<{ status: string }>`
+        SELECT status FROM hr_employee_adjustments
+        WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
+      `.execute(trx);
+      const adjustment = result.rows[0];
+      if (!adjustment) throw new AppError('Adjustment not found', 'NOT_FOUND', 404);
+      if (adjustment.status !== 'pending') {
+        throw new AppError('Cannot delete applied adjustment', 'CANNOT_DELETE_APPLIED', 400);
+      }
+      await sql`
+        DELETE FROM hr_employee_adjustments WHERE id = ${id} AND tenant_id = ${tenantId} AND status = 'pending'
+      `.execute(trx);
+    });
+    await this.audit.log('Delete HR Employee Adjustment', `Adjustment #${id} deleted by ${auth.username}`, auth);
     return { success: true };
   }
 
