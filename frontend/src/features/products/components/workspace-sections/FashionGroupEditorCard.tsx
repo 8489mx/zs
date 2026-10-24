@@ -15,7 +15,7 @@ import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-nor
 import { formatCurrency } from '@/lib/format';
 import { Trash2Icon, SlidersIcon } from '@/shared/components/icons/AppIcons';
 import { QuickStockAdjustmentDialog, useInventoryActionCatalog } from '@/features/inventory';
-import { systemConfirm, systemAlert, toast } from '@/shared/components/system-alert';
+import { systemConfirm, toast } from '@/shared/components/system-alert';
 import type { Category, Product, Supplier, Location } from '@/types/domain';
 import {
   buildPayload,
