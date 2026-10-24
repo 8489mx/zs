@@ -375,7 +375,7 @@ export class HrService {
       LIMIT 1
     `.execute(db);
     if (duplicate.rows.length > 0) {
-      throw new AppError('ط±ظ‚ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ظپط¹ظ„', 'HR_EMPLOYEE_NO_EXISTS', 409);
+      throw new AppError('رقم الموظف مستخدم بالفعل', 'HR_EMPLOYEE_NO_EXISTS', 409);
     }
   }
 
@@ -983,7 +983,7 @@ export class HrService {
       throw new AppError('دقائق سماح الحضور غير صحيحة', 'HR_ATTENDANCE_GRACE_INVALID', 400);
     }
 
-    if (!firstName) throw new AppError('ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
+    if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
       throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
     }
