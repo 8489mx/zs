@@ -856,7 +856,9 @@ export class HrService {
       const branches = await sql<{ id: number }>`SELECT id FROM branches WHERE id = ${branchId} AND tenant_id = ${tenantId} LIMIT 1`.execute(trx);
       if (!branches.rows.length) throw new AppError('فرع الموظف غير تابع للمنشأة', 'HR_BRANCH_INVALID', 400);
     }
-    // Serialize generated employee numbers across concurrent recruitment hires.
+    // Payroll approval reads the active employee roster under the same lock.
+    // Acquire payroll before employee-number allocation (global lock ordering).
+    await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
     await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-employee:' + tenantId}))`.execute(trx);
     const employeeNo = await this.nextAvailableEmployeeNo(trx, auth);
     const timezone = await getTenantTimezone(trx, tenantId);
@@ -918,6 +920,7 @@ export class HrService {
       WHERE id = ${contractId} AND employee_id = ${employeeId}
         AND contract_no = ${tempNo} AND tenant_id = ${tenantId}
     `.execute(trx);
+    await this.invalidateReviewedPayrollForNewHire(trx, tenantId, hireDate, 'monthly');
     return employeeId;
   }
 
@@ -1034,7 +1037,9 @@ export class HrService {
         });
       } else {
         await this.tx.runInTransaction(this.db, async (trx) => {
-          // Serialize creation with ATS hires so auto numbers cannot race.
+          // New staff invalidate overlapping reviewed payroll. Serialize first
+          // with approval, then ATS/other employee number allocations.
+          await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
           await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-employee:' + auth.tenantId}))`.execute(trx);
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
@@ -1086,6 +1091,9 @@ export class HrService {
                 SET contract_no = ${formatDailyDocumentNumber('CON', contractId)}
                 WHERE id = ${contractId} AND employee_id = ${newId} AND tenant_id = ${auth.tenantId}
               `.execute(trx);
+            }
+            if (hireDate && (clean(payload.status) || 'active') === 'active') {
+              await this.invalidateReviewedPayrollForNewHire(trx, auth.tenantId || '', hireDate, payFrequency);
             }
           }
         });
@@ -3355,6 +3363,25 @@ export class HrService {
     });
     await this.audit.log('Create HR payroll run', `Payroll ${periodMonth} [${startDate}..${endDate}] prepared by ${auth.username}`, auth);
     return this.getPayrollRun(runId, auth);
+  }
+
+  /** A late hire inserted after review changes payroll's eligible employee
+   * population. Serialize both HR employee writers and payroll review/approve
+   * against the tenant payroll advisory lock BEFORE calling this helper.
+   */
+  private async invalidateReviewedPayrollForNewHire(
+    db: Kysely<Database>, tenantId: string, hireDate: string, payFrequency: string,
+  ): Promise<void> {
+    const reviewed = await sql<{ id: number }>`
+      SELECT id FROM hr_payroll_runs
+      WHERE tenant_id = ${tenantId} AND status = 'reviewed'
+        AND start_date <= ${hireDate}::date AND end_date >= ${hireDate}::date
+        AND (pay_frequency = 'all' OR pay_frequency = ${payFrequency})
+      FOR UPDATE
+    `.execute(db);
+    for (const run of reviewed.rows) {
+      await this.invalidatePayrollRunReview(db, Number(run.id), tenantId);
+    }
   }
 
   /** Financial recalculation invalidates the former review approval.
