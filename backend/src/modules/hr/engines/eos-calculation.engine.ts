@@ -153,11 +153,16 @@ export function calculateLeaveEncashment(remainingLeaveDays: number, dailyWage: 
  * Any remaining excess deductions are tracked as unabsorbed employee debts.
  */
 export function calculateSettlementAbsorption(params: SettlementAbsorptionParams): SettlementAbsorptionResult {
-  const gratuity = toMoney(params.gratuityAmount);
-  const leavePay = toMoney(params.leaveEncashmentAmount);
-  const pendingSalary = toMoney(params.pendingSalaryAmount);
-  const noticePeriod = toMoney(params.noticePeriodAmount);
-  const otherEntitlements = toMoney(params.otherEntitlementsAmount);
+  const nonNegative = (value: number, label: string): number => {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num < 0) throw new RangeError(`Invalid or negative EOS amount: ${label}`);
+    return toMoney(num);
+  };
+  const gratuity = nonNegative(params.gratuityAmount, 'gratuityAmount');
+  const leavePay = nonNegative(params.leaveEncashmentAmount, 'leaveEncashmentAmount');
+  const pendingSalary = nonNegative(params.pendingSalaryAmount, 'pendingSalaryAmount');
+  const noticePeriod = nonNegative(params.noticePeriodAmount, 'noticePeriodAmount');
+  const otherEntitlements = nonNegative(params.otherEntitlementsAmount, 'otherEntitlementsAmount');
 
   const totalEntitlements = toMoney(gratuity + leavePay + pendingSalary + noticePeriod + otherEntitlements);
 
@@ -165,19 +170,19 @@ export function calculateSettlementAbsorption(params: SettlementAbsorptionParams
 
   // Deduction absorption order:
   // 1. Assets / Custody recovery
-  const requestedAssets = toMoney(params.assetsDeduction);
+  const requestedAssets = nonNegative(params.assetsDeduction, 'assetsDeduction');
   const appliedAssets = Math.min(requestedAssets, pool);
   pool = toMoney(pool - appliedAssets);
   const unabsorbedAssets = toMoney(requestedAssets - appliedAssets);
 
   // 2. Disciplinary / other deductions
-  const requestedOther = toMoney(params.otherDeductions);
+  const requestedOther = nonNegative(params.otherDeductions, 'otherDeductions');
   const appliedOther = Math.min(requestedOther, pool);
   pool = toMoney(pool - appliedOther);
   const unabsorbedOther = toMoney(requestedOther - appliedOther);
 
   // 3. Outstanding loans / advances
-  const requestedLoans = toMoney(params.unpaidLoansDeduction);
+  const requestedLoans = nonNegative(params.unpaidLoansDeduction, 'unpaidLoansDeduction');
   const appliedLoans = Math.min(requestedLoans, pool);
   pool = toMoney(pool - appliedLoans);
   const unabsorbedLoans = toMoney(requestedLoans - appliedLoans);

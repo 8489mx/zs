@@ -62,8 +62,14 @@ export class EndOfServiceService {
     }
 
     if (!employee.hire_date) throw new BadRequestException('يجب تسجيل تاريخ تعيين الموظف قبل احتساب المخالصة');
+    const endDate = String(input.terminationDate || '');
+    const validEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate)
+      && Number.isFinite(Date.parse(endDate + 'T00:00:00Z'))
+      && new Date(endDate + 'T00:00:00Z').toISOString().slice(0, 10) === endDate;
+    if (!validEndDate) throw new BadRequestException('تاريخ إنهاء الخدمة يجب أن يكون تاريخاً صحيحاً YYYY-MM-DD');
     const hireDate = new Date(employee.hire_date);
-    const terminationDate = new Date(input.terminationDate || new Date());
+    if (!Number.isFinite(hireDate.getTime())) throw new BadRequestException('تاريخ تعيين الموظف غير صحيح');
+    const terminationDate = new Date(endDate + 'T00:00:00Z');
 
     if (terminationDate < hireDate) {
       throw new BadRequestException('تاريخ إنهاء الخدمة لا يمكن أن يكون قبل تاريخ التعيين');
@@ -72,7 +78,7 @@ export class EndOfServiceService {
     // Calculate duration
     const diffTime = Math.max(0, terminationDate.getTime() - hireDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const serviceYearsDecimal = Number((diffDays / 365.25).toFixed(2));
+    const serviceYearsDecimal = Number((diffDays / 365.25).toFixed(8));
     const serviceYears = Math.floor(diffDays / 365.25);
     const serviceMonths = Math.floor((diffDays % 365.25) / 30.4375);
     const serviceDays = Math.floor((diffDays % 365.25) % 30.4375);
@@ -104,7 +110,10 @@ export class EndOfServiceService {
       totalSalary = basicSalary;
     }
 
-    const dailyWage = totalSalary > 0 ? totalSalary / 30 : basicSalary / 30;
+    if (!Number.isFinite(totalSalary) || totalSalary <= 0 || !Number.isFinite(basicSalary) || basicSalary < 0) {
+      throw new BadRequestException('يجب مراجعة عقد الموظف وتحديد أجر موجب قبل احتساب المخالصة');
+    }
+    const dailyWage = totalSalary / 30;
 
     // Determine gratuity via pure engine
     if (!input.lawType) throw new BadRequestException('يجب تحديد قانون العمل؛ لا يجوز افتراض قانون دولة');
@@ -180,16 +189,21 @@ export class EndOfServiceService {
     const otherDeductions = Number(input.otherDeductions || 0);
 
     // Entitlement absorption via pure engine
-    const absorption = calculateSettlementAbsorption({
-      gratuityAmount: gratuity.gratuityAmount,
-      leaveEncashmentAmount,
-      pendingSalaryAmount,
-      noticePeriodAmount,
-      otherEntitlementsAmount: customEntitlements,
-      unpaidLoansDeduction,
-      assetsDeduction,
-      otherDeductions,
-    });
+    let absorption: ReturnType<typeof calculateSettlementAbsorption>;
+    try {
+      absorption = calculateSettlementAbsorption({
+        gratuityAmount: gratuity.gratuityAmount,
+        leaveEncashmentAmount,
+        pendingSalaryAmount,
+        noticePeriodAmount,
+        otherEntitlementsAmount: customEntitlements,
+        unpaidLoansDeduction,
+        assetsDeduction,
+        otherDeductions,
+      });
+    } catch (error) {
+      throw new BadRequestException(error instanceof Error ? error.message : 'مبالغ المخالصة غير صحيحة');
+    }
 
     const totalEntitlements = absorption.totalEntitlements;
     const totalDeductions = absorption.totalDeductions;
