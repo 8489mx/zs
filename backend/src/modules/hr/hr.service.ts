@@ -416,10 +416,10 @@ export class HrService {
       ? await sql<Record<string, unknown>>`
           SELECT m.*, d.name AS department_name, j.name AS job_title_name, b.name AS branch_name, l.name AS location_name
           FROM hr_positions m
-          LEFT JOIN hr_departments d ON d.id = m.department_id
-          LEFT JOIN hr_job_titles j ON j.id = m.job_title_id
-          LEFT JOIN branches b ON b.id = m.branch_id
-          LEFT JOIN stock_locations l ON l.id = m.location_id
+          LEFT JOIN hr_departments d ON d.id = m.department_id AND d.tenant_id = m.tenant_id
+          LEFT JOIN hr_job_titles j ON j.id = m.job_title_id AND j.tenant_id = m.tenant_id
+          LEFT JOIN branches b ON b.id = m.branch_id AND b.tenant_id = m.tenant_id
+          LEFT JOIN stock_locations l ON l.id = m.location_id AND l.tenant_id = m.tenant_id
           WHERE ${this.tenantPredicate(auth, 'm')}
           ORDER BY m.id DESC
         `.execute(this.db)
@@ -565,11 +565,11 @@ export class HrService {
       , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
       , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
       FROM hr_employees e
-      LEFT JOIN hr_departments d ON d.id = e.department_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
-      LEFT JOIN hr_positions p ON p.id = e.position_id
-      LEFT JOIN branches b ON b.id = e.branch_id
-      LEFT JOIN stock_locations l ON l.id = e.location_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+      LEFT JOIN hr_positions p ON p.id = e.position_id AND p.tenant_id = e.tenant_id
+      LEFT JOIN branches b ON b.id = e.branch_id AND b.tenant_id = e.tenant_id
+      LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = e.tenant_id
       LEFT JOIN users u ON u.id = e.user_id AND u.tenant_id = e.tenant_id
       WHERE ${this.tenantPredicate(auth, 'e')}
       ORDER BY e.id DESC
@@ -637,11 +637,11 @@ export class HrService {
       , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
       , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
       FROM hr_employees e
-      LEFT JOIN hr_departments d ON d.id = e.department_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
-      LEFT JOIN hr_positions p ON p.id = e.position_id
-      LEFT JOIN branches b ON b.id = e.branch_id
-      LEFT JOIN stock_locations l ON l.id = e.location_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+      LEFT JOIN hr_positions p ON p.id = e.position_id AND p.tenant_id = e.tenant_id
+      LEFT JOIN branches b ON b.id = e.branch_id AND b.tenant_id = e.tenant_id
+      LEFT JOIN stock_locations l ON l.id = e.location_id AND l.tenant_id = e.tenant_id
       LEFT JOIN users u ON u.id = e.user_id AND u.tenant_id = e.tenant_id
       WHERE e.id = ${id} AND ${this.tenantPredicate(auth, 'e')}
     `.execute(this.db);
@@ -1932,8 +1932,8 @@ export class HrService {
     const empRes = await sql<Record<string, unknown>>`
       SELECT e.*, d.name AS department_name, j.name AS job_title_name
       FROM hr_employees e
-      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = e.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id AND j.tenant_id = e.tenant_id
       WHERE e.id = ${employeeId} AND e.tenant_id = ${tenantId}
       LIMIT 1
     `.execute(this.db);
@@ -3993,7 +3993,7 @@ export class HrService {
           COUNT(*) FILTER (WHERE a.status = 'late')::text AS late
         FROM hr_attendance_records a
         JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
-        LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
+        LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = e.tenant_id
         WHERE a.tenant_id = ${auth.tenantId}
           AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
           AND (${requestedEmployeeId}::BIGINT IS NULL OR a.employee_id = ${requestedEmployeeId})
@@ -4014,8 +4014,8 @@ export class HrService {
           e.scheduled_check_in_time, e.scheduled_check_out_time, e.grace_minutes, e.department_id
         FROM hr_attendance_records a
         JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
-        LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
-        LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+        LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = e.tenant_id
+        LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id AND j.tenant_id = e.tenant_id
         WHERE a.tenant_id = ${auth.tenantId}
           AND a.work_date BETWEEN ${rangeFrom}::date AND ${rangeTo}::date
           AND (${requestedEmployeeId}::BIGINT IS NULL OR a.employee_id = ${requestedEmployeeId})
@@ -4068,8 +4068,8 @@ export class HrService {
         e.grace_minutes,
         e.department_id
       FROM hr_employees e
-      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = e.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id AND j.tenant_id = e.tenant_id
       LEFT JOIN hr_attendance_records a ON a.employee_id = e.id AND a.tenant_id = e.tenant_id AND a.work_date = ${workDate}::date
       WHERE ${this.tenantPredicate(auth, 'e')}
         AND e.status IN ('active', 'inactive')
@@ -4936,8 +4936,8 @@ export class HrService {
         to_char(r.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
       FROM hr_leave_requests r
       JOIN hr_employees e ON e.id = r.employee_id AND e.tenant_id = r.tenant_id
-      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = r.tenant_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = r.tenant_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = r.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id AND j.tenant_id = r.tenant_id
       LEFT JOIN hr_leave_types t ON t.id = r.leave_type_id AND t.tenant_id = r.tenant_id
       WHERE r.tenant_id = ${auth.tenantId}
       ORDER BY r.created_at DESC, r.id DESC
@@ -5281,8 +5281,8 @@ export class HrService {
         to_char(a.created_at, 'YYYY-MM-DD HH24:MI') AS created_at_text
       FROM hr_employee_assets a
       JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
-      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = a.tenant_id
-      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = a.tenant_id
+      LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = a.tenant_id
+      LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id AND j.tenant_id = a.tenant_id
       WHERE a.tenant_id = ${tenantId}
       ORDER BY a.created_at DESC, a.id DESC
     `.execute(this.db);
