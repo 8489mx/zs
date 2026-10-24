@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { mapLegacyAppMode, type AppMode } from './app-mode';
+import { normalizeAppMode } from './app-mode';
 
 const booleanString = z
   .enum(['true', 'false'])
@@ -56,6 +56,7 @@ const envSchema = z.object({
   TENANT_ID: z.string().trim().default('default'),
   ACCOUNT_ID: z.string().trim().default('default'),
   PORTABLE_MODE: booleanString.optional(),
+  IS_ELECTRON: booleanString.optional(),
   SAAS_DEFAULT_GRACE_DAYS: z.coerce.number().int().min(0).max(365).default(7),
   SENTRY_DSN: z.string().default(''),
   SENTRY_ENVIRONMENT: z.string().trim().default('production'),
@@ -68,10 +69,6 @@ const envSchema = z.object({
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
-
-function normalizeAppMode(value: unknown): AppMode {
-  return mapLegacyAppMode(String(value || 'CLOUD_SAAS') as any);
-}
 
 function isLocalDatabaseHost(host: string): boolean {
   return ['postgres', 'localhost', '127.0.0.1', '::1'].includes(host.trim().toLowerCase());
@@ -99,7 +96,11 @@ export function validateEnv(config: Record<string, unknown>): AppEnv {
   const hasExplicitCsrfSecret = typeof config.SESSION_CSRF_SECRET === 'string' && config.SESSION_CSRF_SECRET.trim().length >= 16;
   const appMode = normalizeAppMode(config.APP_MODE);
 
-  const isPortable = process.env.PORTABLE_MODE === 'true' && appMode !== 'SELF_CONTAINED';
+  if (appMode === 'CLOUD_SAAS' && [config.PORTABLE_MODE, config.IS_ELECTRON].some((value) => String(value) === 'true')) {
+    throw new Error('CLOUD_SAAS cannot enable PORTABLE_MODE or IS_ELECTRON');
+  }
+
+  const isPortable = config.PORTABLE_MODE === 'true' && appMode !== 'SELF_CONTAINED';
 
     const dbHost = (config.DATABASE_HOST ?? config.DB_HOST) || (isPortable ? 'localhost' : undefined);
     const isLocalHost = typeof dbHost === 'string' && isLocalDatabaseHost(dbHost);

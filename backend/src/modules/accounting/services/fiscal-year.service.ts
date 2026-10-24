@@ -7,6 +7,8 @@ import { CloseFiscalPeriodDto, ReopenFiscalPeriodDto, FiscalPeriodResponse } fro
 import { buildMonthlyFiscalPeriods } from '../engines/fiscal-period-generation.engine';
 import { AccountingPostingService } from '../accounting-posting.service';
 import { lockAccountingPeriod } from '../accounting-period-lock';
+import { nextAccountingDay } from '../engines/accounting-date.engine';
+import { assertAccountingCloseReady } from '../accounting-close-readiness';
 
 export interface CreateFiscalYearDto {
   name: string;
@@ -322,7 +324,7 @@ export class FiscalYearService {
       .select(sql<number>`COUNT(*)`.as('count'))
       .where('tenant_id', '=', tenantId)
       .where('entry_date', '>=', startDate as any)
-      .where('entry_date', '<=', endDate as any)
+      .where('entry_date', '<', nextAccountingDay(endDate))
       .where('status', '=', 'draft')
       .executeTakeFirst();
 
@@ -333,7 +335,6 @@ export class FiscalYearService {
       .selectFrom('accounting_accounts')
       .selectAll()
       .where('tenant_id', '=', tenantId)
-      .where('is_active', '=', true)
       .orderBy('code', 'asc')
       .execute();
 
@@ -351,7 +352,7 @@ export class FiscalYearService {
       .where('je.status', '=', 'posted')
       .where('je.source_type', 'not in', ['fiscal_year_closing', 'fiscal_year_reopen'])
       .where('je.entry_date', '>=', startDate as any)
-      .where('je.entry_date', '<=', endDate as any)
+      .where('je.entry_date', '<', nextAccountingDay(endDate))
       .groupBy('jel.account_id')
       .execute();
 
@@ -520,6 +521,11 @@ export class FiscalYearService {
     const tenantId = String(auth.tenantId || '');
     const userId = Number(auth.userId) || null;
 
+    const year = await this.db.selectFrom('accounting_fiscal_years').select('end_date').where('tenant_id', '=', tenantId).where('id', '=', id).executeTakeFirstOrThrow();
+    const recognitionEnd = this.formatDate(year.end_date);
+    const today = new Date().toISOString().slice(0, 10);
+    await this.accountingPosting.recognizeInstallmentInterest(this.db, tenantId, recognitionEnd < today ? recognitionEnd : today, userId);
+
     // 1. Get preview and validation
     const preview = await this.previewFiscalYearClose(auth, id);
     if (!preview.canClose) {
@@ -567,12 +573,13 @@ export class FiscalYearService {
       if (!lockedFy) throw new NotFoundException('السنة المالية غير موجودة.');
       if (lockedFy.status === 'closed') throw new BadRequestException('هذه السنة المالية مقفلة بالفعل.');
 
+      await assertAccountingCloseReady(trx, tenantId, this.formatDate(fy.start_date), endDate);
       const liveDrafts = await trx.selectFrom('journal_entries')
         .select(sql<number>`COUNT(*)`.as('count'))
         .where('tenant_id', '=', tenantId)
         .where('status', '=', 'draft')
         .where('entry_date', '>=', this.formatDate(fy.start_date) as any)
-        .where('entry_date', '<=', endDate as any)
+        .where('entry_date', '<', nextAccountingDay(endDate))
         .executeTakeFirst();
       if (Number(liveDrafts?.count || 0) > 0) {
         throw new BadRequestException('ظهرت مسودات قيود داخل السنة المالية؛ يرجى تسويتها قبل الإقفال.');
@@ -593,11 +600,10 @@ export class FiscalYearService {
         .where('je.tenant_id', '=', tenantId)
         .where('jel.tenant_id', '=', tenantId)
         .where('a.tenant_id', '=', tenantId)
-        .where('a.is_active', '=', true)
         .where('je.status', '=', 'posted')
         .where('je.source_type', 'not in', ['fiscal_year_closing', 'fiscal_year_reopen'])
         .where('je.entry_date', '>=', startDateStr as any)
-        .where('je.entry_date', '<=', endDate as any)
+        .where('je.entry_date', '<', nextAccountingDay(endDate))
         .groupBy(['jel.account_id', 'a.account_type', 'a.code'])
         .execute();
 
@@ -1135,6 +1141,9 @@ export class FiscalYearService {
         );
       }
 
+      await this.accountingPosting.recognizeInstallmentInterest(trx, tenantId, endDateStr < new Date().toISOString().slice(0, 10) ? endDateStr : new Date().toISOString().slice(0, 10), auth.userId || null);
+      await assertAccountingCloseReady(trx, tenantId, startDateStr, endDateStr);
+
       // 2. التحقق من القيود المعلقة (Draft entries)
       const draftEntries = await trx
         .selectFrom('journal_entries')
@@ -1142,7 +1151,7 @@ export class FiscalYearService {
         .where('tenant_id', '=', tenantId)
         .where('status', '=', 'draft')
         .where('entry_date', '>=', startDateStr as any)
-        .where('entry_date', '<=', endDateStr as any)
+        .where('entry_date', '<', nextAccountingDay(endDateStr))
         .executeTakeFirst();
 
       const draftCount = Number(draftEntries?.cnt || 0);

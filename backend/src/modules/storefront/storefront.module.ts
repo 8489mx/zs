@@ -1,3 +1,4 @@
+import { AccountingModule } from '../accounting/accounting.module';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../database/database.module';
 import { AuditModule } from '../../core/audit/audit.module';
@@ -13,7 +14,7 @@ import { MarketplaceSyncService } from './services/marketplace-sync.service';
 import { MarketplaceSyncController } from './controllers/marketplace-sync.controller';
 
 @Module({
-  imports: [DatabaseModule, AuditModule, SalesModule, SettingsModule],
+  imports: [AccountingModule, DatabaseModule, AuditModule, SalesModule, SettingsModule],
   controllers: [
     StorefrontMerchantController,
     StorefrontPublicController,

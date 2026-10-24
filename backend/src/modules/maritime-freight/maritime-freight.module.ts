@@ -1,3 +1,4 @@
+import { AccountingModule } from '../accounting/accounting.module';
 import { Module } from '@nestjs/common';
 import { MaritimeFreightService } from './maritime-freight.service';
 import { MaritimeMailService } from './maritime-mail.service';
@@ -10,7 +11,7 @@ import { MaritimeAutomationSchedulerService } from './maritime-automation-schedu
 import { SettingsModule } from '../settings/settings.module';
 
 @Module({
-  imports: [SettingsModule],
+  imports: [AccountingModule, SettingsModule],
   controllers: [MaritimeFreightController, MaritimePublicTrackingController, MaritimeCustomerPortalController],
   providers: [MaritimeFreightService, MaritimeMailService, MaritimeAutomationSchedulerService, MaritimeCustomerPortalService],
   exports: [MaritimeFreightService, MaritimeMailService, MaritimeAutomationSchedulerService, MaritimeCustomerPortalService],

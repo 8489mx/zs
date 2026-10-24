@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { Pool } from 'pg';
 import { Kysely, PostgresDialect } from 'kysely';
 import { Database } from '../src/database/database.types';
+import { AccountingPostingService } from '../src/modules/accounting/accounting-posting.service';
+import { AccountingTenantFoundationService } from '../src/modules/accounting/accounting-tenant-foundation.service';
 import { MaritimeFreightService } from '../src/modules/maritime-freight/maritime-freight.service';
 import { AuthContext } from '../src/core/auth/interfaces/auth-context.interface';
 import { checkInsuranceClaim } from '../src/modules/maritime-freight/engines/cargo-insurance.engine';
@@ -68,7 +70,7 @@ async function runChaosSabotage() {
     sendRawMessage: async () => ({ success: true }),
   };
 
-  const service = new MaritimeFreightService(db, mailMock, waMock);
+  const service = new MaritimeFreightService(db, mailMock, waMock, new AccountingPostingService(new AccountingTenantFoundationService()));
 
   // Setup distinct tenants for multi-tenant isolation testing
   const primaryTenantId = 'chaos-logistics-t1';

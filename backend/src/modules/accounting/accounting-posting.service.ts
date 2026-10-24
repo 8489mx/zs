@@ -1,3 +1,8 @@
+import { allocateInstallmentInterest } from './engines/installment-interest.engine';
+import { areOppositeJournalLines } from './engines/journal-reversal.engine';
+import { syncPostedPartnerLedger } from './partner-subledger';
+import { pdcBookAmount } from './engines/pdc-transition.engine';
+import { assertBusinessAccountingDate } from './accounting-boundaries';
 import { Injectable, Logger } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { Transaction } from 'kysely';
@@ -23,6 +28,11 @@ type JournalLineDraft = {
   branchId: number | null;
   locationId: number | null;
   costCenterId?: number | null;
+};
+
+type DomainJournalLineDraft = Omit<JournalLineDraft, 'branchId' | 'locationId'> & {
+  branchId?: number | null;
+  locationId?: number | null;
 };
 
 type ExpenseAccountCandidate = {
@@ -435,7 +445,7 @@ export class AccountingPostingService {
       locationId?: number | null;
       createdBy: number | null;
       postedBy?: number | null;
-      lines: JournalLineDraft[];
+      lines: DomainJournalLineDraft[];
     },
   ): Promise<number> {
     return this.insertPostedJournal(queryable, {
@@ -443,6 +453,11 @@ export class AccountingPostingService {
       branchId: params.branchId ?? null,
       locationId: params.locationId ?? null,
       postedBy: params.postedBy ?? params.createdBy,
+      lines: params.lines.map(line => ({
+        ...line,
+        branchId: line.branchId === undefined ? params.branchId ?? null : line.branchId,
+        locationId: line.locationId === undefined ? params.locationId ?? null : line.locationId,
+      })),
     });
   }
 
@@ -467,6 +482,23 @@ export class AccountingPostingService {
       return queryable.transaction().execute((trx: any) => this.insertPostedJournal(trx, params));
     }
     await lockAccountingPeriod(queryable, params.tenantId);
+    const deduplicate = ['contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'marketplace_settlement', 'maritime_carrier_credit_note', 'customer_installment_interest', 'installment_interest_accrual'].includes(params.sourceType);
+    let dedupKey = deduplicate ? `${params.sourceType}:${params.sourceId}` : null;
+    if (params.sourceType.startsWith('pdc_cheque_')) {
+      const cheque = await queryable.selectFrom('accounting_cheques').select('posting_sequence')
+        .where('tenant_id', '=', params.tenantId).where('id', '=', params.sourceId).forUpdate().executeTakeFirstOrThrow();
+      dedupKey = `${params.sourceType}:${params.sourceId}:${cheque.posting_sequence}`;
+      const prior = await queryable.selectFrom('journal_entries').select('id')
+        .where('tenant_id', '=', params.tenantId).where('dedup_key', '=', dedupKey).executeTakeFirst();
+      if (prior) return Number(prior.id);
+    }
+    if (deduplicate) {
+      const prior = await queryable.selectFrom('journal_entries').select('id')
+        .where('tenant_id', '=', params.tenantId).where('source_type', '=', params.sourceType).where('source_id', '=', params.sourceId)
+        .where('status', '=', 'posted').where('reversed_by_entry_id', 'is', null).executeTakeFirst();
+      if (prior) return Number(prior.id);
+    }
+
     if (!params.lines?.length) throw new AppError(`No journal lines for ${params.sourceType} #${params.sourceId}`, 'EMPTY_JOURNAL', 400);
 
     const lines = params.lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) }));
@@ -476,9 +508,10 @@ export class AccountingPostingService {
         throw new AppError(`Invalid journal line for ${params.sourceType} #${params.sourceId}`, 'INVALID_JOURNAL_LINE', 400);
       }
     }
+    const fiscalTransitionSource = ['fiscal_year_closing', 'fiscal_year_reopen'].includes(params.sourceType);
     const accounts = await this.getActiveAccountMap(queryable, params.tenantId, lines.map((line) => Number(line.accountId)));
     for (const line of lines) {
-      if (!accounts.get(Number(line.accountId))) throw new AppError(`Account ${line.accountId} is missing or inactive for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
+      if (!accounts.has(Number(line.accountId)) || (!fiscalTransitionSource && !accounts.get(Number(line.accountId)))) throw new AppError(`Account ${line.accountId} is missing or inactive for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
     }
     const totalDebit = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
@@ -507,15 +540,13 @@ export class AccountingPostingService {
     // the same ascending order, so concurrent cash transfers cannot deadlock and
     // a balance read made by a transfer cannot race a journal insert.
     const accountIds = Array.from(new Set(lines.map((line) => Number(line.accountId)))).sort((a, b) => a - b);
-    const lockedAccounts = await queryable
+    let lockedAccountQuery = queryable
       .selectFrom('accounting_accounts')
-      .select('id')
+      .select(['id', 'is_tax', 'account_group', 'code'])
       .where('tenant_id', '=', params.tenantId)
-      .where('id', 'in', accountIds)
-      .where('is_active', '=', true)
-      .forUpdate()
-      .orderBy('id', 'asc')
-      .execute();
+      .where('id', 'in', accountIds);
+    if (!fiscalTransitionSource) lockedAccountQuery = lockedAccountQuery.where('is_active', '=', true);
+    const lockedAccounts = await lockedAccountQuery.forUpdate().orderBy('id', 'asc').execute();
     if (lockedAccounts.length !== accountIds.length) {
       throw new AppError(`One or more accounts became inactive while posting ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
     }
@@ -551,66 +582,29 @@ export class AccountingPostingService {
       isFiscalTransition = true;
     }
 
-    // Validate Period Lock Dates
-    const settings = await queryable
-      .selectFrom('accounting_settings')
-      .select(['lock_date_all', 'lock_date_non_adviser', 'lock_date_tax'])
-      .where('tenant_id', '=', params.tenantId)
-      .where('id', '=', 1)
-      .executeTakeFirst();
-
-    if (settings && !isFiscalTransition) {
-      const dateStr = params.entryDate instanceof Date
-        ? params.entryDate.toISOString().slice(0, 10)
-        : String(params.entryDate || '').slice(0, 10);
-
-      if (settings.lock_date_all) {
-        const lockAllStr = String(settings.lock_date_all).slice(0, 10);
-        if (dateStr <= lockAllStr) {
-          throw new AppError(
-            `الفترة المحاسبية مقفلة نهائياً حتى تاريخ ${lockAllStr}. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
-            'ACCOUNTING_PERIOD_LOCKED',
-            422,
-          );
-        }
-      }
-
-      if (settings.lock_date_non_adviser) {
-        const lockNonAdvStr = String(settings.lock_date_non_adviser).slice(0, 10);
-        if (dateStr <= lockNonAdvStr) {
-          const operationalSources = ['sale', 'sale_edit', 'sale_cancel', 'sale_reversal', 'sales_return', 'return', 'purchase', 'purchase_cancel', 'purchase_reversal', 'supplier_payment', 'customer_payment', 'expense', 'treasury_expense', 'import_late_expense', 'import_partner_capital', 'import_partner_payout', 'import_container_deposit', 'import_container_refund', 'import_broker_advance', 'import_broker_expense', 'import_container_preorder'];
-          if (operationalSources.includes(params.sourceType)) {
-            throw new AppError(
-              `الفترة المحاسبية مقفلة للعمليات التشغيلية حتى تاريخ ${lockNonAdvStr}. يرجى مراجعة الإدارة المالية.`,
-              'ACCOUNTING_PERIOD_LOCKED_OPERATIONAL',
-              422,
-            );
-          }
-        }
-      }
+    if (!isFiscalTransition) {
+      await assertBusinessAccountingDate(queryable, params.tenantId, params.entryDate, lockedAccounts.some((account: any) => account.is_tax || account.account_group === 'tax' || ['1150', '1155', '2120', '2126', '2146'].includes(account.code)));
     }
 
-    // Direct check against closed monthly periods (البند O6)
-    const closedMonthlyPeriod = await queryable
-      .selectFrom('accounting_fiscal_periods')
-      .select(['name', 'period_number'])
-      .where('tenant_id', '=', params.tenantId)
-      .where('status', '=', 'closed')
-      .where('start_date', '<=', (params.entryDate instanceof Date ? params.entryDate.toISOString().slice(0, 10) : String(params.entryDate || '').slice(0, 10)) as any)
-      .where('end_date', '>=', (params.entryDate instanceof Date ? params.entryDate.toISOString().slice(0, 10) : String(params.entryDate || '').slice(0, 10)) as any)
-      .executeTakeFirst();
-
-    if (closedMonthlyPeriod && !isFiscalTransition) {
-      throw new AppError(
-        `الفترة المحاسبية الشهرية [${closedMonthlyPeriod.name}] مقفلة. لا يمكن ترحيل حركات مالية في فترة مغلقة.`,
-        'ACCOUNTING_PERIOD_LOCKED',
-        422,
-      );
+    for (const [table, field, values] of [
+      ['customers', 'partnerId', lines.filter(line => line.partnerType === 'customer')],
+      ['suppliers', 'partnerId', lines.filter(line => line.partnerType === 'supplier')],
+      // Cashier custody uses users.id; HR settlements use hr_employees.id.
+      [params.sourceType === 'cashier_shift_variance' ? 'users' : 'hr_employees', 'partnerId', lines.filter(line => line.partnerType === 'employee')],
+      ['branches', 'branchId', lines], ['stock_locations', 'locationId', lines], ['cost_centers', 'costCenterId', lines],
+    ] as const) {
+      const ids = Array.from(new Set(values.map((line: any) => line[field]).filter((id: any) => id != null).map(Number)));
+      if (ids.some(id => !Number.isSafeInteger(Number(id)) || Number(id) <= 0)) throw new AppError('Invalid journal reference', 'INVALID_JOURNAL_REFERENCE', 400);
+      if (ids.length) {
+        const owned = await queryable.selectFrom(table).select('id').where('tenant_id', '=', params.tenantId).where('id', 'in', ids).execute();
+        if (owned.length !== ids.length) throw new AppError('Journal reference does not belong to this tenant', 'INVALID_JOURNAL_REFERENCE', 400);
+      }
     }
 
     const tempEntryNo = `JE-TMP-${randomUUID()}`;
     const insertPayload: Record<string, any> = {
       entry_no: tempEntryNo,
+      dedup_key: dedupKey,
       tenant_id: params.tenantId,
       account_id: params.accountId,
       entry_date: params.entryDate,
@@ -669,6 +663,9 @@ export class AccountingPostingService {
         )
         .execute();
 
+    if (['purchase_landed_cost', 'import_inventory_receipt', 'import_late_expense', 'contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'maritime_job', 'maritime_job_expense', 'maritime_carrier_invoice', 'maritime_carrier_credit_note'].includes(params.sourceType)) {
+      await syncPostedPartnerLedger(queryable, params.tenantId, entryId);
+    }
     return entryId;
   }
 
@@ -1838,13 +1835,23 @@ export class AccountingPostingService {
       }
     }
 
+    const returnCosts = await queryable.selectFrom('return_items').select(['qty', 'cost_price'])
+      .where('tenant_id', '=', scope.tenantId).where('return_document_id', '=', returnId).execute();
+    if (returnCosts.some(item => item.cost_price == null)) throw new AppError('Purchase return requires an immutable WAC snapshot', 'PURCHASE_RETURN_COST_MISSING', 409);
+    const inventoryReturnCost = this.toMoney(returnCosts.reduce((sum, item) => sum + Number(item.qty) * Number(item.cost_price), 0));
+    const priceVariance = this.toMoney(inventoryReturnCost - netReturnAmount);
+    if (priceVariance !== 0) {
+      const varianceAccount = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5190');
+      this.addLine(lines, { accountId: varianceAccount, description: 'فرق تكلفة مرتجع الشراء عن المتوسط المرجح', debit: Math.max(0, priceVariance), credit: Math.max(0, -priceVariance), partnerType: 'none', partnerId: null, branchId, locationId });
+    }
+
     // Cr. Inventory Asset (1140)
-    if (netReturnAmount > 0) {
+    if (inventoryReturnCost > 0) {
       this.addLine(lines, {
         accountId: inventoryAccountId,
         description: `تخفيض المخزون من مردودات مشتريات فاتورة رقم ${invoiceNo}`,
         debit: 0,
-        credit: netReturnAmount,
+        credit: inventoryReturnCost,
         partnerType: 'none',
         partnerId: null,
         branchId,
@@ -2396,8 +2403,15 @@ export class AccountingPostingService {
       .where('code', '=', code)
       .executeTakeFirst();
 
+    const dedicatedTypes: Record<string, string> = { '1165': 'asset', '2160': 'liability', '2155': 'liability', '7170': 'revenue', '7270': 'expense', '5190': 'expense' };
+    if (account && dedicatedTypes[code] && account.account_type !== dedicatedTypes[code]) throw new AppError('Dedicated system account has an incompatible type', 'SYSTEM_ACCOUNT_TYPE_MISMATCH', 409);
     if (!account) {
       const knownAccounts: Record<string, { name_ar: string; name_en: string; type: string; group: string; balance: string }> = {
+        '1165': { name_ar: 'دفعات مقدمة لمقاولي الباطن', name_en: 'Subcontractor Advances', type: 'asset', group: 'current_assets', balance: 'debit' },
+        '2160': { name_ar: 'تأمينات محتجزة لمقاولي الباطن', name_en: 'Subcontractor Retentions Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '2155': { name_ar: 'فوائد تمويل غير مكتسبة', name_en: 'Unearned Financing Income', type: 'liability', group: 'current_liabilities', balance: 'credit' },
+        '7170': { name_ar: 'أرباح فروق عملة محققة', name_en: 'Realized FX Gains', type: 'revenue', group: 'income', balance: 'credit' },
+        '7270': { name_ar: 'خسائر فروق عملة محققة', name_en: 'Realized FX Losses', type: 'expense', group: 'operating_expenses', balance: 'debit' },
         '5400': { name_ar: 'مصاريف صناعية غير مباشرة محملة', name_en: 'Manufacturing Overhead', type: 'expense', group: 'expenses', balance: 'debit' },
         '1140': { name_ar: 'مخزون بضاعة ومواد خام', name_en: 'Inventory', type: 'asset', group: 'current_assets', balance: 'debit' },
         '1135': { name_ar: 'ذمم مدينة - أمناء الصناديق', name_en: 'Cashier Receivable', type: 'asset', group: 'current_assets', balance: 'debit' },
@@ -2422,6 +2436,7 @@ export class AccountingPostingService {
         '2146': { name_ar: 'ضريبة كسب عمل مستحقة', name_en: 'Income Tax Withholding Payable', type: 'liability', group: 'current_liabilities', balance: 'credit' },
         '1160': { name_ar: 'سلف وقروض العاملين', name_en: 'Employee Advances & Loans', type: 'asset', group: 'current_assets', balance: 'debit' },
         '6400': { name_ar: 'مصاريف نقل وشحن ووقود رحلات', name_en: 'Delivery, Fuel & Freight Expense', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '5190': { name_ar: 'فروق سعر الشراء والمرتجعات', name_en: 'Purchase Price Variance', type: 'expense', group: 'cogs', balance: 'debit' },
         '5200': { name_ar: 'فروق تكلفة المخزون', name_en: 'Inventory Cost Variance', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
         '4100': { name_ar: 'مبيعات المنتجات', name_en: 'Product Sales', type: 'revenue', group: 'income', balance: 'credit' },
         '5100': { name_ar: 'تكلفة بضاعة مباعة', name_en: 'COGS', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
@@ -3488,6 +3503,7 @@ export class AccountingPostingService {
         'wo.quantity_to_produce',
         'bom.overhead_cost',
         'wo.created_at',
+        'wo.completed_at',
         'wo.created_by',
         'wo.destination_location_id'
       ])
@@ -3498,18 +3514,13 @@ export class AccountingPostingService {
     if (!wo) return { posted: false, journalEntryId: null };
 
     const fgCost = this.toMoney(Number(wo.total_cost || 0));
-    const bomQuantity = 1; // Assuming BOM is always 1 unit for overhead multiplier in completeWorkOrder logic, actually let's check completeWorkOrder
-    // In completeWorkOrder: const totalOverheadCost = Number((overheadCost * (qtyToProduce / bomQuantity)).toFixed(3));
-    // Let's get bom quantity if needed. Wait, bom quantity might not be selected. I will just query it.
-
-    const bomDetails = await queryable.selectFrom('manufacturing_boms')
-       .select(['quantity'])
-       .where('id', '=', (await queryable.selectFrom('manufacturing_work_orders').select('bom_id').where('id', '=', workOrderId).executeTakeFirst())!.bom_id)
-       .executeTakeFirst();
-
-    const bomQty = Number(bomDetails?.quantity || 1) > 0 ? Number(bomDetails?.quantity || 1) : 1;
-    const overheadCost = this.toMoney(Number(wo.overhead_cost || 0) * (Number(wo.quantity_to_produce || 0) / bomQty));
-    const rmCost = this.toMoney(Math.max(0, fgCost - overheadCost));
+    const consumed = await queryable.selectFrom('manufacturing_wo_consumptions as c')
+      .innerJoin('manufacturing_work_orders as w', 'w.id', 'c.work_order_id')
+      .select(sql<number>`coalesce(sum(c.line_total), 0)`.as('amount'))
+      .where('w.tenant_id', '=', scope.tenantId).where('w.id', '=', workOrderId).executeTakeFirst();
+    const rmCost = this.toMoney(consumed?.amount || 0);
+    const overheadCost = this.toMoney(fgCost - rmCost);
+    if (overheadCost < 0) throw new AppError('Manufacturing material costs exceed production value', 'MANUFACTURING_COST_MISMATCH', 409);
 
     if (fgCost <= 0) throw new AppError(`Manufacturing work order ${workOrderId} has no cost for ledger posting`, 'MANUFACTURING_COST_MISSING', 400);
 
@@ -3549,7 +3560,7 @@ export class AccountingPostingService {
         sourceId: workOrderId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: wo.created_at ? new Date(wo.created_at) : new Date(),
+        entryDate: wo.completed_at ? new Date(wo.completed_at) : (() => { throw new AppError('Manufacturing completion date missing', 'MANUFACTURING_DATE_MISSING', 409); })(),
         description: `قيد أمر تصنيع #${workOrderId}`,
         branchId,
         locationId,
@@ -3568,7 +3579,7 @@ export class AccountingPostingService {
   }
   async postDeliveryRepSettlement(queryable: DbOrTx, saleId: number, amount: number, branchId: number | null, locationId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    if (!(amount > 0)) return { posted: false, journalEntryId: null };
+    if (!Number.isFinite(amount) || amount < 0) throw new AppError('Invalid delivery settlement', 'DELIVERY_SETTLEMENT_INVALID', 400);
 
     const existing = await queryable.selectFrom('journal_entries')
       .select('id')
@@ -3581,13 +3592,20 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting delivery settlement for sale ${saleId}`);
 
-    const sale = await queryable.selectFrom('sales').select(['customer_id', 'doc_no'])
+    const sale = await queryable.selectFrom('sales').select(['customer_id', 'doc_no', 'total', 'delivery_fee'])
       .where('id', '=', saleId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
 
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
     const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
 
+    const totalDebt = this.toMoney(sale.total);
+    const fee = this.toMoney(totalDebt - amount);
+    if (fee < 0 || (fee > 0 && Math.abs(fee - Number(sale.delivery_fee || 0)) > 0.01)) throw new AppError('Delivery settlement does not reconcile with courier fee', 'DELIVERY_SETTLEMENT_INVALID', 409);
     const lines: JournalLineDraft[] = [];
+    if (fee > 0) {
+      const expenseId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6400');
+      this.addLine(lines, { accountId: expenseId, description: 'رسوم مندوب حر مخصومة من التحصيل', debit: fee, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    }
     this.addLine(lines, {
       accountId: cashAccountId,
       description: `تحصيل من مندوب عن فاتورة #${sale.doc_no || saleId}`,
@@ -3602,7 +3620,7 @@ export class AccountingPostingService {
       accountId: customerAccountId,
       description: `تسديد مديونية فاتورة #${sale.doc_no || saleId}`,
       debit: 0,
-      credit: amount,
+      credit: totalDebt,
       partnerType: sale.customer_id ? 'customer' : 'none',
       partnerId: sale.customer_id ? Number(sale.customer_id) : null,
       branchId,
@@ -3823,7 +3841,7 @@ export class AccountingPostingService {
   async postVanFieldCollection(
     queryable: DbOrTx,
     collectionId: number,
-    params: { amount: number; customerId: number; branchId: number | null; locationId: number | null },
+    params: { amount: number; customerId: number; branchId: number | null; locationId: number | null; paymentMethod?: string },
     auth: AuthContext,
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
@@ -3848,8 +3866,10 @@ export class AccountingPostingService {
 
     const branchId = params.branchId;
     const locationId = params.locationId;
+    const electronic = params.paymentMethod != null && params.paymentMethod !== 'cash';
+    const debitAccountId = electronic ? await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120') : receivableAccountId;
     const lines: JournalLineDraft[] = [
-      { accountId: receivableAccountId, description: `تحصيل ميداني بواسطة مندوب - عهدة نقدية`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId },
+      { accountId: debitAccountId, description: electronic ? 'تحصيل ميداني إلكتروني إلى البنك' : 'تحصيل ميداني بواسطة مندوب - عهدة نقدية', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId },
       { accountId: receivableAccountId, description: `تحصيل ميداني بواسطة مندوب - سداد مديونية عميل`, debit: 0, credit: amount, partnerType: 'customer', partnerId: params.customerId, branchId, locationId },
     ];
 
@@ -3977,7 +3997,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesInSafeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
@@ -4013,7 +4033,7 @@ export class AccountingPostingService {
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: cheque.issue_date ? new Date(cheque.issue_date) : new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : cheque.issue_date ? new Date(cheque.issue_date) : new Date(),
         description: `قيد استلام ورقة قبض #${cheque.cheque_number} من ${cheque.partner_name}`,
         branchId: null,
         locationId: null,
@@ -4050,7 +4070,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesUnderCollId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121');
@@ -4084,7 +4104,7 @@ export class AccountingPostingService {
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: cheque.deposit_date ? new Date(cheque.deposit_date) : new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : cheque.deposit_date ? new Date(cheque.deposit_date) : new Date(),
         description: `قيد إيداع ورقة قبض برسم التحصيل #${cheque.cheque_number}`,
         branchId: null,
         locationId: null,
@@ -4121,7 +4141,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     // Debit Bank account
@@ -4133,16 +4153,19 @@ export class AccountingPostingService {
     }
 
     // Credit account: was it under collection or in safe?
-    const wasUnderCollection = cheque.deposit_date || cheque.status === 'under_collection';
+    const wasUnderCollection = cheque.status === 'under_collection';
     const creditAccountId = wasUnderCollection
       ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121')
       : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
 
+    const settlementAmount = this.toMoney((cheque as any).settlement_base_amount ?? amount);
+    const bank = await queryable.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', scope.tenantId).where('id', '=', debitBankId).where('is_active', '=', true).where('is_cash_bank', '=', true).executeTakeFirst();
+    if (!bank) throw new AppError('Invalid cheque settlement bank', 'INVALID_CHEQUE_BANK', 400);
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {
       accountId: debitBankId,
       description: `تحصيل ورقة قبض #${cheque.cheque_number} في البنك`,
-      debit: amount,
+      debit: settlementAmount,
       credit: 0,
       partnerType: 'none',
       partnerId: null,
@@ -4160,13 +4183,20 @@ export class AccountingPostingService {
       locationId: null,
     });
 
+    const cashDifference = this.toMoney(settlementAmount - amount);
+    const gain = cashDifference > 0;
+    if (cashDifference !== 0) {
+      const fxAccount = await this.resolveSystemAccountByCode(queryable, scope.tenantId, gain ? '7170' : '7270');
+      this.addLine(lines, { accountId: fxAccount, description: 'فرق صرف محقق عند تسوية الشيك', debit: gain ? 0 : Math.abs(cashDifference), credit: gain ? Math.abs(cashDifference) : 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    }
+
     try {
       const entryId = await this.insertPostedJournal(queryable, {
         sourceType: 'pdc_cheque_collect',
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: cheque.cleared_date ? new Date(cheque.cleared_date) : new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : cheque.cleared_date ? new Date(cheque.cleared_date) : new Date(),
         description: `قيد تحصيل ورقة قبض #${cheque.cheque_number} بحساب البنك`,
         branchId: null,
         locationId: null,
@@ -4203,14 +4233,14 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let customerArId = Number(settings?.customer_receivable_account_id || 0);
     if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
 
-    const wasUnderCollection = cheque.deposit_date || cheque.status === 'under_collection';
+    const wasUnderCollection = cheque.status === 'under_collection';
     const creditAccountId = wasUnderCollection
       ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121')
       : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
@@ -4275,7 +4305,7 @@ export class AccountingPostingService {
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: cheque.bounced_date ? new Date(cheque.bounced_date) : new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : cheque.bounced_date ? new Date(cheque.bounced_date) : new Date(),
         description: `قيد ارتداد ورقة قبض #${cheque.cheque_number} للعميل ${cheque.partner_name}`,
         branchId: null,
         locationId: null,
@@ -4312,7 +4342,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -4350,7 +4380,7 @@ export class AccountingPostingService {
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : new Date(),
         description: `قيد تظهير ورقة قبض #${cheque.cheque_number} للمورد`,
         branchId: null,
         locationId: null,
@@ -4387,7 +4417,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -4424,7 +4454,7 @@ export class AccountingPostingService {
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: cheque.issue_date ? new Date(cheque.issue_date) : new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : cheque.issue_date ? new Date(cheque.issue_date) : new Date(),
         description: `قيد إصدار ورقة دفع #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
         branchId: null,
         locationId: null,
@@ -4461,7 +4491,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
@@ -4473,6 +4503,9 @@ export class AccountingPostingService {
       if (!(bankId > 0)) bankId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
     }
 
+    const settlementAmount = this.toMoney((cheque as any).settlement_base_amount ?? amount);
+    const bank = await queryable.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', scope.tenantId).where('id', '=', bankId).where('is_active', '=', true).where('is_cash_bank', '=', true).executeTakeFirst();
+    if (!bank) throw new AppError('Invalid cheque settlement bank', 'INVALID_CHEQUE_BANK', 400);
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {
       accountId: notesPayableId,
@@ -4488,12 +4521,19 @@ export class AccountingPostingService {
       accountId: bankId,
       description: `خصم ورقة دفع منصرفة #${cheque.cheque_number} من حساب البنك`,
       debit: 0,
-      credit: amount,
+      credit: settlementAmount,
       partnerType: 'none',
       partnerId: null,
       branchId: null,
       locationId: null,
     });
+
+    const cashDifference = this.toMoney(settlementAmount - amount);
+    const gain = cashDifference < 0;
+    if (cashDifference !== 0) {
+      const fxAccount = await this.resolveSystemAccountByCode(queryable, scope.tenantId, gain ? '7170' : '7270');
+      this.addLine(lines, { accountId: fxAccount, description: 'فرق صرف محقق عند تسوية الشيك', debit: gain ? 0 : Math.abs(cashDifference), credit: gain ? Math.abs(cashDifference) : 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    }
 
     try {
       const entryId = await this.insertPostedJournal(queryable, {
@@ -4501,7 +4541,7 @@ export class AccountingPostingService {
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: cheque.cleared_date ? new Date(cheque.cleared_date) : new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : cheque.cleared_date ? new Date(cheque.cleared_date) : new Date(),
         description: `قيد صرف ورقة دفع #${cheque.cheque_number} من البنك`,
         branchId: null,
         locationId: null,
@@ -4538,7 +4578,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
@@ -4575,7 +4615,7 @@ export class AccountingPostingService {
         sourceId: chequeId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: cheque.bounced_date ? new Date(cheque.bounced_date) : new Date(),
+        entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : cheque.bounced_date ? new Date(cheque.bounced_date) : new Date(),
         description: `قيد ارتداد ورقة دفع #${cheque.cheque_number} وإعادة المديونية للمورد ${cheque.partner_name}`,
         branchId: null,
         locationId: null,
@@ -4599,6 +4639,17 @@ export class AccountingPostingService {
     }
   }
 
+  private async exactPdcReversalSource(queryable: DbOrTx, tenantId: string, candidateId: number | null, lines: JournalLineDraft[]): Promise<number | null> {
+    if (!candidateId) return null;
+    const header = await queryable.selectFrom('journal_entries').select('id').where('tenant_id', '=', tenantId)
+      .where('id', '=', candidateId).where('status', '=', 'posted').where('reversed_by_entry_id', 'is', null).forUpdate().executeTakeFirst();
+    if (!header) return null;
+    const prior = await queryable.selectFrom('journal_entry_lines').selectAll().where('tenant_id', '=', tenantId).where('journal_entry_id', '=', candidateId).execute();
+    const original = prior.map(line => ({ accountId: Number(line.account_id), debit: Number(line.debit), credit: Number(line.credit),
+      partnerType: line.partner_type, partnerId: line.partner_id, branchId: line.branch_id, locationId: line.location_id, costCenterId: line.cost_center_id }));
+    return areOppositeJournalLines(original, lines) ? candidateId : null;
+  }
+
   async postPdcChequeCancelOrReturn(
     queryable: DbOrTx,
     chequeId: number,
@@ -4617,7 +4668,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque || !cheque.journal_entry_id) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -4679,19 +4730,20 @@ export class AccountingPostingService {
     }
 
     const actionText = action === 'cancel' ? 'إلغاء' : 'رد';
+    const reversalOfEntryId = await this.exactPdcReversalSource(queryable, scope.tenantId, Number(cheque.journal_entry_id) || null, lines);
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: `pdc_cheque_${action}`,
       sourceId: chequeId,
       tenantId: scope.tenantId,
       accountId: scope.accountId,
-      entryDate: new Date(),
+      entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : new Date(),
       description: `قيد ${actionText} شيك #${cheque.cheque_number} (${cheque.type === 'receivable' ? 'قبض' : 'دفع'}) لـ ${cheque.partner_name}`,
+      reversalOfEntryId,
       branchId: null,
       locationId: null,
       createdBy: auth.userId,
       postedBy: auth.userId,
       lines,
-      reversalOfEntryId: cheque.journal_entry_id ? Number(cheque.journal_entry_id) : null,
     });
     return { posted: true, journalEntryId: entryId };
   }
@@ -4714,7 +4766,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = this.toMoney(cheque.amount);
+    const amount = pdcBookAmount(cheque as any);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -4788,19 +4840,22 @@ export class AccountingPostingService {
       .orderBy('id', 'desc')
       .executeTakeFirst();
 
+    const reversalOfEntryId = await this.exactPdcReversalSource(queryable, scope.tenantId, Number(priorEntry?.id) || null, lines);
     const entryId = await this.insertPostedJournal(queryable, {
       sourceType: 'pdc_cheque_restore',
       sourceId: chequeId,
       tenantId: scope.tenantId,
       accountId: scope.accountId,
-      entryDate: new Date(),
+      entryDate: (cheque as any).last_action_date ? new Date((cheque as any).last_action_date) : new Date(),
       description,
       branchId: null,
       locationId: null,
       createdBy: auth.userId,
       postedBy: auth.userId,
       lines,
-      reversalOfEntryId: priorEntry?.id ? Number(priorEntry.id) : null,
+      // Fees remain incurred; a changed custody account also prevents an exact
+      // reversal link. Such restorations remain independently traceable events.
+      reversalOfEntryId,
     });
     return { posted: true, journalEntryId: entryId };
   }
@@ -5421,7 +5476,7 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let arAccountId = Number(settings?.customer_receivable_account_id || 0);
     if (!(arAccountId > 0)) arAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
-    const financeIncomeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
+    const financeIncomeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2155');
 
     const lines: JournalLineDraft[] = [];
     this.addLine(lines, {
@@ -5436,7 +5491,7 @@ export class AccountingPostingService {
     });
     this.addLine(lines, {
       accountId: financeIncomeId,
-      description: `إيرادات فوائد تقسيط - خطة تقسيط #${plan.plan_number}`,
+      description: `فوائد تمويل غير مكتسبة - خطة تقسيط #${plan.plan_number}`,
       debit: 0,
       credit: interest,
       partnerType: 'none',
@@ -5450,7 +5505,7 @@ export class AccountingPostingService {
       sourceId: planId,
       tenantId: scope.tenantId,
       accountId: scope.accountId,
-      entryDate: plan.start_date ? new Date(plan.start_date) : new Date(),
+      entryDate: plan.created_at ? new Date(plan.created_at) : new Date(),
       description: `قيد فوائد تمويل خطة تقسيط #${plan.plan_number}`,
       branchId: plan.branch_id ? Number(plan.branch_id) : null,
       locationId: null,
@@ -5458,6 +5513,46 @@ export class AccountingPostingService {
       postedBy: auth.userId,
       lines,
     });
+    const installments = await queryable.selectFrom('customer_installments').select(['id', 'amount', 'due_date'])
+      .where('tenant_id', '=', scope.tenantId).where('plan_id', '=', planId).orderBy('installment_number').execute();
+    const allocations = allocateInstallmentInterest(Number(plan.financed_amount), installments.map(item => Number(item.amount)), interest);
+    const createdDay = new Date(plan.created_at).toISOString().slice(0, 10);
+    for (const [index, item] of installments.entries()) {
+      const amount = allocations[index];
+      if (!amount) continue;
+      const dueDay = new Date(item.due_date).toISOString().slice(0, 10);
+      const recognitionDay = dueDay < createdDay ? createdDay : dueDay;
+      await sql`insert into accounting_installment_interest (tenant_id, plan_id, installment_id, recognition_date, amount, account_id)
+        values (${scope.tenantId}, ${planId}, ${item.id}, ${recognitionDay}, ${amount}, ${scope.accountId})
+        on conflict (tenant_id, installment_id) do nothing`.execute(queryable);
+    }
     return { posted: true, journalEntryId: entryId };
   }
+  /** Daily and closing callers share one locked accrual path; no historical plan is guessed. */
+  async recognizeInstallmentInterest(queryable: DbOrTx, tenantId: string, throughDate: string, createdBy: number | null = null): Promise<void> {
+    if (!queryable.isTransaction) return queryable.transaction().execute(trx => this.recognizeInstallmentInterest(trx, tenantId, throughDate, createdBy));
+    await lockAccountingPeriod(queryable, tenantId);
+    const pending = await sql<{ id: number; amount: number; recognition_date: string | Date; account_id: string; branch_id: number | null }>`
+      select i.id, i.amount, i.recognition_date, i.account_id, p.branch_id from accounting_installment_interest i
+      join customer_installment_plans p on p.id = i.plan_id and p.tenant_id = i.tenant_id
+      where i.tenant_id = ${tenantId} and i.journal_entry_id is null and i.recognition_date <= ${throughDate}::date
+      order by i.recognition_date, i.id for update of i
+    `.execute(queryable);
+    if (!pending.rows.length) return;
+    const deferred = await this.resolveSystemAccountByCode(queryable, tenantId, '2155');
+    const revenue = await this.resolveSystemAccountByCode(queryable, tenantId, '7100');
+    for (const item of pending.rows) {
+      const amount = this.toMoney(item.amount);
+      const entryId = await this.postDomainJournal(queryable, { tenantId, accountId: item.account_id || tenantId, sourceType: 'installment_interest_accrual', sourceId: Number(item.id),
+        entryDate: new Date(item.recognition_date), branchId: item.branch_id, description: 'استحقاق إيراد فوائد التمويل وفق العائد الفعلي', createdBy,
+        lines: [
+          { accountId: deferred, description: 'تحرير فوائد التمويل المكتسبة', debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId: item.branch_id },
+          { accountId: revenue, description: 'إيراد تمويل مكتسب', debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId: item.branch_id },
+        ],
+      });
+      await sql`update accounting_installment_interest set journal_entry_id = ${entryId}
+        where tenant_id = ${tenantId} and id = ${item.id}`.execute(queryable);
+    }
+  }
+
 }

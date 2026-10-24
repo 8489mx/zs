@@ -46,7 +46,7 @@ export function AccountingOpeningBalancesSection({
       <FormSection title={t('accounting.settings.accounting_opening_balances_section.s0', "الأرصدة الافتتاحية")} description={t('accounting.settings.accounting_opening_balances_section.s1', "استخدم هذه الصفحة لتسجيل أرصدة بداية استخدام النظام. يتم ترحيل الأرصدة الافتتاحية مرة واحدة فقط لكل منشأة.")}>
         <div className="page-stack">
           <p className="muted">
-            {t('accounting.settings.accounting_opening_balances_section.s2', "أرصدة العملاء والموردين والمخزون يتم حسابها من البيانات المسجلة داخل النظام، بينما رصيد الخزنة والبنك يتم إدخالهما يدويًا.")}
+            {t('accounting.settings.accounting_opening_balances_section.s2', "هذا القيد يثبت رصيد الخزنة والبنك فقط. أرصدة العملاء والموردين والمخزون تُرحّل من مستنداتها عند إنشائها.")}
           </p>
 
           <div className="form-grid three-col-form">

@@ -1,5 +1,15 @@
 # دستور الثوابت المعمارية وسجل التدقيق (Architecture Invariants & Audit Ledger)
 
+### Core Architecture Audit 01 — إصلاحات 23 أكتوبر 2026 (بانتظار التحقق التنفيذي)
+
+- `config/app-mode.ts:isDesktopRuntimeMode` يحسم صلاحيات Desktop من وضع محلي صريح ومدعوم؛ لا تمنح `PORTABLE_MODE` أو `IS_ELECTRON` صلاحيات محلية فوق Cloud أو وضع غير معروف. `validateEnv` يرفض تعارض Cloud مع العلمين قبل الاتصال بقاعدة البيانات. فحوص المطور والتحديث والنقل والإقلاع وحدود الهجرات 74/78/79 تستخدم هذا المصدر؛ لم يتغير SQL الخاص بالهجرات ولا تُعاد الهجرات المنفذة.
+- `tenant-boundary.ts:getPlatformTenantIds` مصدر مشترك للحُرّاس وتنقية الأدوار في bootstrap. يُحمى `zs` دائماً مع هوية المنصة المضبوطة للتوافق مع التثبيتات القديمة؛ `default` و`dev-tenant` هويات محلية فقط. لا يجوز للتنقية أو إعادة تسمية المستخدمين إسقاط هوية تعترف بها الحُرّاس.
+- وصفات Compose السحابية والإنتاجية تثبت وضع Cloud، وتمرر نطاق المنصة وإعدادات SMTP. يجب توفير CORS وCSRF صراحة؛ فحص الجاهزية يستخدم `/api/health/ready`، وقاعدة API للواجهة فارغة لأن مسارات العميل تحتوي `/api` بالفعل.
+- رفض `/api/auth/me` الصريح بـ401/403 يسبق fallback الهوية المحفوظة، حتى لو فشل طلب حالة التفعيل المستقل. فشل الشبكة وحده لا يلغي دعم الأوفلاين أو كتالوج POS.
+- في المراجعة النهائية: عند نجاح طلب حالة التفعيل تظل بوابتا التفعيل والإعداد الأولي سابقتين لرفض جلسة غير موجودة بعد؛ لا يُرسل تثبيت Electron الجديد إلى login قبل إتمامهما. تنقية أدوار المنصة وإعادة تسمية المستخدمين تطبّع `tenant_id` بنفس قص المسافات وتحويل الحروف الذي تستخدمه الحُرّاس.
+- **استثناء صريح من المالك في هذه الجلسة:** تبقى كلمة مرور المطور الثابتة وقبولها في Desktop كما هما؛ ARCH01-01 مستثناة من الإصلاح. لا يسمح هذا الاستثناء بفتح اللوحة في Cloud.
+- أضيفت حالات انحدار للمصادقة وعزل البيئات وحماية `zs`. لم تُشغّل Tests أو Build أو Typecheck أو migrations ولم يحدث نشر؛ الإصلاحات منفذة في المصدر وتنتظر التحقق المأذون به. لم تبدأ مراجعة الحزمة 02.
+
 > **الغرض:** هذا الملف ليس حصراً للميزات (ذلك في `SYSTEM_CAPABILITIES.md`). هذا الملف يجيب على أسئلة مختلفة:
 > **ما الذي يجب ألا يُكتب أبداً؟ وأين المصدر الوحيد للحقيقة؟ وما الثوابت المفروضة؟ وماذا دُقِّق وماذا لم يُدقَّق بعد؟**
 >
@@ -72,6 +82,16 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - Numeric tests authored but NOT executed; no build, typecheck or guards invoked.
 
 ### Accounting ledger hardening (October 2026)
+
+ARCH02 local implementation and unexecuted acceptance work are tracked in [the ARCH02 closure register](docs/audits/ARCH02_FIX_STATUS_2026-10-24.md). Its implementation status is not evidence that tests, migrations, builds, or environment checks passed.
+
+- Use exclusive UTC next-day bounds for report/closing cutoffs. Block sign-off on unresolved postings, missing sales journals and due financing accruals.
+- Keep operational partner/inventory openings out of the aggregate cash/bank opening journal. Partner creation, opening balance, subledger and GL share one transaction.
+- Domain postings own their shared subledger synchronization. Never use shipping-line/subcontractor IDs as supplier IDs; retain explicit tenant-scoped mappings. Manual control-account entries and aggregate control-account FX revaluation cannot bypass that ownership.
+- Cheque transitions use type/state validation, stable sequence-based event identities, immutable base-currency snapshots and actual action dates. Set reversal links only when all accounting dimensions exactly offset; incurred bank fees remain incurred.
+- Value a receipt from the stock ledger's reconciled `globalAfter - receiptQty`, under product locks. Keep unit costs at six decimal places and document money at currency precision. Manufacturing consumes actual cost snapshots and posts on completion, with conversion costs separate from materials.
+- Defer financing income and recognize it through the effective-interest schedule. Settings currency and base-rate metadata must agree; base currency cannot be reinterpreted after rates/books are initialized. Historical ambiguity requires reviewed reconciliation, not inferred monetary evidence.
+- Non-cash journals do not generate cash flow. Show ambiguous mixed cash flows as unclassified until attribution is available. Preserve explicit manual cash-flow classification when reversing its journal.
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
 - Serialize tenant journal postings, drafts, lock changes, and month/year transitions with the same transaction advisory lock. Year-end closing and reopening entries can bypass an existing month lock only after validating the fiscal year state and end date.

@@ -419,10 +419,16 @@ export class PurchaseLandedCostsService {
             ...(toCogs > 0 ? [{ accountId: Number(cogsAccount), debit: toCogs, credit: 0,
               description: 'نصيب الوحدات المباعة من التكاليف الإضافية', partnerType: 'none' as const,
               partnerId: null, branchId: null, locationId: null }] : []),
-            { accountId: payableAccountId, debit: 0, credit: Number(totalLandedCost.toFixed(2)),
+            ...Array.from(dto.costs.reduce((vendors, cost) => {
+              const vendorId = Number(cost.vendorId || purchase.supplier_id || 0);
+              if (!vendorId) throw new BadRequestException('يجب تحديد مورد كل تكلفة إضافية.');
+              vendors.set(vendorId, (vendors.get(vendorId) || 0) + cost.amount);
+              return vendors;
+            }, new Map<number, number>()), ([vendorId, amount]) => ({
+              accountId: payableAccountId, debit: 0, credit: Number(amount.toFixed(2)),
               description: 'استحقاق تكاليف الشحن والجمارك', partnerType: 'supplier' as const,
-              partnerId: purchase.supplier_id ? Number(purchase.supplier_id) : null,
-              branchId: null, locationId: null },
+              partnerId: vendorId, branchId: null, locationId: null,
+            })),
           ],
         });
       }

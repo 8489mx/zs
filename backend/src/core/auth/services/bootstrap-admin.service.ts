@@ -6,6 +6,7 @@ import { Database } from '../../../database/database.types';
 import { createPasswordRecord, verifyPassword } from '../utils/password-hasher';
 import { assertStrongPassword } from '../utils/password-policy';
 import { resolveTenantContext } from '../utils/tenant-context';
+import { getPlatformTenantIds } from '../utils/tenant-boundary';
 
 import { SUPER_ADMIN_PERMISSIONS } from '../constants/super-admin-permissions';
 
@@ -22,15 +23,11 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
     try {
       const platformTenantId = String(this.configService.get<string>('PLATFORM_TENANT_ID') || 'zs').trim();
       const appMode = String(this.configService.get<string>('APP_MODE') || 'CLOUD_SAAS').trim().toUpperCase();
-      const result = appMode === 'CLOUD_SAAS'
-        ? await sql`
-            UPDATE users SET role = 'admin'
-            WHERE role = 'super_admin' AND tenant_id NOT IN (${platformTenantId});
-          `.execute(this.db)
-        : await sql`
-            UPDATE users SET role = 'admin'
-            WHERE role = 'super_admin' AND tenant_id NOT IN ('zs', 'default', 'dev-tenant', ${platformTenantId});
-          `.execute(this.db);
+      const platformTenantIds = getPlatformTenantIds(appMode, platformTenantId);
+      const result = await sql`
+        UPDATE users SET role = 'admin'
+        WHERE role = 'super_admin' AND LOWER(TRIM(tenant_id)) NOT IN (${sql.join(platformTenantIds)});
+      `.execute(this.db);
 
       const numUpdated = Number((result as any)?.numUpdatedRows || 0);
       if (numUpdated > 0) {
@@ -194,7 +191,7 @@ export class BootstrapAdminService implements OnApplicationBootstrap {
       await sql`
         UPDATE users
         SET username = CONCAT(tenant_id, '_admin')
-        WHERE LOWER(TRIM(username)) = 'zs' AND tenant_id NOT IN (${platformTenantId}, 'default', 'dev-tenant');
+        WHERE LOWER(TRIM(username)) = 'zs' AND LOWER(TRIM(tenant_id)) NOT IN (${sql.join(getPlatformTenantIds(appMode, platformTenantId))});
       `.execute(this.db).catch(() => undefined);
 
       // 4. Sanitize rogue super_admin roles

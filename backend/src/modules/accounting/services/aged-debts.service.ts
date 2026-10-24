@@ -1,3 +1,4 @@
+import { nextAccountingDay } from '../engines/accounting-date.engine';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -86,24 +87,20 @@ export class AgedDebtsService {
     params: { asOfDate?: string; branchId?: number; page?: number; pageSize?: number; search?: string; risk?: string },
     kind: 'receivables' | 'payables',
   ): Promise<AgedDebtsSummary> {
-    const asOfDate = params.asOfDate ? new Date(params.asOfDate) : new Date();
-    if (!Number.isFinite(asOfDate.getTime())) throw new BadRequestException('Invalid asOfDate');
-    asOfDate.setHours(23, 59, 59, 999);
+    const asOfDay = params.asOfDate ? params.asOfDate.slice(0, 10) : new Date().toISOString().slice(0, 10);
+    let asOfDate: Date;
+    try { asOfDate = nextAccountingDay(asOfDay); }
+    catch { throw new BadRequestException('Invalid asOfDate'); }
     const page = Math.min(10_000, Math.max(1, Math.trunc(Number(params.page) || 1)));
     const pageSize = Math.min(200, Math.max(1, Math.trunc(Number(params.pageSize) || 50)));
     const offset = (page - 1) * pageSize;
-    const threeYearsAgo = new Date(asOfDate);
-    threeYearsAgo.setUTCFullYear(threeYearsAgo.getUTCFullYear() - 3);
-
-    // Identifiers are selected only from fixed, internal literals. All values remain bound.
+    // Age signed historical ledger debits, applying credits FIFO. Never read today's
+    // mutable partner balance or invoice paid_amount for an as-of report.
     const partnerTable = sql.ref(kind === 'receivables' ? 'customers' : 'suppliers');
-    const invoiceTable = sql.ref(kind === 'receivables' ? 'sales' : 'purchases');
-    const partnerFk = sql.ref(kind === 'receivables' ? 'i.customer_id' : 'i.supplier_id');
-    const invoiceDate = kind === 'receivables'
-      ? sql`i.created_at`
-      : sql`coalesce(i.date::timestamptz, i.created_at)`;
+    const ledgerTable = sql.ref(kind === 'receivables' ? 'customer_ledger' : 'supplier_ledger');
+    const partnerFk = sql.ref(kind === 'receivables' ? 'l.customer_id' : 'l.supplier_id');
     const creditLimit = kind === 'receivables' ? sql`p.credit_limit` : sql`null::numeric`;
-    const branchFilter = params.branchId ? sql`and i.branch_id = ${params.branchId}` : sql``;
+    const branchFilter = params.branchId ? sql`and l.branch_id = ${params.branchId}` : sql``;
     const order = kind === 'receivables'
       ? sql`risk_weight desc, total_balance desc, partner_id asc`
       : sql`total_balance desc, partner_id asc`;
@@ -114,30 +111,28 @@ export class AgedDebtsService {
     const searchFilter = search ? sql`and (partner_name ilike ${`%${search}%`} or phone ilike ${`%${search}%`})` : sql``;
     const riskFilter = riskWeight === null ? sql`` : sql`and risk_weight = ${riskWeight}`;
 
-    // Window allocation preserves the existing newest-invoice-first reconciliation against
-    // the partner balance. The older, unmatched opening balance goes to the 91+ bucket.
+    // Positive historical charges are retained newest-first: credits extinguish
+    // the oldest charges (FIFO). No current mutable invoice balance is consulted.
     const result = await sql<AgingSqlRow>`
-      with partners as (
-        select p.id, p.name, p.phone, p.balance::numeric as balance,
-               ${creditLimit} as credit_limit
-        from ${partnerTable} p
-        where p.tenant_id = ${auth.tenantId} and p.is_active = true and p.balance > 0.01
+      with movements as materialized (
+        select l.id, ${partnerFk} as partner_id, l.created_at, l.amount::numeric as amount
+        from ${ledgerTable} l
+        where l.tenant_id = ${auth.tenantId} and l.created_at < ${asOfDate} ${branchFilter}
+      ), balances as (
+        select partner_id, sum(amount)::numeric as balance from movements group by partner_id
+      ), partners as (
+        select p.id, p.name, p.phone, b.balance, ${creditLimit} as credit_limit
+        from ${partnerTable} p join balances b on b.partner_id = p.id
+        where p.tenant_id = ${auth.tenantId} and b.balance > 0.01
       ), invoices as (
-        select ${partnerFk} as partner_id, ${invoiceDate} as invoice_date,
-               greatest(0, i.total - coalesce(i.paid_amount, 0))::numeric as unpaid,
-               coalesce(sum(greatest(0, i.total - coalesce(i.paid_amount, 0)))
-                 over (partition by ${partnerFk} order by i.created_at desc, i.id desc
-                       rows between unbounded preceding and 1 preceding), 0) as prior_unpaid
-        from ${invoiceTable} i
-        join partners p on p.id = ${partnerFk}
-        where i.tenant_id = ${auth.tenantId} and i.status = 'posted'
-          and i.total - coalesce(i.paid_amount, 0) > 0.01
-          and i.created_at between ${threeYearsAgo} and ${asOfDate}
-          ${branchFilter}
+        select l.partner_id, l.created_at as invoice_date, l.amount as unpaid,
+               coalesce(sum(l.amount) over (partition by l.partner_id order by l.created_at desc, l.id desc
+                 rows between unbounded preceding and 1 preceding), 0) as prior_unpaid
+        from movements l join partners p on p.id = l.partner_id where l.amount > 0
       ), allocated as (
         select i.partner_id, i.invoice_date,
                greatest(0, least(i.unpaid, p.balance - i.prior_unpaid)) as amount,
-               floor(extract(epoch from (${asOfDate}::timestamptz - i.invoice_date)) / 86400)::int as days_old
+               (${asOfDay}::date - (i.invoice_date at time zone 'UTC')::date) as days_old
         from invoices i join partners p on p.id = i.partner_id
       ), buckets as (
         select partner_id,
@@ -159,7 +154,7 @@ export class AgedDebtsService {
                round(coalesce(b.days_91_plus, 0) + greatest(0, p.balance - coalesce(b.allocated_amount, 0)), 2) as days_91_plus,
                b.oldest_invoice_date,
                case when b.oldest_invoice_date is null then 0
-                    else floor(extract(epoch from (${asOfDate}::timestamptz - b.oldest_invoice_date)) / 86400)::int end as oldest_invoice_days,
+                    else (${asOfDay}::date - (b.oldest_invoice_date at time zone 'UTC')::date) end as oldest_invoice_days,
                case when coalesce(b.days_91_plus, 0) + greatest(0, p.balance - coalesce(b.allocated_amount, 0)) > 0 then 4
                     when coalesce(b.days_61_to_90, 0) > 0 then 3
                     when coalesce(b.days_31_to_60, 0) > 0 then 2
@@ -212,7 +207,7 @@ export class AgedDebtsService {
       };
     });
     return {
-      asOfDate: asOfDate.toISOString().slice(0, 10), page, pageSize,
+      asOfDate: asOfDay, page, pageSize,
       totalPartnersCount: Number(row?.total_partners_count || 0),
       filteredPartnersCount: Number(row?.filtered_partners_count || 0),
       overduePartnersCount: Number(row?.overdue_partners_count || 0),

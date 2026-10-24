@@ -45,6 +45,15 @@ export function useBootstrapAuth() {
       try {
         const [statusResult, meResult] = await Promise.allSettled([activationApi.status(), authApi.me()]);
 
+        // If status failed, an explicit auth rejection must beat offline fallback.
+        // A successful status response still owns the activation/setup gates below:
+        // a new desktop install has no session until those gates are completed.
+        if (statusResult.status === 'rejected' && meResult.status === 'rejected' && meResult.reason instanceof ApiError
+          && [401, 403].includes(meResult.reason.status)) {
+          await resetTo('login');
+          return;
+        }
+
         if (statusResult.status === 'rejected') {
           // If device is offline or backend is unreachable, keep offline session ready
           if (offlineSession) {

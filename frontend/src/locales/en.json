@@ -9762,7 +9762,7 @@
         "s25": "Cancel",
         "s26": "Posting...",
         "s1": "Use this page to record the beginning balances for using the system. Opening balances are posted only once for each facility.",
-        "s2": "Customer, supplier, and inventory balances are calculated from the data recorded in the system, while the cash and bank balances are entered manually.",
+        "s2": "This entry records opening cash and bank balances only. Customer, supplier and inventory balances are posted by their source documents when created.",
         "s3": "System start date",
         "s4": "Opening treasury balance",
         "s5": "Opening bank balance",
@@ -10146,7 +10146,7 @@
       "s33": "Debit",
       "s34": "Credit",
       "s37": "Cancel",
-      "s41": "Cancelled",
+      "s41": "Posted",
       "s1": "Review and track general journal entries resulting from the system's financial transactions.",
       "s2": "General Journal",
       "s3": "Create manual entry",
@@ -10166,8 +10166,8 @@
       "s4": "Recorded entries log",
       "s7": "Failed to load journal entries",
       "s20": "Failed to load entry details",
-      "s40": "According to the approved accounting standards (IFRS and Odoo), the posted entries are not deleted permanently; a reversing entry is created with the current entry tagged as",
-      "s42": "To maintain the accounting audit trail.",
+      "s40": "Posted entries are never deleted. A separate reversal is posted, while the original entry remains",
+      "s42": "The two entries are linked to preserve the audit trail.",
       "s44": "Write the reason for reversing the entry in detail (e.g., account misdirection or transaction cancellation)..."
     },
     "accounting_receivables_payables_page": {
@@ -10440,6 +10440,19 @@
       "s3": "+ Add Transaction",
       "s10": "Form 41 (deduction from suppliers for tax supply)",
       "s13": "Total tax payable"
+    },
+    "arch02": {
+      "chequeRate": "Cheque exchange rate in base currency (optional; defaults to the registered rate)",
+      "settlementRate": "Settlement exchange rate (optional; defaults to the registered rate)",
+      "cashFlowCategory": "Cash flow category",
+      "cashFlowHint": "Choose a category for asset disposals or entries with non-cash financing",
+      "automaticCategory": "Automatic for simple entries",
+      "operating": "Operating",
+      "investing": "Investing",
+      "financing": "Financing",
+      "mixedFlowsWarning": "Mixed cash flows require accounting attribution before the classifications can be approved. These amounts are included in net cash flow.",
+      "paymentTenantRequired": "Payment tenant is required.",
+      "retryOriginalPayment": "Retry the unresolved payment with its original details before creating another payment."
     }
   },
   "accounts": {

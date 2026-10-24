@@ -41,6 +41,7 @@ export function PdcChequeActionModal({
   const [bouncedFee, setBouncedFee] = useState('0');
   const [endorsedSupplier, setEndorsedSupplier] = useState('');
   const [actionNotes, setActionNotes] = useState('');
+  const [settlementRate, setSettlementRate] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -49,6 +50,7 @@ export function PdcChequeActionModal({
       setBouncedFee('0');
       setEndorsedSupplier('');
       setActionNotes('');
+      setSettlementRate('');
     }
   }, [open, action]);
 
@@ -70,13 +72,14 @@ export function PdcChequeActionModal({
       action,
       actionDate,
       notes: actionNotes.trim() || undefined,
+      settlementExchangeRate: settlementRate ? Number(settlementRate) : undefined,
     };
 
     if (action === 'bounce') {
       payload.bouncedReason = bouncedReason;
       payload.bouncedFee = Number(bouncedFee) || 0;
     } else if (action === 'endorse') {
-      payload.endorsedSupplier = endorsedSupplier.trim();
+      payload.endorsedToSupplierName = endorsedSupplier.trim();
     }
 
     updateStatusMutation.mutate({ id: cheque.id, payload });
@@ -103,6 +106,10 @@ export function PdcChequeActionModal({
       size="md"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        {(action === 'collect' || action === 'clear') && <label className="field">
+          <span>{t('accounting.arch02.settlementRate', 'سعر الصرف الفعلي للتسوية (اختياري؛ الافتراضي السعر المسجل)')}</span>
+          <input type="number" min="0.000001" step="0.000001" value={settlementRate} onChange={event => setSettlementRate(event.target.value)} />
+        </label>}
         {/* Card 1: Cheque Details Card */}
         <div style={{
           backgroundColor: '#f8fafc',

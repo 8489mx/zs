@@ -129,7 +129,6 @@ export function RecordSubcontractorPaymentModal({
   const paymentMethodOptions = [
     { value: 'bank_transfer', label: 'تحويل بنكي / إيداع' },
     { value: 'cash', label: 'نقدي (من عهدة / خزينة الموقع)' },
-    { value: 'check', label: 'شيك بنكي' },
   ];
 
   const paymentCategoryOptions = [

@@ -1,3 +1,4 @@
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,7 +15,7 @@ export interface PdcChequeCreateModalProps {
   onCreated?: () => void;
 }
 
-const getInitialState = (type: ChequeType): CreatePdcChequePayload => ({
+const getInitialState = (type: ChequeType, currency: string): CreatePdcChequePayload => ({
   type,
   chequeNumber: '',
   bankName: '',
@@ -22,7 +23,7 @@ const getInitialState = (type: ChequeType): CreatePdcChequePayload => ({
   drawerName: '',
   partnerName: '',
   amount: 0,
-  currency: 'EGP',
+  currency,
   issueDate: new Date().toISOString().slice(0, 10),
   dueDate: '',
   notes: '',
@@ -45,13 +46,14 @@ export function PdcChequeCreateModal({
 }: PdcChequeCreateModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [newCheque, setNewCheque] = useState<CreatePdcChequePayload>(() => getInitialState(chequeType));
+  const { currencyCode } = useSystemCurrency();
+  const [newCheque, setNewCheque] = useState<CreatePdcChequePayload>(() => getInitialState(chequeType, currencyCode));
 
   useEffect(() => {
     if (open) {
-      setNewCheque(getInitialState(chequeType));
+      setNewCheque(getInitialState(chequeType, currencyCode));
     }
-  }, [open, chequeType]);
+  }, [open, chequeType, currencyCode]);
 
   const createMutation = useMutation({
     mutationFn: (payload: CreatePdcChequePayload) => pdcChequesApi.create(payload),
@@ -76,6 +78,10 @@ export function PdcChequeCreateModal({
       size="lg"
     >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <label className="field">
+          <span>{t('accounting.arch02.chequeRate', 'سعر صرف الشيك بعملة الأساس (اختياري؛ الافتراضي سعر العملة المسجل)')}</span>
+          <input type="number" min="0.000001" step="0.000001" value={newCheque.exchangeRate ?? ''} onChange={event => setNewCheque({ ...newCheque, exchangeRate: event.target.value ? Number(event.target.value) : undefined })} />
+        </label>
         {/* Card 1: Bank & Partner Info */}
         <div style={{
           backgroundColor: '#f8fafc',
