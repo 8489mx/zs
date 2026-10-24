@@ -144,16 +144,34 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
     hrCommissionValue: '0',
     hrCommissionTarget: '0',
     hrSocialInsuranceEnabled: false,
-    hrSocialInsuranceEmployeePct: '11',
+    hrSocialInsuranceEmployeePct: '0',
     hrIncomeTaxEnabled: false,
-    taxPersonalExemption: '20000',
-    taxBrackets: [{"max":40000,"rate":0},{"max":55000,"rate":10},{"max":70000,"rate":15},{"max":200000,"rate":20},{"max":400000,"rate":22.5},{"max":999999999,"rate":25}],
-    insuranceConfig: {"employeePct":11,"employerPct":18.75,"minSalary":2000,"maxSalary":12600},
+    taxPersonalExemption: '0',
+    taxBrackets: [] as Array<{ max: number | null; rate: number }>,
+    insuranceConfig: { employeePct: 0, employerPct: 0, minSalary: 0, maxSalary: 0 },
     hrWeekendDays: 'friday,saturday',
   });
+  const [statutoryDraft, setStatutoryDraft] = useState({
+    statutoryCountry: '',
+    statutoryEffectiveFrom: '',
+    statutoryEffectiveTo: '',
+    statutoryLegalReference: '',
+    statutoryReviewed: false,
+  });
+  const [taxBracketsText, setTaxBracketsText] = useState('[]');
+  const [statutoryInputError, setStatutoryInputError] = useState('');
 
   useEffect(() => {
     if (policiesQuery.data) {
+      const source = policiesQuery.data as any;
+      setStatutoryDraft({
+        statutoryCountry: String(source.statutoryCountry || ''),
+        statutoryEffectiveFrom: String(source.statutoryEffectiveFrom || ''),
+        statutoryEffectiveTo: String(source.statutoryEffectiveTo || ''),
+        statutoryLegalReference: String(source.statutoryLegalReference || ''),
+        statutoryReviewed: source.statutoryReviewed === true,
+      });
+      setTaxBracketsText(JSON.stringify(source.taxBrackets || []));
       setDraft({
         workHoursPerDay: String((policiesQuery.data as any).workHoursPerDay ?? '8'),
         latenessGracePeriodMinutes: String((policiesQuery.data as any).latenessGracePeriodMinutes ?? '15'),
@@ -169,17 +187,28 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
         hrCommissionValue: String((policiesQuery.data as any).hrCommissionValue || '0'),
         hrCommissionTarget: String((policiesQuery.data as any).hrCommissionTarget || '0'),
         hrSocialInsuranceEnabled: (policiesQuery.data as any).hrSocialInsuranceEnabled === true,
-        hrSocialInsuranceEmployeePct: String((policiesQuery.data as any).hrSocialInsuranceEmployeePct ?? '11'),
+        hrSocialInsuranceEmployeePct: String((policiesQuery.data as any).hrSocialInsuranceEmployeePct ?? '0'),
         hrIncomeTaxEnabled: (policiesQuery.data as any).hrIncomeTaxEnabled === true,
-        taxPersonalExemption: String((policiesQuery.data as any).taxPersonalExemption ?? '20000'),
-        taxBrackets: (policiesQuery.data as any).taxBrackets || [{"max":40000,"rate":0},{"max":55000,"rate":10},{"max":70000,"rate":15},{"max":200000,"rate":20},{"max":400000,"rate":22.5},{"max":999999999,"rate":25}],
-        insuranceConfig: (policiesQuery.data as any).insuranceConfig || {"employeePct":11,"employerPct":18.75,"minSalary":2000,"maxSalary":12600},
+        taxPersonalExemption: String((policiesQuery.data as any).taxPersonalExemption ?? '0'),
+        taxBrackets: (policiesQuery.data as any).taxBrackets || [],
+        insuranceConfig: (policiesQuery.data as any).insuranceConfig || { employeePct: 0, employerPct: 0, minSalary: 0, maxSalary: 0 },
         hrWeekendDays: String((policiesQuery.data as any).hrWeekendDays || 'friday,saturday'),
       });
     }
   }, [policiesQuery.data]);
 
   async function handleSave() {
+    setStatutoryInputError('');
+    let taxBrackets: Array<{ max: number | null; rate: number }> = [];
+    try {
+      const parsed = JSON.parse(taxBracketsText);
+      if (!Array.isArray(parsed)) throw new Error('invalid brackets');
+      taxBrackets = parsed;
+    } catch {
+      setStatutoryInputError('صيغة شرائح الضريبة غير صحيحة. أدخل مصفوفة JSON تحتوي على max و rate.');
+      return;
+    }
+    try {
     await mutations.updatePayrollPolicies.mutateAsync({
       workHoursPerDay: Number(draft.workHoursPerDay) || 8,
       latenessGracePeriodMinutes: Number(draft.latenessGracePeriodMinutes) || 0,
@@ -198,10 +227,14 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
       hrSocialInsuranceEmployeePct: Number(draft.hrSocialInsuranceEmployeePct) || 0,
       hrIncomeTaxEnabled: draft.hrIncomeTaxEnabled,
       taxPersonalExemption: Number(draft.taxPersonalExemption) || 0,
-      taxBrackets: draft.taxBrackets,
+      taxBrackets,
       insuranceConfig: draft.insuranceConfig,
+      ...statutoryDraft,
       hrWeekendDays: draft.hrWeekendDays,
     });
+    } catch (error) {
+      setStatutoryInputError(getErrorMessage(error, 'تعذر اعتماد قواعد المرتبات'));
+    }
   }
 
   return (
@@ -314,6 +347,49 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
                 <span>{t('hr.settings.hr_settings_static_sections.s49', "تفعيل ضريبة كسب العمل")}</span>
               </label>
 
+              {(draft.hrSocialInsuranceEnabled || draft.hrIncomeTaxEnabled) && (
+                <div style={{ flexBasis: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 10, padding: 12, border: '1px solid #fdba74', borderRadius: 8, background: '#fff7ed' }}>
+                  <p style={{ gridColumn: '1 / -1', margin: 0, color: '#9a3412', fontSize: 12, fontWeight: 700 }}>
+                    الاستقطاعات النظامية تتطلب قواعد خاصة بالدولة وتاريخ السريان ومراجعة مختص. لا توجد نسب قانونية معتمدة مضافة تلقائياً.
+                  </p>
+                  <label>الدولة
+                    <select value={statutoryDraft.statutoryCountry} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryCountry: e.target.value, statutoryReviewed: false })} style={{ display: 'block', width: '100%' }}>
+                      <option value="">اختر الدولة</option>
+                      <option value="EG">مصر</option><option value="SA">السعودية</option>
+                      <option value="KW">الكويت</option><option value="QA">قطر</option><option value="OM">عُمان</option>
+                    </select>
+                  </label>
+                  <label>تاريخ بدء السريان
+                    <input type="date" value={statutoryDraft.statutoryEffectiveFrom} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryEffectiveFrom: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}/>
+                  </label>
+                  <label>تاريخ انتهاء السريان
+                    <input type="date" value={statutoryDraft.statutoryEffectiveTo} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryEffectiveTo: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}/>
+                  </label>
+                  <label>المرجع القانوني/قرار المختص
+                    <input value={statutoryDraft.statutoryLegalReference} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryLegalReference: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}/>
+                  </label>
+                  {draft.hrSocialInsuranceEnabled && (
+                    <>
+                      <label>حصة الموظف (%)<input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employeePct} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employeePct: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
+                      <label>حصة الشركة (%)<input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employerPct} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employerPct: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
+                      <label>أدنى أجر تأميني<input type="number" min="0" value={draft.insuranceConfig.minSalary} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, minSalary: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
+                      <label>أعلى أجر تأميني (0 = بلا سقف)<input type="number" min="0" value={draft.insuranceConfig.maxSalary} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, maxSalary: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
+                    </>
+                  )}
+                  {draft.hrIncomeTaxEnabled && (
+                    <>
+                      <label>الإعفاء السنوي<input type="number" min="0" value={draft.taxPersonalExemption} onChange={e => { setDraft({ ...draft, taxPersonalExemption: e.target.value }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
+                      <label style={{ gridColumn: '1 / -1' }}>شرائح الضريبة السنوية بصيغة JSON (آخر شريحة max: null)
+                        <textarea rows={3} value={taxBracketsText} onChange={e => { setTaxBracketsText(e.target.value); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ display: 'block', width: '100%' }}/>
+                      </label>
+                    </>
+                  )}
+                  <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input type="checkbox" checked={statutoryDraft.statutoryReviewed} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: e.target.checked })}/>
+                    أؤكد مراجعة القواعد والحدود وتواريخ سريانها مع المختص
+                  </label>
+                </div>
+              )}
               <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: 'auto' }}>
                 <span>{t('hr.settings.hr_settings_static_sections.s50', "أيام الراحة الأسبوعية:")}</span>
                 <input type="text" value={draft.hrWeekendDays} onChange={(e) => setDraft({ ...draft, hrWeekendDays: e.target.value })} placeholder="friday,saturday" dir="ltr" style={{ width: '150px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }} />
@@ -321,6 +397,7 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
             </div>
           </div>
 
+          {statutoryInputError && <p role="alert" style={{ color: '#b91c1c', fontSize: 12, margin: 0 }}>{statutoryInputError}</p>}
           <div className="compact-actions" style={{ display: 'flex', gap: 8, marginTop: '4px' }}>
             <Button type="button" variant="primary" onClick={() => void handleSave()} disabled={mutations.updatePayrollPolicies.isPending} style={{ padding: '4px 14px', fontSize: '0.8rem' }}>
               {mutations.updatePayrollPolicies.isPending ? t('hr.settings.hr_settings_static_sections.s51', "جاري الحفظ...") : t('hr.settings.hr_settings_static_sections.s52', "حفظ سياسات المرتبات")}
