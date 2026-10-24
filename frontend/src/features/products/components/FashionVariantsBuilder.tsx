@@ -134,37 +134,37 @@ export function FashionVariantsBuilder({
       case 'fashion':
         return {
           title: 'موديل ملابس وأحذية',
-          hint: 'اكتب الألوان والمقاسات أو اختر من المجموعات الجاهزة لتوليد شبكة المقاسات والباركودات تلقائياً.',
+          hint: 'اكتب الألوان والمقاسات مفصولة بشرطة (-) أو فواصل لتوليد شبكة المقاسات والباركودات تلقائياً.',
           primaryLabel: 'الألوان',
           secondaryLabel: 'المقاسات (اختياري)',
           primarySingleLabel: 'اللون',
           secondarySingleLabel: 'المقاس',
-          primaryPlaceholder: 'اسود، ابيض، كحلي...',
-          secondaryPlaceholder: 'S، M، L، XL...',
+          primaryPlaceholder: 'اسود - ابيض - كحلي (أو فواصل)...',
+          secondaryPlaceholder: 'S - M - L - XL...',
           primaryPresets: FASHION_COLOR_PRESETS,
         };
       case 'scents':
         return {
           title: 'روائح ونكهات وعطور',
-          hint: 'أدخل الروائح أو النكهات (مثل لافندر، عود، توت) ويمكنك إضافة الأحجام كخاصية ثانية (مثل 100 مل، 250 مل).',
+          hint: 'أدخل الروائح أو النكهات مفصولة بشرطة (-) أو فواصل (مثل لافندر - عود - توت)، ويمكنك إضافة الأحجام كخاصية ثانية.',
           primaryLabel: 'الروائح والنكهات',
           secondaryLabel: 'الأحجام / السعات (اختياري)',
           primarySingleLabel: 'الرائحة/النكهة',
           secondarySingleLabel: 'الحجم',
-          primaryPlaceholder: 'لافندر، عود، ليمون، توت...',
-          secondaryPlaceholder: '100 مل، 250 مل، كبير...',
+          primaryPlaceholder: 'لافندر - عود - ليمون - توت...',
+          secondaryPlaceholder: '100 مل - 250 مل - كبير...',
           primaryPresets: SCENT_FLAVOR_PRESETS,
         };
       case 'sizes':
         return {
           title: 'أحجام وسعات وعبوات',
-          hint: 'أدخل الأحجام أو الأوزان (مثل 1 لتر، 5 لتر) والتغليف أو النوع كخاصية ثانية (علبة، كيس، بخاخ).',
+          hint: 'أدخل الأحجام أو الأوزان مفصولة بشرطة (-) أو فواصل، والتغليف أو النوع كخاصية ثانية (علبة - كيس - بخاخ).',
           primaryLabel: 'الأحجام / السعات',
           secondaryLabel: 'النوع / التغليف (اختياري)',
           primarySingleLabel: 'الحجم/السعة',
           secondarySingleLabel: 'النوع',
-          primaryPlaceholder: '250 مل، 500 مل، 1 لتر...',
-          secondaryPlaceholder: 'علبة، كيس، بخاخ، زجاج...',
+          primaryPlaceholder: '250 مل - 500 مل - 1 لتر...',
+          secondaryPlaceholder: 'علبة - كيس - بخاخ - زجاج...',
           primaryPresets: SIZE_CAPACITY_PRESETS,
         };
       case 'custom':
@@ -176,8 +176,8 @@ export function FashionVariantsBuilder({
           secondaryLabel: `${customSecondaryLabel || 'الخاصية الثانية'} (اختياري)`,
           primarySingleLabel: customPrimaryLabel || 'الخاصية الأولى',
           secondarySingleLabel: customSecondaryLabel || 'الخاصية الثانية',
-          primaryPlaceholder: 'اكتب القيم مفصولة بفواصل...',
-          secondaryPlaceholder: 'اختياري: اكتب القيم مفصولة بفواصل...',
+          primaryPlaceholder: 'اكتب القيم مفصولة بشرطة (-) أو فواصل...',
+          secondaryPlaceholder: 'اختياري: اكتب القيم مفصولة بشرطة (-) أو فواصل...',
           primaryPresets: [],
         };
     }
@@ -431,6 +431,15 @@ export function FashionVariantsBuilder({
                 className="purchase-prototype-field-input"
                 value={colorsValue}
                 onChange={(event) => onColorsChange(event.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const trimmed = colorsValue.trim();
+                    if (trimmed && !trimmed.endsWith('-') && !trimmed.endsWith('،') && !trimmed.endsWith(',')) {
+                      onColorsChange(`${trimmed} - `);
+                    }
+                  }
+                }}
                 disabled={disabled}
                 placeholder={templateConfig.primaryPlaceholder}
                 style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
@@ -466,6 +475,15 @@ export function FashionVariantsBuilder({
                 className="purchase-prototype-field-input"
                 value={sizesValue}
                 onChange={(event) => onSizesChange(event.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const trimmed = sizesValue.trim();
+                    if (trimmed && !trimmed.endsWith('-') && !trimmed.endsWith('،') && !trimmed.endsWith(',')) {
+                      onSizesChange(`${trimmed} - `);
+                    }
+                  }
+                }}
                 disabled={disabled}
                 placeholder={templateConfig.secondaryPlaceholder}
                 style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
