@@ -182,6 +182,8 @@ This checkpoint records only **code-proven** adjustments on `fix/hr-stabilizatio
 
 - HR-WAGE-56 (25 October 2026): An hourly employee can no longer be stored with a zero, negative or nonfinite hourly wage or with missing/invalid expected daily hours; otherwise every payroll row could compute zero without a useful setup warning. The service also guards pay frequencies, commission/insurance amounts, commission percent ceiling, monetary precision and attendance grace. DTO adds nonnegative salary-related constraints. No tests/build/guards executed.
 
+- HR-ASSET-57 (25 October 2026): Custody loss/damage deductions must use canonical `amount_type='money'`; a legacy `amount` enum value broke payroll adjustment conversion. Asset writers now serialize against payroll/EOS approval, verify employee tenant membership and active service, refuse reassigning historical/closed custody, reject unrepresentable cents, and prohibit changing an asset status when its linked recovery adjustment already exists. Changing accrued recoveries requires an independent, explicit reversal or adjustment workflow; not a silent status flip. Reconciliation/migration of preexisting rows using noncanonical `amount_type='amount'` remains a DATA FIX and must be audited before payroll processing. No tests/build/typecheck/guards run.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

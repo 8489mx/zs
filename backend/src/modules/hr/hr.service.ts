@@ -5556,47 +5556,106 @@ export class HrService {
   }
 
   async upsertEmployeeAsset(id: number | null, payload: UpsertEmployeeAssetDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     const employeeId = toId(payload.employeeId);
     if (!employeeId) throw new AppError('Employee is required', 'HR_ASSET_EMPLOYEE_REQUIRED', 400);
     const assetType = clean(payload.assetType);
     if (!assetType) throw new AppError('Asset type is required', 'HR_ASSET_TYPE_REQUIRED', 400);
     const assetName = clean(payload.assetName);
     if (!assetName) throw new AppError('Asset name is required', 'HR_ASSET_NAME_REQUIRED', 400);
-    const tz = await getTenantTimezone(this.db, auth.tenantId);
-    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayTenantDate(tz);
-
-    if (id) {
-      await sql`
-        UPDATE hr_employee_assets
-        SET employee_id = ${employeeId},
-            asset_type = ${assetType},
-            asset_name = ${assetName},
-            asset_code = ${clean(payload.assetCode) || null},
-            serial_no = ${clean(payload.serialNo) || null},
-            assigned_at = ${assignedAt}::date,
-            notes = ${clean(payload.notes) || null},
-            updated_by = ${auth.userId},
-            updated_at = NOW()
-        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-      `.execute(this.db);
-    } else {
-      await sql`
-        INSERT INTO hr_employee_assets (tenant_id, account_id, employee_id, asset_type, asset_name, asset_code, serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
-        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${assetType}, ${assetName}, ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null}, ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
-      `.execute(this.db);
+    if (payload.assignedAt && !normalizeDateOnly(payload.assignedAt)) {
+      throw new AppError('تاريخ تسليم العهدة غير صحيح', 'HR_ASSET_ASSIGNED_DATE_INVALID', 400);
     }
-
+    const tz = await getTenantTimezone(this.db, tenantId);
+    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayTenantDate(tz);
+    await this.tx.runInTransaction(this.db, async trx => {
+      // EOS/posting and employee-custody edits share this lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const employee = await sql<{ id: number; status: string; hire_date: string | null }>`
+        SELECT id, status, to_char(hire_date, 'YYYY-MM-DD') AS hire_date
+        FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} LIMIT 1
+      `.execute(trx);
+      if (!employee.rows.length || employee.rows[0].status !== 'active') {
+        throw new AppError('لا يمكن تسليم عهدة لموظف غير نشط أو خارج المنشأة', 'HR_ASSET_EMPLOYEE_NOT_ACTIVE', 409);
+      }
+      const hireDate = employee.rows[0].hire_date;
+      if (hireDate && assignedAt < hireDate) {
+        throw new AppError('تاريخ تسليم العهدة يسبق تعيين الموظف', 'HR_ASSET_PRE_HIRE_DATE', 400);
+      }
+      if (id) {
+        const existing = await sql<{ employee_id: number; status: string }>`
+          SELECT employee_id, status FROM hr_employee_assets
+          WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
+        `.execute(trx);
+        if (!existing.rows.length) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
+        if (existing.rows[0].status !== 'assigned' || Number(existing.rows[0].employee_id) !== employeeId) {
+          throw new AppError('لا يمكن تغيير صاحب عهدة أو تعديل عهدة أُقفلت أو سُجلت مفقودة/تالفة؛ استخدم إجراء تسليم جديد', 'HR_ASSET_HISTORICAL_EDIT_LOCKED', 409);
+        }
+        await sql`
+          UPDATE hr_employee_assets
+          SET asset_type = ${assetType}, asset_name = ${assetName},
+              asset_code = ${clean(payload.assetCode) || null},
+              serial_no = ${clean(payload.serialNo) || null},
+              assigned_at = ${assignedAt}::date, notes = ${clean(payload.notes) || null},
+              updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${id} AND tenant_id = ${tenantId} AND status = 'assigned'
+        `.execute(trx);
+      } else {
+        await sql`
+          INSERT INTO hr_employee_assets
+            (tenant_id, account_id, employee_id, asset_type, asset_name, asset_code,
+             serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
+          VALUES (${tenantId}, ${accountId}, ${employeeId}, ${assetType}, ${assetName},
+                  ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null},
+                  ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null},
+                  ${auth.userId}, ${auth.userId}, NOW(), NOW())
+        `.execute(trx);
+      }
+    });
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employee asset`, `Asset custody ${id ? 'updated' : 'created'} by ${auth.username}`, auth);
     return this.listEmployeeAssets({}, auth);
   }
 
-  private async setEmployeeAssetStatus(id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled', payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
-    await this.tx.runInTransaction(this.db, async (trx) => {
-      const current = await sql<{ status: string; employee_id: number; asset_name: string }>`SELECT status, employee_id, asset_name FROM hr_employee_assets WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(trx);
-      if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
-      const tz = await getTenantTimezone(trx, auth.tenantId);
+  private async setEmployeeAssetStatus(
+    id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled',
+    payload: EmployeeAssetActionDto, auth: AuthContext,
+  ): Promise<Record<string, unknown>> {
+    const { tenantId } = requireTenantScope(auth);
+    if (payload.deductionAmount != null) {
+      if (!['lost', 'damaged'].includes(status)) {
+        throw new AppError('خصم العهدة متاح للمفقود والتالف فقط', 'HR_ASSET_DEDUCTION_STATUS_INVALID', 400);
+      }
+      try { requireStoredHrMoney(Number(payload.deductionAmount)); } catch {
+        throw new AppError('خصم العهدة غير صحيح أو يتضمن جزءًا من قرش', 'HR_ASSET_DEDUCTION_AMOUNT_INVALID', 400);
+      }
+    }
+    if (payload.returnedAt && !normalizeDateOnly(payload.returnedAt)) {
+      throw new AppError('تاريخ رد العهدة غير صحيح', 'HR_ASSET_RETURNED_DATE_INVALID', 400);
+    }
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const current = await sql<{ status: string; employee_id: number; asset_name: string }>`
+        SELECT status, employee_id, asset_name
+        FROM hr_employee_assets
+        WHERE id = ${id} AND tenant_id = ${tenantId}
+        FOR UPDATE
+      `.execute(trx);
+      const asset = current.rows[0];
+      if (!asset) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
+      if (asset.status === status && !payload.deductionAmount) return;
+      if (['returned', 'cancelled'].includes(asset.status)) {
+        throw new AppError('العهدة مغلقة؛ لا يمكن إعادة تغيير حالتها', 'HR_ASSET_ALREADY_CLOSED', 409);
+      }
+      const linkedAdjustment = await sql<{ id: number }>`
+        SELECT id FROM hr_employee_adjustments
+        WHERE tenant_id = ${tenantId} AND source_type = 'hr_employee_asset'
+          AND source_id = ${String(id)} AND accounting_category = 'asset_recovery'
+        LIMIT 1
+      `.execute(trx);
+      if (linkedAdjustment.rows.length) {
+        throw new AppError('عهدة عليها خصم مالي مسجل؛ لا يمكن إعادة تسجيل حالتها أو قيمة الخصم دون تسوية مستقلة', 'HR_ASSET_RECOVERY_ALREADY_RECORDED', 409);
+      }
+      const tz = await getTenantTimezone(trx, tenantId);
       const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayTenantDate(tz)) : null;
       await sql`
         UPDATE hr_employee_assets
@@ -5604,18 +5663,24 @@ export class HrService {
             returned_at = CASE WHEN ${returnedAt}::text IS NULL THEN returned_at ELSE ${returnedAt}::date END,
             notes = ${clean(payload.notes) || null},
             return_notes = ${clean(payload.returnNotes) || null},
-            updated_by = ${auth.userId},
-            updated_at = NOW()
-        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
+            updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${tenantId}
       `.execute(trx);
-
-      if (['lost', 'damaged'].includes(status) && typeof payload.deductionAmount === 'number' && payload.deductionAmount > 0) {
-        const empId = Number(current.rows[0].employee_id);
-        const reason = `تسوية عهدة ${status === 'lost' ? 'مفقودة' : 'تالفة'}: ${current.rows[0].asset_name}. ${clean(payload.returnNotes) || ''}`.trim();
+      if (['lost', 'damaged'].includes(status) && Number(payload.deductionAmount || 0) > 0) {
+        const reason = `تسوية عهدة ${status === 'lost' ? 'مفقودة' : 'تالفة'}: ${asset.asset_name}. ${clean(payload.returnNotes) || ''}`.trim();
         await sql`
-          INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, source_type, source_id, accounting_category, created_by, updated_by, created_at, updated_at)
-          VALUES (${auth.tenantId}, ${empId}, 'deduction', 'money', ${payload.deductionAmount}, ${reason}, NOW()::date, 'pending', 'hr_employee_asset', ${String(id)}, 'asset_recovery', ${auth.userId}, ${auth.userId}, NOW(), NOW())
-          ON CONFLICT (tenant_id, source_type, source_id) WHERE accounting_category = 'asset_recovery' AND source_type = 'hr_employee_asset' AND source_id IS NOT NULL DO NOTHING
+          INSERT INTO hr_employee_adjustments
+            (tenant_id, employee_id, adjustment_type, amount_type, amount, reason,
+             date, status, source_type, source_id, accounting_category,
+             created_by, updated_by, created_at, updated_at)
+          VALUES (${tenantId}, ${asset.employee_id}, 'deduction', 'money',
+                  ${Number(payload.deductionAmount)}, ${reason}, NOW()::date, 'pending',
+                  'hr_employee_asset', ${String(id)}, 'asset_recovery',
+                  ${auth.userId}, ${auth.userId}, NOW(), NOW())
+          ON CONFLICT (tenant_id, source_type, source_id)
+            WHERE accounting_category = 'asset_recovery'
+              AND source_type = 'hr_employee_asset' AND source_id IS NOT NULL
+          DO NOTHING
         `.execute(trx);
       }
     });

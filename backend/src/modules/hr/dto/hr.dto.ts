@@ -699,6 +699,7 @@ export class EmployeeAssetActionDto {
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
+  @Min(0)
   deductionAmount?: number;
 }
 
