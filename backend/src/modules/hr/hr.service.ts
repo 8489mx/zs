@@ -1752,28 +1752,68 @@ export class HrService {
   }
 
   async approveLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const loanRes = await sql<{ id: number; created_by: string; status: string }>`
-      SELECT id, created_by, status FROM hr_employee_loans WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1
-    `.execute(this.db);
-    const loan = loanRes.rows[0];
-    if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
-    if (loan.status !== 'draft') throw new AppError('Only draft loans can be approved', 'HR_LOAN_STATUS_INVALID', 400);
-
-    // Maker-Checker: A creator cannot approve their own loan unless they are super_admin or admin
-    if (String(loan.created_by) === String(auth.userId) && auth.role !== 'super_admin' && auth.role !== 'admin') {
-      throw new AppError('لا يجوز لمنشئ طلب السلفة اعتماده بنفسه (مبدأ فصل المهام الرقابي)', 'HR_LOAN_MAKER_CHECKER_VIOLATION', 403);
-    }
-
-    const updated = await sql<{ id: number }>`
-      UPDATE hr_employee_loans
-      SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(),
-          updated_by = ${auth.userId}, updated_at = NOW()
-      WHERE id = ${id} AND status = 'draft' AND tenant_id = ${auth.tenantId}
-      RETURNING id
-    `.execute(this.db);
-    if (updated.rows.length !== 1) {
-      throw new AppError('حالة السلفة تغيرت قبل الاعتماد؛ أعد فتحها', 'HR_LOAN_APPROVAL_CONFLICT', 409);
-    }
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async trx => {
+      const result = await sql<{ id: number; employee_id: number; principal_amount: string; created_by: string; status: string }>`
+        SELECT id, employee_id, principal_amount, created_by, status
+        FROM hr_employee_loans WHERE id = ${id} AND tenant_id = ${tenantId}
+        FOR UPDATE
+      `.execute(trx);
+      const loan = result.rows[0];
+      if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
+      if (loan.status !== 'draft') throw new AppError('Only draft loans can be approved', 'HR_LOAN_STATUS_INVALID', 409);
+      // Permission and maker-checker decisions always operate on this locked row.
+      if (String(loan.created_by) === String(auth.userId)
+        && auth.role !== 'super_admin' && auth.role !== 'admin') {
+        throw new AppError('لا يجوز لمنشئ طلب السلفة اعتماده بنفسه (مبدأ فصل المهام الرقابي)',
+          'HR_LOAN_MAKER_CHECKER_VIOLATION', 403);
+      }
+      // CREATE only tested debt exposure at draft creation; multiple drafts
+      // can otherwise be approved later and exceed the same employee ceiling.
+      // Serialize approvals of DIFFERENT loans via the SAME employee row.
+      const employee = await sql<{ id: number; status: string }>`
+        SELECT id, status FROM hr_employees
+        WHERE id = ${loan.employee_id} AND tenant_id = ${tenantId}
+        FOR UPDATE
+      `.execute(trx);
+      if (!employee.rows.length || employee.rows[0].status !== 'active') {
+        throw new AppError('لا يمكن اعتماد سلفة لموظف غير نشط', 'HR_LOAN_EMPLOYEE_INACTIVE', 409);
+      }
+      const exposure = await sql<{ amount: string }>`
+        SELECT COALESCE(SUM(remaining_amount), 0)::text AS amount
+        FROM hr_employee_loans
+        WHERE tenant_id = ${tenantId} AND employee_id = ${loan.employee_id}
+          AND id <> ${id} AND status IN ('approved', 'paid', 'partially_repaid', 'disbursed')
+      `.execute(trx);
+      const contract = await sql<{ base_salary: string }>`
+        SELECT base_salary FROM hr_employment_contracts
+        WHERE tenant_id = ${tenantId} AND employee_id = ${loan.employee_id}
+          AND status = 'active' AND start_date <= CURRENT_DATE
+          AND (end_date IS NULL OR end_date >= CURRENT_DATE)
+        ORDER BY start_date DESC, id DESC LIMIT 1
+      `.execute(trx);
+      const wage = Number(contract.rows[0]?.base_salary || 0);
+      const maximum = wage > 0 ? wage * 3 : 50000;
+      const outstanding = Number(exposure.rows[0]?.amount || 0);
+      const incoming = Number(loan.principal_amount);
+      if (!Number.isFinite(outstanding) || !Number.isFinite(incoming) || incoming <= 0
+        || outstanding + incoming > maximum) {
+        throw new AppError(
+          `إجمالي السلف بعد اعتماد الطلب (${outstanding + incoming}) يتجاوز السقف الحالي للموظف (${maximum})`,
+          'HR_LOAN_CEILING_EXCEEDED_AT_APPROVAL', 409,
+        );
+      }
+      const updated = await sql<{ id: number }>`
+        UPDATE hr_employee_loans
+        SET status = 'approved', approved_by = ${auth.userId}, approved_at = NOW(),
+            updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND status = 'draft' AND tenant_id = ${tenantId}
+        RETURNING id
+      `.execute(trx);
+      if (updated.rows.length !== 1) {
+        throw new AppError('حالة السلفة تغيرت أثناء الاعتماد', 'HR_LOAN_APPROVAL_CONFLICT', 409);
+      }
+    });
     await this.audit.log('Approve HR employee loan', `Employee loan #${id} approved by ${auth.username}`, auth);
     return { ok: true, ...(await this.listLoans({}, auth)) };
   }

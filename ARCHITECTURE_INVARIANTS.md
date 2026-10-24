@@ -99,6 +99,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LOAN-NEW-3: Manual employee loan repayments require positive cent-exact values and full reconciliation between the repayment and paid installments; no treasury cash posting or employee loan ledger is allowed if an unmatched remainder persists. Legacy inconsistent installment histories are intentionally blocked for manual correction. Tests authored, not executed.
 
+- HR-LOAN-NEW-4: A loan's legal/tenant configured exposure ceiling is revalidated atomically at approval, not only draft creation. Approvals of separate drafts lock the same employee row, re-read live outstanding approved/disbursed loans and effective current salary, and refuse exceeding the ceiling. Maker-checker and draft status check run within the locked transaction. Code-reviewed, tests not executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
