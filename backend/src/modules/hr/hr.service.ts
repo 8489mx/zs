@@ -281,12 +281,21 @@ export class HrService {
     try { validateHrStatutoryPolicy(policies as HrStatutoryPolicy); } catch (error) {
       throw new AppError(error instanceof Error ? error.message : 'قواعد الاستقطاعات غير صحيحة', 'HR_STATUTORY_POLICY_INVALID', 400);
     }
+    const { tenantId, accountId } = requireTenantScope(auth);
     const jsonStr = JSON.stringify(policies);
-    await sql`
-      INSERT INTO hr_hr_settings (tenant_id, account_id, key, value, updated_by, updated_at)
-      VALUES (${auth.tenantId}, ${auth.tenantId}, 'payroll_policies', ${jsonStr}, ${auth.userId}, NOW())
-      ON CONFLICT (tenant_id, key) DO UPDATE SET value = ${jsonStr}, updated_by = ${auth.userId}, updated_at = NOW()
-    `.execute(this.db);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      // Approval obtains this same lock, so a new policy cannot arrive after
+      // validation but before the associated immutable payroll is posted.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-policy:' + tenantId}))`.execute(trx);
+      await sql`
+        INSERT INTO hr_hr_settings (tenant_id, account_id, key, value, updated_by, updated_at)
+        VALUES (${tenantId}, ${accountId}, 'payroll_policies', ${jsonStr}, ${auth.userId}, NOW())
+        ON CONFLICT (tenant_id, key)
+        DO UPDATE SET value = ${jsonStr}, updated_by = ${auth.userId}, updated_at = NOW()
+      `.execute(trx);
+    });
+    await this.audit.log('Update HR payroll policies',
+      `Statutory payroll settings updated for country ${clean(policies.statutoryCountry) || 'unconfigured'} by ${auth.username}`, auth);
     return { success: true };
   }
 
@@ -2953,10 +2962,29 @@ export class HrService {
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
 
-      // Never post a payroll with unchecked legacy statutory defaults.
-      // Re-check the effective-dated, user-reviewed country policy at approval.
-      // HR must maintain its legal source, exemptions and applicable employee flags.
+      // Serialize statutory policy edits with approval/posting. The same lock
+      // is held by updatePayrollPolicies; no update can slip between the policy
+      // verification below and the committed ledger journal.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-policy:' + auth.tenantId}))`.execute(trx);
+      // HR must maintain legal sources and residency/employee exemptions.
       const policies = await this.getPayrollPolicies(trx, auth.tenantId || '');
+      const unconfiguredEmployee = await sql<{ display_name: string }>`
+        SELECT e.display_name
+        FROM hr_payroll_run_items i
+        JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+        WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId} AND i.status = 'reviewed'
+          AND (
+            (e.has_income_tax = TRUE AND ${policies.hrIncomeTaxEnabled !== true})
+            OR (e.has_social_insurance = TRUE AND ${policies.hrSocialInsuranceEnabled !== true})
+          )
+        LIMIT 1
+      `.execute(trx);
+      if (unconfiguredEmployee.rows.length) {
+        throw new AppError(
+          `الموظف ${unconfiguredEmployee.rows[0].display_name} عليه استقطاعات نظامية ولكن تم تعطيل سياسة احتسابها`,
+          'HR_PAYROLL_EMPLOYEE_STATUTORY_DISABLED', 409,
+        );
+      }
       const payrollPeriod = await sql<{ start_date: string; end_date: string }>`
         SELECT to_char(start_date, 'YYYY-MM-DD') AS start_date,
                to_char(end_date, 'YYYY-MM-DD') AS end_date
