@@ -142,7 +142,7 @@ export const hrApi = {
   applyAttendanceDeductions: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/apply-attendance-deductions`, { method: 'POST' }),
   approvePayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/approve`, { method: 'POST' }),
   cancelPayrollRun: (id: string) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/cancel`, { method: 'POST' }),
-  payPayrollRun: (id: string, payload: { paymentChannel: string }) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/pay`, { method: 'POST', body: JSON.stringify(payload) }),
+  payPayrollRun: (id: string, payload: { paymentChannel: 'cash' | 'bank'; paymentReference?: string; notes?: string }) => http<PayrollRunResponse>(`/api/hr/payroll-runs/${id}/pay`, { method: 'POST', body: JSON.stringify(payload) }),
   generatePayrollWps: (id: string, payload: { payerCrNo?: string; payerBankRoutingCode?: string; payerName?: string; currency?: string } = {}) =>
     http<{
       ok: boolean;
