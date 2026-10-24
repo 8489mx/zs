@@ -177,7 +177,8 @@ export class SalesQueryService {
     ]);
 
     const canViewCostPrice = auth.role === 'super_admin'
-      || (auth.permissions && (auth.permissions.includes('canViewProfit') || auth.permissions.includes('reports')));
+      || auth.role === 'admin'
+      || (auth.permissions && (auth.permissions.includes('canViewProfit') || auth.permissions.includes('reports') || auth.permissions.includes('purchases')));
 
     return mapSaleRows(
       sales,

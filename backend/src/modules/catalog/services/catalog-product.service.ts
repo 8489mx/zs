@@ -154,7 +154,16 @@ export class CatalogProductService {
     return requireTenantScope(actor);
   }
 
+  private canViewCostPrice(actor: AuthContext): boolean {
+    if (actor.role === 'super_admin' || actor.role === 'admin') return true;
+    const perms = actor.permissions || [];
+    return perms.includes('canViewProfit') || perms.includes('purchases') || perms.includes('inventory') || perms.includes('canViewCost');
+  }
+
   private hasPermission(actor: AuthContext, permission: string): boolean {
+    if (permission === 'canViewCost') {
+      return this.canViewCostPrice(actor);
+    }
     return actor.role === 'super_admin' || Boolean(actor.permissions?.includes(permission));
   }
 
@@ -324,7 +333,7 @@ export class CatalogProductService {
 
   async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { page, pageSize, q, view, requestedLocationId, categoryId, supplierId, brief } = this.parseListProductsQuery(query);
-    const canViewCost = this.hasPermission(actor, 'canViewCost');
+    const canViewCost = this.canViewCostPrice(actor);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
 
@@ -2268,7 +2277,7 @@ export class CatalogProductService {
   }
 
   async getProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const canViewCost = this.hasPermission(actor, 'canViewCost');
+    const canViewCost = this.canViewCostPrice(actor);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
 
     const product = await this.db
