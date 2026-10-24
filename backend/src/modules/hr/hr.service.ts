@@ -3078,6 +3078,9 @@ export class HrService {
     `.execute(this.db);
     const run = runResult.rows[0];
     if (!run) throw new AppError('مسير الرواتب غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
+    if (!['approved', 'paid'].includes(clean(run.status))) {
+      throw new AppError('لا يمكن تصدير مرتبات بنكية قبل اعتماد الكشف', 'HR_PAYROLL_EXPORT_NOT_APPROVED', 400);
+    }
 
     const itemsResult = await sql<Record<string, unknown>>`
       SELECT
@@ -3090,14 +3093,24 @@ export class HrService {
         e.iban,
         e.bank_swift_code
       FROM hr_payroll_run_items i
-      JOIN hr_employees e ON e.id = i.employee_id
-      WHERE i.run_id = ${id} AND i.status <> 'excluded' AND i.tenant_id = ${auth.tenantId}
+      JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+      WHERE i.run_id = ${id} AND i.status = 'approved' AND i.tenant_id = ${auth.tenantId}
       ORDER BY e.employee_no ASC, e.display_name ASC
     `.execute(this.db);
 
+    if (!itemsResult.rows.length) throw new AppError('لا توجد مرتبات معتمدة للتصدير', 'HR_PAYROLL_EXPORT_EMPTY', 400);
+    const badRow = itemsResult.rows.find((row) => {
+      return !clean(row.employee_no) || !clean(row.display_name) || !clean(row.national_id)
+        || !clean(row.bank_name) || (!clean(row.iban) && !clean(row.bank_account_number));
+    });
+    if (badRow) {
+      throw new AppError(
+        `استكمل رقم الموظف والهوية والبنك ورقم الحساب/الآيبان للموظف ${clean(badRow.display_name) || String(badRow.employee_id)} قبل تصدير الملف`,
+        'HR_PAYROLL_EXPORT_BANK_DETAILS_MISSING', 400,
+      );
+    }
     const now = new Date();
     const createDate = now.toISOString().slice(0, 10);
-    const createTime = now.toTimeString().slice(0, 5).replace(':', '');
     const periodMonth = clean(run.period_month) || createDate.slice(0, 7);
     const startDate = clean(run.start_date_text) || `${periodMonth}-01`;
     const endDate = clean(run.end_date_text) || `${periodMonth}-28`;
@@ -3112,10 +3125,11 @@ export class HrService {
       try { tenantSettings[row.key] = JSON.parse(row.value); } catch { tenantSettings[row.key] = row.value; }
     }
 
-    const currency = clean(payload.currency) || clean(tenantSettings.currency) || 'EGP';
-    const payerName = clean(payload.payerName) || clean(tenantSettings.companyName) || clean(auth.tenantId) || 'COMPANY';
-    const payerCrNo = clean(payload.payerCrNo) || clean(tenantSettings.crNumber) || '0000000000';
-    const payerBankRoutingCode = clean(payload.payerBankRoutingCode) || (currency === 'SAR' ? 'RIBL' : currency === 'EGP' ? 'NBE' : 'BANK');
+    const configuredCurrency = clean(tenantSettings.currency).toUpperCase();
+    const currency = clean(payload.currency || configuredCurrency || 'EGP').toUpperCase();
+    if (configuredCurrency && configuredCurrency !== currency) {
+      throw new AppError('عملة ملف التحويل مختلفة عن عملة المنشأة؛ راجع إعدادات الشركة', 'HR_PAYROLL_EXPORT_CURRENCY_MISMATCH', 400);
+    }
 
     let totalNetPay = 0;
     let totalBaseSalary = 0;
@@ -3136,13 +3150,13 @@ export class HrService {
       return {
         id: Number(row.id),
         employeeId: Number(row.employee_id),
-        employeeNo: clean(row.employee_no) || '000',
+        employeeNo: clean(row.employee_no),
         displayName: clean(row.display_name),
-        nationalId: clean(row.national_id) || '1000000000',
-        bankName: clean(row.bank_name) || 'N/A',
-        bankAccountNumber: clean(row.bank_account_number) || 'N/A',
-        iban: clean(row.iban) || 'N/A',
-        bankSwiftCode: clean(row.bank_swift_code) || payerBankRoutingCode,
+        nationalId: clean(row.national_id),
+        bankName: clean(row.bank_name),
+        bankAccountNumber: clean(row.bank_account_number),
+        iban: clean(row.iban),
+        bankSwiftCode: clean(row.bank_swift_code),
         baseSalary,
         allowances,
         deductions,
@@ -3152,18 +3166,10 @@ export class HrService {
 
     const totalEmployees = mappedRecords.length;
 
-    // Header Record (SCR): SCR,PayerCR,PayerName,CreationDate,CreationTime,PayerBank,PayerIBAN,SalaryMonth,TotalSalary,Currency
-    const scrLine = `SCR,${payerCrNo},${payerName.replace(/,/g, ' ')},${createDate},${createTime},${payerBankRoutingCode},,${periodMonth},${totalNetPay.toFixed(2)},${currency}`;
-
-    // Employee Detail Records (EDR): EDR,EmpID,EmpNo,EmpName,BankCode,IBAN,StartDate,EndDate,Days,NetPay,BaseSalary,Allowances,Deductions
-    const edrLines = mappedRecords.map((rec) => {
-      const sanitizedName = rec.displayName.replace(/,/g, ' ');
-      const ibanOrAcc = rec.iban !== 'N/A' ? rec.iban : rec.bankAccountNumber;
-      const swift = rec.bankSwiftCode !== 'N/A' ? rec.bankSwiftCode : payerBankRoutingCode;
-      return `EDR,${rec.nationalId},${rec.employeeNo},${sanitizedName},${swift},${ibanOrAcc},${startDate},${endDate},30,${rec.netPay.toFixed(2)},${rec.baseSalary.toFixed(2)},${rec.allowances.toFixed(2)},${rec.deductions.toFixed(2)}`;
-    });
-
-    const sifContent = [scrLine, ...edrLines].join('\r\n');
+    // Deliberately disabled: a universal SCR/EDR template is NOT a certified
+    // WPS format for Egypt, Saudi Arabia, Kuwait, Qatar or Oman. Never generate
+    // a pseudo-compliant banking file; only the review CSV is available.
+    const sifContent = '';
 
     // Standard CSV export
     const csvHeaders = ['رقم الموظف', 'اسم الموظف', 'الهوية / الإقامة', 'البنك', 'الآيبان / الحساب', 'السويفت', 'الراتب الأساسي', 'البدلات', 'الخصومات', 'صافي الراتب'];
@@ -3172,7 +3178,7 @@ export class HrService {
       `"${r.displayName}"`,
       `"${r.nationalId}"`,
       `"${r.bankName}"`,
-      `"${r.iban !== 'N/A' ? r.iban : r.bankAccountNumber}"`,
+      `"${r.iban || r.bankAccountNumber}"`,
       `"${r.bankSwiftCode}"`,
       r.baseSalary.toFixed(2),
       r.allowances.toFixed(2),
@@ -3197,7 +3203,7 @@ export class HrService {
         totalAllowances,
         totalDeductions,
         currency,
-        missingIbanCount: mappedRecords.filter((r) => r.iban === 'N/A' && r.bankAccountNumber === 'N/A').length,
+        missingIbanCount: mappedRecords.filter((r) => !r.iban && !r.bankAccountNumber).length,
       },
       sifContent,
       csvContent,

@@ -37,7 +37,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
     const cur = currencyCode || (settings as any)?.currency || 'EGP';
     if (!currency) setCurrency(cur);
     if (!payerBankRoutingCode) {
-      setPayerBankRoutingCode(cur === 'SAR' ? 'RIBL' : cur === 'EGP' ? 'NBE' : 'BANK');
+      setPayerBankRoutingCode('');
     }
     if (!payerName && ((settings as any)?.companyName || (settings as any)?.storeName)) {
       setPayerName((settings as any).companyName || (settings as any).storeName);
@@ -114,13 +114,8 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
   const activeCurrency = currency || summary?.currency || currencyCode || 'EGP';
   const activeSymbol = getCurrencySymbol(activeCurrency as any) || currencySymbol || activeCurrency;
 
-  const wpsStandardDesc = activeCurrency === 'SAR'
-    ? 'الملف المعتمد متوافق مع نظام حماية الأجور السعودي (مدد / GOSI / مسار) بصيغة SIF القياسية.'
-    : activeCurrency === 'EGP'
-    ? 'الملف المعتمد متوافق مع منظومة التحويلات المصرفية وحماية الأجور (البنك المركزي المصري / SIF / ACH).'
-    : activeCurrency === 'AED'
-    ? 'الملف المعتمد متوافق مع نظام حماية الأجور الإماراتي (WPS / Central Bank of UAE).'
-    : 'الملف المعتمد متوافق مع المعايير المصرفية للتحويلات البنكية وحماية الأجور (SIF Standard Interchange Format).';
+  const wpsStandardDesc = 'تصدير CSV للمراجعة فقط، وليس ملف حماية أجور معتمد. صيغة WPS الرسمية تحتاج ربطًا مستقلًا بمتطلبات الدولة والبنك.';
+
 
   return (
     <DialogShell
@@ -258,9 +253,10 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                 type="button"
                 variant="primary"
                 onClick={handleDownloadSif}
+                disabled
                 style={{ padding: '8px 16px', fontSize: '0.875rem', fontWeight: 600, background: '#170e5e', borderColor: '#170e5e', color: '#fff' }}
               >
-                {t('hr.payroll.payroll_wps_export_modal.s19', "تحميل ملف حماية الأجور (.sif)")}
+                صيغة SIF غير متاحة قبل الاعتماد البنكي
               </Button>
               <Button
                 type="button"
@@ -274,9 +270,10 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                 type="button"
                 variant="secondary"
                 onClick={() => void handleCopySif()}
+                disabled
                 style={{ padding: '8px 16px', fontSize: '0.875rem' }}
               >
-                {copied ? t('hr.payroll.payroll_wps_export_modal.s21', "تم النسخ!") : t('hr.payroll.payroll_wps_export_modal.s22', "نسخ كود SIF")}
+                {copied ? 'تم النسخ' : 'نسخ SIF غير متاح'}
               </Button>
             </div>
 
@@ -295,7 +292,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                 </thead>
                 <tbody>
                   {records.map((rec) => {
-                    const hasBank = rec.iban !== 'N/A' || rec.bankAccountNumber !== 'N/A';
+                    const hasBank = Boolean(rec.iban || rec.bankAccountNumber);
                     return (
                       <tr key={rec.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '6px 10px', fontFamily: 'monospace', textAlign: 'center' }}>{rec.employeeNo}</td>
@@ -303,7 +300,7 @@ export function PayrollWpsExportModal({ runId, runMonth, runName, onClose }: Pay
                         <td style={{ padding: '6px 10px', fontFamily: 'monospace', color: '#64748b', textAlign: 'center' }}>{rec.nationalId}</td>
                         <td style={{ padding: '6px 10px' }}>{rec.bankName}</td>
                         <td style={{ padding: '6px 10px', fontFamily: 'monospace', direction: 'ltr', textAlign: 'center', color: hasBank ? '#0f172a' : '#dc2626' }}>
-                          {rec.iban !== 'N/A' ? rec.iban : rec.bankAccountNumber}
+                          {rec.iban || rec.bankAccountNumber}
                         </td>
                         <td style={{ padding: '6px 10px', fontWeight: 700, color: '#10b981', textAlign: 'center', whiteSpace: 'nowrap' }}>
                           {rec.netPay.toFixed(2)} {activeSymbol}
