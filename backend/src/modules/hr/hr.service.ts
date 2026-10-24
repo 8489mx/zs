@@ -48,7 +48,7 @@ import {
 } from './attendance-punch.engine';
 import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
-import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
@@ -3592,6 +3592,12 @@ export class HrService {
   }
 
   async payPayrollRun(id: number, payload: PayPayrollRunDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    let paymentReference: string;
+    try {
+      paymentReference = requireBankPayrollPaymentReference(payload.paymentChannel, payload.paymentReference);
+    } catch (error) {
+      throw new AppError(error instanceof Error ? error.message : 'المرجع البنكي غير صحيح', 'HR_PAYROLL_PAYMENT_REFERENCE_REQUIRED', 400);
+    }
     await this.tx.runInTransaction(this.db, async (trx) => {
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'approved') throw new AppError('Only approved payroll runs can be paid', 'HR_PAYROLL_PAY_LOCKED', 400);
@@ -3622,7 +3628,7 @@ export class HrService {
             paid_by = ${auth.userId},
             paid_at = NOW(),
             payment_channel = ${payload.paymentChannel},
-            payment_reference = ${payload.paymentReference || null},
+            payment_reference = ${paymentReference || null},
             payment_notes = ${payload.notes || ''},
             updated_at = NOW()
         WHERE id = ${id} AND tenant_id = ${auth.tenantId}

@@ -75,6 +75,7 @@ export function HrPayrollPage() {
   const [showPayRun, setShowPayRun] = useState(false);
   const [showWpsModal, setShowWpsModal] = useState(false);
   const [payChannel, setPayChannel] = useState<'cash' | 'bank'>('cash');
+  const [paymentReference, setPaymentReference] = useState('');
 
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
   const payrollRunDetails = useHrPayrollRun(selectedRunId || undefined);
@@ -368,8 +369,17 @@ export function HrPayrollPage() {
     if (!selectedRunId) return;
     try {
       setFormError('');
-      await mutations.payPayrollRun?.mutateAsync({ id: selectedRunId, payload: { paymentChannel: payChannel } });
+      const transferRef = paymentReference.trim();
+      if (payChannel === 'bank' && !transferRef) {
+        setFormError('المرجع الفعلي للتحويل البنكي مطلوب قبل تسجيل الصرف.');
+        return;
+      }
+      await mutations.payPayrollRun?.mutateAsync({
+        id: selectedRunId,
+        payload: { paymentChannel: payChannel, paymentReference: payChannel === 'bank' ? transferRef : undefined },
+      });
       setShowPayRun(false);
+      setPaymentReference('');
       toast.success('تم تسجيل صرف المرتبات بنجاح.');
     } catch (err) {
       setFormError(getErrorMessage(err));
@@ -863,6 +873,8 @@ export function HrPayrollPage() {
         selectedRun={selectedRun}
         payChannel={payChannel}
         onPayChannelChange={setPayChannel}
+        paymentReference={paymentReference}
+        onPaymentReferenceChange={setPaymentReference}
         onSubmit={handlePayRun}
         isPending={mutations.payPayrollRun?.isPending ?? false}
         canApprovePayroll={canApprovePayroll}
