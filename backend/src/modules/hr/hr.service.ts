@@ -1967,6 +1967,7 @@ export class HrService {
         e.hourly_rate,
         e.expected_daily_hours,
         e.hire_date,
+        e.end_of_service_date,
         c.start_date AS contract_start_date,
         c.end_date AS contract_end_date
       FROM hr_employees e
@@ -1974,7 +1975,10 @@ export class HrService {
         SELECT *
         FROM hr_employment_contracts c
         WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
-          AND c.status = 'active'
+          AND (
+            c.status = 'active'
+            OR (e.status = 'terminated' AND c.status = 'ended')
+          )
           AND c.start_date <= ${range.to}::date
           AND (c.end_date IS NULL OR c.end_date >= ${range.from}::date)
         ORDER BY c.start_date DESC NULLS LAST,
@@ -1990,7 +1994,21 @@ export class HrService {
         ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
         LIMIT 1
       ) cp ON TRUE
-      WHERE e.status = 'active' AND e.tenant_id = ${tenantId}
+      WHERE e.tenant_id = ${tenantId}
+        AND (
+          e.status = 'active'
+          OR (
+            e.status = 'terminated'
+            AND e.end_of_service_date >= ${range.from}::date
+            -- A posted EOS settlement reconciles the final wage separately;
+            -- do not include it again in payroll.
+            AND NOT EXISTS (
+              SELECT 1 FROM hr_end_of_service_settlements s
+              WHERE s.employee_id = e.id AND s.tenant_id = e.tenant_id
+                AND s.status = 'posted'
+            )
+          )
+        )
         AND (e.hire_date IS NULL OR e.hire_date <= ${range.to}::date)
         ${payFreq === 'all' ? sql`` : sql`AND COALESCE(e.pay_frequency, 'monthly') = ${payFreq}`}
       ORDER BY e.id ASC
@@ -2022,8 +2040,9 @@ export class HrService {
       const hire = e.hire_date ? String(e.hire_date).slice(0, 10) : range.from;
       const contractStart = e.contract_start_date ? String(e.contract_start_date).slice(0, 10) : range.from;
       const contractEnd = e.contract_end_date ? String(e.contract_end_date).slice(0, 10) : range.to;
+      const employmentEnd = e.end_of_service_date ? String(e.end_of_service_date).slice(0, 10) : range.to;
       const from = [range.from, hire, contractStart].sort().at(-1)!;
-      const to = [range.to, contractEnd].sort()[0];
+      const to = [range.to, contractEnd, employmentEnd].sort()[0];
       payRangeByEmployee.set(id, { from, to });
     }
     for (const e of employees.rows) {
@@ -2913,6 +2932,7 @@ export class HrService {
         SELECT e.display_name
         FROM hr_payroll_run_items i
         JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
         WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId}
           AND i.status = 'reviewed'
           AND (
@@ -2920,7 +2940,9 @@ export class HrService {
             OR (e.compensation_type <> 'hourly' AND NOT EXISTS (
               SELECT 1 FROM hr_employment_contracts c
               WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id
-                AND c.status = 'active' AND c.base_salary > 0
+                AND c.status IN ('active', 'ended') AND c.base_salary > 0
+                AND c.start_date <= r.end_date
+                AND (c.end_date IS NULL OR c.end_date >= r.start_date)
             ))
           )
         LIMIT 5
