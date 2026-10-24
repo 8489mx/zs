@@ -155,6 +155,9 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-FIN-41 (25 October 2026): Include standalone manual-cash loan repayment months in employee financial statement monthly breakdown even when no payroll or new loan exists that month. Exclude undisbursed approved loan commitments from the month selector; monthly movement is derived from the real repayment ledger date. Synthetic regression added, not executed.
 
+- HR-EMP-42 (25 October 2026): Editing an existing employee, including payroll-relevant hourly pay, status, tax/insurance flags, compensation and attendance policy, now takes the tenant payroll advisory transaction lock followed by an employee FOR UPDATE row lock. Main record update and primary phone update/insert are in one transaction; an error cannot leave partially updated employment records or bypass the payroll approval snapshot. Employee new-create path keeps its existing atomic transaction.
+- Historical statement immutability still relies on stored approved payroll items. No runtime tests/build/typecheck performed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

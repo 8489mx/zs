@@ -934,16 +934,21 @@ export class HrService {
 
     try {
       if (id) {
-        const existingStatus = await sql<{ status: string }>`
-          SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-          LIMIT 1
-        `.execute(this.db);
+        await this.tx.runInTransaction(this.db, async trx => {
+          // Payroll approval takes this lock before all employee snapshots.
+          // Without it salary/attendance/insurance profile fields could change
+          // between a reviewed snapshot recalculation and final ledger posting.
+          await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+          const existingStatus = await sql<{ status: string }>`
+            SELECT status FROM hr_employees
+            WHERE id = ${id} AND tenant_id = ${auth.tenantId} FOR UPDATE
+          `.execute(trx);
         if (!existingStatus.rows.length) throw new NotFoundException('Employee not found');
         if (existingStatus.rows[0].status === 'terminated' && payload.status && payload.status !== 'terminated') {
           throw new AppError('لا يمكن إعادة تفعيل موظف انتهت خدمته بمجرد تعديل ملفه', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
         }
         if (employeeNo) {
-          await this.ensureEmployeeNoAvailable(this.db, employeeNo, id, auth);
+          await this.ensureEmployeeNoAvailable(trx, employeeNo, id, auth);
         }
         await sql`
           UPDATE hr_employees
@@ -976,16 +981,17 @@ export class HrService {
               bank_swift_code = ${clean(payload.bankSwiftCode) || null},
               updated_by = ${auth.userId}, updated_at = NOW()
           WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-        `.execute(this.db);
+        `.execute(trx);
 
         if (cleanPhone) {
-          const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
+          const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(trx);
           if (existing.rows.length > 0) {
-            await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+            await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(trx);
           } else {
-            await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
+            await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(trx);
           }
         }
+        });
       } else {
         await this.tx.runInTransaction(this.db, async (trx) => {
           // Serialize creation with ATS hires so auto numbers cannot race.
