@@ -1947,6 +1947,11 @@ export class HrService {
   }
 
   async getEmployeeFinancialStatement(employeeId: number, query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
+    const allowed = ['hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove', 'hrSalaryView', 'hrSalaryManage']
+      .some(permission => hasHrPermission(auth, permission));
+    if (!allowed) {
+      throw new AppError('تقرير الموظف المالي الكامل يتطلب صلاحية عرض المرتبات', 'HR_FINANCIAL_STATEMENT_FORBIDDEN', 403);
+    }
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
     const { tenantId } = requireTenantScope(auth);
 
@@ -1961,10 +1966,14 @@ export class HrService {
     const empRow = empRes.rows[0];
     if (!empRow) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
 
+    const employeeLocalDate = todayTenantDate(await getTenantTimezone(this.db, tenantId));
     const contractRes = await sql<{ base_salary: string }>`
       SELECT base_salary FROM hr_employment_contracts
-      WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId} AND status = 'active'
-      ORDER BY id DESC LIMIT 1
+      WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        AND status = 'active'
+        AND start_date <= ${employeeLocalDate}::date
+        AND (end_date IS NULL OR end_date >= ${employeeLocalDate}::date)
+      ORDER BY start_date DESC, id DESC LIMIT 1
     `.execute(this.db);
     const baseSalary = Number(contractRes.rows[0]?.base_salary || 0);
 

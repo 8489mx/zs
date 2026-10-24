@@ -135,6 +135,10 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-PAY-32 (25 October 2026): Employee day/hour adjustments are valued at the exact effective salary contract on the adjustment date, not an average from the payroll period; valid money adjustments remain fixed. Backdated time-unit adjustments outside the payroll period block with an explicit reconciliation error rather than using a fabricated rate. Synthetic regression tests added but not executed.
 
+- HR-SEC-33 (25 October 2026): Full employee financial statement requires a salary/payroll permission at controller and service, instead of broadly allowing employee or loan-only permissions. Standalone loan/ledger routes remain independent.
+- HR-PAY-34: Current base wage in statement resolves the contract valid on the tenant-local date. Posted payslips remain persisted snapshots.
+- Tests, Build, Typecheck and guards were not executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
