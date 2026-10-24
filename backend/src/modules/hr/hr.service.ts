@@ -1618,6 +1618,9 @@ export class HrService {
     }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Never mutate loan balances/installments concurrently with payroll review
+      // or accrual posting; all HR loan writers acquire the tenant payroll lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const employee = await trx.selectFrom('hr_employees').select(['id', 'status', 'display_name', 'first_name'])
         .where('id', '=', employeeId).where('tenant_id', '=', requireTenantScope(auth).tenantId)
         .forUpdate()
@@ -1709,6 +1712,9 @@ export class HrService {
     const plan = this.normalizeRepaymentPlan({ ...payload, issueDate }, amount);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Never mutate loan balances/installments concurrently with payroll review
+      // or accrual posting; all HR loan writers acquire the tenant payroll lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       // Serializes loan edit with approval/disbursement: never update the
       // installment schedule using a stale pre-transaction draft snapshot.
       const locked = await sql<{ status: string; employee_id: number; loan_no: string }>`
@@ -1754,6 +1760,9 @@ export class HrService {
   async approveLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async trx => {
+      // Never mutate loan balances/installments concurrently with payroll review
+      // or accrual posting; all HR loan writers acquire the tenant payroll lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const result = await sql<{ id: number; employee_id: number; principal_amount: string; created_by: string; status: string }>`
         SELECT id, employee_id, principal_amount, created_by, status
         FROM hr_employee_loans WHERE id = ${id} AND tenant_id = ${tenantId}
@@ -1820,6 +1829,9 @@ export class HrService {
 
   async disburseLoan(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Never mutate loan balances/installments concurrently with payroll review
+      // or accrual posting; all HR loan writers acquire the tenant payroll lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const result = await sql<Record<string, unknown>>`
         SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
       `.execute(trx);
@@ -1842,6 +1854,9 @@ export class HrService {
 
   async repayLoan(id: number, payload: LoanRepaymentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Never mutate loan balances/installments concurrently with payroll review
+      // or accrual posting; all HR loan writers acquire the tenant payroll lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const result = await sql<Record<string, unknown>>`
         SELECT l.*, e.display_name AS employee_name FROM hr_employee_loans l JOIN hr_employees e ON e.id = l.employee_id AND e.tenant_id = l.tenant_id WHERE l.id = ${id} AND l.tenant_id = ${this.scope(auth).tenantId} LIMIT 1 FOR UPDATE
       `.execute(trx);

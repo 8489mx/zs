@@ -127,6 +127,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-EOS-CONTRACT-1: EOS gratuity/leave valuation must use a salary contract actually effective ON the termination date; do not silently pick a contract that started before termination but already ended years earlier, or fall back to an unrelated employee profile field. Missing effective contracts fail closed for HR review. Code-only, tests not executed.
 
+- HR-LOAN-29 (25 October 2026): Every admin loan mutation (create, draft update, approve, disburse, manual repay) obtains the tenant payroll advisory transaction lock before any employee/loan row lock. This serializes salary loan-deduction previews and accrual settlement with disbursement/manual repayment and prevents replaying stale balances or deadlocking on mixed loan/installment lock order. No tests were run under the pending user test authorization.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
