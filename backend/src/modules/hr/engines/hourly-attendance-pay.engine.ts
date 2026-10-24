@@ -1,3 +1,5 @@
+import { calculateOvertime } from './payroll-calculation.engine';
+
 /**
  * HR payment calculations: hourly staff are paid for completed, valid recorded
  * work sessions, not for a theoretical 30-day attendance schedule.
@@ -158,4 +160,40 @@ export function calculateEffectiveCompensationPay(
     lastEnd = end;
   }
   return { allowance: Number(allowance.toFixed(2)), deduction: Number(deduction.toFixed(2)) };
+}
+
+export interface ApprovedOvertimeDay {
+  date: string;
+  minutes: number;
+}
+
+/** An approved minute is paid at the salary rate effective on its exact date. */
+export function calculateHistoricalOvertimePay(
+  days: ApprovedOvertimeDay[],
+  contracts: EffectiveSalaryContract[],
+  expectedDailyHours: number,
+  multiplier: number,
+): number {
+  if (!Number.isFinite(expectedDailyHours) || expectedDailyHours <= 0 || expectedDailyHours > 24
+    || !Number.isFinite(multiplier) || multiplier < 1 || multiplier > 5) {
+    throw new RangeError('Invalid overtime rate or daily schedule');
+  }
+  let total = 0;
+  for (const day of days) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date) || !Number.isFinite(day.minutes)
+      || day.minutes < 0 || day.minutes > 1440) {
+      throw new RangeError('Invalid approved overtime attendance record');
+    }
+    if (day.minutes === 0) continue;
+    const matches = contracts.filter(c => c.startDate <= day.date && (!c.endDate || c.endDate >= day.date));
+    if (matches.length !== 1 || !Number.isFinite(matches[0].baseSalary) || matches[0].baseSalary <= 0) {
+      throw new RangeError('Overtime date must match exactly one valid salary contract');
+    }
+    total += calculateOvertime({
+      calculatedHourlyRate: matches[0].baseSalary / 30 / expectedDailyHours,
+      overtimeMinutes: day.minutes,
+      overtimeMultiplier: multiplier,
+    });
+  }
+  return Number(total.toFixed(2));
 }
