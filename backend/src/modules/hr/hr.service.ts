@@ -48,6 +48,7 @@ import {
 } from './attendance-punch.engine';
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateEmployeePayrollLine } from './engines/payroll-calculation.engine';
+import { calculateHrStatutoryAmounts, validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, prorateMonthlyWage } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
@@ -245,9 +246,17 @@ export class HrService {
       hrCommissionValue: 0,
       hrCommissionTarget: 0,
       hrSocialInsuranceEnabled: false,
-      hrSocialInsuranceEmployeePct: 11,
-      hrSocialInsuranceEmployerPct: 18.75,
+      hrSocialInsuranceEmployeePct: 0,
+      hrSocialInsuranceEmployerPct: 0,
       hrIncomeTaxEnabled: false,
+      statutoryCountry: '',
+      statutoryEffectiveFrom: '',
+      statutoryEffectiveTo: '',
+      statutoryLegalReference: '',
+      statutoryReviewed: false,
+      taxPersonalExemption: 0,
+      taxBrackets: [],
+      insuranceConfig: null,
       maxDeductionPct: 1.0,
     };
     if (result.rows.length === 0) return defaults;
@@ -259,6 +268,12 @@ export class HrService {
   }
 
   async updatePayrollPolicies(auth: any, policies: any) {
+    if (!policies || typeof policies !== 'object' || Array.isArray(policies)) {
+      throw new AppError('بيانات سياسات المرتبات غير صحيحة', 'HR_PAYROLL_POLICY_INVALID', 400);
+    }
+    try { validateHrStatutoryPolicy(policies as HrStatutoryPolicy); } catch (error) {
+      throw new AppError(error instanceof Error ? error.message : 'قواعد الاستقطاعات غير صحيحة', 'HR_STATUTORY_POLICY_INVALID', 400);
+    }
     const jsonStr = JSON.stringify(policies);
     await sql`
       INSERT INTO hr_hr_settings (tenant_id, account_id, key, value, updated_by, updated_at)
@@ -2365,9 +2380,8 @@ export class HrService {
     let hrCommissionValue = 0;
     let hrCommissionTarget = 0;
     let hrSocialInsuranceEnabled = false;
-    let hrSocialInsuranceEmployeePct = 11;
-    let hrSocialInsuranceEmployerPct = 18.75;
     let hrIncomeTaxEnabled = false;
+    let statutoryPolicy: HrStatutoryPolicy = {};
 
     let hrWeekendDays = ['friday', 'saturday'];
     
@@ -2382,9 +2396,11 @@ export class HrService {
       hrCommissionValue = Number(globalPolicies.hrCommissionValue || 0);
       hrCommissionTarget = Number(globalPolicies.hrCommissionTarget || 0);
       hrSocialInsuranceEnabled = globalPolicies.hrSocialInsuranceEnabled === true;
-      hrSocialInsuranceEmployeePct = Number(globalPolicies.hrSocialInsuranceEmployeePct || 11);
-      hrSocialInsuranceEmployerPct = Number(globalPolicies.hrSocialInsuranceEmployerPct || 18.75);
       hrIncomeTaxEnabled = globalPolicies.hrIncomeTaxEnabled === true;
+      statutoryPolicy = globalPolicies as HrStatutoryPolicy;
+      try { validateHrStatutoryPolicy(statutoryPolicy, range); } catch (error) {
+        throw new AppError(error instanceof Error ? error.message : 'قواعد الاستقطاعات غير صالحة', 'HR_STATUTORY_POLICY_NOT_VERIFIED', 409);
+      }
       hrWeekendDays = (globalPolicies.hrWeekendDays || 'friday,saturday').split(',').map((d: string) => d.trim().toLowerCase());
     }
 
@@ -2518,45 +2534,27 @@ export class HrService {
         commissionValue = cVal;
       }
       
-      // Calculate Social Insurance Deduction
-      let suggestedSocialInsuranceDeductionAmount = 0;
-      let suggestedEmployerInsuranceAmount = 0;
-      if (hrSocialInsuranceEnabled && emp.has_social_insurance) {
-        const fullMonthlyBase = Number(contractualMonthlySalary?.get(employeeId) || 0);
-        const periodRatio = !isHourly && fullMonthlyBase > 0 ? Math.max(0, baseSalary / fullMonthlyBase) : 1;
-        const configuredInsuranceSalary = Number(emp.insurance_salary || 0);
-        const insSalary = configuredInsuranceSalary > 0
-          ? configuredInsuranceSalary * periodRatio : baseSalary;
-        suggestedSocialInsuranceDeductionAmount = Number((insSalary * (hrSocialInsuranceEmployeePct / 100)).toFixed(2));
-        suggestedEmployerInsuranceAmount = Number((insSalary * (hrSocialInsuranceEmployerPct / 100)).toFixed(2));
+      // Never assume Egyptian 2024 rates or apply them across GCC jurisdictions.
+      // Employee tax/insurance eligibility comes from HR flags, not currency.
+      const fullMonthlyBase = Number(contractualMonthlySalary?.get(employeeId) || 0);
+      const periodRatio = !isHourly && fullMonthlyBase > 0 ? Math.max(0, baseSalary / fullMonthlyBase) : 1;
+      const configuredInsuranceSalary = Number(emp.insurance_salary || 0);
+      const insuranceWage = configuredInsuranceSalary > 0 ? configuredInsuranceSalary * periodRatio : baseSalary;
+      let amounts: ReturnType<typeof calculateHrStatutoryAmounts>;
+      try {
+        amounts = calculateHrStatutoryAmounts(statutoryPolicy, range, {
+          insured: Boolean(emp.has_social_insurance),
+          taxable: Boolean(emp.has_income_tax),
+          insuranceWage,
+          taxableMonthlyWage: Math.max(0, baseSalary + commissionValue + suggestedOvertimeAllowanceAmount),
+        });
+      } catch (error) {
+        throw new AppError(error instanceof Error ? error.message : 'تعذر حساب الاستقطاعات', 'HR_STATUTORY_CALCULATION_INVALID', 409);
       }
+      const suggestedSocialInsuranceDeductionAmount = amounts.employeeInsurance;
+      const suggestedEmployerInsuranceAmount = amounts.employerInsurance;
+      const suggestedIncomeTaxDeductionAmount = amounts.incomeTax;
 
-      // Calculate Income Tax Deduction
-      let suggestedIncomeTaxDeductionAmount = 0;
-      if (hrIncomeTaxEnabled && emp.has_income_tax) {
-        // Simplified standard brackets (monthly):
-        // 1- up to 3333 -> 0%
-        // 2- 3334 to 4583 -> 10%
-        // 3- 4584 to 6250 -> 15%
-        // 4- 6251 to 16666 -> 20%
-        // 5- >16666 -> 22.5%
-        // (Rough monthly approximation for 2024 Egypt, we'll keep it simple for now and can be overridden via settings if needed)
-        const taxableIncome = baseSalary - suggestedSocialInsuranceDeductionAmount + commissionValue + suggestedOvertimeAllowanceAmount;
-        let tax = 0;
-        if (taxableIncome > 3333) {
-          if (taxableIncome <= 4583) {
-            tax = (taxableIncome - 3333) * 0.10;
-          } else if (taxableIncome <= 6250) {
-            tax = (4583 - 3333) * 0.10 + (taxableIncome - 4583) * 0.15;
-          } else if (taxableIncome <= 16666) {
-            tax = (4583 - 3333) * 0.10 + (6250 - 4583) * 0.15 + (taxableIncome - 6250) * 0.20;
-          } else {
-            tax = (4583 - 3333) * 0.10 + (6250 - 4583) * 0.15 + (16666 - 6250) * 0.20 + (taxableIncome - 16666) * 0.225;
-          }
-        }
-        suggestedIncomeTaxDeductionAmount = Number(tax.toFixed(2));
-      }
-      
       let notesStr = `مراجعة: غياب ${attendanceAbsentDays} يوم.`;
       if (totalIncidents > 0) notesStr += ` (${totalIncidents}) مرات تأخير/انصراف مبكر باجمالي ${Math.floor((lateMinutes+earlyLeaveMinutes)/60)}س و${(lateMinutes+earlyLeaveMinutes)%60}د. سياسة: ${delayPolicyMode}.`;
       if (unpaidLeaveDays > 0) notesStr += ` إجازة بدون مرتب ${unpaidLeaveDays} يوم.`;
