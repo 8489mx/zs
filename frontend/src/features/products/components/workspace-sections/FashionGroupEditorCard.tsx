@@ -14,7 +14,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { formatCurrency } from '@/lib/format';
 import { Trash2Icon } from '@/shared/components/icons/AppIcons';
-import { systemConfirm } from '@/shared/components/system-alert';
+import { systemConfirm, systemAlert, toast } from '@/shared/components/system-alert';
 import type { Category, Product, Supplier, Location } from '@/types/domain';
 import {
   buildPayload,
@@ -129,6 +129,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
   const [sizesValue, setSizesValue] = useState('');
   const [barcodePrefix, setBarcodePrefix] = useState('');
   const [generationError, setGenerationError] = useState('');
+  const [consolidateStockOnSave, setConsolidateStockOnSave] = useState(false);
 
   // Query refresh must not overwrite an unsaved model/variant matrix.
   const lastHydratedRef = useRef<{
@@ -256,7 +257,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         if (row.id && !source) throw new Error('صنف فرعي غير موجود في المجموعة');
         return { ...buildPayload({ ...commonDraft, name: trimmedName, styleCode: trimmedStyleCode }, row, source, toCommonDraft(seedProduct, groupProducts).defaultLocationId), id: source ? Number(source.id) : undefined };
       });
-      await productsApi.saveFashionGroup(styleCode, { rows: payloadRows });
+      await productsApi.saveFashionGroup(styleCode, { rows: payloadRows, consolidateStock: Boolean(consolidateStockOnSave) });
       return cleanRows;
     },
     onSuccess: async () => {
@@ -302,6 +303,158 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     }]);
   }
 
+  async function smartSyncFromTokens() {
+    const colors = splitFashionTokens(colorsValue);
+    const sizes = splitFashionTokens(sizesValue);
+    if (!colors.length && !sizes.length) {
+      toast.warning('يرجى كتابة أو تحديد لون أو مقاس واحد على الأقل في الحقول أعلاه');
+      return;
+    }
+
+    const normColors = colors.length ? colors : [''];
+    const normSizes = sizes.length ? sizes : [''];
+
+    type TargetCombo = { color: string; size: string; key: string };
+    const targetCombos: TargetCombo[] = [];
+    for (const c of normColors) {
+      for (const s of normSizes) {
+        if (!c.trim() && !s.trim()) continue;
+        targetCombos.push({
+          color: c.trim(),
+          size: s.trim(),
+          key: `${normalizeArabicSearchKey(c)}::${normalizeArabicSearchKey(s)}`,
+        });
+      }
+    }
+
+    if (!targetCombos.length) return;
+
+    const consumedRowIndices = new Set<number>();
+    const nextRows: VariantDraft[] = [];
+
+    // 1. First pass: Exact matches (both color and size match)
+    for (const target of targetCombos) {
+      const exactIndex = variantRows.findIndex(
+        (row, idx) => !consumedRowIndices.has(idx) && `${normalizeArabicSearchKey(row.color)}::${normalizeArabicSearchKey(row.size)}` === target.key,
+      );
+      if (exactIndex !== -1) {
+        consumedRowIndices.add(exactIndex);
+        nextRows.push({
+          ...variantRows[exactIndex],
+          color: target.color,
+          size: target.size,
+        });
+      }
+    }
+
+    // 2. Second pass: Fuzzy / Transition matches
+    // (e.g. user cleared sizes so target is { color: 'ابيض', size: '' }, or modified sizes)
+    for (const target of targetCombos) {
+      const alreadyMatched = nextRows.some(
+        (r) => `${normalizeArabicSearchKey(r.color)}::${normalizeArabicSearchKey(r.size)}` === target.key,
+      );
+      if (alreadyMatched) continue;
+
+      // Find an existing unconsumed row that shares the same color (or same size)
+      // Prioritize rows with stock > 0 first, then rows with database ID
+      let bestCandidateIndex = -1;
+      let bestScore = -1;
+
+      variantRows.forEach((row, idx) => {
+        if (consumedRowIndices.has(idx)) return;
+        const sameColor = Boolean(target.color && normalizeArabicSearchKey(row.color) === normalizeArabicSearchKey(target.color));
+        const sameSize = Boolean(target.size && normalizeArabicSearchKey(row.size) === normalizeArabicSearchKey(target.size));
+        if (sameColor || sameSize) {
+          const stock = Number(row.stock || 0);
+          const hasId = row.id ? 1000 : 0;
+          const score = hasId + stock * 10;
+          if (score > bestScore) {
+            bestScore = score;
+            bestCandidateIndex = idx;
+          }
+        }
+      });
+
+      if (bestCandidateIndex !== -1) {
+        consumedRowIndices.add(bestCandidateIndex);
+        const matchedRow = variantRows[bestCandidateIndex];
+        nextRows.push({
+          ...matchedRow,
+          color: target.color,
+          size: target.size,
+        });
+      } else {
+        nextRows.push({
+          color: target.color,
+          size: target.size,
+          sku: '',
+          barcode: '',
+          useCustomPricing: false,
+          pricingEditorOpen: false,
+          costPrice: Number(commonDraft.costPrice || 0),
+          retailPrice: Number(commonDraft.retailPrice || 0),
+          wholesalePrice: Number(commonDraft.wholesalePrice || 0),
+          stock: 0,
+          minStock: Number(commonDraft.minStock || 0),
+        });
+      }
+    }
+
+    // 3. Third pass: Check any unconsumed rows that have actual stock > 0
+    const unconsumedWithStock: VariantDraft[] = [];
+    variantRows.forEach((row, idx) => {
+      if (!consumedRowIndices.has(idx) && Number(row.stock || 0) > 0) {
+        unconsumedWithStock.push(row);
+      }
+    });
+
+    if (unconsumedWithStock.length > 0) {
+      const totalStockToConsolidate = unconsumedWithStock.reduce((sum, r) => sum + Number(r.stock || 0), 0);
+      const confirmConsolidate = await systemConfirm({
+        title: 'دمج وتطهير رصيد المقاسات الملغاة تلقائياً',
+        message: `يوجد ${unconsumedWithStock.length} مقاساً تم إلغاؤها تحتوي على رصيد مخزني (إجمالي ${totalStockToConsolidate} قطعة).\n\nالنظام يتيح لك دمج كميات هذه المقاسات وإضافتها لرصيد اللون المقابل تلقائياً لتظل الكمية الإجمالية للموديل محفوظة بدقة دون أي نقص دفتري.\n\n- تأكيد ودمج الرصيد: سيقوم بدمج الكميات وتطهير الجدول فوراً من كافة المقاسات الملغاة.\n- إلغاء: سيبقي عليها في الجدول لمن يرغب في تعديلها يدوياً.`,
+        confirmText: 'تأكيد ودمج الرصيد',
+        cancelText: 'إلغاء ومراجعة يدوية',
+      });
+
+      if (confirmConsolidate) {
+        unconsumedWithStock.forEach((unconsumed) => {
+          const matchingTarget = nextRows.find((r) => normalizeArabicSearchKey(r.color) === normalizeArabicSearchKey(unconsumed.color))
+            || nextRows[0];
+          if (matchingTarget) {
+            matchingTarget.stock = Number(matchingTarget.stock || 0) + Number(unconsumed.stock || 0);
+          }
+        });
+        setConsolidateStockOnSave(true);
+        setVariantRows(nextRows);
+        toast.success(`تم دمج رصيد المقاسات بنجاح وتطهير كافة المقاسات الملغاة (${nextRows.length} صنف متبقي)`);
+        return;
+      } else {
+        unconsumedWithStock.forEach((r) => nextRows.push(r));
+        setVariantRows(nextRows);
+        toast.info('تم الإبقاء على المقاسات ذات الرصيد المخزني في الجدول للمراجعة اليدوية');
+        return;
+      }
+    }
+
+    setVariantRows(nextRows);
+    toast.success('تم تحديث شبكة الفروع وتطهير المقاسات غير المحددة بنجاح');
+  }
+
+  function pruneZeroStockRows() {
+    const zeroRows = variantRows.filter((r) => Number(r.stock || 0) === 0);
+    if (!zeroRows.length) {
+      toast.info('لا توجد أصناف فرعية برصيد صفري في الجدول');
+      return;
+    }
+    if (variantRows.length - zeroRows.length < 1) {
+      toast.warning('يجب أن يتبقى صنف فرعي واحد على الأقل في المجموعة');
+      return;
+    }
+    setVariantRows((current) => current.filter((r) => Number(r.stock || 0) > 0));
+    toast.success(`تم حذف ${zeroRows.length} صنف فرعي برصيد صفري بنجاح`);
+  }
+
   function generateFromTokens() {
     const colors = splitFashionTokens(colorsValue);
     const sizes = splitFashionTokens(sizesValue);
@@ -314,6 +467,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     const normColors = colors.length ? colors : [''];
     const normSizes = sizes.length ? sizes : [''];
 
+    let addedCount = 0;
     for (const c of normColors) {
       for (const s of normSizes) {
         if (!c.trim() && !s.trim()) continue;
@@ -333,11 +487,17 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
             stock: 0,
             minStock: Number(commonDraft.minStock || 0),
           });
+          addedCount++;
         }
       }
     }
 
     setVariantRows(nextRows);
+    if (addedCount > 0) {
+      toast.success(`تمت إضافة ${addedCount} صنف فرعي جديد بنجاح`);
+    } else {
+      toast.info('كافة الفروع المدخلة موجودة بالفعل في الجدول');
+    }
   }
 
   function generateSequentialBarcodes() {
@@ -420,7 +580,15 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     }));
   }
 
-  function removeDraftRow(index: number) {
+  async function removeDraftRow(index: number) {
+    const row = variantRows[index];
+    if (row?.id && Number(row.stock || 0) > 0) {
+      await systemAlert({
+        title: 'لا يمكن حذف صنف له رصيد مخزني',
+        message: `الصنف الفرعي (${variantLabel(row)}) لديه رصيد حالي (${row.stock} قطعة).\n\nالنظام المحاسبي يمنع حذف أي صنف له رصيد لحماية المخزون من العجز.\n\nإذا كنت ترغب في إلغاء المقاس وجعله لوناً فقط، يمكنك مسح خانة المقاس في الجدول مباشرة، أو استخدام زر "توليد وتحديث شبكة الفروع" لنقل الرصيد تلقائياً.`,
+      });
+      return;
+    }
     setVariantRows((current) => current.filter((_, rowIndex) => rowIndex !== index));
   }
 
@@ -760,6 +928,15 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                   className="purchase-prototype-field-input"
                   value={colorsValue}
                   onChange={(event) => setColorsValue(normalizeArabicInput(event.target.value))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const trimmed = colorsValue.trim();
+                      if (trimmed && !trimmed.endsWith('-') && !trimmed.endsWith('،') && !trimmed.endsWith(',')) {
+                        setColorsValue(`${trimmed} - `);
+                      }
+                    }
+                  }}
                   disabled={mutation.isPending}
                   placeholder={templateConfig.primaryPlaceholder}
                   style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
@@ -801,6 +978,15 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                   className="purchase-prototype-field-input"
                   value={sizesValue}
                   onChange={(event) => setSizesValue(normalizeArabicInput(event.target.value))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const trimmed = sizesValue.trim();
+                      if (trimmed && !trimmed.endsWith('-') && !trimmed.endsWith('،') && !trimmed.endsWith(',')) {
+                        setSizesValue(`${trimmed} - `);
+                      }
+                    }
+                  }}
                   disabled={mutation.isPending}
                   placeholder={templateConfig.secondaryPlaceholder}
                   style={{ height: '34px', minHeight: '34px', fontSize: '0.84rem' }}
@@ -890,16 +1076,27 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
             </div>
           </div>
 
-          {/* Sync Button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: '2px' }}>
+          {/* Sync Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: '4px', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <Button
               type="button"
               variant="primary"
+              onClick={smartSyncFromTokens}
+              disabled={mutation.isPending || (!colorsValue.trim() && !sizesValue.trim())}
+              style={{ fontSize: '0.8rem', padding: '5px 16px', fontWeight: 800, height: '32px' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s28_sync_tip', "تحديث شبكة الأصناف الفرعية بناءً على المدخلات، وتطهير المقاسات غير المحددة، مع نقل وحماية أي صنف له رصيد")}
+            >
+              {t('products.workspace_sections.fashion_group_editor_card.s28', "توليد وتحديث شبكة الفروع بناءً على القيم أعلاه")}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
               onClick={generateFromTokens}
               disabled={mutation.isPending || (!colorsValue.trim() && !sizesValue.trim())}
-              style={{ fontSize: '0.78rem', padding: '4px 14px', fontWeight: 700, height: '30px' }}
+              style={{ fontSize: '0.78rem', padding: '5px 12px', fontWeight: 600, height: '32px' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s28_append_tip', "إضافة أي قيم جديدة تم إدخالها مع الإبقاء على كافة الفروع الحالية كما هي دون أي حذف")}
             >
-              {t('products.workspace_sections.fashion_group_editor_card.s28', "إضافة المقاسات والألوان الجديدة دون حذف الحالية")}
+              {t('products.workspace_sections.fashion_group_editor_card.s28_append', "إضافة الفروع الجديدة فقط (دون حذف الحالية)")}
             </Button>
           </div>
         </div>
@@ -919,6 +1116,16 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
               style={{ fontSize: '0.78rem', padding: '4px 12px' }}
             >
               {t('products.workspace_sections.fashion_group_editor_card.s30', "+ إضافة صنف فرعي يدوي")}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={pruneZeroStockRows}
+              disabled={mutation.isPending || !variantRows.some((r) => Number(r.stock || 0) === 0)}
+              style={{ fontSize: '0.78rem', padding: '4px 10px', color: '#b45309', borderColor: '#fde68a', background: '#fefce8' }}
+              title={t('products.workspace_sections.fashion_group_editor_card.s30_prune_tip', "حذف كافة الأصناف الفرعية التي رصيدها صفر دفعة واحدة بنقرة واحدة")}
+            >
+              {t('products.workspace_sections.fashion_group_editor_card.s30_prune', "حذف الأصناف ذات الرصيد 0")}
             </Button>
             <Button
               type="button"

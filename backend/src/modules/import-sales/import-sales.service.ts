@@ -1974,14 +1974,51 @@ export class ImportSalesService {
         });
       }
 
+      let effectiveReceiptSupplierId = (shipment as any)?.supplier_id ? Number((shipment as any).supplier_id) : null;
+      if (!effectiveReceiptSupplierId && shipment.project_id) {
+        const proj = await trx
+          .selectFrom('import_projects')
+          .select('feasibility_data')
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', shipment.project_id)
+          .executeTakeFirst();
+        const f = typeof proj?.feasibility_data === 'string' ? JSON.parse(proj.feasibility_data) : (proj?.feasibility_data || {});
+        if (f?.supplierId) effectiveReceiptSupplierId = Number(f.supplierId);
+      }
+      if (!effectiveReceiptSupplierId) {
+        const anySup = await trx
+          .selectFrom('suppliers')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .orderBy('id', 'asc')
+          .limit(1)
+          .executeTakeFirst();
+        if (anySup) effectiveReceiptSupplierId = Number(anySup.id);
+      }
+      if (!effectiveReceiptSupplierId) {
+        const defaultSup = await trx
+          .insertInto('suppliers')
+          .values({
+            tenant_id: tenantId,
+            name: 'مورد استيراد عام / توكيلات شحن',
+            phone: '',
+            address: '',
+            balance: 0,
+            is_active: true,
+          } as any)
+          .returning('id')
+          .executeTakeFirst();
+        if (defaultSup) effectiveReceiptSupplierId = Number(defaultSup.id);
+      }
+
       // CR: Accounts Payable / Supplier
       journalLines.push({
         accountId: payableAccountId,
         description: `استحقاق مورد استيراد - حاوية ${shipment.container_number || shipmentId}`,
         debit: 0,
         credit: totalCreditPayable,
-        partnerType: shipment.supplier_id ? 'supplier' : 'none',
-        partnerId: shipment.supplier_id ? Number(shipment.supplier_id) : null,
+        partnerType: effectiveReceiptSupplierId ? 'supplier' : 'none',
+        partnerId: effectiveReceiptSupplierId ? Number(effectiveReceiptSupplierId) : null,
         branchId: null,
         locationId: null,
       });
@@ -2297,13 +2334,50 @@ export class ImportSalesService {
           locationId: null,
         });
       }
+      let effectiveExpenseSupplierId = (shipment as any)?.supplier_id ? Number((shipment as any).supplier_id) : null;
+      if (!effectiveExpenseSupplierId && shipment.project_id) {
+        const proj = await trx
+          .selectFrom('import_projects')
+          .select('feasibility_data')
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', shipment.project_id)
+          .executeTakeFirst();
+        const f = typeof proj?.feasibility_data === 'string' ? JSON.parse(proj.feasibility_data) : (proj?.feasibility_data || {});
+        if (f?.supplierId) effectiveExpenseSupplierId = Number(f.supplierId);
+      }
+      if (!effectiveExpenseSupplierId) {
+        const anySup = await trx
+          .selectFrom('suppliers')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .orderBy('id', 'asc')
+          .limit(1)
+          .executeTakeFirst();
+        if (anySup) effectiveExpenseSupplierId = Number(anySup.id);
+      }
+      if (!effectiveExpenseSupplierId) {
+        const defaultSup = await trx
+          .insertInto('suppliers')
+          .values({
+            tenant_id: tenantId,
+            name: 'مورد استيراد عام / توكيلات شحن',
+            phone: '',
+            address: '',
+            balance: 0,
+            is_active: true,
+          } as any)
+          .returning('id')
+          .executeTakeFirst();
+        if (defaultSup) effectiveExpenseSupplierId = Number(defaultSup.id);
+      }
+
       lines.push({
         accountId: payableAccountId,
         description: `استحقاق مصروف متأخر - حاوية ${shipment.container_number}`,
         debit: 0,
         credit: Number(dto.lateExpenseAmount.toFixed(2)),
-        partnerType: shipment.supplier_id ? 'supplier' : 'none',
-        partnerId: shipment.supplier_id ? Number(shipment.supplier_id) : null,
+        partnerType: effectiveExpenseSupplierId ? 'supplier' : 'none',
+        partnerId: effectiveExpenseSupplierId ? Number(effectiveExpenseSupplierId) : null,
         branchId: null,
         locationId: null,
       });
@@ -4396,70 +4470,20 @@ export class ImportSalesService {
       const supplier = await trx.selectFrom('suppliers')
         .select(['id', 'name', 'account_id']).where('tenant_id', '=', tenantId)
         .where('id', '=', pi.supplier_id).executeTakeFirstOrThrow();
-      const scopeAccountId = supplier.account_id?.trim() || tenantId;
+      const scopeAccountId = String(supplier.account_id ?? '').trim() || tenantId;
       const lines: Array<{productId: number; name: string; quantity: number; unitCost: number; total: number}> = [];
       let foreignTotal = 0;
       for (const item of raw) {
-        let productId = Number(item.productId ?? item.product_id);
+        const productId = Number(item.productId ?? item.product_id);
         const qty = Number(item.quantity ?? item.qty);
         const foreignUnitCost = Number(item.unitPriceForeign ?? item.factoryPriceUsd ?? item.unitPriceUsd);
-        const itemName = String(item.productName ?? item.name ?? '').trim();
-
-        if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(foreignUnitCost) || foreignUnitCost < 0) {
-          throw new BadRequestException('يجب تحديد كمية وسعر وحدة أجنبي صالح لكل بند في الفاتورة المبدئية.');
+        if (!Number.isSafeInteger(productId) || productId <= 0 || !Number.isFinite(qty) || qty <= 0 ||
+          !Number.isFinite(foreignUnitCost) || foreignUnitCost < 0) {
+          throw new BadRequestException('يجب ربط كل بند من الـ Proforma بصنف حقيقي وتحديد الكمية وسعر الوحدة الأجنبي.');
         }
-
-        let product: any = null;
-        if (Number.isSafeInteger(productId) && productId > 0) {
-          product = await trx
-            .selectFrom('products')
-            .select(['id', 'name'])
-            .where('tenant_id', '=', tenantId)
-            .where('id', '=', productId)
-            .executeTakeFirst();
-        }
-
-        if (!product && itemName) {
-          // Try to find product by name in this tenant
-          product = await trx
-            .selectFrom('products')
-            .select(['id', 'name'])
-            .where('tenant_id', '=', tenantId)
-            .where(sql`LOWER(name)`, '=', itemName.toLowerCase())
-            .executeTakeFirst();
-
-          if (!product) {
-            // Auto-create product in catalog for this imported item
-            const estimatedCost = Number((foreignUnitCost * exchangeRate).toFixed(3));
-            const insertedPr = await trx
-              .insertInto('products')
-              .values({
-                tenant_id: tenantId,
-                account_id: scopeAccountId,
-                name: itemName,
-                cost_price: estimatedCost,
-                retail_price: Number((estimatedCost * 1.3).toFixed(3)),
-                wholesale_price: Number((estimatedCost * 1.2).toFixed(3)),
-                stock_qty: 0,
-                min_stock_qty: 0,
-                notes: '',
-                is_active: true,
-                item_kind: 'standard',
-                item_type: 'product',
-                track_serials: false,
-                reserved_qty: 0,
-                catalog_updated_at: new Date(),
-              } as any)
-              .returning(['id', 'name'])
-              .executeTakeFirstOrThrow();
-            product = insertedPr;
-          }
-          productId = Number(product.id);
-        }
-
-        if (!product) {
-          throw new BadRequestException('يجب ربط كل بند في الفاتورة المبدئية بصنف من الكتالوج أو تحديد اسم الصنف.');
-        }
+        const product = await trx.selectFrom('products').select(['id', 'name'])
+          .where('tenant_id', '=', tenantId).where('id', '=', productId).executeTakeFirst();
+        if (!product) throw new BadRequestException('صنف Proforma غير موجود ضمن أصناف المنشأة.');
 
         const unitCost = Number((foreignUnitCost * exchangeRate).toFixed(3));
         const total = Number((qty * unitCost).toFixed(3));

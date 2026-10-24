@@ -12,6 +12,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
+import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 
 type ProductRow = {
   id: number;
@@ -1852,7 +1853,69 @@ export class CatalogProductService {
 
       const oldIds = existing.map((p) => Number(p.id));
       const removedWithStock = existing.filter((p) => !seenIds.has(Number(p.id)) && (Math.abs(Number(p.stock_qty || 0)) > 0.0001 || Number(p.reserved_qty || 0) > 0));
-      if (removedWithStock.length) throw new AppError('لا يمكن إخفاء مقاس له رصيد أو حجز مخزون، سوِّ رصيده أولاً', 'FASHION_VARIANT_HAS_STOCK', 409);
+      if (removedWithStock.length) {
+        if (payload.consolidateStock) {
+          for (const removedProduct of removedWithStock) {
+            const target = drafts.find((d) => d.id && normalizeArabicSearch(d.value.color) === normalizeArabicSearch(removedProduct.color || ''))
+              || drafts.find((d) => d.id)
+              || drafts[0];
+            const targetId = Number(target?.id);
+            const removedId = Number(removedProduct.id);
+            if (!targetId || targetId === removedId) continue;
+
+            const locStocks = await trx.selectFrom('product_location_stock')
+              .selectAll().where('product_id', '=', removedId)
+              .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+
+            for (const ls of locStocks) {
+              const qtyToMove = Number(ls.qty || 0);
+              if (qtyToMove <= 0) continue;
+
+              await applyStockDelta(trx, {
+                productId: removedId,
+                locationId: Number(ls.location_id),
+                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                delta: -qtyToMove,
+                tenantId: this.tenantId(actor),
+                accountId: actor.accountId,
+                disableAutoDrain: true,
+                allowNegative: false,
+              });
+
+              await applyStockDelta(trx, {
+                productId: targetId,
+                locationId: Number(ls.location_id),
+                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                delta: qtyToMove,
+                tenantId: this.tenantId(actor),
+                accountId: actor.accountId,
+                disableAutoDrain: true,
+                allowNegative: true,
+              });
+
+              await trx.insertInto('stock_movements').values({
+                product_id: targetId,
+                movement_type: 'transfer',
+                qty: qtyToMove,
+                before_qty: 0,
+                after_qty: qtyToMove,
+                unit_cost: Number(target.value.costPrice || 0),
+                total_cost: Number((qtyToMove * Number(target.value.costPrice || 0)).toFixed(2)),
+                reason: 'variant_consolidation',
+                note: `دمج رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) إلى الصنف الأساسي`,
+                reference_type: 'product',
+                reference_id: removedId,
+                location_id: Number(ls.location_id),
+                created_by: actor.userId,
+                ...this.tenantFields(actor),
+              } as any).execute();
+            }
+          }
+        } else {
+          const names = removedWithStock.map((p) => `${p.name || p.color || p.size || p.id} (رصيد: ${p.stock_qty})`).join('، ');
+          throw new AppError(`لا يمكن إخفاء المقاسات التالية لأن لها رصيد مخزني: ${names}. يرجى تسوية رصيدها أولاً أو تفعيل خيار دمج الأرصدة`, 'FASHION_VARIANT_HAS_STOCK', 409);
+        }
+      }
       const outsiderProducts = await trx.selectFrom('products')
         .select(['id', 'name', 'barcode', 'sku']).where('is_active', '=', true).where(this.tenantPredicate(actor))
         .where('id', 'not in', oldIds).execute();

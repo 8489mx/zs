@@ -403,6 +403,10 @@ export class SaveFashionGroupDto {
   @ValidateNested({ each: true })
   @Type(() => FashionGroupRowDto)
   rows!: FashionGroupRowDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  consolidateStock?: boolean;
 }
 
 export type NormalizedUpsertProduct = {
