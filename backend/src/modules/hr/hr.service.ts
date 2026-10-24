@@ -2379,8 +2379,6 @@ export class HrService {
     let hrCommissionType = 'none';
     let hrCommissionValue = 0;
     let hrCommissionTarget = 0;
-    let hrSocialInsuranceEnabled = false;
-    let hrIncomeTaxEnabled = false;
     let statutoryPolicy: HrStatutoryPolicy = {};
 
     let hrWeekendDays = ['friday', 'saturday'];
@@ -2395,8 +2393,6 @@ export class HrService {
       hrCommissionType = globalPolicies.hrCommissionType || 'none';
       hrCommissionValue = Number(globalPolicies.hrCommissionValue || 0);
       hrCommissionTarget = Number(globalPolicies.hrCommissionTarget || 0);
-      hrSocialInsuranceEnabled = globalPolicies.hrSocialInsuranceEnabled === true;
-      hrIncomeTaxEnabled = globalPolicies.hrIncomeTaxEnabled === true;
       statutoryPolicy = globalPolicies as HrStatutoryPolicy;
       try { validateHrStatutoryPolicy(statutoryPolicy, range); } catch (error) {
         throw new AppError(error instanceof Error ? error.message : 'قواعد الاستقطاعات غير صالحة', 'HR_STATUTORY_POLICY_NOT_VERIFIED', 409);

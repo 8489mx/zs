@@ -324,24 +324,18 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
                 <input
                   type="checkbox"
                   checked={draft.hrSocialInsuranceEnabled}
-                  onChange={(e) => setDraft({ ...draft, hrSocialInsuranceEnabled: e.target.checked })}
+                  onChange={(e) => { setDraft({ ...draft, hrSocialInsuranceEnabled: e.target.checked }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }}
                   style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0, accentColor: 'var(--primary, #170c5c)' }}
                 />
                 <span>{t('hr.settings.hr_settings_static_sections.s47', "استقطاع التأمينات الاجتماعية")}</span>
               </label>
 
-              {draft.hrSocialInsuranceEnabled && (
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <span>{t('hr.settings.hr_settings_static_sections.s48', "حصة الموظف (%):")}</span>
-                  <input type="number" step="0.1" value={draft.hrSocialInsuranceEmployeePct} onChange={(e) => setDraft({ ...draft, hrSocialInsuranceEmployeePct: e.target.value })} style={{ width: '70px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }} />
-                </label>
-              )}
 
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.825rem', fontWeight: 600, color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 <input
                   type="checkbox"
                   checked={draft.hrIncomeTaxEnabled}
-                  onChange={(e) => setDraft({ ...draft, hrIncomeTaxEnabled: e.target.checked })}
+                  onChange={(e) => { setDraft({ ...draft, hrIncomeTaxEnabled: e.target.checked }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }}
                   style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0, accentColor: 'var(--primary, #170c5c)' }}
                 />
                 <span>{t('hr.settings.hr_settings_static_sections.s49', "تفعيل ضريبة كسب العمل")}</span>
