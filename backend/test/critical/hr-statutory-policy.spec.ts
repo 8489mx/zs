@@ -14,6 +14,10 @@ const policy: HrStatutoryPolicy = {
   hrSocialInsuranceEnabled: true,
   hrIncomeTaxEnabled: true,
   insuranceConfig: { employeePct: 10, employerPct: 15, maxSalary: 10000 },
+  insuranceWageBasis: 'earned_base',
+  insuranceProratePartialEmployment: true,
+  taxableEarningsBasis: 'gross',
+  taxDeductEmployeeInsurance: false,
   taxPersonalExemption: 12000,
   taxBrackets: [{ max: 120000, rate: 5 }, { max: null, rate: 10 }],
 };

@@ -36,7 +36,7 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
   nonnegative(line.assetRecoveryDeduction, 'assetRecoveryDeduction');
   nonnegative(line.scheduledLoanDeduction, 'scheduledLoanDeduction');
   const ceiling = line.maxDeductionPct ?? 1;
-  if (!Number.isFinite(ceiling) || ceiling <= 0 || ceiling > 1) {
+  if (!Number.isFinite(ceiling) || ceiling < 0 || ceiling > 1) {
     throw new RangeError('Payroll deduction ceiling must be between zero and one');
   }
   const gross = money(

@@ -216,15 +216,26 @@ export function calculateIncomeTax(params: IncomeTaxParams): number {
   }
 
   const taxable = params.taxableIncome;
-  const defaultMonthlyBrackets = [
-    { min: 0, max: 3333, rate: 0.00 },
-    { min: 3333, max: 4583, rate: 0.10 },
-    { min: 4583, max: 6250, rate: 0.15 },
-    { min: 6250, max: 16666, rate: 0.20 },
-    { min: 16666, max: null, rate: 0.225 },
-  ];
-
-  const brackets = params.brackets || defaultMonthlyBrackets;
+  // The legacy exported utility must also fail closed: never provide 2024
+  // Egyptian approximation as an implicit default for an enabled income tax.
+  if (!Array.isArray(params.brackets) || params.brackets.length === 0) {
+    throw new RangeError('Explicit tax brackets are required; no statutory rates are supplied by default');
+  }
+  const brackets = params.brackets;
+  let expectedMin = 0;
+  for (let i = 0; i < brackets.length; i++) {
+    const band = brackets[i];
+    if (!Number.isFinite(band.min) || band.min !== expectedMin
+      || !Number.isFinite(band.rate) || band.rate < 0 || band.rate > 1
+      || (band.max !== null && (!Number.isFinite(band.max) || band.max <= band.min))
+      || (band.max === null && i !== brackets.length - 1)) {
+      throw new RangeError('Tax brackets must be contiguous, ordered and use decimal rates between zero and one');
+    }
+    expectedMin = band.max === null ? expectedMin : band.max;
+  }
+  if (brackets[brackets.length - 1].max !== null) {
+    throw new RangeError('Top tax bracket must have no upper bound');
+  }
   let tax = 0;
 
   for (const b of brackets) {
@@ -271,12 +282,15 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
   }
 
   // 2. Deduction ceiling rule (Labor Law 50% cap or policy cap)
-  const maxDeductionCapPct = input.maxDeductionPct && input.maxDeductionPct > 0 ? input.maxDeductionPct : 1.0;
+  const maxDeductionCapPct = input.maxDeductionPct ?? 1.0;
+  if (!Number.isFinite(maxDeductionCapPct) || maxDeductionCapPct < 0 || maxDeductionCapPct > 1) {
+    throw new RangeError('Deduction ceiling must be between zero and one');
+  }
   const maxAllowableTotalDeductions = toMoney(grossPay * maxDeductionCapPct);
 
   // Pay pool available for non-statutory deductions
   let pool = Math.max(0, toMoney(grossPay - statutoryTotal));
-  if (input.maxDeductionPct && input.maxDeductionPct < 1.0) {
+  if (maxDeductionCapPct < 1.0) {
     pool = Math.min(pool, Math.max(0, toMoney(maxAllowableTotalDeductions - statutoryTotal)));
   }
 
