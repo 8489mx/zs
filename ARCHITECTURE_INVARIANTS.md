@@ -11,6 +11,8 @@
 
 ### HR stabilization checkpoint — 24 October 2026
 
+- HR-REVIEW-2026-10-24: Parallel main commit 572a122 restores an Egyptian EOS formula attributed to Article 125. This article concerns **annual leave scheduling and settlement**, not a universal EOS gratuity schedule (Egyptian Law 14/2025). That change is deliberately NOT incorporated; the dedicated Egyptian statutory EOS path remains blocked until verified. The safe main commit 8efd025 (portal ISO timestamps) was incorporated separately.
+
 - HR-SEC-1: Leave listing must filter tenant_id at root query and tenant-scope joins.
 - HR-PAY-1: Attendance, leave, statutory and loan deductions are accounted for ONCE. Never materialize the same automatic tax/attendance deduction as employee adjustment and built-in payroll deduction.
 - HR-PAY-2: Monthly wages and fixed compensation are prorated to the hire date, valid contract dates and payroll period. Only active contracts apply. Approved and paid payroll are immutable.
