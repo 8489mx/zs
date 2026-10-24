@@ -2210,7 +2210,7 @@ export class HrService {
       WHERE l.employee_id = ${employeeId} AND l.tenant_id = ${tenantId}
         AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
         AND l.status IN ('paid', 'partially_repaid', 'disbursed')
-        AND COALESCE(l.disbursed_at::date, l.issue_date) <= ${dueCutoff}::date
+        AND GREATEST(l.issue_date, COALESCE(l.disbursed_at::date, l.issue_date)) <= ${dueCutoff}::date
         AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
         AND (
           l.repayment_mode = 'deduct_next_salary'
@@ -3364,7 +3364,7 @@ export class HrService {
           AND l.tenant_id = ${tenantId}
           AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
           AND l.status IN ('paid', 'partially_repaid', 'disbursed')
-          AND COALESCE(l.disbursed_at::date, l.issue_date) <= ${dueCutoff}::date
+          AND GREATEST(l.issue_date, COALESCE(l.disbursed_at::date, l.issue_date)) <= ${dueCutoff}::date
           AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
           AND (
             l.repayment_mode = 'deduct_next_salary'

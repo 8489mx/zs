@@ -146,6 +146,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-UI-37 (25 October 2026): Salary financial statement requests are gated by explicit salary/payroll permissions in the frontend as well as backend. The quick cash advance action is only visible to loan-authorized users. All displayed monetary amounts use the tenant currency rather than hardcoding EGP; display precision alone does NOT unblock KWD/OMR payroll.
 - UI tests, build and typecheck were NOT run.
 
+- HR-LOAN-38 (25 October 2026): Installment previews and approvals use the LATER of loan issue_date and actual disbursed_at date as a cutoff. Backdating/future-dating either field cannot charge an employee's already-completed payroll. This remains independent of later installment due-date validation.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
