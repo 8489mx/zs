@@ -1063,13 +1063,21 @@ export class HrService {
     if (status === 'terminated') {
       throw new AppError('استخدم إجراء إنهاء الخدمة المعتمد وليس تعديل حالة الموظف', 'HR_TERMINATION_WORKFLOW_REQUIRED', 400);
     }
-    const existing = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    if (existing.rows[0]?.status === 'terminated') {
-      throw new AppError('لا يمكن تعديل حالة موظف انتهت خدمته بدون إجراءات إعادة تعيين', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
-    }
-    const validStatus = ['active', 'inactive', 'deactivated'].includes(status) ? status : 'active';
-    await sql`UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'`.execute(this.db);
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      const existing = await sql<{ status: string }>`
+        SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!existing.rows.length) throw new NotFoundException('Employee not found');
+      if (existing.rows[0].status === 'terminated') {
+        throw new AppError('لا يمكن إعادة تفعيل موظف انتهت خدمته بدون إجراءات إعادة تعيين', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 409);
+      }
+      const validStatus = ['active', 'inactive', 'deactivated'].includes(status) ? status : 'active';
+      await sql`
+        UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'
+      `.execute(trx);
+    });
     await this.audit.log('Update HR employee status', `Employee #${id} status changed to ${validStatus} by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
@@ -1099,11 +1107,20 @@ export class HrService {
   }
 
   async deactivateEmployee(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const status = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    if (!status.rows.length) throw new NotFoundException('Employee not found');
-    if (status.rows[0].status === 'terminated') throw new AppError('لا يمكن إلغاء تفعيل موظف انتهت خدمته', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
-    await sql`UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'`.execute(this.db);
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      const status = await sql<{ status: string }>`
+        SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!status.rows.length) throw new NotFoundException('Employee not found');
+      if (status.rows[0].status === 'terminated') {
+        throw new AppError('لا يمكن إلغاء تفعيل موظف انتهت خدمته', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 409);
+      }
+      await sql`
+        UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'
+      `.execute(trx);
+    });
     await this.audit.log('Deactivate HR employee', `Employee #${id} deactivated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
