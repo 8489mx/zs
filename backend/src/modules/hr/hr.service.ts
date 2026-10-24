@@ -2295,9 +2295,10 @@ export class HrService {
             insured: employee.has_social_insurance === true,
             taxable: employee.has_income_tax === true,
           },
+          employmentMonthFraction: Math.min(1, payrollCalendarMonthFraction(payRange.from, payRange.to)),
           configuredInsuranceSalary: Number(employee.insurance_salary || 0)
             * (policies.insuranceProratePartialEmployment === true
-              ? payrollCalendarMonthFraction(payRange.from, payRange.to)
+              ? Math.min(1, payrollCalendarMonthFraction(payRange.from, payRange.to))
               : 1),
           line: {
             employeeId,

@@ -18,6 +18,7 @@ const base: HrPayrollRunLineInput = {
   },
   eligibility: { insured: true, taxable: true },
   configuredInsuranceSalary: 8000,
+  employmentMonthFraction: 1,
   line: {
     employeeId: 10, baseSalary: 10000, allowanceAmount: 1500,
     overtimeAmount: 500, commissionAmount: 0,
@@ -56,3 +57,18 @@ assert.throws(() => calculateHrPayrollRunLine({ ...base,
 assert.throws(() => calculateHrPayrollRunLine({ ...base,
   period: { from: '2026-10-15', to: '2026-10-31' },
 }), /شهرًا ميلاديًا كاملًا/);
+
+// A partial employee in a full-month payroll uses proportionally scaled
+// insurance floor/cap. These values are synthetic, not national rates.
+const partial = calculateHrPayrollRunLine({
+  ...base,
+  employmentMonthFraction: 0.5,
+  configuredInsuranceSalary: 4000,
+  policy: {
+    ...base.policy,
+    hrIncomeTaxEnabled: false,
+    insuranceConfig: { employeePct: 10, employerPct: 15, minSalary: 5000, maxSalary: 6000 },
+  },
+});
+assert.equal(partial.employeeSocialInsurance, 300);
+assert.equal(partial.employerSocialInsurance, 450);

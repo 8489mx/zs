@@ -17,6 +17,8 @@ export interface HrPayrollRunLineInput {
   eligibility: { insured: boolean; taxable: boolean };
   /** Employee's explicit insured salary; 0 is valid when the selected wage basis is 'earned_base'. */
   configuredInsuranceSalary: number;
+  /** Fraction of the calendar month actually employed (0..1). */
+  employmentMonthFraction?: number;
 }
 
 const money = (n: number) => Number(n.toFixed(2));
@@ -65,7 +67,9 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
     { ...input.policy, hrIncomeTaxEnabled: false },
     input.period,
     { insured: input.eligibility.insured, taxable: false,
-      insuranceWage: insuranceSalary, taxableMonthlyWage: 0 },
+      insuranceWage: insuranceSalary, taxableMonthlyWage: 0,
+      insurancePeriodFraction: input.policy.insuranceProratePartialEmployment
+        ? (input.employmentMonthFraction ?? 1) : 1 },
   );
   const taxableBeforeInsurance = input.policy.taxableEarningsBasis === 'gross_after_attendance_leave'
     ? wageAfterAbsence : gross;

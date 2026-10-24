@@ -85,7 +85,7 @@ export function validateHrStatutoryPolicy(p: HrStatutoryPolicy, period?: { from:
 export function calculateHrStatutoryAmounts(
   p: HrStatutoryPolicy,
   period: { from: string; to: string },
-  employee: { insured: boolean; taxable: boolean; insuranceWage: number; taxableMonthlyWage: number },
+  employee: { insured: boolean; taxable: boolean; insuranceWage: number; taxableMonthlyWage: number; insurancePeriodFraction?: number },
 ) {
   validateHrStatutoryPolicy(p, period);
   let employeeInsurance = 0, employerInsurance = 0, incomeTax = 0;
@@ -105,8 +105,14 @@ export function calculateHrStatutoryAmounts(
     const ins = p.insuranceConfig!;
     let wage = Number(employee.insuranceWage);
     if (!Number.isFinite(wage) || wage < 0) throw new Error('أجر التأمينات غير صالح');
-    wage = Math.max(Number(ins.minSalary || 0), wage);
-    if (Number(ins.maxSalary || 0) > 0) wage = Math.min(Number(ins.maxSalary), wage);
+    const fraction = Number(employee.insurancePeriodFraction ?? 1);
+    if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1) {
+      throw new Error('نسبة سريان التأمينات في الفترة غير صحيحة');
+    }
+    const minimum = Number(ins.minSalary || 0) * fraction;
+    const maximum = Number(ins.maxSalary || 0) * fraction;
+    wage = Math.max(minimum, wage);
+    if (Number(ins.maxSalary || 0) > 0) wage = Math.min(maximum, wage);
     employeeInsurance = money(wage * Number(ins.employeePct) / 100);
     employerInsurance = money(wage * Number(ins.employerPct) / 100);
   }
