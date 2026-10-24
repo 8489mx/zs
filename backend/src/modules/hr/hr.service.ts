@@ -4171,9 +4171,21 @@ export class HrService {
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      const ids = payload.rows.map(row => toId(row.employeeId));
+      if (ids.some(id => !id)) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
+      if (new Set(ids).size !== ids.length) {
+        throw new AppError('لا يمكن إرسال بصمتين لنفس الموظف في يوم واحد', 'HR_ATTENDANCE_DUPLICATE_EMPLOYEE', 400);
+      }
+      const allowed = await sql<{ id: number; status: string }>`
+        SELECT id, status FROM hr_employees
+        WHERE tenant_id = ${auth.tenantId} AND id IN (${sql.join(ids as number[])})
+      `.execute(trx);
+      const eligible = new Set(allowed.rows.filter(e => e.status === 'active').map(e => Number(e.id)));
+      if (eligible.size !== ids.length || ids.some(id => !eligible.has(Number(id)))) {
+        throw new AppError('قائمة الحضور تحتوي موظفًا غير نشط أو غير تابع للمنشأة', 'HR_ATTENDANCE_EMPLOYEE_TENANT_MISMATCH', 400);
+      }
       for (const row of payload.rows) {
-        const employeeId = toId(row.employeeId);
-        if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
+        const employeeId = toId(row.employeeId)!;
         await this.assertAttendanceDayNotPosted(trx, employeeId, workDate, auth.tenantId || '');
         const status = normalizeAttendanceStatus(row.status);
         if (status === 'unmarked') throw new AppError('Attendance status is invalid', 'HR_ATTENDANCE_STATUS_INVALID', 400);
