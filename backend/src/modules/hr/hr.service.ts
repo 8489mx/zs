@@ -50,7 +50,7 @@ import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
-import { summarizeHourlyAttendance, calculateEffectiveContractPay, payrollCalendarMonthFraction, type EffectiveSalaryContract } from './engines/hourly-attendance-pay.engine';
+import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
@@ -2024,8 +2024,6 @@ export class HrService {
         e.display_name,
         c.id AS contract_id,
         c.base_salary,
-        cp.allowance_amount,
-        cp.deduction_amount,
         e.compensation_type,
         e.hourly_rate,
         e.expected_daily_hours,
@@ -2048,15 +2046,6 @@ export class HrService {
                  c.id DESC
         LIMIT 1
       ) c ON TRUE
-      LEFT JOIN LATERAL (
-        SELECT *
-        FROM hr_compensation_packages cp
-        WHERE cp.employee_id = e.id AND cp.tenant_id = e.tenant_id
-          AND (cp.effective_from IS NULL OR cp.effective_from <= ${range.to})
-          AND (cp.effective_to IS NULL OR cp.effective_to >= ${range.from})
-        ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
-        LIMIT 1
-      ) cp ON TRUE
       WHERE e.tenant_id = ${tenantId}
         AND (
           e.status = 'active'
@@ -2103,6 +2092,31 @@ export class HrService {
       if (!contractHistory.has(employeeId)) contractHistory.set(employeeId, []);
       contractHistory.get(employeeId)!.push(item);
     }
+    const packageRows = empIds.length
+      ? await sql<Record<string, unknown>>`
+          SELECT employee_id, id, allowance_amount, deduction_amount,
+            to_char(effective_from, 'YYYY-MM-DD') AS start_date_text,
+            to_char(effective_to, 'YYYY-MM-DD') AS end_date_text
+          FROM hr_compensation_packages
+          WHERE tenant_id = ${tenantId}
+            AND employee_id IN (${sql.join(empIds)})
+            AND (effective_from IS NULL OR effective_from <= ${range.to}::date)
+            AND (effective_to IS NULL OR effective_to >= ${range.from}::date)
+          ORDER BY employee_id, effective_from NULLS FIRST, id
+        `.execute(db) : { rows: [] as Record<string, unknown>[] };
+    const packageHistory = new Map<number, EffectiveCompensationPackage[]>();
+    for (const row of packageRows.rows) {
+      const employeeId = Number(row.employee_id);
+      const item: EffectiveCompensationPackage = {
+        id: Number(row.id),
+        startDate: row.start_date_text ? String(row.start_date_text) : null,
+        endDate: row.end_date_text ? String(row.end_date_text) : null,
+        allowanceAmount: Number(row.allowance_amount),
+        deductionAmount: Number(row.deduction_amount),
+      };
+      if (!packageHistory.has(employeeId)) packageHistory.set(employeeId, []);
+      packageHistory.get(employeeId)!.push(item);
+    }
     // A rebuilt draft/reviewed run must not retain a payable item for someone
     // who no longer qualifies (terminated and settled, deactivated, or excluded
     // by pay frequency). Preserve history/adjustments by excluding, not deleting.
@@ -2135,6 +2149,7 @@ export class HrService {
     }
     const baseSalMap = new Map<number, number>();
     const contractualMonthlySalary = new Map<number, number>();
+    const compensationByEmployee = new Map<number, { allowance: number; deduction: number }>();
     const payRangeByEmployee = new Map<number, { from: string; to: string }>();
     for (const e of employees.rows) {
       const id = Number(e.employee_id);
@@ -2143,6 +2158,14 @@ export class HrService {
       const from = [range.from, hire].sort().at(-1)!;
       const to = [range.to, employmentEnd].sort()[0];
       payRangeByEmployee.set(id, { from, to });
+      try {
+        compensationByEmployee.set(id, calculateEffectiveCompensationPay(packageHistory.get(id) || [], from, to));
+      } catch (error) {
+        throw new AppError(
+          `البدلات والاستقطاعات الثابتة للموظف #${id} متداخلة أو غير صحيحة: ${error instanceof Error ? error.message : 'راجع الباقات'}`,
+          'HR_PAYROLL_COMPENSATION_PERIOD_INVALID', 409,
+        );
+      }
     }
     for (const e of employees.rows) {
       const employeeId = Number(e.employee_id);
@@ -2195,9 +2218,9 @@ export class HrService {
         ? (hourlyWorkByEmployee.get(employeeId)?.baseWage || 0)
         : Number(baseSalMap.get(employeeId) || 0);
       const payRange = payRangeByEmployee.get(employeeId)!;
-      const ratio = isHourly ? 1 : payrollCalendarMonthFraction(payRange.from, payRange.to);
-      const compensationAllowance = money(Number(employee.allowance_amount || 0) * ratio);
-      const compensationDeduction = money(Number(employee.deduction_amount || 0) * ratio);
+      const fixedCompensation = compensationByEmployee.get(employeeId) || { allowance: 0, deduction: 0 };
+      const compensationAllowance = fixedCompensation.allowance;
+      const compensationDeduction = fixedCompensation.deduction;
       const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
