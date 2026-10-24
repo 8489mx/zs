@@ -8,6 +8,7 @@ import {
   useShipmentDetailsQuery, 
   useUpdateShipmentCostsMutation, 
   useUpdateShipmentItemMutation,
+  useImportProjectItemsMutation,
   useApplyPricesMutation,
   useCreateReceivingInspectionMutation,
   useRecordLateShipmentExpenseMutation,
@@ -22,9 +23,9 @@ import { StandardDialog } from '@/shared/components/StandardDialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { referenceDataApi } from '@/services/reference-data.api';
+import { DownloadIcon, PackageIcon, PlusCircleIcon } from '@/shared/components/icons/AppIcons';
 
 function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate, isArrived }: { item: ShipmentItem, shipmentId: string, arrivalRate: number, pricingRate: number, isArrived?: boolean }) {
-  const { t } = useTranslation();
   const updateMutation = useUpdateShipmentItemMutation(shipmentId);
   const [receivedQty, setReceivedQty] = useState(item.received_quantity || '');
   const [retailMargin, setRetailMargin] = useState(item.target_retail_margin || '');
@@ -51,12 +52,12 @@ function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate, isArrived }
   const suggestedRetail = Math.round((pricingCostEgp * (1 + (Number(retailMargin) || 0) / 100)) * 100) / 100;
   
   return (
-    <div style={{ display: 'contents' }}>
-      <td style={{ padding: '0.5rem' }}>
+    <>
+      <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
         <input 
           type="number" 
-          className="input" 
-          style={{ width: '100px', padding: '0.2rem' }} 
+          className="input no-spin-arrows" 
+          style={{ width: '100%', maxWidth: '68px', height: '28px', padding: '2px 4px', textAlign: 'center', fontSize: '12px', fontWeight: 700, margin: '0 auto', display: 'block', MozAppearance: 'textfield' }} 
           value={receivedQty}
           placeholder={String(item.quantity)}
           disabled={isArrived}
@@ -65,54 +66,94 @@ function ItemRowInputs({ item, shipmentId, arrivalRate, pricingRate, isArrived }
           onBlur={e => handleBlur('receivedQuantity', e.target.value)}
         />
         {Number(receivedQty) > 0 && Number(receivedQty) < item.quantity && (
-          <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
-            <label style={{ display: 'block', color: 'var(--slate-500)', marginBottom: '0.2rem' }}>{t('import_sales.shipment_details_page.s0', "معالجة النواقص:")}</label>
-            <select 
-              className="input" 
-              style={{ width: '100%', padding: '0.2rem', fontSize: '0.85rem' }}
-              value={item.shortage_handling_method || 'capitalize'}
-              disabled={isArrived}
-              onChange={e => handleBlur('shortageHandlingMethod', e.target.value)}
+          <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+            <div style={{ fontSize: '9.5px', fontWeight: 700, color: '#dc2626', lineHeight: 1 }}>
+              عجز: {item.quantity - Number(receivedQty)}
+            </div>
+            <div 
+              style={{ 
+                display: 'inline-flex', 
+                borderRadius: '5px', 
+                padding: '2px', 
+                background: '#e2e8f0', 
+                gap: '2px' 
+              }}
             >
-              <option value="capitalize">{t('import_sales.shipment_details_page.s1', "تحميل على الباقي (رسملة)")}</option>
-              <option value="expense">{t('import_sales.shipment_details_page.s2', "تسجيل كخسارة")}</option>
-            </select>
+              <button
+                type="button"
+                disabled={isArrived}
+                onClick={() => handleBlur('shortageHandlingMethod', 'capitalize')}
+                title="رسملة النواقص: توزيع تكلفة القطع الناقصة على باقي القطع السليمة المتبقية لرفع تكلفتها تلقائياً، فلا تُسجل كخسارة منفصلة في قائمة الدخل"
+                style={{
+                  border: 'none',
+                  cursor: isArrived ? 'not-allowed' : 'pointer',
+                  padding: '2px 6px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  borderRadius: '4px',
+                  background: (item.shortage_handling_method || 'capitalize') === 'capitalize' ? '#170e5e' : 'transparent',
+                  color: (item.shortage_handling_method || 'capitalize') === 'capitalize' ? '#ffffff' : '#475569',
+                }}
+              >
+                رسملة
+              </button>
+              <button
+                type="button"
+                disabled={isArrived}
+                onClick={() => handleBlur('shortageHandlingMethod', 'expense')}
+                title="إثبات كخسارة: تسجيل قيمة القطع الناقصة كبند خسائر عجز بضاعة مستقل في قائمة الدخل مع إبقاء تكلفة القطع المستلمة عند سعرها الأصلي"
+                style={{
+                  border: 'none',
+                  cursor: isArrived ? 'not-allowed' : 'pointer',
+                  padding: '2px 6px',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  borderRadius: '4px',
+                  background: item.shortage_handling_method === 'expense' ? '#dc2626' : 'transparent',
+                  color: item.shortage_handling_method === 'expense' ? '#ffffff' : '#475569',
+                }}
+              >
+                خسارة
+              </button>
+            </div>
           </div>
         )}
       </td>
-      <td style={{ padding: '0.5rem' }}>
+      <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
         <input 
           type="number" 
-          className="input" 
-          style={{ width: '80px', padding: '0.2rem' }}
+          className="input no-spin-arrows" 
+          style={{ width: '100%', maxWidth: '58px', height: '28px', padding: '2px 4px', textAlign: 'center', fontSize: '12px', fontWeight: 600, margin: '0 auto', display: 'block', MozAppearance: 'textfield' }}
           value={wholesaleMargin}
           placeholder="%"
           onChange={e => setWholesaleMargin(e.target.value)}
           onBlur={e => handleBlur('targetWholesaleMargin', e.target.value)}
         />
       </td>
-      <td style={{ padding: '0.5rem' }}>
+      <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
         <input 
           type="number" 
-          className="input" 
-          style={{ width: '80px', padding: '0.2rem' }}
+          className="input no-spin-arrows" 
+          style={{ width: '100%', maxWidth: '58px', height: '28px', padding: '2px 4px', textAlign: 'center', fontSize: '12px', fontWeight: 600, margin: '0 auto', display: 'block', MozAppearance: 'textfield' }}
           value={retailMargin}
           placeholder="%"
           onChange={e => setRetailMargin(e.target.value)}
           onBlur={e => handleBlur('targetRetailMargin', e.target.value)}
         />
       </td>
-      <td style={{ padding: '0.5rem' }}>
-        <strong style={{ color: 'var(--green-700)', display: 'block' }}>
-          {formatCurrency(suggestedWholesale)}
-        </strong>
+      <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+        <div style={{ fontWeight: 800, fontSize: '12px', color: '#1e3a8a' }}>
+          {suggestedWholesale > 0 ? suggestedWholesale.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+        </div>
+        <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 500 }}>ج.م</div>
       </td>
-      <td style={{ padding: '0.5rem' }}>
-        <strong style={{ color: 'var(--green-700)', display: 'block' }}>
-          {formatCurrency(suggestedRetail)}
-        </strong>
+      <td style={{ padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+        <div style={{ fontWeight: 800, fontSize: '12px', color: '#15803d' }}>
+          {suggestedRetail > 0 ? suggestedRetail.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
+        </div>
+        <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 500 }}>ج.م</div>
       </td>
-    </div>
+    </>
   );
 }
 
@@ -168,6 +209,7 @@ export default function ShipmentDetailsPage() {
   const updateCostsMutation = useUpdateShipmentCostsMutation(id!);
   const applyPricesMutation = useApplyPricesMutation(id!);
   const updateItemMutation = useUpdateShipmentItemMutation(id!);
+  const importProjectItemsMutation = useImportProjectItemsMutation(id!);
   const createGrnMutation = useCreateReceivingInspectionMutation();
   const recordLateExpenseMutation = useRecordLateShipmentExpenseMutation();
 
@@ -177,6 +219,27 @@ export default function ShipmentDetailsPage() {
       const eta = data.eta_date || data.arrival_date;
       setEtaDate(eta ? eta.split('T')[0] : '');
       setClearanceDate(data.clearance_date ? data.clearance_date.split('T')[0] : '');
+      if (data.exchange_rate_at_arrival != null && Number(data.exchange_rate_at_arrival) > 0) {
+        setExchangeRate(String(Number(data.exchange_rate_at_arrival)));
+      }
+      if (data.pricing_exchange_rate != null && Number(data.pricing_exchange_rate) > 0) {
+        setPricingExchangeRate(String(Number(data.pricing_exchange_rate)));
+      }
+      if (data.shipping_cost_usd != null && Number(data.shipping_cost_usd) > 0) {
+        setShippingCost(String(Number(data.shipping_cost_usd)));
+      }
+      if (data.customs_cost_egp != null && Number(data.customs_cost_egp) > 0) {
+        setCustomsCost(String(Number(data.customs_cost_egp)));
+      }
+      if (data.internal_transport_cost_egp != null && Number(data.internal_transport_cost_egp) > 0) {
+        setTransportCost(String(Number(data.internal_transport_cost_egp)));
+      }
+      if (data.cost_allocation_method) {
+        setAllocationMethod(data.cost_allocation_method);
+      }
+      if (data.status) {
+        setStatus(data.status);
+      }
     }
   }, [data]);
 
@@ -185,7 +248,11 @@ export default function ShipmentDetailsPage() {
     queryKey: ['accounts-list'],
     queryFn: () => http<any>('/api/accounting/accounts').catch(() => ({ accounts: [] })),
   });
-  const treasuryAccounts = (accountsData?.accounts || (Array.isArray(accountsData) ? accountsData : [])).filter((a: any) => a.accountGroup === 'current_assets' || a.isCashBank);
+  const treasuryAccounts = (accountsData?.accounts || (Array.isArray(accountsData) ? accountsData : []))
+    .filter((a: any) => {
+      if (a.isParent || a.code === '1100' || a.name === 'الأصول المتداولة' || a.name_ar === 'الأصول المتداولة') return false;
+      return a.isCashBank || a.code === '1110' || a.code === '1120' || a.code === '1160' || a.accountGroup === 'cash_bank';
+    });
   const { data: warehouseLocations = [] } = useQuery({ queryKey: ['locations'], queryFn: referenceDataApi.locations });
 
   if (isLoading) {
@@ -221,37 +288,42 @@ export default function ShipmentDetailsPage() {
       });
       if (!confirmed) return;
     }
-    await updateCostsMutation.mutateAsync({
-      shippingCostUsd: shippingCost ? Number(shippingCost) : undefined,
-      shippingAccountId: shippingAcc || undefined,
-      customsCostEgp: customsCost ? Number(customsCost) : undefined,
-      customsAccountId: customsAcc || undefined,
-      internalTransportCostEgp: transportCost ? Number(transportCost) : undefined,
-      transportAccountId: transportAcc || undefined,
-      exchangeRateAtArrival: exchangeRate ? Number(exchangeRate) : undefined,
-      costAllocationMethod: allocationMethod || undefined,
-      pricingExchangeRate: pricingExchangeRate ? Number(pricingExchangeRate) : undefined,
-      status: status ? status : undefined,
-      receiptLocationId: status === 'Arrived' && receiptLocationId ? Number(receiptLocationId) : undefined,
-      shippedDate: shippedDate || undefined,
-      etaDate: etaDate || undefined,
-      clearanceDate: clearanceDate || undefined,
-    });
-    setShippingCost('');
-    setCustomsCost('');
-    setTransportCost('');
-    setExchangeRate('');
-    setPricingExchangeRate('');
-    setAllocationMethod('');
-    setShippingAcc('');
-    setCustomsAcc('');
-    setTransportAcc('');
+    try {
+      await updateCostsMutation.mutateAsync({
+        shippingCostUsd: shippingCost ? Number(shippingCost) : undefined,
+        shippingAccountId: shippingAcc || undefined,
+        customsCostEgp: customsCost ? Number(customsCost) : undefined,
+        customsAccountId: customsAcc || undefined,
+        internalTransportCostEgp: transportCost ? Number(transportCost) : undefined,
+        transportAccountId: transportAcc || undefined,
+        exchangeRateAtArrival: exchangeRate ? Number(exchangeRate) : undefined,
+        costAllocationMethod: allocationMethod || undefined,
+        pricingExchangeRate: pricingExchangeRate ? Number(pricingExchangeRate) : undefined,
+        status: status ? status : undefined,
+        receiptLocationId: status === 'Arrived' && receiptLocationId ? Number(receiptLocationId) : undefined,
+        shippedDate: shippedDate || undefined,
+        etaDate: etaDate || undefined,
+        clearanceDate: clearanceDate || undefined,
+      });
+      setShippingAcc('');
+      setCustomsAcc('');
+      setTransportAcc('');
+      toast.success('تم حفظ وتحديث تكاليف وبيانات الحاوية بنجاح');
+    } catch (err: any) {
+      toast.error('حدث خطأ أثناء تحديث التكاليف: ' + (err?.message || 'خطأ غير معروف'));
+    }
   };
 
   const handleApplyGlobalMargins = async () => {
-    if (!globalRetailMargin && !globalWholesaleMargin) return;
+    if (!data.items || data.items.length === 0) {
+      toast.warning('لا توجد أصناف في هذه الحاوية لتطبيق الهامش عليها. يرجى سحب أو إضافة الأصناف أولاً.');
+      return;
+    }
+    if (!globalRetailMargin && !globalWholesaleMargin) {
+      toast.warning('يرجى إدخال نسبة هامش الجملة أو القطاعي أولاً.');
+      return;
+    }
     
-    // We update each item individually
     const promises = data.items.map((item: any) => 
       updateItemMutation.mutateAsync({
         itemId: item.id,
@@ -263,9 +335,16 @@ export default function ShipmentDetailsPage() {
     );
     await Promise.all(promises);
     await queryClient.invalidateQueries({ queryKey: ['import-shipments', id] });
-    setTimeout(() => {
-      toast.success('تم تطبيق الهوامش على جميع الأصناف بنجاح (تحتاج إلى تطبيق واعتماد الأسعار للمخزن لتفعيلها)');
-    }, 100);
+    toast.success('تم تطبيق الهوامش على جميع أصناف الحاوية بنجاح (اضغط "تطبيق واعتماد الأسعار للمخزن" لتثبيتها في كروت الأصناف)');
+  };
+
+  const handleImportProjectItems = async () => {
+    try {
+      const res = await importProjectItemsMutation.mutateAsync();
+      toast.success(`تم سحب (${res?.importedCount || 0}) صنف من دراسة جدوى المشروع واحتساب التكلفة الاستيرادية بنجاح!`);
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر سحب أصناف المشروع');
+    }
   };
 
   const handleApplyPrices = async () => {
@@ -346,13 +425,19 @@ export default function ShipmentDetailsPage() {
               <input type="date" className="input" value={clearanceDate} onChange={e => setClearanceDate(e.target.value)} />
             </div>
             <div className="form-group">
-              <label>{t('import_sales.shipment_details_page.s15', "سعر صرف الدولار الجمركي/الفعلي")}</label>
+              <label>سعر صرف الدولار الجمركي / الفعلي (التكلفة الدفترية)</label>
               <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.exchange_rate_at_arrival || ''}`} value={exchangeRate} onChange={e => setExchangeRate(e.target.value)} />
+              <small style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '3px' }}>
+                السعر الحقيقي الفعلي للدولار عند وصول الشحنة والمثبت محاسبياً.
+              </small>
             </div>
             
             <div className="form-group">
-              <label>{t('import_sales.shipment_details_page.s16', "سعر دولار التسعير")}</label>
+              <label>سعر دولار التسعير بالسوق (سعر الإحلال والتحوط)</label>
               <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.pricing_exchange_rate || data.exchange_rate_at_arrival || ''}`} value={pricingExchangeRate} onChange={e => setPricingExchangeRate(e.target.value)} />
+              <small style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '3px' }}>
+                سعر السوق الحالي لاقتراح أسعار البيع لحماية رأس المال (اجعله نفس الفعلي إذا كنت تبيع بسعر الشراء).
+              </small>
             </div>
 
             <hr style={{ gridColumn: 'span 2' }} />
@@ -363,8 +448,8 @@ export default function ShipmentDetailsPage() {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input type="number" step="0.01" className="input" placeholder={`الحالي: $${data.shipping_cost_usd}`} value={shippingCost} onChange={e => setShippingCost(e.target.value)} />
                 <select className="input" value={shippingAcc} onChange={e => setShippingAcc(e.target.value)}>
-                  <option value="">{t('import_sales.shipment_details_page.s18', "دفع من الخزنة؟")}</option>
-                  {treasuryAccounts.map((a: any) => <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>)}
+                  <option value="">-- بدون خصم نقدي (تسجيل تكلفة فقط) --</option>
+                  {treasuryAccounts.map((a: any) => <option key={a.id} value={a.id}>سداد من: {a.nameAr || a.name_ar || a.name}</option>)}
                 </select>
               </div>
             </div>
@@ -374,8 +459,8 @@ export default function ShipmentDetailsPage() {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.customs_cost_egp} ج`} value={customsCost} onChange={e => setCustomsCost(e.target.value)} />
                 <select className="input" value={customsAcc} onChange={e => setCustomsAcc(e.target.value)}>
-                  <option value="">{t('import_sales.shipment_details_page.s20', "دفع من الخزنة؟")}</option>
-                  {treasuryAccounts.map((a: any) => <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>)}
+                  <option value="">-- بدون خصم نقدي (تسجيل تكلفة فقط) --</option>
+                  {treasuryAccounts.map((a: any) => <option key={a.id} value={a.id}>سداد من: {a.nameAr || a.name_ar || a.name}</option>)}
                 </select>
               </div>
             </div>
@@ -385,8 +470,8 @@ export default function ShipmentDetailsPage() {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input type="number" step="0.01" className="input" placeholder={`الحالي: ${data.internal_transport_cost_egp} ج`} value={transportCost} onChange={e => setTransportCost(e.target.value)} />
                 <select className="input" value={transportAcc} onChange={e => setTransportAcc(e.target.value)}>
-                  <option value="">{t('import_sales.shipment_details_page.s22', "دفع من الخزنة؟")}</option>
-                  {treasuryAccounts.map((a: any) => <option key={a.id} value={a.id}>{a.nameAr || a.name}</option>)}
+                  <option value="">-- بدون خصم نقدي (تسجيل تكلفة فقط) --</option>
+                  {treasuryAccounts.map((a: any) => <option key={a.id} value={a.id}>سداد من: {a.nameAr || a.name_ar || a.name}</option>)}
                 </select>
               </div>
             </div>
@@ -403,13 +488,18 @@ export default function ShipmentDetailsPage() {
 
             {data.status !== 'Arrived' && (
               <div className="form-group">
-                <label>طريقة توزيع تكلفة الاستيراد</label>
+                <label>طريقة توزيع نولون الشحن والجمارك على الأصناف</label>
                 <select className="input" value={allocationMethod} onChange={e => setAllocationMethod(e.target.value as typeof allocationMethod)}>
-                  <option value="">الحالية: {data.cost_allocation_method || 'value'}</option>
-                  <option value="value">قيمة الصنف</option>
-                  <option value="weight">الوزن</option>
-                  <option value="cbm">الحجم CBM</option>
+                  <option value="">
+                    الحالية: {data.cost_allocation_method === 'weight' ? 'الوزن (كجم)' : data.cost_allocation_method === 'cbm' ? 'الحجم (CBM)' : 'قيمة الصنف بالدولار (موصى به)'}
+                  </option>
+                  <option value="value">قيمة الصنف بالدولار (Value %) - الخيار الشائع والموصى به</option>
+                  <option value="weight">الوزن الإجمالي بالكيلوجرام (Gross Weight)</option>
+                  <option value="cbm">الحجم والمساحة بالمتر المكعب (CBM Volume)</option>
                 </select>
+                <small style={{ fontSize: '0.72rem', color: '#64748b', display: 'block', marginTop: '3px' }}>
+                  تحدد كيف يقسم النظام الـ 3500$ والجمارك بين قطع الغيار المختلفة في الحاوية.
+                </small>
               </div>
             )}
             {status === 'Arrived' && data.status !== 'Arrived' && (
@@ -433,51 +523,98 @@ export default function ShipmentDetailsPage() {
           title={t('import_sales.shipment_details_page.s29', "أصناف الحاوية وتحديد أسعار البيع")} 
           description={t('import_sales.shipment_details_page.s30', "جميع المنتجات التي تم استلامها داخل هذه الحاوية. يمكنك تعديل الكمية المستلمة فعلياً وهامش الربح.")}
           actions={
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <Button variant="secondary" onClick={handleApplyPrices} disabled={applyPricesMutation.isPending}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {data.project_id && data.items.length === 0 && (
+                <Button 
+                  variant="primary" 
+                  onClick={handleImportProjectItems} 
+                  disabled={importProjectItemsMutation.isPending || data.status === 'Arrived'}
+                  style={{
+                    backgroundColor: '#15803d',
+                    borderColor: '#166534',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <DownloadIcon size={15} />
+                  <span>{importProjectItemsMutation.isPending ? 'جاري سحب الأصناف...' : 'سحب أصناف المشروع تلقائياً'}</span>
+                </Button>
+              )}
+              <Button variant="secondary" onClick={handleApplyPrices} disabled={applyPricesMutation.isPending || data.items.length === 0}>
                 {t('import_sales.shipment_details_page.s31', "تطبيق واعتماد الأسعار للمخزن")}
               </Button>
               <Button variant="secondary" onClick={() => setIsAddItemOpen(true)} disabled={data.status === 'Arrived'}>{t('import_sales.shipment_details_page.s32', "إضافة صنف +")}</Button>
             </div>
           }
         >
-          <div style={{ padding: '1rem', background: 'var(--slate-50)', borderBottom: '1px solid var(--slate-200)', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+          <div style={{ padding: '0.75rem 1rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div className="form-group" style={{ margin: 0 }}>
-              <label>{t('import_sales.shipment_details_page.s33', "هامش الجملة الموحد %")}</label>
-              <input type="number" className="input" value={globalWholesaleMargin} onChange={e => setGlobalWholesaleMargin(e.target.value)} />
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('import_sales.shipment_details_page.s33', "هامش الجملة الموحد %")}</label>
+              <input type="number" className="input no-spin-arrows" style={{ width: '100px', height: '32px', fontSize: '12px', MozAppearance: 'textfield' }} value={globalWholesaleMargin} onChange={e => setGlobalWholesaleMargin(e.target.value)} />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
-              <label>{t('import_sales.shipment_details_page.s34', "هامش القطاعي الموحد %")}</label>
-              <input type="number" className="input" value={globalRetailMargin} onChange={e => setGlobalRetailMargin(e.target.value)} />
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px', display: 'block' }}>{t('import_sales.shipment_details_page.s34', "هامش القطاعي الموحد %")}</label>
+              <input type="number" className="input no-spin-arrows" style={{ width: '100px', height: '32px', fontSize: '12px', MozAppearance: 'textfield' }} value={globalRetailMargin} onChange={e => setGlobalRetailMargin(e.target.value)} />
             </div>
-            <Button variant="secondary" onClick={handleApplyGlobalMargins}>{t('import_sales.shipment_details_page.s35', "تطبيق على كل الأصناف")}</Button>
+            <Button variant="secondary" onClick={handleApplyGlobalMargins} style={{ height: '32px', fontSize: '12px' }}>{t('import_sales.shipment_details_page.s35', "تطبيق على كل الأصناف")}</Button>
           </div>
 
-          <div className="table-responsive" style={{ overflowX: 'auto' }}>
-            <table className="table" style={{ width: '100%', textAlign: 'right', borderCollapse: 'collapse' }}>
+          <div style={{ width: '100%', overflowX: 'hidden' }}>
+            <table 
+              className="table" 
+              style={{ 
+                width: '100%', 
+                tableLayout: 'fixed', 
+                borderCollapse: 'collapse', 
+                fontSize: '12px' 
+              }}
+            >
+              <colgroup>
+                <col style={{ width: '24%' }} />
+                <col style={{ width: '7%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
+              </colgroup>
               <thead>
-                <tr>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s36', "الصنف")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s37', "الكمية بالبوليصة")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s38', "سعر الشراء ($)")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s39', "التكلفة النهائية (Landed)")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s40', "الكمية المستلمة (النواقص)")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s41', "هامش الجملة %")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s42', "هامش القطاعي %")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s43', "سعر الجملة المقترح")}</th>
-                  <th style={{ padding: '0.5rem', borderBottom: '1px solid var(--gray-300)' }}>{t('import_sales.shipment_details_page.s44', "سعر القطاعي المقترح")}</th>
+                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #cbd5e1' }}>
+                  <th style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, fontSize: '11.5px', color: '#334155' }}>الصنف</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#334155' }}>كمية الشحن</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#334155' }}>سعر المصنع</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#334155' }}>تكلفة الواصل</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#334155' }}>المستلم</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#334155' }}>هامش جملة</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#334155' }}>هامش قطاعي</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#1e3a8a' }}>سعر الجملة</th>
+                  <th style={{ padding: '8px 4px', textAlign: 'center', fontWeight: 700, fontSize: '11.5px', color: '#15803d' }}>سعر القطاعي</th>
                 </tr>
               </thead>
               <tbody>
                 {data.items.map(item => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid var(--gray-200)' }}>
-                    <td style={{ padding: '0.5rem' }}><strong>{item.product_name || item.product_id}</strong></td>
-                    <td style={{ padding: '0.5rem' }}>{item.quantity}</td>
-                    <td style={{ padding: '0.5rem' }}>${Number(item.factory_unit_price_usd).toFixed(2)}</td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <strong style={{ color: 'var(--green-700)' }}>
-                        {formatCurrency(Number(item.landed_cost_egp))}
-                      </strong>
+                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '8px 8px', textAlign: 'right', verticalAlign: 'middle' }}>
+                      <div style={{ fontWeight: 700, fontSize: '11.5px', color: '#0f172a', lineHeight: 1.35, wordBreak: 'break-word', whiteSpace: 'normal' }}>
+                        {item.product_name || item.product_id}
+                      </div>
+                    </td>
+                    <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700, fontSize: '12px', color: '#334155' }}>
+                      {item.quantity}
+                    </td>
+                    <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 600, fontSize: '11.5px', color: '#475569' }}>
+                      ${Number(item.factory_unit_price_usd).toFixed(2)}
+                    </td>
+                    <td style={{ padding: '8px 4px', textAlign: 'center', verticalAlign: 'middle' }}>
+                      <div style={{ fontWeight: 800, fontSize: '11.5px', color: '#047857' }}>
+                        {Number(item.landed_cost_egp).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 500 }}>ج.م</div>
                     </td>
                     <ItemRowInputs 
                       item={item} 
@@ -490,7 +627,38 @@ export default function ShipmentDetailsPage() {
                 ))}
                 {data.items.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>{t('import_sales.shipment_details_page.s45', "لا توجد أصناف")}</td>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                      <div style={{ maxWidth: '520px', margin: '0 auto', textAlign: 'center' }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto', color: '#64748b' }}>
+                          <PackageIcon size={24} />
+                        </div>
+                        <h4 style={{ margin: '0 0 6px 0', fontSize: '0.94rem', fontWeight: 800, color: '#1e293b' }}>
+                          لا توجد أصناف مسجلة في هذه الحاوية بعد
+                        </h4>
+                        <p style={{ margin: '0 0 16px 0', fontSize: '0.8rem', color: '#64748b', lineHeight: 1.6 }}>
+                          {data.project_id 
+                            ? 'هذه الحاوية مربوطة بمشروع استيراد معتمد. يمكنك سحب كافة الأصناف بأسعار المصنع وكمياتها بضغطة زر واحدة، أو تسجيل أصناف فردية يدوياً.'
+                            : 'قم بإضافة الأصناف المشحونة داخل الحاوية لاحتساب تكلفتها الاستيرادية وتحديد أسعار البيع.'}
+                        </p>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {data.project_id && (
+                            <Button 
+                              variant="primary" 
+                              onClick={handleImportProjectItems} 
+                              disabled={importProjectItemsMutation.isPending || data.status === 'Arrived'}
+                              style={{ backgroundColor: '#15803d', borderColor: '#166534', color: '#ffffff', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                            >
+                              <DownloadIcon size={15} />
+                              <span>{importProjectItemsMutation.isPending ? 'جاري سحب الأصناف...' : 'سحب أصناف المشروع تلقائياً'}</span>
+                            </Button>
+                          )}
+                          <Button variant="secondary" onClick={() => setIsAddItemOpen(true)} disabled={data.status === 'Arrived'} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <PlusCircleIcon size={15} />
+                            <span>إضافة صنف يدوياً +</span>
+                          </Button>
+                        </div>
+                      </div>
+                    </td>
                   </tr>
                 )}
               </tbody>

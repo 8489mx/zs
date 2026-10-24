@@ -64,11 +64,11 @@ export class PartnersService {
     return Boolean(row && (!excludeId || Number(row.id) !== excludeId));
   }
 
-  private async addCustomerOpeningBalance(customerId: number, amount: number, actor: AuthContext): Promise<void> {
+  private async addCustomerOpeningBalance(customerId: number, amount: number, actor: AuthContext, db: Kysely<Database>): Promise<void> {
     const openingBalance = Number(Number(amount || 0).toFixed(2));
     if (Math.abs(openingBalance) <= 0.0001) return;
 
-    await this.db.insertInto('customer_ledger').values({
+    await db.insertInto('customer_ledger').values({
       customer_id: customerId,
       entry_type: 'opening_balance',
       amount: openingBalance,
@@ -82,16 +82,16 @@ export class PartnersService {
       ...this.tenantFields(actor),
     }).execute();
 
-    await this.db.updateTable('customers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(actor)).execute();
+    await db.updateTable('customers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(actor)).execute();
 
-    await this.accountingPosting.postCustomerOpeningBalance(this.db, customerId, openingBalance, actor);
+    await this.accountingPosting.postCustomerOpeningBalance(db, customerId, openingBalance, actor);
   }
 
-  private async addSupplierOpeningBalance(supplierId: number, amount: number, actor: AuthContext): Promise<void> {
+  private async addSupplierOpeningBalance(supplierId: number, amount: number, actor: AuthContext, db: Kysely<Database>): Promise<void> {
     const openingBalance = Number(Number(amount || 0).toFixed(2));
     if (Math.abs(openingBalance) <= 0.0001) return;
 
-    await this.db.insertInto('supplier_ledger').values({
+    await db.insertInto('supplier_ledger').values({
       supplier_id: supplierId,
       entry_type: 'opening_balance',
       amount: openingBalance,
@@ -105,9 +105,9 @@ export class PartnersService {
       ...this.tenantFields(actor),
     }).execute();
 
-    await this.db.updateTable('suppliers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(actor)).execute();
+    await db.updateTable('suppliers').set({ balance: openingBalance, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(actor)).execute();
 
-    await this.accountingPosting.postSupplierOpeningBalance(this.db, supplierId, openingBalance, actor);
+    await this.accountingPosting.postSupplierOpeningBalance(db, supplierId, openingBalance, actor);
   }
 
   async listCustomers(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
@@ -676,45 +676,50 @@ export class PartnersService {
     if (!name) throw new AppError('Customer name is required', 'CUSTOMER_NAME_REQUIRED', 400);
     if (await this.customerNameExists(name, actor)) throw new AppError('Customer already exists', 'CUSTOMER_EXISTS', 400);
 
-    const inserted = await this.db
-      .insertInto('customers')
-      .values({
-        name,
-        phone: String(payload.phone || '').trim(),
-        address: String(payload.address || '').trim(),
-        balance: 0,
-        customer_type: ['vip', 'credit', 'wholesale'].includes(payload.type as string) ? (payload.type as any) : 'cash',
-        credit_limit: Number(payload.creditLimit || 0),
-        store_credit_balance: Number(payload.storeCreditBalance || 0),
-        company_name: String(payload.companyName || '').trim(),
-        tax_number: String(payload.taxNumber || '').trim(),
-        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
-        is_active: true,
-        ...this.tenantFields(actor),
-      } as any)
-      .returning('id')
-      .executeTakeFirstOrThrow();
+    const inserted = await this.db.transaction().execute(async (trx) => {
+      const inserted = await trx
+        .insertInto('customers')
+        .values({
+          name,
+          phone: String(payload.phone || '').trim(),
+          address: String(payload.address || '').trim(),
+          balance: 0,
+          customer_type: ['vip', 'credit', 'wholesale'].includes(payload.type as string) ? (payload.type as any) : 'cash',
+          credit_limit: Number(payload.creditLimit || 0),
+          store_credit_balance: Number(payload.storeCreditBalance || 0),
+          company_name: String(payload.companyName || '').trim(),
+          tax_number: String(payload.taxNumber || '').trim(),
+          metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
+          is_active: true,
+          ...this.tenantFields(actor),
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
-    await this.addCustomerOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
+      await this.addCustomerOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor, trx);
+
+      const customerCode = `C-${String(inserted.id).padStart(4, '0')}`;
+      const initialMeta: any = {
+        ...(payload.metadata || {}),
+        customer_code: customerCode,
+        code: customerCode,
+      };
+      if (initialMeta.visit_day !== undefined || initialMeta.visit_days !== undefined) {
+        const { visitDays, visitDay } = extractCustomerVisitDays(initialMeta);
+        initialMeta.visit_days = visitDays;
+        initialMeta.visit_day = visitDay;
+      }
+      await (trx as any)
+        .updateTable('customers')
+        .set({ metadata: JSON.stringify(initialMeta) })
+        .where('id', '=', (inserted as any).id)
+        .where('tenant_id', '=', actor.tenantId)
+        .execute();
+
+      return inserted;
+    });
 
     const customerCode = `C-${String(inserted.id).padStart(4, '0')}`;
-    const initialMeta: any = {
-      ...(payload.metadata || {}),
-      customer_code: customerCode,
-      code: customerCode,
-    };
-    if (initialMeta.visit_day !== undefined || initialMeta.visit_days !== undefined) {
-      const { visitDays, visitDay } = extractCustomerVisitDays(initialMeta);
-      initialMeta.visit_days = visitDays;
-      initialMeta.visit_day = visitDay;
-    }
-    await (this.db as any)
-      .updateTable('customers')
-      .set({ metadata: JSON.stringify(initialMeta) })
-      .where('id', '=', (inserted as any).id)
-      .where('tenant_id', '=', actor.tenantId)
-      .execute();
-
     await this.audit.log('إضافة عميل', `تم إضافة العميل ${name} [${customerCode}] بواسطة ${actor.username}`, actor);
 
     const listing = await this.listCustomers({}, actor);
@@ -866,22 +871,25 @@ export class PartnersService {
     if (!name) throw new AppError('Supplier name is required', 'SUPPLIER_NAME_REQUIRED', 400);
     if (await this.supplierNameExists(name, actor)) throw new AppError('Supplier already exists', 'SUPPLIER_EXISTS', 400);
 
-    const inserted = await this.db
-      .insertInto('suppliers')
-      .values({
-        name,
-        phone: String(payload.phone || '').trim(),
-        address: String(payload.address || '').trim(),
-        balance: 0,
-        notes: String(payload.notes || '').trim(),
-        metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
-        is_active: true,
-        ...this.tenantFields(actor),
-      } as any)
-      .returning('id')
-      .executeTakeFirstOrThrow();
+    const inserted = await this.db.transaction().execute(async (trx) => {
+      const inserted = await trx
+        .insertInto('suppliers')
+        .values({
+          name,
+          phone: String(payload.phone || '').trim(),
+          address: String(payload.address || '').trim(),
+          balance: 0,
+          notes: String(payload.notes || '').trim(),
+          metadata: payload.metadata ? JSON.stringify(payload.metadata) : null,
+          is_active: true,
+          ...this.tenantFields(actor),
+        } as any)
+        .returning('id')
+        .executeTakeFirstOrThrow();
 
-    await this.addSupplierOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor);
+      await this.addSupplierOpeningBalance(Number(inserted.id), Number(payload.balance || 0), actor, trx);
+      return inserted;
+    });
     await this.audit.log('إضافة مورد', `تم إضافة المورد ${name} بواسطة ${actor.username}`, actor);
 
     const listing = await this.listSuppliers({}, actor);

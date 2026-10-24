@@ -52,6 +52,8 @@ export type JournalEntryLine = {
 
 export type JournalEntryDetail = {
   canReverse?: boolean;
+  reversedByEntryId?: string | null;
+  reversalOfEntryId?: string | null;
   id: string;
   entryNo: string;
   entryDate: string;
@@ -226,6 +228,7 @@ export type CreateManualJournalEntryPayload = {
   description: string;
   branchId?: number | null;
   reference?: string;
+  cashFlowCategory?: 'operating' | 'investing' | 'financing';
   lines: CreateManualJournalLinePayload[];
 };
 
@@ -555,6 +558,8 @@ export interface CashFlowReportData {
   endingCash: number;
   reconciledCashActual: number;
   isReconciled: boolean;
+  isClassified?: boolean;
+  unclassifiedActivities?: CashFlowSection;
 }
 
 export interface AgedPartnerRow {
@@ -723,6 +728,7 @@ export interface CreatePdcChequePayload {
   partnerName: string;
   amount: number;
   currency?: string;
+  exchangeRate?: number;
   issueDate: string;
   dueDate: string;
   depositBankId?: number;
@@ -732,6 +738,7 @@ export interface CreatePdcChequePayload {
 export interface UpdateChequeStatusPayload {
   action: 'deposit' | 'collect' | 'clear' | 'bounce' | 'endorse' | 'return' | 'cancel' | 'restore_to_safe';
   actionDate?: string;
+  settlementExchangeRate?: number;
   depositBankId?: number;
   bouncedReason?: string;
   bouncedFee?: number;

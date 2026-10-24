@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { useHrWorkspace } from '@/features/hr/hooks/useHr';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import {
   endOfServiceApi,
   SettlementRecord,
@@ -18,6 +19,8 @@ import { PrintSettlementModal } from '../components/end-of-service/PrintSettleme
 export function HrEndOfServicePage() {
   const { t } = useTranslation();
   const { employees } = useHrWorkspace({ pageSize: 150 });
+  const canCreateSettlement = useHasAnyPermission('hrSalaryManage');
+  const canPostSettlement = useHasAnyPermission('hrPayrollApprove');
   const [settlements, setSettlements] = useState<SettlementRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -219,7 +222,7 @@ export function HrEndOfServicePage() {
           title={t('hr.hr_end_of_service_page.s0', "مخالصات ومكافأة نهاية الخدمة (End of Service Settlements)")}
           description={t('hr.hr_end_of_service_page.s1', "احتساب مكافأة نهاية الخدمة وتصفية مستحقات وعهد الموظفين وفق أنظمة العمل وإصدار قيود المحاسبة ونماذج المخالصة الرسمية")}
           badge={<span className="nav-pill">{t('hr.hr_end_of_service_page.s2', "الموارد البشرية")}</span>}
-          actions={
+          actions={canCreateSettlement ? (
             <Button
               type="button"
               variant="primary"
@@ -240,7 +243,7 @@ export function HrEndOfServicePage() {
               <PlusIcon size={16} />
               <span>{t('hr.hr_end_of_service_page.s3', "إنشاء مخالصة جديدة")}</span>
             </Button>
-          }
+          ) : undefined}
         />
 
         {/* KPI Cards */}
@@ -295,6 +298,8 @@ export function HrEndOfServicePage() {
             settlements={filteredSettlements}
             loading={loading}
             postingId={postingId}
+            canPostAccounting={canPostSettlement}
+            canDelete={canCreateSettlement}
             onPostAccounting={handlePostAccounting}
             onPrint={handlePrint}
             onDelete={handleDelete}

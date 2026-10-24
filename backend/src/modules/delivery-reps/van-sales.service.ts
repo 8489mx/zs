@@ -1,3 +1,4 @@
+import { assertBusinessAccountingDate } from '../accounting/accounting-boundaries';
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService, AUDIT_EVENT_CODES } from '../../core/audit/audit.service';
@@ -1736,6 +1737,7 @@ export class VanSalesService {
     let creditOwed = 0;
 
     await this.db.transaction().execute(async (trx) => {
+      await assertBusinessAccountingDate(trx, tenantId, new Date(), true);
       const trxAny = trx as any;
       const saleItemRecords: any[] = [];
       const sortedItems = this.sortItemsByProductId(payload.items);
@@ -2898,7 +2900,7 @@ export class VanSalesService {
       await this.accountingPosting.postVanFieldCollection(
         trx,
         Number(insertedPayment.id),
-        { amount, customerId: payload.customerId, branchId, locationId: vanLocId },
+        { amount, customerId: payload.customerId, branchId, locationId: vanLocId, paymentMethod: payload.paymentMethod || 'cash' },
         systemAuth,
       );
     });

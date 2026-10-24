@@ -88,7 +88,7 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
   }, [rows, draftByEmployeeId]);
 
   return (
-    <div>
+    <div className="attendance-table-container">
       <DataTable
         rows={rows}
         rowKey={(row) => String(row.employeeId)}
@@ -96,10 +96,10 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
         columns={[
           {
             key: 'employeeNo',
-            header: t('hr.attendance.daily_attendance_table.s0', "كود"),
+            header: t('hr.attendance.daily_attendance_table.s0', "الكود"),
             className: 'col-fit',
             cell: (row) => (
-              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#475569' }}>
+              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#475569', fontSize: '0.8rem' }}>
                 {row.employeeNo || '—'}
               </span>
             ),
@@ -110,24 +110,25 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
             className: 'col-main',
             cell: (row) => (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.825rem' }}>
                   {row.employeeName || '—'}
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.72rem', color: '#64748b', marginTop: '2px', flexWrap: 'wrap', textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '0.7rem', color: '#64748b', marginTop: '1px', flexWrap: 'wrap', textAlign: 'center' }}>
                   {row.jobTitleName && <span>{row.jobTitleName}</span>}
                   {(row.scheduledCheckInTime || row.scheduledCheckOutTime) ? (
                     <span
                       style={{
                         background: '#f1f5f9',
-                        padding: '1px 6px',
+                        padding: '1px 5px',
                         borderRadius: '4px',
                         border: '1px solid #e2e8f0',
                         color: '#334155',
                         fontWeight: 600,
+                        fontSize: '0.68rem',
                       }}
                     >
-                      الوردية: {row.scheduledCheckInTime || '09:00'} - {row.scheduledCheckOutTime || '17:00'}
-                      {row.graceMinutes ? ` (سماح ${row.graceMinutes} د)` : ''}
+                      {row.scheduledCheckInTime || '09:00'} - {row.scheduledCheckOutTime || '17:00'}
+                      {row.graceMinutes ? ` (${row.graceMinutes}د)` : ''}
                     </span>
                   ) : null}
                 </div>
@@ -138,7 +139,7 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
             key: 'departmentName',
             header: t('hr.attendance.daily_attendance_table.s2', "القسم"),
             className: 'col-fit',
-            cell: (row) => row.departmentName || '—',
+            cell: (row) => <span style={{ fontSize: '0.78rem' }}>{row.departmentName || '—'}</span>,
           },
           {
             key: 'checkInAt',
@@ -148,15 +149,15 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
               const currentStatus = draftByEmployeeId[String(row.employeeId)]?.status || row.status || '';
               if (currentStatus === 'leave') {
                 return (
-                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '3px 8px' }}>
-                    إجازة معتمدة
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '2px 6px' }}>
+                    إجازة
                   </span>
                 );
               }
               if (currentStatus === 'absent') {
                 return (
-                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '3px 8px' }}>
-                    غائب اليوم
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '2px 6px' }}>
+                    غائب
                   </span>
                 );
               }
@@ -167,7 +168,7 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
               const valIn = draftByEmployeeId[String(row.employeeId)]?.checkInAt || '';
 
               return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', justifyContent: 'center' }}>
                   <TimeAmPmInput
                     value={valIn}
                     defaultPeriod={defaultPeriodIn}
@@ -181,10 +182,10 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
                       borderRadius: '4px',
-                      fontSize: '0.7rem',
+                      fontSize: '0.68rem',
                       fontWeight: 700,
                       color: '#170e5e',
-                      padding: '3px 6px',
+                      padding: '2px 4px',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
@@ -202,7 +203,7 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
             cell: (row) => {
               const currentStatus = draftByEmployeeId[String(row.employeeId)]?.status || row.status || '';
               if (currentStatus === 'leave' || currentStatus === 'absent') {
-                return <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>معفي من الانصراف</span>;
+                return <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>معفي</span>;
               }
 
               const schedOut = row.scheduledCheckOutTime || '17:00';
@@ -211,7 +212,7 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
               const valOut = draftByEmployeeId[String(row.employeeId)]?.checkOutAt || '';
 
               return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', justifyContent: 'center' }}>
                   <TimeAmPmInput
                     value={valOut}
                     defaultPeriod={defaultPeriodOut}
@@ -225,10 +226,10 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
                       background: '#f8fafc',
                       border: '1px solid #cbd5e1',
                       borderRadius: '4px',
-                      fontSize: '0.7rem',
+                      fontSize: '0.68rem',
                       fontWeight: 700,
                       color: '#170e5e',
-                      padding: '3px 6px',
+                      padding: '2px 4px',
                       cursor: 'pointer',
                       whiteSpace: 'nowrap',
                     }}
@@ -241,12 +242,12 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
           },
           {
             key: 'duration',
-            header: 'ساعات التشغيل',
+            header: 'ساعات العمل',
             className: 'col-fit',
             cell: (row) => {
               const dur = workedHours(row);
               return dur !== '—' ? (
-                <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.8rem' }}>
                   {dur}
                 </span>
               ) : (
@@ -260,9 +261,9 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
             className: 'col-fit',
             cell: (row) =>
               row.compensationType === 'hourly' ? (
-                <span style={{ fontWeight: 700, color: '#0369a1' }}>{workedHours(row)}</span>
+                <span style={{ fontWeight: 700, color: '#0369a1', fontSize: '0.8rem' }}>{workedHours(row)}</span>
               ) : (
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>راتب شهري</span>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>راتب شهري</span>
               ),
           },
           {
@@ -272,51 +273,51 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
             cell: (row) => {
               const currentStatus = draftByEmployeeId[String(row.employeeId)]?.status || '';
               return (
-                <div style={{ width: '135px' }}>
+                <div style={{ width: '108px' }}>
                   <CustomSelect
                     value={currentStatus}
                     onChange={(val) => onUpdateDraft(String(row.employeeId), { status: val })}
-                    style={{ background: '#ffffff', border: '1px solid #cbd5e1' }}
+                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', fontSize: '0.78rem' }}
                     options={[
                       {
                         value: '',
                         label: t('hr.attendance.daily_attendance_table.s6', "غير مسجل"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#94a3b8', display: 'inline-block' }} />,
                       },
                       {
                         value: 'present',
                         label: t('hr.attendance.daily_attendance_table.s7', "حاضر"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />,
                       },
                       {
                         value: 'absent',
                         label: t('hr.attendance.daily_attendance_table.s8', "غائب"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />,
                       },
                       {
                         value: 'late',
                         label: t('hr.attendance.daily_attendance_table.s9', "متأخر"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />,
                       },
                       {
                         value: 'early_leave',
                         label: t('hr.attendance.daily_attendance_table.s10', "انصراف مبكر"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ea580c', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ea580c', display: 'inline-block' }} />,
                       },
                       {
                         value: 'leave',
                         label: t('hr.attendance.daily_attendance_table.s11', "إجازة"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#2563eb', display: 'inline-block' }} />,
                       },
                       {
                         value: 'half_day',
                         label: t('hr.attendance.daily_attendance_table.s12', "نصف يوم"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#7c3aed', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#7c3aed', display: 'inline-block' }} />,
                       },
                       {
                         value: 'excused',
                         label: t('hr.attendance.daily_attendance_table.s13', "بعذر"),
-                        icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#475569', display: 'inline-block' }} />,
+                        icon: <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#475569', display: 'inline-block' }} />,
                       },
                     ]}
                   />
@@ -334,9 +335,10 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
                 onChange={(e) => onUpdateDraft(String(row.employeeId), { notes: e.target.value })}
                 placeholder={t('hr.attendance.daily_attendance_table.s15', "ملاحظات...")}
                 style={{
-                  padding: '3px 8px',
-                  fontSize: '0.825rem',
+                  padding: '3px 6px',
+                  fontSize: '0.78rem',
                   width: '100%',
+                  minWidth: '50px',
                   borderRadius: '5px',
                   border: '1px solid #cbd5e1',
                   boxSizing: 'border-box',
@@ -356,8 +358,8 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
                   onClick={() => dirty && onSaveRow(String(row.employeeId))}
                   disabled={!dirty}
                   style={{
-                    padding: '4px 10px',
-                    fontSize: '0.78rem',
+                    padding: '3px 8px',
+                    fontSize: '0.75rem',
                     fontWeight: 700,
                     borderRadius: '5px',
                     border: dirty ? 'none' : '1px solid #e2e8f0',
@@ -367,12 +369,12 @@ export const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
                     boxShadow: dirty ? '0 1px 3px rgba(0,0,0,0.15)' : 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '3px',
                     whiteSpace: 'nowrap',
                   }}
                   title={dirty ? 'حفظ تعديلات هذا الموظف' : 'تم حفظ السجل مسبقاً'}
                 >
-                  {dirty && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#38bdf8' }} />}
+                  {dirty && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#38bdf8' }} />}
                   {dirty ? 'حفظ' : 'محفوظ'}
                 </button>
               );

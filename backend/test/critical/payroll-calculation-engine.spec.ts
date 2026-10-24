@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import {
   calculateDailyRate,
   calculateOvertime,
+  calculateHourlyOvertimePremium,
   calculateProgressiveDelayDeduction,
   calculateSocialInsurance,
   calculateIncomeTax,
@@ -32,6 +33,16 @@ function testOvertimeAndDailyRates() {
   });
   // 2 hours * 50 * 1.5 = 150.00
   assert.equal(overtimePay, 150.0, 'أجر الإضافي لساعتين بمعدل 1.5x هو 150.00');
+  // Hourly base includes 2h * 50 = 100 already; only the additional 50 is owed.
+  assert.equal(calculateHourlyOvertimePremium({
+    overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 1.5,
+  }), 50);
+  assert.equal(calculateHourlyOvertimePremium({
+    overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 2,
+  }), 100);
+  assert.equal(calculateHourlyOvertimePremium({
+    overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 1,
+  }), 0);
 
   // 1.3 Hourly employee daily rate
   const hourlyRateCalc = calculateDailyRate({
@@ -112,10 +123,22 @@ function testIncomeTaxCalculations() {
   console.log('--- 4. اختبارات ضريبة كسب العمل والشرائح التصاعدية (Income Tax Brackets) ---');
 
   // 4.1 Income under tax exemption limit (<= 3333/month)
+  // Synthetic progressive rates, supplied explicitly by the calling policy.
+  const exampleBrackets = [
+    { min: 0, max: 3333, rate: 0.00 },
+    { min: 3333, max: 4583, rate: 0.10 },
+    { min: 4583, max: 6250, rate: 0.15 },
+    { min: 6250, max: 16666, rate: 0.20 },
+    { min: 16666, max: null, rate: 0.225 },
+  ];
+  assert.throws(() => calculateIncomeTax({
+    isEnabled: true, hasIncomeTax: true, taxableIncome: 10000,
+  }), /Explicit tax brackets/);
   const exempt = calculateIncomeTax({
     isEnabled: true,
     hasIncomeTax: true,
     taxableIncome: 3000,
+    brackets: exampleBrackets,
   });
   assert.equal(exempt, 0, 'الدخل الخاضع أقل من حد الإعفاء -> ضريبة 0');
 
@@ -125,6 +148,7 @@ function testIncomeTaxCalculations() {
     isEnabled: true,
     hasIncomeTax: true,
     taxableIncome: 4000,
+    brackets: exampleBrackets,
   });
   assert.equal(taxTier1, 66.7, 'ضريبة الدخل في الشريحة الأولى 10%');
 
@@ -137,6 +161,7 @@ function testIncomeTaxCalculations() {
     isEnabled: true,
     hasIncomeTax: true,
     taxableIncome: 10000,
+    brackets: exampleBrackets,
   });
   assert.equal(taxTier3, 1125.05, 'الضريبة التصاعدية لدخل 10000 هي 1125.05');
   console.log('✔ احتساب الضرائب التصاعدية بالشرائح القانونية (ناجح)');

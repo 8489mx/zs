@@ -65,7 +65,7 @@ export function AttendanceRangeTable({ rows }: { rows: HrAttendanceRecord[] }) {
   }, [rows]);
 
   return (
-    <div>
+    <div className="attendance-table-container">
       <DataTable<HrAttendanceRecord>
         rows={rows}
         rowKey={(row) => `${row.employeeId}-${row.workDate}-${row.id || ''}`}

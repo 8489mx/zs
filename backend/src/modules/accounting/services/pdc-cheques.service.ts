@@ -1,3 +1,7 @@
+import { tenantBaseCurrency } from '../accounting-currency';
+import { assertPdcTransition, pdcBookAmount } from '../engines/pdc-transition.engine';
+import { pdcCurrencySnapshot } from '../pdc-currency';
+import { lockAccountingPeriod } from '../accounting-period-lock';
 import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -93,6 +97,7 @@ export interface CreatePdcChequeDto {
   partnerName: string;
   amount: number;
   currency?: string;
+  exchangeRate?: number;
   issueDate: string;
   dueDate: string;
   depositBankId?: number;
@@ -103,6 +108,7 @@ export interface CreatePdcChequeDto {
 export interface UpdateChequeStatusDto {
   action: 'deposit' | 'collect' | 'clear' | 'bounce' | 'endorse' | 'return' | 'cancel' | 'restore_to_safe';
   actionDate?: string;
+  settlementExchangeRate?: number;
   depositBankId?: number;
   bouncedReason?: string;
   bouncedFee?: number;
@@ -246,7 +252,7 @@ export class PdcChequesService {
       .select([
         'type',
         'status',
-        'amount',
+        'amount', 'base_amount', 'currency',
         'due_date',
       ])
       .execute();
@@ -284,8 +290,10 @@ export class PdcChequesService {
       },
     };
 
+    const base = await tenantBaseCurrency(this.db, tenantId);
+    if (rows.some((r: any) => r.base_amount == null && r.currency !== base)) throw new BadRequestException('إحصاءات الحافظة تتطلب مطابقة الشيكات الأجنبية القديمة أولاً.');
     for (const r of rows) {
-      const amount = this.toMoney(r.amount);
+      const amount = this.toMoney(r.base_amount ?? r.amount);
       const dueDate = this.formatDate(r.due_date);
       const isReceivable = r.type === 'receivable';
 
@@ -365,18 +373,35 @@ export class PdcChequesService {
       throw new BadRequestException('اسم العميل / المورد مطلوب');
     }
     const amount = Number(dto.amount);
-    if (!amount || amount <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
       throw new BadRequestException('مبلغ الشيك يجب أن يكون أكبر من الصفر');
     }
     if (!dto.issueDate || !dto.dueDate) {
       throw new BadRequestException('تاريخ التحرير وتاريخ الاستحقاق مطلوبان');
     }
 
+    for (const day of [dto.issueDate, dto.dueDate]) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !Number.isFinite(new Date(day).getTime()) || new Date(day).toISOString().slice(0, 10) !== day) throw new BadRequestException('تاريخ الشيك غير صالح.');
+    }
+    if (dto.dueDate < dto.issueDate) throw new BadRequestException('الاستحقاق يسبق تحرير الشيك.');
     const type = dto.type === 'payable' ? 'payable' : 'receivable';
     const defaultStatus = type === 'receivable' ? 'in_safe' : 'issued';
     const status = dto.status || defaultStatus;
+    if (status !== defaultStatus) throw new BadRequestException('الشيك الجديد يبدأ من حالة الاستلام أو الإصدار فقط.');
+    const partnerType = type === 'receivable' ? 'customer' : 'supplier';
+    if (dto.partnerType && dto.partnerType !== partnerType) throw new BadRequestException('نوع الشريك لا يطابق نوع الشيك.');
 
     return this.db.transaction().execute(async (trx: any) => {
+      await lockAccountingPeriod(trx, tenantId);
+      if (!dto.partnerId) {
+        const matches = await trx.selectFrom(type === 'receivable' ? 'customers' : 'suppliers').select('id').where('tenant_id', '=', tenantId).where('name', '=', dto.partnerName.trim()).where('is_active', '=', true).limit(2).execute();
+        if (matches.length !== 1) throw new BadRequestException('يجب اختيار عميل أو مورد مسجل وفريد؛ الاسم وحده لا يكفي لربط الشيك.');
+        dto = { ...dto, partnerId: Number(matches[0].id) };
+      }
+      if (dto.partnerId && !await trx.selectFrom(type === 'receivable' ? 'customers' : 'suppliers').select('id').where('tenant_id', '=', tenantId).where('id', '=', Number(dto.partnerId)).executeTakeFirst()) throw new BadRequestException('الشريك لا يتبع المنشأة.');
+      if (dto.depositBankId && !await trx.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', tenantId).where('id', '=', dto.depositBankId).where('is_active', '=', true).where('is_cash_bank', '=', true).where('code', 'not in', ['1121', '1122']).executeTakeFirst()) throw new BadRequestException('حساب البنك لا يتبع المنشأة أو غير صالح.');
+      const currency = String(dto.currency || await tenantBaseCurrency(trx, tenantId)).trim().toUpperCase();
+      const snapshot = await pdcCurrencySnapshot(trx, tenantId, currency, amount, dto.exchangeRate);
       const inserted = await trx
         .insertInto('accounting_cheques')
         .values({
@@ -390,14 +415,15 @@ export class PdcChequesService {
           partner_id: dto.partnerId || null,
           partner_name: dto.partnerName.trim(),
           amount: amount,
-          currency: dto.currency || 'EGP',
+          currency,
+          ...snapshot,
           issue_date: dto.issueDate,
           due_date: dto.dueDate,
           status,
           deposit_bank_id: dto.depositBankId || null,
           notes: dto.notes?.trim() || null,
           created_by: authContext.userId ? Number(authContext.userId) : null,
-        })
+        } as any)
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -418,7 +444,7 @@ export class PdcChequesService {
             trx,
             authContext,
             Number(inserted.partner_id),
-            -amount,
+            -snapshot.base_amount,
             'cheque_received',
             `استلام شيك قبض #${dto.chequeNumber}`,
             inserted.id,
@@ -440,7 +466,7 @@ export class PdcChequesService {
             trx,
             authContext,
             Number(inserted.partner_id),
-            -amount,
+            -snapshot.base_amount,
             'cheque_issued',
             `إصدار شيك دفع #${dto.chequeNumber}`,
             inserted.id,
@@ -493,6 +519,7 @@ export class PdcChequesService {
     const tenantId = String(authContext.tenantId || '');
 
     return this.db.transaction().execute(async (trx: any) => {
+      await lockAccountingPeriod(trx, tenantId);
       const existing = await trx
         .selectFrom('accounting_cheques')
         .where('tenant_id', '=', tenantId)
@@ -505,8 +532,35 @@ export class PdcChequesService {
         throw new NotFoundException('الشيك غير موجود');
       }
 
+      if (actionDto.depositBankId && !await trx.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', tenantId).where('id', '=', actionDto.depositBankId).where('is_active', '=', true).where('is_cash_bank', '=', true).where('code', 'not in', ['1121', '1122']).executeTakeFirst()) throw new BadRequestException('حساب البنك لا يتبع المنشأة أو غير صالح.');
+      if (actionDto.action === 'endorse') {
+        let supplierId = actionDto.endorsedToSupplierId;
+        if (!supplierId && actionDto.endorsedToSupplierName) {
+          const matches = await trx.selectFrom('suppliers').select('id').where('tenant_id', '=', tenantId).where('name', '=', actionDto.endorsedToSupplierName.trim()).where('is_active', '=', true).limit(2).execute();
+          if (matches.length === 1) supplierId = Number(matches[0].id);
+        }
+        if (!supplierId || !await trx.selectFrom('suppliers').select('id').where('tenant_id', '=', tenantId).where('id', '=', supplierId).executeTakeFirst()) throw new BadRequestException('يجب تحديد مورد مسجل من نفس المنشأة للتظهير.');
+        actionDto = { ...actionDto, endorsedToSupplierId: supplierId };
+      }
+      try { assertPdcTransition(existing.type, existing.status, actionDto.action); } catch (error) { throw new BadRequestException((error as Error).message); }
+      if (existing.base_amount == null) {
+        const base = await tenantBaseCurrency(trx, tenantId);
+        if (existing.currency !== base) throw new BadRequestException('الشيك الأجنبي القديم يحتاج مطابقة وتصحيح القيمة الدفترية أولاً.');
+        existing.base_amount = Number(existing.amount);
+        await trx.updateTable('accounting_cheques').set({ base_amount: existing.base_amount, exchange_rate: 1, base_currency: existing.currency }).where('tenant_id', '=', tenantId).where('id', '=', id).execute();
+      }
+      const bookAmount = pdcBookAmount(existing);
       const today = new Date().toISOString().substring(0, 10);
       const actionDate = actionDto.actionDate || today;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(actionDate) || !Number.isFinite(new Date(actionDate).getTime()) || new Date(actionDate).toISOString().slice(0, 10) !== actionDate) throw new BadRequestException('تاريخ إجراء الشيك غير صالح.');
+      if (actionDate < this.formatDate(existing.last_action_date || existing.issue_date)) throw new BadRequestException('تاريخ الإجراء يسبق آخر حركة مثبتة للشيك.');
+      if (actionDto.bouncedFee != null && (!Number.isFinite(Number(actionDto.bouncedFee)) || Number(actionDto.bouncedFee) < 0)) throw new BadRequestException('عمولة الارتداد غير صالحة.');
+      let settlementBase = bookAmount;
+      if (['collect', 'clear'].includes(actionDto.action)) {
+        const snapshot = await pdcCurrencySnapshot(trx, tenantId, existing.currency, Number(existing.amount), actionDto.settlementExchangeRate);
+        settlementBase = snapshot.base_amount;
+      }
+      await trx.updateTable('accounting_cheques').set({ last_action_date: actionDate, settlement_base_amount: settlementBase, posting_sequence: sql`posting_sequence + 1` }).where('tenant_id', '=', tenantId).where('id', '=', id).execute();
       let updateFields: Record<string, any> = {
         updated_at: sql`CURRENT_TIMESTAMP`,
       };
@@ -655,7 +709,7 @@ export class PdcChequesService {
               trx,
               authContext,
               Number(existing.partner_id),
-              Number(existing.amount),
+              bookAmount,
               'cheque_bounced',
               `ارتداد شيك قبض #${existing.cheque_number}`,
               id,
@@ -672,7 +726,7 @@ export class PdcChequesService {
               trx,
               authContext,
               Number(existing.partner_id),
-              Number(existing.amount),
+              bookAmount,
               'cheque_bounced',
               `ارتداد شيك دفع #${existing.cheque_number}`,
               id,
@@ -695,7 +749,7 @@ export class PdcChequesService {
             trx,
             authContext,
             Number(actionDto.endorsedToSupplierId),
-            -Number(existing.amount),
+            -bookAmount,
             'cheque_endorsed',
             `سداد بتظهير شيك قبض #${existing.cheque_number}`,
             id,
@@ -719,7 +773,7 @@ export class PdcChequesService {
               trx,
               authContext,
               Number(existing.partner_id),
-              Number(existing.amount),
+              bookAmount,
               'cheque_returned',
               `رد/إلغاء شيك قبض #${existing.cheque_number}`,
               id,
@@ -729,7 +783,7 @@ export class PdcChequesService {
               trx,
               authContext,
               Number(existing.partner_id),
-              Number(existing.amount),
+              bookAmount,
               'cheque_returned',
               `رد/إلغاء شيك دفع #${existing.cheque_number}`,
               id,
@@ -756,7 +810,7 @@ export class PdcChequesService {
               trx,
               authContext,
               Number(existing.partner_id),
-              -Number(existing.amount),
+              -bookAmount,
               'cheque_restored',
               `استعادة شيك مرتد إلى الخزينة #${existing.cheque_number}`,
               id,
@@ -766,7 +820,7 @@ export class PdcChequesService {
               trx,
               authContext,
               Number(existing.partner_id),
-              -Number(existing.amount),
+              -bookAmount,
               'cheque_restored',
               `إعادة إدراج شيك مرتد بالخزينة #${existing.cheque_number}`,
               id,
@@ -839,8 +893,9 @@ export class PdcChequesService {
       .returning(['balance'])
       .executeTakeFirst();
 
-    if (!updated) return;
+    if (!updated) throw new BadRequestException('الشريك لا يتبع المنشأة؛ تم إلغاء العملية بالكامل.');
 
+    const chequeDate = await trx.selectFrom('accounting_cheques').select(['last_action_date', 'issue_date']).where('tenant_id', '=', tenantId).where('id', '=', chequeId).executeTakeFirstOrThrow();
     await trx
       .insertInto('customer_ledger')
       .values({
@@ -851,6 +906,7 @@ export class PdcChequesService {
         note: note,
         reference_type: 'pdc_cheque',
         reference_id: chequeId,
+        created_at: new Date(chequeDate.last_action_date || chequeDate.issue_date),
         created_by: auth.userId ? Number(auth.userId) : null,
         branch_id: null,
         location_id: null,
@@ -882,8 +938,9 @@ export class PdcChequesService {
       .returning(['balance'])
       .executeTakeFirst();
 
-    if (!updated) return;
+    if (!updated) throw new BadRequestException('الشريك لا يتبع المنشأة؛ تم إلغاء العملية بالكامل.');
 
+    const chequeDate = await trx.selectFrom('accounting_cheques').select(['last_action_date', 'issue_date']).where('tenant_id', '=', tenantId).where('id', '=', chequeId).executeTakeFirstOrThrow();
     await trx
       .insertInto('supplier_ledger')
       .values({
@@ -894,6 +951,7 @@ export class PdcChequesService {
         note: note,
         reference_type: 'pdc_cheque',
         reference_id: chequeId,
+        created_at: new Date(chequeDate.last_action_date || chequeDate.issue_date),
         created_by: auth.userId ? Number(auth.userId) : null,
         branch_id: null,
         location_id: null,

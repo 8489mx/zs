@@ -1,11 +1,21 @@
 import { strict as assert } from 'node:assert';
-import { allocateLoanDeduction } from '../../src/modules/hr/payroll-loan-allocation.engine';
+import { allocateLoanDeduction, calculatePayrollLoanDueTotal } from '../../src/modules/hr/payroll-loan-allocation.engine';
 
 /**
  * يحرس العطل الفعلي: خصم شهر واحد يغطي قسطين من **نفس القرض**، وكان رصيد القرض
  * يُحسب من لقطة قديمة في الدورة الثانية فيختل تصالح المسدَّد مع المتبقي.
  */
 function run(): void {
+  // The production due-total calculation caps two due installments against
+  // ONE loan outstanding balance before the reviewer approves the payroll.
+  assert.equal(calculatePayrollLoanDueTotal([
+    { loanId: 1, installmentAmount: 600, installmentPaid: 0, loanRemaining: 1000 },
+    { loanId: 1, installmentAmount: 600, installmentPaid: 0, loanRemaining: 1000 },
+    { loanId: 2, installmentAmount: 200, installmentPaid: 50, loanRemaining: 120 },
+  ]), 1120);
+  assert.throws(() => calculatePayrollLoanDueTotal([
+    { loanId: 1, installmentAmount: 100, installmentPaid: 110, loanRemaining: 500 },
+  ]), /exceeds original/);
   // ── الحالة التي كانت تنكسر: قرض 1000، قسطان 600 + 600، الخصم يغطيهما ──────
   {
     let remainingToDeduct = 1200;

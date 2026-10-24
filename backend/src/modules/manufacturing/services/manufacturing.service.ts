@@ -1,3 +1,4 @@
+import { valueStockReceipt } from '../../accounting/inventory-valuation';
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql, Transaction } from '../../../database/kysely';
 import { AuditService } from '../../../core/audit/audit.service';
@@ -366,6 +367,9 @@ export class ManufacturingService {
         productIds: [Number(wo.finished_product_id), ...lines.map((line) => Number(line.component_product_id)), ...(payload.byProducts || []).map((bp) => Number(bp.productId))],
       });
 
+      const valuedProducts = await trx.selectFrom('products').select(['id', 'cost_price']).where('tenant_id', '=', scope.tenantId)
+        .where('id', 'in', [Number(wo.finished_product_id), ...lines.map(line => Number(line.component_product_id)), ...(payload.byProducts || []).map(bp => Number(bp.productId))]).execute();
+      const costByProduct = new Map(valuedProducts.map(product => [Number(product.id), Number(product.cost_price)]));
       let totalCost = 0;
 
       const bomQuantity = Number(wo.bom_quantity || 1);
@@ -377,14 +381,16 @@ export class ManufacturingService {
         const lineMultiplier = Number(line.unit_multiplier || 1);
         const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (qtyToProduce / bomQuantity);
         const requiredQty = Number((quantityConsumedInSelectedUnit * lineMultiplier).toFixed(3));
-        const lineTotalCost = Number((quantityConsumedInSelectedUnit * Number(line.expected_cost)).toFixed(3));
+        const actualUnitCost = Number(costByProduct.get(Number(line.component_product_id)));
+        if (!Number.isFinite(actualUnitCost) || actualUnitCost < 0) throw new AppError('Invalid material cost', 'MANUFACTURING_COST_INVALID', 409);
+        const lineTotalCost = Number((requiredQty * actualUnitCost).toFixed(2));
         totalCost += lineTotalCost;
 
         await trx.insertInto('manufacturing_wo_consumptions').values({
           work_order_id: wo.id,
           component_product_id: Number(line.component_product_id),
           quantity_consumed: requiredQty,
-          unit_cost: Number(line.expected_cost),
+          unit_cost: actualUnitCost,
           line_total: lineTotalCost,
         }).execute();
 
@@ -401,6 +407,7 @@ export class ManufacturingService {
         await trx.insertInto('stock_movements').values({
           product_id: Number(line.component_product_id),
           movement_type: 'manufacturing_consumption',
+          unit_cost: actualUnitCost, total_cost: lineTotalCost,
           qty: -requiredQty,
           before_qty: stockChange.scopeBefore,
           after_qty: stockChange.scopeAfter,
@@ -417,7 +424,7 @@ export class ManufacturingService {
 
       // Add overhead cost
       const overheadCost = Number(wo.overhead_cost || 0);
-      const totalOverheadCost = Number((overheadCost * (qtyToProduce / bomQuantity)).toFixed(3));
+      const totalOverheadCost = Number((overheadCost * (qtyToProduce / bomQuantity)).toFixed(2));
       totalCost += totalOverheadCost;
 
       // Add Work Center Operations & Machine Costs
@@ -452,6 +459,17 @@ export class ManufacturingService {
         }
       }
 
+      let byProductValue = 0;
+      for (const bp of payload.byProducts || []) {
+        if (Number(bp.productId) === Number(wo.finished_product_id)) throw new AppError('Finished product cannot also be a by-product', 'MANUFACTURING_COST_INVALID', 400);
+        const value = Number((Number(bp.quantity) * Number(costByProduct.get(Number(bp.productId)))).toFixed(2));
+        if (!Number.isFinite(value) || value < 0) throw new AppError('Invalid by-product valuation', 'MANUFACTURING_COST_INVALID', 400);
+        byProductValue += value;
+      }
+      if (byProductValue > totalCost) throw new AppError('By-product value exceeds production cost', 'MANUFACTURING_COST_INVALID', 400);
+      totalCost = Number(totalCost.toFixed(2));
+      const finishedValue = Number((totalCost - byProductValue).toFixed(2));
+
       // Add finished product
       const fgStockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(wo.finished_product_id), branchId: null, locationId: destinationLocation };
       const fgStockChange = await applyStockDelta(trx, {
@@ -462,6 +480,7 @@ export class ManufacturingService {
       await trx.insertInto('stock_movements').values({
         product_id: Number(wo.finished_product_id),
         movement_type: 'manufacturing_production',
+        unit_cost: finishedValue / qtyToProduce, total_cost: finishedValue,
         qty: qtyToProduce,
         before_qty: fgStockChange.scopeBefore,
         after_qty: fgStockChange.scopeAfter,
@@ -490,6 +509,7 @@ export class ManufacturingService {
           await trx.insertInto('stock_movements').values({
             product_id: Number(bp.productId),
             movement_type: 'manufacturing_byproduct',
+            unit_cost: costByProduct.get(Number(bp.productId)), total_cost: bpQty * Number(costByProduct.get(Number(bp.productId))),
             qty: bpQty,
             before_qty: bpStockChange.scopeBefore,
             after_qty: bpStockChange.scopeAfter,
@@ -508,6 +528,7 @@ export class ManufacturingService {
       await trx.updateTable('manufacturing_work_orders')
         .set({
           status: 'done',
+          completed_at: new Date(),
           produced_quantity: qtyToProduce,
           total_cost: totalCost,
           updated_at: sql`NOW()`,
@@ -516,26 +537,7 @@ export class ManufacturingService {
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .execute();
 
-      // Update finished good average cost_price
-      const finishedProduct = await trx
-        .selectFrom('products')
-        .select(['stock_qty', 'cost_price'])
-        .where('id', '=', Number(wo.finished_product_id))
-        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .forUpdate()
-        .executeTakeFirst();
-      if (finishedProduct) {
-        const oldStock = Number(finishedProduct.stock_qty || 0);
-        const oldCost = Number(finishedProduct.cost_price || 0);
-        // Avoid division by zero if stock is negative or exactly zero before production
-        const newCost = oldStock >= 0 ? (oldStock * oldCost + totalCost) / (oldStock + qtyToProduce) : totalCost / qtyToProduce;
-        
-        await trx.updateTable('products')
-          .set({ cost_price: newCost, updated_at: sql`NOW()` })
-          .where('id', '=', Number(wo.finished_product_id))
-          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-          .execute();
-      }
+      await valueStockReceipt(trx, scope.tenantId, Number(wo.finished_product_id), fgStockChange.globalAfter, qtyToProduce, finishedValue);
 
       await this.accountingPosting.postManufacturingWorkOrder(trx, id, auth);
     });

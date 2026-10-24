@@ -3,25 +3,20 @@ import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { productsApi } from '@/features/products/api/products.api';
 import { bomsApi } from '@/shared/api/boms.api';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
+import { getFriendlyApiErrorMessage } from '@/lib/errors';
+import { toast } from '@/shared/components/system-alert';
 import { normalizeArabicInput, normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import type { ProductUnit } from '@/types/domain';
 import type { ProductFormOutput } from '@/features/products/schemas/product.schema';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
-import type { FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
+import { splitFashionTokens, type FashionVariantDraft } from '@/features/products/components/fashion-variants.utils';
 
 export type ProductFormValues = ProductFormOutput & {
   units?: ProductUnit[];
   fashionVariantRows?: FashionVariantDraft[];
   groupedEntryEnabled?: boolean;
 };
-
-function splitTokens(value: string | undefined) {
-  return String(value || '')
-    .split(/[\n،,|/]+/g)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
 
 function buildFashionVariants(values: ProductFormValues) {
   const seededRows = Array.isArray(values.fashionVariantRows)
@@ -48,8 +43,8 @@ function buildFashionVariants(values: ProductFormValues) {
     }
     return seededRows;
   }
-  const colors = splitTokens(values.fashionColors);
-  const sizes = splitTokens(values.fashionSizes);
+  const colors = splitFashionTokens(values.fashionColors);
+  const sizes = splitFashionTokens(values.fashionSizes);
   const defaultStock = Number(values.variantStock || 0);
   const normalizedColors = colors.length ? colors : [''];
   const normalizedSizes = sizes.length ? sizes : [''];
@@ -135,6 +130,10 @@ export function useCreateProductMutation(onSuccess?: (productId: string, name: s
       } else {
         onSuccess?.('', variables.name);
       }
+    },
+    onError: (error) => {
+      const msg = getFriendlyApiErrorMessage(error, 'تعذر حفظ الصنف. برجاء التحقق من صحة البيانات والمحاولة مرة أخرى.');
+      toast.error(msg);
     }
   });
 }

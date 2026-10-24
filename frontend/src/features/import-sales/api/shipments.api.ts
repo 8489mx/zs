@@ -22,6 +22,8 @@ export interface Shipment {
   bill_of_lading?: string;
   pricing_exchange_rate?: string;
   cost_allocation_method?: 'value' | 'weight' | 'cbm';
+  project_id?: string | null;
+  supplier_id?: number | null;
 }
 
 export interface ShipmentItem {
@@ -182,6 +184,24 @@ export const useAddShipmentItemMutation = (shipmentId: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+    },
+  });
+};
+
+export const useImportProjectItemsMutation = (shipmentId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const data = await http<{ success: boolean; importedCount: number }>(
+        `/api/import-sales/shipments/${shipmentId}/import-project-items`,
+        { method: 'POST' }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-shipments', shipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['import-shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
     },
   });
 };
@@ -532,6 +552,32 @@ export const useUpdateImportProjectMutation = (id: string) => {
   });
 };
 
+export const useProjectPartnersQuery = (projectId: string) => {
+  return useQuery({
+    queryKey: ['import-projects', projectId, 'partners'],
+    queryFn: async () => {
+      return await http<any[]>(`/api/import-sales/projects/${projectId}/partners`);
+    },
+    enabled: !!projectId,
+  });
+};
+
+export const useSetProjectPartnersMutation = (projectId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (partners: Array<{ partnerId: string; capitalShare?: number; profitPercentage: number }>) => {
+      return await http<any>(`/api/import-sales/projects/${projectId}/partners`, {
+        method: 'POST',
+        body: JSON.stringify({ partners }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['import-projects', projectId, 'partners'] });
+      queryClient.invalidateQueries({ queryKey: ['import-projects'] });
+    },
+  });
+};
+
 export const useCalculateFeasibilityMutation = () => {
   return useMutation({
     mutationFn: async (dto: any) => {
@@ -567,6 +613,39 @@ export const useChinaSuppliersQuery = () => {
     queryKey: ['china-suppliers'],
     queryFn: async () => {
       return await http<ChinaSupplier[]>('/api/import-sales/china-suppliers');
+    },
+  });
+};
+
+export interface CreateChinaSupplierPayload {
+  name: string;
+  chineseName?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  province?: string;
+  moqDescription?: string;
+  productionLeadTimeDays?: number;
+  bankBeneficiary?: string;
+  bankName?: string;
+  bankSwift?: string;
+  bankAccount?: string;
+  incotermsAccepted?: string[];
+  notes?: string;
+}
+
+export const useCreateChinaSupplierMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateChinaSupplierPayload) => {
+      return await http('/api/import-sales/china-suppliers', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['china-suppliers'] });
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
     },
   });
 };
@@ -664,12 +743,40 @@ export const useUpsertAciComplianceMutation = () => {
   });
 };
 
-export const useCustomsTariffsQuery = (search?: string) => {
+export const useCustomsTariffsQuery = (search?: string, sector?: string) => {
   return useQuery({
-    queryKey: ['customs-tariffs', search],
+    queryKey: ['customs-tariffs', search, sector],
     queryFn: async () => {
-      const url = search ? `/api/import-sales/customs-tariffs?search=${encodeURIComponent(search)}` : '/api/import-sales/customs-tariffs';
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (sector && sector !== 'all') params.append('sector', sector);
+      const qs = params.toString();
+      const url = qs ? `/api/import-sales/customs-tariffs?${qs}` : '/api/import-sales/customs-tariffs';
       return await http<any[]>(url);
+    },
+  });
+};
+
+export const useCustomsTariffSectorsQuery = () => {
+  return useQuery({
+    queryKey: ['customs-tariffs-sectors'],
+    queryFn: async () => {
+      return await http<Array<{ id: string; name_ar: string; name_en: string; description_ar: string }>>(
+        '/api/import-sales/customs-tariffs/sectors'
+      );
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+};
+
+export const useSyncOfficialTariffsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      return await http('/api/import-sales/customs-tariffs/sync-official', { method: 'POST' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customs-tariffs'] });
     },
   });
 };
@@ -1415,16 +1522,16 @@ export const useRecordFxAcquisitionMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: any) => {
+      const foreignAmount = Number(dto.foreignAmount ?? dto.foreign_amount ?? 0);
+      const rate = Number(dto.exchangeRate ?? dto.exchange_rate ?? 0);
+      const egpCost = Number(dto.egpCost ?? dto.egp_cost ?? (foreignAmount * (rate || 50)));
       const payload = {
         currency: dto.currency || 'USD',
-        foreignAmount: Number(dto.foreignAmount ?? dto.foreign_amount ?? 0),
-        exchangeRate: Number(dto.exchangeRate ?? dto.exchange_rate ?? 0),
-        sourceType: dto.sourceType || dto.source_type || 'bank_exchange',
-        sourceReference: dto.sourceReference || dto.source_reference || undefined,
+        foreignAmount,
+        egpCost,
         acquisitionDate: dto.acquisitionDate || dto.acquisition_date || new Date().toISOString().slice(0, 10),
-        treasuryAccountId: dto.treasuryAccountId ? Number(dto.treasuryAccountId) : undefined,
-        fxTreasuryAccountId: dto.fxTreasuryAccountId ? Number(dto.fxTreasuryAccountId) : undefined,
-        idempotencyKey: dto.idempotencyKey || `FX-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        source: dto.source || dto.sourceType || 'bank',
+        bankAccountId: dto.bankAccountId || (dto.treasuryAccountId ? String(dto.treasuryAccountId) : undefined),
         notes: dto.notes || undefined,
       };
       return await http<any>('/api/import-sales/fx-acquisitions', {

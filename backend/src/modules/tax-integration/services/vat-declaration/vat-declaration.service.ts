@@ -1,4 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { nextAccountingDay } from '../../../accounting/engines/accounting-date.engine';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { Kysely, sql } from '../../../../database/kysely';
 import { AuthContext } from '../../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../../core/auth/utils/tenant-boundary';
@@ -30,13 +31,31 @@ export class VatDeclarationService {
     return Number((Number(value) || 0).toFixed(2));
   }
 
+  private async returnTaxTotals(auth: AuthContext, type: 'sale' | 'purchase', from: Date, to: Date) {
+    const tenantId = requireTenantScope(auth).tenantId;
+    const result = await sql<{ total: number; tax: number; missing: number }>`
+      select coalesce(sum(d.total), 0) as total, coalesce(sum(i.tax), 0) as tax,
+             count(*) filter (where i.item_count = 0 or i.missing > 0)::int as missing
+      from return_documents d
+      left join lateral (
+        select count(*) as item_count, count(*) filter (where allocated_tax is null) as missing,
+               coalesce(sum(allocated_tax), 0) as tax
+        from return_items where tenant_id = ${tenantId} and return_document_id = d.id
+      ) i on true
+      where d.tenant_id = ${tenantId} and d.return_type = ${type} and d.created_at >= ${from} and d.created_at < ${to}
+    `.execute(this.db);
+    if (Number(result.rows[0]?.missing || 0)) throw new BadRequestException('توجد مرتجعات قديمة بدون ضريبة سطر مثبتة؛ يلزم مطابقتها قبل إصدار الإقرار.');
+    return result.rows[0] || { total: 0, tax: 0, missing: 0 };
+  }
+
   async getDeclaration(query: VatDeclarationQueryDto, auth: AuthContext) {
     const now = new Date();
-    const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-    const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const defaultFrom = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    const defaultTo = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
 
     const fromDate = query.from ? new Date(query.from) : defaultFrom;
-    const toDate = query.to ? new Date(`${query.to}T23:59:59.999Z`) : defaultTo;
+    const toDate = query.to ? nextAccountingDay(query.to) : defaultTo;
+    if (!Number.isFinite(fromDate.getTime()) || toDate <= fromDate) throw new BadRequestException('فترة الإقرار غير صالحة.');
     const country = query.country || 'EG';
     const standardRate = country === 'SA' ? 15 : 14;
 
@@ -45,37 +64,26 @@ export class VatDeclarationService {
       .selectFrom('sales')
       .select([
         sql<number>`COALESCE(COUNT(*), 0)`.as('invoices_count'),
-        sql<number>`COALESCE(SUM(subtotal - discount), 0)`.as('net_sales'),
+        sql<number>`COALESCE(SUM(subtotal - discount + coalesce(service_charge, 0)), 0)`.as('net_sales'),
         sql<number>`COALESCE(SUM(tax_amount), 0)`.as('total_tax'),
         sql<number>`COALESCE(SUM(total), 0)`.as('gross_sales'),
         sql<number>`COALESCE(SUM(
           CASE
-            WHEN tax_rate > 0 AND prices_include_tax = TRUE THEN ((subtotal - discount) - tax_amount)
-            WHEN tax_rate > 0 THEN (subtotal - discount)
+            WHEN tax_rate > 0 AND prices_include_tax = TRUE THEN ((subtotal - discount + coalesce(service_charge, 0)) - tax_amount)
+            WHEN tax_rate > 0 THEN (subtotal - discount + coalesce(service_charge, 0))
             ELSE 0
           END
         ), 0)`.as('standard_rated_base'),
         sql<number>`COALESCE(SUM(CASE WHEN tax_rate > 0 THEN tax_amount ELSE 0 END), 0)`.as('standard_rated_tax'),
-        sql<number>`COALESCE(SUM(CASE WHEN tax_rate = 0 THEN (subtotal - discount) ELSE 0 END), 0)`.as('zero_rated_base'),
+        sql<number>`COALESCE(SUM(CASE WHEN tax_rate = 0 THEN (subtotal - discount + coalesce(service_charge, 0)) ELSE 0 END), 0)`.as('zero_rated_base'),
       ])
       .where(this.tenantPredicate(auth))
       .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
+      .where('created_at', '<', toDate)
       .where('status', '=', 'posted')
       .executeTakeFirst();
 
-    // 2. Sales returns query
-    const salesReturns = await this.db
-      .selectFrom('return_documents')
-      .select([
-        sql<number>`COALESCE(COUNT(*), 0)`.as('returns_count'),
-        sql<number>`COALESCE(SUM(total), 0)`.as('total_amount'),
-      ])
-      .where(this.tenantPredicate(auth))
-      .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .where('return_type', '=', 'sale')
-      .executeTakeFirst();
+    const salesReturns = await this.returnTaxTotals(auth, 'sale', fromDate, toDate);
 
     // 3. Purchases query
     const purchaseStats = await this.db
@@ -97,31 +105,15 @@ export class VatDeclarationService {
       ])
       .where(this.tenantPredicate(auth))
       .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
+      .where('created_at', '<', toDate)
       .where('status', '=', 'posted')
       .executeTakeFirst();
 
-    // 4. Purchase returns query
-    const purchaseReturns = await this.db
-      .selectFrom('return_documents')
-      .select([
-        sql<number>`COALESCE(COUNT(*), 0)`.as('returns_count'),
-        sql<number>`COALESCE(SUM(total), 0)`.as('total_amount'),
-      ])
-      .where(this.tenantPredicate(auth))
-      .where('created_at', '>=', fromDate)
-      .where('created_at', '<=', toDate)
-      .where('return_type', '=', 'purchase')
-      .executeTakeFirst();
-
-    // Calculate rates and adjustments
-    const salesReturnsTotal = Number(salesReturns?.total_amount || 0);
-    const salesReturnsBase = this.roundCurrency((salesReturnsTotal * 100) / (100 + standardRate));
-    const salesReturnsTax = this.roundCurrency(salesReturnsTotal - salesReturnsBase);
-
-    const purchaseReturnsTotal = Number(purchaseReturns?.total_amount || 0);
-    const purchaseReturnsBase = this.roundCurrency((purchaseReturnsTotal * 100) / (100 + standardRate));
-    const purchaseReturnsTax = this.roundCurrency(purchaseReturnsTotal - purchaseReturnsBase);
+    const purchaseReturns = await this.returnTaxTotals(auth, 'purchase', fromDate, toDate);
+    const salesReturnsTax = this.roundCurrency(Number(salesReturns.tax));
+    const salesReturnsBase = this.roundCurrency(Number(salesReturns.total) - salesReturnsTax);
+    const purchaseReturnsTax = this.roundCurrency(Number(purchaseReturns.tax));
+    const purchaseReturnsBase = this.roundCurrency(Number(purchaseReturns.total) - purchaseReturnsTax);
 
     const salesStandardBase = this.roundCurrency(Number(salesStats?.standard_rated_base || 0));
     const salesStandardTax = this.roundCurrency(Number(salesStats?.standard_rated_tax || 0));
@@ -152,7 +144,7 @@ export class VatDeclarationService {
     return {
       period: {
         from: fromDate.toISOString().split('T')[0],
-        to: toDate.toISOString().split('T')[0],
+        to: new Date(toDate.getTime() - 86_400_000).toISOString().split('T')[0],
         country,
         standard_rate_percent: standardRate,
       },

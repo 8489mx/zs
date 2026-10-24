@@ -129,7 +129,8 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       account_id BIGINT,
       balance NUMERIC(15, 2) DEFAULT 0,
       is_active BOOLEAN DEFAULT TRUE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE customers (
@@ -141,7 +142,8 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       balance NUMERIC(15, 2) DEFAULT 0,
       credit_limit NUMERIC(15, 2) DEFAULT 0,
       is_active BOOLEAN DEFAULT TRUE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     CREATE TABLE supplier_ledger (
@@ -149,6 +151,24 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
       account_id TEXT NOT NULL,
       supplier_id BIGINT NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+      entry_type TEXT NOT NULL,
+      amount NUMERIC(15, 2) NOT NULL DEFAULT 0,
+      balance_after NUMERIC(15, 2) NOT NULL DEFAULT 0,
+      note TEXT NOT NULL DEFAULT '',
+      reference_type TEXT NULL,
+      reference_id BIGINT NULL,
+      return_document_id BIGINT NULL,
+      branch_id BIGINT NULL,
+      location_id BIGINT NULL,
+      created_by BIGINT NULL REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE customer_ledger (
+      id BIGSERIAL PRIMARY KEY,
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      account_id TEXT NOT NULL,
+      customer_id BIGINT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
       entry_type TEXT NOT NULL,
       amount NUMERIC(15, 2) NOT NULL DEFAULT 0,
       balance_after NUMERIC(15, 2) NOT NULL DEFAULT 0,
@@ -213,6 +233,8 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       tenant_id TEXT REFERENCES tenants(id),
       account_id TEXT,
       entry_no TEXT NOT NULL,
+      dedup_key TEXT,
+      cash_flow_category TEXT,
       entry_date DATE NOT NULL,
       description TEXT NOT NULL,
       source_type TEXT NOT NULL,

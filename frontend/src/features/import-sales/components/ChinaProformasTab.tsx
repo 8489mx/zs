@@ -12,6 +12,14 @@ import { toast } from '@/shared/components/system-alert';
 import { useQuery } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 
+export interface PiItemLine {
+  productName: string;
+  productId?: number | '';
+  quantity: number;
+  unitPriceForeign: number;
+  hsCode?: string;
+}
+
 export function ChinaProformasTab() {
   const { data: proformas = [], refetch } = useProformaInvoicesQuery();
   const { data: suppliers = [] } = useChinaSuppliersQuery();
@@ -29,15 +37,15 @@ export function ChinaProformasTab() {
   const [piDate, setPiDate] = useState(new Date().toISOString().split('T')[0]);
   const [currency, setCurrency] = useState('USD');
   const [exchangeRateContract, setExchangeRateContract] = useState<number>(50);
-  const [totalAmountForeign, setTotalAmountForeign] = useState<number>(50000);
+  const [totalAmountForeign, setTotalAmountForeign] = useState<number>(0);
   const [incoterm, setIncoterm] = useState('FOB');
-  const [deliveryPort, setDeliveryPort] = useState('Ningbo / Alexandria');
+  const [deliveryPort, setDeliveryPort] = useState('Qingdao / Alexandria');
   const [paymentTerms, setPaymentTerms] = useState('30% Advance T/T, 70% before shipment');
   const [advancePercentage, setAdvancePercentage] = useState<number>(30);
   const [balancePercentage, setBalancePercentage] = useState<number>(70);
   const [notes, setNotes] = useState('');
-  const [piItems, setPiItems] = useState<Array<{ productId: number | ''; quantity: number; unitPriceForeign: number }>>([
-    { productId: '', quantity: 1000, unitPriceForeign: 50 },
+  const [piItems, setPiItems] = useState<PiItemLine[]>([
+    { productName: '', productId: '', quantity: 1, unitPriceForeign: 0 },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,14 +58,56 @@ export function ChinaProformasTab() {
     },
   });
 
-  // Fetch Products for PI line items
-  const { data: products = [] } = useQuery({
-    queryKey: ['products-catalog-import'],
-    queryFn: async () => {
-      const res = await http<any>('/api/products?limit=500');
-      return Array.isArray(res) ? res : res?.items || res?.rows || res?.data || [];
-    },
-  });
+
+
+  const handleSelectProject = (pId: string) => {
+    setProjectId(pId);
+    if (!pId) return;
+
+    const proj = projects.find((p: any) => String(p.id) === String(pId));
+    if (!proj) return;
+
+    const feas = typeof proj.feasibility_data === 'string'
+      ? JSON.parse(proj.feasibility_data || '{}')
+      : (proj.feasibility_data || {});
+
+    const items = Array.isArray(feas.items) && feas.items.length > 0
+      ? feas.items
+      : (Array.isArray(proj.items) ? proj.items : []);
+
+    if (items.length > 0) {
+      setPiItems(
+        items.map((it: any) => ({
+          productName: it.name || it.productName || 'بند استيراد',
+          productId: it.productId || '',
+          quantity: Number(it.qty ?? it.quantity ?? 1),
+          unitPriceForeign: Number(it.factoryPriceUsd ?? it.unitPriceForeign ?? 0),
+          hsCode: it.hsCode || '',
+        }))
+      );
+      toast.success(`تم سحب (${items.length}) أصناف مباشرة من دراسة جدوى المشروع!`);
+    } else {
+      setPiItems([
+        { productName: '', productId: '', quantity: 1, unitPriceForeign: 0 },
+      ]);
+      toast.warning(`المشروع المحدد (${proj.project_no}) لا يحتوي على دراسة جدوى أو أصناف مسجلة.`);
+    }
+
+    if (feas.totalFactoryCostUsd) {
+      setTotalAmountForeign(Number(feas.totalFactoryCostUsd));
+    } else {
+      setTotalAmountForeign(0);
+    }
+    if (feas.exchangeRateCommercial) {
+      setExchangeRateContract(Number(feas.exchangeRateCommercial));
+    }
+    if (proj.country_destination || feas.countryOrigin) {
+      setDeliveryPort(`${feas.countryOrigin || 'China (Qingdao/Ningbo)'} -> ${proj.country_destination || 'Alexandria Port'}`);
+    }
+    if (!piNumber) {
+      setPiNumber(`PI-${proj.project_no || 'IMP'}-${Date.now().toString().slice(-4)}`);
+    }
+  };
 
   const handleApprovePi = async (piId: string) => {
     try {
@@ -83,7 +133,7 @@ export function ChinaProformasTab() {
     }
   };
 
-  const validLines = piItems.filter((l) => l.productId && Number(l.quantity) > 0 && Number(l.unitPriceForeign) >= 0);
+  const validLines = piItems.filter((l) => (l.productName?.trim() || l.productId) && Number(l.quantity) > 0 && Number(l.unitPriceForeign) >= 0);
   const computedLinesTotal = validLines.reduce((acc, l) => acc + Number(l.quantity) * Number(l.unitPriceForeign), 0);
 
   const handleCreatePi = async (e: React.FormEvent) => {
@@ -118,9 +168,11 @@ export function ChinaProformasTab() {
         advancePercentage: Number(advancePercentage),
         balancePercentage: Number(balancePercentage),
         items: validLines.map((l) => ({
-          productId: Number(l.productId),
+          productId: l.productId ? Number(l.productId) : undefined,
+          productName: l.productName?.trim() || 'صنف استيراد',
           quantity: Number(l.quantity),
           unitPriceForeign: Number(l.unitPriceForeign),
+          hsCode: l.hsCode || undefined,
         })),
         notes: notes || undefined,
       });
@@ -151,7 +203,12 @@ export function ChinaProformasTab() {
 
         <button
           type="button"
-          onClick={() => setIsCreateOpen(true)}
+          onClick={() => {
+            setIsCreateOpen(true);
+            if (projects.length > 0 && !projectId) {
+              handleSelectProject(projects[0].id);
+            }
+          }}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -301,11 +358,31 @@ export function ChinaProformasTab() {
         onClose={() => setIsCreateOpen(false)}
         title="تسجيل فاتورة مبدئية جديدة (New Proforma Invoice)"
         subtitle="تثبيت بيانات الفاتورة المبدئية PI وبنود الأصناف وشروط التعاقد تمهيداً لإصدار أمر الشراء وتحويل الدفعة المقدمة"
-        width="760px"
+        width="1020px"
         compact
       >
         <form onSubmit={handleCreatePi} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          {/* Row 1: Project, Supplier, PI Number, Date */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr', gap: 10 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#170e5e', marginBottom: 3 }}>
+                مشروع الاستيراد (سحب الأصناف): *
+              </label>
+              <select
+                className="input"
+                style={{ width: '100%', padding: '6px 8px', fontSize: 12.5, fontWeight: 600, borderColor: projectId ? '#818cf8' : '#cbd5e1' }}
+                value={projectId}
+                onChange={(e) => handleSelectProject(e.target.value)}
+              >
+                <option value="">-- اختر المشروع المعتمد --</option>
+                {projects.map((p: any) => (
+                  <option key={p.id} value={p.id}>
+                    {p.project_no} - {p.title || p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
                 المصنع / المورد الصيني: *
@@ -317,10 +394,10 @@ export function ChinaProformasTab() {
                 onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
                 required
               >
-                <option value="">-- اختر المصنع --</option>
+                <option value="">-- اختر المصنع / المورد الدولي --</option>
                 {suppliers.map((s: any) => (
                   <option key={s.id} value={s.id}>
-                    {s.name}
+                    {s.name} {s.city ? `(${s.city})` : ''} {s.chinese_name ? `- ${s.chinese_name}` : ''}
                   </option>
                 ))}
               </select>
@@ -328,7 +405,7 @@ export function ChinaProformasTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
-                رقم الفاتورة المبدئية (PI Number): *
+                رقم الفاتورة (PI Number): *
               </label>
               <input
                 type="text"
@@ -343,7 +420,7 @@ export function ChinaProformasTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
-                تاريخ إصدار الفاتورة: *
+                تاريخ الفاتورة: *
               </label>
               <input
                 type="date"
@@ -356,6 +433,7 @@ export function ChinaProformasTab() {
             </div>
           </div>
 
+          {/* Row 2: Financial Terms */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
@@ -391,14 +469,14 @@ export function ChinaProformasTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
-                إجمالي القيمة الأجنبية:
+                إجمالي القيمة التعاقدية ($):
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0.01"
                 className="input"
-                style={{ width: '100%', padding: '6px 8px', fontSize: 12.5 }}
+                style={{ width: '100%', padding: '6px 8px', fontSize: 12.5, fontWeight: 700, color: '#0369a1' }}
                 value={validLines.length > 0 ? computedLinesTotal : totalAmountForeign}
                 onChange={(e) => setTotalAmountForeign(Number(e.target.value))}
                 readOnly={validLines.length > 0}
@@ -424,15 +502,22 @@ export function ChinaProformasTab() {
             </div>
           </div>
 
-          {/* PI Product Line Items */}
+          {/* Row 3: PI Product Line Items */}
           <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#170e5e' }}>
-                بنود الأصناف المتعاقد عليها في الفاتورة المبدئية (لإصدار أمر الشراء الآلي PO)
-              </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#170e5e' }}>
+                  بنود الأصناف المتعاقد عليها ({validLines.length} صنف)
+                </span>
+                {validLines.length > 0 && (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#059669', backgroundColor: '#ecfdf5', padding: '2px 8px', borderRadius: 4 }}>
+                    إجمالي الأصناف: ${computedLinesTotal.toLocaleString()} {currency}
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
-                onClick={() => setPiItems([...piItems, { productId: '', quantity: 100, unitPriceForeign: 10 }])}
+                onClick={() => setPiItems([...piItems, { productName: '', productId: '', quantity: 50, unitPriceForeign: 10 }])}
                 style={{
                   padding: '3px 10px',
                   fontSize: 11.5,
@@ -447,76 +532,125 @@ export function ChinaProformasTab() {
                 + إضافة بند صنف
               </button>
             </div>
-            <div className="thin-scrollbar" style={{ maxHeight: 130, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {piItems.map((line, idx) => (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 8, alignItems: 'center' }}>
-                  <select
-                    className="input"
-                    style={{ width: '100%', padding: '5px 8px', fontSize: 12 }}
-                    value={line.productId}
-                    onChange={(e) => {
-                      const next = [...piItems];
-                      next[idx].productId = e.target.value ? Number(e.target.value) : '';
-                      setPiItems(next);
-                    }}
-                  >
-                    <option value="">-- اختر الصنف من الكتالوج --</option>
-                    {products.map((pr: any) => (
-                      <option key={pr.id} value={pr.id}>
-                        {pr.name} {pr.sku ? `(${pr.sku})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min="1"
-                    className="input"
-                    style={{ width: '100%', padding: '5px 8px', fontSize: 12 }}
-                    placeholder="الكمية"
-                    value={line.quantity}
-                    onChange={(e) => {
-                      const next = [...piItems];
-                      next[idx].quantity = Number(e.target.value);
-                      setPiItems(next);
-                    }}
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="input"
-                    style={{ width: '100%', padding: '5px 8px', fontSize: 12 }}
-                    placeholder="سعر الوحدة ($)"
-                    value={line.unitPriceForeign}
-                    onChange={(e) => {
-                      const next = [...piItems];
-                      next[idx].unitPriceForeign = Number(e.target.value);
-                      setPiItems(next);
-                    }}
-                  />
-                  {piItems.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setPiItems(piItems.filter((_, i) => i !== idx))}
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: 11,
-                        backgroundColor: '#fee2e2',
-                        color: '#b91c1c',
-                        border: 'none',
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      حذف
-                    </button>
-                  )}
+
+            {piItems.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: 12 }}>
+                اختر مشروع الاستيراد من الأعلى لتحميل أصناف دراسة الجدوى تلقائياً، أو اضغط "+ إضافة بند صنف" لإدخال الأصناف يدوياً.
+              </div>
+            ) : (
+              <div>
+                {/* Table Header Row */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2.5fr 1fr 1.2fr 1.2fr 52px',
+                    gap: 8,
+                    padding: '6px 8px',
+                    backgroundColor: '#e2e8f0',
+                    borderRadius: 5,
+                    marginBottom: 6,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: '#334155',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ textAlign: 'right', paddingRight: 4 }}>بيان الصنف والمواصفات الفنية</div>
+                  <div>الكمية المتعاقد عليها</div>
+                  <div>سعر الوحدة من المصنع ($)</div>
+                  <div>إجمالي البند ($)</div>
+                  <div>إجراء</div>
                 </div>
-              ))}
-            </div>
+
+                <div className="thin-scrollbar" style={{ maxHeight: 280, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 2 }}>
+                  {piItems.map((line, idx) => {
+                    const lineTotal = Number(((line.quantity || 0) * (line.unitPriceForeign || 0)).toFixed(2));
+                    return (
+                      <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 1.2fr 1.2fr 52px', gap: 8, alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          className="input"
+                          style={{ width: '100%', padding: '6px 8px', fontSize: 12, fontWeight: 600 }}
+                          placeholder="اسم الصنف والمواصفات (مثال: صينية سحب تريلا 2 بوصة)"
+                          value={line.productName}
+                          onChange={(e) => {
+                            const next = [...piItems];
+                            next[idx].productName = e.target.value;
+                            setPiItems(next);
+                          }}
+                          required
+                        />
+                        <input
+                          type="number"
+                          min="1"
+                          className="input"
+                          style={{ width: '100%', padding: '6px 8px', fontSize: 12, textAlign: 'center' }}
+                          placeholder="الكمية"
+                          value={line.quantity}
+                          onChange={(e) => {
+                            const next = [...piItems];
+                            next[idx].quantity = Number(e.target.value);
+                            setPiItems(next);
+                          }}
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="input"
+                          style={{ width: '100%', padding: '6px 8px', fontSize: 12, textAlign: 'center' }}
+                          placeholder="سعر الوحدة ($)"
+                          value={line.unitPriceForeign}
+                          onChange={(e) => {
+                            const next = [...piItems];
+                            next[idx].unitPriceForeign = Number(e.target.value);
+                            setPiItems(next);
+                          }}
+                        />
+                        <div
+                          style={{
+                            padding: '6px 8px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            backgroundColor: '#f1f5f9',
+                            borderRadius: 4,
+                            textAlign: 'center',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          ${lineTotal.toLocaleString()}
+                        </div>
+                        {piItems.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => setPiItems(piItems.filter((_, i) => i !== idx))}
+                            style={{
+                              padding: '5px 8px',
+                              fontSize: 11,
+                              backgroundColor: '#fee2e2',
+                              color: '#b91c1c',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            حذف
+                          </button>
+                        ) : (
+                          <div />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10 }}>
+          {/* Row 4: Shipping Port & Payment Percentages */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 1.6fr', gap: 10 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
                 ميناء التحميل / الوصول:
@@ -525,7 +659,7 @@ export function ChinaProformasTab() {
                 type="text"
                 className="input"
                 style={{ width: '100%', padding: '6px 8px', fontSize: 12.5 }}
-                placeholder="Ningbo -> Alexandria"
+                placeholder="Qingdao -> Alexandria Port"
                 value={deliveryPort}
                 onChange={(e) => setDeliveryPort(e.target.value)}
               />
@@ -533,26 +667,7 @@ export function ChinaProformasTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
-                مشروع الاستيراد:
-              </label>
-              <select
-                className="input"
-                style={{ width: '100%', padding: '6px 8px', fontSize: 12.5 }}
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-              >
-                <option value="">-- بدون ربط بمشروع --</option>
-                {projects.map((p: any) => (
-                  <option key={p.id} value={p.id}>
-                    {p.project_no} - {p.title || p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
-                نسبة الدفعة المقدمة (%):
+                الدفعة المقدمة (%):
               </label>
               <input
                 type="number"
@@ -587,9 +702,7 @@ export function ChinaProformasTab() {
                 }}
               />
             </div>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
                 شروط السداد المتفق عليها (Payment Terms):
@@ -600,21 +713,24 @@ export function ChinaProformasTab() {
                 style={{ width: '100%', padding: '6px 8px', fontSize: 12.5 }}
                 value={paymentTerms}
                 onChange={(e) => setPaymentTerms(e.target.value)}
+                placeholder="30% Advance T/T, 70% before shipment"
               />
             </div>
+          </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
-                ملاحظات وشروط فنية خاصة:
-              </label>
-              <input
-                type="text"
-                className="input"
-                style={{ width: '100%', padding: '6px 8px', fontSize: 12.5 }}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
+          {/* Row 5: Notes */}
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 3 }}>
+              ملاحظات وشروط فنية خاصة:
+            </label>
+            <input
+              type="text"
+              className="input"
+              style={{ width: '100%', padding: '6px 8px', fontSize: 12.5 }}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="شروط الضمان وفحص الجودة والتسليم في الميناء..."
+            />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 6 }}>

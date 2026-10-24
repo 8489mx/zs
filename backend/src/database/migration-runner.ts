@@ -6,6 +6,7 @@ import { Database } from './database.types';
 import { FileMigrationProvider } from './migration-provider';
 import { validateEnv } from '../config/env.schema';
 import { resolvePgSslConfig } from './ssl.util';
+import { isDesktopRuntimeMode } from '../config/app-mode';
 
 export type MigrationCommand = 'up' | 'down' | 'list';
 
@@ -94,7 +95,7 @@ export function resolveDatabaseConfigFromEnv(): ResolvedDbConfig {
     return ['postgres', 'localhost', '127.0.0.1', '::1'].includes(host.trim().toLowerCase());
   }
 
-  const isPortableOrSelfContained = parsed.APP_MODE === 'SELF_CONTAINED' || process.env.PORTABLE_MODE === 'true';
+  const isPortableOrSelfContained = isDesktopRuntimeMode(parsed.APP_MODE);
   const forceDisableSsl = isPortableOrSelfContained || isLocalDatabaseHost(parsed.DATABASE_HOST);
 
   const ssl = forceDisableSsl

@@ -31,14 +31,14 @@ export function ContainerDepositsManager() {
   const [shipmentId, setShipmentId] = useState('');
   const [containerNo, setContainerNo] = useState('');
   const [shippingLine, setShippingLine] = useState('MSC Mediterranean Shipping Company');
-  const [depositAmountEgp, setDepositAmountEgp] = useState<number>(40000);
+  const [depositAmountEgp, setDepositAmountEgp] = useState<number | string>('');
   const [expectedReturnDate, setExpectedReturnDate] = useState('');
   const [treasuryAccountId, setTreasuryAccountId] = useState('');
   const [notes, setNotes] = useState('');
 
   // Refund Form State
   const [actualReturnDate, setActualReturnDate] = useState(new Date().toISOString().slice(0, 10));
-  const [refundedAmountEgp, setRefundedAmountEgp] = useState<number>(40000);
+  const [refundedAmountEgp, setRefundedAmountEgp] = useState<number | string>('');
   const [deductionsAmountEgp, setDeductionsAmountEgp] = useState<number>(0);
   const [deductionReason, setDeductionReason] = useState('');
   const [refundTreasuryAccountId, setRefundTreasuryAccountId] = useState('');
@@ -67,7 +67,7 @@ export function ContainerDepositsManager() {
       toast.error('رقم الحاوية مطلوب');
       return;
     }
-    if (depositAmountEgp <= 0) {
+    if (Number(depositAmountEgp) <= 0) {
       toast.error('مبلغ التأمين يجب أن يكون أكبر من صفر');
       return;
     }

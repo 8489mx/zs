@@ -12,6 +12,7 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
+import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 
 type ProductRow = {
   id: number;
@@ -154,7 +155,16 @@ export class CatalogProductService {
     return requireTenantScope(actor);
   }
 
+  private canViewCostPrice(actor: AuthContext): boolean {
+    if (actor.role === 'super_admin' || actor.role === 'admin') return true;
+    const perms = actor.permissions || [];
+    return perms.includes('canViewProfit') || perms.includes('purchases') || perms.includes('inventory') || perms.includes('canViewCost');
+  }
+
   private hasPermission(actor: AuthContext, permission: string): boolean {
+    if (permission === 'canViewCost') {
+      return this.canViewCostPrice(actor);
+    }
     return actor.role === 'super_admin' || Boolean(actor.permissions?.includes(permission));
   }
 
@@ -324,7 +334,7 @@ export class CatalogProductService {
 
   async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
     const { page, pageSize, q, view, requestedLocationId, categoryId, supplierId, brief } = this.parseListProductsQuery(query);
-    const canViewCost = this.hasPermission(actor, 'canViewCost');
+    const canViewCost = this.canViewCostPrice(actor);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
 
@@ -1568,7 +1578,7 @@ export class CatalogProductService {
       let query = this.db.selectFrom('products').select('id').where(sql`LOWER(name)`, '=', payload.name.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
       const existing = await query.executeTakeFirst();
-      if (existing) throw new AppError('Product already exists', 'PRODUCT_EXISTS', 400);
+      if (existing) throw new AppError('يوجد صنف مسجل بالفعل بنفس هذا الاسم.', 'PRODUCT_EXISTS', 400);
     }
 
     // Product and unit barcodes share one logical scanner namespace. The two tables
@@ -1579,16 +1589,16 @@ export class CatalogProductService {
       let query = this.db.selectFrom('products').select('id')
         .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
-      if (await query.executeTakeFirst()) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
+      if (await query.executeTakeFirst()) throw new AppError('الباركود مستخدم بالفعل لصنف آخر.', 'BARCODE_EXISTS', 400);
       let unitQuery = this.db.selectFrom('product_units').select('product_id')
         .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where(this.tenantPredicate(actor));
       if (productId) unitQuery = unitQuery.where('product_id', '!=', productId);
-      if (await unitQuery.executeTakeFirst()) throw new AppError('Barcode already exists as a unit barcode', 'BARCODE_EXISTS', 400);
+      if (await unitQuery.executeTakeFirst()) throw new AppError('الباركود مستخدم بالفعل كوحدة لصنف آخر.', 'BARCODE_EXISTS', 400);
     }
     if (payload.sku) {
       let query = this.db.selectFrom('products').select('id').where(sql`LOWER(sku)`, '=', payload.sku.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
-      if (await query.executeTakeFirst()) throw new AppError('SKU already exists', 'SKU_EXISTS', 400);
+      if (await query.executeTakeFirst()) throw new AppError('رمز SKU مستخدم بالفعل لصنف آخر.', 'SKU_EXISTS', 400);
     }
   }
 
@@ -1648,7 +1658,7 @@ export class CatalogProductService {
         .where('is_active', '=', true)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
-      if (!category) throw new AppError('Category not found', 'CATEGORY_NOT_FOUND', 404);
+      if (!category) throw new AppError('القسم المحدد غير موجود أو تم حذفه.', 'CATEGORY_NOT_FOUND', 404);
     }
 
     if (payload.supplierId) {
@@ -1659,7 +1669,7 @@ export class CatalogProductService {
         .where('is_active', '=', true)
         .where(this.tenantPredicate(actor))
         .executeTakeFirst();
-      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      if (!supplier) throw new AppError('المورد المحدد غير موجود أو غير مسجل.', 'SUPPLIER_NOT_FOUND', 404);
     }
   }
 
@@ -1843,7 +1853,69 @@ export class CatalogProductService {
 
       const oldIds = existing.map((p) => Number(p.id));
       const removedWithStock = existing.filter((p) => !seenIds.has(Number(p.id)) && (Math.abs(Number(p.stock_qty || 0)) > 0.0001 || Number(p.reserved_qty || 0) > 0));
-      if (removedWithStock.length) throw new AppError('لا يمكن إخفاء مقاس له رصيد أو حجز مخزون، سوِّ رصيده أولاً', 'FASHION_VARIANT_HAS_STOCK', 409);
+      if (removedWithStock.length) {
+        if (payload.consolidateStock) {
+          for (const removedProduct of removedWithStock) {
+            const target = drafts.find((d) => d.id && normalizeArabicSearch(d.value.color) === normalizeArabicSearch(removedProduct.color || ''))
+              || drafts.find((d) => d.id)
+              || drafts[0];
+            const targetId = Number(target?.id);
+            const removedId = Number(removedProduct.id);
+            if (!targetId || targetId === removedId) continue;
+
+            const locStocks = await trx.selectFrom('product_location_stock')
+              .selectAll().where('product_id', '=', removedId)
+              .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+
+            for (const ls of locStocks) {
+              const qtyToMove = Number(ls.qty || 0);
+              if (qtyToMove <= 0) continue;
+
+              await applyStockDelta(trx, {
+                productId: removedId,
+                locationId: Number(ls.location_id),
+                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                delta: -qtyToMove,
+                tenantId: this.tenantId(actor),
+                accountId: actor.accountId,
+                disableAutoDrain: true,
+                allowNegative: false,
+              });
+
+              await applyStockDelta(trx, {
+                productId: targetId,
+                locationId: Number(ls.location_id),
+                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                delta: qtyToMove,
+                tenantId: this.tenantId(actor),
+                accountId: actor.accountId,
+                disableAutoDrain: true,
+                allowNegative: true,
+              });
+
+              await trx.insertInto('stock_movements').values({
+                product_id: targetId,
+                movement_type: 'transfer',
+                qty: qtyToMove,
+                before_qty: 0,
+                after_qty: qtyToMove,
+                unit_cost: Number(target.value.costPrice || 0),
+                total_cost: Number((qtyToMove * Number(target.value.costPrice || 0)).toFixed(2)),
+                reason: 'variant_consolidation',
+                note: `دمج رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) إلى الصنف الأساسي`,
+                reference_type: 'product',
+                reference_id: removedId,
+                location_id: Number(ls.location_id),
+                created_by: actor.userId,
+                ...this.tenantFields(actor),
+              } as any).execute();
+            }
+          }
+        } else {
+          const names = removedWithStock.map((p) => `${p.name || p.color || p.size || p.id} (رصيد: ${p.stock_qty})`).join('، ');
+          throw new AppError(`لا يمكن إخفاء المقاسات التالية لأن لها رصيد مخزني: ${names}. يرجى تسوية رصيدها أولاً أو تفعيل خيار دمج الأرصدة`, 'FASHION_VARIANT_HAS_STOCK', 409);
+        }
+      }
       const outsiderProducts = await trx.selectFrom('products')
         .select(['id', 'name', 'barcode', 'sku']).where('is_active', '=', true).where(this.tenantPredicate(actor))
         .where('id', 'not in', oldIds).execute();
@@ -1971,7 +2043,7 @@ export class CatalogProductService {
 
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalized = this.normalizeProductPayload(payload);
-    if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
+    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب.', 'PRODUCT_NAME_REQUIRED', 400);
     normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
     const drafts = shouldExpandVariants
@@ -2006,16 +2078,16 @@ export class CatalogProductService {
     const duplicateDraftSkus = new Set<string>();
     for (const draft of drafts) {
       const nameKey = draft.name.toLowerCase();
-      if (duplicateDraftNames.has(nameKey)) throw new AppError('Duplicate grouped variants are not allowed', 'PRODUCT_EXISTS', 400);
+      if (duplicateDraftNames.has(nameKey)) throw new AppError('توجد أصناف فرعية مكررة بنفس الاسم أو المواصفات.', 'PRODUCT_EXISTS', 400);
       duplicateDraftNames.add(nameKey);
       if (draft.barcode) {
         const barcodeKey = draft.barcode.toLowerCase();
-        if (duplicateDraftBarcodes.has(barcodeKey)) throw new AppError('Variant barcodes must be unique', 'BARCODE_EXISTS', 400);
+        if (duplicateDraftBarcodes.has(barcodeKey)) throw new AppError('الباركود مكرر ومستخدم بالفعل لصنف فرعي آخر.', 'BARCODE_EXISTS', 400);
         duplicateDraftBarcodes.add(barcodeKey);
       }
       if (draft.sku) {
         const key = draft.sku.toLowerCase();
-        if (duplicateDraftSkus.has(key)) throw new AppError('Variant SKUs must be unique', 'SKU_EXISTS', 400);
+        if (duplicateDraftSkus.has(key)) throw new AppError('رمز SKU مكرر ومستخدم بالفعل لصنف فرعي آخر.', 'SKU_EXISTS', 400);
         duplicateDraftSkus.add(key);
       }
       await this.ensureProductIdentityAvailable(draft, actor);
@@ -2268,14 +2340,14 @@ export class CatalogProductService {
   }
 
   async getProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    const canViewCost = this.hasPermission(actor, 'canViewCost');
+    const canViewCost = this.canViewCostPrice(actor);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
 
     const product = await this.db
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+      .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();

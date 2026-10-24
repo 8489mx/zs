@@ -62,8 +62,14 @@ export class EndOfServiceService {
     }
 
     if (!employee.hire_date) throw new BadRequestException('يجب تسجيل تاريخ تعيين الموظف قبل احتساب المخالصة');
+    const endDate = String(input.terminationDate || '');
+    const validEndDate = /^\d{4}-\d{2}-\d{2}$/.test(endDate)
+      && Number.isFinite(Date.parse(endDate + 'T00:00:00Z'))
+      && new Date(endDate + 'T00:00:00Z').toISOString().slice(0, 10) === endDate;
+    if (!validEndDate) throw new BadRequestException('تاريخ إنهاء الخدمة يجب أن يكون تاريخاً صحيحاً YYYY-MM-DD');
     const hireDate = new Date(employee.hire_date);
-    const terminationDate = new Date(input.terminationDate || new Date());
+    if (!Number.isFinite(hireDate.getTime())) throw new BadRequestException('تاريخ تعيين الموظف غير صحيح');
+    const terminationDate = new Date(endDate + 'T00:00:00Z');
 
     if (terminationDate < hireDate) {
       throw new BadRequestException('تاريخ إنهاء الخدمة لا يمكن أن يكون قبل تاريخ التعيين');
@@ -72,7 +78,7 @@ export class EndOfServiceService {
     // Calculate duration
     const diffTime = Math.max(0, terminationDate.getTime() - hireDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const serviceYearsDecimal = Number((diffDays / 365.25).toFixed(2));
+    const serviceYearsDecimal = Number((diffDays / 365.25).toFixed(8));
     const serviceYears = Math.floor(diffDays / 365.25);
     const serviceMonths = Math.floor((diffDays % 365.25) / 30.4375);
     const serviceDays = Math.floor((diffDays % 365.25) % 30.4375);
@@ -104,7 +110,10 @@ export class EndOfServiceService {
       totalSalary = basicSalary;
     }
 
-    const dailyWage = totalSalary > 0 ? totalSalary / 30 : basicSalary / 30;
+    if (!Number.isFinite(totalSalary) || totalSalary <= 0 || !Number.isFinite(basicSalary) || basicSalary < 0) {
+      throw new BadRequestException('يجب مراجعة عقد الموظف وتحديد أجر موجب قبل احتساب المخالصة');
+    }
+    const dailyWage = totalSalary / 30;
 
     // Determine gratuity via pure engine
     if (!input.lawType) throw new BadRequestException('يجب تحديد قانون العمل؛ لا يجوز افتراض قانون دولة');
@@ -171,7 +180,7 @@ export class EndOfServiceService {
       .selectAll()
       .where('employee_id', '=', input.employeeId)
       .where('tenant_id', '=', tenantId)
-      .where('status', 'not in', ['returned', 'lost', 'cancelled'])
+      .where('status', 'not in', ['returned', 'cancelled'])
       .execute();
 
     const noticePeriodAmount = Number(input.noticePeriodAmount || 0);
@@ -180,16 +189,21 @@ export class EndOfServiceService {
     const otherDeductions = Number(input.otherDeductions || 0);
 
     // Entitlement absorption via pure engine
-    const absorption = calculateSettlementAbsorption({
-      gratuityAmount: gratuity.gratuityAmount,
-      leaveEncashmentAmount,
-      pendingSalaryAmount,
-      noticePeriodAmount,
-      otherEntitlementsAmount: customEntitlements,
-      unpaidLoansDeduction,
-      assetsDeduction,
-      otherDeductions,
-    });
+    let absorption: ReturnType<typeof calculateSettlementAbsorption>;
+    try {
+      absorption = calculateSettlementAbsorption({
+        gratuityAmount: gratuity.gratuityAmount,
+        leaveEncashmentAmount,
+        pendingSalaryAmount,
+        noticePeriodAmount,
+        otherEntitlementsAmount: customEntitlements,
+        unpaidLoansDeduction,
+        assetsDeduction,
+        otherDeductions,
+      });
+    } catch (error) {
+      throw new BadRequestException(error instanceof Error ? error.message : 'مبالغ المخالصة غير صحيحة');
+    }
 
     const totalEntitlements = absorption.totalEntitlements;
     const totalDeductions = absorption.totalDeductions;
@@ -341,9 +355,9 @@ export class EndOfServiceService {
 
     let q = (this.db as any)
       .selectFrom('hr_end_of_service_settlements as s')
-      .leftJoin('hr_employees as e', 'e.id', 's.employee_id')
-      .leftJoin('hr_departments as d', 'd.id', 'e.department_id')
-      .leftJoin('journal_entries as j', 'j.id', 's.journal_entry_id')
+      .leftJoin('hr_employees as e', (join: any) => join.onRef('e.id', '=', 's.employee_id').onRef('e.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('hr_departments as d', (join: any) => join.onRef('d.id', '=', 'e.department_id').onRef('d.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('journal_entries as j', (join: any) => join.onRef('j.id', '=', 's.journal_entry_id').onRef('j.tenant_id', '=', 's.tenant_id'))
       .select([
         's.id',
         's.settlement_no as settlementNo',
@@ -399,9 +413,9 @@ export class EndOfServiceService {
 
     const row = await (this.db as any)
       .selectFrom('hr_end_of_service_settlements as s')
-      .leftJoin('hr_employees as e', 'e.id', 's.employee_id')
-      .leftJoin('hr_departments as d', 'd.id', 'e.department_id')
-      .leftJoin('journal_entries as j', 'j.id', 's.journal_entry_id')
+      .leftJoin('hr_employees as e', (join: any) => join.onRef('e.id', '=', 's.employee_id').onRef('e.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('hr_departments as d', (join: any) => join.onRef('d.id', '=', 'e.department_id').onRef('d.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('journal_entries as j', (join: any) => join.onRef('j.id', '=', 's.journal_entry_id').onRef('j.tenant_id', '=', 's.tenant_id'))
       .selectAll('s')
       .select([
         'e.employee_no as employeeNo',
@@ -469,11 +483,31 @@ export class EndOfServiceService {
         .selectAll()
         .where('employee_id', '=', settlement.employee_id)
         .where('tenant_id', '=', tenantId)
-        .where('status', 'not in', ['returned', 'lost', 'damaged', 'cancelled'])
+        .where('status', 'not in', ['returned', 'cancelled'])
         .execute();
 
       if (unreturnedAssets.length > 0 && !settlement.custody_cleared && !(Number(settlement.assets_deduction || 0) > 0)) {
         throw new BadRequestException('لا يمكن ترحيل مخالصة موظف لديه عهد غير مستردة دون إخلاء طرف للعهدة أو استقطاع قيمتها');
+      }
+
+      // EOS drafts are snapshots: loan repayments may have occurred since creation.
+      // Lock the current loan balances *before* posting the general-ledger credit.
+      // Otherwise the journal could credit a loan that can no longer be recovered.
+      const loansDeduction = Number(settlement.unpaid_loans_deduction || 0);
+      const activeLoans = loansDeduction > 0 ? await sql<Record<string, unknown>>`
+        SELECT * FROM hr_employee_loans
+        WHERE employee_id = ${settlement.employee_id}
+          AND tenant_id = ${tenantId}
+          AND status IN ('disbursed', 'paid', 'partially_repaid')
+          AND remaining_amount > 0
+        ORDER BY id ASC
+        FOR UPDATE
+      `.execute(trx) : { rows: [] as Record<string, unknown>[] };
+      const availableLoanBalance = Number(activeLoans.rows.reduce(
+        (sum, loan) => sum + Number(loan.remaining_amount || 0), 0,
+      ).toFixed(2));
+      if (loansDeduction < 0 || loansDeduction > availableLoanBalance + 0.005) {
+        throw new BadRequestException('رصيد السلف تغير منذ إنشاء المخالصة؛ احذف المسودة وأعد احتسابها قبل الترحيل');
       }
 
       // Post 1-Click Accounting Journal Entry via AccountingPostingService
@@ -487,19 +521,9 @@ export class EndOfServiceService {
       const entryId = postingRes.journalEntryId;
       if (!entryId) throw new BadRequestException('تعذر ترحيل قيد مخالصة الموظف المحاسبي.');
 
-      // Update employee loans in hr_employee_loans if loan deductions are present
-      const loansDeduction = Number(settlement.unpaid_loans_deduction || 0);
+      // Allocate only the exact balances locked and reconciled above.
       if (loansDeduction > 0) {
         let remainingLoanDeduction = loansDeduction;
-        const activeLoans = await sql<Record<string, unknown>>`
-          SELECT * FROM hr_employee_loans
-          WHERE employee_id = ${settlement.employee_id}
-            AND tenant_id = ${tenantId}
-            AND status IN ('approved', 'disbursed', 'paid', 'partially_repaid')
-            AND remaining_amount > 0
-          ORDER BY id ASC
-          FOR UPDATE
-        `.execute(trx);
 
         for (const loan of activeLoans.rows) {
           if (remainingLoanDeduction <= 0) break;
@@ -566,6 +590,9 @@ export class EndOfServiceService {
           `.execute(trx);
 
           remainingLoanDeduction = Number((remainingLoanDeduction - toDeduct).toFixed(2));
+        }
+        if (remainingLoanDeduction > 0.005) {
+          throw new BadRequestException('تعذر توزيع إجمالي خصومات السلف بالكامل؛ تم إلغاء ترحيل المخالصة');
         }
       }
 

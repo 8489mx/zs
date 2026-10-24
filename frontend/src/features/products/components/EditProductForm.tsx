@@ -28,6 +28,7 @@ import { useAppToolbar } from '@/stores/toolbar-store';
 import { queryKeys } from '@/app/query-keys';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { toast } from '@/shared/components/system-alert';
+import { getFriendlyApiErrorMessage } from '@/lib/errors';
 import { ProductArchiveConfirmDialog } from '@/features/products/components/ProductArchiveConfirmDialog';
 
 type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
@@ -486,7 +487,7 @@ export function EditProductForm({
         {mutation.isError && (
           <div className="document-prototype-section" style={{ backgroundColor: '#fee2e2', borderColor: '#ef4444', marginBottom: '8px' }}>
             <div style={{ color: '#b91c1c', fontWeight: 600 }}>
-              {(mutation.error as any)?.message || t('products.edit_product_form.s22', "تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى.")}
+              {getFriendlyApiErrorMessage(mutation.error, t('products.edit_product_form.s22', "تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى."))}
             </div>
           </div>
         )}
@@ -878,15 +879,17 @@ export function EditProductForm({
         )}
 
         {/* 5. Auto Parts */}
-        {autoPartsModuleEnabled && (
+        {(autoPartsModuleEnabled || Boolean((product as any)?.metadata?.oemNumber || (product as any)?.metadata?.carBrand || (product as any)?.sku || (product as any)?.notes?.includes('استيراد'))) && (
           <div className="product-compact-card">
             <div className="product-compact-card-header">
               <h3 className="product-compact-card-title">{t('products.edit_product_form.s78', "بيانات قطعة الغيار (Auto Parts)")}</h3>
             </div>
             <div className="product-form-grid-2">
-              <Field label={t('products.edit_product_form.s79', "رقم القطعة (OEM)")}><input className="purchase-prototype-field-input" {...form.register('metadata.oemNumber')} disabled={isFormDisabled} placeholder="1J0907530" /></Field>
+              <Field label="كود الصنف / رمز البارت (SKU)"><input className="purchase-prototype-field-input" {...form.register('sku')} disabled={isFormDisabled} placeholder="TRK-2610-001" /></Field>
+              <Field label={t('products.edit_product_form.s79', "رقم القطعة الأصلي (OEM / Part Number)")}><input className="purchase-prototype-field-input" {...form.register('metadata.oemNumber')} disabled={isFormDisabled} placeholder="1J0907530 / WG9114160010" /></Field>
               <Field label={t('products.edit_product_form.s80', "الماركة")}><input className="purchase-prototype-field-input" {...form.register('metadata.carBrand')} disabled={isFormDisabled} placeholder="Toyota" /></Field>
               <Field label={t('products.edit_product_form.s81', "الموديل")}><input className="purchase-prototype-field-input" {...form.register('metadata.carModel')} disabled={isFormDisabled} placeholder="Corolla" /></Field>
+              <Field label="بلد المنشأ والتصنيع"><input className="purchase-prototype-field-input" {...form.register('metadata.origin')} disabled={isFormDisabled} placeholder="الصين" /></Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <Field label={t('products.edit_product_form.s82', "من سنة")}><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearFrom')} disabled={isFormDisabled} placeholder="2015" /></Field>
                 <Field label={t('products.edit_product_form.s83', "إلى سنة")}><input className="purchase-prototype-field-input" type="number" {...form.register('metadata.carYearTo')} disabled={isFormDisabled} placeholder="2020" /></Field>

@@ -19,6 +19,7 @@ import { RequestContextInterceptor } from './common/interceptors/request-context
 import { ResponseMetadataInterceptor } from './common/interceptors/response-metadata.interceptor';
 import { requestValidationPipe } from './common/pipes/request-validation.pipe';
 import { LoggerService } from './core/logging/logger.service';
+import { isDesktopRuntimeMode } from './config/app-mode';
 
 function formatErrorDetails(error: unknown): string {
   if (error instanceof Error) {
@@ -169,7 +170,7 @@ async function bootstrap(): Promise<void> {
   });
 
   const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-  if (process.env.APP_MODE === 'SELF_CONTAINED' || process.env.PORTABLE_MODE === 'true' || isDev) {
+  if (isDesktopRuntimeMode(configService.get<string>('app.mode')) || isDev) {
     if (process.env.SKIP_MIGRATIONS === 'true') {
       logger.log('Skipping migrations (SKIP_MIGRATIONS=true).');
     } else {

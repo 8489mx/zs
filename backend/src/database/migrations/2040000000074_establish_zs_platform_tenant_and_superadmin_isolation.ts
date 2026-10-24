@@ -1,12 +1,11 @@
 import { sql, type Kysely } from 'kysely';
+import { isDesktopRuntimeMode } from '../../config/app-mode';
 
 export const migration = {
   async up(db: Kysely<unknown>): Promise<void> {
     // CRITICAL: NEVER establish platform root tenant 'zs' in desktop / self-contained / portable mode!
     // In desktop mode, client store data belongs to tenant_id = 'default'.
-    const isDesktop = process.env.APP_MODE === 'SELF_CONTAINED' 
-      || process.env.PORTABLE_MODE === 'true' 
-      || process.env.IS_ELECTRON === 'true';
+    const isDesktop = isDesktopRuntimeMode(process.env.APP_MODE);
 
     if (isDesktop) {
       console.log('[Migration 74] Skipped in desktop/self-contained mode to protect client store data.');

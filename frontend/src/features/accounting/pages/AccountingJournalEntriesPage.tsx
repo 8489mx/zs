@@ -415,7 +415,7 @@ export function AccountingJournalEntriesPage() {
           )}
 
           <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6 }}>
-            {t('accounting.accounting_journal_entries_page.s40', "وفق المعايير المحاسبية المعتمدة (IFRS و Odoo)، لا يتم حذف القيود المرحلة نهائياً بل يتم إنشاء قيد تسوية عكسي (Reversal Entry) مع وسم القيد الحالي كـ")} <strong>{t('accounting.accounting_journal_entries_page.s41', "ملغي (Cancelled)")}</strong> {t('accounting.accounting_journal_entries_page.s42', "للحفاظ على تتبع التدقيق المحاسبي (Audit Trail).")}
+            {t('accounting.accounting_journal_entries_page.s40', "لا تُحذف القيود المرحلة. يُنشأ قيد عكسي مستقل وتظل حالة القيد الأصلي")} <strong>{t('accounting.accounting_journal_entries_page.s41', "مرحّل (Posted)")}</strong> {t('accounting.accounting_journal_entries_page.s42', "مع ربط القيدين للحفاظ على سجل التدقيق المحاسبي.")}
           </div>
 
           <div>

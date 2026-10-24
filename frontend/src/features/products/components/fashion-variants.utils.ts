@@ -21,8 +21,21 @@ function makeVariantKey(color: string, size: string) {
 export function splitFashionTokens(value: string | undefined) {
   const seen = new Set<string>();
   const tokens: string[] = [];
-  for (const rawEntry of String(value || '').split(/(?:\s*[\n،,|]\s*)+/g)) {
-    const entry = normalizeArabicInput(rawEntry);
+
+  // Protect hyphenated age/size ranges with units (e.g. "2-3 سنوات", "0-3 شهور", "4-5y")
+  let sanitized = String(value || '');
+  const ageRangePlaceholder = '___AGE_RANGE_HYPHEN___';
+  sanitized = sanitized.replace(
+    /(^|[^\d])(\d+)\s*[-–—−]\s*(\d+)\s*(سنوات|سنة|شهور|شهر|أشهر|عام|أعوام|سنين|y|m|years|months|yrs|mos)(?=[^\p{L}\p{N}]|$)/gui,
+    `$1$2${ageRangePlaceholder}$3 $4`
+  );
+
+  // Dashes (- – — −), commas (، ,), newlines, pipes (|), and slashes (/) all act as delimiters
+  const delimiterPattern = /(?:\s*[\n،,|/–—−\-]\s*)+/g;
+
+  for (const rawEntry of sanitized.split(delimiterPattern)) {
+    const restored = rawEntry.replace(new RegExp(ageRangePlaceholder, 'g'), '-');
+    const entry = normalizeArabicInput(restored);
     if (!entry) continue;
     const key = normalizeArabicSearchKey(entry);
     if (seen.has(key)) continue;

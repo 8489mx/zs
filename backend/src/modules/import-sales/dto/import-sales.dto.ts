@@ -395,6 +395,10 @@ export class CreateImportProjectDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsArray()
+  partners?: Array<{ partnerId?: string; name?: string; capitalShare?: number; profitPercentage: number }>;
 }
 
 export class UpdateImportProjectDto {
@@ -449,6 +453,7 @@ export class CalculateFeasibilityDto {
     factoryPriceUsd: number;
     unitWeightKg?: number;
     unitCbm?: number;
+    expectedLocalMarketPriceEgp?: number;
   }>;
 
   @IsOptional()
@@ -513,6 +518,65 @@ export class CalculateFeasibilityDto {
   @IsOptional()
   @IsBoolean()
   vatIsRefundable?: boolean;
+}
+
+export class CreateChinaSupplierDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  chineseName?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  province?: string;
+
+  @IsOptional()
+  @IsString()
+  moqDescription?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  productionLeadTimeDays?: number;
+
+  @IsOptional()
+  @IsString()
+  bankBeneficiary?: string;
+
+  @IsOptional()
+  @IsString()
+  bankName?: string;
+
+  @IsOptional()
+  @IsString()
+  bankSwift?: string;
+
+  @IsOptional()
+  @IsString()
+  bankAccount?: string;
+
+  @IsOptional()
+  @IsArray()
+  incotermsAccepted?: string[];
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
 
 export class UpsertSupplierMetaDto {
@@ -906,6 +970,49 @@ export class ConvertFeasibilityToProjectDto {
   advancePaymentPercentage?: number;
 }
 
+export class ProformaInvoiceItemDto {
+  @IsOptional()
+  @IsNumber()
+  productId?: number;
+
+  @IsOptional()
+  @IsString()
+  productName?: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  quantity?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  qty?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  unitPriceForeign?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  factoryPriceUsd?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  unitPriceUsd?: number;
+
+  @IsOptional()
+  @IsString()
+  hsCode?: string;
+}
+
 export class CreateProformaInvoiceDto {
   @IsOptional()
   @IsString()
@@ -958,7 +1065,9 @@ export class CreateProformaInvoiceDto {
 
   @IsOptional()
   @IsArray()
-  items?: any[];
+  @ValidateNested({ each: true })
+  @Type(() => ProformaInvoiceItemDto)
+  items?: ProformaInvoiceItemDto[];
 
   @IsOptional()
   @IsString()
@@ -1237,6 +1346,11 @@ export class RecordFxAcquisitionDto {
   @IsNumber()
   @IsPositive()
   egpCost!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  exchangeRate?: number;
 
   @IsOptional()
   @IsString()

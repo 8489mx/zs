@@ -9,6 +9,7 @@ import {
   CreateImportProjectDto,
   UpdateImportProjectDto,
   CalculateFeasibilityDto,
+  CreateChinaSupplierDto,
   UpsertSupplierMetaDto,
   CreateQcInspectionDto,
   UpsertAciComplianceDto,
@@ -126,6 +127,12 @@ export class ImportSalesController {
   }
 
   @RequireAnyPermission('purchases', 'accounting')
+  @Post('china-suppliers')
+  async createChinaSupplier(@Req() req: RequestWithAuth, @Body() dto: CreateChinaSupplierDto) {
+    return this.importSalesService.createChinaSupplier(req.authContext!.tenantId!, req.authContext!.userId!, dto);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting')
   @Post('suppliers/:supplierId/meta')
   async upsertSupplierImportMeta(
     @Req() req: RequestWithAuth,
@@ -201,9 +208,23 @@ export class ImportSalesController {
     return this.importSalesService.upsertAciCompliance(req.authContext!.tenantId!, dto);
   }
 
+  @Get('customs-tariffs/sectors')
+  async listCustomsTariffSectors() {
+    return this.importSalesService.listTariffSectors();
+  }
+
+  @Post('customs-tariffs/sync-official')
+  async syncOfficialTariffs(@Req() req: RequestWithAuth) {
+    return this.importSalesService.syncOfficialTariffs(req.authContext!.tenantId!);
+  }
+
   @Get('customs-tariffs')
-  async listCustomsTariffs(@Req() req: RequestWithAuth, @Query('search') search?: string) {
-    return this.importSalesService.listCustomsTariffs(req.authContext!.tenantId!, search);
+  async listCustomsTariffs(
+    @Req() req: RequestWithAuth,
+    @Query('search') search?: string,
+    @Query('sector') sector?: string
+  ) {
+    return this.importSalesService.listCustomsTariffs(req.authContext!.tenantId!, search, sector);
   }
 
   @Post('calculate-customs')
@@ -352,6 +373,19 @@ export class ImportSalesController {
     @Body() dto: AddShipmentItemDto
   ) {
     return this.importSalesService.addShipmentItem(req.authContext!.tenantId!, shipmentId, dto);
+  }
+
+  @RequireAnyPermission('purchases', 'accounting', 'inventory')
+  @Post('shipments/:id/import-project-items')
+  async importProjectItems(
+    @Req() req: RequestWithAuth,
+    @Param('id') shipmentId: string
+  ) {
+    return this.importSalesService.importProjectItemsToShipment(
+      req.authContext!.tenantId!,
+      Number(req.authContext!.userId!),
+      shipmentId
+    );
   }
 
   @RequireAnyPermission('purchases', 'accounting')

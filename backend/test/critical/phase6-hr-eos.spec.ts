@@ -478,6 +478,16 @@ function testLoanRepaymentAllocation() {
   }
 }
 
+function testRejectsInvalidSettlementAmounts() {
+  const base = { gratuityAmount: 1000, leaveEncashmentAmount: 0, pendingSalaryAmount: 0,
+    noticePeriodAmount: 0, otherEntitlementsAmount: 0, unpaidLoansDeduction: 100,
+    assetsDeduction: 0, otherDeductions: 0 };
+  assert.equal(calculateSettlementAbsorption(base).netPayable, 900);
+  assert.throws(() => calculateSettlementAbsorption({ ...base, assetsDeduction: -1 }), /negative/);
+  assert.throws(() => calculateSettlementAbsorption({ ...base, pendingSalaryAmount: Infinity }), /Invalid/);
+  assert.throws(() => calculateSettlementAbsorption({ ...base, gratuityAmount: Number.NaN }), /Invalid/);
+}
+
 // -----------------------------------------------------------------------------
 // Run all tests
 // -----------------------------------------------------------------------------
@@ -485,6 +495,7 @@ testGratuityCalculations();
 testAccountingJournalBalance();
 testCustodyClearanceGate();
 testLoanRepaymentAllocation();
+testRejectsInvalidSettlementAmounts();
 
 console.log('\n=============================================================================');
 console.log('جميع اختبارات المرحلة (6) للموارد البشرية ومستحقات نهاية الخدمة اجتازت بنجاح 100%!');

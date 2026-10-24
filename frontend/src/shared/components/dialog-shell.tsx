@@ -179,49 +179,39 @@ export function DialogShell({
       const shell = shellRef.current;
       if (!shell) return;
 
-      // If the mouse wheel is outside the modal, block 100%
+      // If inside another dialog shell (nested modal), allow it to scroll freely
+      const activeShells = Array.from(document.querySelectorAll('.dialog-shell'));
+      const isOverAnyShell = activeShells.some((s) => s.contains(e.target as Node));
       if (!shell.contains(e.target as Node)) {
+        if (isOverAnyShell) return;
         if (e.cancelable) {
           e.preventDefault();
         }
         return;
       }
 
-      // If inside the modal, check if the targeted container or shell has scroll room
+      // If wheel is directly inside this modal shell, allow smooth natural scrolling for inner containers
       let el = e.target as HTMLElement | null;
       let hasScrollRoom = false;
       while (el && el !== document.body) {
         const style = window.getComputedStyle(el);
         const overflowY = style.overflowY;
         if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
-          const atTop = el.scrollTop <= 0 && e.deltaY < 0;
-          const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1 && e.deltaY > 0;
-          if (!atTop && !atBottom) {
+          hasScrollRoom = true;
+          break;
+        }
+        if (el === shell) {
+          if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
             hasScrollRoom = true;
           }
           break;
         }
-        if (el === shell) break;
         el = el.parentElement;
       }
 
-      // Also check overlay if shell itself doesn't scroll but overlay does
-      if (!hasScrollRoom && overlayRef.current) {
-        const overlay = overlayRef.current;
-        const style = window.getComputedStyle(overlay);
-        const overflowY = style.overflowY;
-        if ((overflowY === 'auto' || overflowY === 'scroll') && overlay.scrollHeight > overlay.clientHeight) {
-          const atTop = overlay.scrollTop <= 0 && e.deltaY < 0;
-          const atBottom = overlay.scrollTop + overlay.clientHeight >= overlay.scrollHeight - 1 && e.deltaY > 0;
-          if (!atTop && !atBottom) {
-            hasScrollRoom = true;
-          }
-        }
-      }
-
-      // If no scroll room or reached top/bottom boundary, prevent scroll chaining to the background
-      if (!hasScrollRoom && e.cancelable) {
-        e.preventDefault();
+      // If inside modal, do NOT block wheel unless attempting to scroll completely outside
+      if (hasScrollRoom) {
+        return;
       }
     };
 

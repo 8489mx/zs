@@ -9,6 +9,7 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { spawn } from 'child_process';
 import AdmZip from 'adm-zip';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 export function generateReleasePasscode(version: string): string {
   const clean = version.replace(/[^0-9a-zA-Z]/g, '').toUpperCase();
@@ -638,7 +639,7 @@ export class OfflineReleasesService implements OnModuleInit {
    * and restart the backend — all without any manual user intervention.
    */
   async triggerUpdate(auth: AuthContext) {
-    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+    if (!isDesktopRuntimeMode(process.env.APP_MODE)) {
       throw new BadRequestException('Cloud SaaS must never apply desktop updates');
     }
     const active = await this.db
@@ -706,7 +707,7 @@ export class OfflineReleasesService implements OnModuleInit {
    * Called by the local desktop client to apply an update downloaded from SaaS.
    */
   async applyLocalUpdate(body: { version: string; patchUrl: string; changelog: string; passcode?: string }) {
-    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+    if (!isDesktopRuntimeMode(process.env.APP_MODE)) {
       throw new BadRequestException('Updates can only be applied in Desktop/Offline mode');
     }
 
@@ -827,7 +828,7 @@ export class OfflineReleasesService implements OnModuleInit {
   }
 
   async applyLocalZipUpdate(file: Express.Multer.File, passcode?: string) {
-    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') {
+    if (!isDesktopRuntimeMode(process.env.APP_MODE)) {
       throw new BadRequestException('تطبيق التحديثات المباشرة متاح فقط في تطبيق سطح المكتب (Desktop App).');
     }
 

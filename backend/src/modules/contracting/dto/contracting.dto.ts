@@ -2215,6 +2215,10 @@ export class UpdateSubcontractorDto {
 }
 
 export class CreateSubcontractorPaymentDto {
+  @IsString()
+  @IsNotEmpty()
+  requestKey!: string;
+
   @IsNumber()
   subcontractorId!: number;
 

@@ -1,4 +1,5 @@
 import { http } from '@/lib/http';
+import { postIdempotentSubcontractorPayment } from '@/lib/api/idempotent-subcontractor-payment';
 import {
   ContractingProject,
   ContractingBoqItem,
@@ -199,10 +200,7 @@ export const contractingApi = {
     referenceNumber?: string;
     notes?: string;
   }) =>
-    http<ContractingSubcontractorPayment>('/api/contracting/subcontractors/payments', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    postIdempotentSubcontractorPayment<ContractingSubcontractorPayment>(data),
 
   // Daily Site Logs
   getDailyLogs: (projectId: string) =>

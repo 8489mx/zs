@@ -154,6 +154,50 @@ function isTechnicalMessage(message: string): boolean {
   );
 }
 
+const ARABIC_CODE_MESSAGES: Record<string, string> = {
+  PRODUCT_NOT_FOUND: 'الصنف المطلوب غير موجود أو تم حذفه.',
+  CUSTOMER_NOT_FOUND: 'العميل المحدد غير موجود أو غير مسجل.',
+  SUPPLIER_NOT_FOUND: 'المورد المحدد غير موجود أو غير مسجل.',
+  CATEGORY_NOT_FOUND: 'القسم المحدد غير موجود أو تم حذفه.',
+  TARGET_CATEGORY_NOT_FOUND: 'القسم المراد النقل إليه غير موجود.',
+  LOCATION_NOT_FOUND: 'المخزن المحدد غير موجود.',
+  LOCATION_REQUIRED: 'يجب تحديد مخزن الاستلام عند إضافة رصيد افتتاحي.',
+  LOCATION_BRANCH_MISMATCH: 'المخزن المحدد لا يتبع الفرع المختار.',
+  PRODUCT_NAME_REQUIRED: 'اسم الصنف الأساسي مطلوب.',
+  BARCODE_EXISTS: 'الباركود مستخدم بالفعل لصنف آخر.',
+  SKU_EXISTS: 'رمز SKU مستخدم بالفعل لصنف آخر.',
+  PRODUCT_EXISTS: 'اسم أو كود الصنف مستخدم بالفعل.',
+  FASHION_GROUP_NOT_FOUND: 'مجموعة الموديل المحددة غير موجودة.',
+  USER_NOT_FOUND: 'المستخدم غير موجود.',
+  SHIFT_NOT_FOUND: 'الوردية غير موجودة.',
+  CASHIER_SHIFT_NOT_FOUND: 'وردية الكاشير غير موجودة.',
+  OPEN_SHIFT_REQUIRED: 'يجب فتح وردية كاشير أولاً للمتابعة.',
+  SALE_ITEMS_REQUIRED: 'لا يمكن حفظ فاتورة بدون أصناف.',
+  HELD_DRAFT_ITEMS_REQUIRED: 'لا يمكن تعليق مسودة بدون أصناف.',
+  CUSTOMER_REQUIRED_FOR_CREDIT: 'البيع الآجل يتطلب تحديد عميل.',
+  AMOUNT_INVALID: 'المبلغ يجب أن يكون أكبر من صفر.',
+  INTERNAL_ERROR: 'حدث خطأ غير متوقع في الخادم.',
+  VALIDATION_ERROR: 'البيانات المدخلة غير صحيحة.',
+  FORBIDDEN: 'ليس لديك صلاحية لتنفيذ هذا الإجراء.',
+  UNAUTHORIZED: 'غير مصرح لك بالوصول. يرجى تسجيل الدخول مجدداً.',
+  SESSION_NOT_FOUND: 'انتهت الجلسة. يرجى إعادة تسجيل الدخول.',
+  MANAGER_PIN_INVALID: 'رمز المدير (PIN) غير صحيح.',
+  MANAGER_PASSWORD_INVALID: 'كلمة مرور المدير غير صحيحة.',
+  SHIFT_ALREADY_OPEN: 'توجد وردية مفتوحة بالفعل لهذا المستخدم.',
+  SHIFT_ALREADY_CLOSED: 'تم إغلاق هذه الوردية بالفعل.',
+  SHIFT_CLOSED: 'لا يمكن تنفيذ العملية على وردية مغلقة.',
+  DAMAGE_NOTE_REQUIRED: 'يجب كتابة سبب الإتلاف في خانة الملاحظات.',
+  CUSTOMER_EXISTS: 'يوجد عميل مسجل بالفعل بنفس هذا الاسم.',
+  SUPPLIER_EXISTS: 'يوجد مورد مسجل بالفعل بنفس هذا الاسم.',
+  CATEGORY_EXISTS: 'يوجد قسم مسجل بالفعل بنفس هذا الاسم.',
+  PRODUCT_HAS_STOCK: 'لا يمكن حذف الصنف لوجود رصيد مخزني حالي له.',
+  PRODUCT_HAS_HISTORY: 'لا يمكن حذف الصنف لارتباطه بحركات وفواتير سابقة.',
+  PRICE_CHANGE_FORBIDDEN: 'ليس لديك صلاحية لتعديل الأسعار.',
+  DISCOUNT_CHANGE_FORBIDDEN: 'ليس لديك صلاحية لتطبيق الخصم.',
+  OPENING_STOCK_ACCOUNT_MISSING: 'حسابات المخزون ورأس المال الافتتاحي غير مهيأة في شجرة الحسابات.',
+  OPENING_STOCK_LEDGER_UNAVAILABLE: 'خدمة القيود المحاسبية غير متاحة لإثبات الرصيد الافتتاحي.',
+};
+
 function mapByCode(errorCode: string, error: unknown, message: string): string {
   if (!errorCode) return '';
 
@@ -165,6 +209,7 @@ function mapByCode(errorCode: string, error: unknown, message: string): string {
     return mapped;
   }
   if (normalized in API_DB_CODE_FALLBACK_MESSAGES) return API_DB_CODE_FALLBACK_MESSAGES[normalized];
+  if (normalized in ARABIC_CODE_MESSAGES) return ARABIC_CODE_MESSAGES[normalized];
   return '';
 }
 
@@ -242,6 +287,15 @@ const ENGLISH_CODE_MESSAGES: Record<string, string> = {
   PRODUCT_HAS_HISTORY: 'Cannot delete product because it has historical transactions.',
   PRICE_CHANGE_FORBIDDEN: 'Price modification requires price edit permissions.',
   DISCOUNT_CHANGE_FORBIDDEN: 'Discount modification requires discount permissions.',
+  LOCATION_REQUIRED: 'A receiving warehouse must be selected when entering opening stock.',
+  LOCATION_NOT_FOUND: 'Selected location not found.',
+  PRODUCT_NAME_REQUIRED: 'Product name is required.',
+  BARCODE_EXISTS: 'Barcode is already in use by another product.',
+  SKU_EXISTS: 'SKU is already in use by another product.',
+  TARGET_CATEGORY_NOT_FOUND: 'Target category not found.',
+  FASHION_GROUP_NOT_FOUND: 'Fashion group no longer exists.',
+  OPENING_STOCK_ACCOUNT_MISSING: 'Opening stock capital account is missing.',
+  OPENING_STOCK_LEDGER_UNAVAILABLE: 'Opening stock ledger service is unavailable.',
 };
 
 const ARABIC_TO_ENGLISH_ERRORS: Record<string, string> = {

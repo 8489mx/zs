@@ -30,7 +30,7 @@ export default function ImportApprovalsManager() {
   const [requestType, setRequestType] = useState('large_transfer');
   const [projectId, setProjectId] = useState('');
   const [entityId, setEntityId] = useState('');
-  const [amountEgp, setAmountEgp] = useState<number>(100000);
+  const [amountEgp, setAmountEgp] = useState<number | string>('');
   const [justification, setJustification] = useState('');
 
   const parsePayload = (r: any) => {

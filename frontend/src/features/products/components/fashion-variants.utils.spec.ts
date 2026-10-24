@@ -6,6 +6,14 @@ describe('fashion variants', () => {
     expect(splitFashionTokens('42.5، 43، 2-3 سنوات')).toEqual(['42.5', '43', '2-3 سنوات']);
   });
 
+  it('splits variants using dash (-) with or without spaces like commas', () => {
+    expect(splitFashionTokens('أحمر - أسود - أبيض')).toEqual(['احمر', 'اسود', 'ابيض']);
+    expect(splitFashionTokens('أحمر-أسود-أبيض')).toEqual(['احمر', 'اسود', 'ابيض']);
+    expect(splitFashionTokens('S - M - L - XL')).toEqual(['S', 'M', 'L', 'XL']);
+    expect(splitFashionTokens('36-38-40')).toEqual(['36', '38', '40']);
+    expect(splitFashionTokens('2-3 سنوات - 4-5 سنوات')).toEqual(['2-3 سنوات', '4-5 سنوات']);
+  });
+
   it('deduplicates equivalent Arabic spellings while retaining the first label', () => {
     expect(splitFashionTokens('أحمر، احمر، أسود')).toHaveLength(2);
   });

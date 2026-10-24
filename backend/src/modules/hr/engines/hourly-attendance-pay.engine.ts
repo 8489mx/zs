@@ -1,3 +1,5 @@
+import { calculateOvertime } from './payroll-calculation.engine';
+
 /**
  * HR payment calculations: hourly staff are paid for completed, valid recorded
  * work sessions, not for a theoretical 30-day attendance schedule.
@@ -52,4 +54,146 @@ export function prorateMonthlyWage(monthlySalary: number, from: string, to: stri
     portion += 1 / daysInMonth;
   }
   return Number((Math.max(0, monthlySalary) * portion).toFixed(2));
+}
+
+/**
+ * Multiple non-overlapping effective salary contracts can exist inside one
+ * payroll period. The latest-contract-only strategy silently underpays staff
+ * promoted mid-month. Resolve each calendar-day segment instead.
+ */
+export interface EffectiveSalaryContract {
+  id: number;
+  startDate: string;
+  endDate: string | null;
+  baseSalary: number;
+}
+
+export function payrollCalendarMonthFraction(from: string, to: string): number {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return 0;
+  const start = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  const span = (end.getTime() - start.getTime()) / 86400000;
+  if (!Number.isFinite(span) || span > 366) throw new RangeError('Payroll period exceeds supported 366-day range');
+  let fraction = 0;
+  for (let day = new Date(start); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
+    fraction += 1 / new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + 1, 0)).getUTCDate();
+  }
+  return fraction;
+}
+
+export function calculateEffectiveContractPay(
+  contracts: EffectiveSalaryContract[],
+  from: string,
+  to: string,
+): { baseWage: number; referenceMonthlySalary: number; latestContractId: number; serviceFraction: number } {
+  if (from > to) return { baseWage: 0, referenceMonthlySalary: 0, latestContractId: 0, serviceFraction: 0 };
+  const serviceFraction = payrollCalendarMonthFraction(from, to);
+  if (!serviceFraction) throw new RangeError('Invalid payroll service period');
+  const sorted = [...contracts].sort((a, b) => a.startDate.localeCompare(b.startDate) || a.id - b.id);
+  let nextUncoveredDay = from;
+  let earned = 0;
+  let latestContractId = 0;
+  for (const contract of sorted) {
+    const begin = [from, contract.startDate].sort().at(-1)!;
+    const end = [to, contract.endDate || to].sort()[0];
+    if (begin > end) continue;
+    if (!Number.isFinite(contract.baseSalary) || contract.baseSalary <= 0) {
+      throw new RangeError('Employment contract must have a valid positive monthly salary');
+    }
+    if (begin !== nextUncoveredDay) {
+      throw new RangeError(begin < nextUncoveredDay
+        ? 'Overlapping salary contracts in payroll period'
+        : 'Uncovered employment days between salary contracts');
+    }
+    earned += prorateMonthlyWage(contract.baseSalary, begin, end);
+    latestContractId = contract.id;
+    const next = new Date(end + 'T00:00:00Z');
+    next.setUTCDate(next.getUTCDate() + 1);
+    nextUncoveredDay = next.toISOString().slice(0, 10);
+  }
+  if (nextUncoveredDay <= to) {
+    throw new RangeError('Employee has no salary contract covering all worked days');
+  }
+  const baseWage = Number(earned.toFixed(2));
+  return {
+    baseWage,
+    referenceMonthlySalary: Number((baseWage / serviceFraction).toFixed(2)),
+    latestContractId,
+    serviceFraction,
+  };
+}
+
+/**
+ * Effective-dated fixed monthly compensation packages. Unlike a base salary
+ * contract, a period with no package simply carries zero allowances.
+ * Overlapping packages are ambiguous and rejected instead of double-paying.
+ */
+export interface EffectiveCompensationPackage {
+  id: number;
+  startDate: string | null;
+  endDate: string | null;
+  allowanceAmount: number;
+  deductionAmount: number;
+}
+
+export function calculateEffectiveCompensationPay(
+  packages: EffectiveCompensationPackage[], from: string, to: string,
+): { allowance: number; deduction: number } {
+  if (from > to) return { allowance: 0, deduction: 0 };
+  const sorted = [...packages].sort(
+    (a, b) => (a.startDate || '').localeCompare(b.startDate || '') || a.id - b.id,
+  );
+  let lastEnd = '';
+  let allowance = 0;
+  let deduction = 0;
+  for (const item of sorted) {
+    const begin = [from, item.startDate || from].sort().at(-1)!;
+    const end = [to, item.endDate || to].sort()[0];
+    if (begin > end) continue;
+    if (lastEnd && begin <= lastEnd) throw new RangeError('Overlapping compensation packages in payroll period');
+    if (!Number.isFinite(item.allowanceAmount) || item.allowanceAmount < 0
+      || !Number.isFinite(item.deductionAmount) || item.deductionAmount < 0) {
+      throw new RangeError('Invalid compensation package amounts');
+    }
+    allowance += prorateMonthlyWage(item.allowanceAmount, begin, end);
+    deduction += prorateMonthlyWage(item.deductionAmount, begin, end);
+    lastEnd = end;
+  }
+  return { allowance: Number(allowance.toFixed(2)), deduction: Number(deduction.toFixed(2)) };
+}
+
+export interface ApprovedOvertimeDay {
+  date: string;
+  minutes: number;
+}
+
+/** An approved minute is paid at the salary rate effective on its exact date. */
+export function calculateHistoricalOvertimePay(
+  days: ApprovedOvertimeDay[],
+  contracts: EffectiveSalaryContract[],
+  expectedDailyHours: number,
+  multiplier: number,
+): number {
+  if (!Number.isFinite(expectedDailyHours) || expectedDailyHours <= 0 || expectedDailyHours > 24
+    || !Number.isFinite(multiplier) || multiplier < 1 || multiplier > 5) {
+    throw new RangeError('Invalid overtime rate or daily schedule');
+  }
+  let total = 0;
+  for (const day of days) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date) || !Number.isFinite(day.minutes)
+      || day.minutes < 0 || day.minutes > 1440) {
+      throw new RangeError('Invalid approved overtime attendance record');
+    }
+    if (day.minutes === 0) continue;
+    const matches = contracts.filter(c => c.startDate <= day.date && (!c.endDate || c.endDate >= day.date));
+    if (matches.length !== 1 || !Number.isFinite(matches[0].baseSalary) || matches[0].baseSalary <= 0) {
+      throw new RangeError('Overtime date must match exactly one valid salary contract');
+    }
+    total += calculateOvertime({
+      calculatedHourlyRate: matches[0].baseSalary / 30 / expectedDailyHours,
+      overtimeMinutes: day.minutes,
+      overtimeMultiplier: multiplier,
+    });
+  }
+  return Number(total.toFixed(2));
 }

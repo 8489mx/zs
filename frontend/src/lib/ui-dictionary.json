@@ -31939,5 +31939,19 @@
   "أرقام تسلسلية IMEI وصيانة": "IMEI Serial Numbers and Maintenance",
   "تتبع أرقام السيريال والـ IMEI، كروت استلام وفحص الأجهزة، قطع الغيار وتسليم الصيانة والضمان.": "Tracking serial numbers and IMEI, device receipt and inspection cards, spare parts, and delivery of maintenance and warranty.",
   "الأجهزة الكهربائية والمنزلية ومعارض التقسيط": "Electrical and household appliances and installment exhibitions",
-  "مبيعات وأقساط وشيكات": "Sales, Installments, and Checks"
+  "مبيعات وأقساط وشيكات": "Sales, Installments, and Checks",
+  "سعر صرف الشيك بعملة الأساس (اختياري؛ الافتراضي سعر العملة المسجل)": "Cheque exchange rate in base currency (optional; defaults to the registered rate)",
+  "سعر الصرف الفعلي للتسوية (اختياري؛ الافتراضي السعر المسجل)": "Settlement exchange rate (optional; defaults to the registered rate)",
+  "تصنيف التدفق النقدي": "Cash flow category",
+  "حدد التصنيف عند بيع أصل أو وجود تمويل غير نقدي ضمن القيد": "Choose a category for asset disposals or entries with non-cash financing",
+  "تلقائي للقيود البسيطة": "Automatic for simple entries",
+  "استثماري": "Investing",
+  "تمويلي": "Financing",
+  "توجد تدفقات مختلطة تحتاج توزيعاً محاسبياً قبل اعتماد تصنيف القائمة؛ المبالغ مدرجة ضمن صافي النقدية.": "Mixed cash flows require accounting attribution before the classifications can be approved. These amounts are included in net cash flow.",
+  "تعذر تحديد المنشأة للدفعة.": "Payment tenant is required.",
+  "أعد إرسال الدفعة غير المحسومة بنفس بياناتها قبل إنشاء دفعة أخرى.": "Retry the unresolved payment with its original details before creating another payment.",
+  "هذا القيد يثبت رصيد الخزنة والبنك فقط. أرصدة العملاء والموردين والمخزون تُرحّل من مستنداتها عند إنشائها.": "This entry records opening cash and bank balances only. Customer, supplier and inventory balances are posted by their source documents when created.",
+  "لا تُحذف القيود المرحلة. يُنشأ قيد عكسي مستقل وتظل حالة القيد الأصلي": "Posted entries are never deleted. A separate reversal is posted, while the original entry remains",
+  "مرحّل (Posted)": "Posted",
+  "مع ربط القيدين للحفاظ على سجل التدقيق المحاسبي.": "The two entries are linked to preserve the audit trail."
 }

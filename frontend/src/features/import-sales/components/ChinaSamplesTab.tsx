@@ -35,6 +35,7 @@ export function ChinaSamplesTab() {
   const [inspectionScore, setInspectionScore] = useState<number>(9.5);
   const [inspectionNotes, setInspectionNotes] = useState('');
   const [approveAsReference, setApproveAsReference] = useState(true);
+  const [sampleDecision, setSampleDecision] = useState<string>('approved_reference');
 
   // Fetch Projects
   const { data: projects = [] } = useQuery({
@@ -77,17 +78,18 @@ export function ChinaSamplesTab() {
     e.preventDefault();
     if (!selectedSampleForInspection) return;
     try {
+      const finalDecision = approveAsReference ? 'approved_reference' : (sampleDecision || 'pending');
       await updateInspectionMutation.mutateAsync({
         sampleId: selectedSampleForInspection.id,
         dto: {
           qualityScore: Number(inspectionScore),
           defectAnalysis: inspectionNotes || undefined,
-          referenceSampleApproved: approveAsReference,
-          decision: approveAsReference ? 'approved' : 'conditional',
+          referenceSampleApproved: finalDecision === 'approved_reference',
+          decision: finalDecision,
         },
       });
       toast.success(
-        approveAsReference
+        finalDecision === 'approved_reference'
           ? 'تم اعتماد العينة كمرجعية فنية ملزمة لخط الإنتاج'
           : 'تم حفظ نتيجة فحص العينة بنجاح'
       );
@@ -381,11 +383,11 @@ export function ChinaSamplesTab() {
       {/* Modal: Inspection & Approval */}
       {selectedSampleForInspection && (
         <StandardDialog
-          isOpen={!!selectedSampleForInspection}
+          open={!!selectedSampleForInspection}
           onClose={() => setSelectedSampleForInspection(null)}
-          title={`فحص واعتماد العينة: ${selectedSampleForInspection.product_name}`}
-          subtitle={`المصنع: ${selectedSampleForInspection.supplier_name} | بوليصة الشحن: ${selectedSampleForInspection.courier_tracking_no || '—'}`}
-          width="550px"
+          title={`فحص واعتماد العينة: ${selectedSampleForInspection.item_name || selectedSampleForInspection.product_name || selectedSampleForInspection.sample_code || 'عينة فنية'}`}
+          subtitle={`المصنع: ${selectedSampleForInspection.supplier_name || '—'} | بوليصة الشحن: ${selectedSampleForInspection.courier_tracking_no || '—'}`}
+          width="580px"
           compact
         >
           <form onSubmit={handleSaveInspection} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -408,6 +410,26 @@ export function ChinaSamplesTab() {
 
             <div>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                القرار الفني للعينة: *
+              </label>
+              <select
+                className="input"
+                style={{ width: '100%', padding: '7px 10px', fontSize: 13, fontWeight: 600 }}
+                value={sampleDecision}
+                onChange={(e) => {
+                  setSampleDecision(e.target.value);
+                  setApproveAsReference(e.target.value === 'approved_reference');
+                }}
+              >
+                <option value="approved_reference">اعتماد كعينة مرجعية ذهبية ملزمة للمصنع (Gold Standard)</option>
+                <option value="rework_requested">طلب تعديل وتصنيع عينة بديلة من المصنع (Rework Required)</option>
+                <option value="rejected">رفض العينة نهائياً لعدم مطابقة المواصفات (Rejected)</option>
+                <option value="pending">قيد الفحص والمراجعة المخبرية (Pending)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
                 ملاحظات الفحص والعيوب (إن وجدت):
               </label>
               <textarea
@@ -415,7 +437,7 @@ export function ChinaSamplesTab() {
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={inspectionNotes}
-                placeholder="العينة مطابقة 100% للمواصفات الكهربائية، تم اختبارها لمدة 48 ساعة متواصلة بنجاح"
+                placeholder="العينة مطابقة 100% للمواصفات، تم اختبارها لمدة 48 ساعة متواصلة بنجاح"
                 onChange={(e) => setInspectionNotes(e.target.value)}
               />
             </div>
@@ -425,7 +447,10 @@ export function ChinaSamplesTab() {
                 <input
                   type="checkbox"
                   checked={approveAsReference}
-                  onChange={(e) => setApproveAsReference(e.target.checked)}
+                  onChange={(e) => {
+                    setApproveAsReference(e.target.checked);
+                    if (e.target.checked) setSampleDecision('approved_reference');
+                  }}
                 />
                 اعتماد العينة كمرجعية قياسية ملزمة لخط الإنتاج (Gold Standard Sample)
               </label>

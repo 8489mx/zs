@@ -3,6 +3,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import {
   useChinaSuppliersQuery,
+  useCreateChinaSupplierMutation,
   useUpsertSupplierMetaMutation,
   useQcInspectionsQuery,
   useCreateQcInspectionMutation,
@@ -38,7 +39,24 @@ export default function ChinaSourcingPage() {
   const [tripEndDate, setTripEndDate] = useState('');
   const [tripBudgetEgp, setTripBudgetEgp] = useState<number>(75000);
   const [tripObjectives, setTripObjectives] = useState('');
+  const createChinaSupplierMutation = useCreateChinaSupplierMutation();
   const [search, setSearch] = useState('');
+
+  // New Factory Modal
+  const [isNewSupplierModalOpen, setIsNewSupplierModalOpen] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState('');
+  const [newChineseName, setNewChineseName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [newCity, setNewCity] = useState('');
+  const [newProvince, setNewProvince] = useState('');
+  const [newMoq, setNewMoq] = useState('');
+  const [newLeadTime, setNewLeadTime] = useState<number>(30);
+  const [newBankBeneficiary, setNewBankBeneficiary] = useState('');
+  const [newBankName, setNewBankName] = useState('');
+  const [newBankSwift, setNewBankSwift] = useState('');
+  const [newBankAccount, setNewBankAccount] = useState('');
+  const [newNotes, setNewNotes] = useState('');
 
   // Sourcing Meta Modal
   const [selectedSupplier, setSelectedSupplier] = useState<ChinaSupplier | null>(null);
@@ -115,6 +133,52 @@ export default function ChinaSourcingPage() {
     }
   };
 
+  const handleCreateNewSupplier = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSupplierName.trim()) {
+      toast.error('اسم المصنع أو المورد الدولي مطلوب');
+      return;
+    }
+
+    try {
+      await createChinaSupplierMutation.mutateAsync({
+        name: newSupplierName.trim(),
+        chineseName: newChineseName.trim() || undefined,
+        phone: newPhone.trim() || undefined,
+        address: newAddress.trim() || undefined,
+        city: newCity.trim() || undefined,
+        province: newProvince.trim() || undefined,
+        moqDescription: newMoq.trim() || undefined,
+        productionLeadTimeDays: Number(newLeadTime) || 30,
+        bankBeneficiary: newBankBeneficiary.trim() || undefined,
+        bankName: newBankName.trim() || undefined,
+        bankSwift: newBankSwift.trim() || undefined,
+        bankAccount: newBankAccount.trim() || undefined,
+        incotermsAccepted: ['FOB', 'CIF', 'EXW'],
+        notes: newNotes.trim() || undefined,
+      });
+
+      toast.success('تمت إضافة المصنع وتوثيق بياناته بنجاح');
+      setIsNewSupplierModalOpen(false);
+      setNewSupplierName('');
+      setNewChineseName('');
+      setNewPhone('');
+      setNewAddress('');
+      setNewCity('');
+      setNewProvince('');
+      setNewMoq('');
+      setNewLeadTime(30);
+      setNewBankBeneficiary('');
+      setNewBankName('');
+      setNewBankSwift('');
+      setNewBankAccount('');
+      setNewNotes('');
+      refetch();
+    } catch (err: any) {
+      toast.error('حدث خطأ أثناء إضافة المصنع: ' + (err.message || 'خطأ غير معروف'));
+    }
+  };
+
   const handleCreateQc = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -155,7 +219,7 @@ export default function ChinaSourcingPage() {
             <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Button
                 variant="primary"
-                onClick={() => setIsQcModalOpen(true)}
+                onClick={() => setIsNewSupplierModalOpen(true)}
                 style={{
                   height: '38px',
                   padding: '0 18px',
@@ -171,7 +235,27 @@ export default function ChinaSourcingPage() {
                 }}
               >
                 <PlusCircleIcon size={15} />
-                <span>تقرير فحص جودة جديد (QC)</span>
+                <span>إضافة مصنع / مورد دولي جديد</span>
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setIsQcModalOpen(true)}
+                style={{
+                  height: '38px',
+                  padding: '0 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  background: '#ffffff',
+                  color: '#170e5e',
+                  border: '1px solid #cbd5e1',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                <span>تقرير فحص جودة (QC)</span>
               </Button>
             </div>
           }
@@ -280,104 +364,156 @@ export default function ChinaSourcingPage() {
 
       {activeTab === 'factories' && (
         <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ position: 'relative', width: 300 }}>
-              <input
-                type="text"
-                placeholder="بحث عن مصنع أو مدينة أو مقاطعة..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ width: '100%', height: 34, padding: '4px 32px 4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
-              />
-              <span style={{ position: 'absolute', right: 10, top: 9, color: '#94a3b8' }}>
-                <SearchIcon size={14} />
-              </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ position: 'relative', width: 280 }}>
+                <input
+                  type="text"
+                  placeholder="بحث عن مصنع أو مدينة أو مقاطعة..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ width: '100%', height: 34, padding: '4px 32px 4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+                />
+                <span style={{ position: 'absolute', right: 10, top: 9, color: '#94a3b8' }}>
+                  <SearchIcon size={14} />
+                </span>
+              </div>
+
+              <button
+                onClick={() => refetch()}
+                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '12px' }}
+              >
+                <RefreshCwIcon size={13} />
+                تحديث
+              </button>
             </div>
 
             <button
-              onClick={() => refetch()}
-              style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '12px' }}
+              onClick={() => setIsNewSupplierModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 16px',
+                borderRadius: 8,
+                backgroundColor: '#170e5e',
+                color: '#ffffff',
+                border: 'none',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
             >
-              <RefreshCwIcon size={13} />
-              تحديث
+              <PlusCircleIcon size={15} />
+              إضافة مصنع / مورد دولي جديد
             </button>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>المصنع / المورد الدولي</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الاسم الصيني والموقع</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>حد الطلب الأدنى MOQ</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>مدة الإنتاج والتجهيز</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الحساب البنكي الموثق</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الرصيد الدفتري (ج.م)</th>
-                  <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>إجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSuppliers.map((s) => {
-                  const bank = typeof s.verified_bank_details === 'string' ? JSON.parse(s.verified_bank_details || '{}') : (s.verified_bank_details || {});
-                  const isVerified = Boolean(bank.bankName && bank.swiftCode);
-                  return (
-                    <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 14px', fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
-                        {s.name}
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: '12px', color: '#475569' }}>
-                        {s.chinese_name ? `${s.chinese_name} (${s.city || ''})` : s.city || '—'}
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: '12px', color: '#475569' }}>
-                        {s.moq_description || 'غير محدد'}
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: '12px', color: '#475569' }}>
-                        {s.production_lead_time_days || 30} يوم
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <span
-                          style={{
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            backgroundColor: isVerified ? '#ecfdf5' : '#fffbeb',
-                            color: isVerified ? '#047857' : '#b45309',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}
-                        >
-                          {isVerified ? <CheckCircleIcon size={12} /> : <AlertTriangleIcon size={12} />}
-                          {isVerified ? 'حساب موثق ومحمى' : 'يحتاج توثيق'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: '12px', fontWeight: 700, color: Number(s.balance || 0) > 0 ? '#b91c1c' : '#059669' }}>
-                        {Number(s.balance || 0).toLocaleString()} ج.م
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <button
-                          onClick={() => openMetaModal(s)}
-                          style={{
-                            padding: '4px 10px',
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            color: '#170e5e',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          توثيق البيانات
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {filteredSuppliers.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 20px', border: '1px dashed #cbd5e1', borderRadius: 10, margin: '10px 0' }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+                لا توجد مصانع أو موردين دوليين مسجلين
+              </div>
+              <p style={{ fontSize: '12.5px', color: '#64748b', maxWidth: 500, margin: '0 auto 16px', lineHeight: 1.6 }}>
+                قم بتسجيل بيانات المصنع الصيني أو المورد الدولي، الاسم باللغة الصينية، والبيانات البنكية الرسمية لبدء طلب عروض الأسعار (RFQ) وإصدار الفواتير المبدئية (PI).
+              </p>
+              <button
+                onClick={() => setIsNewSupplierModalOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 18px',
+                  borderRadius: 8,
+                  backgroundColor: '#170e5e',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <PlusCircleIcon size={15} />
+                تسجيل أول مصنع صيني الآن
+              </button>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>المصنع / المورد الدولي</th>
+                    <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الاسم الصيني والموقع</th>
+                    <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>حد الطلب الأدنى MOQ</th>
+                    <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>مدة الإنتاج والتجهيز</th>
+                    <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الحساب البنكي الموثق</th>
+                    <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>الرصيد الدفتري (ج.م)</th>
+                    <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSuppliers.map((s) => {
+                    const bank = typeof s.verified_bank_details === 'string' ? JSON.parse(s.verified_bank_details || '{}') : (s.verified_bank_details || {});
+                    const isVerified = Boolean(bank.bankName && bank.swiftCode);
+                    return (
+                      <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px 14px', fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
+                          {s.name}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '12px', color: '#475569' }}>
+                          {s.chinese_name ? `${s.chinese_name} (${s.city || ''})` : s.city || '—'}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '12px', color: '#475569' }}>
+                          {s.moq_description || 'غير محدد'}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '12px', color: '#475569' }}>
+                          {s.production_lead_time_days || 30} يوم
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              backgroundColor: isVerified ? '#ecfdf5' : '#fffbeb',
+                              color: isVerified ? '#047857' : '#b45309',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            {isVerified ? <CheckCircleIcon size={12} /> : <AlertTriangleIcon size={12} />}
+                            {isVerified ? 'حساب موثق ومحمى' : 'يحتاج توثيق'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '12px', fontWeight: 700, color: Number(s.balance || 0) > 0 ? '#b91c1c' : '#059669' }}>
+                          {Number(s.balance || 0).toLocaleString()} ج.م
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <button
+                            onClick={() => openMetaModal(s)}
+                            style={{
+                              padding: '4px 10px',
+                              backgroundColor: '#f1f5f9',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: 6,
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              color: '#170e5e',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            توثيق البيانات
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -450,6 +586,224 @@ export default function ChinaSourcingPage() {
           )}
         </div>
       )}
+
+      {/* New China Factory Modal */}
+      <StandardDialog
+        open={isNewSupplierModalOpen}
+        onClose={() => setIsNewSupplierModalOpen(false)}
+        title="إضافة مصنع أو مورد دولي جديد (China Factory)"
+        subtitle="تسجيل بيانات المصنع، الاسم باللغة الصينية، المقاطعة، وتوثيق الحساب البنكي الرسمي لمنع الاحتيال"
+        width="680px"
+      >
+        <form onSubmit={handleCreateNewSupplier} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Row 1: Factory Name (EN/Trade) & Chinese Name */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                اسم المصنع / المورد التجاري <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={newSupplierName}
+                onChange={(e) => setNewSupplierName(e.target.value)}
+                placeholder="مثال: Shandong Liangshan Titan Trailer Parts Co., Ltd"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                الاسم باللغة الصينية (Chinese Name)
+              </label>
+              <input
+                type="text"
+                value={newChineseName}
+                onChange={(e) => setNewChineseName(e.target.value)}
+                placeholder="مثال: 山东梁山泰坦挂车配件有限公司"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+          </div>
+
+          {/* Row 2: City & Province & Phone/WeChat */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                المدينة (City)
+              </label>
+              <input
+                type="text"
+                value={newCity}
+                onChange={(e) => setNewCity(e.target.value)}
+                placeholder="مثال: Jining / Liangshan"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                المقاطعة (Province)
+              </label>
+              <input
+                type="text"
+                value={newProvince}
+                onChange={(e) => setNewProvince(e.target.value)}
+                placeholder="مثال: Shandong / 山东"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                هاتف / WeChat
+              </label>
+              <input
+                type="text"
+                value={newPhone}
+                onChange={(e) => setNewPhone(e.target.value)}
+                placeholder="مثال: +86 138 0000 0000"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Full Address */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+              العنوان التفصيلي وموقع المصنع
+            </label>
+            <input
+              type="text"
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
+              placeholder="مثال: Liangshan Industrial Park, Jining City, Shandong Province, China"
+              style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+            />
+          </div>
+
+          {/* Row 4: MOQ & Lead Time */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                حد الطلب الأدنى (MOQ)
+              </label>
+              <input
+                type="text"
+                value={newMoq}
+                onChange={(e) => setNewMoq(e.target.value)}
+                placeholder="مثال: 1x20ft أو 50 قطعة لكل صنف"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+                مدة دورة الإنتاج والتجهيز (بالأيام)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={newLeadTime}
+                onChange={(e) => setNewLeadTime(Number(e.target.value))}
+                placeholder="30"
+                style={{ width: '100%', height: 36, padding: '4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              />
+            </div>
+          </div>
+
+          {/* Verified Bank Details Box */}
+          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircleIcon size={14} />
+                بيانات الحساب البنكي الرسمي الموثق للحوالات الدولية (Bank Wire Details)
+              </div>
+              <span style={{ fontSize: '11px', color: '#64748b' }}>حماية من القرصنة والاحتيال</span>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                اسم المستفيد بالإنجليزية (Beneficiary Name)
+              </label>
+              <input
+                type="text"
+                value={newBankBeneficiary}
+                onChange={(e) => setNewBankBeneficiary(e.target.value)}
+                placeholder="الاسم الإنجليزي المطابق لحساب الشركة البنكي في الصين"
+                style={{ width: '100%', height: 34, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12px' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                  اسم البنك الصيني (Bank Name)
+                </label>
+                <input
+                  type="text"
+                  value={newBankName}
+                  onChange={(e) => setNewBankName(e.target.value)}
+                  placeholder="مثال: Bank of China, Liangshan Branch"
+                  style={{ width: '100%', height: 34, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12px' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                  سويفت كود (SWIFT Code / BIC)
+                </label>
+                <input
+                  type="text"
+                  value={newBankSwift}
+                  onChange={(e) => setNewBankSwift(e.target.value)}
+                  placeholder="مثال: BKCHCNBJ110"
+                  style={{ width: '100%', height: 34, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12px' }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                رقم الحساب البنكي / الآيبان (Account / IBAN)
+              </label>
+              <input
+                type="text"
+                value={newBankAccount}
+                onChange={(e) => setNewBankAccount(e.target.value)}
+                placeholder="رقم الحساب البنكي المعتمد للتحويلات الدولية USD/EUR"
+                style={{ width: '100%', height: 34, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12px' }}
+              />
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>
+              ملاحظات فنية وتشغيلية (المهندس المسؤول / التخصص / شروط الشحن)
+            </label>
+            <textarea
+              rows={2}
+              value={newNotes}
+              onChange={(e) => setNewNotes(e.target.value)}
+              placeholder="مثال: مصنع متخصص في تصنيع محاور المقطورات وجنازير الصدر، شروط التسليم FOB Qingdao..."
+              style={{ width: '100%', padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12px' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => setIsNewSupplierModalOpen(false)}
+              style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', border: 'none', borderRadius: 6, fontSize: '12.5px', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={createChinaSupplierMutation.isPending}
+              style={{ padding: '8px 22px', backgroundColor: '#170e5e', border: 'none', borderRadius: 6, fontSize: '12.5px', fontWeight: 700, color: '#ffffff', cursor: 'pointer' }}
+            >
+              {createChinaSupplierMutation.isPending ? 'جاري الحفظ...' : 'حفظ المصنع وتوثيقه'}
+            </button>
+          </div>
+        </form>
+      </StandardDialog>
 
       {/* Sourcing Trip Modal */}
       <StandardDialog

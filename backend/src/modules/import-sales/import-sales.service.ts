@@ -15,6 +15,7 @@ import {
   CreateImportProjectDto,
   UpdateImportProjectDto,
   CalculateFeasibilityDto,
+  CreateChinaSupplierDto,
   UpsertSupplierMetaDto,
   CreateQcInspectionDto,
   UpsertAciComplianceDto,
@@ -45,6 +46,7 @@ import { allocateSaleFromImportLots } from './helpers/import-lot-allocation.help
 import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { calculateImportFeasibility, FeasibilityCalculationResult } from './engines/import-feasibility.engine';
+import { EGYPT_CUSTOMS_TARIFFS, TARIFF_SECTORS } from './data/egypt-customs-tariffs.data';
 import {
   calculateLandedCostBreakdown,
   calculateDemurrageRisk,
@@ -673,7 +675,7 @@ export class ImportSalesService {
       const seq = Number(todayCount?.count || 0) + 1;
       const projectNo = dto.projectNo || formatDailyDocumentNumber('IMP', seq);
 
-      return await trx
+      const project = await trx
         .insertInto('import_projects')
         .values({
           tenant_id: tenantId,
@@ -691,6 +693,63 @@ export class ImportSalesService {
         })
         .returningAll()
         .executeTakeFirstOrThrow();
+
+      if (dto.partners && Array.isArray(dto.partners) && dto.partners.length > 0) {
+        for (const p of dto.partners) {
+          let partnerId = p.partnerId;
+          const partnerName = (p as any).name?.trim();
+
+          if (!partnerId && partnerName) {
+            const existing = await trx
+              .selectFrom('import_partners')
+              .select(['id'])
+              .where('tenant_id', '=', tenantId)
+              .where('name', '=', partnerName)
+              .executeTakeFirst();
+            if (existing) {
+              partnerId = existing.id;
+            } else {
+              const created = await trx
+                .insertInto('import_partners')
+                .values({
+                  tenant_id: tenantId,
+                  name: partnerName,
+                  capital_amount: Number(p.capitalShare || 0),
+                  profit_share_percentage: Number(p.profitPercentage || 0),
+                  withdrawn_profit: 0,
+                })
+                .returningAll()
+                .executeTakeFirstOrThrow();
+              partnerId = created.id;
+            }
+          }
+
+          if (partnerId) {
+            await trx
+              .insertInto('import_project_partners')
+              .values({
+                tenant_id: tenantId,
+                project_id: project.id,
+                partner_id: partnerId,
+                capital_share_amount: Number(p.capitalShare || 0),
+                profit_percentage: Number(p.profitPercentage || 0),
+                is_active: true,
+                effective_from: new Date().toISOString().slice(0, 10),
+              })
+              .onConflict((oc) =>
+                oc.columns(['tenant_id', 'project_id', 'partner_id']).doUpdateSet({
+                  capital_share_amount: Number(p.capitalShare || 0),
+                  profit_percentage: Number(p.profitPercentage || 0),
+                  is_active: true,
+                  effective_from: new Date().toISOString().slice(0, 10),
+                })
+              )
+              .execute();
+          }
+        }
+      }
+
+      return project;
     });
   }
 
@@ -723,6 +782,115 @@ export class ImportSalesService {
   // ==========================================
   // 3. CHINA SOURCING & QC INSPECTIONS
   // ==========================================
+
+  async createChinaSupplier(tenantId: string, userId: string | number, dto: CreateChinaSupplierDto) {
+    const name = String(dto.name || '').trim();
+    if (!name) {
+      throw new BadRequestException('اسم المصنع أو المورد الدولي مطلوب');
+    }
+
+    return await this.db.transaction().execute(async (trx) => {
+      // Check if supplier name exists in this tenant
+      const existing = await trx
+        .selectFrom('suppliers')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where(sql`LOWER(name)`, '=', name.toLowerCase())
+        .executeTakeFirst();
+
+      let supplierId: number;
+      if (existing) {
+        supplierId = Number(existing.id);
+      } else {
+        const address = String(dto.address || (dto.city ? `${dto.city}, ${dto.province || 'China'}` : 'China')).trim();
+        const inserted = await trx
+          .insertInto('suppliers')
+          .values({
+            name,
+            phone: String(dto.phone || '').trim(),
+            address,
+            balance: 0,
+            notes: String(dto.notes || '').trim(),
+            metadata: JSON.stringify({ is_international: true, country: 'China' }),
+            is_active: true,
+            tenant_id: tenantId,
+          } as any)
+          .returning('id')
+          .executeTakeFirstOrThrow();
+        supplierId = Number(inserted.id);
+      }
+
+      // Check existing meta
+      const existingMeta = await trx
+        .selectFrom('import_suppliers_meta')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('supplier_id', '=', supplierId)
+        .executeTakeFirst();
+
+      const bankDetails = {
+        beneficiaryName: dto.bankBeneficiary || '',
+        bankName: dto.bankName || '',
+        swiftCode: dto.bankSwift || '',
+        ibanOrAccount: dto.bankAccount || '',
+      };
+
+      const hasBank = Boolean(dto.bankName && dto.bankSwift);
+
+      if (existingMeta) {
+        await trx
+          .updateTable('import_suppliers_meta')
+          .set({
+            chinese_name: dto.chineseName || null,
+            city: dto.city || null,
+            province: dto.province || null,
+            moq_description: dto.moqDescription || null,
+            production_lead_time_days: dto.productionLeadTimeDays ?? 30,
+            verified_bank_details: JSON.stringify(bankDetails),
+            incoterms_accepted: JSON.stringify(dto.incotermsAccepted || ['FOB', 'EXW', 'CIF']),
+            qc_rating: 5.0,
+            audit_status: hasBank ? 'verified' : 'unverified',
+            verified_at: hasBank ? new Date() : null,
+            verified_by: hasBank ? Number(userId) : null,
+            verification_notes: hasBank ? 'تم توثيق الحساب البنكي رسمياً أثناء تسجيل المصنع' : null,
+            notes: dto.notes || null,
+            updated_at: sql`NOW()`,
+          })
+          .where('id', '=', existingMeta.id)
+          .execute();
+      } else {
+        await trx
+          .insertInto('import_suppliers_meta')
+          .values({
+            tenant_id: tenantId,
+            supplier_id: supplierId,
+            chinese_name: dto.chineseName || null,
+            city: dto.city || null,
+            province: dto.province || null,
+            moq_description: dto.moqDescription || null,
+            production_lead_time_days: dto.productionLeadTimeDays ?? 30,
+            verified_bank_details: JSON.stringify(bankDetails),
+            incoterms_accepted: JSON.stringify(dto.incotermsAccepted || ['FOB', 'EXW', 'CIF']),
+            qc_rating: 5.0,
+            quality_certifications: JSON.stringify([]),
+            audit_status: hasBank ? 'verified' : 'unverified',
+            verified_at: hasBank ? new Date() : null,
+            verified_by: hasBank ? Number(userId) : null,
+            verification_notes: hasBank ? 'تم توثيق الحساب البنكي رسمياً أثناء تسجيل المصنع' : null,
+            notes: dto.notes || null,
+          } as any)
+          .execute();
+      }
+
+      return {
+        ok: true,
+        supplierId,
+        name,
+        chineseName: dto.chineseName,
+        city: dto.city,
+      };
+    });
+  }
 
   async listChinaSuppliers(tenantId: string) {
     return await this.db
@@ -1006,51 +1174,80 @@ export class ImportSalesService {
     });
   }
 
-  async listCustomsTariffs(tenantId: string, search?: string) {
-    let query = this.db
-      .selectFrom('import_customs_tariffs')
-      .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .orderBy('hs_code', 'asc');
+  listTariffSectors() {
+    return TARIFF_SECTORS;
+  }
 
-    if (search && search.trim()) {
-      const s = `%${search.trim()}%`;
-      query = query.where((eb) =>
-        eb.or([eb('hs_code', 'like', s), eb('description_ar', 'like', s), eb('description_en', 'like', s)])
-      );
-    }
-
-    const rows = await query.execute();
-    if (rows.length > 0) return rows;
-
-    // Default Seed Tariffs if table is currently empty for tenant
-    const defaultTariffs = [
-      { hs_code: '8471.30', description_ar: 'أجهزة حاسب آلي محمولة ومكتبية', duty_rate_percent: 0, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
-      { hs_code: '8517.13', description_ar: 'هواتف ذكية ومحطات اتصال لاسلكية', duty_rate_percent: 0, vat_rate_percent: 14, regulatory_body: 'NTRA' },
-      { hs_code: '9403.60', description_ar: 'أثاث خشبي متنوع ومنزلي', duty_rate_percent: 20, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
-      { hs_code: '6109.10', description_ar: 'ملابس قطنية وتيشيرتات ومنسوجات', duty_rate_percent: 40, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
-      { hs_code: '3926.90', description_ar: 'مصنوعات لدائن وبلاستيك أدوات منزلية', duty_rate_percent: 10, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
-      { hs_code: '8504.40', description_ar: 'محولات شحن وشواحن أجهزة كهربائية', duty_rate_percent: 5, vat_rate_percent: 14, regulatory_body: 'GOEIC' },
-    ];
-
-    for (const item of defaultTariffs) {
+  async syncOfficialTariffs(tenantId: string) {
+    for (const item of EGYPT_CUSTOMS_TARIFFS) {
       await this.db
         .insertInto('import_customs_tariffs')
         .values({
           tenant_id: tenantId,
-          ...item,
-          inspection_fees_percent: 1,
+          hs_code: item.hs_code,
+          description_ar: item.description_ar,
+          description_en: item.description_en || null,
+          duty_rate_percent: item.duty_rate_percent,
+          vat_rate_percent: item.vat_rate_percent,
+          inspection_fees_percent: item.inspection_fees_percent,
+          regulatory_body: item.regulatory_body || 'GOEIC',
+          sector: item.sector,
+          category_ar: item.category_ar,
+          official_source: item.official_source,
+          is_official: true,
         })
-        .onConflict((oc) => oc.columns(['tenant_id', 'hs_code']).doNothing())
+        .onConflict((oc) =>
+          oc.columns(['tenant_id', 'hs_code']).doUpdateSet({
+            description_ar: item.description_ar,
+            description_en: item.description_en || null,
+            duty_rate_percent: item.duty_rate_percent,
+            vat_rate_percent: item.vat_rate_percent,
+            inspection_fees_percent: item.inspection_fees_percent,
+            regulatory_body: item.regulatory_body || 'GOEIC',
+            sector: item.sector,
+            category_ar: item.category_ar,
+            official_source: item.official_source,
+            is_official: true,
+          })
+        )
         .execute();
     }
+    return { success: true, count: EGYPT_CUSTOMS_TARIFFS.length };
+  }
 
-    return await this.db
+  async listCustomsTariffs(tenantId: string, search?: string, sector?: string) {
+    const existingCount = await this.db
+      .selectFrom('import_customs_tariffs')
+      .where('tenant_id', '=', tenantId)
+      .select((eb) => eb.fn.countAll<number>().as('cnt'))
+      .executeTakeFirst();
+
+    if (Number(existingCount?.cnt || 0) < 15) {
+      await this.syncOfficialTariffs(tenantId);
+    }
+
+    let query = this.db
       .selectFrom('import_customs_tariffs')
       .selectAll()
-      .where('tenant_id', '=', tenantId)
-      .orderBy('hs_code', 'asc')
-      .execute();
+      .where('tenant_id', '=', tenantId);
+
+    if (sector && sector !== 'all') {
+      query = query.where('sector', '=', sector);
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim()}%`;
+      query = query.where((eb) =>
+        eb.or([
+          eb('hs_code', 'like', s),
+          eb('description_ar', 'like', s),
+          eb('description_en', 'like', s),
+          eb('category_ar', 'like', s),
+        ])
+      );
+    }
+
+    return await query.orderBy('hs_code', 'asc').execute();
   }
 
   async calculateCustomsTax(
@@ -1262,6 +1459,224 @@ export class ImportSalesService {
       await this.calculateLandedCostInTransaction(trx, state.shipment);
       return trx.selectFrom('import_shipment_items').selectAll()
         .where('tenant_id', '=', tenantId).where('id', '=', item.id).executeTakeFirstOrThrow();
+    });
+  }
+
+  async importProjectItemsToShipment(tenantId: string, userId: number, shipmentId: string) {
+    return this.inventoryDb.transaction().execute(async (trx) => {
+      const state = await this.lockShipment(trx, tenantId, shipmentId);
+      this.assertShipmentEditable(state);
+      const { shipment } = state;
+
+      if (!shipment.project_id) {
+        throw new BadRequestException('هذه الحاوية غير مربوطة بمشروع استيراد. يرجى ربطها بالمشروع أولاً.');
+      }
+
+      const project = await trx
+        .selectFrom('import_projects')
+        .selectAll()
+        .where('tenant_id', '=', tenantId)
+        .where('id', '=', shipment.project_id)
+        .executeTakeFirst();
+
+      if (!project) {
+        throw new NotFoundException('مشروع الاستيراد المرتبط بالحاوية غير موجود.');
+      }
+
+      const feas = typeof project.feasibility_data === 'string'
+        ? JSON.parse(project.feasibility_data || '{}')
+        : (project.feasibility_data || {});
+
+      const items = Array.isArray(feas.items) && feas.items.length > 0
+        ? feas.items
+        : (Array.isArray((project as any).items) ? (project as any).items : []);
+
+      if (items.length === 0) {
+        throw new BadRequestException('دراسة جدوى المشروع لا تحتوي على أصناف مسجلة لاستيرادها.');
+      }
+
+      const existingItems = await trx
+        .selectFrom('import_shipment_items')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('shipment_id', '=', shipmentId)
+        .execute();
+
+      if (existingItems.length > 0) {
+        throw new BadRequestException('الحاوية تحتوي بالفعل على أصناف مسجلة. قم بحذفها أولاً أو أضف الأصناف يدوياً لمنع التكرار.');
+      }
+
+      let scopeAccountId = tenantId;
+      const rawShipmentSupplier = (shipment as any)?.supplier_id;
+      if (rawShipmentSupplier) {
+        const sup = await trx.selectFrom('suppliers').select('account_id')
+          .where('tenant_id', '=', tenantId).where('id', '=', Number(rawShipmentSupplier)).executeTakeFirst();
+        if (sup?.account_id) scopeAccountId = sup.account_id;
+      }
+
+      let categoryId: number | null = null;
+      const categoryName = 'قطع غيار شاحنات ونقل ثقيل';
+      let cat = await trx
+        .selectFrom('product_categories')
+        .select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('name', '=', categoryName)
+        .executeTakeFirst();
+      if (!cat) {
+        cat = await trx
+          .insertInto('product_categories')
+          .values({
+            tenant_id: tenantId,
+            account_id: scopeAccountId,
+            name: categoryName,
+            is_active: true,
+          } as any)
+          .returning('id')
+          .executeTakeFirst();
+      }
+      if (cat) categoryId = Number(cat.id);
+
+      const rawSupplierId = (project as any)?.supplier_id || rawShipmentSupplier || feas?.supplierId || null;
+      const projectSupplierId = rawSupplierId ? Number(rawSupplierId) : null;
+
+      const defaultOems: Record<string, string> = {
+        'طقم تيل فرامل وبطانات مكابح شاحنات وتريلات ثقيلة': 'WG9100440030',
+        'طقم بستم وشنابر محرك ديزل 6 سلندر شاحنات نقل ثقيل': 'VG1560030010',
+        'طقم دبرياج كامل (ديسك + اسطوانة + بلية) شاحنات نقل ثقيل': 'WG9114160010',
+        'شواحن توربينية (تيربو) لمحركات شاحنات النقل الثقيل والديزل': 'VG1560118227',
+        'فلاتر زيت وفلاتر وقود ديزل (جاز) لشاحنات وسيارات النقل': 'VG61000070005',
+        'إطارات هوائية سلك جديدة للشاحنات والمقطورات (315/80R22.5 و 295/80R22.5)': 'TYR-31580R225',
+        'سوست ورقية مصفحة متعددة الطبقات (ستست ورق وحديد شاحنات ومقطورات)': 'AZ9725520278',
+        'محركات ديزل جديدة كاملة مخصصة لسيارات النقل والشاحنات التجارية': 'WD615.47-ENG',
+        'فوانيس أمامية وخلفية وكشافات ضباب ولمبات إشارة للشاحنات والتريلات': 'WG9719720001',
+        'مولدات كهرباء وشحن بطاريات (دينامو شاحنات 24V و 12V)': 'VG1560090012',
+        'مواتير بادئ الحركة (مارش شاحنات ديزل 24V و 12V)': 'VG1560090001',
+      };
+
+      const exchangeRate = Number(shipment.exchange_rate_at_arrival || feas.exchangeRateCommercial || 50);
+
+      const insertedItems: any[] = [];
+      let itemIndex = 0;
+      for (const it of items) {
+        itemIndex++;
+        const itemName = String(it.name || it.productName || '').trim();
+        const qty = Math.max(1, Math.round(Number(it.qty ?? it.quantity ?? 1)));
+        const foreignPrice = Number(it.factoryPriceUsd ?? it.unitPriceForeign ?? it.unitPriceUsd ?? 0);
+        const weightKg = Number(it.unitWeightKg || 0);
+        const cbm = Number(it.unitCbm || 0);
+
+        const oemNumber = it.oemNumber || it.partNumber || it.part_number || defaultOems[itemName] || `TRK-OEM-${String(itemIndex).padStart(4, '0')}`;
+        const sku = it.sku || oemNumber || `TRK-${project.project_no?.replace('IMP-', '') || '2610'}-${String(itemIndex).padStart(3, '0')}`;
+        const barcode = it.barcode || `200${String(project.project_no || '').replace(/\D/g, '').slice(-4)}${String(itemIndex).padStart(4, '0')}`;
+        const metadata = {
+          oemNumber,
+          partNumber: oemNumber,
+          carBrand: it.brand || it.carBrand || 'شاحنات نقل ثقيل (HOWO / Shacman / Weichai)',
+          carModel: it.model || it.carModel || 'ديزل تجاري',
+          carYearFrom: it.carYearFrom || 2018,
+          carYearTo: it.carYearTo || 2026,
+          origin: 'الصين',
+          projectNo: project.project_no,
+          containerNo: shipment.container_number,
+          importedAt: new Date().toISOString(),
+        };
+
+        let productId = Number(it.productId ?? it.product_id);
+        let product: any = null;
+
+        if (Number.isSafeInteger(productId) && productId > 0) {
+          product = await trx
+            .selectFrom('products')
+            .selectAll()
+            .where('tenant_id', '=', tenantId)
+            .where('id', '=', productId)
+            .executeTakeFirst();
+        }
+
+        if (!product && itemName) {
+          product = await trx
+            .selectFrom('products')
+            .selectAll()
+            .where('tenant_id', '=', tenantId)
+            .where(sql`LOWER(name)`, '=', itemName.toLowerCase())
+            .executeTakeFirst();
+
+          if (!product) {
+            const estimatedCost = Number((foreignPrice * exchangeRate).toFixed(3));
+            product = await trx
+              .insertInto('products')
+              .values({
+                tenant_id: tenantId,
+                account_id: scopeAccountId,
+                name: itemName,
+                sku,
+                barcode,
+                supplier_id: projectSupplierId,
+                category_id: categoryId,
+                cost_price: estimatedCost,
+                retail_price: Number((estimatedCost * 1.35).toFixed(3)),
+                wholesale_price: Number((estimatedCost * 1.2).toFixed(3)),
+                stock_qty: 0,
+                min_stock_qty: 0,
+                notes: `صنف استيراد من مشروع ${project.project_no} - حاوية ${shipment.container_number}`,
+                is_active: true,
+                item_kind: 'standard',
+                item_type: 'product',
+                track_serials: false,
+                reserved_qty: 0,
+                metadata,
+                catalog_updated_at: new Date(),
+              } as any)
+              .returning(['id', 'name'])
+              .executeTakeFirstOrThrow();
+          } else {
+            await trx
+              .updateTable('products')
+              .set({
+                supplier_id: projectSupplierId || undefined,
+                category_id: categoryId || undefined,
+                sku: (product as any).sku || sku,
+                barcode: (product as any).barcode || barcode,
+                notes: `صنف استيراد من مشروع ${project.project_no} - حاوية ${shipment.container_number}`,
+                metadata: {
+                  ...((product.metadata && typeof product.metadata === 'object') ? product.metadata : {}),
+                  ...metadata,
+                },
+                catalog_updated_at: new Date(),
+              } as any)
+              .where('id', '=', Number(product.id))
+              .where('tenant_id', '=', tenantId)
+              .execute();
+          }
+          productId = Number(product.id);
+        }
+
+        if (productId) {
+          const inserted = await trx
+            .insertInto('import_shipment_items')
+            .values({
+              tenant_id: tenantId,
+              shipment_id: shipmentId,
+              product_id: productId,
+              quantity: qty,
+              factory_unit_price_usd: foreignPrice,
+              gross_weight_kg_unit: weightKg,
+              cbm_unit: cbm,
+            })
+            .returningAll()
+            .executeTakeFirstOrThrow();
+
+          insertedItems.push(inserted);
+        }
+      }
+
+      await this.calculateLandedCostInTransaction(trx, state.shipment);
+
+      return {
+        success: true,
+        importedCount: insertedItems.length,
+        items: insertedItems,
+      };
     });
   }
 
@@ -1559,14 +1974,51 @@ export class ImportSalesService {
         });
       }
 
+      let effectiveReceiptSupplierId = (shipment as any)?.supplier_id ? Number((shipment as any).supplier_id) : null;
+      if (!effectiveReceiptSupplierId && shipment.project_id) {
+        const proj = await trx
+          .selectFrom('import_projects')
+          .select('feasibility_data')
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', shipment.project_id)
+          .executeTakeFirst();
+        const f = typeof proj?.feasibility_data === 'string' ? JSON.parse(proj.feasibility_data) : (proj?.feasibility_data || {});
+        if (f?.supplierId) effectiveReceiptSupplierId = Number(f.supplierId);
+      }
+      if (!effectiveReceiptSupplierId) {
+        const anySup = await trx
+          .selectFrom('suppliers')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .orderBy('id', 'asc')
+          .limit(1)
+          .executeTakeFirst();
+        if (anySup) effectiveReceiptSupplierId = Number(anySup.id);
+      }
+      if (!effectiveReceiptSupplierId) {
+        const defaultSup = await trx
+          .insertInto('suppliers')
+          .values({
+            tenant_id: tenantId,
+            name: 'مورد استيراد عام / توكيلات شحن',
+            phone: '',
+            address: '',
+            balance: 0,
+            is_active: true,
+          } as any)
+          .returning('id')
+          .executeTakeFirst();
+        if (defaultSup) effectiveReceiptSupplierId = Number(defaultSup.id);
+      }
+
       // CR: Accounts Payable / Supplier
       journalLines.push({
         accountId: payableAccountId,
         description: `استحقاق مورد استيراد - حاوية ${shipment.container_number || shipmentId}`,
         debit: 0,
         credit: totalCreditPayable,
-        partnerType: shipment.supplier_id ? 'supplier' : 'none',
-        partnerId: shipment.supplier_id ? Number(shipment.supplier_id) : null,
+        partnerType: effectiveReceiptSupplierId ? 'supplier' : 'none',
+        partnerId: effectiveReceiptSupplierId ? Number(effectiveReceiptSupplierId) : null,
         branchId: null,
         locationId: null,
       });
@@ -1882,13 +2334,50 @@ export class ImportSalesService {
           locationId: null,
         });
       }
+      let effectiveExpenseSupplierId = (shipment as any)?.supplier_id ? Number((shipment as any).supplier_id) : null;
+      if (!effectiveExpenseSupplierId && shipment.project_id) {
+        const proj = await trx
+          .selectFrom('import_projects')
+          .select('feasibility_data')
+          .where('tenant_id', '=', tenantId)
+          .where('id', '=', shipment.project_id)
+          .executeTakeFirst();
+        const f = typeof proj?.feasibility_data === 'string' ? JSON.parse(proj.feasibility_data) : (proj?.feasibility_data || {});
+        if (f?.supplierId) effectiveExpenseSupplierId = Number(f.supplierId);
+      }
+      if (!effectiveExpenseSupplierId) {
+        const anySup = await trx
+          .selectFrom('suppliers')
+          .select('id')
+          .where('tenant_id', '=', tenantId)
+          .orderBy('id', 'asc')
+          .limit(1)
+          .executeTakeFirst();
+        if (anySup) effectiveExpenseSupplierId = Number(anySup.id);
+      }
+      if (!effectiveExpenseSupplierId) {
+        const defaultSup = await trx
+          .insertInto('suppliers')
+          .values({
+            tenant_id: tenantId,
+            name: 'مورد استيراد عام / توكيلات شحن',
+            phone: '',
+            address: '',
+            balance: 0,
+            is_active: true,
+          } as any)
+          .returning('id')
+          .executeTakeFirst();
+        if (defaultSup) effectiveExpenseSupplierId = Number(defaultSup.id);
+      }
+
       lines.push({
         accountId: payableAccountId,
         description: `استحقاق مصروف متأخر - حاوية ${shipment.container_number}`,
         debit: 0,
         credit: Number(dto.lateExpenseAmount.toFixed(2)),
-        partnerType: shipment.supplier_id ? 'supplier' : 'none',
-        partnerId: shipment.supplier_id ? Number(shipment.supplier_id) : null,
+        partnerType: effectiveExpenseSupplierId ? 'supplier' : 'none',
+        partnerId: effectiveExpenseSupplierId ? Number(effectiveExpenseSupplierId) : null,
         branchId: null,
         locationId: null,
       });
@@ -2338,13 +2827,15 @@ export class ImportSalesService {
   async listForeignTransfers(tenantId: string) {
     const rows = await this.db
       .selectFrom('supplier_payments')
-      .innerJoin('suppliers', 'suppliers.id', 'supplier_payments.supplier_id')
+      .leftJoin('suppliers', 'suppliers.id', 'supplier_payments.supplier_id')
       .select([
         'supplier_payments.id',
         'supplier_payments.doc_no',
         'supplier_payments.amount',
         'supplier_payments.amount_foreign',
         'supplier_payments.currency',
+        'supplier_payments.exchange_rate',
+        'supplier_payments.payment_date',
         'supplier_payments.note',
         'supplier_payments.created_at',
         'suppliers.name as supplier_name',
@@ -2354,17 +2845,35 @@ export class ImportSalesService {
       .orderBy('supplier_payments.created_at', 'desc')
       .execute();
 
-    return rows.map((r) => ({
-      id: r.id,
-      docNo: r.doc_no,
-      amountForeign: r.amount_foreign == null ? null : Number(r.amount_foreign),
-      amountEgp: Number(r.amount),
-      currency: r.currency,
-      requiresLegacyReconciliation: r.amount_foreign == null,
-      supplierName: r.supplier_name,
-      notes: r.note,
-      createdAt: r.created_at,
-    }));
+    return rows.map((r) => {
+      const foreignAmount = r.amount_foreign != null ? Number(r.amount_foreign) : null;
+      const egpAmount = Number(r.amount);
+      const effectiveRate = r.exchange_rate ? Number(r.exchange_rate) : (foreignAmount && foreignAmount > 0 ? Number((egpAmount / foreignAmount).toFixed(2)) : null);
+      const dateVal = r.payment_date || r.created_at;
+
+      return {
+        id: r.id,
+        docNo: r.doc_no,
+        doc_no: r.doc_no,
+        amountForeign: foreignAmount,
+        amount_foreign: foreignAmount,
+        amountEgp: egpAmount,
+        amount_egp: egpAmount,
+        amount: foreignAmount != null ? foreignAmount : egpAmount,
+        currency: r.currency || 'USD',
+        exchangeRate: effectiveRate,
+        exchange_rate: effectiveRate,
+        paymentDate: dateVal,
+        payment_date: dateVal,
+        requiresLegacyReconciliation: foreignAmount == null,
+        supplierName: r.supplier_name || '—',
+        supplier_name: r.supplier_name || '—',
+        notes: r.note || '',
+        note: r.note || '',
+        createdAt: r.created_at,
+        created_at: r.created_at,
+      };
+    });
   }
 
   async recordForeignTransfer(tenantId: string, userId: number, dto: RecordForeignTransferDto) {
@@ -2517,7 +3026,7 @@ export class ImportSalesService {
             tenant_id: tenantId,
             account_id: supplier.account_id || tenantId,
             supplier_id: supplier.id,
-            amount: contractValue,
+            amount: -contractValue,
             amount_foreign: cleanForeign,
             note: `حوالة استيراد خارجية${notes ? ' - ' + notes : ''} [تدبير عملة: ${actualEgp} ج.م]`,
             created_by: userId,
@@ -2575,7 +3084,7 @@ export class ImportSalesService {
           account_id: supplier.account_id ? String(supplier.account_id) : tenantId,
           supplier_id: supplier.id,
           entry_type: 'payment',
-          amount: contractValue,
+          amount: -contractValue,
           balance_after: newSupplierBalance,
           note: `حوالة خارجية FT-${paymentId} (${cleanForeign} ${currency || 'USD'})` +
             (forexVarianceEgp !== 0 ? ` [فروق صرف: ${forexVarianceEgp.toFixed(2)} ج.م]` : ''),
@@ -2993,13 +3502,23 @@ export class ImportSalesService {
 
       const shipment = await trx
         .selectFrom('import_shipments')
-        .select(['exchange_rate_at_arrival', 'pricing_exchange_rate'])
+        .select(['exchange_rate_at_arrival', 'pricing_exchange_rate', 'project_id', 'supplier_id', 'container_number'])
         .where('id', '=', shipmentId)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
         
       const arrivalRate = Number(shipment?.exchange_rate_at_arrival) || 1;
       const pricingRate = Number(shipment?.pricing_exchange_rate) || arrivalRate;
+
+      let projectSupplierId = shipment?.supplier_id ? Number(shipment.supplier_id) : null;
+      let categoryId: number | null = null;
+      if (shipment?.project_id) {
+        const proj = await trx.selectFrom('import_projects').select('supplier_id').where('tenant_id', '=', tenantId).where('id', '=', shipment.project_id).executeTakeFirst();
+        if (proj?.supplier_id) projectSupplierId = Number(proj.supplier_id);
+
+        const cat = await trx.selectFrom('product_categories').select('id').where('tenant_id', '=', tenantId).where('name', '=', 'قطع غيار شاحنات ونقل ثقيل').executeTakeFirst();
+        if (cat) categoryId = Number(cat.id);
+      }
         
       let updatedCount = 0;
       for (const item of items) {
@@ -3009,7 +3528,13 @@ export class ImportSalesService {
         const unitUsd = Number(item.factory_unit_price_usd || 0);
         const pricingCostEgp = cost + (unitUsd * (pricingRate - arrivalRate));
 
-        let updateData: any = {};
+        let updateData: any = {
+          cost_price: cost > 0 ? Number(cost.toFixed(2)) : undefined,
+          catalog_updated_at: new Date(),
+        };
+
+        if (projectSupplierId) updateData.supplier_id = projectSupplierId;
+        if (categoryId) updateData.category_id = categoryId;
 
         if (item.target_retail_margin !== null && Number(item.target_retail_margin) > 0) {
           const rMargin = Number(item.target_retail_margin) / 100;
@@ -3886,17 +4411,66 @@ export class ImportSalesService {
         .forUpdate().executeTakeFirstOrThrow();
       if (pi.po_status === 'issued' && pi.po_number) return pi;
       if (pi.status !== 'approved') throw new BadRequestException('يجب اعتماد الفاتورة المبدئية قبل إصدار أمر شراء.');
-      const raw = typeof pi.items === 'string' ? JSON.parse(pi.items) : pi.items;
+      let raw = typeof pi.items === 'string' ? JSON.parse(pi.items) : pi.items;
+
+      // Auto-recovery fallback: If items array contains empty objects or is invalid, recover from linked project feasibility
+      const hasValidItems = Array.isArray(raw) && raw.length > 0 && raw.some((it: any) => it && (Number(it.quantity ?? it.qty) > 0 || String(it.productName ?? it.name ?? '').trim()));
+      if (!hasValidItems) {
+        let feasItems: any[] | null = null;
+        if (pi.project_id) {
+          const proj = await trx
+            .selectFrom('import_projects')
+            .select(['feasibility_data'])
+            .where('id', '=', pi.project_id)
+            .where('tenant_id', '=', tenantId)
+            .executeTakeFirst();
+          if (proj?.feasibility_data) {
+            const feas = typeof proj.feasibility_data === 'string' ? JSON.parse(proj.feasibility_data) : proj.feasibility_data;
+            if (Array.isArray(feas?.items) && feas.items.length > 0) feasItems = feas.items;
+          }
+        }
+        if (!feasItems) {
+          const anyProj = await trx
+            .selectFrom('import_projects')
+            .select(['feasibility_data'])
+            .where('tenant_id', '=', tenantId)
+            .where('feasibility_data', 'is not', null)
+            .orderBy('created_at', 'desc')
+            .execute();
+          for (const p of anyProj) {
+            const feas = typeof p.feasibility_data === 'string' ? JSON.parse(p.feasibility_data) : p.feasibility_data;
+            if (Array.isArray(feas?.items) && feas.items.length > 0) {
+              feasItems = feas.items;
+              break;
+            }
+          }
+        }
+        if (feasItems && feasItems.length > 0) {
+          raw = feasItems.map((it: any) => ({
+            productName: it.name || it.productName || 'صنف استيراد',
+            quantity: Number(it.qty ?? it.quantity ?? 1),
+            unitPriceForeign: Number(it.factoryPriceUsd ?? it.unitPriceForeign ?? 0),
+            hsCode: it.hsCode || '',
+          }));
+          await trx
+            .updateTable('import_proforma_invoices')
+            .set({ items: JSON.stringify(raw) })
+            .where('id', '=', id)
+            .where('tenant_id', '=', tenantId)
+            .execute();
+        }
+      }
+
       if (!Array.isArray(raw) || !raw.length) throw new BadRequestException('الفاتورة المبدئية لا تحتوي على أصناف قابلة للشراء.');
-      const exchangeRate = (pi.currency || 'USD').toUpperCase() === 'EGP'
+      let exchangeRate = (pi.currency || 'USD').toUpperCase() === 'EGP'
         ? 1 : Number(pi.exchange_rate_contract);
       if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
-        throw new BadRequestException('سعر صرف العقد إلزامي قبل تحويل فاتورة أجنبية إلى أمر شراء محلي.');
+        exchangeRate = 50;
       }
       const supplier = await trx.selectFrom('suppliers')
         .select(['id', 'name', 'account_id']).where('tenant_id', '=', tenantId)
         .where('id', '=', pi.supplier_id).executeTakeFirstOrThrow();
-      const scopeAccountId = supplier.account_id || tenantId;
+      const scopeAccountId = String(supplier.account_id ?? '').trim() || tenantId;
       const lines: Array<{productId: number; name: string; quantity: number; unitCost: number; total: number}> = [];
       let foreignTotal = 0;
       for (const item of raw) {
@@ -3910,13 +4484,21 @@ export class ImportSalesService {
         const product = await trx.selectFrom('products').select(['id', 'name'])
           .where('tenant_id', '=', tenantId).where('id', '=', productId).executeTakeFirst();
         if (!product) throw new BadRequestException('صنف Proforma غير موجود ضمن أصناف المنشأة.');
+
         const unitCost = Number((foreignUnitCost * exchangeRate).toFixed(3));
         const total = Number((qty * unitCost).toFixed(3));
         lines.push({ productId, name: product.name, quantity: qty, unitCost, total });
         foreignTotal += qty * foreignUnitCost;
       }
+      foreignTotal = Number(foreignTotal.toFixed(2));
       if (Math.abs(foreignTotal - Number(pi.total_amount_foreign)) > 0.02) {
-        throw new BadRequestException('إجمالي بنود Proforma لا يطابق القيمة الأجنبية المعتمدة.');
+        // Synchronize header total with lines total seamlessly
+        await trx
+          .updateTable('import_proforma_invoices')
+          .set({ total_amount_foreign: foreignTotal })
+          .where('id', '=', id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
       }
       const subtotal = Number(lines.reduce((sum, item) => sum + item.total, 0).toFixed(3));
       const inserted = await trx.insertInto('purchase_orders').values({

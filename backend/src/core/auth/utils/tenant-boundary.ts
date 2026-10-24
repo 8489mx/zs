@@ -1,17 +1,24 @@
 import { AppError } from '../../../common/errors/app-error';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 /**
- * Returns true only for the configured platform tenant in SaaS mode. Legacy
- * aliases remain valid for self-contained/desktop installations, where they
- * are local defaults rather than cross-tenant platform identities.
+ * Canonical zs and the configured platform identity are shared by guards and
+ * bootstrap role cleanup. Local aliases are valid only in supported desktop modes.
  */
+export function getPlatformTenantIds(
+  appMode: unknown = process.env.APP_MODE,
+  platformTenantId: unknown = process.env.PLATFORM_TENANT_ID,
+): string[] {
+  const configured = String(platformTenantId || 'zs').trim().toLowerCase();
+  const ids = isDesktopRuntimeMode(appMode)
+    ? [configured, 'zs', 'default', 'dev-tenant']
+    : [configured, 'zs'];
+  return [...new Set(ids.filter(Boolean))];
+}
+
 export function isPlatformTenantId(value: unknown): boolean {
   const tenantId = String(value ?? '').trim().toLowerCase();
-  const configured = String(process.env.PLATFORM_TENANT_ID || 'zs').trim().toLowerCase();
-  if (!tenantId || !configured) return false;
-  const appMode = String(process.env.APP_MODE || 'CLOUD_SAAS').trim().toUpperCase();
-  if (appMode === 'CLOUD_SAAS') return tenantId === configured || tenantId === 'zs';
-  return [configured, 'zs', 'default', 'dev-tenant'].includes(tenantId);
+  return Boolean(tenantId) && getPlatformTenantIds().includes(tenantId);
 }
 import type { AuthContext } from '../interfaces/auth-context.interface';
 

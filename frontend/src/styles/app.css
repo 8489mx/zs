@@ -336,13 +336,16 @@ button:focus-visible,
 .no-spin-arrows::-webkit-outer-spin-button,
 .no-spin-arrows::-webkit-inner-spin-button,
 input[type="number"].no-spin-arrows::-webkit-outer-spin-button,
-input[type="number"].no-spin-arrows::-webkit-inner-spin-button {
+input[type="number"].no-spin-arrows::-webkit-inner-spin-button,
+.table input[type="number"]::-webkit-outer-spin-button,
+.table input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
   margin: 0 !important;
 }
 
 .no-spin-arrows,
-input[type="number"].no-spin-arrows {
+input[type="number"].no-spin-arrows,
+.table input[type="number"] {
   -moz-appearance: textfield !important;
   appearance: textfield !important;
 }

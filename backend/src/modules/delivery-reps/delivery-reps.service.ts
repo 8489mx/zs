@@ -497,12 +497,13 @@ export class DeliveryRepsService {
       .executeTakeFirst();
     if (!rep) throw new AppError('Delivery representative not found', 'NOT_FOUND', 404);
 
+    const defaultMode = await this.getDeliveryFeeMode(this.db, actor);
     const summary = await this.db
       .selectFrom('sales')
       .select([
         sql<number>`count(*)`.as('total_orders'),
         sql<number>`sum(case when delivery_status = 'settled' then total else 0 end)`.as('collected_amount'),
-        sql<number>`sum(case when (delivery_status != 'settled' or delivery_status is null) and collection_status = 'cod' then total else 0 end)`.as('pending_amount')
+        sql<number>`sum(case when (delivery_status != 'settled' or delivery_status is null) and collection_status = 'cod' then case when coalesce(delivery_fee_mode, ${defaultMode}) = 'store_fleet' then total else greatest(0, total - coalesce(delivery_fee, 0)) end else 0 end)`.as('pending_amount')
       ])
       .where('delivery_rep_id', '=', repId)
       .where(this.tenantPredicate(actor))
@@ -525,7 +526,7 @@ export class DeliveryRepsService {
 
       const unsettledOrders = await trx
         .selectFrom('sales')
-        .select(['id', 'total', 'customer_id'])
+        .select(['id', 'total', 'customer_id', 'delivery_fee', 'delivery_fee_mode'])
         .where('delivery_rep_id', '=', repId)
         .where('collection_status', '=', 'cod')
         .where((eb) => eb.or([
@@ -546,7 +547,9 @@ export class DeliveryRepsService {
         throw new AppError('No unsettled orders found for this representative', 'NO_ORDERS', 400);
       }
 
-      const actualTotal = unsettledOrders.reduce((sum, order) => sum + Number(order.total), 0);
+      const defaultMode = await this.getDeliveryFeeMode(trx, actor);
+      const cashDue = (order: typeof unsettledOrders[number]) => (order.delivery_fee_mode || defaultMode) === 'store_fleet' ? Number(order.total) : Math.max(0, Number(order.total) - Number(order.delivery_fee || 0));
+      const actualTotal = Number(unsettledOrders.reduce((sum, order) => sum + cashDue(order), 0).toFixed(2));
 
       if (Math.abs(actualTotal - expectedAmount) > 0.01) {
         throw new AppError(`مبلغ التسوية (${expectedAmount}) لا يتطابق مع إجمالي المطلوب من المندوب (${actualTotal}).`, 'AMOUNT_MISMATCH', 400);
@@ -573,7 +576,7 @@ export class DeliveryRepsService {
         if (order.customer_id) {
           await this.salesFinance.createCustomerLedgerEntry(trx, order.customer_id, -Number(order.total), `تسديد من مندوب للأوردر #${order.id}`, order.id, actor);
         }
-        await this.accountingPosting.postDeliveryRepSettlement(trx, order.id, Number(order.total), openShift.branchId, openShift.locationId, actor);
+        await this.accountingPosting.postDeliveryRepSettlement(trx, order.id, cashDue(order), openShift.branchId, openShift.locationId, actor);
       }
 
       await trx

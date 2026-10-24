@@ -131,9 +131,9 @@ export function PayrollRunsTable({
                         {t('hr.payroll.payroll_runs_table.recalc', "إعادة احتساب")}
                       </Button>
                     ) : null}
-                    {canManagePayroll && normalize(row.status) === 'draft' ? (
+                    {canManagePayroll && ['draft', 'reviewed'].includes(normalize(row.status)) ? (
                       <Button variant="secondary" onClick={() => onReviewClick(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#1e40af', borderColor: '#bfdbfe' }}>
-                        {t('hr.payroll.payroll_runs_table.review_approve', "مراجعة واعتماد")}
+                        {normalize(row.status) === 'reviewed' ? 'إعادة مراجعة' : t('hr.payroll.payroll_runs_table.review_approve', "مراجعة واعتماد")}
                       </Button>
                     ) : null}
                     {canApprovePayroll && normalize(row.status) === 'reviewed' ? (

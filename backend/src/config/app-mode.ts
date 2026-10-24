@@ -14,3 +14,13 @@ export function mapLegacyAppMode(value: AppMode | keyof typeof LEGACY_APP_MODE_A
 export function isLocalRuntimeMode(mode: AppMode): boolean {
   return mode === 'LOCAL_PILOT' || mode === 'SELF_CONTAINED';
 }
+
+export function normalizeAppMode(value: unknown): AppMode {
+  const mode = String(value || 'CLOUD_SAAS').trim();
+  return mapLegacyAppMode(mode as AppMode | keyof typeof LEGACY_APP_MODE_ALIASES);
+}
+
+/** Only an explicit supported local mode grants desktop capabilities. Flags cannot override Cloud. */
+export function isDesktopRuntimeMode(value: unknown): boolean {
+  return isLocalRuntimeMode(normalizeAppMode(value));
+}

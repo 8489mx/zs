@@ -1,3 +1,6 @@
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { lockAccountingPeriod } from '../../accounting/accounting-period-lock';
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException, Optional, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Kysely, sql } from '../../../database/kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -7,7 +10,6 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AuditService } from '../../../core/audit/audit.service';
 import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway.service';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
-import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-period-lock';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 
 export interface AmazonConfig {
@@ -356,6 +358,7 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
+    private readonly accountingPosting: AccountingPostingService,
     @Optional() private readonly whatsappService?: WhatsAppGatewayService,
   ) {}
 
@@ -1466,7 +1469,11 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
 
   async getSettlements(auth: AuthContext): Promise<MarketplaceSettlementRecord[]> {
     const scope = requireTenantScope(auth);
-    return this.getSettingJson<MarketplaceSettlementRecord[]>('marketplace_settlements', scope.tenantId, []);
+    const [legacy, posted] = await Promise.all([
+      this.getSettingJson<MarketplaceSettlementRecord[]>('marketplace_settlements', scope.tenantId, []),
+      sql<{ payload: MarketplaceSettlementRecord }>`select payload from accounting_marketplace_settlements where tenant_id = ${scope.tenantId} and journal_entry_id is not null order by id desc`.execute(this.db),
+    ]);
+    return [...posted.rows.map(row => row.payload), ...legacy];
   }
 
   async getSettlementAccounts(auth: AuthContext): Promise<{
@@ -1495,7 +1502,7 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
         accountType: a.account_type,
         isCashBank: Boolean(a.is_cash_bank),
       };
-      if (a.is_cash_bank || a.account_type === 'asset') {
+      if (a.is_cash_bank) {
         bankAccounts.push(item);
       }
       if (a.account_type === 'expense') {
@@ -1509,55 +1516,15 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
     return { bankAccounts, expenseAccounts, revenueAccounts };
   }
 
-  private async resolveAccountingAccount(
-    tenantId: string,
-    configuredId?: number,
-    fallbackCodes: string[] = [],
-    fallbackType?: string,
-  ): Promise<number> {
-    if (configuredId && Number(configuredId) > 0) {
-      const row = await this.db
-        .selectFrom('accounting_accounts')
-        .select(['id', 'is_active'])
-        .where('id', '=', Number(configuredId))
-        .where(sql<boolean>`tenant_id = ${tenantId}`)
-        .executeTakeFirst();
-      if (row && row.is_active) return Number(row.id);
-    }
-
-    for (const code of fallbackCodes) {
-      const row = await this.db
-        .selectFrom('accounting_accounts')
-        .select(['id'])
-        .where('code', '=', code)
-        .where(sql<boolean>`tenant_id = ${tenantId}`)
-        .where('is_active', '=', true)
-        .executeTakeFirst();
-      if (row?.id) return Number(row.id);
-    }
-
-    if (fallbackType) {
-      const row = await this.db
-        .selectFrom('accounting_accounts')
-        .select(['id'])
-        .where('account_type', '=', fallbackType as any)
-        .where(sql<boolean>`tenant_id = ${tenantId}`)
-        .where('is_active', '=', true)
-        .orderBy('code', 'asc')
-        .executeTakeFirst();
-      if (row?.id) return Number(row.id);
-    }
-
-    const anyRow = await this.db
-      .selectFrom('accounting_accounts')
-      .select(['id'])
-      .where(sql<boolean>`tenant_id = ${tenantId}`)
-      .where('is_active', '=', true)
-      .orderBy('id', 'asc')
-      .executeTakeFirst();
-
-    if (anyRow?.id) return Number(anyRow.id);
-    throw new BadRequestException('لم يتم العثور على حساب مالي في شجرة الحسابات.');
+  private async resolveAccountingAccount(tenantId: string, configuredId?: number, fallbackCodes: string[] = [], fallbackType?: string): Promise<number> {
+    let query = this.db.selectFrom('accounting_accounts').select(['id', 'is_cash_bank'])
+      .where('tenant_id', '=', tenantId).where('is_active', '=', true).where('allow_manual_entries', '=', true);
+    if (fallbackType) query = query.where('account_type', '=', fallbackType as any);
+    if (configuredId) query = query.where('id', '=', configuredId);
+    else query = query.where('code', 'in', fallbackCodes);
+    const row = await query.orderBy('code').executeTakeFirst();
+    if (!row || (fallbackType === 'asset' && !row.is_cash_bank)) throw new BadRequestException('يجب ضبط حساب ترحيل نشط وصحيح النوع للتسوية.');
+    return Number(row.id);
   }
 
   async reconcileSettlement(
@@ -1565,174 +1532,52 @@ export class MarketplaceSyncService implements OnModuleInit, OnModuleDestroy {
     auth: AuthContext,
   ): Promise<{ ok: boolean; journalEntryId: number; journalEntryNo: string; settlement: MarketplaceSettlementRecord }> {
     const scope = requireTenantScope(auth);
-
-    if (!input.settlementId || !input.marketplace) {
-      throw new BadRequestException('بيانات كشف الحساب غير مكتملة (معرف الكشف والمنصة مطلوبان).');
-    }
-
-    const gross = Number(Number(input.grossSales || 0).toFixed(2));
-    const referral = Number(Number(input.referralFees || 0).toFixed(2));
-    const fulfillment = Number(Number(input.fulfillmentFees || 0).toFixed(2));
-    const refunds = Number(Number(input.refunds || 0).toFixed(2));
-    const other = Number(Number(input.storageOrOtherFees || 0).toFixed(2));
-    const net = Number(Number(input.netPayout || 0).toFixed(2));
-
-    if (gross <= 0) {
-      throw new BadRequestException('إجمالي المبيعات يجب أن يكون أكبر من الصفر.');
-    }
-    if (net < 0) {
-      throw new BadRequestException('صافي التحويل لا يمكن أن يكون سالباً.');
-    }
-
-    const bankAccId = await this.resolveAccountingAccount(scope.tenantId, input.bankAccountId, ['102', '1021', '101', '1011'], 'asset');
-    const referralAccId = await this.resolveAccountingAccount(scope.tenantId, input.referralFeesAccountId, ['5041', '504', '501', '502'], 'expense');
-    const fulfillmentAccId = await this.resolveAccountingAccount(scope.tenantId, input.fulfillmentFeesAccountId, ['5042', '505', '504', '501'], 'expense');
-    const salesAccId = await this.resolveAccountingAccount(scope.tenantId, input.salesAccountId, ['401', '4011', '40'], 'revenue');
-
-    const lines: Array<{ accountId: number; description: string; debit: number; credit: number }> = [];
-
-    lines.push({
-      accountId: bankAccId,
-      description: `صافي المستلم بالحساب البنكي - كشف حساب ${input.marketplace.toUpperCase()} رقم ${input.settlementId}`,
-      debit: net,
-      credit: 0,
+    if (!input.settlementId?.trim() || !['amazon', 'noon'].includes(input.marketplace)) throw new BadRequestException('معرف الكشف والمنصة مطلوبان.');
+    const amounts = [input.grossSales, input.referralFees || 0, input.fulfillmentFees || 0, input.refunds || 0, input.storageOrOtherFees || 0, input.netPayout].map(Number);
+    if (amounts.some(value => !Number.isFinite(value) || value < 0 || Math.abs(value * 100 - Math.round(value * 100)) > 0.000001) || amounts[0] <= 0) throw new BadRequestException('مبالغ الكشف يجب أن تكون موجبة وبمنزلتين عشريتين.');
+    const [gross, referral, fulfillment, refunds, other, net] = amounts;
+    if (Math.round(gross * 100) !== Math.round((referral + fulfillment + refunds + other + net) * 100)) throw new BadRequestException('إجمالي المبيعات لا يطابق صافي التحويل والرسوم والمرتجعات.');
+    const bankId = await this.resolveAccountingAccount(scope.tenantId, input.bankAccountId, ['1120', '1110'], 'asset');
+    const referralId = await this.resolveAccountingAccount(scope.tenantId, input.referralFeesAccountId, ['6400', '6700'], 'expense');
+    const fulfillmentId = await this.resolveAccountingAccount(scope.tenantId, input.fulfillmentFeesAccountId, ['6400', '6700'], 'expense');
+    const revenueId = await this.resolveAccountingAccount(scope.tenantId, input.salesAccountId, ['4100', '4200'], 'revenue');
+    const entryDate = new Date(input.periodEnd || new Date().toISOString().slice(0, 10));
+    if (!Number.isFinite(entryDate.getTime())) throw new BadRequestException('تاريخ الكشف غير صالح.');
+    const result = await this.db.transaction().execute(async trx => {
+      await lockAccountingPeriod(trx, scope.tenantId);
+      const base = await tenantBaseCurrency(trx, scope.tenantId);
+      if (input.currency && input.currency !== base) throw new BadRequestException('يجب تسوية الكشف بقيم عملة الأساس؛ لا يجوز خلط العملات دون مستند تحويل.');
+      const prior = await sql<{ payload: MarketplaceSettlementRecord }>`select payload from accounting_marketplace_settlements
+        where tenant_id = ${scope.tenantId} and marketplace = ${input.marketplace} and settlement_key = ${input.settlementId} for update`.execute(trx);
+      if (prior.rows[0]) {
+        const record = prior.rows[0].payload;
+        if (['grossSales', 'referralFees', 'fulfillmentFees', 'refunds', 'storageOrOtherFees', 'netPayout'].some(key => Number((record as any)[key] || 0) !== Number((input as any)[key] || 0)) || record.periodEnd !== input.periodEnd) throw new BadRequestException('نفس معرف الكشف استُخدم ببيانات مالية مختلفة.');
+        return { ok: true, journalEntryId: Number(record.journalEntryId), journalEntryNo: String(record.journalEntryNo), settlement: record };
+      }
+      // Legacy settlements remain immutable; never repost an already-reconciled key.
+      const legacy = await this.getSettingJson<MarketplaceSettlementRecord[]>('marketplace_settlements', scope.tenantId, []);
+      if (legacy.some(record => record.settlementId === input.settlementId && record.marketplace === input.marketplace && record.journalEntryId)) throw new BadRequestException('الكشف مرحل سابقاً؛ يلزم مراجعته دون إعادة ترحيله.');
+      const document = await sql<{ id: number }>`insert into accounting_marketplace_settlements (tenant_id, marketplace, settlement_key, payload)
+        values (${scope.tenantId}, ${input.marketplace}, ${input.settlementId}, '{}'::jsonb) returning id`.execute(trx);
+      const description = `تسوية كشف ${input.marketplace} رقم ${input.settlementId}`;
+      const lines = [
+        { accountId: bankId, description, debit: net, credit: 0 },
+        { accountId: referralId, description: 'عمولات ورسوم منصة', debit: referral + other, credit: 0 },
+        { accountId: fulfillmentId, description: 'رسوم شحن وتخزين', debit: fulfillment, credit: 0 },
+        { accountId: revenueId, description: 'مردودات مبيعات منصة', debit: refunds, credit: 0 },
+        { accountId: revenueId, description: 'إجمالي مبيعات منصة', debit: 0, credit: gross },
+      ].filter(line => line.debit > 0 || line.credit > 0);
+      const journalEntryId = await this.accountingPosting.postDomainJournal(trx, { tenantId: scope.tenantId, accountId: scope.accountId, sourceType: 'marketplace_settlement', sourceId: Number(document.rows[0].id), entryDate, description, createdBy: auth.userId || null,
+        lines: lines.map(line => ({ ...line, partnerType: 'none' as const, partnerId: null })),
+      });
+      const entry = await trx.selectFrom('journal_entries').select('entry_no').where('tenant_id', '=', scope.tenantId).where('id', '=', journalEntryId).executeTakeFirstOrThrow();
+      const record: MarketplaceSettlementRecord = { ...input, id: String(document.rows[0].id), status: 'reconciled', journalEntryId, journalEntryNo: entry.entry_no, createdAt: new Date().toISOString(), reconciledAt: new Date().toISOString() };
+      await sql`update accounting_marketplace_settlements set payload = ${JSON.stringify(record)}::jsonb, journal_entry_id = ${journalEntryId}
+        where tenant_id = ${scope.tenantId} and id = ${document.rows[0].id}`.execute(trx);
+      return { ok: true, journalEntryId, journalEntryNo: entry.entry_no, settlement: record };
     });
-
-    if (referral > 0) {
-      lines.push({
-        accountId: referralAccId,
-        description: `عمولات بيع ورسوم إحالة ${input.marketplace.toUpperCase()} - كشف ${input.settlementId}`,
-        debit: referral,
-        credit: 0,
-      });
-    }
-
-    if (fulfillment > 0) {
-      lines.push({
-        accountId: fulfillmentAccId,
-        description: `مصاريف شحن وتخزين ${input.marketplace.toUpperCase()} - كشف ${input.settlementId}`,
-        debit: fulfillment,
-        credit: 0,
-      });
-    }
-
-    if (refunds > 0) {
-      lines.push({
-        accountId: salesAccId,
-        description: `مردودات مبيعات وتسويات مرتجع ${input.marketplace.toUpperCase()} - كشف ${input.settlementId}`,
-        debit: refunds,
-        credit: 0,
-      });
-    }
-
-    if (other > 0) {
-      lines.push({
-        accountId: referralAccId,
-        description: `رسوم تخزين/إعلانات وخصومات إضافية ${input.marketplace.toUpperCase()} - كشف ${input.settlementId}`,
-        debit: other,
-        credit: 0,
-      });
-    }
-
-    const totalDebit = Number(lines.reduce((sum, l) => sum + l.debit, 0).toFixed(2));
-
-    lines.push({
-      accountId: salesAccId,
-      description: `إيرادات مبيعات ${input.marketplace.toUpperCase()} - كشف حساب رقم ${input.settlementId}`,
-      debit: 0,
-      credit: totalDebit,
-    });
-
-    const entryDate = input.periodEnd || new Date().toISOString().split('T')[0];
-    const journalDescription = `تسوية كشف حساب مبيعات ${input.marketplace.toUpperCase()} رقم ${input.settlementId} للفترة ${input.periodStart} إلى ${input.periodEnd}`;
-
-    const journalResult = await this.db.transaction().execute(async (trx) => {
-      await assertAutomatedJournalPeriodOpen(trx, scope.tenantId, entryDate, lines.map(line => line.accountId));
-      const tempEntryNo = `TEMP-JV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      const inserted = await trx
-        .insertInto('journal_entries')
-        .values({
-          entry_no: tempEntryNo,
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId || 'default',
-          entry_date: entryDate as any,
-          description: journalDescription,
-          source_type: 'marketplace_settlement',
-          source_id: null,
-          status: 'posted',
-          branch_id: null,
-          location_id: null,
-          created_by: Number(auth.userId) || null,
-          posted_by: Number(auth.userId) || null,
-          posted_at: sql`NOW()`,
-        } as any)
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      const entryId = Number(inserted.id);
-      const officialEntryNo = formatDailyDocumentNumber('JV', entryId, new Date(entryDate), 4);
-
-      await trx
-        .updateTable('journal_entries')
-        .set({ entry_no: officialEntryNo, updated_at: sql`NOW()` } as any)
-        .where('id', '=', entryId)
-        .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-        .execute();
-
-      await trx
-        .insertInto('journal_entry_lines')
-        .values(
-          lines.map((l) => ({
-            journal_entry_id: entryId,
-            tenant_id: scope.tenantId,
-            account_id: l.accountId,
-            description: l.description,
-            debit: l.debit,
-            credit: l.credit,
-            partner_type: 'none',
-            partner_id: null,
-            branch_id: null,
-            location_id: null,
-          } as any)),
-        )
-        .execute();
-
-      return { entryId, officialEntryNo };
-    });
-
-    const settlements = await this.getSettlements(auth);
-    const existingIndex = settlements.findIndex((s) => s.settlementId === input.settlementId && s.marketplace === input.marketplace);
-
-    const record: MarketplaceSettlementRecord = {
-      ...input,
-      id: `set_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      status: 'reconciled',
-      journalEntryId: journalResult.entryId,
-      journalEntryNo: journalResult.officialEntryNo,
-      reconciledAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-    };
-
-    if (existingIndex >= 0) {
-      settlements[existingIndex] = record;
-    } else {
-      settlements.unshift(record);
-    }
-
-    await this.setSettingJson('marketplace_settlements', scope.tenantId, settlements);
-    await this.audit.log(
-      'تسوية كشف حساب منصات',
-      `تمت تسوية كشف ${input.marketplace.toUpperCase()} رقم ${input.settlementId} وتوليد القيد ${journalResult.officialEntryNo} بواسطة ${auth.username}`,
-      auth,
-    );
-
-    return {
-      ok: true,
-      journalEntryId: journalResult.entryId,
-      journalEntryNo: journalResult.officialEntryNo,
-      settlement: record,
-    };
+    await this.audit.log('تسوية كشف حساب منصات', `تمت تسوية كشف ${input.settlementId} بالقيد ${result.journalEntryNo}`, auth);
+    return result;
   }
 
   async notifyProductStockChanged(productId: number, newStock: number, tenantId: string): Promise<void> {
