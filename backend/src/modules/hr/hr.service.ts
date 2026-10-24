@@ -5614,7 +5614,7 @@ export class HrService {
         const reason = `تسوية عهدة ${status === 'lost' ? 'مفقودة' : 'تالفة'}: ${current.rows[0].asset_name}. ${clean(payload.returnNotes) || ''}`.trim();
         await sql`
           INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, source_type, source_id, accounting_category, created_by, updated_by, created_at, updated_at)
-          VALUES (${auth.tenantId}, ${empId}, 'deduction', 'amount', ${payload.deductionAmount}, ${reason}, NOW()::date, 'pending', 'hr_employee_asset', ${String(id)}, 'asset_recovery', ${auth.userId}, ${auth.userId}, NOW(), NOW())
+          VALUES (${auth.tenantId}, ${empId}, 'deduction', 'money', ${payload.deductionAmount}, ${reason}, NOW()::date, 'pending', 'hr_employee_asset', ${String(id)}, 'asset_recovery', ${auth.userId}, ${auth.userId}, NOW(), NOW())
           ON CONFLICT (tenant_id, source_type, source_id) WHERE accounting_category = 'asset_recovery' AND source_type = 'hr_employee_asset' AND source_id IS NOT NULL DO NOTHING
         `.execute(trx);
       }
