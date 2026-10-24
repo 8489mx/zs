@@ -35,8 +35,14 @@ function percent(value: unknown): number {
   if (!Number.isFinite(num) || num < 0 || num > 100) throw new Error('نسبة ضريبة أو تأمينات غير صحيحة');
   return num;
 }
-export function validateHrStatutoryPolicy(p: HrStatutoryPolicy, period?: { from: string; to: string }): void {
-  if (!p.hrSocialInsuranceEnabled && !p.hrIncomeTaxEnabled) return;
+export function validateHrStatutoryPolicy(
+  p: HrStatutoryPolicy,
+  period?: { from: string; to: string },
+  requireJurisdictionReview = false,
+): void {
+  // Calculating a zero-statutory preview is allowed. Approving a complete
+  // payroll without ANY reviewed jurisdiction and exemption decision is not.
+  if (!p.hrSocialInsuranceEnabled && !p.hrIncomeTaxEnabled && !requireJurisdictionReview) return;
   if (!p.statutoryReviewed || !['EG', 'SA', 'KW', 'QA', 'OM'].includes(String(p.statutoryCountry || ''))
     || !validDate(String(p.statutoryEffectiveFrom || '')) || !String(p.statutoryLegalReference || '').trim()) {
     throw new Error('حدد الدولة وتاريخ السريان والمرجع القانوني وأكد المراجعة قبل حساب الاستقطاعات');

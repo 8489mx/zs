@@ -3211,7 +3211,7 @@ export class HrService {
         validateHrStatutoryPolicy(policies as HrStatutoryPolicy, {
           from: period.start_date,
           to: period.end_date,
-        });
+        }, true);
       } catch (error) {
         throw new AppError(
           error instanceof Error ? error.message : 'قواعد الضرائب والتأمينات غير معتمدة',
@@ -3296,6 +3296,33 @@ export class HrService {
       if (missingRates.rows.length) {
         const names = missingRates.rows.map(row => String(row.display_name)).join('، ');
         throw new AppError(`يوجد موظفون بدون أجر ساعة أو عقد براتب نشط وصحيح: ${names}`, 'HR_PAYROLL_MISSING_EMPLOYEE_RATES', 400);
+      }
+      // Hourly base salary counts only completed punches. An unclosed or
+      // malformed paid work session must never be silently omitted at approval.
+      const invalidHourlyPunch = await sql<{ display_name: string }>`
+        SELECT DISTINCT e.display_name
+        FROM hr_payroll_run_items i
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+        JOIN hr_attendance_records a ON a.employee_id = e.id AND a.tenant_id = e.tenant_id
+        WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId}
+          AND i.status = 'reviewed' AND e.compensation_type = 'hourly'
+          AND a.work_date BETWEEN GREATEST(r.start_date, COALESCE(e.hire_date, r.start_date))
+              AND LEAST(r.end_date, COALESCE(e.end_of_service_date, r.end_date))
+          AND a.status NOT IN ('absent', 'leave')
+          AND (
+            (a.check_in_at IS NULL AND a.check_out_at IS NOT NULL)
+            OR (a.check_in_at IS NOT NULL AND a.check_out_at IS NULL)
+            OR (a.check_in_at IS NOT NULL AND a.check_out_at IS NOT NULL
+              AND (a.check_out_at <= a.check_in_at OR a.check_out_at > a.check_in_at + INTERVAL '24 hours'))
+          )
+        LIMIT 5
+      `.execute(trx);
+      if (invalidHourlyPunch.rows.length) {
+        throw new AppError(
+          `يوجد دوام ساعات غير مكتمل أو غير صالح للموظفين: ${invalidHourlyPunch.rows.map(r => r.display_name).join('، ')}؛ صحح الحضور قبل اعتماد المرتبات`,
+          'HR_PAYROLL_HOURLY_PUNCH_UNRESOLVED', 409,
+        );
       }
       // A reviewed payroll still cannot be approved with disputed attendance.
       const pendingAttendance = await sql<{ pending: string }>`
@@ -3397,9 +3424,27 @@ export class HrService {
   }
 
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const status = await this.getPayrollRunStatus(this.db, id, auth.tenantId || '');
-    if (['approved', 'paid'].includes(status)) throw new AppError('Approved or paid payroll runs cannot be cancelled in Phase 2A', 'HR_PAYROLL_CANCEL_LOCKED', 400);
-    await sql`UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW() WHERE id = ${id} AND status NOT IN ('approved', 'paid') AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const status = await this.getPayrollRunStatusForUpdate(trx, id, tenantId);
+      if (status === 'cancelled') return; // idempotent; do not release any other run
+      if (!['draft', 'reviewed'].includes(status)) {
+        throw new AppError('Approved or paid payroll runs cannot be cancelled', 'HR_PAYROLL_CANCEL_LOCKED', 400);
+      }
+      // Draft/review materialization marks pending employee adjustments as
+      // applied. Cancelling without releasing those entries loses legitimate
+      // bonuses and deductions from every later payroll.
+      await sql`
+        UPDATE hr_employee_adjustments
+        SET status = 'pending', applied_in_run_id = NULL
+        WHERE tenant_id = ${tenantId} AND applied_in_run_id = ${id}
+          AND status = 'applied'
+      `.execute(trx);
+      await sql`
+        UPDATE hr_payroll_runs SET status = 'cancelled', updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${tenantId} AND status IN ('draft', 'reviewed')
+      `.execute(trx);
+    });
     await this.audit.log('Cancel HR payroll run', `Payroll run #${id} cancelled by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
   }

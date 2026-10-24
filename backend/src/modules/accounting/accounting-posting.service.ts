@@ -3021,6 +3021,29 @@ export class AccountingPostingService {
       .executeTakeFirst();
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
+    // Aggregate totals alone can hide offsetting corrupt payslips. Reject any
+    // individual employee whose persisted wages/deductions do not reconcile.
+    const invalidLine = await sql<{ employee_id: number }>`
+      SELECT employee_id FROM hr_payroll_run_items
+      WHERE run_id = ${runId} AND tenant_id = ${scope.tenantId}
+        AND status = 'reviewed'
+        AND (
+          gross_pay <> net_pay + COALESCE(deduction_amount, 0)
+            + COALESCE(loan_deduction_amount, 0)
+            + COALESCE(asset_recovery_deduction_amount, 0)
+          OR deduction_amount < COALESCE(employee_social_insurance, 0) + COALESCE(income_tax, 0)
+          OR net_pay < 0 OR gross_pay < 0 OR deduction_amount < 0
+          OR loan_deduction_amount < 0 OR asset_recovery_deduction_amount < 0
+        )
+      LIMIT 1
+    `.execute(queryable);
+    if (invalidLine.rows.length) {
+      throw new AppError(
+        `Payroll employee #${invalidLine.rows[0].employee_id} has an unreconciled payslip`,
+        'HR_PAYROLL_LINE_ACCOUNTING_MISMATCH', 409,
+      );
+    }
+
     const totals = await queryable
       .selectFrom('hr_payroll_run_items')
       .select([

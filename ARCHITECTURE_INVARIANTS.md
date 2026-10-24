@@ -61,6 +61,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-PAY-18: Payroll accrual rejects a persisted gross/net/deduction mismatch in integer cents, and confirms that stored operating deductions cover employee insurance plus income tax before GL posting; a balancing plug is prohibited.
 - HR-PAY-19: Payroll item inclusion/exclusion and manual allowance/deduction creation/removal acquire the payroll-run lock and revalidate draft status inside the transaction, preventing edits crossing the reviewed/approved boundary.
 - HR-PAY-20: SQL row-lock syntax is `LIMIT 1 FOR UPDATE` (never `FOR UPDATE LIMIT 1`). Fixes the payroll-run status locking query shared by recalculation, review, approval and payment.
+- HR-PAY-21: Cancelling only a draft/reviewed run must release its own applied employee adjustments atomically; otherwise canceled deductions/bonuses are never picked up by later payroll. Row-lock status checks prevent cancellation after approval.
+- HR-PAY-22: Approval blocks unresolved hourly punches and requires an accountant-reviewed effective-dated jurisdiction even when deductions are configured as disabled. All payroll accruals reconcile each individual persisted employee payslip, not just aggregate totals.
 - Verification: numeric regression specs are authored but NOT executed; build/typecheck/guards likewise NOT run. Currency precision for KWD/OMR and complete nationality-specific legislation remain blocked. No main merge or deployment.
 
 ### Accounting ledger hardening (October 2026)

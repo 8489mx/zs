@@ -24,6 +24,12 @@ const policy: HrStatutoryPolicy = {
 const month = { from: '2026-10-01', to: '2026-10-31' };
 
 assert.doesNotThrow(() => validateHrStatutoryPolicy(policy, month));
+assert.throws(() => validateHrStatutoryPolicy({
+  hrSocialInsuranceEnabled: false, hrIncomeTaxEnabled: false,
+}, month, true), /المراجعة|المرجع القانوني/);
+assert.doesNotThrow(() => validateHrStatutoryPolicy({
+  ...policy, hrSocialInsuranceEnabled: false, hrIncomeTaxEnabled: false,
+}, month, true));
 const amount = calculateHrStatutoryAmounts(policy, month, {
   insured: true, taxable: true, insuranceWage: 14000, taxableMonthlyWage: 20000,
 });
