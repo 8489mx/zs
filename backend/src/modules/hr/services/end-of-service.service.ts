@@ -180,7 +180,7 @@ export class EndOfServiceService {
       .selectAll()
       .where('employee_id', '=', input.employeeId)
       .where('tenant_id', '=', tenantId)
-      .where('status', 'not in', ['returned', 'lost', 'cancelled'])
+      .where('status', 'not in', ['returned', 'cancelled'])
       .execute();
 
     const noticePeriodAmount = Number(input.noticePeriodAmount || 0);
@@ -483,7 +483,7 @@ export class EndOfServiceService {
         .selectAll()
         .where('employee_id', '=', settlement.employee_id)
         .where('tenant_id', '=', tenantId)
-        .where('status', 'not in', ['returned', 'lost', 'damaged', 'cancelled'])
+        .where('status', 'not in', ['returned', 'cancelled'])
         .execute();
 
       if (unreturnedAssets.length > 0 && !settlement.custody_cleared && !(Number(settlement.assets_deduction || 0) > 0)) {
