@@ -2940,6 +2940,32 @@ export class HrService {
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
 
+      // Statutory calculations in the legacy review are hard-coded to an
+      // approximate 2024 Egyptian monthly bracket table and flat social rates.
+      // They are NOT certified for Egypt 2026 or any Gulf jurisdiction.
+      // Until a legally reviewed, effective-dated country engine is available,
+      // financially binding approval must fail closed rather than post bad tax
+      // and pension liabilities into the general ledger.
+      const policies = await this.getPayrollPolicies(trx, auth.tenantId || '');
+      if (policies.hrIncomeTaxEnabled === true || policies.hrSocialInsuranceEnabled === true) {
+        const statutoryEmployees = await sql<{ count: string }>`
+          SELECT COUNT(*)::text AS count
+          FROM hr_payroll_run_items i
+          JOIN hr_employees e ON e.id = i.employee_id AND e.tenant_id = i.tenant_id
+          WHERE i.run_id = ${id} AND i.tenant_id = ${auth.tenantId}
+            AND i.status = 'reviewed'
+            AND (
+              (${policies.hrIncomeTaxEnabled === true} AND e.has_income_tax = TRUE)
+              OR (${policies.hrSocialInsuranceEnabled === true} AND e.has_social_insurance = TRUE)
+            )
+        `.execute(trx);
+        if (Number(statutoryEmployees.rows[0]?.count || 0) > 0) {
+          throw new AppError(
+            'لا يمكن اعتماد الرواتب مع استقطاعات ضريبية/تأمينية محسوبة بقواعد تقريبية غير معتمدة. يلزم محرك تشريعي موثق ومؤرخ للدولة قبل الاعتماد.',
+            'HR_PAYROLL_STATUTORY_RULES_UNVERIFIED', 409,
+          );
+        }
+      }
       // Never post/settle a payroll that silently contains only zero wages.
       // A zero-wage employee with no punches can be legitimate; a completely
       // empty payable run must be corrected or deliberately excluded first.

@@ -24,6 +24,7 @@
 - HR-EMP-1: Primary phone and initial salary contract are created atomically with the employee; salary contract currency comes from validated tenant settings, never a hardcoded EGP default. Civil/national IDs must not be hardcoded to the Egyptian 14-digit length across GCC tenants.
 - HR-PAY-4: Employees terminated during a payroll interval remain payable for earned days on active/ended historical contracts, except where a posted EOS settlement already reconciled final wages. Salary periods are clipped by hire, contract and employment termination dates.
 - HR-EMP-2: An employee termination cannot be accomplished by generic employee update, status patch or deactivation; those paths preserve terminated records. Initial and amended annual leave entitlements must actually persist to the employee row.
+- HR-PAY-5: Approval FAILS CLOSED if actual employees require income-tax/social-insurance deductions while only the legacy approximate statutory formula exists. The draft may preview numbers for review, but no legal posting/payment is allowed until a jurisdiction-specific, effective-dated verified engine is implemented. This is an OPEN blocker, not a compliance claim.
 - Open release blockers: Egypt/Saudi/Kuwait/Qatar/Oman effective-dated labor, tax, social insurance, EOS and WPS rules; leave accrual/rotas; bank acceptance; payroll numerical and cross-tenant HTTP tests; UAT.
 - This change set has NOT been typechecked, built, or test-executed: production readiness cannot be asserted.
 
