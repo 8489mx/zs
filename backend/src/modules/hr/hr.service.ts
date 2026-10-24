@@ -1864,79 +1864,24 @@ export class HrService {
     };
   }
 
+  /**
+   * Payroll manual adjustments must retain calculated overtime, commissions, capped
+   * installments and statutory items. Never reconstruct the item from its base salary
+   * alone: that discards previously calculated earnings.
+   */
   private async recalculatePayrollItemTotals(db: Kysely<Database>, itemId: number, tenantId: string): Promise<void> {
-    const result = await sql<Record<string, unknown>>`
-      SELECT i.*, c.allowance_amount AS compensation_allowance, c.deduction_amount AS compensation_deduction
+    const item = await sql<{ run_id: number; status: string; run_status: string }>`
+      SELECT i.run_id, i.status, r.status AS run_status
       FROM hr_payroll_run_items i
-      LEFT JOIN LATERAL (
-        SELECT cp.allowance_amount, cp.deduction_amount
-        FROM hr_compensation_packages cp
-        WHERE cp.employee_id = i.employee_id AND cp.tenant_id = i.tenant_id
-          AND (i.contract_id IS NULL OR cp.contract_id IS NULL OR cp.contract_id = i.contract_id)
-        ORDER BY cp.effective_from DESC NULLS LAST, cp.id DESC
-        LIMIT 1
-      ) c ON TRUE
+      JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
       WHERE i.id = ${itemId} AND i.tenant_id = ${tenantId}
       LIMIT 1
     `.execute(db);
-    const item = result.rows[0];
-    if (!item) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
-    const adjustments = await this.adjustmentTotals(db, itemId, tenantId);
-    const baseSalary = money(item.base_salary);
-    const employeeSocialInsurance = Number(item.employee_social_insurance || 0);
-    const employerSocialInsurance = Number(item.employer_social_insurance || 0);
-    const incomeTax = Number(item.income_tax || 0);
-    const penaltyDeduction = Number(item.penalty_deduction || 0);
-    const assetRecoveryDeduction = Number(item.asset_recovery_deduction_amount || 0);
-    const scheduledLoanDeduction = money(item.loan_deduction_amount);
-    const policies = await this.getPayrollPolicies(db, tenantId);
-    const maxDeductionPct = policies.maxDeductionPct !== undefined ? Number(policies.maxDeductionPct) : 1.0;
-
-    const lineOutput = calculateEmployeePayrollLine({
-      employeeId: Number(item.employee_id),
-      baseSalary,
-      allowanceAmount: Number((money(item.compensation_allowance) + adjustments.allowance).toFixed(2)),
-      overtimeAmount: 0,
-      commissionAmount: 0,
-      employeeSocialInsurance,
-      employerSocialInsurance,
-      incomeTax,
-      attendanceDeduction: penaltyDeduction,
-      leaveDeduction: 0,
-      assetRecoveryDeduction,
-      otherDeductions: Number((money(item.compensation_deduction) + adjustments.deduction).toFixed(2)),
-      scheduledLoanDeduction,
-      maxDeductionPct,
-    });
-
-    const totalAllowance = Number((lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount).toFixed(2));
-    const operationalDeductions = Number((lineOutput.totalDeductions - lineOutput.appliedLoanDeduction - lineOutput.assetRecoveryDeduction).toFixed(2));
-
-    const extraNotes = [
-      ...lineOutput.notes,
-    ].filter(Boolean);
-    const existingCleanNotes = clean(item.notes)
-      .split('|')
-      .map(s => s.trim())
-      .filter(s => {
-        if (!s) return false;
-        if (lineOutput.deferredLoanDeduction === 0 && s.includes('تم تأجيل') && s.includes('قسط السلفة')) return false;
-        return true;
-      })
-      .join(' | ');
-    const notes = extraNotes.length ? combineNotes(existingCleanNotes, ...extraNotes) : existingCleanNotes;
-    await sql`
-      UPDATE hr_payroll_run_items
-      SET allowance_amount = ${totalAllowance},
-          deduction_amount = ${operationalDeductions},
-          gross_pay = ${lineOutput.grossPay},
-          loan_deduction_amount = ${lineOutput.appliedLoanDeduction},
-          carried_forward_deduction = ${lineOutput.carriedForwardDeduction},
-          net_pay = ${lineOutput.netPay},
-          notes = ${notes},
-          updated_at = NOW()
-      WHERE id = ${itemId} AND tenant_id = ${tenantId}
-    `.execute(db);
+    if (!item.rows.length) throw new AppError('Payroll item not found', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
+    if (item.rows[0].run_status !== 'draft') {
+      throw new AppError('Payroll adjustments are allowed for drafts only', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+    }
+    await this.rebuildPayrollRunItems(db, Number(item.rows[0].run_id), 'draft', tenantId);
   }
 
   /**
@@ -4179,38 +4124,59 @@ export class HrService {
   }
 
   async createLeaveRequest(payload: CreateLeaveRequestDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId } = requireTenantScope(auth);
     const employeeId = toId(payload.employeeId);
     if (!employeeId) throw new AppError('Employee is required', 'HR_LEAVE_EMPLOYEE_REQUIRED', 400);
     const startDate = normalizeDateOnly(payload.startDate);
-    if (!startDate) throw new AppError('Leave start date is required', 'HR_LEAVE_START_DATE_REQUIRED', 400);
     const endDate = normalizeDateOnly(payload.endDate);
-    if (!endDate) throw new AppError('Leave end date is required', 'HR_LEAVE_END_DATE_REQUIRED', 400);
-    if (endDate < startDate) throw new AppError('Leave end date must be after start date', 'HR_LEAVE_DATE_RANGE_INVALID', 400);
-    const leaveTypeId = toId(payload.leaveTypeId);
-    const leaveType = clean(payload.leaveType);
-
-    // O24: both ids arrive in the request body and neither is bound to the tenant by a foreign key,
-    // so a request could be filed against another tenant's employee or leave type.
-    const employeeCheck = await sql<{ id: number }>`
-      SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
-    if (employeeCheck.rows.length === 0) throw new AppError('Employee is required', 'HR_LEAVE_EMPLOYEE_REQUIRED', 400);
-    if (leaveTypeId) {
-      const typeCheck = await sql<{ id: number }>`
-        SELECT id FROM hr_leave_types WHERE id = ${leaveTypeId} AND tenant_id = ${auth.tenantId}
-      `.execute(this.db);
-      if (typeCheck.rows.length === 0) throw new AppError('Leave type is invalid', 'HR_LEAVE_TYPE_INVALID', 400);
+    if (!startDate || !endDate || endDate < startDate) {
+      throw new AppError('Leave date range is invalid', 'HR_LEAVE_DATE_RANGE_INVALID', 400);
     }
     const computedDays = inclusiveDaysBetween(startDate, endDate);
-    const daysCount = Number(payload.daysCount || computedDays);
-    if (!Number.isFinite(daysCount) || daysCount <= 0) throw new AppError('Leave days count is invalid', 'HR_LEAVE_DAYS_COUNT_INVALID', 400);
-
-    await sql`
-      INSERT INTO hr_leave_requests (tenant_id, account_id, employee_id, leave_type_id, leave_type, start_date, end_date, days_count, status, reason, notes, created_by, updated_by, created_at, updated_at)
-      VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${leaveTypeId}, ${leaveType || null}, ${startDate}::date, ${endDate}::date, ${Number(daysCount.toFixed(2))}, 'pending', ${clean(payload.reason) || null}, ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
-    `.execute(this.db);
-
+    const daysCount = payload.daysCount == null ? computedDays : Number(payload.daysCount);
+    if (!Number.isFinite(daysCount) || daysCount <= 0 || daysCount > computedDays) {
+      throw new AppError('عدد أيام الإجازة يجب أن يكون موجباً ولا يتجاوز الفترة المحددة', 'HR_LEAVE_DAYS_COUNT_INVALID', 400);
+    }
+    const leaveTypeId = toId(payload.leaveTypeId);
+    const leaveType = clean(payload.leaveType);
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      // All requests for the same employee lock the same row. That prevents two
+      // concurrent requests from both seeing an empty overlapping interval.
+      const employee = await sql<{ id: number }>`
+        SELECT id FROM hr_employees
+        WHERE id = ${employeeId} AND tenant_id = ${tenantId}
+        FOR UPDATE
+      `.execute(trx);
+      if (!employee.rows.length) throw new AppError('Employee not found', 'HR_LEAVE_EMPLOYEE_REQUIRED', 404);
+      if (leaveTypeId) {
+        const typeCheck = await sql<{ id: number }>`
+          SELECT id FROM hr_leave_types WHERE id = ${leaveTypeId} AND tenant_id = ${tenantId}
+        `.execute(trx);
+        if (!typeCheck.rows.length) throw new AppError('Leave type is invalid', 'HR_LEAVE_TYPE_INVALID', 400);
+      }
+      const overlap = await sql<{ id: number }>`
+        SELECT id FROM hr_leave_requests
+        WHERE tenant_id = ${tenantId} AND employee_id = ${employeeId}
+          AND status IN ('pending', 'approved')
+          AND start_date <= ${endDate}::date AND end_date >= ${startDate}::date
+        LIMIT 1
+      `.execute(trx);
+      if (overlap.rows.length) {
+        throw new AppError('يوجد طلب إجازة قائم يغطي يومًا أو أكثر من الفترة المحددة', 'HR_LEAVE_OVERLAPPING_REQUEST', 409);
+      }
+      await sql`
+        INSERT INTO hr_leave_requests (
+          tenant_id, account_id, employee_id, leave_type_id, leave_type,
+          start_date, end_date, days_count, status, reason, notes,
+          created_by, updated_by, created_at, updated_at
+        ) VALUES (
+          ${tenantId}, ${auth.accountId}, ${employeeId}, ${leaveTypeId}, ${leaveType || null},
+          ${startDate}::date, ${endDate}::date, ${Number(daysCount.toFixed(2))},
+          'pending', ${clean(payload.reason) || null}, ${clean(payload.notes) || null},
+          ${auth.userId}, ${auth.userId}, NOW(), NOW()
+        )
+      `.execute(trx);
+    });
     await this.audit.log('Create HR leave request', `Leave request created for employee #${employeeId} by ${auth.username}`, auth);
     return this.listLeaveRequests({}, auth);
   }

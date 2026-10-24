@@ -18,6 +18,8 @@
 - HR-EOS-1: Persist only applied/capped loan and asset recoveries. Draft settlement must not terminate an employee, and posting/termination must be atomic. Unpaid wage must be manually reconciled and confirmed.
 - HR-EOS-2: Do not silently choose Saudi jurisdiction or apply an invented Egyptian universal gratuity formula. Egyptian statutory EOS requires a legally verified module; automated Egyptian calculation and the older employee-profile preview are currently blocked. Direct manual termination requires loan/custody clearance, and both status and contract updates are transactional.
 - HR-WPS-1: Never export bank payroll with fake identity/account details or before approval. Generic SCR/EDR SIF is not a country-certified WPS file; only review CSV is currently available.
+- HR-LEAVE-1: Leave requests must be tenant-bound, date-valid and non-overlapping under employee-row lock. Display employee annual leave from the same annual_leave_balance/used_annual_leaves counter maintained by HR approval/cancellation; never count all leave types as annual.
+- HR-PAY-3: Recalculate manual payroll adjustments using the original full payroll engine. Rebuilding from base salary alone loses overtime/commissions and can alter loan and statutory deductions.
 - Open release blockers: Egypt/Saudi/Kuwait/Qatar/Oman effective-dated labor, tax, social insurance, EOS and WPS rules; leave accrual/rotas; bank acceptance; payroll numerical and cross-tenant HTTP tests; UAT.
 - This change set has NOT been typechecked, built, or test-executed: production readiness cannot be asserted.
 

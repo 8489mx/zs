@@ -329,7 +329,7 @@ export class EmployeePortalService {
    * كان هذا يُقرأ من جدول `hr_leave_balances` — وهو جدول **غير موجود في أي هجرة**،
    * فكانت لوحة البوابة و شاشة الإجازات تنهار بالكامل وقت التشغيل، والخطأ مخفي خلف
    * `this.db as any`. المصدر الحقيقي هو `hr_employees.annual_leave_balance`
-   * (هجرة `2030000000006-hr-leave-balances`) مخصوماً منه الإجازات المعتمدة هذا العام.
+   * (هجرة `2030000000006-hr-leave-balances`) مع `used_annual_leaves` المحدث ذرياً عند الاعتماد والإلغاء.
    */
   private async computeLeaveBalances(employeeId: number, tenantId: string): Promise<Array<{
     leave_type_id: number | null;
@@ -340,7 +340,7 @@ export class EmployeePortalService {
   }>> {
     const employee = await this.anyDb
       .selectFrom('hr_employees')
-      .select(['annual_leave_balance'])
+      .select(['annual_leave_balance', 'used_annual_leaves'])
       .where('id', '=', employeeId)
       .where('tenant_id', '=', tenantId)
       .executeTakeFirst();
@@ -352,18 +352,11 @@ export class EmployeePortalService {
       .where(sql`LOWER(COALESCE(code, ''))`, '=', 'annual')
       .executeTakeFirst();
 
-    const currentYear = new Date().toISOString().slice(0, 4);
-    const usedRow = await this.anyDb
-      .selectFrom('hr_leave_requests')
-      .select([sql<number>`COALESCE(SUM(days_count), 0)`.as('used_days')])
-      .where('employee_id', '=', employeeId)
-      .where('tenant_id', '=', tenantId)
-      .where('status', '=', 'approved')
-      .where(sql`start_date::text`, 'like', `${currentYear}%`)
-      .executeTakeFirst();
-
-    const totalDays = Number(employee?.annual_leave_balance ?? 21);
-    const usedDays = Number(usedRow?.used_days || 0);
+    // HR approval/cancellation atomically updates this counter. Summing every
+    // approved request instead would count sick/unpaid leave as annual leave and
+    // disagree with the balance enforcement used by the HR approval endpoint.
+    const totalDays = Math.max(0, Number(employee?.annual_leave_balance ?? 0));
+    const usedDays = Math.max(0, Number(employee?.used_annual_leaves || 0));
 
     return [{
       leave_type_id: annualType?.id != null ? Number(annualType.id) : null,
