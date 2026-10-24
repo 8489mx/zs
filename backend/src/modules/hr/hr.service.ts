@@ -2351,12 +2351,12 @@ export class HrService {
     const exceptionsResult = await sql<Record<string, unknown>>`
       SELECT
         ex.employee_id,
-        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
-        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS early_leave_minutes,
-        COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out', 'extra_hours') AND status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes,
-        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS late_incidents_count,
-        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS early_leave_incidents_count,
-        COALESCE(SUM(CASE WHEN status = 'needs_review' THEN 1 ELSE 0 END), 0) AS unresolved_exceptions_count
+        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
+        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS early_leave_minutes,
+        COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out', 'extra_hours') AND ex.status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes,
+        COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS late_incidents_count,
+        COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND ex.status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS early_leave_incidents_count,
+        COALESCE(SUM(CASE WHEN ex.status = 'needs_review' THEN 1 ELSE 0 END), 0) AS unresolved_exceptions_count
       FROM hr_attendance_exceptions ex
       JOIN hr_employees e ON e.id = ex.employee_id AND e.tenant_id = ex.tenant_id
       WHERE ex.employee_id IN (${sql.join(employeeIds)}) AND ex.tenant_id = ${tenantId}
