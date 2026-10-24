@@ -5,6 +5,7 @@ import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
 import { calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { getTenantTimezone, todayTenantDate } from '../../common/utils/tenant-timezone.util';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
 import {
@@ -813,7 +814,7 @@ export class EmployeePortalService {
       throw new AppError(error instanceof Error ? error.message : 'مبلغ السلفة أو عدد الأقساط غير صحيح',
         'HR_PORTAL_ADVANCE_INVALID', 400);
     }
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayTenantDate(await getTenantTimezone(this.db, tenantId));
     const due = addLoanInstallmentMonths(today, 1);
     const loan = await this.db.transaction().execute(async trx => {
       // A portal draft must generate an installment plan just like an HR-created

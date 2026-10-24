@@ -123,6 +123,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-EOS-PAYROLL-1: EOS posting with positive manually recorded unpaid salary is blocked if the same employee already has an approved/paid payslip covering the termination date. Prevents double-recording wages from an old EOS draft that was calculated before payroll finalized; requires reconciliation and fresh settlement instead. Runtime tests not executed.
 
+- HR-PORTAL-ADV-2: Portal advance issuance and first installment dates now use the company's configured local calendar day via shared tenant-timezone utility, rather than UTC date which can be yesterday for Egypt/GCC around midnight. Tests not run.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
