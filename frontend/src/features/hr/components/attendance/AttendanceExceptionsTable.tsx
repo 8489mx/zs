@@ -30,14 +30,15 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
 }) => {
   const { t } = useTranslation();
   return (
-    <DataTable
-      rows={rows}
-      rowKey={(row) => row.id}
-      density="compact"
-      columns={[
-        { key: 'workDate', header: t('hr.attendance.attendance_exceptions_table.s0', "التاريخ"), className: 'col-fit', cell: (row) => row.workDate || '—' },
-        { key: 'employeeNo', header: t('hr.attendance.attendance_exceptions_table.s1', "كود الموظف"), className: 'col-fit', cell: (row) => row.employeeNo || '—' },
-        { key: 'employeeName', header: t('hr.attendance.attendance_exceptions_table.s2', "اسم الموظف"), className: 'col-main', cell: (row) => row.employeeName || '—' },
+    <div className="attendance-table-container">
+      <DataTable
+        rows={rows}
+        rowKey={(row) => row.id}
+        density="compact"
+        columns={[
+          { key: 'workDate', header: t('hr.attendance.attendance_exceptions_table.s0', "التاريخ"), className: 'col-fit', cell: (row) => row.workDate || '—' },
+          { key: 'employeeNo', header: t('hr.attendance.attendance_exceptions_table.s1', "الكود"), className: 'col-fit', cell: (row) => row.employeeNo || '—' },
+          { key: 'employeeName', header: t('hr.attendance.attendance_exceptions_table.s2', "اسم الموظف"), className: 'col-main', cell: (row) => row.employeeName || '—' },
         {
           key: 'exceptionType',
           header: t('hr.attendance.attendance_exceptions_table.s3', "نوع الاستثناء"),
@@ -364,6 +365,7 @@ export const AttendanceExceptionsTable: React.FC<AttendanceExceptionsTableProps>
           },
         },
       ]}
-    />
+      />
+    </div>
   );
 };

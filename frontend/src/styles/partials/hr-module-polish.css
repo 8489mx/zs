@@ -414,3 +414,35 @@
     justify-content: center;
   }
 }
+
+/* Attendance Tables Zero-Scroll & Compact Formatting */
+.attendance-table-container {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.attendance-table-container .table-wrap {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.attendance-table-container table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: auto !important;
+}
+
+.attendance-table-container th,
+.attendance-table-container td {
+  padding: 6px 4px !important;
+  font-size: 0.8rem;
+  box-sizing: border-box;
+}
+
+.attendance-table-container th {
+  white-space: nowrap;
+}
+
