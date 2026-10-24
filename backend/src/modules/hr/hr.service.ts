@@ -1159,16 +1159,28 @@ export class HrService {
 
   async upsertContract(employeeId: number, id: number | null, payload: UpsertEmploymentContractDto, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const tenantCurrencySetting = await sql<{ value: string }>`
+      SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
+    `.execute(this.db);
+    const tenantCurrency = clean(tenantCurrencySetting.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+    const contractCurrency = clean(payload.currency || tenantCurrency).toUpperCase();
+    if (!/^[A-Z]{3}$/.test(tenantCurrency)) {
+      throw new AppError('حدد عملة منشأتك قبل تسجيل عقد العمل', 'HR_CONTRACT_TENANT_CURRENCY_REQUIRED', 400);
+    }
+    if (contractCurrency !== tenantCurrency) {
+      throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة؛ التحويلات تحتاج سياسة محاسبية مستقلة',
+        'HR_CONTRACT_CURRENCY_MISMATCH', 400);
+    }
     if (id) {
-      await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${clean(payload.currency) || 'EGP'}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+      await sql`UPDATE hr_employment_contracts SET contract_no = ${clean(payload.contractNo)}, contract_type = ${clean(payload.contractType) || 'standard'}, status = ${clean(payload.status) || 'draft'}, start_date = ${payload.startDate}, end_date = ${payload.endDate || null}, base_salary = ${Number(payload.baseSalary || 0)}, currency = ${contractCurrency}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     } else {
       await this.tx.runInTransaction(this.db, async (trx) => {
         const requestedNo = clean(payload.contractNo);
         const temporaryNo = requestedNo || `CON-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const inserted = await sql<{ id: number }>`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${temporaryNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${clean(payload.currency) || 'EGP'}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId}) RETURNING id`.execute(trx);
+        const inserted = await sql<{ id: number }>`INSERT INTO hr_employment_contracts (tenant_id, account_id, employee_id, contract_no, contract_type, status, start_date, end_date, base_salary, currency, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${temporaryNo}, ${clean(payload.contractType) || 'standard'}, ${clean(payload.status) || 'draft'}, ${payload.startDate}, ${payload.endDate || null}, ${Number(payload.baseSalary || 0)}, ${contractCurrency}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId}) RETURNING id`.execute(trx);
         if (!requestedNo) {
           const contractId = Number(inserted.rows[0].id);
-          await sql`UPDATE hr_employment_contracts SET contract_no = ${`CON-${String(contractId).padStart(4, '0')}`} WHERE id = ${contractId} AND tenant_id = ${auth.tenantId}`.execute(trx);
+          await sql`UPDATE hr_employment_contracts SET contract_no = ${formatDailyDocumentNumber('CON', contractId)} WHERE id = ${contractId} AND tenant_id = ${auth.tenantId}`.execute(trx);
         }
       });
     }
