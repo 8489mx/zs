@@ -253,44 +253,26 @@ export class RecruitmentAtsService {
     dto: UpdateApplicantStageDto,
   ): Promise<{ success: boolean }> {
     this.assertAccess(auth);
-    const scope = requireTenantScope(auth);
-    const tenantId = scope.tenantId;
+    const { tenantId } = requireTenantScope(auth);
 
-    const applicant = await (this.db as any)
-      .selectFrom('recruitment_applicants')
-      .selectAll()
-      .where('id', '=', id)
-      .where('tenant_id', '=', tenantId)
-      .executeTakeFirst();
+    // Serialize with hireApplicant. Otherwise a stale stage edit may overwrite
+    // 'hired' after an employee and a contract were successfully created.
+    return this.db.transaction().execute(async (trx) => {
+      const applicant = await (trx as any)
+        .selectFrom('recruitment_applicants')
+        .selectAll().where('id', '=', id).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!applicant) throw new NotFoundException('Applicant not found');
 
-    if (!applicant) {
-      throw new NotFoundException('Applicant not found');
-    }
-
-    const check = validateStageTransition(applicant.stage, dto.stage);
-    if (!check.valid) {
-      throw new BadRequestException(check.reason);
-    }
-
-    const updates: any = {
-      stage: dto.stage,
-      updated_at: new Date(),
-    };
-    if (dto.interviewNotes !== undefined) {
-      updates.interview_notes = dto.interviewNotes;
-    }
-    if (dto.rating !== undefined) {
-      updates.rating = dto.rating;
-    }
-
-    await (this.db as any)
-      .updateTable('recruitment_applicants')
-      .set(updates)
-      .where('id', '=', id)
-      .where('tenant_id', '=', tenantId)
-      .execute();
-
-    return { success: true };
+      const check = validateStageTransition(applicant.stage, dto.stage);
+      if (!check.valid) throw new BadRequestException(check.reason);
+      const updates: any = { stage: dto.stage, updated_at: new Date() };
+      if (dto.interviewNotes !== undefined) updates.interview_notes = dto.interviewNotes;
+      if (dto.rating !== undefined) updates.rating = dto.rating;
+      await (trx as any).updateTable('recruitment_applicants')
+        .set(updates).where('id', '=', id).where('tenant_id', '=', tenantId).execute();
+      return { success: true };
+    });
   }
 
   /**
@@ -302,6 +284,9 @@ export class RecruitmentAtsService {
     dto: HireApplicantDto,
   ): Promise<{ success: boolean; employeeId: number }> {
     this.assertAccess(auth);
+    if (!['super_admin', 'admin'].includes(auth.role) && !auth.permissions.includes('hrSalaryManage')) {
+      throw new ForbiddenException('Hiring with a salary contract requires hrSalaryManage permission');
+    }
     const { tenantId } = requireTenantScope(auth);
     const result = await this.db.transaction().execute(async (trx) => {
       const applicant = await (trx as any).selectFrom('recruitment_applicants')

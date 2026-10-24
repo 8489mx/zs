@@ -14,7 +14,7 @@
 - HR-SEC-1: Leave listing must filter tenant_id at root query and tenant-scope joins.
 - HR-PAY-1: Attendance, leave, statutory and loan deductions are accounted for ONCE. Never materialize the same automatic tax/attendance deduction as employee adjustment and built-in payroll deduction.
 - HR-PAY-2: Monthly wages and fixed compensation are prorated to the hire date, valid contract dates and payroll period. Only active contracts apply. Approved and paid payroll are immutable.
-- HR-ATS-1: Marking a candidate as hired requires one atomic transaction containing employee, contact, active salary contract, applicant status and vacancy headcount; generic stage editing may not bypass hiring.
+- HR-ATS-1: Marking a candidate as hired requires one atomic transaction containing employee, contact, active salary contract, applicant status and vacancy headcount; generic stage editing may not bypass hiring. Stage updates acquire the same row lock and salary-bearing hire requires hrSalaryManage permission.
 - HR-EOS-1: Persist only applied/capped loan and asset recoveries. Draft settlement must not terminate an employee, and posting/termination must be atomic. Unpaid wage must be manually reconciled and confirmed.
 - HR-EOS-2: Do not silently choose Saudi jurisdiction or apply an invented Egyptian universal gratuity formula. Egyptian statutory EOS requires a legally verified module; automated Egyptian calculation is currently blocked.
 - HR-WPS-1: Never export bank payroll with fake identity/account details or before approval. Generic SCR/EDR SIF is not a country-certified WPS file; only review CSV is currently available.

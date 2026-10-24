@@ -3,6 +3,7 @@ import { useState, useEffect, type FC } from 'react';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import { formatCurrency } from '@/lib/format';
+import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
   CheckCircleIcon,
@@ -27,6 +28,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
   onUpdated,
 }) => {
   const { t } = useTranslation();
+  const canHireWithSalary = useHasAnyPermission(['hrSalaryManage']);
   const [currentStage, setCurrentStage] = useState<string>(applicant?.stage || 'new');
   const [notes, setNotes] = useState(applicant?.interview_notes || '');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -203,7 +205,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
           />
         </div>
 
-        {applicant.stage !== 'hired' && (
+        {applicant.stage !== 'hired' && canHireWithSalary && (
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 600 }}>
             الراتب الأساسي المعتمد عند التعيين
             <input type="number" min="0.01" step="0.01" value={hireSalary}
@@ -236,7 +238,7 @@ export const ApplicantDetailsModal: FC<ApplicantDetailsModalProps> = ({
             </div>
           </div>
 
-          {applicant.stage !== 'hired' && (
+          {applicant.stage !== 'hired' && canHireWithSalary && (
             <button
               onClick={handleHireToEmployee}
               disabled={isHiring}
