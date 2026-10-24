@@ -131,7 +131,7 @@ export class EndOfServiceService {
       const leaveRequestsRes = await sql<{ used_days: string }>`
         SELECT COALESCE(SUM(days_count), 0) AS used_days
         FROM hr_leave_requests lr
-        LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id
+        LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id AND lt.tenant_id = lr.tenant_id
         WHERE lr.employee_id = ${input.employeeId} AND lr.tenant_id = ${tenantId}
           AND lr.status = 'approved'
           AND (
@@ -525,7 +525,7 @@ export class EndOfServiceService {
           const installments = await sql<Record<string, unknown>>`
             SELECT id, amount, paid_amount
             FROM hr_employee_loan_installments
-            WHERE loan_id = ${loanId} AND status <> 'paid'
+            WHERE loan_id = ${loanId} AND tenant_id = ${tenantId} AND status <> 'paid'
             ORDER BY installment_no ASC
           `.execute(trx);
 
@@ -546,7 +546,7 @@ export class EndOfServiceService {
                   status = ${instStatus},
                   paid_at = CASE WHEN ${instStatus} = 'paid' THEN NOW() ELSE paid_at END,
                   updated_at = NOW()
-              WHERE id = ${instId}
+              WHERE id = ${instId} AND tenant_id = ${tenantId}
             `.execute(trx);
 
             remainingInstallmentDeduction = Number((remainingInstallmentDeduction - applied).toFixed(2));

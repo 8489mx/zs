@@ -717,116 +717,67 @@ export class HrService {
   
   async getEndOfServicePreview(id: number, dateStr: string | undefined, auth: AuthContext): Promise<Record<string, unknown>> {
     requireTenantScope(auth);
-    const employeeRes = await this.getEmployeeProfile(id, auth);
-    const e = employeeRes.employee as any;
-    if (!e || e.status === 'terminated') {
-      throw new AppError('Employee not found or already terminated', 'HR_EMPLOYEE_INVALID', 400);
-    }
-    
-    // Calculate dates
-    const hireDate = new Date(e.hireDate || new Date());
-    const endDate = dateStr ? new Date(dateStr) : new Date();
-    
-    const diffTime = Math.max(0, endDate.getTime() - hireDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const yearsWorked = diffDays / 365.25;
-
-    // Get Base Salary from latest contract
-    const contractsResult = await sql<Record<string, unknown>>`
-      SELECT base_salary FROM hr_employment_contracts 
-      WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} 
-      ORDER BY id DESC LIMIT 1
-    `.execute(this.db);
-    
-    let baseSalary = 0;
-    if (e.compensationType === 'hourly') {
-      baseSalary = Number(e.hourlyRate || 0) * Number(e.expectedDailyHours || 8) * 30;
-    } else {
-      baseSalary = contractsResult.rows[0] ? Number(contractsResult.rows[0].base_salary) : 0;
-    }
-
-    const dailyRate = baseSalary / 30;
-
-    // 1. Severance Pay Calculation (Egyptian Law roughly: 0.5 month for first 5 years, 1 month after)
-    let severancePay = 0;
-    if (yearsWorked <= 5) {
-      severancePay = yearsWorked * 15 * dailyRate;
-    } else {
-      severancePay = (5 * 15 * dailyRate) + ((yearsWorked - 5) * 30 * dailyRate);
-    }
-
-    // 2. Unused Leave Encashment
-    const balance = Number(e.annualLeaveBalance || 21);
-    const used = Number(e.usedAnnualLeaves || 0);
-    
-    // Prorate balance based on months worked this year (assuming starting Jan 1st for simplicity in this MVP)
-    const currentMonth = endDate.getMonth() + 1;
-    const proratedBalance = (balance / 12) * currentMonth;
-    const remainingLeaves = Math.max(0, proratedBalance - used);
-    
-    const leaveEncashment = remainingLeaves * dailyRate;
-
-    // 3. Unpaid Loans Deduction
-    const loansResult = await sql<Record<string, unknown>>`
-      SELECT COALESCE(SUM(remaining_amount), 0) as total_unpaid_loans 
-      FROM hr_employee_loans 
-      WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} AND status IN ('approved', 'disbursed')
-    `.execute(this.db);
-    const unpaidLoans = Number(loansResult.rows[0]?.total_unpaid_loans || 0);
-
-    const finalSettlementAmount = severancePay + leaveEncashment - unpaidLoans;
-
-    return {
-      preview: {
-        hireDate: e.hireDate,
-        endDate: endDate.toISOString().slice(0, 10),
-        yearsWorked: Number(yearsWorked.toFixed(2)),
-        baseSalary: Number(baseSalary.toFixed(2)),
-        dailyRate: Number(dailyRate.toFixed(2)),
-        severancePay: Number(severancePay.toFixed(2)),
-        remainingLeaves: Number(remainingLeaves.toFixed(2)),
-        leaveEncashment: Number(leaveEncashment.toFixed(2)),
-        unpaidLoans: Number(unpaidLoans.toFixed(2)),
-        finalSettlementAmount: Number(finalSettlementAmount.toFixed(2))
-      }
-    };
+    await this.assertEmployeeBelongsToTenant(id, auth);
+    // Retired: the previous endpoint fabricated a universal Egyptian
+    // termination entitlement and guessed accrued leave. Never display a
+    // financially binding settlement amount from this obsolete calculation.
+    throw new AppError(
+      'تم إيقاف الحسبة القديمة غير القانونية. استخدم شاشة المخالصات لمراجعة نظام العمل والمستحقات والمرتب المتبقي.',
+      'HR_LEGACY_EOS_PREVIEW_DISABLED',
+      409,
+    );
   }
 
   async endOfService(id: number, payload: EndOfServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    const [[employee], openAssets, unpaidLoans] = await Promise.all([
-      sql<Record<string, unknown>>`SELECT id FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db).then(r => r.rows),
-      sql<Record<string, unknown>>`SELECT id FROM hr_employee_assets WHERE employee_id = ${id} AND status != 'returned' AND status != 'lost' AND tenant_id = ${auth.tenantId}`.execute(this.db).then(r => r.rows),
-      sql<Record<string, unknown>>`SELECT id FROM hr_employee_loans WHERE employee_id = ${id} AND status IN ('approved', 'disbursed', 'partially_repaid') AND tenant_id = ${auth.tenantId}`.execute(this.db).then(r => r.rows)
-    ]);
-
-    if (!employee) throw new NotFoundException('Employee not found');
-    
-    // Notice: we are just ending service, we are not blocking if there are open assets or loans, 
-    // we let the user decide if they want to proceed.
-    
-    await sql`
-      UPDATE hr_employees
-      SET status = 'terminated',
-          end_of_service_date = ${payload.endOfServiceDate},
-          end_of_service_reason = ${payload.endOfServiceReason || null},
-          updated_by = ${auth.userId},
-          updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
-    
-    // End active contract if any
-    await sql`
-      UPDATE hr_employment_contracts
-      SET status = 'ended',
-          end_date = ${payload.endOfServiceDate},
-          updated_by = ${auth.userId},
-          updated_at = NOW()
-      WHERE employee_id = ${id} AND status = 'active' AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
-
+    const { tenantId } = requireTenantScope(auth);
+    if (!normalizeDateOnly(payload.endOfServiceDate)) {
+      throw new AppError('تاريخ نهاية الخدمة مطلوب', 'HR_EOS_END_DATE_REQUIRED', 400);
+    }
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const employee = await sql<{ id: number; status: string }>`
+        SELECT id, status FROM hr_employees WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!employee.rows.length) throw new NotFoundException('Employee not found');
+      if (employee.rows[0].status === 'terminated') {
+        throw new AppError('انتهت خدمة هذا الموظف بالفعل', 'HR_EOS_ALREADY_TERMINATED', 400);
+      }
+      const unpaidLoans = await sql<{ id: number }>`
+        SELECT id FROM hr_employee_loans
+        WHERE employee_id = ${id} AND tenant_id = ${tenantId}
+          AND status IN ('disbursed', 'paid', 'partially_repaid')
+          AND remaining_amount > 0
+        LIMIT 1
+      `.execute(trx);
+      const openAssets = await sql<{ id: number }>`
+        SELECT id FROM hr_employee_assets
+        WHERE employee_id = ${id} AND tenant_id = ${tenantId}
+          AND status NOT IN ('returned', 'cancelled')
+        LIMIT 1
+      `.execute(trx);
+      const unsettled = await sql<{ id: number }>`
+        SELECT id FROM hr_end_of_service_settlements
+        WHERE employee_id = ${id} AND tenant_id = ${tenantId} AND status <> 'posted'
+        LIMIT 1
+      `.execute(trx);
+      if (unpaidLoans.rows.length || openAssets.rows.length || unsettled.rows.length) {
+        throw new AppError('يجب تسوية السلف والعهد والمخالصات المفتوحة قبل الإنهاء المباشر', 'HR_EOS_CLEARANCE_REQUIRED', 400);
+      }
+      await sql`
+        UPDATE hr_employees
+        SET status = 'terminated', end_of_service_date = ${payload.endOfServiceDate}::date,
+            end_of_service_reason = ${payload.endOfServiceReason || null},
+            updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${tenantId}
+      `.execute(trx);
+      await sql`
+        UPDATE hr_employment_contracts
+        SET status = 'ended', end_date = ${payload.endOfServiceDate}::date,
+            updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE employee_id = ${id} AND status = 'active' AND tenant_id = ${tenantId}
+      `.execute(trx);
+    });
     await this.audit.log('End of Service', `Ended service for employee #${id} on ${payload.endOfServiceDate}`, auth);
-    
-    return { success: true, openAssets: openAssets.length, unpaidLoans: unpaidLoans.length };
+    return { success: true, openAssets: 0, unpaidLoans: 0 };
   }
 
   /** Shared, atomic HR onboarding path for recruitment transactions. */
