@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { hrApi } from '@/features/hr/api/hr.api';
 import { Button } from '@/shared/ui/button';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 
 interface Props {
   employeeId: string;
@@ -10,16 +11,18 @@ interface Props {
   canViewLoans: boolean;
 }
 
-const egyptMoney = (amount: number) =>
-  new Intl.NumberFormat('ar-EG', {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  }).format(amount) + ' ج.م';
-
 type PeriodFilterMode = 'all' | 'current_month' | 'custom';
 
 export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewLoans }: Props) {
   const { t } = useTranslation();
+  const { currencyCode } = useSystemCurrency();
+  const displayMoney = (amount: number): string => {
+    const decimals = currencyCode === 'KWD' || currencyCode === 'OMR' ? 3 : 2;
+    const numeric = new Intl.NumberFormat('ar-EG', {
+      minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+    }).format(Number(amount) || 0);
+    return currencyCode ? `${numeric} ${currencyCode}` : numeric;
+  };
   const [filterMode, setFilterMode] = useState<PeriodFilterMode>('all');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -41,7 +44,7 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['hr.financialStatement', employeeId, queryParams],
     queryFn: () => hrApi.financialStatement(employeeId, queryParams),
-    enabled: Boolean(employeeId) && (canViewLoans || canViewSalary),
+    enabled: Boolean(employeeId) && canViewSalary,
   });
 
   const summary = data?.summary || {
@@ -78,10 +81,10 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
     }
   };
 
-  if (!canViewLoans && !canViewSalary) {
+  if (!canViewSalary) {
     return (
       <div style={{ background: '#f8fafc', padding: '24px', borderRadius: '12px', textAlign: 'center', color: '#64748b' }}>
-        <p style={{ margin: 0 }}>{t('hr.financial_statement.no_permission', "لا تملك صلاحية استعراض السجل المالي للموظف.")}</p>
+        <p style={{ margin: 0 }}>{t('hr.financial_statement.no_permission', "السجل المالي الشامل يتطلب صلاحية عرض المرتبات. تابع السلف من شاشة السلف المخصصة.")}</p>
       </div>
     );
   }
@@ -103,14 +106,14 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
         </div>
 
         <div className="actions compact-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Button
+          {canViewLoans ? <Button
             type="button"
             variant="secondary"
             onClick={() => window.dispatchEvent(new CustomEvent('open-quick-cash-advance'))}
             style={{ fontWeight: 700, fontSize: '0.8rem' }}
           >
             {t('hr.financial_statement.quick_cash_btn', "+ صرف سلفة سريعة من الكاشير")}
-          </Button>
+          </Button> : null}
           <Button
             type="button"
             variant="secondary"
@@ -226,7 +229,7 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                 إجمالي الاستحقاقات (الرواتب والبدلات)
               </span>
               <strong style={{ fontSize: '1.15rem', color: '#0f172a', display: 'block' }}>
-                {egyptMoney(summary.totalGrossEarnings)}
+                {displayMoney(summary.totalGrossEarnings)}
               </strong>
               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
                 شامل الأساسي والبدلات المعتمدة
@@ -239,7 +242,7 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                 المقبوض الفعلي (صافي القبض المستلم)
               </span>
               <strong style={{ fontSize: '1.15rem', color: '#1e293b', display: 'block' }}>
-                {egyptMoney(summary.totalPaidSalaries)}
+                {displayMoney(summary.totalPaidSalaries)}
               </strong>
               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
                 ما استلمه الموظف نقداً كمرتبات
@@ -252,10 +255,10 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                 إجمالي المسحوبات والسلف (الكاشير)
               </span>
               <strong style={{ fontSize: '1.15rem', color: '#0f172a', display: 'block' }}>
-                {egyptMoney(summary.totalWithdrawals)}
+                {displayMoney(summary.totalWithdrawals)}
               </strong>
               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                المتبقي كمديونية سلف قائمة: <strong style={{ color: '#0f172a' }}>{egyptMoney(summary.remainingLoanDebt)}</strong>
+                المتبقي كمديونية سلف قائمة: <strong style={{ color: '#0f172a' }}>{displayMoney(summary.remainingLoanDebt)}</strong>
               </span>
             </div>
 
@@ -265,7 +268,7 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                 الجزاءات والخصومات الإدارية
               </span>
               <strong style={{ fontSize: '1.15rem', color: '#0f172a', display: 'block' }}>
-                {egyptMoney(summary.totalPenalties)}
+                {displayMoney(summary.totalPenalties)}
               </strong>
               <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
                 خصومات تأخير وغياب وجزاءات
@@ -294,7 +297,7 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                 color: '#0f172a',
                 display: 'block',
               }}>
-                {egyptMoney(Math.abs(summary.netFinancialBalance))}
+                {displayMoney(Math.abs(summary.netFinancialBalance))}
               </strong>
               <span style={{
                 fontSize: '0.7rem',
@@ -409,10 +412,10 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                               {tx.actorName || '—'}
                             </td>
                             <td style={{ textAlign: 'left', fontWeight: tx.debit > 0 ? 600 : 400, color: tx.debit > 0 ? '#0f172a' : '#94a3b8', fontSize: '0.82rem' }}>
-                              {tx.debit > 0 ? egyptMoney(tx.debit) : '—'}
+                              {tx.debit > 0 ? displayMoney(tx.debit) : '—'}
                             </td>
                             <td style={{ textAlign: 'left', fontWeight: tx.credit > 0 ? 600 : 400, color: tx.credit > 0 ? '#15803d' : '#94a3b8', fontSize: '0.82rem' }}>
-                              {tx.credit > 0 ? egyptMoney(tx.credit) : '—'}
+                              {tx.credit > 0 ? displayMoney(tx.credit) : '—'}
                             </td>
                             <td style={{
                               textAlign: 'left',
@@ -420,7 +423,7 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                               fontSize: '0.82rem',
                               color: '#0f172a',
                             }}>
-                              {egyptMoney(Math.abs(tx.runningBalance))}
+                              {displayMoney(Math.abs(tx.runningBalance))}
                               <span style={{
                                 fontSize: '0.68rem',
                                 display: 'inline-block',
@@ -470,17 +473,17 @@ export function EmployeeFinancialStatement({ employeeId, canViewSalary, canViewL
                       {monthlyBreakdown.map((m: any) => (
                         <tr key={m.month}>
                           <td><strong>{m.month}</strong></td>
-                          <td style={{ textAlign: 'left', color: '#15803d', fontWeight: 600 }}>{egyptMoney(m.grossSalary)}</td>
-                          <td style={{ textAlign: 'left', color: '#1e293b', fontWeight: 600 }}>{egyptMoney(m.paidSalary)}</td>
-                          <td style={{ textAlign: 'left', color: '#c2410c', fontWeight: 600 }}>{egyptMoney(m.withdrawals)}</td>
-                          <td style={{ textAlign: 'left', color: '#166534' }}>{egyptMoney(m.repayments)}</td>
-                          <td style={{ textAlign: 'left', color: '#dc2626' }}>{egyptMoney(m.penalties)}</td>
+                          <td style={{ textAlign: 'left', color: '#15803d', fontWeight: 600 }}>{displayMoney(m.grossSalary)}</td>
+                          <td style={{ textAlign: 'left', color: '#1e293b', fontWeight: 600 }}>{displayMoney(m.paidSalary)}</td>
+                          <td style={{ textAlign: 'left', color: '#c2410c', fontWeight: 600 }}>{displayMoney(m.withdrawals)}</td>
+                          <td style={{ textAlign: 'left', color: '#166534' }}>{displayMoney(m.repayments)}</td>
+                          <td style={{ textAlign: 'left', color: '#dc2626' }}>{displayMoney(m.penalties)}</td>
                           <td style={{
                             textAlign: 'left',
                             fontWeight: 800,
                             color: m.netMonth > 0 ? '#15803d' : m.netMonth < 0 ? '#b91c1c' : '#475569',
                           }}>
-                            {egyptMoney(Math.abs(m.netMonth))}
+                            {displayMoney(Math.abs(m.netMonth))}
                             <span style={{ fontSize: '0.68rem', display: 'block', color: '#64748b', fontWeight: 500 }}>
                               {m.netMonth > 0 ? 'فائض له' : m.netMonth < 0 ? 'عجز عليه' : 'متزن'}
                             </span>
