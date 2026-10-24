@@ -27,6 +27,7 @@
 - HR-EMP-2: An employee termination cannot be accomplished by generic employee update, status patch or deactivation; those paths preserve terminated records. Initial and amended annual leave entitlements must actually persist to the employee row.
 - HR-PAY-5: Approval FAILS CLOSED if actual employees require income-tax/social-insurance deductions while only the legacy approximate statutory formula exists. The draft may preview numbers for review, but no legal posting/payment is allowed until a jurisdiction-specific, effective-dated verified engine is implemented. This is an OPEN blocker, not a compliance claim.
 - HR-LEAVE-2: Employee self-service and admin leave creation must acquire the same employee-row lock and reject overlapping pending/approved leave spans; statutory leave days are not inferred from client-supplied counts. Recruitment contracts use canonical daily document numbering. Employee status UPDATE predicates cannot race into reactivating terminated staff.
+- HR-EMP-3: Employee profile partial updates must preserve absent user, identity, organization, payroll, insurance, tax, and bank fields instead of silently nulling/resetting them. Explicit null/blank values can intentionally clear nullable fields.
 - Open release blockers: Egypt/Saudi/Kuwait/Qatar/Oman effective-dated labor, tax, social insurance, EOS and WPS rules; leave accrual/rotas; bank acceptance; payroll numerical and cross-tenant HTTP tests; UAT.
 - This change set has NOT been typechecked, built, or test-executed: production readiness cannot be asserted.
 
