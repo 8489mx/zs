@@ -563,14 +563,14 @@ export class HrService {
     const result = await sql<Record<string, unknown>>`
       SELECT e.*, d.name AS department_name, j.name AS job_title_name, p.name AS position_name, b.name AS branch_name, l.name AS location_name, u.username AS username
       , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
-      , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
+      , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
       FROM hr_employees e
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
       LEFT JOIN hr_positions p ON p.id = e.position_id
       LEFT JOIN branches b ON b.id = e.branch_id
       LEFT JOIN stock_locations l ON l.id = e.location_id
-      LEFT JOIN users u ON u.id = e.user_id
+      LEFT JOIN users u ON u.id = e.user_id AND u.tenant_id = e.tenant_id
       WHERE ${this.tenantPredicate(auth, 'e')}
       ORDER BY e.id DESC
     `.execute(this.db);
@@ -635,14 +635,14 @@ export class HrService {
     const result = await sql<Record<string, unknown>>`
       SELECT e.*, d.name AS department_name, j.name AS job_title_name, p.name AS position_name, b.name AS branch_name, l.name AS location_name, u.username AS username
       , to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date_text
-      , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
+      , (SELECT c.value FROM hr_employee_contacts c WHERE c.employee_id = e.id AND c.tenant_id = e.tenant_id ORDER BY c.is_primary DESC, c.id ASC LIMIT 1) AS primary_phone
       FROM hr_employees e
       LEFT JOIN hr_departments d ON d.id = e.department_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id
       LEFT JOIN hr_positions p ON p.id = e.position_id
       LEFT JOIN branches b ON b.id = e.branch_id
       LEFT JOIN stock_locations l ON l.id = e.location_id
-      LEFT JOIN users u ON u.id = e.user_id
+      LEFT JOIN users u ON u.id = e.user_id AND u.tenant_id = e.tenant_id
       WHERE e.id = ${id} AND ${this.tenantPredicate(auth, 'e')}
     `.execute(this.db);
 
@@ -1517,7 +1517,7 @@ export class HrService {
         FROM hr_employee_ledger l
         LEFT JOIN hr_payroll_loan_deduction_allocations alloc 
           ON l.reference_type = 'hr_payroll_loan_deduction' AND l.reference_id = alloc.id
-        LEFT JOIN users u ON u.id = l.created_by
+        LEFT JOIN users u ON u.id = l.created_by AND u.tenant_id = l.tenant_id
         WHERE l.tenant_id = ${tenantId}
           AND l.entry_type IN ('loan_repayment', 'loan_disbursement')
           AND (
@@ -1962,7 +1962,7 @@ export class HrService {
              to_char(l.disbursed_at, 'YYYY-MM-DD HH24:MI:SS') AS disbursed_at_text,
              u.username AS created_by_name
       FROM hr_employee_loans l
-      LEFT JOIN users u ON u.id = l.created_by AND u.tenant_id = l.tenant_id
+      LEFT JOIN users u ON u.id = l.created_by AND u.tenant_id = l.tenant_id AND u.tenant_id = l.tenant_id
       WHERE l.employee_id = ${employeeId} AND l.tenant_id = ${tenantId}
       ORDER BY l.id ASC
     `.execute(this.db);
