@@ -355,9 +355,9 @@ export class EndOfServiceService {
 
     let q = (this.db as any)
       .selectFrom('hr_end_of_service_settlements as s')
-      .leftJoin('hr_employees as e', 'e.id', 's.employee_id')
-      .leftJoin('hr_departments as d', 'd.id', 'e.department_id')
-      .leftJoin('journal_entries as j', 'j.id', 's.journal_entry_id')
+      .leftJoin('hr_employees as e', (join: any) => join.onRef('e.id', '=', 's.employee_id').onRef('e.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('hr_departments as d', (join: any) => join.onRef('d.id', '=', 'e.department_id').onRef('d.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('journal_entries as j', (join: any) => join.onRef('j.id', '=', 's.journal_entry_id').onRef('j.tenant_id', '=', 's.tenant_id'))
       .select([
         's.id',
         's.settlement_no as settlementNo',
@@ -413,9 +413,9 @@ export class EndOfServiceService {
 
     const row = await (this.db as any)
       .selectFrom('hr_end_of_service_settlements as s')
-      .leftJoin('hr_employees as e', 'e.id', 's.employee_id')
-      .leftJoin('hr_departments as d', 'd.id', 'e.department_id')
-      .leftJoin('journal_entries as j', 'j.id', 's.journal_entry_id')
+      .leftJoin('hr_employees as e', (join: any) => join.onRef('e.id', '=', 's.employee_id').onRef('e.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('hr_departments as d', (join: any) => join.onRef('d.id', '=', 'e.department_id').onRef('d.tenant_id', '=', 's.tenant_id'))
+      .leftJoin('journal_entries as j', (join: any) => join.onRef('j.id', '=', 's.journal_entry_id').onRef('j.tenant_id', '=', 's.tenant_id'))
       .selectAll('s')
       .select([
         'e.employee_no as employeeNo',

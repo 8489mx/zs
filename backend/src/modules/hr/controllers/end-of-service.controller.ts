@@ -13,19 +13,18 @@ import {
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 import { RequireFeature } from '../../../core/auth/decorators/feature.decorator';
-import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { EndOfServiceService, SettlementCalculateInput, CreateSettlementDto } from '../services/end-of-service.service';
 
 @Controller('api/hr/settlements')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 @RequireFeature('hr')
-@RequirePermissions('hr')
 export class EndOfServiceController {
   constructor(private readonly eosService: EndOfServiceService) {}
 
   @Post('calculate-preview')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hrSalaryView', 'hrSalaryManage', 'hrPayrollApprove')
   async calculatePreview(
     @Body() body: SettlementCalculateInput,
     @Req() req: RequestWithAuth
@@ -34,7 +33,7 @@ export class EndOfServiceController {
   }
 
   @Post()
-  @RequirePermissions('hr')
+  @RequirePermissions('hrSalaryManage')
   async createSettlement(
     @Body() body: CreateSettlementDto,
     @Req() req: RequestWithAuth
@@ -43,7 +42,7 @@ export class EndOfServiceController {
   }
 
   @Get()
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hrSalaryView', 'hrSalaryManage', 'hrPayrollApprove')
   async listSettlements(
     @Query('status') status: string | undefined,
     @Query('employeeId') employeeId: string | undefined,
@@ -56,7 +55,7 @@ export class EndOfServiceController {
   }
 
   @Get(':id')
-  @RequirePermissions('hr')
+  @RequireAnyPermission('hrSalaryView', 'hrSalaryManage', 'hrPayrollApprove')
   async getSettlement(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithAuth
@@ -65,7 +64,7 @@ export class EndOfServiceController {
   }
 
   @Post(':id/post-accounting')
-  @RequirePermissions('hr')
+  @RequirePermissions('hrPayrollApprove')
   async postAccounting(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { treasuryAccountId?: number; notes?: string },
@@ -75,7 +74,7 @@ export class EndOfServiceController {
   }
 
   @Delete(':id')
-  @RequirePermissions('hr')
+  @RequirePermissions('hrSalaryManage')
   async deleteSettlement(
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestWithAuth
