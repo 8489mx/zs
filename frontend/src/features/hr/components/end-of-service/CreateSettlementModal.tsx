@@ -261,6 +261,7 @@ export function CreateSettlementModal({
               <input
                 type="checkbox"
                 checked={confirmTermination}
+                disabled
                 onChange={e => onConfirmTerminationChange(e.target.checked)}
               />
               <span>تحديث حالة الموظف عند ترحيل المخالصة محاسبياً، وليس عند حفظ المسودة</span>
