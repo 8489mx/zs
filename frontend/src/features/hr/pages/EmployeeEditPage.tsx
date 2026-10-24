@@ -136,7 +136,7 @@ export function EmployeeEditPage() {
     if (!firstName) { setSubmitError('الاسم الأول مطلوب.'); return; }
     if (!mobile) { setSubmitError('الموبايل مطلوب.'); return; }
     if (!hireDate) { setSubmitError('تاريخ التعيين مطلوب.'); return; }
-    if (nationalId && !/^\d{14}$/.test(nationalId)) { setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.'); return; }
+    if (nationalId && !/^\d{6,20}$/.test(nationalId)) { setSubmitError('رقم الهوية أو الإقامة يجب أن يكون من 6 إلى 20 رقمًا.'); return; }
     if (draft.compensationType === 'hourly' && !(hourlyRate > 0)) { setSubmitError('أجر الساعة مطلوب للموظف بالأجر بالساعة.'); return; }
     if (draft.compensationType === 'hourly' && !(expectedDailyHours > 0)) { setSubmitError('عدد ساعات العمل اليومية المتوقعة مطلوب للموظف بالأجر بالساعة.'); return; }
 

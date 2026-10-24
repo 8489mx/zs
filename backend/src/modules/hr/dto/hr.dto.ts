@@ -57,8 +57,25 @@ export class UpsertEmployeeDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(14)
+  @MaxLength(20)
   nationalId?: string;
+
+  /** Optional on initial employee creation: saves the contract atomically. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  initialContractBaseSalary?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  initialContractType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  initialContractCurrency?: string;
 
   @IsOptional()
   @IsString()

@@ -839,7 +839,10 @@ export class HrService {
       SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
     `.execute(trx);
     const rawCurrency = clean(configuredCurrency.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
-    const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : 'EGP';
+    if (!/^[A-Z]{3}$/.test(rawCurrency)) {
+      throw new AppError('حدد عملة المنشأة في الإعدادات قبل إنشاء العقد', 'HR_RECRUITMENT_CURRENCY_REQUIRED', 400);
+    }
+    const currency = rawCurrency;
     const tempNo = `CON-TMP-${employeeId}`;
     await sql`
       INSERT INTO hr_employment_contracts (
@@ -884,8 +887,13 @@ export class HrService {
     if (rawEmployeeNo && !employeeNo) {
       throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
     }
-    if (nationalId && !/^\d{14}$/.test(nationalId)) {
-      throw new AppError('الرقم القومي يجب أن يكون 14 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
+    // The HR employee identifier can be an Egyptian ID, GCC civil/national ID,
+    // or residency number. Fixed 14-digit Egyptian validation rejected GCC hires.
+    if (nationalId && !/^\d{6,20}$/.test(nationalId)) {
+      throw new AppError('رقم الهوية الوطنية أو الإقامة يجب أن يكون من 6 إلى 20 رقمًا.', 'HR_EMPLOYEE_NATIONAL_ID_INVALID', 400);
+    }
+    if (id && payload.initialContractBaseSalary !== undefined) {
+      throw new AppError('لا يمكن إنشاء عقد أولي عند تعديل موظف قائم', 'HR_INITIAL_CONTRACT_CREATE_ONLY', 400);
     }
 
     const cleanPhone = String(payload.mobile || payload.phone || '').trim();
@@ -944,6 +952,8 @@ export class HrService {
         }
       } else {
         await this.tx.runInTransaction(this.db, async (trx) => {
+          // Serialize creation with ATS hires so auto numbers cannot race.
+          await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-employee:' + auth.tenantId}))`.execute(trx);
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
           const insertResult = await sql<{ id: number }>`
@@ -956,6 +966,41 @@ export class HrService {
             savedEmployeeId = String(newId);
             if (cleanPhone) {
               await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${newId}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(trx);
+            }
+            if (payload.initialContractBaseSalary !== undefined) {
+              const contractSalary = Number(payload.initialContractBaseSalary);
+              const contractCurrency = clean(payload.initialContractCurrency).toUpperCase();
+              if (!Number.isFinite(contractSalary) || contractSalary < 0 || !hireDate || !/^[A-Z]{3}$/.test(contractCurrency)) {
+                throw new AppError('تاريخ التعيين وقيمة المرتب والعملة مطلوبة للعقد الأولي', 'HR_INITIAL_CONTRACT_INVALID', 400);
+              }
+              if (compensationType === 'monthly' && contractSalary <= 0) {
+                throw new AppError('العقد الشهري يحتاج راتبًا أساسيًا أكبر من صفر', 'HR_INITIAL_CONTRACT_SALARY_REQUIRED', 400);
+              }
+              const tenantCurrency = await sql<{ value: string }>`
+                SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
+              `.execute(trx);
+              const currencySetting = clean(tenantCurrency.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+              if (!currencySetting || currencySetting !== contractCurrency) {
+                throw new AppError('عملة العقد يجب أن تطابق عملة المنشأة المحددة في الإعدادات', 'HR_INITIAL_CONTRACT_CURRENCY_MISMATCH', 400);
+              }
+              const insertedContract = await sql<{ id: number }>`
+                INSERT INTO hr_employment_contracts (
+                  tenant_id, account_id, employee_id, contract_no, contract_type,
+                  status, start_date, base_salary, currency, notes, created_by, updated_by
+                ) VALUES (
+                  ${auth.tenantId}, ${auth.accountId}, ${newId},
+                  ${'CON-TMP-' + String(newId)}, ${clean(payload.initialContractType) || 'standard'},
+                  'active', ${hireDate}::date, ${contractSalary}, ${contractCurrency},
+                  'تم إنشاء العقد مع ملف الموظف.', ${auth.userId}, ${auth.userId}
+                ) RETURNING id
+              `.execute(trx);
+              const contractId = Number(insertedContract.rows[0]?.id);
+              if (!contractId) throw new AppError('فشل إنشاء عقد الموظف', 'HR_INITIAL_CONTRACT_FAILED', 500);
+              await sql`
+                UPDATE hr_employment_contracts
+                SET contract_no = ${formatDailyDocumentNumber('CON', contractId)}
+                WHERE id = ${contractId} AND employee_id = ${newId} AND tenant_id = ${auth.tenantId}
+              `.execute(trx);
             }
           }
         });

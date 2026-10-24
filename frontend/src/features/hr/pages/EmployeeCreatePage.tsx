@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { useSystemCurrency } from '@/shared/hooks/use-system-currency';
 import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/shared/components/page-header';
@@ -29,6 +30,7 @@ import {
 export function EmployeeCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { currencyCode } = useSystemCurrency();
   const [draft, setDraft] = useState<EmployeeDraft>(initialDraft);
   const [submitError, setSubmitError] = useState('');
   const [andAddAnother, setAndAddAnother] = useState(false);
@@ -40,7 +42,10 @@ export function EmployeeCreatePage() {
   const positions = useMemo(() => workspace.positions.data?.rows || [], [workspace.positions.data?.rows]);
 
   const nationalIdInfo = useMemo(() => {
-    return parseEgyptianNationalId(draft.nationalId);
+    // Egyptian ID decoder is informational and only applies to 14-digit IDs.
+    return normalizeDigitsOnly(draft.nationalId).length === 14
+      ? parseEgyptianNationalId(draft.nationalId)
+      : { isValid: false, error: '' };
   }, [draft.nationalId]);
 
   async function handleQuickCreateMaster(kind: 'departments' | 'job-titles' | 'positions', name: string) {
@@ -89,19 +94,24 @@ export function EmployeeCreatePage() {
     if (!firstName) { setSubmitError('الاسم الأول مطلوب.'); return; }
     if (!mobile) { setSubmitError('الموبايل مطلوب.'); return; }
     if (!hireDate) { setSubmitError('تاريخ التعيين مطلوب.'); return; }
-    if (nationalId && !/^\d{14}$/.test(nationalId)) { setSubmitError('الرقم القومي يجب أن يكون 14 رقمًا.'); return; }
+    if (nationalId && !/^\d{6,20}$/.test(nationalId)) { setSubmitError('رقم الهوية أو الإقامة يجب أن يكون من 6 إلى 20 رقمًا.'); return; }
     if (Number.isNaN(baseSalary)) { setSubmitError('الراتب الأساسي يجب أن يكون رقمًا صحيحًا.'); return; }
     if (draft.compensationType === 'hourly' && !(hourlyRate > 0)) { setSubmitError('أجر الساعة مطلوب للموظف بالأجر بالساعة.'); return; }
     if (draft.compensationType === 'monthly' && !(baseSalary > 0)) { setSubmitError('لازم تسجل الراتب الشهري قبل إضافة الموظف علشان كشف المرتبات ما يطلعش صفر.'); return; }
+    if ((draft.compensationType === 'monthly' || contractType) && !currencyCode) {
+      setSubmitError('حدد العملة في إعدادات المنشأة قبل إنشاء العقد.');
+      return;
+    }
     if (expectedDailyHoursText && !(expectedDailyHours > 0 && expectedDailyHours <= 24)) { setSubmitError('ساعات العمل المتوقعة يجب أن تكون أكبر من صفر وحتى 24 أو تُترك فارغة.'); return; }
 
     try {
-      const result = await mutations.saveEmployee.mutateAsync({ payload: { employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined, firstName, lastName: String(draft.lastName || '').trim() || undefined, nationalId: nationalId || undefined, status: draft.status, departmentId: toId(draft.departmentId), jobTitleId: toId(draft.jobTitleId), positionId: toId(draft.positionId), hireDate, notes: String(draft.notes || '').trim() || undefined, compensationType: draft.compensationType, payFrequency: draft.payFrequency, hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined, expectedDailyHours: draft.compensationType === 'hourly' && expectedDailyHoursText ? expectedDailyHours : undefined, scheduledCheckInTime: draft.scheduledCheckInTime || undefined, scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined, graceMinutes, overtimePolicy: draft.overtimePolicy, attendancePolicy: draft.attendancePolicy, commissionType: draft.commissionType, commissionValue: draft.commissionValue ? Number(draft.commissionValue) : undefined, commissionTarget: draft.commissionTarget ? Number(draft.commissionTarget) : undefined, delayPolicy: draft.delayPolicy, hasSocialInsurance: draft.hasSocialInsurance, hasIncomeTax: draft.hasIncomeTax, bankName: String(draft.bankName || '').trim() || undefined, bankAccountNumber: String(draft.bankAccountNumber || '').trim() || undefined, iban: String(draft.iban || '').trim() || undefined, bankSwiftCode: String(draft.bankSwiftCode || '').trim() || undefined, annualLeaveBalance: draft.annualLeaveBalance ? Number(draft.annualLeaveBalance) : 21, insuranceSalary: draft.insuranceSalary ? Number(normalizeNumberText(draft.insuranceSalary)) : undefined } });
+      const result = await mutations.saveEmployee.mutateAsync({ payload: { employeeNo: normalizeArabicDigits(String(draft.employeeNo || '').trim()) || undefined, firstName, lastName: String(draft.lastName || '').trim() || undefined, nationalId: nationalId || undefined, mobile, initialContractBaseSalary: (draft.compensationType === 'monthly' || contractType) ? baseSalary : undefined, initialContractType: contractType || 'standard', initialContractCurrency: currencyCode || undefined, status: draft.status, departmentId: toId(draft.departmentId), jobTitleId: toId(draft.jobTitleId), positionId: toId(draft.positionId), hireDate, notes: String(draft.notes || '').trim() || undefined, compensationType: draft.compensationType, payFrequency: draft.payFrequency, hourlyRate: draft.compensationType === 'hourly' ? hourlyRate : undefined, expectedDailyHours: draft.compensationType === 'hourly' && expectedDailyHoursText ? expectedDailyHours : undefined, scheduledCheckInTime: draft.scheduledCheckInTime || undefined, scheduledCheckOutTime: draft.scheduledCheckOutTime || undefined, graceMinutes, overtimePolicy: draft.overtimePolicy, attendancePolicy: draft.attendancePolicy, commissionType: draft.commissionType, commissionValue: draft.commissionValue ? Number(draft.commissionValue) : undefined, commissionTarget: draft.commissionTarget ? Number(draft.commissionTarget) : undefined, delayPolicy: draft.delayPolicy, hasSocialInsurance: draft.hasSocialInsurance, hasIncomeTax: draft.hasIncomeTax, bankName: String(draft.bankName || '').trim() || undefined, bankAccountNumber: String(draft.bankAccountNumber || '').trim() || undefined, iban: String(draft.iban || '').trim() || undefined, bankSwiftCode: String(draft.bankSwiftCode || '').trim() || undefined, annualLeaveBalance: draft.annualLeaveBalance ? Number(draft.annualLeaveBalance) : 21, insuranceSalary: draft.insuranceSalary ? Number(normalizeNumberText(draft.insuranceSalary)) : undefined } });
       const createdEmployeeId = getCreatedEmployeeId(result, draft, firstName);
-      if (createdEmployeeId) {
-        await mutations.saveContact.mutateAsync({ employeeId: createdEmployeeId, payload: { contactType: 'phone', value: mobile, label: 'الموبايل', isPrimary: true, notes: '' } });
-        if (contractType || baseSalary > 0) await mutations.saveContract.mutateAsync({ employeeId: createdEmployeeId, payload: { contractType: contractType || 'standard', status: 'active', startDate: hireDate, baseSalary: baseSalary > 0 ? baseSalary : 0, currency: 'EGP', notes: 'تم إنشاؤه من صفحة إضافة موظف.' } });
+      if (!createdEmployeeId) {
+        throw new Error('تعذر التأكد من حفظ ملف الموظف والعقد.');
       }
+      // Employee, primary mobile and initial contract are now created in one
+      // backend transaction; do not retry duplicate standalone writes here.
       if (andAddAnother) {
         toast.success(`تم حفظ الموظف "${firstName}" بنجاح، يمكنك الآن إضافة موظف آخر`);
         setDraft({
@@ -122,7 +132,7 @@ export function EmployeeCreatePage() {
     }
   }
 
-  const isBusy = mutations.saveEmployee.isPending || mutations.saveContact.isPending || mutations.saveContract.isPending || mutations.saveMasterData.isPending;
+  const isBusy = mutations.saveEmployee.isPending || mutations.saveMasterData.isPending;
 
   return (
     <div className="page-stack page-shell" dir="rtl">
@@ -220,13 +230,13 @@ export function EmployeeCreatePage() {
                   />
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.employee_create_page.s13', "الرقم القومي (14 رقم)")}</label>
+                  <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.employee_create_page.s13', "رقم الهوية الوطنية / الإقامة")}</label>
                   <input
                     value={draft.nationalId}
                     onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
-                    placeholder={t('hr.employee_create_page.s14', "اختياري - 14 رقم")}
+                    placeholder={t('hr.employee_create_page.s14', "اختياري - من 6 إلى 20 رقمًا")}
                     inputMode="numeric"
-                    maxLength={14}
+                    maxLength={20}
                     style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
                   />
                   {nationalIdInfo.isValid && (

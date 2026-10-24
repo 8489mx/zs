@@ -78,13 +78,13 @@ export const EmployeePersonalInfoSection: React.FC<EmployeePersonalInfoSectionPr
           />
         </div>
         <div style={{ gridColumn: 'span 2' }}>
-          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.employee_edit.employee_personal_info_section.s10', "الرقم القومي (14 رقم)")}</label>
+          <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>{t('hr.employee_edit.employee_personal_info_section.s10', "رقم الهوية الوطنية / الإقامة")}</label>
           <input
             value={draft.nationalId}
             onChange={(e) => setDraft((current) => ({ ...current, nationalId: e.target.value }))}
-            placeholder={t('hr.employee_edit.employee_personal_info_section.s11', "اختياري - 14 رقم")}
+            placeholder={t('hr.employee_edit.employee_personal_info_section.s11', "اختياري - من 6 إلى 20 رقمًا")}
             inputMode="numeric"
-            maxLength={14}
+            maxLength={20}
             style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px 10px', fontSize: '0.875rem', boxSizing: 'border-box' }}
           />
         </div>
