@@ -207,11 +207,13 @@ export class UpsertEmployeeDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   @Type(() => Number)
   commissionValue?: number;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   @Type(() => Number)
   commissionTarget?: number;
 
@@ -226,6 +228,7 @@ export class UpsertEmployeeDto {
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   @Type(() => Number)
   insuranceSalary?: number;
 

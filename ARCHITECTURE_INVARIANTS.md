@@ -180,6 +180,8 @@ This checkpoint records only **code-proven** adjustments on `fix/hr-stabilizatio
 
 **Open gates (not presumed fixed):** official EG/SA/KW/QA/OM per-employee statutory coverage and rate verification; employee citizenship/residency insurance scheme; annual tax reconciliation and nonmonthly statutory payroll; KWD/OMR three-decimal persistence and GL; verified bank-specific WPS files; integrated HR/ledger UAT. Neither tests nor build/typecheck/guards have been run. No merge into main.
 
+- HR-WAGE-56 (25 October 2026): An hourly employee can no longer be stored with a zero, negative or nonfinite hourly wage or with missing/invalid expected daily hours; otherwise every payroll row could compute zero without a useful setup warning. The service also guards pay frequencies, commission/insurance amounts, commission percent ceiling, monetary precision and attendance grace. DTO adds nonnegative salary-related constraints. No tests/build/guards executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

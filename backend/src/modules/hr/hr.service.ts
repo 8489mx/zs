@@ -945,6 +945,43 @@ export class HrService {
     const scheduledCheckOutTime = normalizeTimeOnly(payload.scheduledCheckOutTime);
     const graceMinutes = Math.max(0, Math.floor(Number(payload.graceMinutes || 0)));
     const attendancePolicy = clean(payload.attendancePolicy) === 'flexible' ? 'flexible' : 'strict';
+    const commissionValue = payload.commissionValue == null ? null : Number(payload.commissionValue);
+    const commissionTarget = payload.commissionTarget == null ? null : Number(payload.commissionTarget);
+    const insuranceSalary = payload.insuranceSalary == null ? null : Number(payload.insuranceSalary);
+
+    if (!['daily', 'weekly', 'biweekly', 'monthly'].includes(payFrequency)) {
+      throw new AppError('دورية صرف المرتب غير صحيحة', 'HR_EMPLOYEE_PAY_FREQUENCY_INVALID', 400);
+    }
+    if (compensationType === 'hourly') {
+      if (hourlyRate == null || !Number.isFinite(hourlyRate) || hourlyRate <= 0
+        || expectedDailyHours == null || !Number.isFinite(expectedDailyHours)
+        || expectedDailyHours <= 0 || expectedDailyHours > 24) {
+        throw new AppError('موظف الساعة يحتاج أجر ساعة موجبًا وساعات عمل يومية بين صفر و24 (غير شاملة الصفر)', 'HR_HOURLY_WAGE_SCHEDULE_INVALID', 400);
+      }
+      try { requireStoredHrMoney(hourlyRate); } catch {
+        throw new AppError('أجر الساعة يجب أن يكون بدقة منزلتين دون تقريب', 'HR_HOURLY_MONEY_PRECISION_INVALID', 400);
+      }
+    }
+    if (![commissionValue, commissionTarget, insuranceSalary].every(x => x == null || (Number.isFinite(x) && x >= 0))) {
+      throw new AppError('مبلغ العمولة أو الهدف أو الأجر التأميني غير صحيح', 'HR_EMPLOYEE_PAY_FIELDS_INVALID', 400);
+    }
+    if (commissionValue !== null && clean(payload.commissionType) === 'percentage' && commissionValue > 100
+      || commissionValue !== null && clean(payload.commissionType) === 'target_percentage' && commissionValue > 100) {
+      throw new AppError('نسبة العمولة يجب أن تكون من صفر إلى 100', 'HR_COMMISSION_PERCENT_INVALID', 400);
+    }
+    if (commissionValue !== null && clean(payload.commissionType) === 'fixed') {
+      try { requireStoredHrMoney(commissionValue); } catch {
+        throw new AppError('العمولة الثابتة يجب أن تكون بدقة منزلتين دون تقريب', 'HR_COMMISSION_MONEY_PRECISION_INVALID', 400);
+      }
+    }
+    if (insuranceSalary !== null) {
+      try { requireStoredHrMoney(insuranceSalary); } catch {
+        throw new AppError('الأجر التأميني يجب أن يكون بدقة منزلتين دون تقريب', 'HR_INSURANCE_WAGE_PRECISION_INVALID', 400);
+      }
+    }
+    if (!Number.isFinite(graceMinutes) || graceMinutes > 1440) {
+      throw new AppError('دقائق سماح الحضور غير صحيحة', 'HR_ATTENDANCE_GRACE_INVALID', 400);
+    }
 
     if (!firstName) throw new AppError('ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
