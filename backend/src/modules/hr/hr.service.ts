@@ -264,6 +264,8 @@ export class HrService {
       taxBrackets: [],
       insuranceConfig: null,
       maxDeductionPct: 1.0,
+      hrWeekendDays: 'friday,saturday',
+      insuranceProratePartialEmployment: false,
     };
     if (result.rows.length === 0) return defaults;
     let parsed: unknown;
@@ -2338,7 +2340,7 @@ export class HrService {
       let lineOutput: ReturnType<typeof calculateHrPayrollRunLine>;
       try {
         lineOutput = calculateHrPayrollRunLine({
-          policy: policies as HrStatutoryPolicy,
+          policy: (policies as unknown) as HrStatutoryPolicy,
           period: range,
           eligibility: {
             insured: employee.has_social_insurance === true,
@@ -3222,7 +3224,7 @@ export class HrService {
       const period = payrollPeriod.rows[0];
       if (!period) throw new AppError('مسير الرواتب غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
       try {
-        validateHrStatutoryPolicy(policies as HrStatutoryPolicy, {
+        validateHrStatutoryPolicy((policies as unknown) as HrStatutoryPolicy, {
           from: period.start_date,
           to: period.end_date,
         }, true);
