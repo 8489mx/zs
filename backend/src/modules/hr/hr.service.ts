@@ -1063,6 +1063,7 @@ export class HrService {
     if (status === 'terminated') {
       throw new AppError('استخدم إجراء إنهاء الخدمة المعتمد وليس تعديل حالة الموظف', 'HR_TERMINATION_WORKFLOW_REQUIRED', 400);
     }
+    const validStatus = ['active', 'inactive', 'deactivated'].includes(status) ? status : 'active';
     await this.tx.runInTransaction(this.db, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const existing = await sql<{ status: string }>`
@@ -1072,7 +1073,6 @@ export class HrService {
       if (existing.rows[0].status === 'terminated') {
         throw new AppError('لا يمكن إعادة تفعيل موظف انتهت خدمته بدون إجراءات إعادة تعيين', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 409);
       }
-      const validStatus = ['active', 'inactive', 'deactivated'].includes(status) ? status : 'active';
       await sql`
         UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW()
         WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'
