@@ -30,6 +30,11 @@ type JournalLineDraft = {
   costCenterId?: number | null;
 };
 
+type DomainJournalLineDraft = Omit<JournalLineDraft, 'branchId' | 'locationId'> & {
+  branchId?: number | null;
+  locationId?: number | null;
+};
+
 type ExpenseAccountCandidate = {
   id: number;
   code: string;
@@ -440,7 +445,7 @@ export class AccountingPostingService {
       locationId?: number | null;
       createdBy: number | null;
       postedBy?: number | null;
-      lines: JournalLineDraft[];
+      lines: DomainJournalLineDraft[];
     },
   ): Promise<number> {
     return this.insertPostedJournal(queryable, {
@@ -448,6 +453,11 @@ export class AccountingPostingService {
       branchId: params.branchId ?? null,
       locationId: params.locationId ?? null,
       postedBy: params.postedBy ?? params.createdBy,
+      lines: params.lines.map(line => ({
+        ...line,
+        branchId: line.branchId === undefined ? params.branchId ?? null : line.branchId,
+        locationId: line.locationId === undefined ? params.locationId ?? null : line.locationId,
+      })),
     });
   }
 

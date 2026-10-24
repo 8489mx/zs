@@ -1549,7 +1549,7 @@ export class SalesWriteService {
       const currentCosts = await trx.selectFrom('products').select(['id', 'cost_price']).where('tenant_id', '=', scope.tenantId).where('id', 'in', [...new Set(preparedItems.map(item => Number(item.productId)))]).execute();
       const currentCostByProduct = new Map(currentCosts.map(product => [Number(product.id), Number(product.cost_price)]));
       for (const item of preparedItems) {
-        const modifierCost = (item.modifiers || []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
+        const modifierCost = (Array.isArray(item.modifiers) ? item.modifiers : []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
         item.costPrice = Number(((currentCostByProduct.get(Number(item.productId)) || 0) * Number(item.unitMultiplier || 1) + modifierCost).toFixed(6));
       }
 
@@ -2665,7 +2665,7 @@ export class SalesWriteService {
       const currentCosts = await trx.selectFrom('products').select(['id', 'cost_price']).where('tenant_id', '=', scope.tenantId).where('id', 'in', [...new Set(preparedItems.map(item => Number(item.productId)))]).execute();
       const currentCostByProduct = new Map(currentCosts.map(product => [Number(product.id), Number(product.cost_price)]));
       for (const item of preparedItems) {
-        const modifierCost = (item.modifiers || []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
+        const modifierCost = (Array.isArray(item.modifiers) ? item.modifiers : []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
         item.costPrice = Number(((currentCostByProduct.get(Number(item.productId)) || 0) * Number(item.unitMultiplier || 1) + modifierCost).toFixed(6));
       }
 

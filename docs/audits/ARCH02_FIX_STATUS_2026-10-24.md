@@ -76,6 +76,12 @@ The changed accounting engine, reporting/period services, DTOs, migration/types,
 
 This work does not repeat ARCH01, approve all business modules, inspect live tenant data, validate database migration execution, test deployments/authentication, or begin the next audit package. Implementation closure must not be reported as full ARCH02 acceptance.
 
+## Validation checkpoint — 2026-10-24
+
+The owner subsequently authorized testing, then limited lengthy validation and requested an AntiGravity handoff. Backend production-engine regressions passed (exit 0), and the full backend Typecheck passed after three corrective changes: explicit domain journal dimension normalization, the retention-table type, and modifier-array narrowing. Frontend Typecheck remains blocked by missing installed Capacitor dependencies after increasing the Node heap. Builds, migration execution and comprehensive service/concurrency/environment tests are not approved as passed. A disposable PostgreSQL container was ready but sandbox TCP access failed before migrations; the container was removed. No production database was accessed.
+
+**Final ARCH02 acceptance is still pending.** See [the reproducible AntiGravity handoff](ARCH02_ANTIGRAVITY_HANDOFF_2026-10-24.md) for evidence and the remaining acceptance matrix. Earlier “not run” statements describe the implementation checkpoint and are superseded only for the explicitly successful checks above.
+
 ## Changed-file inventory
 
 - `ARCHITECTURE_INVARIANTS.md`

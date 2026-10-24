@@ -4782,6 +4782,26 @@ export interface ContractingSubcontractorTable {
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
 }
 
+export interface ContractingRetentionRecordTable {
+  id: Generated<number>;
+  tenant_id: string;
+  project_id: string;
+  subcontract_id: string | null;
+  party_type: string;
+  party_id: number | null;
+  party_name: string;
+  held_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  released_amount: ColumnType<number, number | string | undefined, number | string | undefined>;
+  retention_percent: ColumnType<number, number | string | undefined, number | string | undefined>;
+  ipc_invoice_id: string | null;
+  release_due_date: ColumnType<string | null, string | Date | null | undefined, string | Date | null | undefined>;
+  status: ColumnType<string, string | undefined, string | undefined>;
+  guarantee_certificate_ref: string | null;
+  notes: string | null;
+  created_at: ColumnType<Date, string | Date | undefined, never>;
+  updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
 export interface ContractingSubcontractorPaymentTable {
   request_key?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   request_fingerprint?: ColumnType<string | null, string | null | undefined, string | null | undefined>;
@@ -4992,6 +5012,7 @@ export interface Database {
   contracting_boq_items: ContractingBoqItemTable;
   contracting_change_orders: ContractingChangeOrderTable;
   contracting_invoices: ContractingInvoiceTable;
+  contracting_retention_records: ContractingRetentionRecordTable;
   contracting_invoice_items: ContractingInvoiceItemTable;
   contracting_subcontracts: ContractingSubcontractTable;
   contracting_subcontractors: ContractingSubcontractorTable;
