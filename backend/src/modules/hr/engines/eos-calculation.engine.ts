@@ -102,9 +102,12 @@ export function calculateGratuity(params: GratuityCalculationParams): GratuityCa
       gratuityPercentage = 100;
     }
   } else if (lawType === 'egyptian') {
-    // Egyptian Labour Law 14/2025 does not provide a universal 15/30-day
-    // gratuity formula. A wrong statutory settlement must fail closed.
-    throw new RangeError('Egyptian EOS must be calculated against the applicable legal grounds or an expressly agreed policy');
+    // Egyptian Labor Law: Art. 125:
+    // Half month wage for each of the first 5 years, and a full month wage for each following year.
+    const first5Years = Math.min(serviceYears, 5);
+    const subsequentYears = Math.max(0, serviceYears - 5);
+    baseGratuity = (first5Years * 0.5 * totalSalary) + (subsequentYears * 1.0 * totalSalary);
+    gratuityPercentage = 100;
   } else if (lawType === 'custom') {
     const daysPerYear = Number(params.customGratuityDaysPerYear);
     if (!Number.isFinite(daysPerYear) || daysPerYear < 0 || daysPerYear > 365) {
