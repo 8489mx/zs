@@ -48,7 +48,7 @@ import {
 } from './attendance-punch.engine';
 import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
-import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from './engines/hr-payroll-run.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
@@ -2339,7 +2339,7 @@ export class HrService {
     await sql`
       UPDATE hr_payroll_run_items i
       SET status = 'excluded',
-          notes = CONCAT_WS(' | ', NULLIF(i.notes, ''), 'استبعاد آلي: الموظف غير مستحق في فترة المسير'),
+          notes = CONCAT_WS(' | ', NULLIF(i.notes, ''), ${AUTO_PAYROLL_EXCLUSION_NOTE}),
           updated_at = NOW()
       WHERE i.run_id = ${runId} AND i.tenant_id = ${tenantId}
         AND i.status IN ('draft', 'reviewed')
@@ -2423,7 +2423,10 @@ export class HrService {
         LIMIT 1
       `.execute(db);
       const existingItem = existing.rows[0];
-      if (clean(existingItem?.status) === 'excluded' || clean(existingItem?.status) === 'approved') continue;
+      if (clean(existingItem?.status) === 'approved') continue;
+      const excluded = clean(existingItem?.status) === 'excluded';
+      if (excluded && !canReincludeAutoExcludedPayrollItem(
+        clean(existingItem?.status), clean(existingItem?.notes))) continue;
       const itemId = Number(existingItem?.id || 0);
       const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId, tenantId) : { allowance: 0, deduction: 0 };
       const isHourly = clean(employee.compensation_type) === 'hourly';
@@ -2559,6 +2562,7 @@ export class HrService {
         .filter(s => {
           if (!s) return false;
           if (lineOutput.deferredLoanDeduction === 0 && s.includes('تم تأجيل') && s.includes('قسط السلفة')) return false;
+          if (excluded && s === AUTO_PAYROLL_EXCLUSION_NOTE) return false;
           return true;
         })
         .join(' | ');
@@ -3810,7 +3814,11 @@ export class HrService {
       runId = Number(item.run_id);
       await sql`
         UPDATE hr_payroll_run_items
-        SET status = ${status || item.item_status || 'draft'}, notes = ${clean(payload.notes)}, updated_at = NOW()
+        SET status = ${status || item.item_status || 'draft'},
+            notes = ${status === 'excluded'
+              ? combineNotes(clean(payload.notes), MANUAL_PAYROLL_EXCLUSION_NOTE)
+              : clean(payload.notes)},
+            updated_at = NOW()
         WHERE id = ${id} AND run_id = ${runId} AND tenant_id = ${tenantId}
       `.execute(trx);
     });

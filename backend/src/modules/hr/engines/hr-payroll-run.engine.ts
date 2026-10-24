@@ -95,6 +95,14 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
   });
 }
 
+/** Preserve the distinction between system and user exclusions on rebuild. */
+export const AUTO_PAYROLL_EXCLUSION_NOTE = 'استبعاد آلي: الموظف غير مستحق في فترة المسير';
+export const MANUAL_PAYROLL_EXCLUSION_NOTE = 'استبعاد يدوي من مسؤول المرتبات';
+export function canReincludeAutoExcludedPayrollItem(status: string, notes: string): boolean {
+  return status === 'excluded' && notes.includes(AUTO_PAYROLL_EXCLUSION_NOTE)
+    && !notes.includes(MANUAL_PAYROLL_EXCLUSION_NOTE);
+}
+
 // Payroll line storage and GL posting currently round to 2 decimals.
 // KWD and OMR are 3-decimal currencies; accepting them here would silently
 // lose fils/baisa. Extend ALL posting/storage paths before enabling them.

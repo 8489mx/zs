@@ -89,6 +89,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LOAN-NEW-2: Editing drafts now rechecks and locks the loan status within the installment rewrite transaction. Prevents updating an approved loan after stale pre-transaction status check. Loan's employee owner stays immutable. Approval checks RETURNING row count for concurrent conflicts; the create ceiling serializes via employee FOR UPDATE, and disbursement/repayment joins tenant-scope the employee. Test execution still deferred.
 
+- HR-PAY-REENTRY-1: Eligibility changes automatically re-include previously system-excluded payroll employees upon draft/review rebuild; manager-excluded employees remain excluded via explicit provenance marker. Regression tests authored, not executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

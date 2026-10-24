@@ -1,6 +1,11 @@
 import { strict as assert } from 'node:assert';
-import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from '../../src/modules/hr/engines/hr-payroll-run.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from '../../src/modules/hr/engines/hr-payroll-run.engine';
 import type { HrPayrollRunLineInput } from '../../src/modules/hr/engines/hr-payroll-run.engine';
+
+assert.equal(canReincludeAutoExcludedPayrollItem('excluded', AUTO_PAYROLL_EXCLUSION_NOTE), true);
+assert.equal(canReincludeAutoExcludedPayrollItem('excluded', AUTO_PAYROLL_EXCLUSION_NOTE + ' | ' + MANUAL_PAYROLL_EXCLUSION_NOTE), false);
+assert.equal(canReincludeAutoExcludedPayrollItem('excluded', 'manual exclusion'), false);
+assert.equal(canReincludeAutoExcludedPayrollItem('reviewed', AUTO_PAYROLL_EXCLUSION_NOTE), false);
 
 // Deliberately synthetic rates, NOT the legislation of Egypt or any GCC country.
 const base: HrPayrollRunLineInput = {
