@@ -532,8 +532,29 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
                 onChange={(event) => setCommonDraft((current) => ({ ...current, minStock: Math.max(0, Number(event.target.value || 0)) }))}
                 disabled={mutation.isPending}
               />
-              <button type="button" disabled={mutation.isPending} onClick={() => setVariantRows((current) => current.map((row) => ({ ...row, minStock: commonDraft.minStock })))} style={{ fontSize: '0.72rem', textDecoration: 'underline', color: '#1d4ed8' }}>
-                تطبيق الحد الأدنى على كل المقاسات
+              <button
+                type="button"
+                disabled={mutation.isPending}
+                onClick={() => setVariantRows((current) => current.map((row) => ({ ...row, minStock: commonDraft.minStock })))}
+                style={{
+                  marginTop: '4px',
+                  width: '100%',
+                  padding: '3px 4px',
+                  fontSize: '0.69rem',
+                  fontWeight: 600,
+                  color: '#1d4ed8',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  borderRadius: '5px',
+                  cursor: mutation.isPending ? 'not-allowed' : 'pointer',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.3,
+                  boxSizing: 'border-box',
+                }}
+                title={t('products.workspace_sections.fashion_group_editor_card.s10_apply_all_tip', 'تطبيق هذا الحد الأدنى على كافة المقاسات والأصناف الفرعية')}
+              >
+                {t('products.workspace_sections.fashion_group_editor_card.s10_apply_all', 'تطبيق على الكل')}
               </button>
             </Field>
           </div>
