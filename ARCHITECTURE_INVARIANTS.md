@@ -60,6 +60,7 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-PAY-17: Scheduled withholding aggregates due installments against each individual loan's actual remaining principal; accrual-side payroll withholding never exceeds debt. Approval allocation uses the SAME period-end due-date boundary as payroll calculation, preventing premature recovery of later installments.
 - HR-PAY-18: Payroll accrual rejects a persisted gross/net/deduction mismatch in integer cents, and confirms that stored operating deductions cover employee insurance plus income tax before GL posting; a balancing plug is prohibited.
 - HR-PAY-19: Payroll item inclusion/exclusion and manual allowance/deduction creation/removal acquire the payroll-run lock and revalidate draft status inside the transaction, preventing edits crossing the reviewed/approved boundary.
+- HR-PAY-20: SQL row-lock syntax is `LIMIT 1 FOR UPDATE` (never `FOR UPDATE LIMIT 1`). Fixes the payroll-run status locking query shared by recalculation, review, approval and payment.
 - Verification: numeric regression specs are authored but NOT executed; build/typecheck/guards likewise NOT run. Currency precision for KWD/OMR and complete nationality-specific legislation remain blocked. No main merge or deployment.
 
 ### Accounting ledger hardening (October 2026)
