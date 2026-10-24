@@ -4149,6 +4149,7 @@ export class HrService {
     }
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       for (const row of payload.rows) {
         const employeeId = toId(row.employeeId);
         if (!employeeId) throw new AppError('Employee is required', 'HR_ATTENDANCE_EMPLOYEE_REQUIRED', 400);
@@ -4221,6 +4222,7 @@ export class HrService {
     // (نقرة مزدوجة على زر البصمة، أو إعادة محاولة من الموبايل) تتجاوزان حارس
     // "تم تسجيل الحضور بالفعل"، وبدء وردية جديدة مرتين يمحو وردية مكتملة بصمت — F1.
     const auditEntry = await this.db.transaction().execute(async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const existingCheck = await sql<{ check_in_at: Date | null; check_out_at: Date | null; notes: string | null }>`
         SELECT check_in_at, check_out_at, notes FROM hr_attendance_records
         WHERE employee_id = ${employeeId} AND work_date = ${workDate}::date AND tenant_id = ${auth.tenantId}
@@ -4348,6 +4350,7 @@ export class HrService {
     const errors: string[] = [];
 
     await this.db.transaction().execute(async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       for (const record of payload.records) {
         const emp = empMap.get(record.employeeNo);
         if (!emp) {
@@ -4772,27 +4775,50 @@ export class HrService {
   }
 
   async decideAttendanceException(id: number, status: 'approved' | 'skipped', payload: DecideAttendanceExceptionDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
-    const currentResult = await sql<Record<string, unknown>>`SELECT * FROM hr_attendance_exceptions WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(this.db);
-    const current = currentResult.rows[0];
-    if (!current) throw new AppError('Attendance exception not found', 'HR_ATTENDANCE_EXCEPTION_NOT_FOUND', 404);
-    const approvedDurationMinutes = status === 'approved'
-      ? Math.max(0, Math.floor(Number(payload.approvedDurationMinutes ?? current.duration_minutes ?? 0)))
-      : null;
-    await sql`
-      UPDATE hr_attendance_exceptions
-      SET status = ${status},
-          approved_duration_minutes = ${approvedDurationMinutes},
-          note = ${clean(payload.note) || null},
-          updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-    `.execute(this.db);
+    const { tenantId } = requireTenantScope(auth);
+    let workDate = '';
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const currentResult = await sql<{ id: number; employee_id: number; status: string; duration_minutes: number; work_date: string }>`
+        SELECT id, employee_id, status, duration_minutes,
+               to_char(work_date, 'YYYY-MM-DD') AS work_date
+        FROM hr_attendance_exceptions
+        WHERE id = ${id} AND tenant_id = ${tenantId} LIMIT 1 FOR UPDATE
+      `.execute(trx);
+      const current = currentResult.rows[0];
+      if (!current) throw new AppError('Attendance exception not found', 'HR_ATTENDANCE_EXCEPTION_NOT_FOUND', 404);
+      workDate = String(current.work_date);
+      const booked = await sql<{ id: number }>`
+        SELECT r.id FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${tenantId} AND i.employee_id = ${current.employee_id}
+          AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+          AND ${workDate}::date BETWEEN r.start_date AND r.end_date
+        LIMIT 1
+      `.execute(trx);
+      if (booked.rows.length) {
+        throw new AppError('لا يمكن تغيير استثناء حضور دخل بالفعل في مسير مرتبات معتمد؛ يلزم قيد تسوية منفصل',
+          'HR_ATTENDANCE_EXCEPTION_PAYROLL_LOCKED', 409);
+      }
+      const rawApproved = Number(payload.approvedDurationMinutes ?? current.duration_minutes ?? 0);
+      const actualMinutes = Number(current.duration_minutes || 0);
+      if (status === 'approved' && (!Number.isFinite(rawApproved) || rawApproved < 0
+        || !Number.isFinite(actualMinutes) || actualMinutes < 0 || rawApproved > actualMinutes)) {
+        throw new AppError('دقائق الحضور المعتمدة يجب أن تكون بين صفر والمدة المثبتة', 'HR_ATTENDANCE_APPROVED_MINUTES_INVALID', 400);
+      }
+      const approvedDurationMinutes = status === 'approved' ? Math.floor(rawApproved) : null;
+      await sql`
+        UPDATE hr_attendance_exceptions
+        SET status = ${status}, approved_duration_minutes = ${approvedDurationMinutes},
+            note = ${clean(payload.note) || null}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${tenantId}
+      `.execute(trx);
+    });
     await this.audit.log(
       `${status === 'approved' ? 'Approve' : 'Skip'} attendance exception`,
-      `Attendance exception #${id} ${status} by ${auth.username}`,
-      auth,
+      `Attendance exception #${id} ${status} by ${auth.username}`, auth,
     );
-    return this.listAttendanceExceptions({ date: normalizeDateOnly(current.work_date) || '' }, auth);
+    return this.listAttendanceExceptions({ date: workDate }, auth);
   }
 
   async listLeaveTypes(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
