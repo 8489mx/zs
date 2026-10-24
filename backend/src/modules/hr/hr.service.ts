@@ -2266,6 +2266,7 @@ export class HrService {
           UPDATE hr_employee_adjustments
           SET status = 'applied', applied_in_run_id = ${runId}
           WHERE id IN (${sql.join(appliedAdjIds)})
+            AND tenant_id = ${tenantId} AND employee_id = ${employeeId}
         `.execute(db);
       }
 
@@ -2366,7 +2367,7 @@ export class HrService {
               status = ${itemStatus},
               notes = ${notes},
               updated_at = NOW()
-          WHERE id = ${itemId}
+          WHERE id = ${itemId} AND tenant_id = ${tenantId} AND run_id = ${runId}
         `.execute(db);
       } else {
         await sql`
@@ -3091,7 +3092,8 @@ export class HrService {
         const ledgerId = ledgerRes.rows[0]?.id;
 
         await sql`
-          UPDATE hr_payroll_loan_deduction_allocations SET ledger_id = ${ledgerId} WHERE id = ${allocId}
+          UPDATE hr_payroll_loan_deduction_allocations SET ledger_id = ${ledgerId}
+          WHERE id = ${allocId} AND tenant_id = ${tenantId}
         `.execute(trx);
       }
 
