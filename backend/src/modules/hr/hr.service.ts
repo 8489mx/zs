@@ -2077,6 +2077,18 @@ export class HrService {
     `.execute(db);
 
     const empIds = employees.rows.map(e => Number(e.employee_id)).filter(id => id > 0);
+    // A rebuilt draft/reviewed run must not retain a payable item for someone
+    // who no longer qualifies (terminated and settled, deactivated, or excluded
+    // by pay frequency). Preserve history/adjustments by excluding, not deleting.
+    await sql`
+      UPDATE hr_payroll_run_items i
+      SET status = 'excluded',
+          notes = CONCAT_WS(' | ', NULLIF(i.notes, ''), 'استبعاد آلي: الموظف غير مستحق في فترة المسير'),
+          updated_at = NOW()
+      WHERE i.run_id = ${runId} AND i.tenant_id = ${tenantId}
+        AND i.status IN ('draft', 'reviewed')
+        AND ${empIds.length ? sql`i.employee_id NOT IN (${sql.join(empIds)})` : sql`TRUE`}
+    `.execute(db);
     // The previous hourly formula credited 30 theoretical days, regardless of actual punches.
     // Read all punches for the run once, then share the exact same totals with payroll review.
     const hourlyWorkByEmployee = new Map<number, ReturnType<typeof summarizeHourlyAttendance>>();
@@ -2326,36 +2338,41 @@ export class HrService {
 
     const attendanceResult = await sql<Record<string, unknown>>`
       SELECT
-        employee_id,
-        to_char(work_date, 'YYYY-MM-DD') AS work_date_text,
-        status
-      FROM hr_attendance_records
-      WHERE employee_id IN (${sql.join(employeeIds)}) AND tenant_id = ${tenantId}
-        AND work_date >= ${range.from}::date
-        AND work_date <= ${range.to}::date
+        ar.employee_id,
+        to_char(ar.work_date, 'YYYY-MM-DD') AS work_date_text,
+        ar.status
+      FROM hr_attendance_records ar
+      JOIN hr_employees e ON e.id = ar.employee_id AND e.tenant_id = ar.tenant_id
+      WHERE ar.employee_id IN (${sql.join(employeeIds)}) AND ar.tenant_id = ${tenantId}
+        AND ar.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
+        AND ar.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
     `.execute(db);
 
     const exceptionsResult = await sql<Record<string, unknown>>`
       SELECT
-        employee_id,
+        ex.employee_id,
         COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS late_minutes,
         COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN duration_minutes ELSE 0 END), 0) AS early_leave_minutes,
         COALESCE(SUM(CASE WHEN exception_type IN ('early_check_in', 'late_check_out', 'extra_hours') AND status = 'approved' THEN COALESCE(approved_duration_minutes, duration_minutes) ELSE 0 END), 0) AS overtime_minutes,
         COALESCE(SUM(CASE WHEN exception_type IN ('late_check_in', 'short_hours') AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS late_incidents_count,
         COALESCE(SUM(CASE WHEN exception_type = 'early_check_out' AND status IN ('pending', 'approved', 'auto_calculated', 'needs_review') THEN 1 ELSE 0 END), 0) AS early_leave_incidents_count,
         COALESCE(SUM(CASE WHEN status = 'needs_review' THEN 1 ELSE 0 END), 0) AS unresolved_exceptions_count
-      FROM hr_attendance_exceptions
-      WHERE employee_id IN (${sql.join(employeeIds)}) AND tenant_id = ${tenantId}
-        AND work_date >= ${range.from}::date
-        AND work_date <= ${range.to}::date
-      GROUP BY employee_id
+      FROM hr_attendance_exceptions ex
+      JOIN hr_employees e ON e.id = ex.employee_id AND e.tenant_id = ex.tenant_id
+      WHERE ex.employee_id IN (${sql.join(employeeIds)}) AND ex.tenant_id = ${tenantId}
+        AND ex.work_date >= GREATEST(${range.from}::date, COALESCE(e.hire_date, ${range.from}::date))
+        AND ex.work_date <= LEAST(${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+      GROUP BY ex.employee_id
     `.execute(db);
 
     // Restrict approved leave days to the payroll interval. Previously a
     // leave spanning two months deducted its FULL days_count in both runs.
     const leaveDaysInRange = sql<number>`
       (COALESCE(lr.days_count, 0) * (
-        GREATEST(0, LEAST(lr.end_date, ${range.to}::date) - GREATEST(lr.start_date, ${range.from}::date) + 1)::numeric
+        GREATEST(0,
+          LEAST(lr.end_date, ${range.to}::date, COALESCE(e.end_of_service_date, ${range.to}::date))
+          - GREATEST(lr.start_date, ${range.from}::date, COALESCE(e.hire_date, ${range.from}::date)) + 1
+        )::numeric
         / GREATEST(1, lr.end_date - lr.start_date + 1)
       ))
     `;
@@ -2365,6 +2382,7 @@ export class HrService {
         COALESCE(SUM(${leaveDaysInRange}), 0) AS approved_leave_days,
         COALESCE(SUM(CASE WHEN COALESCE(lt.is_paid, TRUE) = FALSE OR LOWER(COALESCE(lt.code, '')) = 'unpaid' OR LOWER(COALESCE(lr.leave_type, '')) = 'unpaid' THEN ${leaveDaysInRange} ELSE 0 END), 0) AS unpaid_leave_days
       FROM hr_leave_requests lr
+      JOIN hr_employees e ON e.id = lr.employee_id AND e.tenant_id = lr.tenant_id
       LEFT JOIN hr_leave_types lt ON lt.id = lr.leave_type_id AND lt.tenant_id = lr.tenant_id
       WHERE lr.employee_id IN (${sql.join(employeeIds)}) AND lr.tenant_id = ${tenantId}
         AND lr.status = 'approved'
