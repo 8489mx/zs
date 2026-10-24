@@ -35,6 +35,13 @@ export function EmployeeAdjustmentsSection({ adjustments, canManage, onAddAdjust
       setError('الرجاء إدخال التاريخ.');
       return;
     }
+    if (amountType === 'money' && (
+      !Number.isSafeInteger(Math.round(Number(amount) * 100))
+      || Math.abs(Number(amount) - Math.round(Number(amount) * 100) / 100) > 0.000001
+    )) {
+      setError('المبلغ النقدي لازم يكون بدقة منزلتين عشريتين، مثال 125.50.');
+      return;
+    }
 
     try {
       await onAddAdjustment({
@@ -84,7 +91,8 @@ export function EmployeeAdjustmentsSection({ adjustments, canManage, onAddAdjust
             <span>{t('hr.employee_profile.employee_adjustments_section.s11', "القيمة")}</span>
             <input 
               type="number" 
-              step="any" 
+              step={amountType === 'money' ? '0.01' : 'any'}
+              min="0.01"
               value={amount} 
               onChange={e => setAmount(e.target.value)} 
               placeholder={t('hr.employee_profile.employee_adjustments_section.s12', "مثال: 500")} 

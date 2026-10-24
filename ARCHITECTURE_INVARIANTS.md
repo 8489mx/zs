@@ -161,6 +161,25 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-EMP-43 (25 October 2026): Employee status changes and deactivations use the payroll advisory transaction lock plus the employee FOR UPDATE row lock and status revalidation inside the transaction. They cannot slip into a payroll approval's active-employee eligibility snapshot or race with a concurrent termination. Generic status setters remain prohibited from terminating/reactivating a terminated employee.
 - No tests/build/typecheck/guards executed per user instruction.
 
+### HR full-stabilization continuation — 25 October 2026 (unexecuted test gate)
+
+This checkpoint records only **code-proven** adjustments on `fix/hr-stabilization-multicountry-20261024`. It does **not** certify the HR module, bank exports, legal country rules, or deployment.
+
+- HR-EMP-44: Repaired a TypeScript scoping error: `updateEmployeeStatus` used `validStatus` outside its transaction callback. The audit name is now computed in outer method scope (`b1732d76`).
+- HR-PAY-45: Commission sales dates use an exclusive next-period midnight boundary; a midnight invoice cannot be counted in adjacent payroll runs. Holiday dates and weekday classifications are timezone-safe (`ec3e5a1d`).
+- HR-EOS-46: Direct termination serializes with accrual approval, rejects termination before hire and retroactive termination contradicting an approved payslip, and does not truncate unrelated/future-ended contracts (`04283a60`).
+- HR-RBAC-47: Immediate termination requires both directory and salary-management permissions; employee adjustments GET requires salary/payroll visibility (`3a49c632`).
+- HR-MONEY-48: Salary contracts, initial contracts, ATS hire salaries and fixed compensation reject silently rounded monetary fractions beyond 2 decimal places; engine test inputs were authored but not run (`bd29e943`, `e2b4d2b1`).
+- HR-EOS-49: An immediate termination request with a future-effective date is rejected; it must not silently deactivate a still-employed person (`e2b4d2b1`).
+- HR-PAY-50: Newly hired employees in manual or ATS workflows acquire the tenant payroll lock first, and invalidate overlapping reviewed runs for a fresh roster review (`cc1b5612`).
+- HR-FIN-51: Loan withdrawal reporting uses tenant-local date boundaries; invalid month and custom date ranges fail validation (`58f84f37`).
+- HR-EMP-52: Employee PIN and primary contact changes are atomic; document uploader joins are tenant-scoped (`3b5d0c45`).
+- HR-API-53: Previously missing POST/DELETE employee-adjustments endpoints were restored and protected with `hrEmployees` and `hrSalaryManage` (`829e963a`).
+- HR-UI-54: Employee-profile adjustment data is requested only with finance/salary viewing permissions; writes/termination options require authorized role. The manual monetary adjustment input now matches backend cent precision (`8f04b973` and subsequent UI patch).
+- HR-EOS-55: Removed the stale legal severance preview in the employee profile which called a deliberately disabled endpoint. Direct administrative termination is clearly separated from the dedicated `/hr/settlements` process (`46ccb7c4`).
+
+**Open gates (not presumed fixed):** official EG/SA/KW/QA/OM per-employee statutory coverage and rate verification; employee citizenship/residency insurance scheme; annual tax reconciliation and nonmonthly statutory payroll; KWD/OMR three-decimal persistence and GL; verified bank-specific WPS files; integrated HR/ledger UAT. Neither tests nor build/typecheck/guards have been run. No merge into main.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
