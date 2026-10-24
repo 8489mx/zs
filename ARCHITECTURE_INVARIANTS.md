@@ -117,6 +117,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LEAVE-EMPLOYMENT-1: Both admin and employee-portal leave creation validate leave dates against the same tenant-scoped employee's hire date and end-of-service date under employee row lock. Disallows approvals/deduction days outside service employment periods, including future days beyond termination. No tests run.
 
+- HR-PORTAL-ADV-1: Employee portal advance requests now validate cent-accurate positive principal and an integer bounded repayment schedule. The draft loan and full canonical loan-installment rows are atomically inserted and tenant/active-employee verified; unique loan document numbers use inserted ID. The previous portal route created NO installments, rounded an installment without reconciliation, and used a collision-prone six-digit timestamp identifier. Tests not run.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.
