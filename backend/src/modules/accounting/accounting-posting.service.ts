@@ -3028,6 +3028,7 @@ export class AccountingPostingService {
         sql<number>`COALESCE(SUM(net_pay), 0)`.as('net_pay'),
         sql<number>`COALESCE(SUM(loan_deduction_amount), 0)`.as('loan_deductions'),
         sql<number>`COALESCE(SUM(asset_recovery_deduction_amount), 0)`.as('asset_recovery_deductions'),
+        sql<number>`COALESCE(SUM(deduction_amount), 0)`.as('operational_deductions'),
         sql<number>`COALESCE(SUM(employee_social_insurance), 0)`.as('employee_social_insurance'),
         sql<number>`COALESCE(SUM(employer_social_insurance), 0)`.as('employer_social_insurance'),
         sql<number>`COALESCE(SUM(income_tax), 0)`.as('income_tax'),
@@ -3041,6 +3042,7 @@ export class AccountingPostingService {
     const netPay = this.toMoney(totals?.net_pay || 0);
     const loanDeductions = this.toMoney(totals?.loan_deductions || 0);
     const assetRecoveryDeductions = this.toMoney(totals?.asset_recovery_deductions || 0);
+    const operationalDeductions = this.toMoney(totals?.operational_deductions || 0);
     const employeeInsurance = this.toMoney(totals?.employee_social_insurance || 0);
     const employerInsurance = this.toMoney(totals?.employer_social_insurance || 0);
     const incomeTax = this.toMoney(totals?.income_tax || 0);
@@ -3051,7 +3053,7 @@ export class AccountingPostingService {
     let allocation: ReturnType<typeof allocatePayrollAccrual>;
     try {
       allocation = allocatePayrollAccrual({
-        grossPay, netPay, loanDeductions, assetRecoveryDeductions,
+        grossPay, netPay, loanDeductions, assetRecoveryDeductions, operationalDeductions,
         employeeInsurance, employerInsurance, incomeTax,
       });
     } catch (error) {

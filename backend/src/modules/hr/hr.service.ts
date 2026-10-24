@@ -46,7 +46,7 @@ import {
   startsNewSession,
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
-import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
+import { allocateLoanDeduction, calculatePayrollLoanDueTotal } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
@@ -1942,6 +1942,7 @@ export class HrService {
         i.amount,
         i.paid_amount,
         i.status,
+        l.remaining_amount AS loan_remaining,
         to_char(COALESCE(i.due_date, l.first_due_date, l.salary_due_date), 'YYYY-MM-DD') AS due_date_text
       FROM hr_employee_loan_installments i
       JOIN hr_employee_loans l ON l.id = i.loan_id AND l.tenant_id = i.tenant_id
@@ -1955,17 +1956,21 @@ export class HrService {
         )
       ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC
     `.execute(db);
-    let total = 0;
     const notes: string[] = [];
-    for (const installment of result.rows) {
-      const amount = money(installment.amount);
-      const paidAmount = money(installment.paid_amount);
-      const remaining = Number((amount - paidAmount).toFixed(2));
-      if (remaining > 0) {
-        total = Number((total + remaining).toFixed(2));
-      } else {
-        notes.push(`Loan #${installment.loan_id} installment #${installment.installment_id} has no remaining due amount`);
-      }
+    const eligible = result.rows.map(installment => ({
+      loanId: Number(installment.loan_id),
+      installmentAmount: Number(installment.amount),
+      installmentPaid: Number(installment.paid_amount || 0),
+      loanRemaining: Number(installment.loan_remaining),
+    }));
+    let total: number;
+    try {
+      total = calculatePayrollLoanDueTotal(eligible);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : 'أرصدة السلف والأقساط غير متطابقة',
+        'HR_PAYROLL_LOAN_BALANCE_INVALID', 409,
+      );
     }
     return { amount: total, notes };
   }
@@ -2932,7 +2937,7 @@ export class HrService {
     await this.tx.runInTransaction(this.db, async (trx) => {
       // The old month-only uniqueness silently reused a WEEKLY run for every
       // subsequent week. Serialize overlapping period checks within tenant/frequency.
-      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId + ':' + payFreq}))`.execute(trx);
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const overlapping = await sql<{
         id: number; status: string; period_month: string;
         start_date_text: string; end_date_text: string;
@@ -2942,10 +2947,23 @@ export class HrService {
           to_char(end_date, 'YYYY-MM-DD') AS end_date_text
         FROM hr_payroll_runs
         WHERE tenant_id = ${tenantId}
-          AND pay_frequency = ${payFreq}
           AND status <> 'cancelled'
           AND start_date <= ${endDate}::date
           AND end_date >= ${startDate}::date
+          AND (
+            pay_frequency = ${payFreq}
+            OR pay_frequency = 'all'
+            OR ${payFreq} = 'all'
+            OR EXISTS (
+              SELECT 1 FROM hr_payroll_run_items prior_item
+              JOIN hr_employees eligible
+                ON eligible.id = prior_item.employee_id AND eligible.tenant_id = prior_item.tenant_id
+              WHERE prior_item.run_id = hr_payroll_runs.id
+                AND prior_item.tenant_id = hr_payroll_runs.tenant_id
+                AND prior_item.status <> 'excluded'
+                AND COALESCE(eligible.pay_frequency, 'monthly') = ${payFreq}
+            )
+          )
         ORDER BY id DESC
         FOR UPDATE
       `.execute(trx);
@@ -3030,6 +3048,12 @@ export class HrService {
 
   private async settlePayrollLoanDeductions(trx: Kysely<Database>, runId: number, auth: AuthContext): Promise<void> {
     const { tenantId } = requireTenantScope(auth);
+    const payrollPeriod = await sql<{ end_date: string }>`
+      SELECT to_char(end_date, 'YYYY-MM-DD') AS end_date
+      FROM hr_payroll_runs WHERE id = ${runId} AND tenant_id = ${tenantId} LIMIT 1
+    `.execute(trx);
+    const dueCutoff = payrollPeriod.rows[0]?.end_date;
+    if (!dueCutoff) throw new AppError('مسير المرتبات غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
     const items = await trx
       .selectFrom('hr_payroll_run_items')
       .select(['id', 'employee_id', 'loan_deduction_amount'])
@@ -3057,6 +3081,10 @@ export class HrService {
           AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
           AND l.status IN ('paid', 'partially_repaid', 'disbursed')
           AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
+          AND (
+            l.repayment_mode = 'deduct_next_salary'
+            OR COALESCE(i.due_date, l.first_due_date, l.salary_due_date) <= ${dueCutoff}::date
+          )
         ORDER BY COALESCE(i.due_date, l.first_due_date, l.salary_due_date) ASC, i.installment_no ASC, l.id ASC
         FOR UPDATE
       `.execute(trx);
@@ -3137,6 +3165,9 @@ export class HrService {
 
   async approvePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
+      // Lock order matches run creation: tenant-wide payroll lock BEFORE row lock.
+      // Weekly, monthly and all-employees runs cannot approve the same person twice.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'reviewed') throw new AppError('Only reviewed payroll runs can be approved', 'HR_PAYROLL_APPROVE_LOCKED', 400);
 
@@ -3196,6 +3227,31 @@ export class HrService {
         throw new AppError(
           'تم تغيير سياسات الاستقطاعات بعد مراجعة الكشف؛ أعد مراجعة المرتبات قبل الاعتماد',
           'HR_PAYROLL_POLICY_CHANGED_AFTER_REVIEW', 409,
+        );
+      }
+      const duplicatePay = await sql<{ display_name: string }>`
+        SELECT e.display_name
+        FROM hr_payroll_run_items current_item
+        JOIN hr_payroll_runs current_run ON current_run.id = current_item.run_id
+          AND current_run.tenant_id = current_item.tenant_id
+        JOIN hr_payroll_run_items prior_item ON prior_item.employee_id = current_item.employee_id
+          AND prior_item.tenant_id = current_item.tenant_id
+          AND prior_item.run_id <> current_item.run_id AND prior_item.status <> 'excluded'
+        JOIN hr_payroll_runs prior_run ON prior_run.id = prior_item.run_id
+          AND prior_run.tenant_id = prior_item.tenant_id
+        JOIN hr_employees e ON e.id = current_item.employee_id
+          AND e.tenant_id = current_item.tenant_id
+        WHERE current_item.run_id = ${id} AND current_item.tenant_id = ${auth.tenantId}
+          AND current_item.status = 'reviewed'
+          AND prior_run.status <> 'cancelled'
+          AND prior_run.start_date <= current_run.end_date
+          AND prior_run.end_date >= current_run.start_date
+        LIMIT 5
+      `.execute(trx);
+      if (duplicatePay.rows.length) {
+        throw new AppError(
+          `الموظف/الموظفون ${duplicatePay.rows.map(r => r.display_name).join('، ')} مدرجون في مسير متداخل؛ امنع صرف نفس الأيام مرتين`,
+          'HR_PAYROLL_EMPLOYEE_PERIOD_COLLISION', 409,
         );
       }
       // Never post/settle a payroll that silently contains only zero wages.
