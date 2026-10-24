@@ -674,54 +674,53 @@ export class EmployeePortalService {
     accountId: string,
     body: { leaveTypeId: number; startDate: string; endDate: string; reason?: string },
   ) {
-    if (!body.startDate || !body.endDate) {
-      throw new AppError('تاريخ بداية ونهاية الإجازة مطلوبان', 'INVALID_DATES', 400);
+    const startDate = String(body.startDate || '');
+    const endDate = String(body.endDate || '');
+    const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+      && !Number.isNaN(Date.parse(value + 'T00:00:00Z'))
+      && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value;
+    if (!validDate(startDate) || !validDate(endDate) || endDate < startDate) {
+      throw new AppError('اختر تاريخ بداية ونهاية صحيحين للإجازة', 'INVALID_DATES', 400);
+    }
+    const daysCount = Math.floor(
+      (Date.parse(endDate + 'T00:00:00Z') - Date.parse(startDate + 'T00:00:00Z')) / 86400000
+    ) + 1;
+    if (!Number.isFinite(daysCount) || daysCount <= 0) {
+      throw new AppError('مدة الإجازة غير صحيحة', 'INVALID_LEAVE_DURATION', 400);
     }
 
-    const start = new Date(body.startDate);
-    const end = new Date(body.endDate);
-    if (end < start) {
-      throw new AppError('تاريخ نهاية الإجازة يجب أن يكون بعد أو مساوياً لتاريخ البداية', 'INVALID_RANGE', 400);
-    }
-
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const daysCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-    // نوع الإجازة يصل من العميل — يجب التحقق أنه يخص نفس المستأجر،
-    // وإلا ارتبط الطلب بنوع إجازة منشأة أخرى (كان `body.leaveTypeId || 1` بلا أي فحص).
-    const leaveType = await this.anyDb
-      .selectFrom('hr_leave_types')
-      .select(['id'])
-      .where('id', '=', Number(body.leaveTypeId || 0))
-      .where('tenant_id', '=', tenantId)
-      .where('is_active', '=', true)
-      .executeTakeFirst();
-
-    if (!leaveType) {
-      throw new AppError('نوع الإجازة المحدد غير متاح في منشأتك', 'INVALID_LEAVE_TYPE', 400);
-    }
-
-    const inserted = await this.anyDb
-      .insertInto('hr_leave_requests')
-      .values({
-        employee_id: employeeId,
-        tenant_id: tenantId,
-        account_id: accountId,
-        leave_type_id: Number(leaveType.id),
-        start_date: body.startDate,
-        end_date: body.endDate,
-        days_count: daysCount,
-        status: 'pending',
-        reason: body.reason || '',
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returningAll()
-      .executeTakeFirst();
+    // Uses the SAME employee-row lock as the HR admin leave request workflow,
+    // preventing self-service and HR from creating overlapping requests at once.
+    const inserted = await this.anyDb.transaction().execute(async (trx: any) => {
+      const employee = await trx.selectFrom('hr_employees').select(['id', 'status'])
+        .where('id', '=', employeeId).where('tenant_id', '=', tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!employee || employee.status !== 'active') {
+        throw new AppError('الملف الوظيفي غير نشط', 'HR_PORTAL_EMPLOYEE_INACTIVE', 403);
+      }
+      const leaveType = await trx.selectFrom('hr_leave_types').select(['id'])
+        .where('id', '=', Number(body.leaveTypeId || 0))
+        .where('tenant_id', '=', tenantId).where('is_active', '=', true)
+        .executeTakeFirst();
+      if (!leaveType) throw new AppError('نوع الإجازة المحدد غير متاح', 'INVALID_LEAVE_TYPE', 400);
+      const overlap = await trx.selectFrom('hr_leave_requests').select('id')
+        .where('employee_id', '=', employeeId).where('tenant_id', '=', tenantId)
+        .where('status', 'in', ['pending', 'approved'])
+        .where('start_date', '<=', endDate).where('end_date', '>=', startDate)
+        .executeTakeFirst();
+      if (overlap) throw new AppError('هناك طلب إجازة متداخل بالفعل', 'HR_LEAVE_OVERLAPPING_REQUEST', 409);
+      return trx.insertInto('hr_leave_requests')
+        .values({
+          employee_id: employeeId, tenant_id: tenantId, account_id: accountId,
+          leave_type_id: Number(leaveType.id), start_date: startDate, end_date: endDate,
+          days_count: daysCount, status: 'pending', reason: body.reason || '',
+          created_at: new Date(), updated_at: new Date(),
+        }).returningAll().executeTakeFirstOrThrow();
+    });
 
     return {
       success: true,
-      message: 'تم إرسال طلب الإجازة بنجاح وسيتم إشعاركم بالقرار فور مراجعته من الإدارة',
+      message: 'تم إرسال طلب الإجازة للمراجعة',
       request: inserted,
     };
   }

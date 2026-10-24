@@ -844,19 +844,22 @@ export class HrService {
     }
     const currency = rawCurrency;
     const tempNo = `CON-TMP-${employeeId}`;
-    await sql`
+    const contract = await sql<{ id: number }>`
       INSERT INTO hr_employment_contracts (
         tenant_id, account_id, employee_id, contract_no, contract_type, status,
         start_date, base_salary, currency, notes, created_by, updated_by
       ) VALUES (
         ${tenantId}, ${accountId}, ${employeeId}, ${tempNo}, 'standard', 'active',
         ${hireDate}::date, ${salary}, ${currency}, '', ${auth.userId}, ${auth.userId}
-      )
+      ) RETURNING id
     `.execute(trx);
+    const contractId = Number(contract.rows[0]?.id);
+    if (!contractId) throw new AppError('تعذر إنشاء عقد الموظف', 'HR_RECRUITMENT_CONTRACT_FAILED', 500);
     await sql`
       UPDATE hr_employment_contracts
-      SET contract_no = ${`CON-${String(employeeId).padStart(4,'0')}`}
-      WHERE employee_id = ${employeeId} AND contract_no = ${tempNo} AND tenant_id = ${tenantId}
+      SET contract_no = ${formatDailyDocumentNumber('CON', contractId)}
+      WHERE id = ${contractId} AND employee_id = ${employeeId}
+        AND contract_no = ${tempNo} AND tenant_id = ${tenantId}
     `.execute(trx);
     return employeeId;
   }
@@ -931,7 +934,7 @@ export class HrService {
               national_id = ${nationalId || null},
               pin_hash = COALESCE(${pinRecord?.hash ?? null}, pin_hash),
               pin_salt = COALESCE(${pinRecord?.salt ?? null}, pin_salt),
-              status = COALESCE(NULLIF(${clean(payload.status)}, ''), status),
+              status = CASE WHEN status = 'terminated' THEN 'terminated' ELSE COALESCE(NULLIF(${clean(payload.status)}, ''), status) END,
               annual_leave_balance = COALESCE(${payload.annualLeaveBalance ?? null}, annual_leave_balance), department_id = ${toId(payload.departmentId)}, job_title_id = ${toId(payload.jobTitleId)}, position_id = ${toId(payload.positionId)},
               branch_id = ${toId(payload.branchId)}, location_id = ${toId(payload.locationId)}, hire_date = ${hireDate}, notes = ${clean(payload.notes)},
               compensation_type = ${compensationType},
@@ -1042,7 +1045,8 @@ export class HrService {
       throw new AppError('لا يمكن تعديل حالة موظف انتهت خدمته بدون إجراءات إعادة تعيين', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
     }
     const validStatus = ['active', 'inactive', 'deactivated'].includes(status) ? status : 'active';
-    await sql`UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    await sql`UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW()
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'`.execute(this.db);
     await this.audit.log('Update HR employee status', `Employee #${id} status changed to ${validStatus} by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
@@ -1075,7 +1079,8 @@ export class HrService {
     const status = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
     if (!status.rows.length) throw new NotFoundException('Employee not found');
     if (status.rows[0].status === 'terminated') throw new AppError('لا يمكن إلغاء تفعيل موظف انتهت خدمته', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
-    await sql`UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+    await sql`UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW()
+      WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'`.execute(this.db);
     await this.audit.log('Deactivate HR employee', `Employee #${id} deactivated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
