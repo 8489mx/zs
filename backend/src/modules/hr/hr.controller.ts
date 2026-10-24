@@ -7,6 +7,7 @@ import {
   BulkSaveAttendanceDto,
   CreateLeaveRequestDto,
   CreatePayrollAdjustmentDto,
+  CreateEmployeeAdjustmentDto,
   CreatePayrollRunDto,
   DecideAttendanceExceptionDto,
   DecideLeaveRequestDto,
@@ -434,6 +435,22 @@ export class HrController {
   @RequireAnyPermission('hrSalaryView', 'hrSalaryManage', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove')
   listEmployeeAdjustments(@Param('employeeId', ParseIntPipe) employeeId: number, @Req() req: RequestWithAuth) {
     return this.hr.listEmployeeAdjustments(employeeId, req.authContext!);
+  }
+
+  @Post('employees/:employeeId/adjustments')
+  @RequirePermissions('hrEmployees', 'hrSalaryManage')
+  createEmployeeAdjustment(
+    @Param('employeeId', ParseIntPipe) employeeId: number,
+    @Body() payload: CreateEmployeeAdjustmentDto,
+    @Req() req: RequestWithAuth,
+  ) {
+    return this.hr.createEmployeeAdjustment(employeeId, payload, req.authContext!);
+  }
+
+  @Delete('employee-adjustments/:id')
+  @RequirePermissions('hrEmployees', 'hrSalaryManage')
+  deleteEmployeeAdjustment(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.deleteEmployeeAdjustment(id, req.authContext!);
   }
 
   @Post('employees/:employeeId/contacts')
