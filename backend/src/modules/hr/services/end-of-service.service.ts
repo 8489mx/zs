@@ -477,6 +477,28 @@ export class EndOfServiceService {
         throw new BadRequestException('تم ترحيل قيد هذه المخالصة مسبقاً برقم قيد مرتبط');
       }
 
+      // Payroll accrual can have occurred after the EOS draft was computed.
+      // If payroll already covers the termination date, a nonzero manually
+      // entered unpaid salary cannot also be posted as an EOS entitlement:
+      // require HR/accounting to reconcile the payroll and regenerate a draft.
+      if (Number(settlement.pending_salary_amount || 0) > 0) {
+        const overlappingPayroll = await sql<{ id: number }>`
+          SELECT r.id FROM hr_payroll_runs r
+          JOIN hr_payroll_run_items i
+            ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+          WHERE r.tenant_id = ${tenantId}
+            AND i.employee_id = ${settlement.employee_id}
+            AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+            AND ${settlement.termination_date}::date BETWEEN r.start_date AND r.end_date
+          LIMIT 1
+        `.execute(trx);
+        if (overlappingPayroll.rows.length) {
+          throw new BadRequestException(
+            'الراتب المتأخر في المخالصة يتداخل مع مسير مرتبات معتمد؛ راجع المبالغ وأعد إنشاء المخالصة لمنع ازدواج الصرف',
+          );
+        }
+      }
+
       // Custody clearance gate: If employee has unreturned assets, custody must be cleared or deducted
       const unreturnedAssets = await (trx as any)
         .selectFrom('hr_employee_assets')
