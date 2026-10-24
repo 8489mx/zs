@@ -575,6 +575,14 @@ export class EndOfServiceService {
 
             remainingInstallmentDeduction = Number((remainingInstallmentDeduction - applied).toFixed(2));
           }
+          // Loan principal, detailed installments and EOS GL have to reconcile
+          // in the same transaction. Historic missing installments must not
+          // silently disappear from the employee repayment subledger.
+          if (remainingInstallmentDeduction > 0.005) {
+            throw new BadRequestException(
+              'أقساط السلفة لا تغطي كامل الخصم من المخالصة؛ أصلح جدول الأقساط قبل الترحيل',
+            );
+          }
 
           // Record in hr_employee_ledger
           await sql`
