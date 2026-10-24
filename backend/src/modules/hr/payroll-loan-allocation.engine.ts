@@ -61,6 +61,16 @@ export function addLoanInstallmentMonths(dateOnly: string, offset: number): stri
   return new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), Math.min(day, maxDay))).toISOString().slice(0, 10);
 }
 
+/** Persisted manual loan money must use the same two-decimal units as the GL. */
+export function requireTwoDecimalLoanMoney(value: number): number {
+  const cents = Math.round(value * 100);
+  if (!Number.isFinite(value) || value <= 0 || !Number.isSafeInteger(cents)
+    || Math.abs(value - cents / 100) > 0.000001) {
+    throw new RangeError('Loan repayment requires a positive two-decimal monetary amount');
+  }
+  return cents / 100;
+}
+
 /** Strictly positive, bounded, cent-accurate installments with exact principal reconciliation. */
 export function calculateLoanInstallmentSchedule(principal: number, countRequested: number, monthly?: number) {
   const total = Math.round(principal * 100);

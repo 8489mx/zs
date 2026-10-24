@@ -97,6 +97,8 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-PAY-BANK-1: Bank salary payment now requires a nonblank transaction reference in both validated backend and payroll payment UI, retained in the immutable paid run; cash payments do not require a fictitious bank reference. Recording a reference does not mean integration with bank confirmation. Pure regression assertions authored, not executed.
 
+- HR-LOAN-NEW-3: Manual employee loan repayments require positive cent-exact values and full reconciliation between the repayment and paid installments; no treasury cash posting or employee loan ledger is allowed if an unmatched remainder persists. Legacy inconsistent installment histories are intentionally blocked for manual correction. Tests authored, not executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

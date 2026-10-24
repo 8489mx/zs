@@ -46,7 +46,7 @@ import {
   startsNewSession,
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
-import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths } from './payroll-loan-allocation.engine';
+import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
@@ -1808,7 +1808,12 @@ export class HrService {
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
       if (!['paid', 'partially_repaid'].includes(clean(loan.status))) throw new AppError('Loan must be disbursed before repayment', 'HR_LOAN_REPAYMENT_STATUS_INVALID', 400);
-      const requestedAmount = Number(payload.amount || 0);
+      let requestedAmount: number;
+      try {
+        requestedAmount = requireTwoDecimalLoanMoney(Number(payload.amount));
+      } catch {
+        throw new AppError('مبلغ سداد السلفة يجب أن يكون موجبًا وبدقة منزلتين', 'HR_LOAN_REPAYMENT_PRECISION_INVALID', 400);
+      }
       const remainingBalance = Number(loan.remaining_amount || 0);
       if (requestedAmount > remainingBalance) {
         throw new AppError('Repayment amount exceeds remaining loan balance', 'HR_LOAN_REPAYMENT_EXCEEDS_BALANCE', 400);
@@ -1845,6 +1850,15 @@ export class HrService {
           WHERE id = ${installmentId} AND tenant_id = ${auth.tenantId}
         `.execute(trx);
         remainingRepayment = Number((remainingRepayment - applied).toFixed(2));
+      }
+      // A loan repayment must settle EXACTLY into its installment subledger.
+      // Posting only the parent loan and treasury amount would leave the
+      // pending installments inconsistent and permit repeat deductions.
+      if (remainingRepayment > 0.001) {
+        throw new AppError(
+          'تعذر توزيع مبلغ السداد كاملًا على أقساط السلفة؛ راجع الرصيد وجدول التقسيط',
+          'HR_LOAN_REPAYMENT_INSTALLMENT_MISMATCH', 409,
+        );
       }
       const ledger = await sql<{ id: number }>`
         INSERT INTO hr_employee_ledger (employee_id, entry_type, amount, balance_after, note, repayment_method, reference_type, reference_id, branch_id, location_id, created_by, tenant_id, account_id)
