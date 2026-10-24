@@ -3147,6 +3147,34 @@ export class HrService {
           'HR_PAYROLL_ATTENDANCE_PENDING', 400,
         );
       }
+      // A reviewer approves a concrete financial snapshot, not an arbitrary
+      // historic cached amount. Rebuild the SAME payroll engine under the run
+      // row lock, and reject if a salary, contract, attendance, loan or
+      // adjustment has changed since the review. A thrown error rolls back
+      // all temporary recalculation changes including adjustment status.
+      const reviewSnapshot = async () => {
+        const snapshot = await sql<Record<string, unknown>>`
+          SELECT employee_id, status, contract_id, base_salary, allowance_amount,
+                 deduction_amount, loan_deduction_amount,
+                 asset_recovery_deduction_amount, employee_social_insurance,
+                 employer_social_insurance, income_tax, penalty_deduction,
+                 carried_forward_deduction, gross_pay, net_pay
+          FROM hr_payroll_run_items
+          WHERE run_id = ${id} AND tenant_id = ${auth.tenantId}
+          ORDER BY employee_id ASC
+        `.execute(trx);
+        return JSON.stringify(snapshot.rows);
+      };
+      const reviewedAmounts = await reviewSnapshot();
+      await this.rebuildPayrollRunItems(trx, id, 'reviewed', auth.tenantId || '');
+      const recalculatedAmounts = await reviewSnapshot();
+      if (reviewedAmounts !== recalculatedAmounts) {
+        throw new AppError(
+          'تغيرت بيانات المرتبات أو الحضور أو السلف بعد المراجعة؛ يجب إعادة مراجعة الكشف قبل الاعتماد النهائي',
+          'HR_PAYROLL_REVIEW_STALE', 409,
+        );
+      }
+
       await this.settlePayrollLoanDeductions(trx, id, auth);
 
       const { posted } = await this.accountingPosting.postPayrollAccrual(trx, id, auth);
