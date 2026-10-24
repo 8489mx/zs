@@ -53,9 +53,12 @@ export function EmployeeProfilePage() {
   const profile = useHrProfile(id);
   const leaveRequestsQuery = useHrLeaveRequests({ employeeId: id || '', page: 1, pageSize: 200 });
   const assetsQuery = useHrEmployeeAssets({ employeeId: id || '', page: 1, pageSize: 200 });
-  const adjustmentsQuery = useHrEmployeeAdjustments(id);
   const mutations = useHrMutations();
   const canViewSalary = useHasAnyPermission(['hrSalaryView', 'hrSalaryManage', 'hrPayrollView', 'hrPayrollManage', 'hrPayrollApprove']);
+  const hasEmployeeWriteAccess = useHasAnyPermission('hrEmployees');
+  const hasSalaryManageAccess = useHasAnyPermission('hrSalaryManage');
+  const canEditSalaryAdjustments = hasEmployeeWriteAccess && hasSalaryManageAccess;
+  const adjustmentsQuery = useHrEmployeeAdjustments(canViewSalary ? id : undefined);
   const canViewLoans = useHasAnyPermission('hrLoans');
   const canManageEmployees = useHasAnyPermission(['hrEmployees', 'hrContracts', 'hrSalaryManage']);
 
@@ -180,7 +183,7 @@ export function EmployeeProfilePage() {
               {canManageEmployees && id && (
                 <Button variant="secondary" onClick={() => navigate(`/hr/employees/${id}/edit`)}>{t('hr.employee_profile_page.s3', "تعديل البيانات")}</Button>
               )}
-              {canManageEmployees && employee && (
+              {canEditSalaryAdjustments && employee && (
                 <Button variant="secondary" onClick={() => setShowEndOfServiceModal(true)} style={{ color: '#dc2626', borderColor: '#fecaca' }}>
                   {t('hr.employee_profile_page.s4', "مستحقات نهاية الخدمة")}
                 </Button>
@@ -548,8 +551,9 @@ export function EmployeeProfilePage() {
                 </div>
               </div>
 
-              {id ? (
+              {id && canViewSalary ? (
                 <EmployeeAdjustmentsSection
+                  canManage={canEditSalaryAdjustments}
                   adjustments={adjustmentsQuery.adjustments}
                   onAddAdjustment={async (payload) => {
                     await mutations.createEmployeeAdjustment.mutateAsync({ employeeId: id, payload });
