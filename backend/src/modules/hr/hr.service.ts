@@ -5596,14 +5596,21 @@ export class HrService {
     const employee = employeeResult.rows[0];
     if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
 
-    const now = new Date();
-    const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-    const monthValue = /^\d{4}-\d{2}$/.test(requestedMonth) ? requestedMonth : currentMonth;
-    const [yearValue, monthValueNumber] = monthValue.split('-').map(Number);
-    const monthFrom = `${monthValue}-01`;
-    const monthTo = new Date(Date.UTC(yearValue, monthValueNumber, 0)).toISOString().slice(0, 10);
-
-    const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+    // Financial date selectors follow the tenant's local calendar, never UTC
+    // server midnight (which is a different payroll day in Egypt/GCC).
+    const today = todayTenantDate(await getTenantTimezone(this.db, tenantId));
+    const currentMonth = today.slice(0, 7);
+    if (requestedMonth && !normalizePayrollMonth(requestedMonth)) {
+      throw new AppError('الشهر المطلوب غير صحيح', 'HR_WITHDRAWALS_MONTH_INVALID', 400);
+    }
+    if (period === 'custom' && (
+      (query.from && !customFrom) || (query.to && !customTo)
+      || (customFrom && customTo && customFrom > customTo)
+    )) {
+      throw new AppError('نطاق تواريخ المسحوبات غير صحيح', 'HR_WITHDRAWALS_RANGE_INVALID', 400);
+    }
+    const monthValue = normalizePayrollMonth(requestedMonth) || currentMonth;
+    const { from: monthFrom, to: monthTo } = monthRange(monthValue);
     const hireDate = clean(employee.hire_date_text) || '1900-01-01';
     const fromDate = period === 'custom'
       ? customFrom || monthFrom
