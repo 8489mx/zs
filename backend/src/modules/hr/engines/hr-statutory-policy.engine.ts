@@ -24,6 +24,24 @@ export interface HrStatutoryPolicy {
   taxBrackets?: { max: number | null; rate: number }[];
 }
 
+/** Validate jurisdiction against the tenant's configured payment currency. No legal
+ * rates are implied by this mapping, which only protects against mixed-country
+ * settings on a single company ledger.
+ */
+export function requireHrPayrollJurisdictionCurrency(
+  country: HrStatutoryPolicy['statutoryCountry'] | string | undefined,
+  tenantCurrency: string,
+): void {
+  const countries: Record<string, string> = {
+    EG: 'EGP', SA: 'SAR', KW: 'KWD', QA: 'QAR', OM: 'OMR',
+  };
+  const expectedCurrency = countries[String(country || '').trim().toUpperCase()];
+  if (!expectedCurrency) throw new RangeError('حدد دولة المرتبات المعتمدة للمنشأة');
+  if (String(tenantCurrency || '').trim().toUpperCase() !== expectedCurrency) {
+    throw new RangeError('دولة سياسة المرتبات لا تطابق عملة المنشأة؛ أوقف الاعتماد وصحح السياسة');
+  }
+}
+
 const money = (v: number): number => Number(v.toFixed(2));
 function validDate(d: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(d)

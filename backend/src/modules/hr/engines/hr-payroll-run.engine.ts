@@ -59,7 +59,11 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
       throw new RangeError('أجر التأمينات الخاص بالموظف غير محدد وفق سياسة المنشأة');
     }
   } else {
-    insuranceSalary = nonnegative(line.baseSalary, 'baseSalary');
+    // "earned_base" means the full earnings base, not just baseSalary;
+    // excluding allowances/overtime/commission silently underwithholds.
+    insuranceSalary = input.policy.insuranceWageBasis === 'earned_base'
+      ? wageAfterAbsence
+      : nonnegative(line.baseSalary, 'baseSalary');
   }
   // First pass calculates insurance; second pass calculates tax against the
   // explicitly selected tax base (with or without the employee insurance share).

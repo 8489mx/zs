@@ -65,6 +65,11 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 - HR-PAY-22: Approval blocks unresolved hourly punches and requires an accountant-reviewed effective-dated jurisdiction even when deductions are configured as disabled. All payroll accruals reconcile each individual persisted employee payslip, not just aggregate totals.
 - Verification: numeric regression specs are authored but NOT executed; build/typecheck/guards likewise NOT run. Currency precision for KWD/OMR and complete nationality-specific legislation remain blocked. No main merge or deployment.
 
+- HR-PAY-23 (24 October follow-up): All draft/review/run creation and manual-line mutation paths use the same tenant payroll advisory transaction lock before the run lock, to serialize applied adjustments across overlapping run candidates. Policy country must match the tenant currency before approval; no statutory rates are derived from that mapping.
+- HR-PAY-24: The explicit `earned_base` insurance wage source includes contractual earnings, allowances, commissions and overtime minus unpaid attendance/leave, rather than ignoring everything but base salary. Non-finite or negative manual adjustments are rejected. Date-only and payroll month input use calendar validation.
+- Awaiting: end-to-end tenant/currency and legal-country acceptance tests, official country-dependent residency/nationality coverage and statutory settlement/WPS certification. KWD/OMR still intentionally blocked pending coordinated 3-decimal migration.
+- Numeric tests authored but NOT executed; no build, typecheck or guards invoked.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

@@ -40,6 +40,17 @@ assert.equal(result.appliedLoanDeduction, 2000);
 assert.equal(result.netPay, 7180);
 assert.equal(result.totalDeductions, 4820);
 
+// Full earned-wage insurance basis includes approved overtime/allowances
+// and subtracts unpaid time, rather than silently using base pay only.
+const earnedInsurance = calculateHrPayrollRunLine({
+  ...base,
+  policy: { ...base.policy, hrIncomeTaxEnabled: false,
+    insuranceWageBasis: 'earned_base', insuranceConfig: { employeePct: 10, employerPct: 15 } },
+  line: { ...base.line, attendanceDeduction: 1000, leaveDeduction: 500 },
+});
+assert.equal(earnedInsurance.employeeSocialInsurance, 1050);
+assert.equal(earnedInsurance.employerSocialInsurance, 1575);
+
 const addedAllowance = calculateHrPayrollRunLine({ ...base, line: {
   ...base.line, allowanceAmount: 2500,
 } });

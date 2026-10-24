@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import {
   calculateHrStatutoryAmounts,
   validateHrStatutoryPolicy,
+  requireHrPayrollJurisdictionCurrency,
   type HrStatutoryPolicy,
 } from '../../src/modules/hr/engines/hr-statutory-policy.engine';
 
@@ -22,6 +23,11 @@ const policy: HrStatutoryPolicy = {
   taxBrackets: [{ max: 120000, rate: 5 }, { max: null, rate: 10 }],
 };
 const month = { from: '2026-10-01', to: '2026-10-31' };
+for (const [country, currency] of [['EG', 'EGP'], ['SA', 'SAR'], ['KW', 'KWD'], ['QA', 'QAR'], ['OM', 'OMR']]) {
+  assert.doesNotThrow(() => requireHrPayrollJurisdictionCurrency(country, currency));
+}
+assert.throws(() => requireHrPayrollJurisdictionCurrency('EG', 'SAR'), /لا تطابق/);
+assert.throws(() => requireHrPayrollJurisdictionCurrency('', 'EGP'), /دولة/);
 
 assert.doesNotThrow(() => validateHrStatutoryPolicy(policy, month));
 assert.throws(() => validateHrStatutoryPolicy({

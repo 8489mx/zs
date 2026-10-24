@@ -49,7 +49,7 @@ import {
 import { allocateLoanDeduction, calculatePayrollLoanDueTotal } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from './engines/hr-payroll-run.engine';
-import { validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
+import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
@@ -101,14 +101,18 @@ function isUniqueViolation(error: unknown): boolean {
 
 function normalizeDateOnly(value: unknown): string | null {
   const text = clean(value);
-  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+  if (isoMatch) {
+    const result = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+    const dt = new Date(result + 'T00:00:00Z');
+    return Number.isFinite(dt.getTime()) && dt.toISOString().slice(0, 10) === result ? result : null;
+  }
   const usMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
     const month = Number(usMatch[1]);
     const day = Number(usMatch[2]);
     if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      return `${usMatch[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      return normalizeDateOnly(`${usMatch[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
     }
   }
   return null;
@@ -131,7 +135,8 @@ function addMonths(value: string, months: number): string {
 
 function normalizePayrollMonth(value: unknown): string {
   const text = clean(value);
-  return /^\d{4}-\d{2}$/.test(text) ? text : '';
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(text)) return '';
+  return text;
 }
 
 function monthRange(periodMonth: string): { from: string; to: string } {
@@ -2079,6 +2084,7 @@ export class HrService {
           )
         )
         AND (e.hire_date IS NULL OR e.hire_date <= ${range.to}::date)
+        AND (e.end_of_service_date IS NULL OR e.end_of_service_date >= ${range.from}::date)
         ${payFreq === 'all' ? sql`` : sql`AND COALESCE(e.pay_frequency, 'monthly') = ${payFreq}`}
       ORDER BY e.id ASC
     `.execute(db);
@@ -2926,9 +2932,9 @@ export class HrService {
     const month = monthRange(periodMonth);
     const startDate = payload.startDate ? normalizeDateOnly(payload.startDate) : month.from;
     const endDate = payload.endDate ? normalizeDateOnly(payload.endDate) : month.to;
-    const periodLengthDays = Math.floor(
-      (Date.parse(endDate + 'T00:00:00Z') - Date.parse(startDate + 'T00:00:00Z')) / 86400000
-    );
+    const periodLengthDays = startDate && endDate
+      ? Math.floor((Date.parse(endDate + 'T00:00:00Z') - Date.parse(startDate + 'T00:00:00Z')) / 86400000)
+      : NaN;
     if (!startDate || !endDate || !Number.isFinite(periodLengthDays) || periodLengthDays < 0 || periodLengthDays > 366) {
       throw new AppError('اختر تاريخ بداية ونهاية صحيحين لفترة القبض', 'HR_PAYROLL_PERIOD_INVALID', 400);
     }
@@ -3005,6 +3011,7 @@ export class HrService {
 
   async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
       await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
@@ -3016,6 +3023,7 @@ export class HrService {
   async applyAttendanceDeductions(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, tenantId);
       if (status !== 'draft' && status !== 'reviewed') {
         throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_APPLY_DEDUCTIONS_LOCKED', 400);
@@ -3037,6 +3045,7 @@ export class HrService {
 
   async reviewPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') {
         throw new AppError('Only draft or reviewed payroll runs can be reviewed', 'HR_PAYROLL_REVIEW_LOCKED', 400);
@@ -3212,6 +3221,11 @@ export class HrService {
           from: period.start_date,
           to: period.end_date,
         }, true);
+        const currencyRows = await sql<{ value: string }>`
+          SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
+        `.execute(trx);
+        const tenantCurrency = clean(currencyRows.rows[0]?.value).replace(/^"|"$/g, '');
+        requireHrPayrollJurisdictionCurrency(policies.statutoryCountry, tenantCurrency);
       } catch (error) {
         throw new AppError(
           error instanceof Error ? error.message : 'قواعد الضرائب والتأمينات غير معتمدة',
@@ -3426,6 +3440,7 @@ export class HrService {
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, tenantId);
       if (status === 'cancelled') return; // idempotent; do not release any other run
       if (!['draft', 'reviewed'].includes(status)) {
@@ -3604,6 +3619,7 @@ export class HrService {
     const { tenantId } = requireTenantScope(auth);
     let runId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       // Run lock serializes item exclusion against review/approval and freezes
       // the financial snapshot before either committed status may change.
       const locked = await sql<{ run_id: number; run_status: string; item_status: string }>`
@@ -3632,7 +3648,11 @@ export class HrService {
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+    if (typeof payload.amount !== 'number' || !Number.isFinite(payload.amount) || payload.amount <= 0) {
+      throw new AppError('مبلغ التعديل يجب أن يكون موجبًا وصحيحًا', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
+    }
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       // Recheck while holding the same payroll-run row lock as review/approval.
       const locked = await sql<{ status: string }>`
         SELECT r.status FROM hr_payroll_runs r
@@ -3658,6 +3678,7 @@ export class HrService {
     let runId = 0;
     let itemId = 0;
     await this.tx.runInTransaction(this.db, async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const result = await sql<{ payroll_item_id: number; run_id: number; run_status: string }>`
         SELECT a.payroll_item_id, i.run_id, r.status AS run_status
         FROM hr_payroll_item_adjustments a
