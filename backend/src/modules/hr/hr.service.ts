@@ -48,7 +48,7 @@ import {
 } from './attendance-punch.engine';
 import { allocateLoanDeduction } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
-import { calculateHrPayrollRunLine } from './engines/hr-payroll-run.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
@@ -2067,9 +2067,21 @@ export class HrService {
     `.execute(db);
 
     const empIds = employees.rows.map(e => Number(e.employee_id)).filter(id => id > 0);
+    const currencySetting = await sql<{ value: string }>`
+      SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
+    `.execute(db);
+    const payrollCurrency = clean(currencySetting.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+    try {
+      requirePayrollMonetaryCurrency(payrollCurrency, payrollCurrency);
+    } catch (error) {
+      throw new AppError(
+        error instanceof Error ? error.message : 'عملة مسير الرواتب غير مدعومة',
+        'HR_PAYROLL_CURRENCY_UNSUPPORTED', 409,
+      );
+    }
     const contractRows = empIds.length
       ? await sql<Record<string, unknown>>`
-          SELECT employee_id, id, base_salary,
+          SELECT employee_id, id, base_salary, currency,
             to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
             to_char(end_date, 'YYYY-MM-DD') AS end_date_text
           FROM hr_employment_contracts
@@ -2083,6 +2095,14 @@ export class HrService {
     const contractHistory = new Map<number, EffectiveSalaryContract[]>();
     for (const row of contractRows.rows) {
       const employeeId = Number(row.employee_id);
+      try {
+        requirePayrollMonetaryCurrency(payrollCurrency, clean(row.currency));
+      } catch (error) {
+        throw new AppError(
+          `عملة عقد الموظف #${employeeId}: ${error instanceof Error ? error.message : 'عملة غير صحيحة'}`,
+          'HR_PAYROLL_CONTRACT_CURRENCY_MISMATCH', 409,
+        );
+      }
       const item: EffectiveSalaryContract = {
         id: Number(row.id),
         startDate: String(row.start_date_text),

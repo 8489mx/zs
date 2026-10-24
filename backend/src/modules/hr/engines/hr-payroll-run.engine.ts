@@ -90,3 +90,20 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
     incomeTax: tax.incomeTax,
   });
 }
+
+// Payroll line storage and GL posting currently round to 2 decimals.
+// KWD and OMR are 3-decimal currencies; accepting them here would silently
+// lose fils/baisa. Extend ALL posting/storage paths before enabling them.
+export function requirePayrollMonetaryCurrency(tenantCurrency: string, contractCurrency: string): void {
+  const tenant = String(tenantCurrency || '').trim().toUpperCase();
+  const contract = String(contractCurrency || '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(tenant) || !/^[A-Z]{3}$/.test(contract)) {
+    throw new RangeError('حدد عملة منشأة وعملة عقد صحيحتين قبل حساب المرتب');
+  }
+  if (tenant !== contract) {
+    throw new RangeError(`عملة عقد الموظف ${contract} لا تطابق عملة المنشأة ${tenant}`);
+  }
+  if (['KWD', 'OMR'].includes(tenant)) {
+    throw new RangeError(`عملة ${tenant} تتطلب 3 منازل عشرية؛ يجب تطوير دقة القيود والرواتب قبل اعتماد مسيراتها`);
+  }
+}

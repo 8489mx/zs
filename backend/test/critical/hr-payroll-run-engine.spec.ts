@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert';
-import { calculateHrPayrollRunLine } from '../../src/modules/hr/engines/hr-payroll-run.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency } from '../../src/modules/hr/engines/hr-payroll-run.engine';
 import type { HrPayrollRunLineInput } from '../../src/modules/hr/engines/hr-payroll-run.engine';
 
 // Deliberately synthetic rates, NOT the legislation of Egypt or any GCC country.
@@ -27,6 +27,10 @@ const base: HrPayrollRunLineInput = {
     scheduledLoanDeduction: 2000, maxDeductionPct: 1,
   },
 };
+assert.doesNotThrow(() => requirePayrollMonetaryCurrency('EGP', 'EGP'));
+assert.throws(() => requirePayrollMonetaryCurrency('EGP', 'SAR'), /لا تطابق/);
+assert.throws(() => requirePayrollMonetaryCurrency('KWD', 'KWD'), /3 منازل/);
+assert.throws(() => requirePayrollMonetaryCurrency('OMR', 'OMR'), /3 منازل/);
 const result = calculateHrPayrollRunLine(base);
 assert.equal(result.grossPay, 12000);
 assert.equal(result.employeeSocialInsurance, 800);
