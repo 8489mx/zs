@@ -32,8 +32,7 @@ export function ChinaQuotationsTab() {
   const [totalForeign, setTotalForeign] = useState<number>(45);
   const [exchangeRate, setExchangeRate] = useState<number>(50);
   const [shippingCostUsd, setShippingCostUsd] = useState<number>(3.5);
-  const [customsDutyEgp, setCustomsDutyEgp] = useState<number>(10);
-  const [estimatedUnitCostEgp] = useState<number>(1613);
+  const [customsDutyEgp, setCustomsDutyEgp] = useState<number>(5);
   const [leadTimeDays, setLeadTimeDays] = useState<number>(30);
   const [validUntil, setValidUntil] = useState('');
 
@@ -45,6 +44,21 @@ export function ChinaQuotationsTab() {
       return Array.isArray(res) ? res : (res as any)?.items || [];
     },
   });
+
+  const selectedProject = projects.find((p: any) => String(p.id) === String(projectId));
+  const projectFeas = typeof selectedProject?.feasibility_data === 'string'
+    ? JSON.parse(selectedProject.feasibility_data || '{}')
+    : (selectedProject?.feasibility_data || {});
+  const projectItems: any[] = Array.isArray(projectFeas?.items) ? projectFeas.items : [];
+
+  const estimatedUnitLandedCostEgp = Number(
+    (
+      (Number(totalForeign || 0) + Number(shippingCostUsd || 0)) *
+      Number(exchangeRate || 50) *
+      (1 + Number(customsDutyEgp || 5) / 100) *
+      1.14
+    ).toFixed(2)
+  );
 
   const handleCreateQuotation = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +78,7 @@ export function ChinaQuotationsTab() {
         exchangeRate: Number(exchangeRate),
         estimatedFreightUsd: Number(shippingCostUsd),
         estimatedCustomsRatePercent: Number(customsDutyEgp),
-        estimatedUnitCostEgp: Number(estimatedUnitCostEgp),
+        estimatedUnitCostEgp: estimatedUnitLandedCostEgp,
         productionLeadDays: Number(leadTimeDays),
         expiryDate: validUntil || undefined,
       });
@@ -224,18 +238,18 @@ export function ChinaQuotationsTab() {
 
       {/* Modal: Create Quotation */}
       <StandardDialog
-        isOpen={isCreateOpen}
+        open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         title="تسجيل عرض سعر مصنع (Factory RFQ Quotation)"
-        subtitle="إدخال أسعار وشروط المصنع للمقارنة الفنية والمالية وحساب تكلفة الوحدة الواصلة"
-        width="650px"
+        subtitle="مقارنة تكلفة الوحدة وشروط المصنع وحساب تكلفة القطعة الواصلة للمخازن (Landed Cost)"
+        width="760px"
         compact
       >
         <form onSubmit={handleCreateQuotation} dir="rtl" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr', gap: 10 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                المصنع الصيني: *
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#170e5e', marginBottom: 3 }}>
+                المصنع / المورد الدولي: *
               </label>
               <select
                 className="input"
@@ -254,8 +268,8 @@ export function ChinaQuotationsTab() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                مشروع الاستيراد:
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 3 }}>
+                مشروع الاستيراد المعتمد:
               </label>
               <select
                 className="input"
@@ -273,8 +287,34 @@ export function ChinaQuotationsTab() {
             </div>
           </div>
 
+          {projectItems.length > 0 && (
+            <div style={{ backgroundColor: '#f1f5f9', padding: '8px 12px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#170e5e', marginBottom: 3 }}>
+                سحب الصنف من دراسة جدوى المشروع:
+              </label>
+              <select
+                className="input"
+                style={{ width: '100%', padding: '6px 8px', fontSize: 12.5 }}
+                onChange={(e) => {
+                  const sel = projectItems.find((it: any) => (it.name || it.productName) === e.target.value);
+                  if (sel) {
+                    setItemName(sel.name || sel.productName);
+                    if (sel.factoryPriceUsd) setTotalForeign(Number(sel.factoryPriceUsd));
+                  }
+                }}
+              >
+                <option value="">-- اختر بند من دراسة الجدوى أو اكتب الصنف يدوياً بالأسفل --</option>
+                {projectItems.map((it: any, idx: number) => (
+                  <option key={idx} value={it.name || it.productName}>
+                    {it.name || it.productName} (سعر الجدوى: ${it.factoryPriceUsd || it.unitPriceForeign || 0})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 3 }}>
               اسم الصنف / البند المطلوب تسعيره: *
             </label>
             <input
@@ -282,30 +322,30 @@ export function ChinaQuotationsTab() {
               className="input"
               style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
               value={itemName}
-              placeholder="مثال: خلاط منزلي 1200 وات موديل Pro-X"
+              placeholder="مثال: طقم تيل فرامل وبطانات مكابح شاحنات ثقيلة"
               onChange={(e) => setItemName(e.target.value)}
               required
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 10 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                رقم العرض:
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 3 }}>
+                رقم عرض السعر:
               </label>
               <input
                 type="text"
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={quotationNo}
-                placeholder="RFQ-261023-0001"
+                placeholder="RFQ-261024-0001"
                 onChange={(e) => setQuotationNo(e.target.value)}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                شرط التسليم:
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 3 }}>
+                شرط التسليم (Incoterm):
               </label>
               <select
                 className="input"
@@ -321,28 +361,32 @@ export function ChinaQuotationsTab() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                إجمالي قيمة البضاعة ($): *
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#0369a1', marginBottom: 3 }}>
+                سعر وحدة الصنف من المصنع ($ - FOB): *
               </label>
               <input
                 type="number"
+                step="0.01"
+                min="0.01"
                 className="input"
-                style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
+                style={{ width: '100%', padding: '7px 10px', fontSize: 13, fontWeight: 700, color: '#0369a1' }}
                 value={totalForeign}
                 onChange={(e) => setTotalForeign(Number(e.target.value))}
+                placeholder="سعر القطعة بالدولار"
                 required
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1.2fr', gap: 10 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 3 }}>
                 سعر صرف التقدير (ج.م/$):
               </label>
               <input
                 type="number"
                 step="0.01"
+                min="1"
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={exchangeRate}
@@ -351,39 +395,49 @@ export function ChinaQuotationsTab() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                الشحن البحري المقدر ($):
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 3 }}>
+                نصيب القطعة من الشحن البحري ($):
               </label>
               <input
                 type="number"
+                step="0.1"
+                min="0"
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={shippingCostUsd}
                 onChange={(e) => setShippingCostUsd(Number(e.target.value))}
+                placeholder="3.5$ للقطعة (أو 3500$ للحاوية)"
               />
+              <span style={{ fontSize: 10.5, color: '#64748b' }}>نولون شحن القطعة (3,500$ للحاوية ÷ 1,000 قطعة)</span>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                الجمارك والضرائب المقدرة (ج.م):
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 3 }}>
+                نسبة التعريفة الجمركية المقدرة (%):
               </label>
               <input
                 type="number"
+                step="0.5"
+                min="0"
+                max="100"
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={customsDutyEgp}
                 onChange={(e) => setCustomsDutyEgp(Number(e.target.value))}
+                placeholder="5% لقطع غيار الشاحنات"
               />
+              <span style={{ fontSize: 10.5, color: '#64748b' }}>نسبة مئوية (5% لقطع النقل الثقيل)</span>
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                مدة الإنتاج (أيام):
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                مدة الإنتاج والتجهيز (أيام):
               </label>
               <input
                 type="number"
+                min="1"
                 className="input"
                 style={{ width: '100%', padding: '7px 10px', fontSize: 13 }}
                 value={leadTimeDays}
@@ -392,8 +446,8 @@ export function ChinaQuotationsTab() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
-                صلاحية العرض حتى:
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                صلاحية العرض حتى تاريخ:
               </label>
               <input
                 type="date"
@@ -405,7 +459,24 @@ export function ChinaQuotationsTab() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+          {/* Dynamic Live Landed Cost Calculation Card */}
+          <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, padding: '10px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#065f46' }}>
+                  التكلفة التقديرية الواصلة للقطعة (Estimated Landed Cost):
+                </span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: '#047857', marginRight: 8 }}>
+                  {formatCurrency(estimatedUnitLandedCostEgp)}
+                </span>
+              </div>
+              <span style={{ fontSize: 11, color: '#047857' }}>
+                (سعر المصنع ${totalForeign} + شحن القطعة ${shippingCostUsd}) × {exchangeRate} ج.م + جمارك {customsDutyEgp}% + ض.ق.م 14%
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
             <button
               type="button"
               onClick={() => setIsCreateOpen(false)}
@@ -415,7 +486,7 @@ export function ChinaQuotationsTab() {
             </button>
             <button
               type="submit"
-              style={{ padding: '7px 16px', backgroundColor: '#170e5e', color: '#ffffff', border: 'none', borderRadius: 6, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+              style={{ padding: '7px 18px', backgroundColor: '#170e5e', color: '#ffffff', border: 'none', borderRadius: 6, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
             >
               حفظ العرض للمقارنة
             </button>

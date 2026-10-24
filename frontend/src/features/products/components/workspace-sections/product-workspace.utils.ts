@@ -11,6 +11,7 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     name: product.name || '',
     nameEn: (product as any).nameEn || '',
     barcode: product.barcode || '',
+    sku: (product as any).sku || '',
     itemType: product.itemType || 'product',
     itemKind: product.itemKind === 'fashion' ? 'fashion' : 'standard',
     styleCode: product.styleCode || '',
@@ -79,7 +80,9 @@ export function buildUpdatePayload(
 
   return {
     name: values.name,
+    nameEn: (values as any).nameEn || undefined,
     barcode: values.barcode || '',
+    sku: (values as any).sku || undefined,
     itemType: values.itemType || 'product',
     itemKind,
     styleCode: values.styleCode || '',

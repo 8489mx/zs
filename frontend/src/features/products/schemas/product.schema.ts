@@ -4,6 +4,7 @@ export const productFormSchema = z.object({
   name: z.string().default(''),
   nameEn: z.string().default(''),
   barcode: z.string().optional(),
+  sku: z.string().optional(),
   itemType: z.enum(['product', 'raw_material', 'service']).default('product'),
   itemKind: z.enum(['standard', 'fashion']).default('standard'),
   styleCode: z.string().optional(),
@@ -42,6 +43,7 @@ export const productFormSchema = z.object({
   metadata: z.object({
     expiryDate: z.string().optional(),
     oemNumber: z.string().optional(),
+    partNumber: z.string().optional(),
     carBrand: z.string().optional(),
     carModel: z.string().optional(),
     carYearFrom: z.string().optional(),

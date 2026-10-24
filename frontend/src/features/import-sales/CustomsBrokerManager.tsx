@@ -46,7 +46,7 @@ export function CustomsBrokerManager() {
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedShipmentId, setSelectedShipmentId] = useState('');
   const [advanceNo, setAdvanceNo] = useState('');
-  const [advanceAmountEgp, setAdvanceAmountEgp] = useState<number>(100000);
+  const [advanceAmountEgp, setAdvanceAmountEgp] = useState<number | string>('');
   const [treasuryAccountId, setTreasuryAccountId] = useState('');
   const [advanceNotes, setAdvanceNotes] = useState('');
 
@@ -54,7 +54,7 @@ export function CustomsBrokerManager() {
   const [selectedAdvanceId, setSelectedAdvanceId] = useState('');
   const [liquidateReceiptNo, setLiquidateReceiptNo] = useState('');
   const [liquidateCategory, setLiquidateCategory] = useState('customs_duty');
-  const [liquidateAmountEgp, setLiquidateAmountEgp] = useState<number>(50000);
+  const [liquidateAmountEgp, setLiquidateAmountEgp] = useState<number | string>('');
   const [isCapitalized, setIsCapitalized] = useState(true);
   const [isRefundableVat, setIsRefundableVat] = useState(false);
   const [liquidateNotes, setLiquidateNotes] = useState('');
@@ -121,7 +121,7 @@ export function CustomsBrokerManager() {
       toast.error('يرجى اختيار المخلص الجمركي');
       return;
     }
-    if (advanceAmountEgp <= 0) {
+    if (Number(advanceAmountEgp) <= 0) {
       toast.error('مبلغ العهدة يجب أن يكون أكبر من صفر');
       return;
     }
@@ -163,7 +163,7 @@ export function CustomsBrokerManager() {
       toast.error('رقم الإيصال / الفاتورة مطلوب');
       return;
     }
-    if (liquidateAmountEgp <= 0) {
+    if (Number(liquidateAmountEgp) <= 0) {
       toast.error('مبلغ التصفية يجب أن يكون أكبر من صفر');
       return;
     }

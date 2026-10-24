@@ -3,6 +3,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import {
   useCustomsTariffsQuery,
+  useCustomsTariffSectorsQuery,
   useCalculateCustomsMutation,
   useUpsertAciComplianceMutation,
 } from './api/shipments.api';
@@ -11,12 +12,34 @@ import {
   SearchIcon,
   RefreshCwIcon,
   PlusCircleIcon,
+  CheckShieldIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
 export default function CustomsTariffCalculator() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: tariffs = [], refetch } = useCustomsTariffsQuery(searchTerm);
+  const [selectedSector, setSelectedSector] = useState('all');
+  const { data: tariffSectors = [] } = useCustomsTariffSectorsQuery();
+  const { data: tariffs = [], refetch } = useCustomsTariffsQuery(searchTerm, selectedSector);
+
+  const availableSectors =
+    tariffSectors && tariffSectors.length > 0
+      ? tariffSectors
+      : [
+          { id: 'commercial_vehicles_spare_parts', name_ar: 'قطع غيار سيارات النقل والتريلات (5%)' },
+          { id: 'electronics_it', name_ar: 'الإلكترونيات والاتصالات' },
+          { id: 'home_appliances', name_ar: 'الأجهزة الكهربائية والمنزلية' },
+          { id: 'textiles_garments', name_ar: 'الملابس والمنسوجات' },
+          { id: 'plastics_raw', name_ar: 'اللدائن ومستلزمات التعبئة' },
+          { id: 'sanitary_building', name_ar: 'الأدوات الصحية ومواد البناء' },
+        ];
+
+  const displayedTariffs = tariffs.filter((t: any) => {
+    if (selectedSector && selectedSector !== 'all') {
+      return t.sector === selectedSector;
+    }
+    return true;
+  });
   const calculateCustomsMutation = useCalculateCustomsMutation();
   const upsertAciMutation = useUpsertAciComplianceMutation();
 
@@ -213,17 +236,80 @@ export default function CustomsTariffCalculator() {
 
       {/* 3. Tariffs Table */}
       <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14, padding: '18px 20px' }}>
+        {/* Sector Selection Pills */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+          <button
+            type="button"
+            onClick={() => setSelectedSector('all')}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: selectedSector === 'all' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+              backgroundColor: selectedSector === 'all' ? '#170e5e' : '#ffffff',
+              color: selectedSector === 'all' ? '#ffffff' : '#334155',
+            }}
+          >
+            <span>كافة القطاعات ({tariffs.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedSector('commercial_vehicles_spare_parts')}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 20,
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: selectedSector === 'commercial_vehicles_spare_parts' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+              backgroundColor: selectedSector === 'commercial_vehicles_spare_parts' ? '#170e5e' : '#ffffff',
+              color: selectedSector === 'commercial_vehicles_spare_parts' ? '#ffffff' : '#334155',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <CheckShieldIcon size={14} />
+            <span>قطع غيار سيارات النقل والتريلات (5%)</span>
+          </button>
+
+          {availableSectors
+            .filter((s: any) => s.id !== 'commercial_vehicles_spare_parts')
+            .map((sec: any) => (
+              <button
+                key={sec.id}
+                type="button"
+                onClick={() => setSelectedSector(sec.id)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: selectedSector === sec.id ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                  backgroundColor: selectedSector === sec.id ? '#170e5e' : '#ffffff',
+                  color: selectedSector === sec.id ? '#ffffff' : '#334155',
+                }}
+              >
+                <span>{sec.name_ar}</span>
+              </button>
+            ))}
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ position: 'relative', width: 300 }}>
+          <div style={{ position: 'relative', width: 340 }}>
             <input
               type="text"
-              placeholder="بحث في بنود التعريفة الجمركية المصرية..."
+              placeholder="بحث برقم البند أو اسم الصنف (مثال: 8708.30، فرامل، محرك)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ width: '100%', height: 34, padding: '4px 32px 4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
+              style={{ width: '100%', height: 36, padding: '4px 34px 4px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: '12.5px' }}
             />
-            <span style={{ position: 'absolute', right: 10, top: 9, color: '#94a3b8' }}>
-              <SearchIcon size={14} />
+            <span style={{ position: 'absolute', right: 10, top: 10, color: '#94a3b8' }}>
+              <SearchIcon size={15} />
             </span>
           </div>
 
@@ -236,38 +322,60 @@ export default function CustomsTariffCalculator() {
           </button>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'right' }}>
+        <div style={{ overflowX: 'hidden', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'right' }}>
+            <colgroup>
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '42%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '130px' }} />
+            </colgroup>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                 <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>رقم البند (HS Code)</th>
                 <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>بيان وتوصيف السلعة</th>
-                <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>نسبة الوارد الجمركي</th>
-                <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>ضريبة القيمة المضافة VAT</th>
+                <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>نسبة الوارد</th>
+                <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>القيمة المضافة</th>
                 <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>جهات العرض والرقابة</th>
-                <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>إجراء سريع</th>
+                <th style={{ padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#475569', textAlign: 'center' }}>إجراء سريع</th>
               </tr>
             </thead>
             <tbody>
-              {tariffs.map((t) => (
-                <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 14px', fontSize: '12.5px', fontWeight: 700, color: '#170e5e' }}>{t.hs_code}</td>
-                  <td style={{ padding: '12px 14px', fontSize: '12.5px', fontWeight: 600, color: '#0f172a' }}>{t.description_ar}</td>
-                  <td style={{ padding: '12px 14px', fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{t.duty_rate_percent}%</td>
-                  <td style={{ padding: '12px 14px', fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{t.vat_rate_percent}%</td>
-                  <td style={{ padding: '12px 14px', fontSize: '12px', color: '#475569' }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 6, backgroundColor: '#f1f5f9', fontWeight: 600 }}>
+              {displayedTariffs.map((t) => (
+                <tr key={t.id || t.hs_code} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 800, color: '#170e5e', fontFamily: 'monospace' }}>{t.hs_code}</td>
+                  <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#0f172a', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.45 }}>
+                    <div>{t.description_ar}</div>
+                    {t.description_en && (
+                      <div style={{ fontSize: '10.5px', color: '#64748b', direction: 'ltr', textAlign: 'left', marginTop: 2 }}>{t.description_en}</div>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 800, color: Number(t.duty_rate_percent) <= 5 ? '#15803d' : '#0f172a', textAlign: 'center' }}>
+                    <span style={{ backgroundColor: Number(t.duty_rate_percent) <= 5 ? '#dcfce7' : '#f8fafc', padding: '2px 8px', borderRadius: 4 }}>
+                      {t.duty_rate_percent}%
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '12px', fontWeight: 700, color: '#0f172a', textAlign: 'center' }}>
+                    {t.vat_rate_percent}%
+                    <span style={{ display: 'block', fontSize: '10px', color: '#94a3b8' }}>+ {t.inspection_fees_percent || 1}% فحص</span>
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '11px', color: '#475569' }}>
+                    <div style={{ fontWeight: 600 }}>{t.category_ar || 'عام'}</div>
+                    <span style={{ padding: '1px 6px', borderRadius: 4, backgroundColor: '#f1f5f9', fontWeight: 600, fontSize: '10px' }}>
                       {t.regulatory_body || 'GOEIC (صادرات وواردات)'}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
+                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                     <button
+                      type="button"
                       onClick={() => {
                         setSelectedHsCode(t.hs_code);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
                       style={{
-                        padding: '4px 10px',
+                        padding: '6px 12px',
                         backgroundColor: '#f1f5f9',
                         border: '1px solid #cbd5e1',
                         borderRadius: 6,
@@ -275,6 +383,7 @@ export default function CustomsTariffCalculator() {
                         fontWeight: 700,
                         color: '#170e5e',
                         cursor: 'pointer',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       تطبيق في الحاسبة
@@ -331,7 +440,7 @@ export default function CustomsTariffCalculator() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: 4 }}>رقم بوليصة أو ظرف CargoX</label>
               <input

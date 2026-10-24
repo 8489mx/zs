@@ -2367,6 +2367,8 @@ export interface ImportCustomsTariffTable {
   official_source?: string | null;
   effective_date?: ImportDate;
   is_official?: boolean;
+  sector?: string | null;
+  category_ar?: string | null;
   created_at: Generated<Date>;
 }
 

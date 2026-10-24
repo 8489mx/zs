@@ -23,6 +23,7 @@ import { ProductNameField } from '@/features/products/components/ProductNameFiel
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
 import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 import { toast } from '@/shared/components/system-alert';
+import { getFriendlyApiErrorMessage } from '@/lib/errors';
 
 const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
@@ -399,7 +400,7 @@ export function NewProductForm({
         {mutation.isError && (
           <div className="document-prototype-alert error" style={{ marginBottom: '12px' }}>
             <div style={{ color: '#b91c1c' }}>
-              {t('products.new_product_form.s6', "تعذر حفظ الصنف.")} {(mutation.error as any)?.response?.data?.message || t('products.new_product_form.s7', "برجاء التحقق من البيانات والمحاولة مرة أخرى.")}
+              {getFriendlyApiErrorMessage(mutation.error, t('products.new_product_form.s6', "تعذر حفظ الصنف. برجاء التحقق من البيانات والمحاولة مرة أخرى."))}
             </div>
           </div>
         )}

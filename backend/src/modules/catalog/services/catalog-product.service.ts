@@ -1568,7 +1568,7 @@ export class CatalogProductService {
       let query = this.db.selectFrom('products').select('id').where(sql`LOWER(name)`, '=', payload.name.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
       const existing = await query.executeTakeFirst();
-      if (existing) throw new AppError('Product already exists', 'PRODUCT_EXISTS', 400);
+      if (existing) throw new AppError('يوجد صنف مسجل بالفعل بنفس هذا الاسم.', 'PRODUCT_EXISTS', 400);
     }
 
     // Product and unit barcodes share one logical scanner namespace. The two tables
@@ -1579,16 +1579,16 @@ export class CatalogProductService {
       let query = this.db.selectFrom('products').select('id')
         .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
-      if (await query.executeTakeFirst()) throw new AppError('Barcode already exists', 'BARCODE_EXISTS', 400);
+      if (await query.executeTakeFirst()) throw new AppError('الباركود مستخدم بالفعل لصنف آخر.', 'BARCODE_EXISTS', 400);
       let unitQuery = this.db.selectFrom('product_units').select('product_id')
         .where(sql`LOWER(barcode)`, 'in', proposedBarcodes).where(this.tenantPredicate(actor));
       if (productId) unitQuery = unitQuery.where('product_id', '!=', productId);
-      if (await unitQuery.executeTakeFirst()) throw new AppError('Barcode already exists as a unit barcode', 'BARCODE_EXISTS', 400);
+      if (await unitQuery.executeTakeFirst()) throw new AppError('الباركود مستخدم بالفعل كوحدة لصنف آخر.', 'BARCODE_EXISTS', 400);
     }
     if (payload.sku) {
       let query = this.db.selectFrom('products').select('id').where(sql`LOWER(sku)`, '=', payload.sku.toLowerCase()).where('is_active', '=', true).where(this.tenantPredicate(actor));
       if (productId) query = query.where('id', '!=', productId);
-      if (await query.executeTakeFirst()) throw new AppError('SKU already exists', 'SKU_EXISTS', 400);
+      if (await query.executeTakeFirst()) throw new AppError('رمز SKU مستخدم بالفعل لصنف آخر.', 'SKU_EXISTS', 400);
     }
   }
 
@@ -1648,7 +1648,7 @@ export class CatalogProductService {
         .where('is_active', '=', true)
         .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
-      if (!category) throw new AppError('Category not found', 'CATEGORY_NOT_FOUND', 404);
+      if (!category) throw new AppError('القسم المحدد غير موجود أو تم حذفه.', 'CATEGORY_NOT_FOUND', 404);
     }
 
     if (payload.supplierId) {
@@ -1659,7 +1659,7 @@ export class CatalogProductService {
         .where('is_active', '=', true)
         .where(this.tenantPredicate(actor))
         .executeTakeFirst();
-      if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
+      if (!supplier) throw new AppError('المورد المحدد غير موجود أو غير مسجل.', 'SUPPLIER_NOT_FOUND', 404);
     }
   }
 
@@ -1971,7 +1971,7 @@ export class CatalogProductService {
 
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalized = this.normalizeProductPayload(payload);
-    if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
+    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب.', 'PRODUCT_NAME_REQUIRED', 400);
     normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
     const drafts = shouldExpandVariants
@@ -2006,16 +2006,16 @@ export class CatalogProductService {
     const duplicateDraftSkus = new Set<string>();
     for (const draft of drafts) {
       const nameKey = draft.name.toLowerCase();
-      if (duplicateDraftNames.has(nameKey)) throw new AppError('Duplicate grouped variants are not allowed', 'PRODUCT_EXISTS', 400);
+      if (duplicateDraftNames.has(nameKey)) throw new AppError('توجد أصناف فرعية مكررة بنفس الاسم أو المواصفات.', 'PRODUCT_EXISTS', 400);
       duplicateDraftNames.add(nameKey);
       if (draft.barcode) {
         const barcodeKey = draft.barcode.toLowerCase();
-        if (duplicateDraftBarcodes.has(barcodeKey)) throw new AppError('Variant barcodes must be unique', 'BARCODE_EXISTS', 400);
+        if (duplicateDraftBarcodes.has(barcodeKey)) throw new AppError('الباركود مكرر ومستخدم بالفعل لصنف فرعي آخر.', 'BARCODE_EXISTS', 400);
         duplicateDraftBarcodes.add(barcodeKey);
       }
       if (draft.sku) {
         const key = draft.sku.toLowerCase();
-        if (duplicateDraftSkus.has(key)) throw new AppError('Variant SKUs must be unique', 'SKU_EXISTS', 400);
+        if (duplicateDraftSkus.has(key)) throw new AppError('رمز SKU مكرر ومستخدم بالفعل لصنف فرعي آخر.', 'SKU_EXISTS', 400);
         duplicateDraftSkus.add(key);
       }
       await this.ensureProductIdentityAvailable(draft, actor);
@@ -2275,7 +2275,7 @@ export class CatalogProductService {
       .selectFrom('products')
       .leftJoin('manufacturing_boms as b', (join) => join.onRef('b.product_id', '=', 'products.id').onRef('b.tenant_id', '=', 'products.tenant_id').on('b.is_active', '=', true))
       .leftJoin('stock_locations as sl', (join) => join.onRef('sl.id', '=', 'products.default_location_id').on(this.tenantPredicate(actor, 'sl')))
-      .select(['products.id', 'products.name', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
+      .select(['products.id', 'products.name', 'products.name_en', 'products.barcode', 'products.sku', 'products.catalog_updated_at', 'products.item_type', 'products.item_kind', 'products.style_code', 'products.color', 'products.size', 'products.bin_location', 'products.track_serials', 'products.category_id', 'products.supplier_id', 'products.cost_price', 'products.retail_price', 'products.wholesale_price', 'products.credit_price', 'products.consumer_price', 'products.min_selling_price', 'products.stock_qty', 'products.min_stock_qty', 'sl.id as default_location_id', 'products.notes', 'products.metadata', 'b.id as bom_id', 'sl.name as default_location_name', 'products.is_active', 'products.calories', 'products.allergens', 'products.is_spicy', 'products.is_vegetarian', 'products.is_gluten_free'])
       .where('products.id', '=', id)
       .where(this.tenantPredicate(actor, 'products'))
       .executeTakeFirst();

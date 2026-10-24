@@ -1,13 +1,18 @@
 import { toast } from '@/shared/components/system-alert';
 import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/shared/components/page-header';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { useSuppliersQuery } from '@/shared/hooks/use-catalog-queries';
 import { useTreasury } from '@/shared/hooks/use-treasury';
-import { useRecordForeignTransferMutation, useForeignTransfersQuery, useProformaInvoicesQuery } from './api/shipments.api';
+import {
+  useRecordForeignTransferMutation,
+  useForeignTransfersQuery,
+  useProformaInvoicesQuery,
+  useChinaSuppliersQuery,
+} from './api/shipments.api';
 import {
   BuildingIcon,
   CreditCardIcon,
@@ -15,11 +20,13 @@ import {
   RefreshCwIcon,
   FileTextIcon,
   CheckCircleIcon,
+  SlidersIcon,
 } from '@/shared/components/icons/AppIcons';
 
 export default function SupplierCredit() {
   const { t } = useTranslation();
   const suppliersQuery = useSuppliersQuery();
+  const chinaSuppliersQuery = useChinaSuppliersQuery();
   const treasuryQuery = useTreasury({});
   const transferMutation = useRecordForeignTransferMutation();
   const transfersQuery = useForeignTransfersQuery();
@@ -33,10 +40,49 @@ export default function SupplierCredit() {
   // Preserve the key across network retries of the *same* request.
   const transferAttempt = useRef<{ fingerprint: string; key: string } | null>(null);
 
-  const factories = suppliersQuery.data?.filter(s => s.metadata?.supplierType === 'factory') || [];
-  const supplierProformas = (proformasQuery.data || []).filter((pi: any) => !selectedSupplier || String(pi.supplier_id) === String(selectedSupplier));
-  const selectedPi = supplierProformas.find((pi: any) => String(pi.id) === String(selectedPiId));
-  // suppliers.balance is a base-currency EGP balance, NOT outstanding USD.
+  // Combine China suppliers and general suppliers without empty metadata filters
+  const factories = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; balance: number; city?: string; chineseName?: string }>();
+
+    if (Array.isArray(chinaSuppliersQuery.data)) {
+      for (const cs of chinaSuppliersQuery.data) {
+        map.set(String(cs.id), {
+          id: String(cs.id),
+          name: cs.name,
+          balance: Number(cs.balance || 0),
+          city: cs.city,
+          chineseName: cs.chinese_name,
+        });
+      }
+    }
+
+    if (Array.isArray(suppliersQuery.data)) {
+      for (const s of suppliersQuery.data) {
+        const idStr = String(s.id);
+        if (!map.has(idStr)) {
+          map.set(idStr, {
+            id: idStr,
+            name: s.name,
+            balance: Number(s.balance || 0),
+          });
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  }, [chinaSuppliersQuery.data, suppliersQuery.data]);
+
+  // Proforma invoices filtered by selected supplier (or all if none selected)
+  const supplierProformas = useMemo(() => {
+    const list = proformasQuery.data || [];
+    if (!selectedSupplier) return list;
+    return list.filter((pi: any) => String(pi.supplier_id) === String(selectedSupplier));
+  }, [proformasQuery.data, selectedSupplier]);
+
+  const selectedPi = useMemo(() => {
+    return (proformasQuery.data || []).find((pi: any) => String(pi.id) === String(selectedPiId));
+  }, [proformasQuery.data, selectedPiId]);
+
   const totalDebtEgp = factories.reduce((sum, s) => sum + Number(s.balance || 0), 0);
   const availableEgp = treasuryQuery.data?.summary?.net || 0;
 
@@ -44,11 +90,37 @@ export default function SupplierCredit() {
   const foreignNum = Number(amountForeign) || 0;
   const exchangeRate = egpNum > 0 && foreignNum > 0 ? (egpNum / foreignNum).toFixed(2) : '0.00';
 
+  const handleSelectPi = (piId: string) => {
+    setSelectedPiId(piId);
+    if (!piId) return;
+    const pi = (proformasQuery.data || []).find((p: any) => String(p.id) === String(piId));
+    if (pi && pi.supplier_id && !selectedSupplier) {
+      setSelectedSupplier(String(pi.supplier_id));
+    }
+  };
+
+  const handleFillPiRemaining = () => {
+    if (!selectedPi) return;
+    const remaining = Math.max(0, Number(selectedPi.total_amount_foreign || 0) - Number(selectedPi.paid_amount_foreign || 0));
+    const rate = Number(selectedPi.exchange_rate_contract) || 50;
+    setAmountForeign(String(remaining));
+    setAmountEgp(String(Number((remaining * rate).toFixed(2))));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    { if (!selectedSupplier) { toast.error('يرجى اختيار المصنع أو المورد الأجنبي'); return; } }
-    { if (egpNum <= 0) { toast.error('المبلغ المسحوب من الخزينة يجب أن يكون أكبر من صفر'); return; } }
-    { if (foreignNum <= 0) { toast.error('المبلغ المحول للمصنع يجب أن يكون أكبر من صفر'); return; } }
+    if (!selectedSupplier) {
+      toast.error('يرجى اختيار المصنع أو المورد الأجنبي');
+      return;
+    }
+    if (egpNum <= 0) {
+      toast.error('المبلغ المسحوب من الخزينة يجب أن يكون أكبر من صفر');
+      return;
+    }
+    if (foreignNum <= 0) {
+      toast.error('المبلغ المحول للمصنع يجب أن يكون أكبر من صفر');
+      return;
+    }
 
     const contractRate = selectedPi?.exchange_rate_contract ? Number(selectedPi.exchange_rate_contract) : undefined;
     const payload = {
@@ -76,6 +148,7 @@ export default function SupplierCredit() {
         setSelectedPiId('');
         setNotes('');
         void suppliersQuery.refetch();
+        void chinaSuppliersQuery.refetch();
         void treasuryQuery.refetch();
         void transfersQuery.refetch();
         void proformasQuery.refetch();
@@ -85,6 +158,7 @@ export default function SupplierCredit() {
 
   const handleRefresh = () => {
     void suppliersQuery.refetch();
+    void chinaSuppliersQuery.refetch();
     void treasuryQuery.refetch();
     void transfersQuery.refetch();
     void proformasQuery.refetch();
@@ -101,7 +175,7 @@ export default function SupplierCredit() {
               <Button 
                 variant="secondary" 
                 onClick={handleRefresh}
-                disabled={suppliersQuery.isLoading || transfersQuery.isLoading}
+                disabled={suppliersQuery.isLoading || chinaSuppliersQuery.isLoading || transfersQuery.isLoading}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}
               >
                 <RefreshCwIcon size={15} />
@@ -112,12 +186,12 @@ export default function SupplierCredit() {
         />
 
         {/* KPI Metrics Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginBottom: '16px' }}>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.supplier_credit.s3', "إجمالي مديونية المصانع الأجنبية")} (بالجنيه الدفتري)</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {totalDebtEgp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>إجمالي مديونية المصانع (الدفتري)</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+                {totalDebtEgp.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}><CurrencySymbol /></span>
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', border: '1px solid #dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1e40af' }}>
@@ -127,8 +201,8 @@ export default function SupplierCredit() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.supplier_credit.s4', "الرصيد المتاح للتحويل بالخزينة")}</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>الرصيد المتاح بالخزينة النقدية</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: availableEgp < 0 ? '#dc2626' : '#0f172a', marginTop: '4px' }}>
                 {formatCurrency(availableEgp)}
               </div>
             </div>
@@ -139,9 +213,9 @@ export default function SupplierCredit() {
 
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
             <div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.supplier_credit.s5', "المصانع والشركات المسجلة")}</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
-                {factories.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{t('import_sales.supplier_credit.s6', "مصنع")}</span>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>المصانع والشركات المسجلة</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+                {factories.length} <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>مصنع</span>
               </div>
             </div>
             <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -151,21 +225,23 @@ export default function SupplierCredit() {
         </div>
 
         {/* Transfer Entry Card */}
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '16px' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px 24px', marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '18px' }}>
             <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: '#170e5e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>{t('import_sales.supplier_credit.s7', "تسجيل حوالة بنكية جديدة (تدبير عملة)")}</span>
+              <SlidersIcon size={18} />
+              <span>تسجيل حوالة بنكية جديدة لمصنع خارجي</span>
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8125rem', color: '#64748b' }}>
-              {t('import_sales.supplier_credit.s8', "هذه العملية تسجل النقدية بالجنيه ورصيد المورد الدفتري بالجنيه، مع الاحتفاظ بقيمة التحويل الأجنبية بشكل مستقل. راجع التزام الـProforma بالعملة الأصلية قبل السداد.")}
+              خصم القيمة بالجنيه من الخزينة وتخفيض مديونية المصنع بالعملة الأجنبية مع حساب سعر الصرف الفعلي.
             </p>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+            {/* Row 1: Supplier & Proforma */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  {t('import_sales.supplier_credit.s9', "المصنع / المورد الأجنبي")} <span style={{ color: '#ef4444' }}>*</span>
+                  المصنع / المورد الأجنبي <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <select 
                   style={{
@@ -185,17 +261,39 @@ export default function SupplierCredit() {
                   required
                   disabled={transferMutation.isPending}
                 >
-                  <option value="">{t('import_sales.supplier_credit.s10', "-- اختر المصنع الأجنبي --")}</option>
+                  <option value="">-- اختر المصنع الأجنبي --</option>
                   {factories.map(f => (
-                    <option key={f.id} value={f.id}>{f.name} {t('import_sales.supplier_credit.s11', "(مديونية:")} {formatCurrency(f.balance || 0)})</option>
+                    <option key={f.id} value={f.id}>
+                      {f.name} {f.city ? `(${f.city})` : ''} {f.chineseName ? `- ${f.chineseName}` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  ربط بفاتورة مبدئية (Proforma Invoice - لحساب فروق العملة FX)
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b' }}>
+                    ربط بفاتورة مبدئية (PI)
+                  </label>
+                  {selectedPi && (
+                    <button
+                      type="button"
+                      onClick={handleFillPiRemaining}
+                      style={{
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        borderRadius: '6px',
+                        padding: '1px 8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      سداد كامل المتبقي
+                    </button>
+                  )}
+                </div>
                 <select
                   style={{
                     width: '100%',
@@ -210,24 +308,27 @@ export default function SupplierCredit() {
                     outline: 'none',
                   }}
                   value={selectedPiId}
-                  onChange={e => setSelectedPiId(e.target.value)}
+                  onChange={e => handleSelectPi(e.target.value)}
                   disabled={transferMutation.isPending}
                 >
-                  <option value="">-- تحويل عام غير مربوط بـ PI محددة --</option>
+                  <option value="">-- تحويل حر غير مقيد بفاتورة مبدئية --</option>
                   {supplierProformas.map((pi: any) => {
                     const remaining = Math.max(0, Number(pi.total_amount_foreign || 0) - Number(pi.paid_amount_foreign || 0));
                     return (
                       <option key={pi.id} value={pi.id}>
-                        {pi.pi_number} | المتبقي: {remaining.toLocaleString()} {pi.currency || 'USD'} {pi.exchange_rate_contract ? `(عقد: ${pi.exchange_rate_contract} ج)` : ''}
+                        {pi.pi_number} (المتبقي: ${remaining.toLocaleString()} | العقد: {pi.exchange_rate_contract || 50} ج)
                       </option>
                     );
                   })}
                 </select>
               </div>
-              
+            </div>
+
+            {/* Row 2: Amounts & FX Rate */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  {t('import_sales.supplier_credit.s12', "المبلغ المسحوب من الخزينة (جنيه)")} <span style={{ color: '#ef4444' }}>*</span>
+                  المسحوب من الخزينة (ج.م) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input 
                   type="number" 
@@ -255,7 +356,7 @@ export default function SupplierCredit() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  {t('import_sales.supplier_credit.s13', "المبلغ المحول للمصنع (عملة أجنبية $)")} <span style={{ color: '#ef4444' }}>*</span>
+                  المبلغ المحول للمصنع ($) <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input 
                   type="number" 
@@ -283,7 +384,7 @@ export default function SupplierCredit() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  {t('import_sales.supplier_credit.s14', "سعر الصرف المحتسب للحوالة")}
+                  سعر الصرف الفعلي للحوالة
                 </label>
                 <div style={{
                   width: '100%',
@@ -292,7 +393,7 @@ export default function SupplierCredit() {
                   border: '1px solid #e2e8f0',
                   background: '#f8fafc',
                   padding: '0 12px',
-                  fontSize: '0.86rem',
+                  fontSize: '0.88rem',
                   fontWeight: 800,
                   color: '#170e5e',
                   display: 'flex',
@@ -300,37 +401,39 @@ export default function SupplierCredit() {
                   boxSizing: 'border-box',
                   fontFamily: 'monospace',
                 }}>
-                  {exchangeRate} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', marginInlineStart: '6px' }}><CurrencySymbol /> {t('import_sales.supplier_credit.s15', "/ عملة")}</span>
+                  {exchangeRate} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b', marginInlineStart: '6px' }}>ج.م / $</span>
                 </div>
-              </div>
-
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
-                  {t('import_sales.supplier_credit.s16', "ملاحظات التحويل والبنك")}
-                </label>
-                <input 
-                  type="text" 
-                  placeholder={t('import_sales.supplier_credit.s17', "رقم الحوالة البنكية، اسم البنك المنفذ، كود التحويل SWIFT، أو أي تفاصيل...")}
-                  style={{
-                    width: '100%',
-                    height: '38px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    padding: '0 12px',
-                    fontSize: '0.84rem',
-                    background: '#ffffff',
-                    color: '#0f172a',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                  }}
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  disabled={transferMutation.isPending}
-                />
               </div>
             </div>
 
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+            {/* Row 3: Notes & SWIFT details */}
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
+                بيانات البنك والتحويل
+              </label>
+              <input 
+                type="text" 
+                placeholder="رقم الحوالة البنكية، كود السويفت SWIFT، اسم البنك المنفذ، أو أي ملاحظات..."
+                style={{
+                  width: '100%',
+                  height: '38px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  padding: '0 12px',
+                  fontSize: '0.84rem',
+                  background: '#ffffff',
+                  color: '#0f172a',
+                  boxSizing: 'border-box',
+                  outline: 'none',
+                }}
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                disabled={transferMutation.isPending}
+              />
+            </div>
+
+            {/* Form Footer Action */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
               <Button 
                 type="submit" 
                 variant="primary" 
@@ -350,7 +453,7 @@ export default function SupplierCredit() {
                 }}
               >
                 <CheckCircleIcon size={16} />
-                <span>{transferMutation.isPending ? t('import_sales.supplier_credit.s18', "جاري تسجيل الحوالة...") : t('import_sales.supplier_credit.s19', "تأكيد تسجيل الحوالة")}</span>
+                <span>{transferMutation.isPending ? "جاري تسجيل الحوالة..." : "تأكيد تسجيل الحوالة"}</span>
               </Button>
             </div>
           </form>
@@ -361,14 +464,14 @@ export default function SupplierCredit() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
-                {t('import_sales.supplier_credit.s20', "سجل حوالات المصانع الأجنبية")}
+                سجل حوالات المصانع الأجنبية
               </h3>
               <p style={{ margin: '3px 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                {t('import_sales.supplier_credit.s21', "تاريخ الحوالات والتحويلات البنكية الصادرة لموردي ومصانع الخارج")}
+                الحوالات والتحويلات البنكية الصادرة لموردي ومصانع الخارج
               </p>
             </div>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#ffffff', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 10px', borderRadius: '12px' }}>
-              {(transfersQuery.data || []).length} {t('import_sales.supplier_credit.s22', "حوالة مسجلة")}
+              {(transfersQuery.data || []).length} حوالة مسجلة
             </span>
           </div>
 
@@ -376,59 +479,81 @@ export default function SupplierCredit() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', textAlign: 'right' }}>
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '0.78rem', fontWeight: 700 }}>
-                  <th style={{ padding: '10px 16px', width: '140px' }}>{t('import_sales.supplier_credit.s23', "تاريخ التحويل")}</th>
-                  <th style={{ padding: '10px 16px', minWidth: '180px' }}>{t('import_sales.supplier_credit.s24', "اسم المصنع / المورد")}</th>
-                  <th style={{ padding: '10px 16px', width: '180px' }}>{t('import_sales.supplier_credit.s25', "المبلغ المحول (عملة أجنبية)")}</th>
-                  <th style={{ padding: '10px 16px', minWidth: '220px' }}>{t('import_sales.supplier_credit.s26', "البيان والملاحظات")}</th>
-                  <th style={{ padding: '10px 16px', width: '120px', textAlign: 'center' }}>{t('import_sales.supplier_credit.s27', "حالة الحوالة")}</th>
+                  <th style={{ padding: '10px 14px', width: '100px' }}>كود الحوالة</th>
+                  <th style={{ padding: '10px 14px', width: '120px' }}>تاريخ الحوالة</th>
+                  <th style={{ padding: '10px 14px', minWidth: '160px' }}>المصنع / المورد الأجنبي</th>
+                  <th style={{ padding: '10px 14px', width: '130px' }}>المبلغ بالدولار ($)</th>
+                  <th style={{ padding: '10px 14px', width: '140px' }}>المقابل بالجنيه (ج.م)</th>
+                  <th style={{ padding: '10px 14px', width: '110px' }}>سعر الصرف</th>
+                  <th style={{ padding: '10px 14px', minWidth: '200px' }}>البيان والملاحظات البنكية</th>
+                  <th style={{ padding: '10px 14px', width: '100px', textAlign: 'center' }}>الحالة</th>
                 </tr>
               </thead>
               <tbody>
                 {transfersQuery.isLoading ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-                      {t('import_sales.supplier_credit.s28', "جاري تحميل سجل الحوالات...")}
+                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                      جاري تحميل سجل الحوالات...
                     </td>
                   </tr>
                 ) : (transfersQuery.data || []).length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '40px 16px', textAlign: 'center' }}>
+                    <td colSpan={8} style={{ padding: '40px 16px', textAlign: 'center' }}>
                       <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px auto', color: '#94a3b8' }}>
                         <FileTextIcon size={22} />
                       </div>
-                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.88rem' }}>{t('import_sales.supplier_credit.s29', "لا توجد حوالات أجنبية مسجلة بعد")}</div>
-                      <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '4px' }}>{t('import_sales.supplier_credit.s30', "قم بتسجيل حوالة جديدة من النموذج أعلاه لتدبير العملة للمصانع.")}</div>
+                      <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.88rem' }}>لا توجد حوالات أجنبية مسجلة بعد</div>
+                      <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '4px' }}>قم بتسجيل حوالة جديدة من النموذج أعلاه لتدبير العملة للمصانع.</div>
                     </td>
                   </tr>
                 ) : (
-                  (transfersQuery.data || []).map((row, idx) => (
-                    <tr 
-                      key={row.id || idx} 
-                      style={{ 
-                        borderBottom: '1px solid #f1f5f9',
-                        background: idx % 2 === 0 ? '#ffffff' : '#fafafa',
-                        transition: 'background-color 0.15s ease'
-                      }}
-                    >
-                      <td style={{ padding: '11px 16px', color: '#475569', fontWeight: 600, fontFamily: 'monospace' }}>
-                        {row.payment_date ? new Date(row.payment_date).toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—'}
-                      </td>
-                      <td style={{ padding: '11px 16px', fontWeight: 700, color: '#0f172a' }}>
-                        {row.supplier_name || '—'}
-                      </td>
-                      <td style={{ padding: '11px 16px', fontWeight: 800, color: '#170e5e', fontFamily: 'monospace', fontSize: '0.86rem' }}>
-                        {Number(row.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b' }}>$</span>
-                      </td>
-                      <td style={{ padding: '11px 16px', color: '#64748b' }}>
-                        {row.note || '—'}
-                      </td>
-                      <td style={{ padding: '11px 16px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 }}>
-                          {t('import_sales.supplier_credit.s31', "تم التنفيذ")}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                  (transfersQuery.data || []).map((row: any, idx: number) => {
+                    const rawDate = row.paymentDate || row.payment_date || row.createdAt || row.created_at;
+                    const dateDisplay = rawDate ? new Date(rawDate).toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' }) : '—';
+                    const supplierName = row.supplierName || row.supplier_name || '—';
+                    const foreignAmount = Number(row.amountForeign ?? row.amount_foreign ?? (row.currency !== 'EGP' ? row.amount : 0) ?? 0);
+                    const egpAmount = Number(row.amountEgp ?? row.amount_egp ?? (row.currency === 'EGP' ? row.amount : 0) ?? 0);
+                    const rate = row.exchangeRate || row.exchange_rate || (foreignAmount > 0 && egpAmount > 0 ? (egpAmount / foreignAmount).toFixed(2) : '—');
+                    const noteText = row.notes || row.note || '—';
+                    const docNumber = row.docNo || row.doc_no || `FT-${row.id}`;
+
+                    return (
+                      <tr 
+                        key={row.id || idx} 
+                        style={{ 
+                          borderBottom: '1px solid #f1f5f9',
+                          background: idx % 2 === 0 ? '#ffffff' : '#fafafa',
+                        }}
+                      >
+                        <td style={{ padding: '11px 14px', fontFamily: 'monospace', fontWeight: 700, color: '#170e5e', fontSize: '0.8rem' }}>
+                          {docNumber}
+                        </td>
+                        <td style={{ padding: '11px 14px', color: '#475569', fontWeight: 600, fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                          {dateDisplay}
+                        </td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#0f172a' }}>
+                          {supplierName}
+                        </td>
+                        <td style={{ padding: '11px 14px', fontWeight: 800, color: '#047857', fontFamily: 'monospace', fontSize: '0.86rem' }}>
+                          {foreignAmount > 0 ? foreignAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'} <span style={{ fontSize: '0.74rem', fontWeight: 600, color: '#64748b' }}>$</span>
+                        </td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace', fontSize: '0.84rem' }}>
+                          {egpAmount > 0 ? egpAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'} <span style={{ fontSize: '0.74rem', fontWeight: 500, color: '#64748b' }}>ج.م</span>
+                        </td>
+                        <td style={{ padding: '11px 14px', color: '#475569', fontFamily: 'monospace', fontSize: '0.82rem' }}>
+                          {rate} <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>ج.م/$</span>
+                        </td>
+                        <td style={{ padding: '11px 14px', color: '#334155', fontSize: '0.82rem', maxWidth: '280px', wordBreak: 'break-word' }}>
+                          {noteText}
+                        </td>
+                        <td style={{ padding: '11px 14px', textAlign: 'center' }}>
+                          <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '3px 9px', borderRadius: '12px', fontWeight: 700, display: 'inline-block' }}>
+                            تم التنفيذ
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -438,4 +563,3 @@ export default function SupplierCredit() {
     </div>
   );
 }
-

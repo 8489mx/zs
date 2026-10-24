@@ -10,6 +10,11 @@ export interface FeasibilityItemInput {
   factoryPriceUsd: number;
   unitWeightKg?: number;
   unitCbm?: number;
+  expectedLocalMarketPriceEgp?: number;
+  partNumber?: string;
+  oemNumber?: string;
+  brand?: string;
+  model?: string;
 }
 
 export interface FeasibilityCalculationInput {
@@ -42,6 +47,29 @@ export interface FeasibilityItemOutput {
   totalItemLandedEgp: number;
   unitWeightKg?: number;
   unitCbm?: number;
+  expectedLocalMarketPriceEgp?: number;
+  unitNetProfitVsMarketEgp?: number;
+  marginVsMarketPercent?: number;
+  totalProfitVsMarketEgp?: number;
+  partNumber?: string;
+  oemNumber?: string;
+  brand?: string;
+  model?: string;
+}
+
+export interface ContainerLoadMetrics {
+  totalGrossWeightKg: number;
+  totalGrossWeightTons: number;
+  totalVolumeCbm: number;
+  recommendedContainerType: '20ft' | '40ft' | '40hc' | 'multiple';
+  containerCountNeeded: number;
+  weightCapacityUtilizationPercent: number;
+  volumeCapacityUtilizationPercent: number;
+  isHeavyCargo: boolean;
+  isBulkyCargo: boolean;
+  isBalancedCargo: boolean;
+  isOverweightRisk: boolean;
+  loadSummaryAr: string;
 }
 
 export interface FeasibilityScenarioOutput {
@@ -82,6 +110,9 @@ export interface FeasibilityCalculationResult {
   grossMarginPercentage: number;
   breakEvenRevenueEgp: number;
   breakEvenUnits: number;
+  containerMetrics: ContainerLoadMetrics;
+  totalProfitVsMarketEgp?: number;
+  overallRoiVsMarketPercent?: number;
   scenarios: {
     base: FeasibilityScenarioOutput;
     best: FeasibilityScenarioOutput;
@@ -167,6 +198,12 @@ export function calculateImportFeasibility(input: FeasibilityCalculationInput): 
     const wholesaleMarkup = 1 + (markupPercent * 0.7) / 100;
     const retailMarkup = 1 + markupPercent / 100;
 
+    const marketPrice = resolveNumber(item.expectedLocalMarketPriceEgp, 0);
+    const unitNetProfitVsMarketEgp = marketPrice > 0 ? Number((marketPrice - unitLanded).toFixed(2)) : undefined;
+    const marginVsMarketPercent =
+      marketPrice > 0 ? Number((((marketPrice - unitLanded) / marketPrice) * 100).toFixed(1)) : undefined;
+    const totalProfitVsMarketEgp = marketPrice > 0 ? Number(((marketPrice - unitLanded) * qty).toFixed(2)) : undefined;
+
     return {
       name: item.name,
       hsCode: item.hsCode,
@@ -181,8 +218,121 @@ export function calculateImportFeasibility(input: FeasibilityCalculationInput): 
       totalItemLandedEgp: Number(totalItemLanded.toFixed(2)),
       unitWeightKg: item.unitWeightKg,
       unitCbm: item.unitCbm,
+      expectedLocalMarketPriceEgp: marketPrice > 0 ? marketPrice : undefined,
+      unitNetProfitVsMarketEgp,
+      marginVsMarketPercent,
+      totalProfitVsMarketEgp,
+      partNumber: item.partNumber || item.oemNumber,
+      oemNumber: item.oemNumber || item.partNumber,
+      brand: item.brand,
+      model: item.model,
     };
   });
+
+  // Calculate Container Logistics Load & Weight vs Volume (Vital for Maritime Freight Partner)
+  let totalGrossWeightKg = 0;
+  let totalVolumeCbm = 0;
+
+  for (const item of input.items || []) {
+    const qty = Math.max(0, resolveNumber(item.qty, 0));
+    const w = Math.max(0, resolveNumber(item.unitWeightKg, 0));
+    const cbm = Math.max(0, resolveNumber(item.unitCbm, 0));
+    totalGrossWeightKg += qty * w;
+    totalVolumeCbm += qty * cbm;
+  }
+
+  const totalGrossWeightTons = Number((totalGrossWeightKg / 1000).toFixed(2));
+  totalVolumeCbm = Number(totalVolumeCbm.toFixed(2));
+
+  // Maritime Container Capacity Selection Rules:
+  // 20ft: Max legal payload ~25,000 kg, Max volume ~33 CBM (Usable ~28-30 CBM)
+  // 40ft: Max legal payload ~26,500 kg, Max volume ~67 CBM (Usable ~58-62 CBM)
+  // 40HC: Max legal payload ~26,500 kg, Max volume ~76 CBM (Usable ~68-70 CBM)
+  let recommendedContainerType: '20ft' | '40ft' | '40hc' | 'multiple' = '20ft';
+  let containerCountNeeded = 1;
+  let maxWeightPerCont = 25000;
+  let maxCbmPerCont = 33;
+
+  if (totalGrossWeightKg > 26500 || totalVolumeCbm > 68) {
+    const byWeight = Math.ceil(totalGrossWeightKg / 26000);
+    const byVolume = Math.ceil(totalVolumeCbm / 68);
+    containerCountNeeded = Math.max(1, Math.max(byWeight, byVolume));
+    recommendedContainerType = containerCountNeeded > 1 ? 'multiple' : '40hc';
+    maxWeightPerCont = 26000 * containerCountNeeded;
+    maxCbmPerCont = 76 * containerCountNeeded;
+  } else if (totalVolumeCbm > 30 || (totalGrossWeightKg > 22000 && totalVolumeCbm > 24)) {
+    recommendedContainerType = totalVolumeCbm > 58 ? '40hc' : '40ft';
+    maxWeightPerCont = 26500;
+    maxCbmPerCont = recommendedContainerType === '40hc' ? 76 : 67;
+  } else {
+    recommendedContainerType = '20ft';
+    maxWeightPerCont = 25000;
+    maxCbmPerCont = 33;
+  }
+
+  const weightCapacityUtilizationPercent =
+    maxWeightPerCont > 0
+      ? Number(Math.min(100, (totalGrossWeightKg / maxWeightPerCont) * 100).toFixed(1))
+      : 0;
+
+  const volumeCapacityUtilizationPercent =
+    maxCbmPerCont > 0
+      ? Number(Math.min(100, (totalVolumeCbm / maxCbmPerCont) * 100).toFixed(1))
+      : 0;
+
+  const isHeavyCargo = weightCapacityUtilizationPercent >= 75 && volumeCapacityUtilizationPercent <= 65;
+  const isBulkyCargo = volumeCapacityUtilizationPercent >= 75 && weightCapacityUtilizationPercent <= 65;
+  const isBalancedCargo = !isHeavyCargo && !isBulkyCargo;
+  const isOverweightRisk = totalGrossWeightKg / containerCountNeeded > 26500;
+
+  let loadSummaryAr = '';
+  if (totalGrossWeightKg === 0 && totalVolumeCbm === 0) {
+    loadSummaryAr = 'لم يتم إدخال أوزان أو أحجام الأصناف بعد. يمكنك إدخال وزن وحجم القطعة لحساب حمولة الحاوية آلياً.';
+  } else if (isHeavyCargo) {
+    loadSummaryAr = `شحنة بضائع ثقيلة (قطع غيار معدنية/حديد). استيعاب الحاوية مغلق بالوزن (${totalGrossWeightTons} طن بنسبة ${weightCapacityUtilizationPercent}%) قبل استنفاذ الحجم المكعب.`;
+  } else if (isBulkyCargo) {
+    loadSummaryAr = `شحنة بضائع حجمية خفيفة. استيعاب الحاوية مغلق بالحجم (${totalVolumeCbm} CBM بنسبة ${volumeCapacityUtilizationPercent}%) مع وفر كبير في الوزن.`;
+  } else if (isOverweightRisk) {
+    loadSummaryAr = `تحذير حمولة زائدة: الوزن يتجاوز 26.5 طن للحاوية الواحدة. يلزم تقسيم الشحنة لتجنب غرامات المحاور والموانئ المصرية.`;
+  } else {
+    loadSummaryAr = `حمولة متوازنة وزناً وحجماً (${totalGrossWeightTons} طن و ${totalVolumeCbm} CBM) ملائمة تماماً للحاوية ${recommendedContainerType.toUpperCase()}.`;
+  }
+
+  const containerMetrics: ContainerLoadMetrics = {
+    totalGrossWeightKg,
+    totalGrossWeightTons,
+    totalVolumeCbm,
+    recommendedContainerType,
+    containerCountNeeded,
+    weightCapacityUtilizationPercent,
+    volumeCapacityUtilizationPercent,
+    isHeavyCargo,
+    isBulkyCargo,
+    isBalancedCargo,
+    isOverweightRisk,
+    loadSummaryAr,
+  };
+
+  // Local Market Arbitrage & Total Profit vs Local Wholesale Market
+  let totalProfitVsMarketEgp: number | undefined;
+  let hasAnyMarketPrice = false;
+  let aggregatedMarketProfit = 0;
+
+  for (const it of itemsOutput) {
+    if (it.totalProfitVsMarketEgp !== undefined) {
+      hasAnyMarketPrice = true;
+      aggregatedMarketProfit += it.totalProfitVsMarketEgp;
+    }
+  }
+
+  if (hasAnyMarketPrice) {
+    totalProfitVsMarketEgp = Number(aggregatedMarketProfit.toFixed(2));
+  }
+
+  const overallRoiVsMarketPercent =
+    totalProjectInvestmentEgp > 0 && totalProfitVsMarketEgp !== undefined && totalProfitVsMarketEgp > 0
+      ? Number(((totalProfitVsMarketEgp / totalProjectInvestmentEgp) * 100).toFixed(1))
+      : undefined;
 
   // 7. Base Scenario
   // Target Revenue based on retail markup over accounting cost
@@ -247,6 +397,9 @@ export function calculateImportFeasibility(input: FeasibilityCalculationInput): 
     grossMarginPercentage: Number(baseGrossMargin.toFixed(2)),
     breakEvenRevenueEgp: Number(totalAccountingCostEgp.toFixed(2)),
     breakEvenUnits: baseBreakEvenUnits,
+    containerMetrics,
+    totalProfitVsMarketEgp,
+    overallRoiVsMarketPercent,
     scenarios: {
       base: {
         scenarioName: 'base',
