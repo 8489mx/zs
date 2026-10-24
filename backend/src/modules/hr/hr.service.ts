@@ -1134,25 +1134,50 @@ export class HrService {
   }
 
   async updateEmployeeCredentials(employeeId: number, payload: UpdateEmployeeCredentialsDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     const cleanPin = String(payload.pinCode || '').trim();
     const cleanPhone = String(payload.phone || '').trim();
-
-    if (cleanPin) {
-      assertSecurePasscode(cleanPin, { phone: cleanPhone });
-      const pinRecord = await createPasswordRecord(cleanPin);
-      await sql`UPDATE hr_employees SET pin_hash = ${pinRecord.hash}, pin_salt = ${pinRecord.salt}, mobile_punch_enabled = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    }
-
-    if (cleanPhone) {
-      const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
-      if (existing.rows.length > 0) {
-        await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-      } else {
-        await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
+    // Hash BEFORE entering the DB transaction, so a slow password hash doesn't
+    // block other employee punch/profile operations.
+    if (cleanPin) assertSecurePasscode(cleanPin, { phone: cleanPhone });
+    const pinRecord = cleanPin ? await createPasswordRecord(cleanPin) : null;
+    await this.tx.runInTransaction(this.db, async trx => {
+      const employee = await sql<{ id: number }>`
+        SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!employee.rows.length) throw new NotFoundException('Employee not found');
+      if (pinRecord) {
+        await sql`
+          UPDATE hr_employees
+          SET pin_hash = ${pinRecord.hash}, pin_salt = ${pinRecord.salt},
+              mobile_punch_enabled = TRUE, updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${employeeId} AND tenant_id = ${tenantId}
+        `.execute(trx);
       }
-    }
-
+      if (cleanPhone) {
+        const existing = await sql<{ id: number }>`
+          SELECT id FROM hr_employee_contacts
+          WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          ORDER BY is_primary DESC, id ASC LIMIT 1
+        `.execute(trx);
+        if (existing.rows.length) {
+          await sql`
+            UPDATE hr_employee_contacts
+            SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = TRUE,
+                updated_by = ${auth.userId}, updated_at = NOW()
+            WHERE id = ${existing.rows[0].id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          `.execute(trx);
+        } else {
+          await sql`
+            INSERT INTO hr_employee_contacts
+              (tenant_id, account_id, employee_id, contact_type, value,
+               label, is_primary, notes, created_by, updated_by)
+            VALUES (${tenantId}, ${accountId}, ${employeeId}, 'mobile',
+                    ${cleanPhone}, 'الموبايل الأساسي', TRUE, '', ${auth.userId}, ${auth.userId})
+          `.execute(trx);
+        }
+      }
+    });
     await this.audit.log('Update HR employee credentials', `Employee #${employeeId} credentials updated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
@@ -1195,7 +1220,7 @@ export class HrService {
 
   async listDocuments(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
-    const result = await sql<Record<string, unknown>>`SELECT d.*, u.username AS uploaded_by_name FROM hr_employee_documents d LEFT JOIN users u ON u.id = d.uploaded_by WHERE d.employee_id = ${employeeId} AND d.tenant_id = ${auth.tenantId} ORDER BY d.id DESC`.execute(this.db);
+    const result = await sql<Record<string, unknown>>`SELECT d.*, u.username AS uploaded_by_name FROM hr_employee_documents d LEFT JOIN users u ON u.id = d.uploaded_by AND u.tenant_id = d.tenant_id WHERE d.employee_id = ${employeeId} AND d.tenant_id = ${auth.tenantId} ORDER BY d.id DESC`.execute(this.db);
     return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), title: clean(row.title), documentType: clean(row.document_type), fileUrl: clean(row.file_url), expiryDate: row.expiry_date ? String(row.expiry_date).slice(0, 10) : '', notes: clean(row.notes), uploadedByName: clean(row.uploaded_by_name) })) };
   }
 
