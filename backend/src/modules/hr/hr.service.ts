@@ -2718,7 +2718,7 @@ export class HrService {
             OR reason IN ('حصة الموظف في التأمينات الاجتماعية', 'ضريبة كسب العمل'))
       `.execute(trx);
       // The canonical payroll engine already includes all approved operational deductions.
-      await this.rebuildPayrollRunItems(trx, id, status, tenantId);
+      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || tenantId);
     });
     await this.audit.log('Recalculate HR payroll deductions', `Payroll run #${id} recalculated by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
