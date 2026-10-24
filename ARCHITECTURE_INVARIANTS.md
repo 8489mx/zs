@@ -148,6 +148,9 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-LOAN-38 (25 October 2026): Installment previews and approvals use the LATER of loan issue_date and actual disbursed_at date as a cutoff. Backdating/future-dating either field cannot charge an employee's already-completed payroll. This remains independent of later installment due-date validation.
 
+- HR-PAY-39 (25 October 2026): **P0 reviewed-snapshot invalidation**. Explicit payroll recalculation, apply-attendance recalculation and automatic quick-advance rebuilding now demote previously reviewed runs and their reviewed line items to DRAFT and clear reviewed_by/reviewed_at. Previously, a late loan deduction or recalculation silently changed a reviewed snapshot while leaving approval immediately available. A human must re-run /review before /approve. Existing approved/paid runs remain immutable. Transactional shared payroll lock is required.
+- Regression integration verification pending; no tests, builds, typechecks or guards were executed.
+
 ### Accounting ledger hardening (October 2026)
 
 - Keep the original and opposite journal entries `posted` after reversal so their effects offset in every posted-only report. Older cancelled originals with posted reversals require a separate tenant-scoped historical reconciliation before repair.

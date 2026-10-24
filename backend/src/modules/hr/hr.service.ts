@@ -3278,12 +3278,30 @@ export class HrService {
     return this.getPayrollRun(runId, auth);
   }
 
+  /** Financial recalculation invalidates the former review approval.
+   * Call only inside the run's locked transaction, AFTER rebuilding its items.
+   */
+  private async invalidatePayrollRunReview(db: Kysely<Database>, runId: number, tenantId: string): Promise<void> {
+    await sql`
+      UPDATE hr_payroll_run_items SET status = 'draft', updated_at = NOW()
+      WHERE run_id = ${runId} AND tenant_id = ${tenantId} AND status = 'reviewed'
+    `.execute(db);
+    await sql`
+      UPDATE hr_payroll_runs
+      SET status = 'draft', reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
+      WHERE id = ${runId} AND tenant_id = ${tenantId} AND status = 'reviewed'
+    `.execute(db);
+  }
+
   async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
-      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
+      await this.rebuildPayrollRunItems(trx, id, 'draft', auth.tenantId || '');
+      if (status === 'reviewed') {
+        await this.invalidatePayrollRunReview(trx, id, auth.tenantId || '');
+      }
     });
     await this.audit.log('Recalculate HR payroll run', `Payroll run #${id} recalculated by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
@@ -3306,7 +3324,10 @@ export class HrService {
             OR reason IN ('حصة الموظف في التأمينات الاجتماعية', 'ضريبة كسب العمل'))
       `.execute(trx);
       // The canonical payroll engine already includes all approved operational deductions.
-      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || tenantId);
+      await this.rebuildPayrollRunItems(trx, id, 'draft', tenantId);
+      if (status === 'reviewed') {
+        await this.invalidatePayrollRunReview(trx, id, tenantId);
+      }
     });
     await this.audit.log('Recalculate HR payroll deductions', `Payroll run #${id} recalculated by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
@@ -5959,7 +5980,12 @@ export class HrService {
       `.execute(trx);
       for (const run of activeRuns.rows) {
         const runId = Number(run.id);
-        await this.rebuildPayrollRunItems(trx, runId, run.status as 'draft' | 'reviewed', auth.tenantId || '');
+        await this.rebuildPayrollRunItems(trx, runId, 'draft', tenantId);
+        if (run.status === 'reviewed') {
+          // Automatic loan deductions have changed the reviewed financial
+          // snapshot. Require a fresh human review before the next approval.
+          await this.invalidatePayrollRunReview(trx, runId, tenantId);
+        }
       }
     });
 
