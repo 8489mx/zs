@@ -28,14 +28,19 @@ export function calculateSalesReturnCost(returns: ReturnCostLine[], saleItems: O
     if (!Number.isFinite(qty) || qty <= 0 || !Number.isInteger(productId) || productId <= 0) {
       throw new Error('Invalid sales return cost line');
     }
+    // A saved cost is not proof that the linked sale line belongs to this product.
+    // Validate provenance even when the return already carries a unit cost.
+    const hasSaleItemLink = line.sale_item_id != null;
+    const original = hasSaleItemLink ? byId.get(Number(line.sale_item_id)) : undefined;
+    if (hasSaleItemLink && (!original || Number(original.product_id) !== productId)) {
+      throw new Error(`Original sale line missing or mismatched for returned product ${productId}`);
+    }
     if (line.cost_price != null) {
       const savedCost = Number(line.cost_price);
       if (!Number.isFinite(savedCost) || savedCost < 0) throw new Error(`Invalid saved return cost for product ${productId}`);
       total += qty * savedCost;
       continue;
     }
-    const original = line.sale_item_id ? byId.get(Number(line.sale_item_id)) : undefined;
-    if (line.sale_item_id && !original) throw new Error(`Original sale line missing for returned product ${productId}`);
     const candidates = original ? [original] : (byProduct.get(productId) || []);
     if (!candidates.length || (original && Number(original.product_id) !== productId)) {
       throw new Error(`Original sale line missing for returned product ${productId}`);
