@@ -44,3 +44,24 @@ assert.throws(
 );
 
 console.log('returns write helper checks passed');
+
+const kwdSaleReturn = buildSaleReturnLine(
+  { product_id:11, product_name:'KWD', qty:1, line_total:0.001, net_line_total:0.001, allocated_tax:0, unit_multiplier:1 },
+  { id:11,stock_qty:0 },
+  { productId:11,productName:'KWD',qty:1 },
+  { qty:0,amount:0,tax:0 }, 3,
+);
+assert.equal(kwdSaleReturn.lineTotal, 0.001);
+assert.equal(kwdSaleReturn.unitTotal, 0.001);
+const kwdPurchaseReturn = buildPurchaseReturnLine(
+  { product_id:11,product_name:'KWD',qty:1,line_total:0.001,unit_multiplier:1 },
+  { id:11,stock_qty:1 },
+  { productId:11,productName:'KWD',qty:1 },
+  { qty:0,amount:0,tax:0 }, 3,
+);
+assert.equal(kwdPurchaseReturn.lineTotal,0.001);
+assert.equal(kwdPurchaseReturn.unitTotal,0.001);
+assert.equal(calculateReturnDocumentTotal([kwdSaleReturn],3),0.001);
+assert.equal(calculateNextLedgerBalance('0.002',-0.001,3),0.001);
+// Two-digit callers retain historical cents.
+assert.equal(calculateReturnDocumentTotal([{lineTotal:0.001}]),0);
