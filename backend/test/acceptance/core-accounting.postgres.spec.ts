@@ -868,7 +868,7 @@ async function main() {
       .where('source_type','in',['pharmacy_clinical_service','pharmacy_prescription_cash'])
       .execute();
     assert.equal(phEntries.length,2,'One source-backed immutable GL per collection');
-    await db.updateTable('accounting_settings').set({lock_date_tax:'2099-12-31'})
+    await db.updateTable('accounting_settings').set({lock_date_all:'2099-12-31'})
       .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
     const previousClinical = await db.selectFrom('pharmacy_clinical_services').select('id')
       .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
@@ -878,7 +878,7 @@ async function main() {
     const afterClinical = await db.selectFrom('pharmacy_clinical_services').select('id')
       .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
     assert.equal(afterClinical.length,previousClinical.length,'GL failure rolls back clinical source and cash');
-    await db.updateTable('accounting_settings').set({lock_date_tax:null})
+    await db.updateTable('accounting_settings').set({lock_date_all:null})
       .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
     pass('pharmacy clinical fee and patient copay preserve KWD fils, post GL once, reject unsafe edits and roll back on posting failure');
 
