@@ -412,6 +412,64 @@ async function main() {
     assert.equal(kwdLines.reduce((sum,line)=>sum+Number(line.credit),0),0.001);
     pass('KWD 0.001 journal lines survive real PostgreSQL persistence without cent rounding');
 
+    // Full vendor invoice: source amounts, physical WAC, AP partner ledger and
+    // inventory/credit GL must all preserve the same single KWD fil.
+    const kwdPurchasePayload={
+      supplierId:kwd.supplierId,paymentType:'credit' as const,
+      branchId:kwd.branchId,locationId:kwd.locationId,taxRate:0,pricesIncludeTax:false,
+      supplierInvoiceNo:`KWD-FIL-${tag}`,
+      items:[{productId:kwd.productId,name:'Test product',qty:1,cost:0.001,
+        unitMultiplier:1,locationId:kwd.locationId}],
+    };
+    const kwdPurchaseKey=randomUUID();
+    const filInvoice=await purchases.createPurchase(kwdPurchasePayload,kwd.auth,kwdPurchaseKey);
+    const filInvoiceId=Number(filInvoice.purchaseId);
+    assert.ok(filInvoiceId>0);
+    const filHeader=await db.selectFrom('purchases').select(['subtotal','tax_amount','total'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',filInvoiceId).executeTakeFirstOrThrow();
+    assert.equal(Number(filHeader.subtotal),0.001);
+    assert.equal(Number(filHeader.tax_amount),0);
+    assert.equal(Number(filHeader.total),0.001);
+    const filItem=await db.selectFrom('purchase_items').select(['unit_cost','line_total'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('purchase_id','=',filInvoiceId).executeTakeFirstOrThrow();
+    assert.equal(Number(filItem.unit_cost),0.001);
+    assert.equal(Number(filItem.line_total),0.001);
+    const filSupplier=await db.selectFrom('suppliers').select('balance')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.supplierId).executeTakeFirstOrThrow();
+    assert.equal(Number(filSupplier.balance),0.001);
+    const filPartner=await db.selectFrom('supplier_ledger').select(['amount','balance_after'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('reference_type','=','purchase')
+      .where('reference_id','=',filInvoiceId).executeTakeFirstOrThrow();
+    assert.equal(Number(filPartner.amount),0.001);
+    assert.equal(Number(filPartner.balance_after),0.001);
+    const filProduct=await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(filProduct.stock_qty),1);
+    assert.equal(Number(filProduct.cost_price),0.001);
+    const filReceipt=await db.selectFrom('stock_movements').select(['qty','unit_cost','total_cost'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('reference_type','=','purchase')
+      .where('reference_id','=',filInvoiceId).executeTakeFirstOrThrow();
+    assert.equal(Number(filReceipt.qty),1);
+    assert.equal(Number(filReceipt.unit_cost),0.001);
+    assert.equal(Number(filReceipt.total_cost),0.001);
+    const filPurchaseLines=await db.selectFrom('journal_entry_lines')
+      .innerJoin('journal_entries',j=>j.onRef('journal_entries.id','=','journal_entry_lines.journal_entry_id')
+        .onRef('journal_entries.tenant_id','=','journal_entry_lines.tenant_id'))
+      .select(['journal_entry_lines.debit','journal_entry_lines.credit'])
+      .where('journal_entries.tenant_id','=',kwd.auth.tenantId!)
+      .where('journal_entries.source_type','=','purchase')
+      .where('journal_entries.source_id','=',filInvoiceId).execute();
+    assert.equal(filPurchaseLines.length,2);
+    assert.equal(filPurchaseLines.reduce((sum,row)=>sum+Number(row.debit),0),0.001);
+    assert.equal(filPurchaseLines.reduce((sum,row)=>sum+Number(row.credit),0),0.001);
+    const purchaseRetry=await purchases.createPurchase(kwdPurchasePayload,kwd.auth,kwdPurchaseKey);
+    assert.equal(Number(purchaseRetry.purchaseId),filInvoiceId);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.productId)
+      .executeTakeFirstOrThrow()).stock_qty),1,'retried purchase must not duplicate one-fil stock');
+    pass('KWD purchase 0.001 source, physical WAC, supplier/AP GL and idempotent retry reconcile');
+
+
     // Exercise actual cross-module 0.001 cash and inventory paths, not merely an isolated journal.
     const filTicket = await maintenance.createTicket({
       customerName:'KWD repair',customerPhone:'01000000000',deviceModel:'Watch',
