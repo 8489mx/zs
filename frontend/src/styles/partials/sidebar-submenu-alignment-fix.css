@@ -57,7 +57,8 @@ html[dir="ltr"] .sidebar-link.sidebar-link-sub .sidebar-icon {
   text-overflow: clip;
   font-size: 14px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.45;
+  padding: 1px 0 2px;
 }
 
 html[dir="rtl"] .sidebar-link.sidebar-link-sub .sidebar-label {

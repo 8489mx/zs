@@ -231,7 +231,8 @@ body,
 
 .sidebar-label {
   font-size: 13.5px;
-  line-height: 1.2;
+  line-height: 1.45;
+  padding: 1px 0 2px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
