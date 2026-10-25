@@ -5,7 +5,7 @@ import { invalidateInventoryDomain } from '@/app/query-invalidation';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { withIdempotency, checkIdempotencyStatus } from '@/lib/idempotency';
 import { INVENTORY_OPERATION_TYPES } from '@/features/inventory/lib/inventory-operation-types';
-import { acquireInventoryAttempt, mayReleaseInventoryAttempt, type InventoryOperationAttempt } from '@/features/inventory/lib/inventory-operation-attempt';
+import { acquireInventoryAttempt, mayReleaseInventoryAttempt, inventoryTransferActionAttemptKey, type InventoryOperationAttempt } from '@/features/inventory/lib/inventory-operation-attempt';
 import type { StockCountItem, StockTransferItem, StockTransfer } from '@/types/domain';
 
 async function executeStickyInventoryMutation<T>(
@@ -60,6 +60,7 @@ export function useInventoryWorkspaceMutations({
 }) {
   const transferAttempt = useRef<InventoryOperationAttempt<Record<string, unknown>> | null>(null);
   const countAttempt = useRef<InventoryOperationAttempt<Record<string, unknown>> | null>(null);
+  const transferActionAttempts = useRef(new Map<string, InventoryOperationAttempt<Record<string, unknown>>>());
   const refreshInventoryQueries = async () => {
     await invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard: true });
   };
@@ -94,15 +95,39 @@ export function useInventoryWorkspaceMutations({
       transferIds: string[]; action: 'receive' | 'cancel';
       receiptItems?: Record<string, Array<{ itemId: number; receivedQty: number; receivedSerials?: string[]; batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }> }>>;
     }) => {
+      const operationKeys = transferIds.map(id => inventoryTransferActionAttemptKey(action, id));
+      const frozenKeys = [...transferActionAttempts.current.keys()];
+      if (frozenKeys.some(key => !operationKeys.includes(key))) {
+        throw new Error('هناك دفعة استلام أو إلغاء سابقة غير محسومة؛ أعد محاولة نفس الأذونات قبل تغيير الاختيار');
+      }
       for (const transferId of transferIds) {
-        if (action === 'receive') {
-          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers, { items: receiptItems?.[transferId] }), INVENTORY_OPERATION_TYPES.receiveTransfer, crypto.randomUUID());
-        } else {
-          await withIdempotency((headers) => inventoryApi.cancelStockTransfer(transferId, headers), INVENTORY_OPERATION_TYPES.cancelTransfer, crypto.randomUUID());
+        const actionKey = inventoryTransferActionAttemptKey(action, transferId);
+        const ref: { current: InventoryOperationAttempt<Record<string, unknown>> | null } = {
+          current: transferActionAttempts.current.get(actionKey) || null,
+        };
+        const payload: Record<string, unknown> = {
+          transferId, action,
+          ...(action === 'receive' ? { items: receiptItems?.[transferId] } : {}),
+        };
+        try {
+          await executeStickyInventoryMutation(ref, payload,
+            action === 'receive' ? INVENTORY_OPERATION_TYPES.receiveTransfer : INVENTORY_OPERATION_TYPES.cancelTransfer,
+            (frozen, headers) => frozen.action === 'receive'
+              ? inventoryApi.receiveStockTransfer(String(frozen.transferId), headers, {
+                  items: frozen.items as Array<{
+                    itemId: number; receivedQty: number; receivedSerials?: string[];
+                    batchReceipts?: Array<{ transitBatchId: number; receivedQty: number }>;
+                  }> | undefined,
+                })
+              : inventoryApi.cancelStockTransfer(String(frozen.transferId), headers));
+        } finally {
+          if (ref.current) transferActionAttempts.current.set(actionKey, ref.current);
+          else transferActionAttempts.current.delete(actionKey);
         }
       }
     },
     onSuccess: async () => {
+      transferActionAttempts.current.clear();
       await refreshInventoryQueries();
       setSelectedTransferIds([]);
     },

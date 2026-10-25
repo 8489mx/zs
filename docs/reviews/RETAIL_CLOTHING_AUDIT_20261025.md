@@ -215,3 +215,7 @@ All rows above describe **code changed**, not verified operation. Count as **15 
 
 ### Follow-up D — transfer/count create response-loss protection
 - A transfer was keyed afresh for each retry and stock-count creation was unkeyed; both now preserve the original key and request payload until resolution, with no localStorage persistence. This adds **two** separate code-patched themes, for **32 cumulative** (12 initial + 20 follow-up), with **no tests executed**. Bulk receipt/cancel and restart recovery remain open.
+
+
+### Follow-up D — bulk transfer receive/cancel duplicate prevention
+- Multi-document receipt/cancellation now pins an operation key and payload per document, retaining all keys until the entire batch succeeds; a partial failure cannot turn a previous successful item into a new mutation key. This is one more independently tracked source-code defect theme: **33 cumulative** (12 original + 21 subsequent). No tests executed. D remains PARTIAL.

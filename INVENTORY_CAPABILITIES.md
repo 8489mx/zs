@@ -339,3 +339,8 @@
 
 ### 2026-10-25 — D: stable keyed creation of transfers and count sessions
 - The transfer dialog formerly minted a new key per retry, and stock-count drafts were submitted with no idempotency key. The mutation layer now freezes each attempted payload and key in memory, rejects changed fields while an attempt is unresolved, queries the server operation status, and only clears an attempt on a committed response or confirmed failed/never-received request. Count create now passes the supported idempotency header. No credentials are persisted to storage. `inventory-operation-attempt.spec.ts` authored, not run. Shared `withIdempotency` polling semantics and browser reload remain Core review blockers.
+
+
+### 2026-10-25 — D: bulk stock transfer receive/cancel recovery
+
+- A multi-selected transfer action originally minted a new operation key per document each time the whole batch was retried; a timeout after the first committed receive could cause a second receive/cancel attempt with a fresh key. The hook now retains a stable, frozen keyed request per transfer/action until the batch finishes. Rerunning a batch replays committed documents with their old keys instead of creating duplicate movements, and refuses switching selected IDs/action or altering partial quantities while any operation is unresolved. Written tests for unique document/action keys and immutable receipt payloads remain unexecuted. Browser reload and real transfer transaction failures still need UAT.

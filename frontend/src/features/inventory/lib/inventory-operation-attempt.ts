@@ -12,3 +12,8 @@ export function acquireInventoryAttempt<T>(previous: InventoryOperationAttempt<T
 export function mayReleaseInventoryAttempt(httpStatus: number, status?: string): boolean {
   return status === 'failed' || (status === 'not_found' && httpStatus >= 400 && httpStatus < 500);
 }
+
+/** Unique per business document and action, while the batch remains unresolved. */
+export function inventoryTransferActionAttemptKey(action: 'receive' | 'cancel', transferId: string): string {
+  return `${action}:${transferId}`;
+}
