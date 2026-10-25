@@ -299,14 +299,21 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
     const meta = isObjectRecord(payload.meta)
       ? { version: String(payload.meta.version || '1.0.0'), exportedAt: String(payload.meta.exportedAt || payload.meta.exported_at || ''), source: String(payload.meta.source || 'manual'), tenantId: String(payload.meta.tenantId || ''), accountId: String(payload.meta.accountId || '') }
       : { version: '1.0.0', exportedAt: '', source: 'manual' };
-    const raw = isObjectRecord(payload.tables) ? payload.tables : {};
+    if (!isObjectRecord(payload.tables)) {
+      throw new AppError('Backup has no tables object', 'BACKUP_INVALID_TABLES', 400);
+    }
+    const raw = payload.tables;
     const tables: Partial<Record<BackupTableName, unknown[]>> = {};
     for (const [name, rows] of Object.entries(raw)) {
       // Old backups may contain billing/session tables. Ignore them for compatibility,
       // but never allow their contents to cross the restore boundary.
       if (isTenantBackupDataTable(name) && /^[a-z][a-z0-9_]*$/.test(name) && Array.isArray(rows)) tables[name] = rows;
     }
-    for (const name of BACKUP_TABLES) if (isTenantBackupDataTable(String(name)) && !tables[name]) tables[name] = [];
+    // Never synthesize missing tables as empty arrays: an incomplete/legacy file
+    // must not masquerade as a full backup and silently clear absent tables.
+    if (!Object.keys(tables).length) {
+      throw new AppError('Backup has no restorable tenant tables', 'BACKUP_NO_TENANT_DATA', 400);
+    }
     return { meta, tables };
   }
   private normalizeFolderPath(value: unknown): string {
@@ -619,7 +626,12 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
       this.assertAdmin(actor);
     }
     const { envelope, manifest } = await this.parseAndVerifyPayload(payload);
-    if (envelope.meta?.tenantId && envelope.meta.tenantId !== scope.tenantId) {
+    // A destructive restore cannot infer ownership from an unbound legacy file:
+    // checking only when tenantId exists previously let missing metadata pass.
+    if (!envelope.meta?.tenantId) {
+      throw new AppError('Backup has no tenant identity; destructive restore is not safe', 'BACKUP_TENANT_ID_MISSING', 400);
+    }
+    if (envelope.meta.tenantId !== scope.tenantId) {
       throw new AppError(
         `النسخة الاحتياطية مأخوذة من منشأة أخرى (${envelope.meta.tenantId})، ولا يمكن استرجاعها فوق هذه المنشأة (${scope.tenantId}). لمنع تداخل البيانات`,
         'TENANT_MISMATCH',
@@ -639,6 +651,47 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
         // 1. Clear existing tenant data in reverse dependency order
         // Discovered dynamically: clear child tables first, then CLEAR_ORDER, then any remaining tenant tables
         const tenantSpecs = await listTenantTables(trx as unknown as Kysely<any>);
+
+        // Preflight ALL live tenant tables before a single DELETE. Missing rows
+        // in a legacy archive are not proof the target had no data. PostgreSQL
+        // rejects the entire transaction instead of destroying newer modules.
+        for (const spec of tenantSpecs.values()) {
+          if (spec.kind === 'child') {
+            // The older manual ZIP format did not export unscoped child tables
+            // or re-map their parent IDs. Refuse rather than silently drop them.
+            const present = await sql<{ exists: boolean }>`
+              select exists (
+                select 1 from ${sql.table(spec.name)}
+                where ${sql.ref(spec.fkColumn!)} in (
+                  select ${sql.ref(spec.parentColumn!)}
+                  from ${sql.table(spec.parent!)}
+                  where tenant_id = ${scope.tenantId}
+                )
+              ) as exists
+            `.execute(trx);
+            if (present.rows[0]?.exists || (envelope.tables[spec.name]?.length ?? 0) > 0) {
+              throw new AppError(
+                `Backup format cannot safely restore dependent table ${spec.name}; use tenant package transfer instead`,
+                'BACKUP_CHILD_TABLE_UNSUPPORTED',
+                409,
+              );
+            }
+            continue;
+          }
+
+          if (Object.prototype.hasOwnProperty.call(envelope.tables, spec.name)) continue;
+          const live = await sql<{ exists: boolean }>`
+            select exists (select 1 from ${sql.table(spec.name)} where tenant_id = ${scope.tenantId}) as exists
+          `.execute(trx);
+          if (live.rows[0]?.exists) {
+            throw new AppError(
+              `Backup omits table ${spec.name} with existing tenant records. Restore refused to prevent data loss.`,
+              'BACKUP_INCOMPLETE_TABLES',
+              409,
+            );
+          }
+        }
+
         const childSpecs = [...tenantSpecs.values()].filter((s) => s.kind === 'child');
         for (const child of childSpecs) {
           await sql`delete from ${sql.table(child.name)} where ${sql.ref(child.fkColumn!)} in (
