@@ -3539,7 +3539,7 @@ export class HrService {
             OR reason IN ('حصة الموظف في التأمينات الاجتماعية', 'ضريبة كسب العمل'))
       `.execute(trx);
       // The canonical payroll engine already includes all approved operational deductions.
-      await this.rebuildPayrollRunItems(trx, id, 'draft', tenantId);
+      await this.rebuildPayrollRunItems(trx, id, 'draft', auth.tenantId || tenantId);
       if (status === 'reviewed') {
         await this.invalidatePayrollRunReview(trx, id, tenantId);
       }
@@ -6269,7 +6269,7 @@ export class HrService {
       `.execute(trx);
       for (const run of activeRuns.rows) {
         const runId = Number(run.id);
-        await this.rebuildPayrollRunItems(trx, runId, 'draft', tenantId);
+        await this.rebuildPayrollRunItems(trx, runId, 'draft', auth.tenantId || tenantId);
         if (run.status === 'reviewed') {
           // Automatic loan deductions have changed the reviewed financial
           // snapshot. Require a fresh human review before the next approval.
