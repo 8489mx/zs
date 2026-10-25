@@ -1,3 +1,5 @@
+import { MoneyDigits, toMinorUnits, fromMinorUnits } from '../../accounting/engines/money-minor-units.engine';
+
 /** Track the surviving share of a receipt in a pooled weighted-average stock balance. */
 const locationOnlyMovements = new Set([
   'transfer_send', 'transfer_receive', 'transfer_transit_in', 'transfer_transit_out',
@@ -22,6 +24,7 @@ export function stockMovementGlobalDelta(type: string, qty: number): number {
 
 export function allocateReceiptCostByStockFlow(input: {
   currentStock: number;
+  minorUnits?: MoneyDigits;
   movements: Array<{ id: number; globalDelta: number }>;
   receipts: Array<{ key: number; movementId: number; receivedQty: number; allocatedCost: number }>;
 }): Map<number, { inventory: number; cogs: number }> {
@@ -63,10 +66,14 @@ export function allocateReceiptCostByStockFlow(input: {
   }
   const result = new Map<number, { inventory: number; cogs: number }>();
   for (const receipt of input.receipts) {
-    const totalCents = Math.round(receipt.allocatedCost * 100);
-    const inventoryCents = Math.min(totalCents, Math.max(0,
-      Math.round(totalCents * (remaining.get(receipt.key) || 0) / receipt.receivedQty)));
-    result.set(receipt.key, { inventory: inventoryCents / 100, cogs: (totalCents - inventoryCents) / 100 });
+    const digits = input.minorUnits ?? 2;
+    const totalMinor = toMinorUnits(receipt.allocatedCost, digits);
+    const inventoryMinor = Math.min(totalMinor, Math.max(0,
+      Math.round(totalMinor * (remaining.get(receipt.key) || 0) / receipt.receivedQty)));
+    result.set(receipt.key, {
+      inventory: fromMinorUnits(inventoryMinor, digits),
+      cogs: fromMinorUnits(totalMinor - inventoryMinor, digits),
+    });
   }
   return result;
 }
