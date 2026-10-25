@@ -325,3 +325,8 @@
 ### 2026-10-25 — A/D/F: clothing stock count barcode safety
 
 - `InventoryComposerCards.handleBarcodeScan` formerly treated `styleCode` shared by all fashion colors/sizes as an individual SKU barcode, silently counting the first variant. Now only a persisted product or unit barcode can identify the size; shared/ambiguous barcodes and model codes are rejected. Unit barcode increments by unit `multiplier` in base pieces; first scanned expected stock derives from selected location, not company aggregate. Regression `count-barcode-identity.spec.ts` written, not executed.
+
+
+### 2026-10-25 — D: prevent conflicting barcode units inside one SKU
+
+- Unit-level stock scanning previously selected the first matching barcode in one product, even if another unit on that **same** product used the same barcode but a different multiplier. The count engine now rejects this ambiguity as it already rejects duplicate SKU barcodes, so a carton barcode cannot silently count as a single piece. Two identical base-unit representations with multiplier 1 remain valid. Regression specs authored, not executed.

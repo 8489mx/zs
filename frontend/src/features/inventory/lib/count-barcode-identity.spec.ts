@@ -22,6 +22,14 @@ describe('clothing count scanner', () => {
     if (carton.status === 'matched') expect(carton.baseQty).toBe(12);
     else throw new Error('Expected matched carton');
   });
+  it('rejects the same barcode for a piece and a carton of the SAME variant', () => {
+    const row = make('1', 'DUP', '300', 12);
+    row.units[1].barcode = 'DUP';
+    expect(classifyStockCountBarcodeScan('DUP', [row]).status).toBe('ambiguous');
+  });
+  it('allows two identical base-unit representations of the same code', () => {
+    expect(classifyStockCountBarcodeScan('B1', [make('1', 'B1')]).status).toBe('matched');
+  });
   it('rejects barcode shared between two active size variants', () => {
     expect(classifyStockCountBarcodeScan('B1', [make('1', 'B1'), make('2', 'B1')]).status).toBe('ambiguous');
   });

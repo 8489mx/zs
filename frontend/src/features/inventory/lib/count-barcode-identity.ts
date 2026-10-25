@@ -9,12 +9,17 @@ export function classifyStockCountBarcodeScan(barcode: string, products: Product
   const matches = new Map<string, { product: Product; baseQty: number }>();
   for (const product of products) {
     if (product.isActive === false || product.is_active === false) continue;
-    const unit = (product.units || []).find((row) => String(row.barcode || '').trim() === value);
+    const matchingUnits = (product.units || []).filter((row) => String(row.barcode || '').trim() === value);
     const matchesBase = String(product.barcode || '').trim() === value;
-    if (!unit && !matchesBase) continue;
-    const multiplier = unit ? Number(unit.multiplier) : 1;
-    if (!Number.isFinite(multiplier) || multiplier <= 0) return { status: 'ambiguous' };
-    matches.set(String(product.id), { product, baseQty: multiplier });
+    if (!matchingUnits.length && !matchesBase) continue;
+    // One printed code must represent exactly one base-unit quantity.
+    // Multiple unit identities with differing conversion rates are unsafe,
+    // even if they belong to the same clothing SKU.
+    const unitMultipliers = matchingUnits.map((unit) => Number(unit.multiplier));
+    if (matchesBase) unitMultipliers.push(1);
+    if (unitMultipliers.some((multiplier) => !Number.isFinite(multiplier) || multiplier <= 0) ||
+      new Set(unitMultipliers).size !== 1) return { status: 'ambiguous' };
+    matches.set(String(product.id), { product, baseQty: unitMultipliers[0] });
   }
   if (matches.size > 1) return { status: 'ambiguous' };
   if (matches.size === 1) {
