@@ -276,12 +276,20 @@ async function main() {
     });
     pass('accounting foundation migration up/up preserves per-tenant ledger counts and money; rollback refuses to discard financial evidence');
 
-    // Verify additive migration idempotency and rollback inside a transaction.
-    try {
-      await db.transaction().execute(async trx=>{await up253(trx);await up253(trx);await down253(trx);throw new Error('ROLLBACK_MIGRATION_PROBE');});
-    } catch(error:any){assert.equal(error.message,'ROLLBACK_MIGRATION_PROBE');}
-    const constraint=await sql`select 1 from pg_constraint where conname='ck_core253_journal_finite'`.execute(db);assert.equal(constraint.rows.length,1);
-    pass('tenant-reference migration up/up/down is repeatable and rollback preserves installed guards');
+    // 255 depends on the composite tenant keys introduced by 253.
+    // A fully migrated installation must REFUSE rolling 253 back alone; do not
+    // drop dependent MFA constraints using CASCADE to make the test green.
+    await db.transaction().execute(async trx=>{await up253(trx);await up253(trx);});
+    await assert.rejects(
+      db.transaction().execute(async trx=>down253(trx)),
+      (error:any) => error.code==='2BP01' && /uq_core253_users_tenant_id/.test(error.message),
+      'PostgreSQL must refuse downgrade while newer security FKs depend on its key',
+    );
+    const constraint=await sql`select 1 from pg_constraint where conname='ck_core253_journal_finite'`.execute(db);
+    assert.equal(constraint.rows.length,1);
+    const dependent=await sql`select 1 from pg_constraint where conname='fk_core255_user_mfa_tenant_user_id'`.execute(db);
+    assert.equal(dependent.rows.length,1);
+    pass('tenant-reference migration up/up is repeatable; unsafe rollback is refused and guards survive');
     console.log(JSON.stringify({status:'PASS',scenarios:results,tenants:createdTenants},null,2));
   } finally {await app.close();await db.destroy();}
 }
