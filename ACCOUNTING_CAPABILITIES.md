@@ -320,3 +320,9 @@
 - `backend/src/modules/accounting/engines/money-minor-units.engine.ts` defines strict integer minor-unit validation and rounding for KWD/OMR three-decimal currency and ordinary two-decimal currencies.
 - `backend/src/modules/accounting/accounting-posting.service.ts` posts journal-entry lines using tenant base-currency digits and migration `2040000000256_currency_minor_unit_precision.ts` widens finance NUMERIC columns without truncating history on rollback.
 - `backend/src/modules/accounting/pdc-currency.ts` rounds converted base amounts by base-currency digits; pure and disposable-PostgreSQL tests are included. Other module totals and reports need additional reconciliation before three-decimal release certification.
+
+### P0-C 25 October 2026 — debt aging three-decimal view (review branch, verification pending)
+
+- Financial report rounding utilities now accept explicit base-currency digits, preserving KWD/OMR minor units without changing two-decimal legacy callers.
+- `ReportsSummaryService.debtAgingReport` reads tenant book precision and uses it for customer/supplier aging, totals and returned values; positive one-fil debt no longer vanishes behind a 0.01 SQL threshold.
+- Unit assertions were added to `backend/test/infra/reports-summary.helper.spec.ts`. Full accounting/reporting certification and PostgreSQL backing-column widening are still outstanding; verify the SHA CI before declaring success.
