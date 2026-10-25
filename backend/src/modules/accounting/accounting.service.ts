@@ -1185,8 +1185,8 @@ export class AccountingService {
 
     let query = this.db
       .selectFrom('journal_entry_lines as l')
-      .innerJoin('journal_entries as je', (join) => join.onRef('je.id', '=', 'l.journal_entry_id').onRef('je.tenant_id', '=', 'l.tenant_id'))
-      .innerJoin('accounting_accounts as a', (join) => join.onRef('a.id', '=', 'l.account_id').onRef('a.tenant_id', '=', 'l.tenant_id'))
+      .innerJoin('journal_entries as je', (join: any) => join.onRef('je.id', '=', 'l.journal_entry_id').onRef('je.tenant_id', '=', 'l.tenant_id'))
+      .innerJoin('accounting_accounts as a', (join: any) => join.onRef('a.id', '=', 'l.account_id').onRef('a.tenant_id', '=', 'l.tenant_id'))
       .select([
         'a.code as account_code',
         'a.name_ar as account_name_ar',
@@ -1511,8 +1511,8 @@ export class AccountingService {
 
     let query = this.db
       .selectFrom('journal_entry_lines as l')
-      .innerJoin('journal_entries as je', (join) => join.onRef('je.id', '=', 'l.journal_entry_id').onRef('je.tenant_id', '=', 'l.tenant_id'))
-      .innerJoin('accounting_accounts as a', (join) => join.onRef('a.id', '=', 'l.account_id').onRef('a.tenant_id', '=', 'l.tenant_id'))
+      .innerJoin('journal_entries as je', (join: any) => join.onRef('je.id', '=', 'l.journal_entry_id').onRef('je.tenant_id', '=', 'l.tenant_id'))
+      .innerJoin('accounting_accounts as a', (join: any) => join.onRef('a.id', '=', 'l.account_id').onRef('a.tenant_id', '=', 'l.tenant_id'))
       .select([
         'a.code as account_code',
         'a.name_ar as account_name_ar',
@@ -3013,7 +3013,7 @@ export class AccountingService {
 
     let query = (this.db as any)
       .selectFrom('bank_statements as bs')
-      .innerJoin('accounting_accounts as a', (join) => join.onRef('a.id', '=', 'bs.account_id').onRef('a.tenant_id', '=', 'bs.tenant_id'))
+      .innerJoin('accounting_accounts as a', (join: any) => join.onRef('a.id', '=', 'bs.account_id').onRef('a.tenant_id', '=', 'bs.tenant_id'))
       .where(this.tenantPredicate(auth, 'bs'))
       .select([
         'bs.id',
@@ -3055,7 +3055,7 @@ export class AccountingService {
 
     const statement = await (this.db as any)
       .selectFrom('bank_statements as bs')
-      .innerJoin('accounting_accounts as a', (join) => join.onRef('a.id', '=', 'bs.account_id').onRef('a.tenant_id', '=', 'bs.tenant_id'))
+      .innerJoin('accounting_accounts as a', (join: any) => join.onRef('a.id', '=', 'bs.account_id').onRef('a.tenant_id', '=', 'bs.tenant_id'))
       .where('bs.id', '=', id)
       .where(this.tenantPredicate(auth, 'bs'))
       .select([
@@ -3272,7 +3272,7 @@ export class AccountingService {
       // 1. Lock and fetch statement line
       const sLine = await trx
         .selectFrom('bank_statement_lines as bsl')
-        .innerJoin('bank_statements as bs', (join) => join.onRef('bs.id', '=', 'bsl.statement_id').onRef('bs.tenant_id', '=', 'bsl.tenant_id'))
+        .innerJoin('bank_statements as bs', (join: any) => join.onRef('bs.id', '=', 'bsl.statement_id').onRef('bs.tenant_id', '=', 'bsl.tenant_id'))
         .where('bsl.id', '=', dto.statementLineId)
         .where(this.tenantPredicate(auth, 'bsl'))
         .select([
@@ -3295,7 +3295,7 @@ export class AccountingService {
       // 2. Lock and fetch journal entry line
       const glLine = await trx
         .selectFrom('journal_entry_lines as jel')
-        .innerJoin('journal_entries as je', (join) => join.onRef('je.id', '=', 'jel.journal_entry_id').onRef('je.tenant_id', '=', 'jel.tenant_id'))
+        .innerJoin('journal_entries as je', (join: any) => join.onRef('je.id', '=', 'jel.journal_entry_id').onRef('je.tenant_id', '=', 'jel.tenant_id'))
         .where('jel.id', '=', dto.journalLineId)
         .where(this.tenantPredicate(auth, 'jel'))
         .select([
@@ -3415,7 +3415,7 @@ export class AccountingService {
     return this.db.transaction().execute(async (trx) => {
       const sLine = await (trx as any)
         .selectFrom('bank_statement_lines as bsl')
-        .innerJoin('bank_statements as bs', (join) => join.onRef('bs.id', '=', 'bsl.statement_id').onRef('bs.tenant_id', '=', 'bsl.tenant_id'))
+        .innerJoin('bank_statements as bs', (join: any) => join.onRef('bs.id', '=', 'bsl.statement_id').onRef('bs.tenant_id', '=', 'bsl.tenant_id'))
         .where('bsl.id', '=', dto.statementLineId)
         .where(this.tenantPredicate(auth, 'bsl'))
         .where(this.tenantPredicate(auth, 'bs'))
