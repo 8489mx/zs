@@ -12,7 +12,7 @@ import { productsApi } from '@/features/products/api/products.api';
 import { buildUpdatePayload, normalizeCustomerPrices, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { buildCode128Svg, collectExistingBarcodes, createGeneratedBarcode, productUnitsWithFallback } from '@/lib/barcode';
-import { resolveBarcodeUnit, type BarcodePrintItem } from '@/lib/barcode-labels';
+import type { BarcodePrintItem } from '@/lib/barcode-labels';
 import { collectFashionBarcodeItems, getSavedUnitBarcode } from './product-barcode-print.helpers';
 import { toast } from '@/shared/components/system-alert';
 import type { Product, ProductUnit } from '@/types/domain';
@@ -97,6 +97,11 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
     },
   });
 
+  const variantCount = useMemo(() => {
+    if (!product?.styleCode) return 1;
+    return collectFashionBarcodeItems(product, products).length;
+  }, [product, products]);
+
   if (!product) return null;
   const currentProduct = product;
 
@@ -117,11 +122,6 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
   }
 
   const effectiveBarcode = activeMode === 'generate' ? generatedValue : scanValue;
-  const variantCount = useMemo(() => {
-    const styleCode = String(product.styleCode || '').trim();
-    if (!styleCode) return 1;
-    return collectFashionBarcodeItems(product, products).length;
-  }, [product.styleCode, products]);
 
   return (
     <StandardDialog

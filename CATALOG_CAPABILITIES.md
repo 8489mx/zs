@@ -279,3 +279,8 @@ emoveDraftRow):**
 - كان `ProductBarcodeDialog` يطبع باركودًا غير محفوظ من حقل الماسح أو التوليد، وقد يرجع إلى باركود القطعة الأساسية لو كانت الوحدة المختارة مختلفة وباركودها فارغًا. أصبح التصريح بالطباعة مرتبطًا بباركود الوحدة **المحفوظ** فقط، مع حفظ أحدث صنف محليًا بعد نجاح حفظ الباركود.
 - خيار «كل مقاسات الموديل» كان يعتمد على قائمة المنتجات المحمّلة للشاشة فقط (قد تكون صفحة جزئية) ويمزج أي صنف يشارك `styleCode`. عند الطباعة تُجلب القائمة الفعلية عبر `productsApi.listAll` ويُفلتر `itemKind='fashion'` والموديل النشط نفسه؛ لو فشل الجلب أو افتقدت مقاسات باركودًا محفوظًا، لا تُطبع مجموعة غير مكتملة.
 - اختبار مكتوب غير مُشغّل: `frontend/src/features/products/components/product-barcode-print.helpers.spec.ts`. لم يتم اختبار ماسحات/طابعات فعلية.
+
+
+### 2026-10-25 — barcode dialog hook safety follow-up
+
+- Moved the `variantCount` `useMemo` before nullable-product early return in `ProductBarcodeDialog` to preserve React's invariant hook order across dialog props; removed unused import. No tests/build executed.

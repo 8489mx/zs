@@ -320,3 +320,8 @@
 - `StockCountComposerCard` formerly showed the **whole tenant catalog** when `locationStocks` was an empty array, rather than a genuinely empty warehouse. A selected warehouse now uses only its location-stock entries (including zero balances); an absent/unavailable snapshot prevents start, rather than falling back to global stock. Location map avoids O(products × stocks) filtering.
 - Quick manual count in `useInventoryWorkspaceController` previously used global `product.stock` for `expectedQty`; now it uses the selected warehouse's physical balance, defaulting to 0 only if a valid location snapshot confirms no row.
 - Written (not executed) `frontend/src/features/inventory/lib/count-location-scoping.spec.ts`. Remaining physical count/ledger postings and live database concurrency tests are not yet validated.
+
+
+### 2026-10-25 — A/D/F: clothing stock count barcode safety
+
+- `InventoryComposerCards.handleBarcodeScan` formerly treated `styleCode` shared by all fashion colors/sizes as an individual SKU barcode, silently counting the first variant. Now only a persisted product or unit barcode can identify the size; shared/ambiguous barcodes and model codes are rejected. Unit barcode increments by unit `multiplier` in base pieces; first scanned expected stock derives from selected location, not company aggregate. Regression `count-barcode-identity.spec.ts` written, not executed.

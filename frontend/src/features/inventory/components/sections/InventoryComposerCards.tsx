@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { buildCountLocationStockMap, filterCountableProductsAtLocation } from '@/features/inventory/lib/count-location-scoping';
+import { classifyStockCountBarcodeScan } from '@/features/inventory/lib/count-barcode-identity';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
@@ -597,7 +598,7 @@ export function StockCountComposerCard({
     const query = tableSearchQuery.trim().toLowerCase();
     if (query) {
       result = result.filter((item) => {
-        const prod = products.find((p) => String(p.id) === String(item.productId));
+        const prod = indexedProducts.get(String(item.productId));
         const name = String(item.productName || '').toLowerCase();
         const barcode = String(prod?.barcode || '').toLowerCase();
         const styleCode = String(prod?.styleCode || '').toLowerCase();
@@ -614,7 +615,7 @@ export function StockCountComposerCard({
     }
 
     return result;
-  }, [items, products, tableSearchQuery, tableFilterTab]);
+  }, [items, indexedProducts, tableSearchQuery, tableFilterTab]);
 
   const pagination = useClientPagination(filteredItems, {
     initialPageSize: 50,
@@ -647,37 +648,42 @@ export function StockCountComposerCard({
   function handleBarcodeScan(code: string) {
     const trimmed = code.trim();
     if (!trimmed) return;
-    const matchedProduct = products.find((p) =>
-      String(p.barcode || '').trim() === trimmed ||
-      String(p.styleCode || '').trim() === trimmed ||
-      String(p.id) === trimmed ||
-      p.units?.some((u) => String(u.barcode || '').trim() === trimmed)
-    );
-    if (!matchedProduct) {
-      setStartCountMessage(`لم يتم العثور على صنف بالباركود: ${trimmed}`);
+    if (!form.locationId || scopedStocks === null) {
+      setStartCountMessage('أرصدة المخزن غير متاحة. لن نعد قطعة في مخزن غير مؤكد');
       return;
     }
+    const scan = classifyStockCountBarcodeScan(trimmed, products);
+    if (scan.status !== 'matched') {
+      setStartCountMessage(scan.status === 'ambiguous'
+        ? 'هذا الكود مشترك بين عدة مقاسات أو أصناف؛ امسح باركود المقاس المحدد'
+        : scan.status === 'style_code'
+          ? 'كود الموديل ليس باركود مقاس. اختر المقاس المحدد قبل الجرد'
+          : `لم يتم العثور على صنف بباركود محفوظ: ${trimmed}`);
+      return;
+    }
+    const matchedProduct = scan.product;
+    const countedBaseQty = scan.baseQty;
     setStartCountMessage('');
     const existingItem = items.find((item) => String(item.productId) === String(matchedProduct.id));
     if (existingItem) {
       const currentQty = existingItem.countedQty === '' || existingItem.countedQty == null ? 0 : Number(existingItem.countedQty);
-      const nextQty = currentQty + 1;
+      const nextQty = Number((currentQty + countedBaseQty).toFixed(3));
       updateCountItemById(existingItem.id, { countedQty: nextQty, isCounted: true });
       setLastScannedItem({ name: existingItem.productName, qty: nextQty });
     } else {
-      const expectedQty = Number(matchedProduct.stock || 0);
+      const expectedQty = scopedStocks.get(String(matchedProduct.id)) ?? 0;
       const newItem: StockCountItem = {
         id: `${matchedProduct.id}-${Date.now()}`,
         productId: matchedProduct.id,
         productName: matchedProduct.name,
         expectedQty,
-        countedQty: 1,
-        varianceQty: Number((1 - expectedQty).toFixed(3)),
+        countedQty: countedBaseQty,
+        varianceQty: Number((countedBaseQty - expectedQty).toFixed(3)),
         reason: '',
         note: '',
       };
       onItemsChange((current) => [newItem, ...current]);
-      setLastScannedItem({ name: matchedProduct.name, qty: 1 });
+      setLastScannedItem({ name: matchedProduct.name, qty: countedBaseQty });
     }
     setBarcodeScanInput('');
   }
