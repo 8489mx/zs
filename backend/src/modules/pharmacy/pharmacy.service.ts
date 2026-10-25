@@ -445,8 +445,27 @@ export class PharmacyService {
   async upsertDrug(auth: AuthContext, dto: UpsertDrugDto) {
     const scope = requireTenantScope(auth);
 
+    // A drug-to-stock link is an economic reference for batch WAC and sales.
+    // Verify ownership and prevent retargeting historic stock to a different product.
+    return this.db.transaction().execute(async (trx) => {
+    if (dto.productId != null) {
+      const linked = await trx.selectFrom('products').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', dto.productId).executeTakeFirst();
+      if (!linked) throw new AppError('Drug stock product must belong to tenant',
+        'PHARMACY_PRODUCT_NOT_LINKED', 422);
+    }
     if (dto.id) {
-      return await this.db
+      const existing = await trx.selectFrom('pharmacy_drugs').select(['id', 'product_id'])
+        .where('id', '=', dto.id).where('tenant_id', '=', scope.tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!existing) throw new AppError('Drug not found', 'PHARMACY_DRUG_NOT_FOUND', 404);
+      if ((dto.productId ?? null) !== existing.product_id) {
+        const historical = await trx.selectFrom('pharmacy_batches').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('drug_id', '=', dto.id).executeTakeFirst();
+        if (historical) throw new AppError('Drug stock linkage cannot be changed after batch receipts',
+          'PHARMACY_PRODUCT_LINK_IMMUTABLE', 409);
+      }
+      return await trx
         .updateTable('pharmacy_drugs')
         .set({
           product_id: dto.productId ?? null,
@@ -477,7 +496,7 @@ export class PharmacyService {
         .executeTakeFirstOrThrow();
     }
 
-    return await this.db
+    return await trx
       .insertInto('pharmacy_drugs')
       .values({
         tenant_id: scope.tenantId,
@@ -505,6 +524,7 @@ export class PharmacyService {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+    });
   }
 
   async deleteDrug(auth: AuthContext, id: number) {

@@ -457,6 +457,18 @@ async function main() {
         expiryDate:'2030-12',quantity:1,unitCost:10}),
       (err:any)=>err.code==='PHARMACY_BATCH_PURCHASE_REQUIRED',
     );
+    await assert.rejects(
+      pharmacy.upsertDrug(pf.auth,{
+        id:Number(pd.id), productId:null, tradeName:'Test product',
+        activeIngredient:'Acceptance substance', dosageForm:'tablets',
+      } as any),
+      (err:any)=>err.code==='PHARMACY_PRODUCT_LINK_IMMUTABLE');
+    await assert.rejects(
+      pharmacy.upsertDrug(pf.auth,{
+        productId:999999999,tradeName:'Injected cross tenant',activeIngredient:'Substance',
+        dosageForm:'tablets',
+      } as any),
+      (err:any)=>err.code==='PHARMACY_PRODUCT_NOT_LINKED');
     await assert.rejects(pharmacy.deleteDrug(pf.auth,Number(pd.id)),
       (err:any)=>err.code==='PHARMACY_DRUG_BATCH_HISTORY');
     await assert.rejects(pharmacy.importDistributorInvoice(pf.auth,{
