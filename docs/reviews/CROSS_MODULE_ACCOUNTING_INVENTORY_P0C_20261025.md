@@ -131,3 +131,9 @@ The code observations above identify definite missing integration points; **fina
 
 - Stock-count journal variance valuation now uses the tenant book's 2- or 3-digit minor-unit precision; avoids silently discarding 0.001 KWD / OMR variance before GL posting.
 - Added critical regression scenarios for KWD, OMR, EGP and a 0.025 amount. This does not certify end-to-end cash, sales, purchase and reporting precision; P0C-01 remains open.
+
+## 25 October — three-decimal maintenance and trade-in cross-module fixes
+
+- Removed hard-coded 2-digit rounding for maintenance journals and spare-part COGS movements; delivery now compares exact integer tenant minor units and rejects overprecision instead of concealing a mill mismatch.
+- Trade-in validates user acquisition amounts in tenant minor units before transactional stock/cash writes; the trade-in acquisition posting no longer truncates the last KWD/OMR fil.
+- New disposable PostgreSQL checks cover KWD 0.001 advance + 0.002 settlement; KWD 0.001 trade-in physical stock, treasury and GL; and 0.0001 rejection. Results pending for the new SHA; no broad 8-cycle/11-sector certification or migration/deploy approval is claimed.

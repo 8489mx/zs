@@ -38,3 +38,7 @@
 
 
 <!-- migrated:cap-038:end -->
+
+### P0-C three-decimal acquisition follow-up (2026-10-25; branch only)
+
+`tradein.service.ts` validates acquisition cost against the tenant base currency before stock/cash writes; `accounting-posting.service.ts` no longer calls a two-decimal quantizer before posting cash used-goods inventory. The PostgreSQL acceptance suite now checks a 0.001 KWD acquisition against source, stock/WAC, treasury and balanced GL, plus rejection of 0.0001. **New CI result is pending**. Bank/deferred exchanges, settlement reversals and other sector pathways are still open.

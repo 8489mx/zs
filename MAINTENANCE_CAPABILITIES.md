@@ -49,3 +49,7 @@
 - صرف قطعة غيار يستخدم `products.cost_price` المحمي بقفل المخزون (وليس `unitCost` القادم من العميل)، ويرفق تكلفة `stock_movements` ويقيد **5100 / 1140**. إرجاعها يعكس القيد ويعيد تسعير متوسط التكلفة المرجح بقيمتها التاريخية.
 - يُحظر حذف تذكرة بها عربون أو حالة تسليم أو قطع لم ترجع، وتغيير العربون مباشرة، وإعادة الترحيل بعد التسليم؛ مسار الاسترداد/الإلغاء المدقق الكامل ما زال مفتوحاً.
 - دليل الاختبار المحدد: سيناريو `backend/test/acceptance/core-accounting.postgres.spec.ts` يغطي العربون والتسليم وإعادة المحاولة والقطع وWAC ومنع الحذف والتحصيل الناقص. **إضافة سيناريو لا تعني نجاحه حتى تظهر نتائج CI الخاصة بالـSHA المرفوع.**
+
+### P0-C precision follow-up (2026-10-25; branch only)
+
+Maintenance advance, exact delivery settlement, and spare-part issue/return GL now use tenant base-currency minor units (`maintenance-accounting.ts`, `maintenance.service.ts`), rather than hardcoded two-decimal rounding. KWD/OMR 0.001 values and sub-minor-unit rejection are covered by disposable PostgreSQL acceptance scenarios; **CI on the new SHA must complete before declaring test success**. Refunds, cancellations, partial delivery credit, UI and 8-cycle reconciliation remain unverified.
