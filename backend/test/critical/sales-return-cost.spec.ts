@@ -257,3 +257,18 @@ console.log('✓ 4. اختبارات التوزيع الرياضي العادل 
 console.log('\n=============================================================================');
 console.log('  كافة اختبارات محركات نقاط البيع والمرتجعات المعززة اجتازت 100%');
 console.log('=============================================================================\n');
+
+const kwdReceivableRefund = allocateRefundTenders({
+  requested: 'cash', amount: 0.001, originalCashPaid: 0,
+  originalNonCashPaid: 0, originalDebt: 0.001,
+  previousCashRefunded: 0, previousNonCashRefunded: 0, previousDebtReversed: 0,
+  hasCustomer: true, digits: 3,
+});
+assert.deepEqual(kwdReceivableRefund, [{ tender: 'receivable', amount: 0.001 }]);
+const kwdCashRefund = allocateRefundTenders({
+  requested: 'cash', amount: 0.002, originalCashPaid: 0.003,
+  originalNonCashPaid: 0, originalDebt: 0,
+  previousCashRefunded: 0, previousNonCashRefunded: 0, previousDebtReversed: 0,
+  hasCustomer: true, digits: 3,
+});
+assert.deepEqual(kwdCashRefund, [{ tender: 'cash', amount: 0.002 }]);
