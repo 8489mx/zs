@@ -1,7 +1,7 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
-import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNote, buildCashDrawerShiftDocNo, computeCashDrawerVariance, filterCashDrawerRows, mapCashDrawerShiftRow, normalizeCashDrawerMovementType, normalizeShiftOpenPayload, paginateCashDrawerRows, summarizeCashDrawerRows, toSignedCashDrawerAmount, buildShiftCashReturnItem } from './helpers/cash-drawer.helper';
+import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNote, buildCashDrawerShiftDocNo, computeCashDrawerVariance, filterCashDrawerRows, mapCashDrawerShiftRow, normalizeCashDrawerMovementType, normalizeShiftOpenPayload, paginateCashDrawerRows, summarizeCashDrawerRows, toSignedCashDrawerAmount, buildShiftCashReturnItem, isDrawerCashTender } from './helpers/cash-drawer.helper';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
@@ -566,11 +566,13 @@ export class CashDrawerService {
       }
 
       // 4. Supplier payments
-      const supRows = await sql<{ id: number; amount: number | string; note?: string | null; supplier_name?: string | null; payment_date?: string | Date | null }>`
-        select sp.id, sp.amount, sp.note, sp.payment_date, sup.name as supplier_name
+      const supRows = await sql<{ id: number; amount: number | string; note?: string | null; supplier_name?: string | null; payment_date?: string | Date | null; payment_channel?: string | null }>`
+        select sp.id, sp.amount, sp.note, sp.payment_date, sp.payment_channel, sup.name as supplier_name
         from supplier_payments sp
-        left join suppliers sup on sup.id = sp.supplier_id
-        where sp.tenant_id = ${scope.tenantId} and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
+        left join suppliers sup on sup.id = sp.supplier_id and sup.tenant_id = sp.tenant_id
+        where sp.tenant_id = ${scope.tenantId}
+          and coalesce(sp.payment_channel, 'cash') = 'cash'
+          and sp.created_by = ${openerId} and sp.payment_date >= ${shift.created_at}
           and (${shift.closed_at || null}::timestamptz is null or sp.payment_date <= ${shift.closed_at || null})
           and (${shift.branch_id || null}::int is null or sp.branch_id is null or sp.branch_id = ${Number(shift.branch_id || 0) || null})
           and (${shift.location_id || null}::int is null or sp.location_id is null or sp.location_id = ${Number(shift.location_id || 0) || null})
@@ -578,6 +580,7 @@ export class CashDrawerService {
       `.execute(this.db);
 
       for (const sup of supRows.rows || []) {
+        if (!isDrawerCashTender(sup.payment_channel)) continue;
         const amt = Number(sup.amount || 0);
         const note = [sup.supplier_name, sup.note].filter(Boolean).join(' - ');
         items.push({

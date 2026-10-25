@@ -321,3 +321,9 @@ export function buildShiftCashReturnItem(row: {
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : '',
   };
 }
+
+
+/** Mirror shift cash total's coalesced tender rule for itemized supplier payouts. */
+export function isDrawerCashTender(channel: string | null | undefined): boolean {
+  return channel == null || channel === '' || channel === 'cash';
+}

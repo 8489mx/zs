@@ -572,3 +572,8 @@
 ### 2026-10-25 — E/F: return register export filter parity
 
 - The visible returns register supported an employee/cashier filter, and its Print already passed `employeeFilter`, but Excel export silently dropped this filter, exporting unrelated cashiers' return records. Both print and Excel now build the same query from the visible search, type and employee filters (`return-register-export-query.ts`). Regression authored as `return-register-export-query.spec.ts`, not run.
+
+
+### 2026-10-25 — C: supplier-payment drawer movement item consistency
+
+- The cash-drawer supplier **summary** filters `supplier_payments.payment_channel` to cash, but `fetchShiftMovementItems` previously listed card/wallet supplier payments as physical drawer outflows. Itemized supplier payments now apply the same cash-only predicate, and the supplier name JOIN includes tenant ownership. Regression `cash-drawer-cash-return.spec.ts` amended to assert payment-channel classification, not executed.
