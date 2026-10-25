@@ -542,3 +542,8 @@
 ### 2026-10-25 — B/E/F: serial validation before instant exchange submission
 
 - `PosInstantExchangeDialog.submit` threw serial quantity validation errors from `returned.map` **before its own try/catch**, leaving an unhandled asynchronous UI rejection. Preflight now validates exact serial quantity, duplicates, serial ownership against invoice snapshot and non-serial items inside a caught block, shows a user-facing error and does not issue an idempotency key or server transaction on invalid selection. Final serial and return ownership remain server-authoritative. Regression `pos-exchange-serial-validation.spec.ts` written, not executed.
+
+
+### 2026-10-25 — E: return-quantity endpoint follow-up
+
+- Separated the new invoice-return quantity grouping into `return-invoice-quantities.helper.ts`, narrowed `returnType` to validated sale/purchase union before Kysely filtering, and fail-closed on invalid aggregate quantity. Backend grouping regression `backend/test/critical/return-invoice-quantities.spec.ts` added but not run; the endpoint's tenant and status SQL remains as previously patched.
