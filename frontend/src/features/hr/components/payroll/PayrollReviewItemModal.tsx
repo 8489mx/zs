@@ -59,7 +59,6 @@ export function PayrollReviewItemModal({
 
   const isHourly = normalize(item.compensationType) === 'hourly' || (Number(item.hourlyRate || 0) > 0 && normalize(item.compensationType) !== 'monthly');
   const hourlyRate = Number(item.hourlyRate || 0);
-  const expectedDailyHours = Number(item.expectedDailyHours || 8);
   const calculatedHours = hourlyRate > 0 ? Number((baseSalary / hourlyRate).toFixed(2)) : 0;
 
   const handleSaveAdjustment = async (e: React.FormEvent) => {

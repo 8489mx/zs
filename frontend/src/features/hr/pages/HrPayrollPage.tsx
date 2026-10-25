@@ -124,7 +124,6 @@ export function HrPayrollPage() {
   const employees = useMemo(() => (workspace.employees.data?.employees || []) as HrEmployee[], [workspace.employees.data?.employees]);
   const employeesMap = useMemo(() => new Map(employees.map((employee) => [String(employee.id), employee])), [employees]);
 
-  const totalItems = Number(workspace.payrollRuns.data?.summary?.totalItems || runs.length || 0);
   const selectedRunFromList = useMemo(() => runs.find((row) => String(row.id) === String(selectedRunId)), [runs, selectedRunId]);
   const selectedRun = (payrollRunDetails.data?.run || selectedRunFromList) as HrPayrollRun | undefined;
   const runItems = useMemo(() => {

@@ -64,7 +64,7 @@ export function QuickCashAdvanceModal() {
 
   const queryClient = useQueryClient();
   const canManageLoans = useHasAnyPermission('hrLoans');
-  const canAccessCashDrawer = useHasAnyPermission('cashDrawer', 'sales');
+  const canAccessCashDrawer = useHasAnyPermission(['cashDrawer', 'sales']);
   const currentUser = useAuthStore((state) => state.user);
   const isAdminOrOwner = ['admin', 'super_admin'].includes(String(currentUser?.role || '').trim());
   const canAccess = canManageLoans || canAccessCashDrawer || isAdminOrOwner;
@@ -106,7 +106,7 @@ export function QuickCashAdvanceModal() {
   // Fetch real-time employee withdrawal balance with instant cache and placeholder retention
   const {
     data: balanceData,
-    isLoading: isLoadingBalance,
+    isLoading: _isLoadingBalance,
     isFetching: _isFetchingBalance,
     isError: isBalanceError,
     error: balanceError,
