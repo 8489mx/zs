@@ -2,6 +2,8 @@ import { lockAccountingPeriod } from './accounting-period-lock';
 import { BadRequestException } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
+import { tenantBaseCurrency } from './accounting-currency';
+import { currencyMoneyDigits, fromMinorUnits, toMinorUnits } from './engines/money-minor-units.engine';
 
 /** New domain documents post GL and the shared partner ledger in the same transaction. */
 export async function syncPostedPartnerLedger(db: Kysely<Database>, tenantId: string, entryId: number): Promise<void> {
@@ -12,6 +14,7 @@ export async function syncPostedPartnerLedger(db: Kysely<Database>, tenantId: st
     .where('l.tenant_id', '=', tenantId).where('j.tenant_id', '=', tenantId).where('l.journal_entry_id', '=', entryId)
     .where(eb => eb.or([eb('a.is_receivable', '=', true), eb('a.is_payable', '=', true), eb('a.code', 'in', ['1130', '2110'])]))
     .orderBy('l.partner_type').orderBy('l.partner_id').execute();
+  const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(db, tenantId));
   const groups = new Map<string, { row: typeof movements[number]; amount: number }>();
   for (const row of movements) {
     if (!['customer', 'supplier'].includes(row.partner_type) || !row.partner_id) throw new BadRequestException('حركة الحساب الرقابي تتطلب شريكاً محدداً من نفس المنشأة.');
@@ -21,7 +24,9 @@ export async function syncPostedPartnerLedger(db: Kysely<Database>, tenantId: st
     groups.set(key, group);
   }
   for (const { row, amount: raw } of groups.values()) {
-    const amount = Number(raw.toFixed(2));
+    // The journal lines already use tenant minor units; never discard a KWD/OMR fil
+    // before updating the partner running balance and immutable subledger source.
+    const amount = fromMinorUnits(toMinorUnits(raw, bookDigits), bookDigits);
     if (!amount) continue;
     const customer = row.partner_type === 'customer';
     const table = customer ? 'customers' : 'suppliers';
