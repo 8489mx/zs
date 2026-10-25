@@ -927,6 +927,42 @@ async function main() {
     }),(err:any)=>err.code==='PHARMACY_PRESCRIPTION_SALE_REQUIRED');
     pass('concurrent duplicate prescription number cannot double-collect cash or journal; unlinked drug billing fails closed');
 
+    // The shared cross-sector partner posting helper must never round a 0.001
+    // KWD payable away while its posted GL still holds the liability.
+    const filPartner=await fixture('kwd_cross_domain_partner');
+    await db.updateTable('settings').set({value:'"KWD"'})
+      .where('tenant_id','=',filPartner.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',filPartner.auth.tenantId!).where('is_base','=',true).execute();
+    const domainJournal=await posting.postDomainJournal(db,{
+      tenantId:filPartner.auth.tenantId!,accountId:filPartner.auth.accountId!,
+      sourceType:'contracting_ipc',sourceId:filPartner.productId,
+      entryDate:new Date(),description:'Cross-sector supplier one-fil source',
+      createdBy:filPartner.auth.userId,
+      lines:[
+        {accountId:filPartner.accounts.get('5200')!,description:'Recorded cross-sector cost',
+          debit:0.001,credit:0,partnerType:'none',partnerId:null},
+        {accountId:filPartner.accounts.get('2110')!,description:'One-fil supplier liability',
+          debit:0,credit:0.001,partnerType:'supplier',partnerId:filPartner.supplierId},
+      ],
+    });
+    assert.ok(Number(domainJournal)>0);
+    const partnerLedgerRows=await db.selectFrom('supplier_ledger').select(['amount','balance_after'])
+      .where('tenant_id','=',filPartner.auth.tenantId!)
+      .where('reference_type','=','journal_entry')
+      .where('reference_id','=',domainJournal).execute();
+    assert.equal(partnerLedgerRows.length,1);
+    assert.equal(Number(partnerLedgerRows[0].amount),0.001);
+    assert.equal(Number(partnerLedgerRows[0].balance_after),0.001);
+    const supplierAfter=await db.selectFrom('suppliers').select('balance')
+      .where('tenant_id','=',filPartner.auth.tenantId!)
+      .where('id','=',filPartner.supplierId).executeTakeFirstOrThrow();
+    assert.equal(Number(supplierAfter.balance),0.001);
+    assert.equal(await postingAmount(filPartner,'2110'),-0.001);
+    const filReport=await app.get(ReportsSummaryService).supplierBalances({} as any,filPartner.auth);
+    assert.equal(Number((filReport.summary as {totalBalance:number}).totalBalance),0.001);
+    pass('generic cross-sector posting reconciles 0.001 KWD supplier ledger, GL and vendor balance report');
+
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
     // drop dependent MFA constraints using CASCADE to make the test green.
