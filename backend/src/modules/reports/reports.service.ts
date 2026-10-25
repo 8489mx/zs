@@ -4,6 +4,8 @@ import { Kysely, sql } from '../../database/kysely';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { ReportRangeQueryDto } from './dto/report-query.dto';
@@ -429,8 +431,9 @@ export class ReportsService {
 
   async dashboardOverview(query: ReportRangeQueryDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = this.scope(auth);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId));
     const range = parseRange(query);
-    const cacheKey = `${tenantId}:${range.from}:${range.to}:${query.branchId || ''}:${query.locationId || ''}`;
+    const cacheKey = `${tenantId}:${moneyDigits}:${range.from}:${range.to}:${query.branchId || ''}:${query.locationId || ''}`;
     const nowMs = Date.now();
     const cached = this.overviewCache.get(cacheKey);
     if (cached && nowMs < cached.expiresAt) {
@@ -625,6 +628,7 @@ export class ReportsService {
       topTodayRows,
       businessTimezone,
       todayKey: today.key,
+      moneyDigits,
     });
 
     const inventorySnapshot = buildInventorySnapshot({
