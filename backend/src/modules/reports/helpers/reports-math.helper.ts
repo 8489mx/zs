@@ -1,9 +1,11 @@
-export function toMoney(value: number | string | null | undefined): number {
-  return Number(Number(value || 0).toFixed(2));
+import { type MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
+
+export function toMoney(value: number | string | null | undefined, digits: MoneyDigits = 2): number {
+  return roundMoney(Number(value || 0), digits);
 }
 
-export function sumMoney<T>(rows: T[], selector: (row: T) => number | string | null | undefined): number {
-  return toMoney(rows.reduce((sum, row) => sum + Number(selector(row) || 0), 0));
+export function sumMoney<T>(rows: T[], selector: (row: T) => number | string | null | undefined, digits: MoneyDigits = 2): number {
+  return toMoney(rows.reduce((sum, row) => sum + Number(selector(row) || 0), 0), digits);
 }
 
 export function buildTrendMap<T>(
