@@ -509,11 +509,19 @@ export class PharmacyService {
 
   async deleteDrug(auth: AuthContext, id: number) {
     const scope = requireTenantScope(auth);
-    return await this.db
-      .deleteFrom('pharmacy_drugs')
-      .where('id', '=', id)
-      .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
+    return this.db.transaction().execute(async (trx) => {
+      const drug = await trx.selectFrom('pharmacy_drugs').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', id)
+        .forUpdate().executeTakeFirst();
+      if (!drug) return { numDeletedRows: 0n };
+      const referenced = await trx.selectFrom('pharmacy_batches').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('drug_id', '=', id).executeTakeFirst();
+      if (referenced) {
+        throw new AppError('Cannot delete drug with batch history', 'PHARMACY_DRUG_BATCH_HISTORY', 409);
+      }
+      return trx.deleteFrom('pharmacy_drugs')
+        .where('id', '=', id).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    });
   }
 
   // -------------------------------------------------------------
@@ -531,7 +539,7 @@ export class PharmacyService {
     const scope = requireTenantScope(auth);
     let query = this.db
       .selectFrom('pharmacy_batches as pb')
-      .leftJoin('products as p', 'p.id', 'pb.product_id')
+      .leftJoin('products as p', (join) => join.onRef('p.id', '=', 'pb.product_id').onRef('p.tenant_id', '=', 'pb.tenant_id'))
       .where(sql<boolean>`pb.tenant_id = ${scope.tenantId}`);
 
     if (filters?.status && filters.status !== 'all') {
@@ -594,72 +602,52 @@ export class PharmacyService {
 
   async upsertBatch(auth: AuthContext, dto: UpsertBatchDto) {
     const scope = requireTenantScope(auth);
-
-    if (dto.id) {
-      return await this.db
-        .updateTable('pharmacy_batches')
-        .set({
-          product_id: dto.productId ?? null,
-          drug_id: dto.drugId ?? null,
-          batch_number: dto.batchNumber,
-          expiry_date: dto.expiryDate,
-          quantity: dto.quantity || 0,
-          unit_cost: dto.unitCost || 0,
-          location_id: dto.locationId ?? null,
-          supplier_name: dto.supplierName ?? null,
-          status: dto.status || 'active',
-          notes: dto.notes ?? null,
-          updated_at: sql`now()`,
-        })
-        .where('id', '=', dto.id)
-        .where('tenant_id', '=', scope.tenantId)
-        .returningAll()
-        .executeTakeFirstOrThrow();
-    }
-
-    const batch = await this.db
-      .insertInto('pharmacy_batches')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-        product_id: dto.productId ?? null,
-        drug_id: dto.drugId ?? null,
-        batch_number: dto.batchNumber,
-        expiry_date: dto.expiryDate,
-        quantity: dto.quantity || 0,
-        unit_cost: dto.unitCost || 0,
-        location_id: dto.locationId ?? null,
-        supplier_name: dto.supplierName ?? null,
-        status: dto.status || 'active',
-        notes: dto.notes ?? null,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    // Record cash outflow for batch purchase cost
-    const totalBatchCost = Number(dto.quantity || 0) * Number(dto.unitCost || 0);
-    if (totalBatchCost > 0) {
-      try {
-        await this.db
-          .insertInto('treasury_transactions')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            txn_type: 'expense',
-            amount: -totalBatchCost,
-            note: `شراء دواء - دفعة ${dto.batchNumber} — كمية: ${dto.quantity} وحدة × ${Number(dto.unitCost).toFixed(2)} ج${dto.supplierName ? ` — المورد: ${dto.supplierName}` : ''}`,
-            reference_type: 'pharmacy_batch',
-            reference_id: Number(batch.id),
-            location_id: dto.locationId ?? null,
-            created_by: auth.userId ? Number(auth.userId) : null,
-          })
-          .execute();
-      } catch (err) {
-        console.warn('Failed to record pharmacy batch purchase to treasury:', err);
+    // Batch quantities and WAC are physical and monetary ledgers, NOT metadata.
+    // Stock intake must go through the canonical purchase/GRN transaction.
+    return this.db.transaction().execute(async (trx) => {
+      const quantity = Number(dto.quantity ?? 0);
+      const unitCost = Number(dto.unitCost ?? 0);
+      if (![quantity, unitCost].every(Number.isFinite) || quantity < 0 || unitCost < 0) {
+        throw new AppError('Invalid pharmacy batch balance', 'PHARMACY_BATCH_BALANCE_INVALID', 422);
       }
-    }
-
-    return batch;
+      if (dto.id) {
+        const old = await trx.selectFrom('pharmacy_batches').selectAll()
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', dto.id)
+          .forUpdate().executeTakeFirst();
+        if (!old) throw new AppError('Batch not found', 'PHARMACY_BATCH_NOT_FOUND', 404);
+        if ((dto.quantity !== undefined && quantity !== Number(old.quantity)) ||
+            (dto.unitCost !== undefined && unitCost !== Number(old.unit_cost)) ||
+            (dto.productId !== undefined && dto.productId !== old.product_id) ||
+            (dto.drugId !== undefined && dto.drugId !== old.drug_id) ||
+            (dto.locationId !== undefined && dto.locationId !== old.location_id) ||
+            dto.batchNumber !== old.batch_number) {
+          throw new AppError('Stock and valuation may only change through purchase/GRN/return documents',
+            'PHARMACY_BATCH_FINANCIAL_EDIT_FORBIDDEN', 409);
+        }
+        return trx.updateTable('pharmacy_batches')
+          .set({
+            expiry_date: dto.expiryDate,
+            supplier_name: dto.supplierName ?? old.supplier_name,
+            status: dto.status ?? old.status,
+            notes: dto.notes ?? old.notes,
+            updated_at: sql`now()`,
+          })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', dto.id)
+          .returningAll().executeTakeFirstOrThrow();
+      }
+      if (quantity !== 0 || unitCost !== 0) {
+        throw new AppError('Create stock via a supplier purchase, not direct batch entry',
+          'PHARMACY_BATCH_PURCHASE_REQUIRED', 422);
+      }
+      return trx.insertInto('pharmacy_batches').values({
+        tenant_id: scope.tenantId, account_id: scope.accountId,
+        product_id: dto.productId ?? null, drug_id: dto.drugId ?? null,
+        batch_number: dto.batchNumber, expiry_date: dto.expiryDate,
+        quantity: 0, unit_cost: 0, location_id: dto.locationId ?? null,
+        supplier_name: dto.supplierName ?? null, status: dto.status ?? 'active',
+        notes: dto.notes ?? null,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
   }
 
   /**
