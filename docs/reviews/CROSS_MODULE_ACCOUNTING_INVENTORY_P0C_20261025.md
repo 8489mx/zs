@@ -191,3 +191,10 @@ The code observations above identify definite missing integration points; **fina
 - `pharmacy_clinical_services` fee and `pharmacy_prescriptions` cash copay flows previously inserted independent treasury rows with swallowed errors and no central journal. They now post source + cash + GL in one transaction, or roll back everything when posting rejects.
 - Prescription already dispensed or previously collected is immutable through the ordinary edit path; insurance-backed claims cannot generate unexplained cash without an insurer subledger. KWD/OMR minor-unit validation protects the last fil and rejects sub-fil amounts.
 - Added disposable PostgreSQL acceptance checks for the real clinical 0.001 / prescription 0.002 KWD flows, account 1110/4200, and failed posting rollback. **P0C-04 remains OPEN:** prescription inventory/COGS, insurer receivables, customer-visible refund/reversal, source deduplication and sector-wide reconciliation remain unverified.
+
+### Prescription duplicate and unlinked stock safeguards
+
+- App-level tenant+prescription-number advisory lock serializes named prescription creation, and central journal deduplication includes clinical-service and prescription-cash sources.
+- Paid prescriptions carrying textual medicines without inventory/lot references are refused; otherwise a cash revenue journal could be posted without stock reduction or COGS. Insurer-funded prescriptions remain deliberately blocked pending their receivable workflow.
+- Dedicated PostgreSQL acceptance checks parallel same-number requests (only one source/cash/GL), unmapped sale rejection, KWD thousandths and transactional rollback.
+- **P0-C still open:** full insurer billing, canonical prescription stock COGS, refunds/reversals, clinical fee idempotency for retries without stable external keys, and complete eight-cycle/eleven-module verification.

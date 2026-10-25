@@ -62,3 +62,8 @@ The distributor invoice adapter can now accept 2- or 3-digit tenant-currency ven
 - Prescription patient cash copays now use an atomic receipt and posted GL; zero copays are no longer silently turned into full invoice cash. Historical dispensed/collected prescriptions refuse destructive financial rewrites without a formal reversal. Insurance-funded dispensations explicitly fail closed until insurer receivable/subledger settlement exists.
 - Money is validated in tenant minor units (KWD/OMR 0.001). The disposable PostgreSQL acceptance suite has cases for one-fil clinical fee, two-fil copay, journal/cash matching, forbidden financial edits, overprecision, insurance fail-closed and forced posting failure. **Do not claim release verification until CI on final SHA succeeds.**
 - Not closed: prescription-to-stock sale/COGS, insurer AP/AR, reversal/refund workflow, cross-location expiry/lot and older unlinked data still require explicit coverage.
+
+### P0-C prescription source deduplication (2026-10-25)
+
+- A manually named prescription now obtains a tenant-and-number PostgreSQL transaction advisory lock before insert, rejecting concurrent/lost-response replay before a second treasury receipt. Posted GL also deduplicates pharmacy receipt source types. A paid prescription containing drug-name-only items is refused rather than recognizing sales revenue without physical stock / COGS provenance; it must use canonical sales/lot consumption instead.
+- Disposable PostgreSQL coverage includes concurrent named prescription creation, exactly one source/cash/GL, a blocked unmapped medicine charge, and the earlier clinical/copay and locked-period rollback cases. Results and release signoff remain pending until the corresponding commit's CI completes.
