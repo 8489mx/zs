@@ -24,8 +24,11 @@ const backupPayload = {
     version: '1.1.0',
     exportedAt: '2026-01-01T00:00:00.000Z',
     source: 'test',
+    tenantId: 'default',
   },
-  tables: {},
+  tables: {
+    settings: [{ key: 'company_name', value: 'Test', tenant_id: 'default' }],
+  },
 };
 
 function createBackupService() {
@@ -48,7 +51,7 @@ async function run(): Promise<void> {
     try {
       const service = createBackupService();
       await assert.rejects(
-        () => service.saveBackupToConfiguredFolder(actor({ permissions: ['settings'] })),
+        () => service.saveBackupToConfiguredFolder(actor({ permissions: ['settings', 'canManageBackups'] })),
         (error: unknown) => error instanceof AppError && error.code === 'FEATURE_NOT_AVAILABLE',
       );
     } finally {
