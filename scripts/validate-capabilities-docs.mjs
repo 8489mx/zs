@@ -46,9 +46,9 @@ else for (const r of reviewRegister.modules) {
   if (!allowedStates.has(r.state)) errors.push('Unknown review state: ' + r.module);
   if (!Array.isArray(r.verified_scope) || !Array.isArray(r.test_evidence) || !Array.isArray(r.blockers) || !Array.isArray(r.blocker_sources)) errors.push('Invalid evidence fields: ' + r.module);
   if (r.last_verified_commit !== null && !/^[a-f0-9]{40}$/.test(r.last_verified_commit || '')) errors.push('Invalid verified SHA for ' + r.module);
-  if (['verified_scoped', 'release_ready'].includes(r.state) && (!r.last_verified_commit || !/^\d{4}-\d{2}-\d{2}$/.test(r.verified_at || '') || !r.verified_scope.length || !r.test_evidence.length)) errors.push('Missing actual verification evidence for ' + r.module);
-  if (r.state === 'release_ready' && r.blockers.length) errors.push('Release-ready with blockers: ' + r.module);
-  if (r.state === 'release_blocked' && (!r.blockers.length || !r.blocker_sources.length)) errors.push('Release-blocked without cited blockers: ' + r.module);
+  if (['verified_scoped', 'release_ready'].includes(r.state) && (!r.last_verified_commit || !/^\d{4}-\d{2}-\d{2}$/.test(r.verified_at || '') || !r.verified_scope?.length || !r.test_evidence?.length)) errors.push('Missing actual verification evidence for ' + r.module);
+  if (r.state === 'release_ready' && r.blockers?.length) errors.push('Release-ready with blockers: ' + r.module);
+  if (r.state === 'release_blocked' && (!r.blockers?.length || !r.blocker_sources?.length)) errors.push('Release-blocked without cited blockers: ' + r.module);
 }
 for (const m of modules) if (!registerModules.has(m)) errors.push('Module missing from review register: ' + m);
 // Validate navigational links in actively maintained architecture entrypoints.

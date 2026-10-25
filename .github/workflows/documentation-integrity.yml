@@ -14,8 +14,6 @@ on:
       - 'backend/src/modules/**'
       - 'frontend/src/features/**'
   push:
-    branches:
-      - main
     paths:
       - 'SYSTEM_BLUEPRINT.md'
       - 'SYSTEM_CAPABILITIES.md'
