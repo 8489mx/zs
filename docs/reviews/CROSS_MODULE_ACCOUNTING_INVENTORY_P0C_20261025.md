@@ -126,3 +126,8 @@ The code observations above identify definite missing integration points; **fina
 - `backend/test/critical/accounting-commercial-posting.spec.ts`, `import-postgres-integration.spec.ts`, and `import-e2e-business-simulation.spec.ts` use isolated PGlite fixtures. They now create the `settings` / `currency_exchange_rates` metadata used by production tenant-base-currency validation instead of stubbing that guard.
 - The prior full CI failed with missing schema `42P01` in these miniature fixture databases; this was not an observed production migration failure. The new full CI run must pass before concluding these fixtures are fixed.
 - Disposable PostgreSQL acceptance has passed for KWD 0.001 and pharmacy importer source/stock/AP/GL on earlier revisions, but 8 commercial cycles and 11 sector pathways are not fully certified.
+
+## Stock-count minor-unit follow-up
+
+- Stock-count journal variance valuation now uses the tenant book's 2- or 3-digit minor-unit precision; avoids silently discarding 0.001 KWD / OMR variance before GL posting.
+- Added critical regression scenarios for KWD, OMR, EGP and a 0.025 amount. This does not certify end-to-end cash, sales, purchase and reporting precision; P0C-01 remains open.
