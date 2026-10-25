@@ -317,6 +317,20 @@ export class MaintenanceService {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
       }
 
+      // Delivery is an economic event; reopening would allow a second collection.
+      if (ticket.delivered_at && payload.status !== 'delivered') {
+        throw new AppError('التذكرة مسلمة بالفعل؛ يلزم عكس محاسبي قبل تغيير حالتها', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      }
+      if (ticket.delivered_at && (payload.finalCost !== undefined || payload.collectedAmount !== undefined)) {
+        throw new AppError('لا يمكن تعديل مبلغ تذكرة تم تحصيلها', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      }
+      if (payload.collectedAmount !== undefined && (!Number.isFinite(Number(payload.collectedAmount)) || Number(payload.collectedAmount) < 0)) {
+        throw new AppError('مبلغ التحصيل غير صالح', 'INVALID_MAINTENANCE_COLLECTION', 400);
+      }
+      if (payload.finalCost !== undefined && (!Number.isFinite(Number(payload.finalCost)) || Number(payload.finalCost) < 0)) {
+        throw new AppError('التكلفة النهائية غير صالحة', 'INVALID_MAINTENANCE_COST', 400);
+      }
+
       const updates: Record<string, any> = {
         status: payload.status,
         updated_at: new Date(),
