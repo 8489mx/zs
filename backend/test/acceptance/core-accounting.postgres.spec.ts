@@ -412,6 +412,72 @@ async function main() {
     assert.equal(kwdLines.reduce((sum,line)=>sum+Number(line.credit),0),0.001);
     pass('KWD 0.001 journal lines survive real PostgreSQL persistence without cent rounding');
 
+    // Exercise actual cross-module 0.001 cash and inventory paths, not merely an isolated journal.
+    const filTicket = await maintenance.createTicket({
+      customerName:'KWD repair',customerPhone:'01000000000',deviceModel:'Watch',
+      problemDescription:'Check',finalCost:0.003,expectedCost:0.003,advancePayment:0.001,
+      branchId:kwd.branchId,locationId:kwd.locationId,
+    } as any,kwd.auth);
+    await maintenance.updateTicketStatus(Number(filTicket.id),{
+      status:'delivered',finalCost:0.003,collectedAmount:0.002,
+    },kwd.auth);
+    const maintenanceLedger=await sql<{account_code:string;value:string}>`select a.code as account_code,
+      sum(l.debit-l.credit) as value from journal_entry_lines l
+      join journal_entries j on j.id=l.journal_entry_id and j.tenant_id=l.tenant_id
+      join accounting_accounts a on a.id=l.account_id and a.tenant_id=l.tenant_id
+      where j.tenant_id=${kwd.auth.tenantId} and j.source_id=${Number(filTicket.id)}
+        and j.source_type in ('maintenance_advance','maintenance_delivery')
+      group by a.code`.execute(db);
+    const maintenanceByCode = new Map(maintenanceLedger.rows.map(row=>[row.account_code,Number(row.value)]));
+    assert.equal(maintenanceByCode.get('1110'),0.003,'KWD repair cash has three decimal places');
+    assert.equal(maintenanceByCode.get('4200'),-0.003,'KWD repair service revenue retains the last fil');
+    assert.equal(maintenanceByCode.get('2150'),0,'advance liability clears exactly');
+    await assert.rejects(maintenance.createTicket({
+      customerName:'Overprecision',customerPhone:'01000000000',deviceModel:'Watch',
+      problemDescription:'Reject',finalCost:0.0001,advancePayment:0,
+    } as any,kwd.auth),(err:any)=>err.code==='MAINTENANCE_CURRENCY_PRECISION_INVALID');
+    pass('KWD maintenance 0.001 advance + 0.002 settlement retains precise cash, liability, revenue and rejects sub-fil amounts');
+
+    const filSerial=`KWD-${tag}-FIL`;
+    const filTrade=await tradein.createTransaction({
+      sellerName:'KWD test seller',sellerPhone:'01000000000',sellerNationalId:'00000000000000',
+      deviceModel:'Used device',serialNumber:filSerial,agreedPurchasePrice:0.001,
+      transactionType:'cash_purchase',paymentMethod:'cash',autoAddToInventory:true,
+      branchId:kwd.branchId,locationId:kwd.locationId,
+    },kwd.auth);
+    const filSource=await db.selectFrom('trade_in_transactions').select('created_product_id')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',Number(filTrade.id)).executeTakeFirstOrThrow();
+    const filStock=await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',Number(filSource.created_product_id)).executeTakeFirstOrThrow();
+    assert.equal(Number(filStock.stock_qty),1);
+    assert.equal(Number(filStock.cost_price),0.001,'one-fil inventory WAC must not round to zero');
+    const filMove=await db.selectFrom('stock_movements').select(['unit_cost','total_cost'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('reference_type','=','trade_in')
+      .where('reference_id','=',Number(filTrade.id)).executeTakeFirstOrThrow();
+    assert.equal(Number(filMove.total_cost),0.001);
+    assert.equal(Number(filMove.unit_cost),0.001);
+    const filGL=await db.selectFrom('journal_entry_lines').innerJoin('journal_entries',join=>join
+      .onRef('journal_entries.id','=','journal_entry_lines.journal_entry_id')
+      .onRef('journal_entries.tenant_id','=','journal_entry_lines.tenant_id'))
+      .select(['journal_entry_lines.debit','journal_entry_lines.credit'])
+      .where('journal_entries.tenant_id','=',kwd.auth.tenantId!)
+      .where('journal_entries.source_type','=','trade_in')
+      .where('journal_entries.source_id','=',Number(filTrade.id)).execute();
+    assert.equal(filGL.length,2);
+    assert.equal(filGL.reduce((sum,x)=>sum+Number(x.debit),0),0.001);
+    assert.equal(filGL.reduce((sum,x)=>sum+Number(x.credit),0),0.001);
+    const filPayout=await db.selectFrom('treasury_transactions').select('amount')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('reference_type','=','trade_in')
+      .where('reference_id','=',Number(filTrade.id)).executeTakeFirstOrThrow();
+    assert.equal(Number(filPayout.amount),-0.001);
+    await assert.rejects(tradein.createTransaction({
+      sellerName:'KWD test seller',sellerPhone:'01000000000',sellerNationalId:'00000000000000',
+      deviceModel:'Used device',serialNumber:`KWD-${tag}-SUBFIL`,agreedPurchasePrice:0.0001,
+      transactionType:'cash_purchase',paymentMethod:'cash',autoAddToInventory:true,
+      branchId:kwd.branchId,locationId:kwd.locationId,
+    },kwd.auth),(err:any)=>err.code==='TRADEIN_CURRENCY_PRECISION_INVALID');
+    pass('KWD trade-in 0.001 physical stock, WAC, cash payout and matching GL; sub-fil amount rejects');
+
     // Canonical pharmacy importer delegates atomic supplier purchase, batch WAC,
     // physical stock and one posted purchase/AP journal to the purchase engine.
     const pharmacy = app.get(PharmacyService);
