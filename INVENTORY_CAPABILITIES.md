@@ -335,3 +335,7 @@
 ### 2026-10-25 — D: idempotency operation names for transfer recovery
 
 - `useInventoryWorkspaceMutations` passed made-up operation labels `createStockTransfer`, `receiveStockTransfer`, `cancelStockTransfer` to the generic status poller, but the Nest interceptor reserves `POST:/api/stock-transfers`, `POST:/api/stock-transfers/:id/receive`, and `POST:/api/stock-transfers/:id/cancel`. Polling could not locate a reserved operation after a lost response. Production now uses `inventory-operation-types.ts` for the exact route strings. Regression authored but not executed. Distinct retry keys and the shared poller's treatment of recorded failure remain separate open work.
+
+
+### 2026-10-25 — D: stable keyed creation of transfers and count sessions
+- The transfer dialog formerly minted a new key per retry, and stock-count drafts were submitted with no idempotency key. The mutation layer now freezes each attempted payload and key in memory, rejects changed fields while an attempt is unresolved, queries the server operation status, and only clears an attempt on a committed response or confirmed failed/never-received request. Count create now passes the supported idempotency header. No credentials are persisted to storage. `inventory-operation-attempt.spec.ts` authored, not run. Shared `withIdempotency` polling semantics and browser reload remain Core review blockers.

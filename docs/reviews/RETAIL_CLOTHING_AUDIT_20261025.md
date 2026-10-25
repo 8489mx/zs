@@ -211,3 +211,7 @@ All rows above describe **code changed**, not verified operation. Count as **15 
 
 ### Follow-up D — inventory transfer status lookup identifiers
 - Static tracing from transfer creation and receipt/cancellation UI through `withIdempotency`, the Nest interceptor and `/api/operations` showed mismatched operation-type keys. Caller operation names now match interceptor route identities; authored tests are unexecuted. **D remains PARTIAL** pending durable keys and full transfer transaction drills. This raises grouped code-patched defect themes to **30** (12 original + 18 subsequent), not verified sign-offs.
+
+
+### Follow-up D — transfer/count create response-loss protection
+- A transfer was keyed afresh for each retry and stock-count creation was unkeyed; both now preserve the original key and request payload until resolution, with no localStorage persistence. This adds **two** separate code-patched themes, for **32 cumulative** (12 initial + 20 follow-up), with **no tests executed**. Bulk receipt/cancel and restart recovery remain open.

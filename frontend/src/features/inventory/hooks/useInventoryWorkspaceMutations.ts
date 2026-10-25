@@ -1,10 +1,33 @@
 import { useMutation, type QueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { invalidateInventoryDomain } from '@/app/query-invalidation';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
-import { withIdempotency } from '@/lib/idempotency';
+import { withIdempotency, checkIdempotencyStatus } from '@/lib/idempotency';
 import { INVENTORY_OPERATION_TYPES } from '@/features/inventory/lib/inventory-operation-types';
+import { acquireInventoryAttempt, mayReleaseInventoryAttempt, type InventoryOperationAttempt } from '@/features/inventory/lib/inventory-operation-attempt';
 import type { StockCountItem, StockTransferItem, StockTransfer } from '@/types/domain';
+
+async function executeStickyInventoryMutation<T>(
+  ref: { current: InventoryOperationAttempt<Record<string, unknown>> | null },
+  payload: Record<string, unknown>,
+  operationType: string,
+  execute: (payload: Record<string, unknown>, headers: Record<string, string>) => Promise<T>,
+): Promise<T> {
+  const attempt = acquireInventoryAttempt(ref.current, payload, operationType, () => crypto.randomUUID());
+  ref.current = attempt;
+  try {
+    return await withIdempotency((headers) => execute(attempt.payload, headers), operationType, attempt.key);
+  } catch (error) {
+    let status: Awaited<ReturnType<typeof checkIdempotencyStatus>> | null = null;
+    try { status = await checkIdempotencyStatus(operationType, attempt.key); } catch { /* unknown */ }
+    if (status?.status === 'committed' && status.response !== undefined) return status.response as T;
+    const httpStatus = error && typeof error === 'object' && 'status' in error
+      ? Number((error as { status?: number }).status) : 0;
+    if (mayReleaseInventoryAttempt(httpStatus, status?.status)) ref.current = null;
+    throw error;
+  }
+}
 
 export function useInventoryWorkspaceMutations({
   queryClient,
@@ -35,23 +58,30 @@ export function useInventoryWorkspaceMutations({
   setSelectedSessionIds: Dispatch<SetStateAction<string[]>>;
   setCreatedTransfer: Dispatch<SetStateAction<StockTransfer | null>>;
 }) {
+  const transferAttempt = useRef<InventoryOperationAttempt<Record<string, unknown>> | null>(null);
+  const countAttempt = useRef<InventoryOperationAttempt<Record<string, unknown>> | null>(null);
   const refreshInventoryQueries = async () => {
     await invalidateInventoryDomain(queryClient, { includeProducts: true, includeDashboard: true });
   };
 
   const createTransferMutation = useMutation({
-    mutationFn: () => withIdempotency(
-      (headers) => inventoryApi.createStockTransfer({
+    mutationFn: () => executeStickyInventoryMutation(
+      transferAttempt,
+      {
         fromLocationId: transferForm.fromLocationId,
         toLocationId: transferForm.toLocationId,
         note: transferForm.note,
         recipientName: transferForm.recipientName,
-        items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty, serials: item.serials, batchAllocations: item.batchAllocations })), 
-      }, headers),
+        items: transferItems.map(item => ({
+          productId: item.productId, qty: item.qty,
+          serials: item.serials, batchAllocations: item.batchAllocations,
+        })),
+      },
       INVENTORY_OPERATION_TYPES.createTransfer,
-      crypto.randomUUID()
+      (payload, headers) => inventoryApi.createStockTransfer(payload, headers),
     ),
     onSuccess: async (data: unknown) => {
+      transferAttempt.current = null;
       await refreshInventoryQueries();
       setTransferItems([]);
       setTransferForm({ fromLocationId: '', toLocationId: '', note: '', recipientName: '', productId: '', qty: '1', serials: '', batchAllocations: '' });
@@ -116,9 +146,12 @@ export function useInventoryWorkspaceMutations({
       if (effectiveNote) payload.note = effectiveNote;
       if (String(countForm.managerPin || '').trim()) payload.managerPin = countForm.managerPin.trim();
 
-      return inventoryApi.createStockCountSession(payload);
+      return executeStickyInventoryMutation(countAttempt, payload,
+        INVENTORY_OPERATION_TYPES.createStockCount,
+        (frozenPayload, headers) => inventoryApi.createStockCountSession(frozenPayload, headers));
     },
     onSuccess: async () => {
+      countAttempt.current = null;
       await refreshInventoryQueries();
       setCountItems([]);
       setCountForm({ branchId: '', locationId: '', note: '', managerPin: '', productId: '', countedQty: '0', reason: '', itemNote: '' });

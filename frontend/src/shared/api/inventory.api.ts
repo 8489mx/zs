@@ -187,7 +187,7 @@ export const inventoryApi = {
     } while (page <= totalPages);
     return rows;
   },
-  createStockCountSession: (payload: unknown) => http('/api/stock-count-sessions', { method: 'POST', body: JSON.stringify(payload) }),
+  createStockCountSession: (payload: unknown, headers?: Record<string, string>) => http('/api/stock-count-sessions', { method: 'POST', body: JSON.stringify(payload), headers }),
   postStockCountSession: (sessionId: string, payload: unknown) => http(`/api/stock-count-sessions/${sessionId}/post`, { method: 'POST', body: JSON.stringify(payload) }),
   deleteStockCountSession: (sessionId: string) => http(`/api/stock-count-sessions/${sessionId}`, { method: 'DELETE' }),
   transferCategory: (payload: { categoryId: number; fromLocationId: number; toLocationId: number; notes?: string }) => http('/api/transfer-category', { method: 'POST', body: JSON.stringify(payload) }),
