@@ -2783,6 +2783,7 @@ export class AccountingPostingService {
   }
 
   async postStockCount(queryable: DbOrTx, sessionId: number, auth: AuthContext, itemIds?: number[]): Promise<{ posted: boolean; journalEntryId: number | null; hasFinancialImpact?: boolean }> {
+    const stockCountDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, requireTenantScope(auth).tenantId));
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
 
@@ -2822,7 +2823,7 @@ export class AccountingPostingService {
 
        const rawCost = Number(mov?.unit_cost || 0);
        const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-       const lineCost = Number((Math.abs(variance) * unitCost).toFixed(2));
+       const lineCost = roundMoney(Math.abs(variance) * unitCost, stockCountDigits);
        if (lineCost <= 0) continue;
 
        if (variance > 0) {
