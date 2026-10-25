@@ -4,7 +4,8 @@ import type { Response } from 'express';
 import { SessionService } from '../../../core/auth/services/session.service';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { CSRF_HEADER_NAME, verifyCsrfToken } from '../utils/csrf-token';
-import { clearKnownAuthCookies } from '../utils/auth-cookie-cleanup';
+import { clearKnownAuthCookies, isLocalAuthCookieHost } from '../utils/auth-cookie-cleanup';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 function parseCookie(request: RequestWithAuth, name: string): string {
   const cookieHeader = request.headers.cookie;
@@ -14,7 +15,12 @@ function parseCookie(request: RequestWithAuth, name: string): string {
 
   const parts = cookieHeader.split(';').map((part) => part.trim());
   const pair = parts.find((part) => part.startsWith(`${name}=`));
-  return pair ? decodeURIComponent(pair.slice(`${name}=`.length)) : '';
+  if (!pair) return '';
+  try {
+    return decodeURIComponent(pair.slice(`${name}=`.length));
+  } catch {
+    return ''; // Malformed user-supplied cookie must never turn a 401 into a 500.
+  }
 }
 
 function readSessionId(request: RequestWithAuth, allowHeaderAuth: boolean, cookieName: string): string {
@@ -80,17 +86,24 @@ export class SessionAuthGuard implements CanActivate {
   ) {}
 
   private allowSessionIdHeaderFallback(): boolean {
+    // A single unsafe development flag must never re-enable CSRF-free header
+    // sessions on Cloud, including a Cloud deployment running NODE_ENV=development.
+    const appMode = this.configService.get<string>('app.mode')
+      || this.configService.get<string>('APP_MODE')
+      || process.env.APP_MODE
+      || 'CLOUD_SAAS';
+    if (!isDesktopRuntimeMode(appMode)) return false;
     const configured = this.configService.get('ALLOW_SESSION_ID_HEADER');
     if (String(configured).toLowerCase() === 'false') return false;
     if (String(configured).toLowerCase() === 'true') return true;
-    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
-    const appMode = this.configService.get<string>('app.mode') || this.configService.get<string>('APP_MODE') || '';
-    return (nodeEnv === 'development' || appMode === 'SELF_CONTAINED' || appMode === 'PORTABLE') && appMode !== 'CLOUD_SAAS';
+    return true; // Explicitly supported local runtimes retain legacy hardware clients.
   }
 
   private clearAuthCookies(response: Response, request?: RequestWithAuth): void {
-    const host = String(request?.headers['x-forwarded-host'] || request?.headers?.host || '').split(':')[0].toLowerCase();
-    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
+    const isLoopback = isLocalAuthCookieHost(
+      this.configService.get('APP_MODE') || process.env.APP_MODE,
+      request?.headers['x-forwarded-host'] || request?.headers.host,
+    );
     clearKnownAuthCookies(response, {
       sessionCookieName: this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id',
       csrfCookieName: this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token',

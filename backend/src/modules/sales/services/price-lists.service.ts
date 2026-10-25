@@ -3,6 +3,7 @@ import { Kysely, sql } from 'kysely';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { canManagePriceLists } from '../../../core/auth/utils/commerce-operation-guards';
 import { KYSELY_DB } from '../../../database/database.constants';
 
 export interface UpsertPriceListDto {
@@ -101,6 +102,7 @@ export class PriceListsService {
   }
 
   async createPriceList(auth: AuthContext, dto: UpsertPriceListDto) {
+    canManagePriceLists(auth);
     const scope = requireTenantScope(auth);
     const tenantId = scope.tenantId;
     const accountId = scope.accountId;
@@ -174,6 +176,7 @@ export class PriceListsService {
   }
 
   async updatePriceList(auth: AuthContext, id: number, dto: UpsertPriceListDto) {
+    canManagePriceLists(auth);
     const scope = requireTenantScope(auth);
     const tenantId = scope.tenantId;
     const accountId = scope.accountId;
@@ -248,6 +251,7 @@ export class PriceListsService {
   }
 
   async deletePriceList(auth: AuthContext, id: number) {
+    canManagePriceLists(auth);
     const scope = requireTenantScope(auth);
     const tenantId = scope.tenantId;
 

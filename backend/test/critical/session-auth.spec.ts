@@ -126,6 +126,9 @@ class UsersSelectBuilder {
   private id?: number;
   constructor(private readonly db: FakeDb) {}
   select(_cols: string[]) { return this; }
+  // Source code locks users during failed-login accounting and session creation.
+  // This in-memory fixture exercises the query chain only, not real PG concurrency.
+  forUpdate() { return this; }
   where(column: string | unknown, _op?: string, value?: any) {
     if (column === 'username') this.username = String(value);
     if (column === 'phone') {

@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { ForbiddenException } from '@nestjs/common';
 import { buildStorePublicBase } from '../storefront/engines/store-public-url.engine';
 
 export type AiProvider = 'gemini' | 'openai' | 'custom';
@@ -799,6 +800,10 @@ ${JSON.stringify(snapshot, null, 2)}
     },
     actor: AuthContext,
   ): Promise<{ ok: boolean }> {
+    if (actor.role !== 'admin' && actor.role !== 'super_admin'
+      && !actor.permissions?.includes('settings') && !actor.permissions?.includes('canManageSettings')) {
+      throw new ForbiddenException('Missing settings management permission');
+    }
     const { tenantId, accountId } = requireTenantScope(actor);
     const existingConfig = await this.getEffectiveAiConfig(tenantId);
     

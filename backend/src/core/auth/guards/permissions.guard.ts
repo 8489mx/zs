@@ -6,6 +6,7 @@ import { REQUIRED_FEATURE_KEY } from '../../../core/auth/decorators/feature.deco
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { ConfigService } from '@nestjs/config';
 import { PlanFeatureService } from '../services/plan-feature.service';
+import { isPlatformTenantId } from '../utils/tenant-boundary';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -42,8 +43,12 @@ export class PermissionsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithAuth>();
     const auth = request.authContext;
 
-    // Super Admin has full unrestricted access to all features and permissions across the system
-    const isSuperAdmin = auth?.role === 'super_admin';
+    // This guard is an authorization boundary even when a controller forgets
+    // SessionAuthGuard. Never allow @AllowAuthenticated without an identity.
+    if (!auth) throw new ForbiddenException('Authentication required');
+
+    // Role alone cannot grant platform-wide access outside the platform tenant.
+    const isSuperAdmin = auth.role === 'super_admin' && isPlatformTenantId(auth.tenantId);
 
     // 1. Mandatory Feature Check: MUST RUN FIRST before permission checks to prevent guard bypass
     if (!isSuperAdmin && requiredFeature && auth) {

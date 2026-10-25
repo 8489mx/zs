@@ -400,7 +400,7 @@ export class PartnersService {
         .executeTakeFirst(),
       this.db
         .selectFrom('return_documents as rd')
-        .innerJoin('sales as s', 's.id', 'rd.invoice_id')
+        .innerJoin('sales as s', (join) => join.onRef('s.id', '=', 'rd.invoice_id').onRef('s.tenant_id', '=', 'rd.tenant_id'))
         .select(sql<number>`count(*)`.as('return_count'))
         .where('rd.return_type', '=', 'sale')
         .where('s.customer_id', '=', id)
@@ -564,7 +564,7 @@ export class PartnersService {
         .execute(),
       this.db
         .selectFrom('sales as s')
-        .leftJoin('branches as b', 'b.id', 's.branch_id')
+        .leftJoin('branches as b', (join) => join.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id'))
         .select([
           's.id', 's.doc_no', 's.total', 's.subtotal', 's.discount', 's.tax_amount',
           's.delivery_fee', 's.order_type', 's.customer_address', 's.note', 's.created_at',

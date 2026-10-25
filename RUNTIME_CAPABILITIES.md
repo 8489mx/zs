@@ -14,6 +14,33 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+
+<a id="runtime-backup-platform-exclusion-p0a"></a>
+### فصل بيانات المنصة عن Backup شركة واتساق لقطة التصدير — تدقيق مصدر الكود 25 أكتوبر 2026
+- السلوك الحالي: استرجاع بيانات شركة لا يعيد كتابة صفوف الفوترة والجلسات وسجلات التجارب وحجوزات Offline IDs التابعة للمنصة، حتى لو تضمنتها أرشيفات قديمة. تُصدَّر الجداول داخل معاملة قراءة موحدة `REPEATABLE READ`، وفشل الحذف أثناء Restore يوقف المعاملة دون كتمان.
+- المصدر: `backend/src/modules/settings/services/settings-backup.service.ts` مع قائمة الحظر المشتركة في `core/tenant-transfer/tenant-package.ts`.
+- الانحدار المكتوب: `backend/test/critical/backup-platform-boundary-p0a.spec.ts`. اختبار PostgreSQL والتوافق مع الأرشيفات القديمة مطلوب قبل اعتماد التشغيل. نجاح Restore يبطل AuthCache وإعدادات/فروع/ميزات المنشأة فورًا؛ حذف الجلسات في Tenant Package Import صار إلزاميًا داخل المعاملة. مسارات النسخ المحلية تتطلب `isDesktopRuntimeMode` صراحة. انحدار إضافي: `backend/test/critical/backup-mode-boundary-p0a.spec.ts` (لم يُشغّل).
+
+**الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
+
+<a id="runtime-restore-preflight-p0a"></a>
+### Destructive restore preflight — P0-A security follow-up, 2026-10-25
+`settings-backup.service.ts` rejects incomplete/missing-tenant archives, safeguards unrepresented child rows, and aborts on sequence failures. Older archive restore may now fail closed pending a safe migration path; new migration 255 is not applied.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
+
+<a id="runtime-dedicated-backup-permission-p0a"></a>
+### صلاحية الوصول للنسخ السحابية — P0-A، 25 أكتوبر 2026
+`settings-backup.service.ts` يمنع تنزيل النسخة الكاملة أو تعديل مسارات النسخ وقراءة Snapshot لمن لا يحمل `canManageBackups`، و`cloud-backup.service.ts:getCloudConfig` يمنع عرض `secretAccessKey` لحساب إعدادات عام، مع حراسة الخدمة نفسها. اختبار `p0a-backup-credentials-permissions.spec.ts` كُتب فقط ولم يُشغّل. أرشيفات Restore القديمة غير المكتملة قد تُرفض كما وثق المحضر.
+
+
+<a id="p0a-destructive-recovery-verification-20261025"></a>
+### P0-A destructive backup and tenant-transfer safety — 25 October 2026
+- P0A-31: `core/tenant-transfer/tenant-package.ts` checks completeness of old tenant-package manifest, refuses omission of live tenant-owned or FK-child tables before destructive import, and reconciles inserted row totals with declared counts inside its transaction. Test: `p0a-tenant-package-completeness.spec.ts`, source/parser coverage (not full PostgreSQL import rollback).
+- P0A-32: `cloud-backup.service.ts` blocks upload whenever cloud backup is disabled, even for an actor with backup permissions. Test: `p0a-backup-credentials-permissions.spec.ts`.
+- P0A-33: `settings-backup.service.ts` writes the restore snapshot INSIDE the restore transaction, to avoid a post-commit logging failure masquerading as failed restore. Test: `p0a-restore-audit-atomicity.spec.ts` (source contract; real failure injection still outstanding).
+- Verification: all pre-P0A-33 backend targeted tests, migrations, physical migration 255 metadata test and PostgreSQL core audit passed on isolated Actions run `40188575959`; post-P0A-33 follow-up: `40188927253`. Historical ZIP compatibility, validated legacy FK migration, concurrent restore and packaged Electron/real payment hardware remain NOT VERIFIED. See `docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md`.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: أداء وسرعة المنظومة (Performance) — ✅ مفعّلة ومحروسة (21 سبتمبر 2026)](#cap-003)

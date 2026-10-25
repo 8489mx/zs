@@ -1,7 +1,7 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kysely, sql } from 'kysely';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
@@ -295,6 +295,7 @@ export class SessionService {
     if (!row) return null;
     if (Number(row.session_user_id || 0) !== Number(row.user_id || 0)) return null;
     if (toNonEmpty(row.session_tenant_id) !== toNonEmpty(row.tenant_id)) return null;
+    if (toNonEmpty(row.session_account_id) !== toNonEmpty(row.account_id)) return null;
     if (!row.is_active) return null;
     if (row.expires_at <= new Date()) return null;
     if (row.locked_until && row.locked_until > new Date()) return null;
@@ -601,10 +602,31 @@ export class SessionService {
     const passwordCheck = await verifyPassword(password, user.password_hash, user.password_salt);
     if (!passwordCheck.valid) {
       const { maxAttempts, lockoutMinutes } = this.lockoutConfig;
-      const nextFailedLoginCount = Number(user.failed_login_count ?? 0) + 1;
-      const shouldLock = nextFailedLoginCount >= maxAttempts;
-      await this.db.updateTable('users').set({ failed_login_count: shouldLock ? 0 : nextFailedLoginCount, locked_until: shouldLock ? new Date(Date.now() + lockoutMinutes * 60 * 1000) : null }).where('id', '=', user.id).execute();
       const tenantContext = this.resolveUserTenantContext(user);
+      // Do not increment using the account snapshot read BEFORE bcrypt:
+      // concurrent wrong passwords can otherwise all overwrite the counter
+      // with the same value and bypass the database-backed lockout policy.
+      await this.db.transaction().execute(async (trx) => {
+        const latest = await trx.selectFrom('users')
+          .select(['id', 'failed_login_count', 'locked_until'])
+          .where('id', '=', user.id)
+          .where('tenant_id', '=', tenantContext.tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!latest) return;
+        const now = new Date();
+        if (latest.locked_until && new Date(latest.locked_until) > now) return;
+        const nextFailedLoginCount = Number(latest.failed_login_count ?? 0) + 1;
+        const shouldLock = nextFailedLoginCount >= maxAttempts;
+        await trx.updateTable('users')
+          .set({
+            failed_login_count: shouldLock ? 0 : nextFailedLoginCount,
+            locked_until: shouldLock ? new Date(now.getTime() + lockoutMinutes * 60 * 1000) : null,
+          })
+          .where('id', '=', user.id)
+          .where('tenant_id', '=', tenantContext.tenantId)
+          .execute();
+      });
       await this.audit.log('تسجيل دخول فاشل', `محاولة دخول فاشلة للمستخدم ${user.username}`, { userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId }, { targetTenantId: tenantContext.tenantId });
       return null;
     }
@@ -631,14 +653,20 @@ export class SessionService {
       return {
         mfaRequired: true,
         mfaToken: signPortalToken(
-          { kind: MFA_CHALLENGE_KIND, userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId },
+          {
+            kind: MFA_CHALLENGE_KIND, userId: user.id,
+            tenantId: tenantContext.tenantId, accountId: tenantContext.accountId,
+            // Bind the pending 2FA challenge to the password that was verified.
+            // An admin password reset must invalidate an in-flight challenge.
+            passwordVerifier: createHash('sha256').update(user.password_hash).digest('hex'),
+          },
           MFA_CHALLENGE_TTL_MS,
         ),
         username: user.username,
       };
     }
 
-    return this.createAuthenticatedSession(user, meta, { rehashPassword: passwordCheck.needsRehash ? password : null });
+    return this.createAuthenticatedSession(user, meta, { rehashPassword: passwordCheck.needsRehash ? password : null, expectedPasswordHash: user.password_hash });
   }
 
   /** هل لهذا المستخدم مصادقة ثنائية **مؤكَّدة**؟ الإعداد غير المؤكَّد لا يحجب الدخول. */
@@ -667,24 +695,48 @@ export class SessionService {
       account_id: string;
     },
     meta?: { ipAddress?: string; userAgent?: string },
-    options?: { rehashPassword?: string | null },
+    options?: { rehashPassword?: string | null; expectedPasswordHash?: string },
   ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date }> {
     const tenantContext = this.resolveUserTenantContext(user);
     const sessionId = randomUUID();
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Parallel: session insert + user security update (independent operations)
+    // The authenticated user's state and new session must commit together.
+    // Re-lock and re-check the user: an admin may have disabled the account
+    // while password verification / MFA was in progress.
     const userSecurityUpdates: Record<string, unknown> = { failed_login_count: 0, last_login_at: now, locked_until: null };
     if (options?.rehashPassword) {
       const upgradedPassword = await createPasswordRecord(options.rehashPassword);
       userSecurityUpdates.password_hash = upgradedPassword.hash;
       userSecurityUpdates.password_salt = upgradedPassword.salt;
     }
-    await Promise.all([
-      this.db.insertInto('sessions').values({ id: sessionId, user_id: user.id, tenant_id: tenantContext.tenantId, account_id: tenantContext.accountId, expires_at: expiresAt, last_seen_at: now, ip_address: meta?.ipAddress?.slice(0, 255) || '', user_agent: meta?.userAgent?.slice(0, 500) || '' }).execute(),
-      this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute(),
-    ]);
+    await this.db.transaction().execute(async (trx) => {
+      const currentUser = await trx.selectFrom('users')
+        .select(['is_active', 'locked_until', 'password_hash'])
+        .where('id', '=', user.id)
+        .where('tenant_id', '=', tenantContext.tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!currentUser?.is_active || (currentUser.locked_until && new Date(currentUser.locked_until) > now)) {
+        throw new UnauthorizedException('User account is no longer eligible for login');
+      }
+      if (options?.expectedPasswordHash && currentUser.password_hash !== options.expectedPasswordHash) {
+        throw new UnauthorizedException('Password was changed during login; please authenticate again');
+      }
+
+      await trx.updateTable('users').set(userSecurityUpdates)
+        .where('id', '=', user.id)
+        .where('tenant_id', '=', tenantContext.tenantId)
+        .execute();
+      await trx.insertInto('sessions').values({
+        id: sessionId, user_id: user.id,
+        tenant_id: tenantContext.tenantId, account_id: tenantContext.accountId,
+        expires_at: expiresAt, last_seen_at: now,
+        ip_address: meta?.ipAddress?.slice(0, 255) || '',
+        user_agent: meta?.userAgent?.slice(0, 500) || '',
+      }).execute();
+    });
 
     const isPlatformTenant = isPlatformTenantId(tenantContext.tenantId);
     const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : user.role;
@@ -704,7 +756,7 @@ export class SessionService {
     code: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date }> {
-    const payload = verifyPortalToken<{ kind?: string; userId?: number; tenantId?: string }>(
+    const payload = verifyPortalToken<{ kind?: string; userId?: number; tenantId?: string; passwordVerifier?: string }>(
       `Bearer ${String(mfaToken || '')}`,
       MFA_CHALLENGE_ERRORS,
     );
@@ -720,7 +772,7 @@ export class SessionService {
 
     const user = await this.db
       .selectFrom('users')
-      .select(['id', 'username', 'role', 'permissions_json', 'tenant_id', 'account_id', 'is_active', 'locked_until'])
+      .select(['id', 'username', 'role', 'permissions_json', 'tenant_id', 'account_id', 'is_active', 'locked_until', 'password_hash'])
       .where('id', '=', userId)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
@@ -729,6 +781,12 @@ export class SessionService {
       throw new AppError('انتهت جلسة التحقق. أعد تسجيل الدخول.', 'MFA_CHALLENGE_INVALID', 401);
     }
 
+    // The user may have reset their password since this token was signed.
+    // Do not consume an MFA recovery code for an already invalid challenge.
+    const currentVerifier = createHash('sha256').update(user.password_hash).digest('hex');
+    if (!payload.passwordVerifier || payload.passwordVerifier !== currentVerifier) {
+      throw new AppError('انتهت جلسة التحقق. أعد تسجيل الدخول.', 'MFA_CHALLENGE_INVALID', 401);
+    }
     const tenantContext = this.resolveUserTenantContext(user);
     await this.assertTenantLoginAllowed(tenantContext.tenantId);
 
@@ -743,7 +801,7 @@ export class SessionService {
       throw new AppError('رمز التحقق غير صحيح.', 'MFA_CODE_INVALID', 401);
     }
 
-    return this.createAuthenticatedSession(user as never, meta);
+    return this.createAuthenticatedSession(user as never, meta, { expectedPasswordHash: user.password_hash });
   }
 
   /**

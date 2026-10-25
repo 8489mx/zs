@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { canManageShippingConfig, canOperateShipping } from '../../core/auth/utils/commerce-operation-guards';
 import {
   GccCarrier,
   GccShippingSettings,
@@ -25,6 +26,7 @@ export class GccShippingService {
    * استرجاع إعدادات الربط مع شركات الشحن الخليجية (أرامكس و سمسا)
    */
   async getSettings(actor: AuthContext): Promise<GccShippingSettings> {
+    canManageShippingConfig(actor);
     const { tenantId } = requireTenantScope(actor);
     const rows = await this.db
       .selectFrom('settings')
@@ -73,6 +75,7 @@ export class GccShippingService {
    * حفظ أو تحديث إعدادات الربط مع شركات الشحن الخليجية
    */
   async saveSettings(payload: Partial<GccShippingSettings>, actor: AuthContext): Promise<{ ok: boolean }> {
+    canManageShippingConfig(actor);
     const { tenantId, accountId } = requireTenantScope(actor);
 
     const updates: Array<{ key: string; val: any }> = [];
@@ -144,6 +147,7 @@ export class GccShippingService {
     dto: GccCreateShipmentDto,
     actor: AuthContext,
   ): Promise<GccShipmentResponse> {
+    canOperateShipping(actor);
     const { tenantId } = requireTenantScope(actor);
 
     // 1. استرجاع بيانات الطلب

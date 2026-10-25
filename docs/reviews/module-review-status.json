@@ -12,8 +12,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Account/journal/bank reconciliation join predicates examined and hardened; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "activation",
@@ -23,8 +27,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Cloud versus Desktop activation entrypoint policy sampled; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "addons",
@@ -45,8 +53,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: AI config endpoints and settings writer access boundary inspected; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "approvals",
@@ -100,8 +112,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Document revision tenant-qualified post-update read inspected; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "crm",
@@ -217,8 +233,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Public bid carrier ownership, journal joins, and composite FK definitions inspected; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "partners",
@@ -228,8 +248,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Sales returns/customer branch joins examined and hardened; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "pharmacy",
@@ -283,8 +307,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Dashboard sales/returns joins examined and hardened; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "returns",
@@ -305,8 +333,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: SaaS/developer class-level guards sampled; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "sales",
@@ -338,8 +370,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: MFA setup/confirm and password version session transaction reviewed; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "settings",
@@ -349,8 +385,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Backup archive normalization, export, destructive restore and tenant transfer preflight reviewed; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "storefront",
@@ -382,8 +422,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Paymob webhook signature path and subscription sandbox boundary sampled; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     },
     {
       "module": "tradein",
@@ -415,8 +459,12 @@
       "verified_at": null,
       "verified_scope": [],
       "test_evidence": [],
-      "blockers": [],
-      "blocker_sources": []
+      "blockers": [
+        "P0-A code-only follow-up: Auth/tenant user reference and MFA FK paths sampled; regressions, full routes and environment-specific integration not executed on this HEAD"
+      ],
+      "blocker_sources": [
+        "docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md"
+      ]
     }
   ]
 }

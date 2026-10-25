@@ -77,7 +77,7 @@ export class MaritimeFreightService {
       this.db.selectFrom('maritime_carrier_invoices').select('id').where('tenant_id', '=', tenantId)
         .where('job_id', '=', jobId).where('journal_entry_id', 'is', null).executeTakeFirst(),
       this.db.selectFrom('journal_entries as je')
-        .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+        .innerJoin('journal_entry_lines as jl', (join: any) => join.onRef('jl.journal_entry_id', '=', 'je.id').onRef('jl.tenant_id', '=', 'je.tenant_id'))
         .select(['je.source_type', 'jl.debit', 'jl.credit'])
         .where('je.tenant_id', '=', tenantId).where('je.source_id', '=', Number(jobId))
         .where('je.status', '=', 'posted')
@@ -160,7 +160,7 @@ export class MaritimeFreightService {
       baseAmount = Math.round(amount * (rate.is_base ? 1 : Number(rate.exchange_rate)) * 100) / 100;
     } else {
       const opening = await trx.selectFrom('journal_entries as je')
-        .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+        .innerJoin('journal_entry_lines as jl', (join: any) => join.onRef('jl.journal_entry_id', '=', 'je.id').onRef('jl.tenant_id', '=', 'je.tenant_id'))
         .select('jl.debit').where('je.tenant_id', '=', tenantId)
         .where('je.source_type', '=', 'maritime_container_deposit_open')
         .where('je.source_id', '=', Number(containerId)).where('je.status', '=', 'posted')
@@ -1405,6 +1405,17 @@ export class MaritimeFreightService {
       .executeTakeFirst();
 
     if (!rfq) throw new NotFoundException('RFQ not found');
+
+    // A public magic-link bid may name a carrier but cannot attach a
+    // shipping_line record from another tenant, even if its global ID leaks.
+    if (dto?.shippingLineId != null && String(dto.shippingLineId).trim()) {
+      const tenantLine = await this.db.selectFrom('shipping_lines')
+        .select('id')
+        .where('id', '=', String(dto.shippingLineId) as any)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (!tenantLine) throw new BadRequestException('Shipping line does not belong to this company');
+    }
 
     const oceanFreight = Number(dto.oceanFreight || 0);
     const thcOrigin = Number(dto.thcOrigin || 0);
@@ -3421,7 +3432,7 @@ export class MaritimeFreightService {
       const newEntryNo = posted.entry_no;
 
       const postedRevenue = await trx.selectFrom('journal_entries as je')
-        .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+        .innerJoin('journal_entry_lines as jl', (join: any) => join.onRef('jl.journal_entry_id', '=', 'je.id').onRef('jl.tenant_id', '=', 'je.tenant_id'))
         .select(sql<number>`COALESCE(SUM(jl.credit), 0)`.as('amount'))
         .where('je.tenant_id', '=', tenantId).where('je.source_type', '=', 'maritime_job')
         .where('je.source_id', '=', Number(job.id)).where('je.status', '=', 'posted')
@@ -5459,7 +5470,7 @@ export class MaritimeFreightService {
       const invoicedCharges = dto.charges.filter((charge) => charge.isInvoiced);
       if (invoicedCharges.length > 0) {
         const posted = await trx.selectFrom('journal_entries as je')
-          .innerJoin('journal_entry_lines as jl', 'jl.journal_entry_id', 'je.id')
+          .innerJoin('journal_entry_lines as jl', (join: any) => join.onRef('jl.journal_entry_id', '=', 'je.id').onRef('jl.tenant_id', '=', 'je.tenant_id'))
           .select(sql<number>`COALESCE(SUM(jl.credit), 0)`.as('amount'))
           .where('je.tenant_id', '=', tenantId).where('je.source_id', '=', Number(jobId))
           .where('je.source_type', '=', 'maritime_job').where('je.status', '=', 'posted')

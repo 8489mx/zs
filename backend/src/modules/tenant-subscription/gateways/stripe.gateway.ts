@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { IPaymentGateway, PaymentInitiateInput, PaymentInitiateResult, WebhookValidationResult } from './payment-gateway.interface';
 
@@ -68,13 +68,8 @@ export class StripeGatewayService implements IPaymentGateway {
       }
     }
 
-    return {
-      ok: true,
-      gateway: 'stripe',
-      paymentUrl: `https://checkout.stripe.com/pay/${transactionReference}`,
-      transactionReference,
-      message: 'تم تجهيز أمر الدفع الإلكتروني الدولي عبر Stripe.',
-    };
+    // A fabricated checkout URL is not evidence that Stripe accepted a payment.
+    throw new ServiceUnavailableException('Stripe checkout is not configured or temporarily unavailable.');
   }
 
   private verifySignature(rawBody: Buffer | undefined, signatureHeader: string): boolean {

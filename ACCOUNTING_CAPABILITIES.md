@@ -14,6 +14,12 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+<a id="accounting-join-boundary-p0a"></a>
+### Accounting tenant joins — P0-A security follow-up, 2026-10-25
+`accounting.service.ts` now joins journal lines/accounts/bank reconciliation rows using both entity ID and tenant ID, so legacy cross-tenant references do not leak through accounting reads.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — code review and tests authored only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [7. المحاسبة والمالية والخزينة (Accounting, Finance & Treasury)](#cap-033)

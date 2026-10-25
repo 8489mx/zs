@@ -4,6 +4,7 @@ import type { NextFunction, Response } from 'express';
 import type { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { InMemoryRateLimitService } from '../security/in-memory-rate-limit.service';
 import { resolveClientIp } from './storefront-public-rate-limit.middleware';
+import { isDesktopRuntimeMode } from '../../config/app-mode';
 
 function normalizeUsername(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -27,9 +28,9 @@ export class LoginRateLimitMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: RequestWithAuth, res: Response, next: NextFunction): Promise<void> {
-    const appMode = String(this.configService.get<string>('APP_MODE') || process.env.APP_MODE || '').trim().toUpperCase();
-    const isDesktop = appMode === 'SELF_CONTAINED' || process.env.IS_ELECTRON === 'true' || process.env.PORTABLE_MODE === 'true';
-    if (isDesktop) {
+    // Untrusted or conflicting flags can never disable Cloud login protection.
+    const appMode = this.configService.get<string>('APP_MODE') || process.env.APP_MODE;
+    if (isDesktopRuntimeMode(appMode)) {
       return next();
     }
 

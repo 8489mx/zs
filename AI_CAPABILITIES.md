@@ -14,6 +14,12 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+<a id="ai-config-rbac-p0a"></a>
+### AI API settings — P0-A security follow-up, 2026-10-25
+`ai-copilot.controller.ts` now restricts model/credential configuration routes to settings managers; `ai-copilot.service.ts:saveConfig` enforces the same boundary for direct service consumers.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — code review and tests authored only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [14. المساعد التنفيذي ومستودع المعرفة والتحليلات التنبؤية (AI Copilot & Knowledge RAG)](#cap-040)

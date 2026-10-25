@@ -6,6 +6,7 @@ import { TenantSubscriptionService } from './tenant-subscription.service';
 import { PaymentManagerService } from './gateways/payment-manager.service';
 import { InitiateOnlinePaymentDto, RequestRenewalDto } from './dto/tenant-subscription.dto';
 import { escapeHtml, sanitizeRedirectPath } from './sandbox-checkout-render.util';
+import { assertSubscriptionSandboxAllowed } from './gateways/subscription-sandbox-policy';
 
 @Controller('api/tenant-subscription')
 export class TenantSubscriptionController {
@@ -14,18 +15,9 @@ export class TenantSubscriptionController {
     private readonly paymentManager: PaymentManagerService,
   ) {}
 
-  /**
-   * السماح بمحاكاة الدفع (Sandbox) فقط عندما لا توجد مفاتيح بوابة حقيقية مُفعّلة على الإطلاق.
-   * إن كانت أي بوابة حقيقية مُهيأة، فهذا يعني أن بيئة الإنتاج تعتمد دفعاً فعلياً،
-   * ويجب ألا يبقى مسار المحاكاة قابلاً للاستدعاء المباشر لتفادي تجاوز الدفع.
-   */
+  /** Simulation is confined to explicit local runtimes; it grants actual entitlements. */
   private assertSandboxGatewayUsable(): void {
-    const hasXpay = Boolean(process.env.XPAY_API_KEY?.trim() && process.env.XPAY_COMMUNITY_ID?.trim());
-    const hasPaymob = Boolean(process.env.PAYMOB_API_KEY?.trim() && process.env.PAYMOB_INTEGRATION_ID?.trim());
-    const hasStripe = Boolean(process.env.STRIPE_SECRET_KEY?.trim());
-    if (hasXpay || hasPaymob || hasStripe) {
-      throw new ForbiddenException('بوابة الدفع التجريبية (Sandbox) معطلة لأن مفاتيح دفع حقيقية مُفعّلة على هذه البيئة.');
-    }
+    assertSubscriptionSandboxAllowed();
   }
 
   private assertSubscriptionManagePermission(req: RequestWithAuth): void {
@@ -381,8 +373,15 @@ export class TenantSubscriptionController {
     @Headers() headers: Record<string, any>,
     @Body() body: any,
     @Req() req: RequestWithAuth,
+    @Query('hmac') paymobQueryHmac?: string,
   ): Promise<Record<string, unknown>> {
     const rawBody: Buffer | undefined = (req as any).rawBody;
-    return this.paymentManager.processWebhook(gateway, headers, body, rawBody);
+    // Paymob delivers the signed HMAC in the callback query string, not
+    // necessarily in an HTTP header. The gateway must still verify the
+    // signature itself before any subscription credit is granted.
+    const verifiedHeaders = gateway.toLowerCase() === 'paymob' && typeof paymobQueryHmac === 'string'
+      ? { ...headers, hmac: paymobQueryHmac }
+      : headers;
+    return this.paymentManager.processWebhook(gateway, verifiedHeaders, body, rawBody);
   }
 }

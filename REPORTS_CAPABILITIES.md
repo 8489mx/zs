@@ -14,6 +14,12 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+<a id="reports-join-boundary-p0a"></a>
+### Reporting tenant joins — P0-A security follow-up, 2026-10-25
+`reports.service.ts` now joins sales/returns to their line items on matching tenant and ID to prevent cross-tenant aggregates through invalid historical references.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — code review and tests authored only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [19. لوحات ذكاء الأعمال والرسوم البيانية المتقدمة (Executive BI Charts & Business Intelligence)](#cap-045)

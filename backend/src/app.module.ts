@@ -111,6 +111,7 @@ export class AppModule implements NestModule {
       .apply(LoginRateLimitMiddleware)
       .forRoutes(
         { path: 'api/auth/login', method: RequestMethod.POST },
+        { path: 'api/auth/login/mfa', method: RequestMethod.POST },
         { path: 'api/developer/feature-plans', method: RequestMethod.GET },
         { path: 'api/developer/update-plan', method: RequestMethod.POST },
       );
@@ -122,6 +123,23 @@ export class AppModule implements NestModule {
         { path: 'api/auth/change-password', method: RequestMethod.POST },
         { path: 'api/auth/sessions/revoke-others', method: RequestMethod.POST },
         { path: 'api/auth/sessions/:id', method: RequestMethod.DELETE },
+        // Public portal endpoints validate their own short-lived HMAC/PIN,
+        // but must also have an IP burst budget before reaching the login
+        // service, including requests probing many different identities.
+        { path: 'api/hr/portal/login', method: RequestMethod.POST },
+        { path: 'api/hr/mobile-punch/login', method: RequestMethod.POST },
+        { path: 'api/driver-portal/login', method: RequestMethod.POST },
+        { path: 'api/freight-portal/auth/login', method: RequestMethod.POST },
+        { path: 'api/freight-portal/auth/token-login', method: RequestMethod.POST },
+        { path: 'freight-portal/auth/login', method: RequestMethod.POST },
+        { path: 'freight-portal/auth/token-login', method: RequestMethod.POST },
+        { path: 'api/maritime-freight/portal/auth/login', method: RequestMethod.POST },
+        { path: 'api/maritime-freight/portal/auth/token-login', method: RequestMethod.POST },
+        // Magic-link bids are public but write commercial records.
+        { path: 'api/public/freight-tracking/rfq/:id/bid', method: RequestMethod.POST },
+        { path: 'public/freight-tracking/rfq/:id/bid', method: RequestMethod.POST },
+        { path: 'api/public/carrier-quote/rfq/:id/bid', method: RequestMethod.POST },
+        { path: 'public/carrier-quote/rfq/:id/bid', method: RequestMethod.POST },
         { path: 'api/developer/*', method: RequestMethod.ALL },
       );
 

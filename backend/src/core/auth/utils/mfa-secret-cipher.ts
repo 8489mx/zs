@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, scryptSync } from 'node:crypto';
 import { AppError } from '../../../common/errors/app-error';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 /**
  * تشفير سر المصادقة الثنائية قبل تخزينه.
@@ -28,13 +29,9 @@ const DESKTOP_LOCAL_KEY = 'zs-desktop-offline-mfa-encryption-key';
 const FORMAT_PREFIX = 'v1';
 
 function isDesktopMode(env: NodeJS.ProcessEnv): boolean {
-  const appMode = String(env.APP_MODE || '').trim().toUpperCase();
-  if (appMode === 'CLOUD_SAAS') return false;
-  return appMode === 'SELF_CONTAINED'
-    || appMode === 'LOCAL_PILOT'
-    || appMode === 'PORTABLE'
-    || env.PORTABLE_MODE === 'true'
-    || env.IS_ELECTRON === 'true';
+  // Cloud must never derive MFA encryption from a globally known desktop key
+  // because of a stale PORTABLE_MODE / IS_ELECTRON flag.
+  return isDesktopRuntimeMode(env.APP_MODE);
 }
 
 export function resolveMfaEncryptionKey(env: NodeJS.ProcessEnv = process.env): Buffer {

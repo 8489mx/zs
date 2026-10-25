@@ -56,10 +56,17 @@ function testOrphanGateRunsBeforeCommit(): void {
   const restore = service.slice(service.indexOf('async restoreBackup('));
   const replicaAt = restore.indexOf("SET LOCAL session_replication_role = 'replica'");
   const gateAt = restore.indexOf('await this.assertNoOrphanedReferences(');
-  const txEndAt = restore.indexOf('});', gateAt);
+  const txEndAt = restore.indexOf('      });', gateAt);
   const snapshotAt = restore.indexOf("insert into backup_snapshots");
   assert.ok(replicaAt > -1 && gateAt > replicaAt, 'the orphan gate must run after FK checks are disabled');
-  assert.ok(txEndAt > gateAt && snapshotAt > txEndAt, 'the gate must run inside the transaction, before it commits');
+  assert.ok(
+    txEndAt > gateAt && snapshotAt > gateAt && snapshotAt < txEndAt,
+    'the orphan gate AND durable restore snapshot must run inside the same transaction before commit',
+  );
+  assert.ok(
+    restore.slice(snapshotAt, txEndAt).includes('.execute(trx)'),
+    'a restore snapshot insert must use the same database transaction, not a post-commit connection',
+  );
 
   const gate = service.slice(service.indexOf('private async assertNoOrphanedReferences('), service.indexOf('async restoreBackup('));
   assert.ok(gate.includes('findOrphanedReferences(trx, specs, tenantId, extra)'),

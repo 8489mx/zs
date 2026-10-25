@@ -1,5 +1,35 @@
 # دستور الثوابت المعمارية وسجل التدقيق (Architecture Invariants & Audit Ledger)
 
+### 2026-10-25 P0-A updated invariants and test evidence
+
+- **TRANSFER-PACKAGE-COMPLETE:** Never delete/import target tenant rows if archive inventory omitted a live table (including FK-owned child tables), contains undeclared/malformed tables or imported row count differs from declared row count. Abort the transaction. Older incompatible archives must be converted/tested safely, never accepted by disabling checks.
+- **RESTORE-SNAPSHOT-ATOMIC:** A restore snapshot record is part of the same transaction as destructive tenant data replacement, not a post-commit statement that can fail after successful restoration. Session/cache invalidation is post-commit.
+- **CLOUD-BACKUP-DISABLED:** `enabled=false` blocks cloud backup uploads, regardless of actor privilege. Distinct `canManageBackups` access remains mandatory.
+- **VERIFICATION-SCOPE:** Isolated GitHub Actions run `40188575959` passed targeted P0-A regressions, backend typecheck/build/guards, PostgreSQL fresh migration history and migration-255 physical catalog checks plus core integrity; Electron source updater contracts passed. Separate new restore-snapshot change `d5fc804...` awaits linked CI `40188927253`. Historic `NOT VALID` rows, legacy archive rollback, concurrency, cross-module service traces and actual packaged Electron remain unverified. See `docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md`.
+
+
+### Platform Core P0-A — ثوابت جديدة 25 أكتوبر 2026 (غير مختبرة تشغيلًا)
+
+- **AUTH-PASSWORD-VERSION:** MFA challenge and newly issued session are bound to the password hash verified during authentication. Admin resets invalidate in-flight logins; concurrent failure counters acquire a tenant-scoped row lock. A concurrent MFA setup must not overwrite confirmed enrolment.
+- **AUTH-CLOUD-SESSION-HEADER:** A Cloud SaaS `x-session-id` header never bypasses cookie/CSRF session authentication, even if `ALLOW_SESSION_ID_HEADER` is set. Local desktop header compatibility is retained.
+- **TENANT-JOIN-AND-FK:** Financial, reporting, partner and maritime joins bind *both* `tenant_id` and entity ID. New migration 255 defines NOT VALID tenant-composite FKs for MFA and maritime records, preserving historical violations for audit without validation/mutation.
+- **BACKUP-NONDESTRUCTIVE-PREFLIGHT:** Destructive backup restore requires a matching tenant identity and refuses a missing table with live tenant data or unsupported child rows. Restore fails on sequence errors. Older incompatible ZIP files are explicitly not guaranteed restorable; safe migration path remains outstanding.
+- **MFA-ENCRYPTION-BOUNDARY:** Globally known desktop encryption fallback is only permitted in explicit local runtime mode; a stray Electron/Portable flag on Cloud cannot enable it.
+- **AI-SECRETS-MANAGEMENT:** AI key configuration endpoints and service writes require settings management rights, never authentication alone.
+- **PAYMOB-HMAC-INGRESS:** Paymob callback query HMAC is routed to the cryptographic verifier; controller never itself treats the presence of a signature as proof of payment.
+- **EVIDENCE:** [P0-A source audit follow-up](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md), regressions authored only, zero tests/build/typecheck/guards/migrations executed this turn. Full Platform Core is NOT release-certified.
+
+
+- **BILLING-SANDBOX-CLOUD-DENY:** محاكاة دفع اشتراك تُنشئ اشتراكًا حقيقيًا، لذلك لا يمكن الوصول إليها من Cloud SaaS مهما كانت مفاتيح البوابات؛ خدمة الإيداع المباشر تحرس نفسها قبل DB. فشل بوابة حقيقية لا يتحول إلى فاتورة دفع افتراضية.
+- **BACKUP-PLATFORM-IMMUTABILITY:** النسخة التي يتحكم بها Tenant لا تنقل ولا تعيد صفوف `PLATFORM_TENANT_TABLES` (بما فيها الاشتراكات، المدفوعات، الجلسات وOffline ID leases). المنع في الاستكشاف، التطبيع، والحذف/الإدراج، مع قبول أرشيفات قديمة دون تطبيق بيانات المنصة منها.
+- **BACKUP-CONSISTENT-SNAPSHOT:** كل جداول النسخة تُقرأ من معاملة `REPEATABLE READ` واحدة. لا تُبتلع أخطاء الحذف أثناء Restore عندما تكون قيود FK معطلة مؤقتًا.
+- **AUTH-COOKIE-TRUST:** `Host` / `X-Forwarded-Host` لا يلغيان `Secure` في Cloud؛ استثناء localhost محلي فقط. `PermissionsGuard` لا يمنح إذنًا دون AuthContext ولا يرفع دور `super_admin` خارج نطاق المنصة.
+- **SESSION-ATOMIC-CREATION:** يعاد التحقق من حالة المستخدم وهو مقفول داخل المعاملة، ويُحدث المستخدم وتُنشأ جلسته بصورة ذرية. يجب تطابق `account_id` و`tenant_id` للجلسة والمستخدم.
+- **RESTORE-SESSION-REVOCATION:** نجاح استرجاع النسخة يستلزم إبطال AuthCache وكاش إعدادات وفروع وباقات المنشأة، وإلغاء جلسات الشركة داخل معاملة الاسترجاع أو نقلها، بلا تجاهل لأخطاء DELETE.
+- **AUTH-RATE-MODE-BOUNDARY:** `POST /api/auth/login/mfa` محروس بعدّاد محاولات الدخول؛ لا يجوز لأعلام `IS_ELECTRON` و`PORTABLE_MODE` أن تلغي التحديد في Cloud أو في وضع تشغيل غير صالح.
+- **DESKTOP-BACKUP-MODE-BOUNDARY:** جدولة النسخ ومسارات حفظ الملفات المحلية تتطلب وضع تشغيل محلي صريح ومعترف به عبر `isDesktopRuntimeMode`، لا الاعتماد على علم Desktop وحده.
+- **حالة التحقق:** تغييرات مصدرية + اختبارات انحدار مكتوبة **لم تُشغّل**. لم تُشغّل Tests أو Build أو Typecheck أو Migrations أو اختبار قاعدة بيانات، ولم يحدث Deploy/دمج. [نطاق الأدلة والجزاءات غير المفحوصة](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md).
+
 ### Core Architecture Audit 01 — إصلاحات 23 أكتوبر 2026 (بانتظار التحقق التنفيذي)
 
 - `config/app-mode.ts:isDesktopRuntimeMode` يحسم صلاحيات Desktop من وضع محلي صريح ومدعوم؛ لا تمنح `PORTABLE_MODE` أو `IS_ELECTRON` صلاحيات محلية فوق Cloud أو وضع غير معروف. `validateEnv` يرفض تعارض Cloud مع العلمين قبل الاتصال بقاعدة البيانات. فحوص المطور والتحديث والنقل والإقلاع وحدود الهجرات 74/78/79 تستخدم هذا المصدر؛ لم يتغير SQL الخاص بالهجرات ولا تُعاد الهجرات المنفذة.

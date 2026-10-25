@@ -14,6 +14,19 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+
+<a id="saas-sandbox-cloud-failclosed-p0a"></a>
+### حصر محاكاة تجديد الاشتراك خارج Cloud SaaS — تدقيق مصدر الكود 25 أكتوبر 2026
+- السلوك الحالي: إتمام دفع تجريبي يولّد اشتراكًا حقيقيًا، لذلك يُرفض في Cloud SaaS حتى لو غابت مفاتيح بوابات الدفع، ويُسمح به فقط في الوضع المحلي الصريح دون بوابة حقيقية. لا يتحول فشل XPay/Paymob/Stripe إلى نجاح افتراضي.
+- الملفات المالكة: `tenant-subscription.controller.ts`، `gateways/payment-manager.service.ts`، `gateways/subscription-sandbox-policy.ts`، ملفات XPay/Paymob/Stripe.
+- الانحدار المكتوب: `backend/test/critical/subscription-sandbox-boundary.spec.ts`. لا تعني هذه الحالة التحقق التنفيذي من بوابات الدفع الحقيقية، أو سلامة كل Webhook على الإنتاج.
+
+**الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
+
+<a id="saas-paymob-query-hmac-p0a"></a>
+### Paymob signed callback ingress — P0-A 2026-10-25
+`tenant-subscription.controller.ts` forwards a Paymob callback's `?hmac=` value to the existing cryptographic verifier, without accepting unsigned payments. `p0a-cloud-header-paymob-webhook.spec.ts` was authored **but not executed**, and live payment settlement remains unverified. [Evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md).
+
 ## فهرس الأقسام المنقولة
 
 - [15. إدارة المنصة والساس وتعدد المستأجرين (SaaS Admin & Multi-Tenancy)](#cap-041)

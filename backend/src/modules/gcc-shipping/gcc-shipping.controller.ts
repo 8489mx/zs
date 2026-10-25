@@ -4,6 +4,7 @@ import { GccShippingService } from './gcc-shipping.service';
 import { GccShippingSettings, GccCreateShipmentDto } from './gcc-shipping.types';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
+import { escapeHtml } from '../../common/utils/escape-html';
 
 @Controller(['gcc-shipping', 'api/gcc-shipping'])
 @UseGuards(SessionAuthGuard)
@@ -66,7 +67,7 @@ export class GccShippingController {
 <html dir="rtl" lang="ar">
 <head>
   <meta charset="utf-8">
-  <title>بوليصة شحن خليجية - ${awb.trackingNumber}</title>
+  <title>بوليصة شحن خليجية - ${escapeHtml(awb.trackingNumber)}</title>
   <style>
     @page { size: 4in 6in; margin: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 16px; background: #fff; color: #000; }
@@ -104,28 +105,28 @@ export class GccShippingController {
 
     <div class="barcode-area">
       <div class="barcode-graphic"></div>
-      <div class="tracking-code">${awb.trackingNumber}</div>
+      <div class="tracking-code">${escapeHtml(awb.trackingNumber)}</div>
     </div>
 
     <div class="grid-info">
       <div class="box-cell">
         <span style="color: #64748b; font-size: 10px;">المرسل (Shipper / Hub):</span>
-        <strong>${awb.shipper.name}</strong>
-        <div>${awb.shipper.city} - ${awb.shipper.address}</div>
-        <div dir="ltr" style="text-align: right; margin-top: 2px;">📞 ${awb.shipper.phone}</div>
+        <strong>${escapeHtml(awb.shipper.name)}</strong>
+        <div>${escapeHtml(awb.shipper.city)} - ${escapeHtml(awb.shipper.address)}</div>
+        <div dir="ltr" style="text-align: right; margin-top: 2px;">📞 ${escapeHtml(awb.shipper.phone)}</div>
       </div>
       <div class="box-cell">
         <span style="color: #64748b; font-size: 10px;">المستلم (Consignee):</span>
-        <strong>${awb.receiver.name}</strong>
-        <div>${awb.receiver.city} - ${awb.receiver.address}</div>
-        <div dir="ltr" style="text-align: right; margin-top: 2px;">📞 ${awb.receiver.phone}</div>
+        <strong>${escapeHtml(awb.receiver.name)}</strong>
+        <div>${escapeHtml(awb.receiver.city)} - ${escapeHtml(awb.receiver.address)}</div>
+        <div dir="ltr" style="text-align: right; margin-top: 2px;">📞 ${escapeHtml(awb.receiver.phone)}</div>
       </div>
     </div>
 
     <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 8px;">
-      <div><strong>الوزن:</strong> ${awb.weight} كجم</div>
-      <div><strong>القطع:</strong> ${awb.pieces} طرد</div>
-      <div><strong>التاريخ:</strong> ${awb.createdDate}</div>
+      <div><strong>الوزن:</strong> ${escapeHtml(awb.weight)} كجم</div>
+      <div><strong>القطع:</strong> ${escapeHtml(awb.pieces)} طرد</div>
+      <div><strong>التاريخ:</strong> ${escapeHtml(awb.createdDate)}</div>
     </div>
 
     <div class="cod-banner">
@@ -133,13 +134,13 @@ export class GccShippingController {
         ${isCod ? '⚠️ مطلوب تحصيل عند الاستلام (COD AMOUNT)' : '✅ مدفوع إلكترونياً مسبقاً (PREPAID - DO NOT COLLECT)'}
       </div>
       <div class="cod-amount">
-        ${isCod ? `${awb.codAmount} ${awb.currency}` : '0.00 ' + awb.currency}
+        ${escapeHtml(isCod ? `${awb.codAmount} ${awb.currency}` : '0.00 ' + awb.currency)}
       </div>
     </div>
 
     <div class="footer">
       <div>Z-Systems Express Logistics</div>
-      <div>AWB: ${awb.trackingNumber}</div>
+      <div>AWB: ${escapeHtml(awb.trackingNumber)}</div>
     </div>
   </div>
 </body>

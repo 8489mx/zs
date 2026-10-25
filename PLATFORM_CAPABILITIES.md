@@ -14,6 +14,30 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+
+<a id="platform-auth-hardening-p0a"></a>
+### عزل الصلاحيات وكوكيز Cloud واتساق إنشاء الجلسة — تدقيق مصدر الكود 25 أكتوبر 2026
+- السلوك الحالي: `PermissionsGuard` يرفض هوية غائبة ولا يعتبر `super_admin` استثناءً إلا في هوية المنصة المعترف بها. كوكيز Cloud لا تفقد خاصية Secure بسبب Host متحكم فيه العميل. جلسة قاعدة البيانات ترفض اختلاف tenant/account، وإنشاء الجلسة وتحديث المستخدم أصبحا ذريين مع إعادة فحص الحساب المقفل.
+- الملفات: `core/auth/guards/*` و`core/auth/services/session.service.ts` و`core/auth/utils/auth-cookie-cleanup.ts` و`sessions.controller.ts`.
+- الانحدار المكتوب: `backend/test/critical/platform-auth-boundaries-p0a.spec.ts` و`session-login-atomic-p0a.spec.ts`؛ لم يُغيَّر قبول `infoadmin` في Desktop. أُضيف حد محاولات على `POST /api/auth/login/mfa` إلى `AppModule` ولا يُعطَّل في Cloud بأعلام Desktop، مع `login-mode-boundary-p0a.spec.ts` غير مشغّل.
+
+**الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
+
+<a id="platform-session-mfa-followup-p0a"></a>
+### MFA/session concurrency boundary — P0-A security follow-up, 2026-10-25
+`mfa.service.ts` prevents pending-enrollment writes overriding confirmed MFA. `session.service.ts` locks password-failure counters and binds MFA challenges/new sessions to current password versions; `session-auth.guard.ts` excludes Cloud header fallback; `mfa-secret-cipher.ts` forbids Cloud use of desktop key fallback.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
+
+<a id="platform-portal-burst-limit-p0a"></a>
+### حدود المعدل في بوابات الجمهور — P0-A، 25 أكتوبر 2026
+`backend/src/app.module.ts` يسجّل `AuthBurstRateLimitMiddleware` لطرق تسجيل دخول بوابات الموظفين والمناديب والعملاء البحريين وكتابة عروض RFQ العامة؛ هذا مكمل وليس بديلًا لتوثيق رموز البوابات. `p0a-public-portal-burst-routes.spec.ts` تحقق انحدار من المصدر فقط، **لم يُشغّل**. مغطاة الواجهات المحددة، وليس كل API public.
+
+
+<a id="p0a-verified-route-inventory-20261025"></a>
+### P0-A CI verification and endpoint coverage boundary — 25 October 2026
+Automated controller inventory: `docs/reviews/PLATFORM_CORE_SECURITY_P0A_ROUTE_INVENTORY_20261025.csv` covers 83 module controllers and 1,310 HTTP decorator matches. Guard and permission metadata are hints only; untraced tenant/service/SQL/test evidence is `UNVERIFIED`. Targeted auth and P0-A security regressions, typecheck and architecture/permission checks passed in [isolated CI 40188575959](https://github.com/8489mx/zs/actions/runs/40188575959), not a declaration of whole-project tenant-isolation completeness. Desktop `infoadmin` handling remains unchanged; production Cloud cannot inherit Desktop permissions.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: الدرع المعماري والحصانة المطلقة لمنصة السوبر أدمن والمستأجر الجذري zs (Super Admin Platform Root Immunity Shield) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)](#cap-007)

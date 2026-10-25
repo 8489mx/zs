@@ -12,6 +12,7 @@ import { resolveTenantPackage } from '../../../core/tenant-transfer/backup-bundl
 import { exportTenantPackage, importTenantPackage, TenantPackageError } from '../../../core/tenant-transfer/tenant-package';
 import { SettingsService } from '../settings.service';
 import { isDesktopRuntimeMode } from '../../../config/app-mode';
+import { isProtectedTenantDataTarget } from '../../../core/tenant-transfer/protected-tenant-target';
 
 export const TENANT_IMPORT_CONFIRMATION = 'IMPORT TENANT';
 
@@ -73,7 +74,7 @@ export class TenantTransferService {
   ): Promise<Record<string, unknown>> {
     this.assertCanTransfer(auth);
     const scope = requireTenantScope(auth);
-    if (scope.tenantId === 'zs' || (process.env.APP_MODE === 'CLOUD_SAAS' && scope.tenantId === String(process.env.PLATFORM_TENANT_ID || 'zs').trim() && scope.tenantId !== 'default')) {
+    if (isProtectedTenantDataTarget(scope.tenantId)) {
 
       throw new ForbiddenException('ممنوع منعاً باتاً استيراد حزم بيانات فوق منشأة المنصة المركزية السحابية (zs). المنصة مخصصة لإدارة المشتركين فقط.');
     }
