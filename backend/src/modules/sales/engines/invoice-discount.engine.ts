@@ -1,4 +1,5 @@
 import { AppError } from '../../../common/errors/app-error';
+import { type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 
 export type InvoiceDiscountLine = { lineTotal: number; qty: number };
 export type AllocatedInvoiceLine = {
@@ -8,9 +9,10 @@ export type AllocatedInvoiceLine = {
   netUnitPrice: number;
 };
 
-function toCents(value: number): number {
-  const cents = Math.round(Number(value) * 100);
-  if (!Number.isSafeInteger(cents) || cents < 0 || Math.abs(Number(value) * 100 - cents) > 0.001) {
+function toCents(value: number, digits: MoneyDigits): number {
+  const scale = 10 ** digits;
+  const cents = Math.round(Number(value) * scale);
+  if (!Number.isSafeInteger(cents) || cents < 0 || Math.abs(Number(value) * scale - cents) > 0.001) {
     throw new AppError('Invoice line amounts require cent precision', 'INVALID_INVOICE_ALLOCATION', 400);
   }
   return cents;
@@ -22,12 +24,15 @@ export function allocateInvoiceDiscount(input: {
   invoiceDiscount: number;
   invoiceTax: number;
   pricesIncludeTax: boolean;
+  digits?: MoneyDigits;
 }): AllocatedInvoiceLine[] {
-  const lineCents = input.lines.map((line) => toCents(line.lineTotal));
+  const digits = input.digits ?? 2;
+  const scale = 10 ** digits;
+  const lineCents = input.lines.map((line) => toCents(line.lineTotal, digits));
   if (lineCents.length === 0) throw new AppError('Invoice requires a line', 'INVALID_INVOICE_ALLOCATION', 400);
   const subtotal = lineCents.reduce((sum, amount) => sum + amount, 0);
-  const discount = toCents(input.invoiceDiscount);
-  const tax = toCents(input.invoiceTax);
+  const discount = toCents(input.invoiceDiscount, digits);
+  const tax = toCents(input.invoiceTax, digits);
   if (discount > subtotal || (subtotal === 0 && (discount > 0 || tax > 0))) {
     throw new AppError('Invoice discount exceeds line subtotal', 'INVALID_INVOICE_ALLOCATION', 400);
   }
@@ -56,10 +61,10 @@ export function allocateInvoiceDiscount(input: {
     const netCents = line.base - (input.pricesIncludeTax ? taxShare : 0);
     if (netCents < 0) throw new AppError('Allocated tax exceeds line value', 'INVALID_INVOICE_ALLOCATION', 400);
     return {
-      allocatedDiscount: line.discount / 100,
-      allocatedTax: taxShare / 100,
-      netLineTotal: netCents / 100,
-      netUnitPrice: Number((netCents / 100 / input.lines[index].qty).toFixed(6)),
+      allocatedDiscount: line.discount / scale,
+      allocatedTax: taxShare / scale,
+      netLineTotal: netCents / scale,
+      netUnitPrice: Number((netCents / scale / input.lines[index].qty).toFixed(6)),
     };
   });
 }
