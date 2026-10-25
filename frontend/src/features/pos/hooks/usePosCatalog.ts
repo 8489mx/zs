@@ -62,7 +62,8 @@ export function clearStoredCatalog() {
 }
 
 export function usePosCatalog(search: string, branchId: string, locationId: string, productFilter: string = 'all') {
-  const [productCache, setProductCache] = useState<Product[]>([]);
+  const activeTenantId = getActiveTenantId();
+  const [cacheState, setCacheState] = useState<{ tenantId: string; products: Product[] }>({ tenantId: '', products: [] });
   const parsedSearch = parseQuantityPrefixQuery(search);
   const trimmedSearch = parsedSearch.cleanQuery;
   const debouncedSearch = useDebouncedValue(trimmedSearch, 250);
@@ -70,8 +71,10 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
   const lookupMode: 'browse' | 'barcode' | 'search' = !lookupTerm ? 'browse' : isLikelyBarcodeQuery(lookupTerm) ? 'barcode' : 'search';
   const lookupView = productFilter === 'offers' ? 'offers' : '';
   const productsQuery = useQuery({
-    queryKey: ['products', 'pos', branchId || 'all', locationId || 'all', lookupMode, lookupTerm || '', lookupView || 'all', String(POS_PRODUCT_LOOKUP_LIMIT)] as const,
+    queryKey: ['products', 'pos', activeTenantId || 'unscoped', branchId || 'all', locationId || 'all', lookupMode, lookupTerm || '', lookupView || 'all', String(POS_PRODUCT_LOOKUP_LIMIT)] as const,
+    enabled: Boolean(activeTenantId),
     queryFn: async () => {
+      if (!activeTenantId || activeTenantId !== getActiveTenantId()) return [];
       try {
         const res = await posApi.lookupProducts({
           ...(lookupMode === 'barcode' ? { barcode: lookupTerm } : lookupTerm ? { q: lookupTerm } : {}),
@@ -80,6 +83,7 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
           locationId,
           limit: POS_PRODUCT_LOOKUP_LIMIT,
         });
+        if (activeTenantId !== getActiveTenantId()) return [];
         if (res && res.length > 0) {
           storeCatalog(res);
         } else if (lookupMode === 'browse' && Array.isArray(res) && res.length === 0) {
@@ -90,7 +94,7 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
         return res;
       } catch {
         // High-performance offline fallback from IndexedDB persistent storage
-        const activeTenantId = getActiveTenantId();
+        if (activeTenantId !== getActiveTenantId()) return [];
         const storedTenantId = await getStoredTenantIdFromStorage();
         if (!isPosCachedTenantCompatible(activeTenantId, storedTenantId)) {
           if (activeTenantId && storedTenantId && activeTenantId !== storedTenantId) await clearCatalogStorage();
@@ -114,47 +118,54 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
           .slice(0, POS_PRODUCT_LOOKUP_LIMIT);
       }
     },
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData, previousQuery) => previousQuery?.queryKey?.[2] === activeTenantId ? previousData : undefined,
     staleTime: 60_000,
   });
 
   useEffect(() => {
-    let active = true;
+    let mounted = true;
+    setCacheState((previous) => previous.tenantId === activeTenantId
+      ? previous : { tenantId: activeTenantId, products: [] });
     (async () => {
-      const activeTenantId = getActiveTenantId();
+      if (!activeTenantId) return;
       const storedTenantId = await getStoredTenantIdFromStorage();
-      if (activeTenantId && storedTenantId && activeTenantId !== storedTenantId) {
-        await clearCatalogStorage();
-        if (active) setProductCache([]);
+      if (!isPosCachedTenantCompatible(activeTenantId, storedTenantId)) {
+        if (storedTenantId && storedTenantId !== activeTenantId) await clearCatalogStorage();
+        if (mounted) setCacheState({ tenantId: activeTenantId, products: [] });
         return;
       }
       const stored = await getAllCatalogFromStorage(POS_PRODUCT_CACHE_LIMIT);
-      if (active) {
-        setProductCache(stored || []);
+      if (mounted && activeTenantId === getActiveTenantId()) {
+        setCacheState({ tenantId: activeTenantId, products: stored || [] });
       }
     })();
-    return () => {
-      active = false;
-    };
-  }, [locationId, branchId]);
+    return () => { mounted = false; };
+  }, [activeTenantId, locationId, branchId]);
 
   useEffect(() => {
-    if (!productsQuery.data) return;
+    if (!activeTenantId || !productsQuery.data) return;
     if (productsQuery.data.length === 0 && lookupMode === 'browse') {
-      setProductCache([]);
+      setCacheState({ tenantId: activeTenantId, products: [] });
       clearStoredCatalog();
       return;
     }
     if (productsQuery.data.length > 0) {
-      setProductCache((current) => mergeLookupProducts(productsQuery.data, current).slice(0, POS_PRODUCT_CACHE_LIMIT));
+      setCacheState((current) => ({
+        tenantId: activeTenantId,
+        products: mergeLookupProducts(productsQuery.data!,
+          current.tenantId === activeTenantId ? current.products : []).slice(0, POS_PRODUCT_CACHE_LIMIT),
+      }));
     }
-  }, [productsQuery.data, lookupMode]);
+  }, [activeTenantId, productsQuery.data, lookupMode]);
 
   const saleProducts = useMemo(
     () => getAvailableSaleProducts(productsQuery.data || [], '', productFilter),
     [productsQuery.data, productFilter],
   );
-  const catalogProducts = useMemo(() => mergeLookupProducts(productsQuery.data || [], productCache), [productCache, productsQuery.data]);
+  const scopedCache = useMemo(() => cacheState.tenantId === activeTenantId
+    ? cacheState.products : [], [activeTenantId, cacheState]);
+  const catalogProducts = useMemo(() => mergeLookupProducts(productsQuery.data || [], scopedCache),
+    [productsQuery.data, scopedCache]);
   const barcodeMap = useMemo(() => createProductBarcodeMap(catalogProducts), [catalogProducts]);
 
   return {
