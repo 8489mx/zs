@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - fix/cross-module-accounting-inventory-20261025
   pull_request:
     branches:
       - main
