@@ -911,6 +911,8 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
         // 4. replica mode above disables FK enforcement, so nothing would stop a bad remap from
         // committing. Check every FK of the restored tables ourselves before the commit.
         await this.assertNoOrphanedReferences(trx as unknown as Kysely<Database>, restoredTables, scope.tenantId);
+        // A failed restore snapshot record must rollback the restored rows as well.
+        await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${`restore-${new Date().toISOString()}`}, ${'restore'}, ${JSON.stringify(envelope)}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(trx);
       });
     } catch (error: any) {
       throw new AppError(
@@ -928,7 +930,6 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
     this.settings.invalidateBranchesCache(scope.tenantId);
     this.settings.invalidatePlanFeaturesCache(scope.tenantId);
 
-    await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${`restore-${new Date().toISOString()}`}, ${'restore'}, ${JSON.stringify(envelope)}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
     // Ensure audit log uses a valid user id from the restored users or null if the restoring actor was replaced
     let auditActor = actor;
     if (actor.userId) {
