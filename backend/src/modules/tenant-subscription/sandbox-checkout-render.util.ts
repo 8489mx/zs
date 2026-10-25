@@ -9,15 +9,8 @@
  * runs — a copy inside the test would guard nothing.
  */
 
-/** Characters that let a value break out of text content or an attribute value. */
-export function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+// Shared with HTML shipping labels; existing sandbox imports remain compatible.
+export { escapeHtml } from '../../common/utils/escape-html';
 
 const BACKSLASH = 0x5c;
 const DEL = 0x7f;

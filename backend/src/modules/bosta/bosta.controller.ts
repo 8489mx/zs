@@ -4,6 +4,7 @@ import { BostaService } from './bosta.service';
 import { BostaCreateDeliveryDto, BostaSettings } from './bosta.types';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
+import { escapeHtml } from '../../common/utils/escape-html';
 
 @Controller(['bosta', 'api/bosta'])
 @UseGuards(SessionAuthGuard)
@@ -68,7 +69,7 @@ export class BostaController {
 <html dir="rtl" lang="ar">
 <head>
   <meta charset="utf-8">
-  <title>بوليصة شحن بوسطة - ${trackingNo}</title>
+  <title>بوليصة شحن بوسطة - ${escapeHtml(trackingNo)}</title>
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'">
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; background: #f8fafc; color: #0f172a; }
@@ -98,7 +99,7 @@ export class BostaController {
     <div class="tracking-box">
       <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">رقم التتبع (Airway Bill)</div>
       <div class="barcode-fake">محاكاة — لا تمثل باركوداً رسمياً</div>
-      <div style="font-size: 16px; font-weight: 800; color: #0f172a;">#${trackingNo}</div>
+      <div style="font-size: 16px; font-weight: 800; color: #0f172a;">#${escapeHtml(trackingNo)}</div>
     </div>
     <div class="info-row">
       <span class="info-label">المستلم:</span>
