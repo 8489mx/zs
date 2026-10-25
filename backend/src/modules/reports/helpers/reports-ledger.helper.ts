@@ -1,5 +1,6 @@
 import { buildPagination, paginate } from './reports-range.helper';
 import { toMoney } from './reports-math.helper';
+import { type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import {
   buildCustomerBalanceRows,
   buildSupplierBalanceRows,
@@ -59,14 +60,15 @@ export function buildCustomerBalancesPayload(
   customers: CustomerBalanceSourceRow[],
   ledgerTotals: Map<string, number>,
   query: Record<string, unknown>,
+  digits: MoneyDigits = 2,
 ) {
-  const rows = filterCustomerBalanceRows(buildCustomerBalanceRows(customers, ledgerTotals), query);
+  const rows = filterCustomerBalanceRows(buildCustomerBalanceRows(customers, ledgerTotals, digits), query);
   const paged = paginate(rows, query as any, 20);
 
   return {
     customers: paged.rows,
     pagination: paged.pagination,
-    summary: summarizeCustomerBalanceRows(rows),
+    summary: summarizeCustomerBalanceRows(rows, digits),
   };
 }
 
@@ -81,7 +83,7 @@ export function buildSupplierBalancesPayload(
   return {
     suppliers: paged.rows,
     pagination: paged.pagination,
-    summary: summarizeSupplierBalanceRows(rows),
+    summary: summarizeSupplierBalanceRows(rows, digits),
   };
 }
 
@@ -102,20 +104,21 @@ export function buildLedgerSummary(
   totalItems: number,
   totalsRow: LedgerSummaryRow | null | undefined,
   openingBalance?: number,
+  digits: MoneyDigits = 2,
 ) {
-  const totalDebits = toMoney(totalsRow?.debits_total ?? 0);
-  const totalCredits = Math.abs(toMoney(totalsRow?.credits_total ?? 0));
+  const totalDebits = toMoney(totalsRow?.debits_total ?? 0, digits);
+  const totalCredits = Math.abs(toMoney(totalsRow?.credits_total ?? 0, digits));
   const base = {
     totalEntries: totalItems,
     totalDebits,
     totalCredits,
   };
   if (openingBalance !== undefined) {
-    const openBal = toMoney(openingBalance);
+    const openBal = toMoney(openingBalance, digits);
     return {
       ...base,
       openingBalance: openBal,
-      closingBalance: toMoney(openBal + totalDebits - totalCredits),
+      closingBalance: toMoney(openBal + totalDebits - totalCredits, digits),
     };
   }
   return base;
@@ -129,8 +132,9 @@ export function buildCustomerLedgerPayload(args: {
   totalItems: number;
   totalsRow?: LedgerSummaryRow | null;
   openingBalance?: number;
+  digits?: MoneyDigits;
 }) {
-  const { customer, rows, page, pageSize, totalItems, totalsRow, openingBalance } = args;
+  const { customer, rows, page, pageSize, totalItems, totalsRow, openingBalance, digits = 2 } = args;
   return {
     customer: {
       id: String(customer.id),
@@ -141,7 +145,7 @@ export function buildCustomerLedgerPayload(args: {
     },
     entries: mapLedgerEntries(rows),
     pagination: buildPagination(page, pageSize, totalItems),
-    summary: buildLedgerSummary(totalItems, totalsRow, openingBalance),
+    summary: buildLedgerSummary(totalItems, totalsRow, openingBalance, digits),
   };
 }
 
@@ -153,8 +157,9 @@ export function buildSupplierLedgerPayload(args: {
   totalItems: number;
   totalsRow?: LedgerSummaryRow | null;
   openingBalance?: number;
+  digits?: MoneyDigits;
 }) {
-  const { supplier, rows, page, pageSize, totalItems, totalsRow, openingBalance } = args;
+  const { supplier, rows, page, pageSize, totalItems, totalsRow, openingBalance, digits = 2 } = args;
   return {
     supplier: {
       id: String(supplier.id),
@@ -164,6 +169,6 @@ export function buildSupplierLedgerPayload(args: {
     },
     entries: mapLedgerEntries(rows),
     pagination: buildPagination(page, pageSize, totalItems),
-    summary: buildLedgerSummary(totalItems, totalsRow, openingBalance),
+    summary: buildLedgerSummary(totalItems, totalsRow, openingBalance, digits),
   };
 }

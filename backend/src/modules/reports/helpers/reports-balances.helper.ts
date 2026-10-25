@@ -1,5 +1,6 @@
 import { paginate } from './reports-range.helper';
 import { toMoney } from './reports-math.helper';
+import { type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 
 export type CustomerBalanceSourceRow = {
   id: number | string;
@@ -39,6 +40,7 @@ function normalizeSearch(value: unknown): string {
 export function buildCustomerBalanceRows(
   customers: CustomerBalanceSourceRow[],
   ledgerTotals: Map<string, number>,
+  digits: MoneyDigits = 2,
 ): CustomerBalanceRow[] {
   return customers.map((row) => {
     const derivedBalance = ledgerTotals.has(String(row.id))
@@ -52,7 +54,7 @@ export function buildCustomerBalanceRows(
       phone: row.phone || '',
       balance: derivedBalance,
       creditLimit,
-      availableCredit: toMoney(creditLimit - derivedBalance),
+      availableCredit: toMoney(creditLimit - derivedBalance, digits),
     };
   });
 }
@@ -82,10 +84,10 @@ export function filterCustomerBalanceRows(
   return filtered;
 }
 
-export function summarizeCustomerBalanceRows(rows: CustomerBalanceRow[]) {
+export function summarizeCustomerBalanceRows(rows: CustomerBalanceRow[], digits: MoneyDigits = 2) {
   return {
     totalItems: rows.length,
-    totalBalance: toMoney(rows.reduce((sum, row) => sum + row.balance, 0)),
+    totalBalance: toMoney(rows.reduce((sum, row) => sum + row.balance, 0), digits),
     overLimit: rows.filter((row) => row.creditLimit > 0 && row.balance > row.creditLimit).length,
   };
 }
@@ -121,10 +123,10 @@ export function filterSupplierBalanceRows(
   return filtered;
 }
 
-export function summarizeSupplierBalanceRows(rows: SupplierBalanceRow[]) {
+export function summarizeSupplierBalanceRows(rows: SupplierBalanceRow[], digits: MoneyDigits = 2) {
   return {
     totalItems: rows.length,
-    totalBalance: toMoney(rows.reduce((sum, row) => sum + row.balance, 0)),
+    totalBalance: toMoney(rows.reduce((sum, row) => sum + row.balance, 0), digits),
   };
 }
 
