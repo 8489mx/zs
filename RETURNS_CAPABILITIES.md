@@ -21,3 +21,8 @@
 مرتجعات البيع والشراء وربط البنود بالمصدر وحركة المخزون وتسوية الطرف والترحيل. المصدر: `backend/src/modules/returns/returns.service.ts`. راجع أيضاً ملفات المبيعات والمشتريات والمخزون والمحاسبة قبل تغيير الدورة.
 
 حالة التغطية: وصف حدود من خريطة النظام، وليس تدقيقاً تفصيلياً أو نتيجة اختبارات جديدة. يلزم استكمال قائمة العمليات واختبارات كل عملية أثناء مراجعة المجال.
+
+### P0-C 2026-10-25 — KWD/OMR return and partner settlement precision (review branch)
+
+- Sales and vendor return sources now use tenant monetary minor units for cumulative line-value allocation, credited/refunded amounts and historical inventory cost movements. Refund tender split and supplier payable allocation preserve 0.001; `AccountingPostingService` uses the same digits for return journal line aggregation. Additive migration 259 widens posted return values without lossy rollback.
+- Critical pure tests verify 0.001 returns and receivable/cash tender routing. Disposable real PostgreSQL acceptance covers return source, AR/AP, physical stock and posted balanced journals. Results pending on the new SHA; partial refunds, taxed multi-item mixed tenders, exchanges and historical reconciliation remain open.

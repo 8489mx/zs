@@ -167,3 +167,9 @@ The code observations above identify definite missing integration points; **fina
 - Added 2/3-digit currency parameters to POS line valuation, invoice discount/tax distribution and tender allocation, and preserved the same precision in `postSale` journal line aggregation and customer subledger running balances.
 - Additive migration 258 widens monetary evidence for sales, sale items/payments, customer AR, and price fields while refusing rollback that could discard posted fils.
 - New disposable PostgreSQL scenario checks a 0.001 KWD posted credit sale and proves the customer/source 0.001, inventory/COGS 0.001 and revenue 0.001 balance. **Results pending at commit time.** Does not certify returns, tax, mixed payments, discounts, FX, reports, 8 cycles or 11 sectors.
+
+## 25 October — sale/vendor returns and refund allocation in minor units
+
+- Return helpers, running partner balances, sales refund tender allocator and vendor payable/cash split no longer quantize KWD/OMR 0.001 to cents. Journal posting for both return source types now retains original currency precision.
+- Return valuation stock-movement amounts follow the original WAC cost in tenant digits. Migration 259 widens return source document and item values without loss on rollback.
+- Added pure `returns-write.helper` and `sales-return-cost` critical regressions plus disposable PostgreSQL 0.001 sale return and vendor return source→stock→partner balance→GL tests. Their final CI/PostgreSQL results must be checked before signoff. Multi-channel partial refunds, serial/lot reversals and full 8-cycle/11-sector verification are still OPEN.
