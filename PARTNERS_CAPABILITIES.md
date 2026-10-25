@@ -14,6 +14,12 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+<a id="partners-join-boundary-p0a"></a>
+### Customer/branch tenant joins — P0-A security follow-up, 2026-10-25
+`partners.service.ts` constrains sale/return and branch joins by both tenant and identifier; no PostgreSQL execution was performed.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [5. العملاء والمبيعات الآجلة (Customers & Accounts Receivable)](#cap-031)

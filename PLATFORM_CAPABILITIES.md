@@ -23,6 +23,12 @@
 
 **الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
 
+<a id="platform-session-mfa-followup-p0a"></a>
+### MFA/session concurrency boundary — P0-A security follow-up, 2026-10-25
+`mfa.service.ts` prevents pending-enrollment writes overriding confirmed MFA. `session.service.ts` locks password-failure counters and binds MFA challenges/new sessions to current password versions; `session-auth.guard.ts` excludes Cloud header fallback; `mfa-secret-cipher.ts` forbids Cloud use of desktop key fallback.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: الدرع المعماري والحصانة المطلقة لمنصة السوبر أدمن والمستأجر الجذري zs (Super Admin Platform Root Immunity Shield) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)](#cap-007)

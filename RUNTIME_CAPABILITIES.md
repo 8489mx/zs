@@ -23,6 +23,12 @@
 
 **الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
 
+<a id="runtime-restore-preflight-p0a"></a>
+### Destructive restore preflight — P0-A security follow-up, 2026-10-25
+`settings-backup.service.ts` rejects incomplete/missing-tenant archives, safeguards unrepresented child rows, and aborts on sequence failures. Older archive restore may now fail closed pending a safe migration path; new migration 255 is not applied.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: أداء وسرعة المنظومة (Performance) — ✅ مفعّلة ومحروسة (21 سبتمبر 2026)](#cap-003)

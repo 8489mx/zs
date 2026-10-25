@@ -14,6 +14,12 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+<a id="contracting-document-boundary-p0a"></a>
+### Contracting document tenant read — P0-A security follow-up, 2026-10-25
+`contracting.service.ts` now scopes its post-update document revision read by tenant ID. Runtime regression verification is pending.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [77. موديول المقاولات وإدارة المشاريع الإنشائية المتكامل (Contracting & Construction ERP Module)](#cap-108)
