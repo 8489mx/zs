@@ -16,7 +16,7 @@ import {
   type PaymentPreset,
 } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 import { summarizeCartQuantities } from '@/features/pos/lib/pos.domain';
-import { systemConfirm } from '@/shared/components/system-alert';
+import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
 
 interface PosCheckoutDialogProps {
@@ -67,15 +67,8 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
   const handleDialogClose = useCallback(async () => {
     if (createSalePendingRef.current) return;
     if (pos.terminalPaymentDetails?.authCode) {
-      const confirmClose = await systemConfirm({
-        title: 'تنبيه: عملية دفع معتمدة من جهاز الدفع',
-        message: `تم خصم المبلغ من بطاقة العميل بالفعل برقم تفويض (${pos.terminalPaymentDetails.authCode}). هل تريد بالتأكيد إغلاق الشاشة وإلغاء تسجيل الفاتورة؟`,
-        confirmText: 'نعم، إلغاء الفاتورة',
-        cancelText: 'العودة لإتمام الفاتورة',
-        variant: 'danger',
-      });
-      if (!confirmClose) return;
-      pos.setTerminalPaymentDetails?.(null);
+      toast.warning(`يوجد خصم معتمد من ماكينة الدفع (${pos.terminalPaymentDetails.authCode}). لا يمكن إلغاء الفاتورة قبل تسجيلها أو تسوية الدفع مع مزود الخدمة.`);
+      return;
     }
     clearInlineManagerApproval();
     stableOnClose();
@@ -328,6 +321,10 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                 type="button"
                 variant="secondary"
                 onClick={() => {
+                  if (pos.terminalPaymentDetails?.authCode) {
+                    toast.warning('لا يمكن تقسيم الشيك بعد اعتماد خصم الماكينة. أكمل الفاتورة أو راجع تسوية الدفع أولًا.');
+                    return;
+                  }
                   onClose();
                   onOpenSplitBill();
                 }}
