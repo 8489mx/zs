@@ -2385,3 +2385,12 @@ esolveTenantAccount، مع التحقق من تفعيل الحسابات وعز�
 - **ACC-CLOSE-SOURCES:** Fiscal close checks missing sales, purchases and returns through the same query used by the integrity audit. Reopening a year reverses closing evidence but does not implicitly remove independent administrative/monthly locks.
 - **ACC-DATA-ACCEPTANCE:** `check:accounting-integrity` requires an explicit URL/tenant and a read-only repeatable-read snapshot. It reports discrepancies and cannot silently repair posted history. A passing synthetic test is not production-data acceptance.
 - **Evidence and limits:** See `docs/audit_packs/2026-10-24-core-accounting-postgres-acceptance.md` and the isolated PostgreSQL CI workflow. Packaged desktop/browser acceptance and restored production data require separate evidence.
+
+
+## P0-C maintenance financial atomicity (2026-10-25 review branch)
+
+- `maintenance_ticket` advance cash is a customer liability (1110 debit, 2150 credit), never service revenue.
+- The only maintenance revenue recognition in this integration is successful delivery (2150 advance applied + actual cash/bank collected -> 4200 revenue). Financial mismatch aborts the entire transaction.
+- Spare parts decrement physical stock and debit actual warehouse WAC to 5100, credit 1140 in the same transaction. Returns reverse at their saved historical issue cost and recalculate WAC.
+- Do not hard-delete posted tickets, overwrite posted advances, deliver twice, or change delivered tickets into another state. Refunds, credit settlements and formal cancellation require an audited reversal, not a silent direct update.
+- Automated disposable-PostgreSQL proof: `backend/test/acceptance/core-accounting.postgres.spec.ts`, subject to actual passing workflow evidence before scope certification.

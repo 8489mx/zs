@@ -135,10 +135,16 @@ async function main() {
     assert.equal(Number(recordedPart.unit_cost), 8, 'caller supplied cost never overrides stock WAC');
     assert.equal(await postingAmount(mf, '1140'), 16);
     assert.equal(await postingAmount(mf, '5100'), 8);
+    await purchase(mf, 14, 2);
+    assert.equal(await postingAmount(mf, '1140'), 44);
     await maintenance.removePart(tid, Number(issued.partId), mf.auth);
-    assert.equal(await postingAmount(mf, '1140'), 24);
+    assert.equal(await postingAmount(mf, '1140'), 52);
     assert.equal(await postingAmount(mf, '5100'), 0);
-    await maintenance.addPart(tid, {
+    const returnedProduct = await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id', '=', mf.auth.tenantId!).where('id', '=', mf.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(returnedProduct.stock_qty), 5);
+    assert.equal(Number(returnedProduct.cost_price), 10.4, 'return restores historical cost and recalculates WAC');
+    const reissued = await maintenance.addPart(tid, {
       productId: mf.productId, productName: 'Part', qty: 1,
       unitPrice: 15, locationId: mf.locationId,
     }, mf.auth);
@@ -159,14 +165,15 @@ async function main() {
     assert.equal(await postingAmount(mf, '1110'), 100);
     assert.equal(await postingAmount(mf, '2150'), 0);
     assert.equal(await postingAmount(mf, '4200'), -100);
-    assert.equal(await postingAmount(mf, '1140'), 16);
-    assert.equal(await postingAmount(mf, '5100'), 8);
+    assert.equal(await postingAmount(mf, '1140'), 41.6);
+    assert.equal(await postingAmount(mf, '5100'), 10.4);
     await maintenance.updateTicketStatus(tid, {status:'delivered'}, mf.auth);
     const postedDelivery = await db.selectFrom('journal_entries').select('id')
       .where('tenant_id', '=', mf.auth.tenantId!).where('source_type', '=', 'maintenance_delivery')
       .where('source_id', '=', tid).execute();
     assert.equal(postedDelivery.length,1,'delivery retry cannot duplicate revenue or collection');
-    await assert.rejects(maintenance.removePart(tid, Number(issued.partId), mf.auth));
+    await assert.rejects(maintenance.removePart(tid, Number(reissued.partId), mf.auth),
+      (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
     await assert.rejects(maintenance.deleteTicket(tid, mf.auth));
     await reconciliation(mf);
     pass('maintenance cash advance liability / WAC spare part issue and return / exact service settlement / retry / GL');
