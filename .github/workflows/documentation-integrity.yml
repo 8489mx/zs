@@ -1,0 +1,46 @@
+name: Documentation integrity
+
+on:
+  pull_request:
+    paths:
+      - 'SYSTEM_BLUEPRINT.md'
+      - 'SYSTEM_CAPABILITIES.md'
+      - 'SYSTEM_MODES_AND_TIERS_MATRIX.md'
+      - '*_CAPABILITIES.md'
+      - 'docs/capabilities/**'
+      - 'docs/reviews/**'
+      - 'scripts/validate-capabilities-docs.mjs'
+      - 'scripts/report-system-map-drift.mjs'
+      - 'backend/src/modules/**'
+      - 'frontend/src/features/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'SYSTEM_BLUEPRINT.md'
+      - 'SYSTEM_CAPABILITIES.md'
+      - 'SYSTEM_MODES_AND_TIERS_MATRIX.md'
+      - '*_CAPABILITIES.md'
+      - 'docs/capabilities/**'
+      - 'docs/reviews/**'
+      - 'scripts/validate-capabilities-docs.mjs'
+      - 'scripts/report-system-map-drift.mjs'
+      - 'backend/src/modules/**'
+      - 'frontend/src/features/**'
+
+jobs:
+  verify-doc-structure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check capability owners, review register and navigation
+        run: node scripts/validate-capabilities-docs.mjs
+      - name: Show architectural change candidates (advisory)
+        run: node scripts/report-system-map-drift.mjs
