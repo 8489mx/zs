@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { toMoney, sumMoney, buildTrendMap } from '../../src/modules/reports/helpers/reports-math.helper';
+import { toMoney, sumMoney, buildAggregatedBalances, buildTrendMap } from '../../src/modules/reports/helpers/reports-math.helper';
 import { buildReportSummaryPayload, splitReturnRowsByType } from '../../src/modules/reports/helpers/reports-summary.helper';
 
 (function testSplitReturnRowsByType() {
@@ -69,3 +69,9 @@ assert.equal(toMoney(0.001,3),0.001);
 
 assert.deepEqual(buildTrendMap([{k:'day',v:0.001},{k:'day',v:0.002}],['day'],r=>r.k,r=>r.v,3),[{key:'day',value:0.003}]);
 assert.deepEqual(buildTrendMap([{k:'day',v:0.004},{k:'day',v:0.004}],['day'],r=>r.k,r=>r.v),[{key:'day',value:0.01}]);
+
+// A report helper must not silently discard one-fil ledger balances.
+const tinyBalances=[{id:1,balance:'0.001'},{id:2,balance:'0.002'}];
+assert.equal(buildAggregatedBalances(tinyBalances,new Map(),3).get('1'),0.001);
+assert.equal(buildAggregatedBalances(tinyBalances,new Map([['2',0.003]]),3).get('2'),0.003);
+assert.equal(buildAggregatedBalances(tinyBalances,new Map()).get('1'),0);
