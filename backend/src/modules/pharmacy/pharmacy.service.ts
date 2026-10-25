@@ -802,6 +802,13 @@ export class PharmacyService {
     if (status === 'dispensed' && insuranceMinor > 0) {
       throw new AppError('Insurer receivable requires a dedicated settlement document', 'PHARMACY_INSURANCE_SETTLEMENT_REQUIRED', 422);
     }
+    if (status === 'dispensed' && totalMinor > 0 && (dto.items?.length ?? 0) > 0) {
+      // A prescription log has no product/lot IDs or stock COGS provenance.
+      // Charging for medicines here would invent revenue without the matching
+      // canonical sale, inventory movement and cost-of-goods journal.
+      throw new AppError('Dispensed medicines must be billed through the linked inventory sale',
+        'PHARMACY_PRESCRIPTION_SALE_REQUIRED', 422);
+    }
     const initialRxNo = String(dto.prescriptionNo || '').trim() || 'PENDING_RX';
     const itemsJsonStr = JSON.stringify(dto.items ?? []);
     return this.db.transaction().execute(async (trx) => {
@@ -832,6 +839,15 @@ export class PharmacyService {
           .where('id', '=', dto.id).where('tenant_id', '=', scope.tenantId)
           .returningAll().executeTakeFirstOrThrow();
       } else {
+        if (dto.prescriptionNo?.trim()) {
+          // Serialize same-tenant duplicate numbers before their insert. A
+          // lost-response retry must not collect the patient copay twice.
+          await sql`select pg_advisory_xact_lock(hashtext(${scope.tenantId}), hashtext(${initialRxNo}))`.execute(trx);
+          const prior = await trx.selectFrom('pharmacy_prescriptions').select('id')
+            .where('tenant_id', '=', scope.tenantId)
+            .where('prescription_no', '=', initialRxNo).executeTakeFirst();
+          if (prior) throw new AppError('Prescription number already exists', 'PHARMACY_DUPLICATE_PRESCRIPTION', 409);
+        }
         rx = await trx.insertInto('pharmacy_prescriptions').values({
           tenant_id: scope.tenantId, account_id: scope.accountId, prescription_no: initialRxNo,
           customer_name: dto.customerName,
