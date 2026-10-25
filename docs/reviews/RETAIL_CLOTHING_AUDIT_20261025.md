@@ -146,3 +146,56 @@ All rows above describe **code changed**, not verified operation. Count as **15 
 - Code review cannot certify bank/card refunds, ECR terminal reversals, receipt printers, physical warehouse differences or fiscal compliance. These remain explicit release blockers.
 
 **Current conclusion:** incomplete A–F audit, all axes **PARTIAL**, release **BLOCKED** pending remaining code traces, authored-test execution, accounting fixtures and device UAT. No merge to `main`; no deploy.
+
+
+---
+
+# Continued code audit — 25 October 2026 (second session)
+
+**Snapshot reviewed:** \`main\` \`3b7e4619\`; commerce branch \`8cdef15e\` (22 commits ahead of main); separate core-security audit branch 50 commits ahead of main in latest comparison. **No direct overlapping modified paths between the two fix branches in that comparison.** Continue refreshing HEAD because commits are pushed concurrently.
+
+**State: CODE REMEDIATION PARTIAL — NOT CLOSED AND NOT READY FOR DEPLOYMENT.** This continuation used the prior report as its checklist and preserved its first 12 code-patched issues. From \`a73dcf96\` to \`8cdef15e\` there were **16 further commits: 15 named fix commits and one regression-test-only commit**, on the same branch. Cumulatively **20 code-fix commits, 1 prior report commit and 1 standalone test commit** at this snapshot. Those are *commit/batch* counts, not the number of independently verified issues. No test, build, typecheck or migration was run. There are no passing-test results for this work.
+
+## Additional source-confirmed problems addressed
+
+| Section | Risk found | Local fix / tests written |
+|---|---|---|
+| A/F | Print UI could print unpersisted scan/generated barcode, fall back to wrong unit barcode or print incomplete paginated clothing style variants | Persisted-barcode check, full model fetch and fail-closed, \`product-barcode-print.helpers.spec.ts\` |
+| A/F | Matrix could conceal an existing duplicate color/size row; dialog violated React hook order on nullable product | Matrix retains/flags duplicate variants (\`products-matrix.helpers.spec.ts\`); \`ProductBarcodeDialog\` moves memo before nullable return |
+| D/F | Warehouse-count empty-location response could fall back to *all company products*; manually selected product expected global rather than warehouse qty | Count scoped to actual location stock map, no fallback for missing snapshot, \`count-location-scoping.spec.ts\` |
+| A/D/F | Barcode count chose first size sharing style code; could count packaging barcode as one base piece; conflicting barcodes on one SKU needed rejection | Unique exact product/unit barcode selection, size/model ambiguity guard, unit multiplier, tests \`count-barcode-identity.spec.ts\` |
+| E/F | UI used paginated/filtered register to compute prior return quantities and mixed duplicate invoice lines | Full tenant-scoped invoice-specific line totals endpoint + legacy orphan block; backend \`return-invoice-quantities.spec.ts\`, frontend \`return-remaining-quantity.spec.ts\` |
+| E/F | UI could submit refund again with a new idempotency key after lost server response; return form reset purchase mode to sale | Immutable per-attempt key/payload, operation status recovery; missing/changed original quantities also block resubmission; tests \`return-submission-recovery.spec.ts\` |
+| B/E | Exchange serial errors could throw outside screen error handler, before any operation key | Caught preflight with serial count/identity validation, \`pos-exchange-serial-validation.spec.ts\` |
+| C/E/F | Cash-drawer itemized movement showed gross refunds as cash even if actually paid by card/store-credit and/or from another shift | List uses only negative cash treasury legs linked to that specific shift/return; \`cash-drawer-cash-return.spec.ts\` |
+| F | Report labelled first SQL row as 'largest warehouse'; site balances exceeding global stock were not flagged; unassigned stock needed explicit location treatment | Sorted warehouse quantities; reconciliation/excess warning and unassigned SKU stock display; \`reports-inventory.helper.spec.ts\` |
+| B | Direct offline barcode lookup bypassed tenant preflight; unowned stale localStorage/IndexedDB rows could appear for another tenant | Tenant-tag check, reject unknown/unowned cache, \`pos-catalog-storage.spec.ts\` |
+| B/F | POS query key lacked tenant, placeholder reused prior tenant results and in-memory product cache persisted over tenant switch | Include tenant in query key, placeholder only within same tenant, tenant-tag in-memory cache, deny old async response writes, \`usePosCatalog.tenant.spec.tsx\` |
+
+**Additional source paths actually inspected:** \`frontend/src/features/products/components/ProductBarcodeDialog.tsx\`, \`ProductsMatrixView.tsx\`, \`product-barcode-print.helpers.ts\`; \`frontend/src/features/inventory/components/InventoryWorkspace.tsx\`, \`sections/InventoryComposerCards.tsx\`, \`hooks/useInventoryWorkspaceController.ts\`; \`backend/src/modules/inventory/services/inventory-count.service.ts\` (count create/recount/chunk post), \`inventory-transfer.service.ts\` (send/receive/shrinkage); \`frontend/src/features/pos/components/PosWorkspace.tsx\`, \`hooks/usePosCatalog.ts\`, \`lib/pos-catalog-storage.ts\`, \`lib/pos-workspace.helpers.ts\` (unique barcode resolution), \`lib/pos-product-lookup.ts\`, \`hooks/usePosOfflineSync.ts\`; \`backend/src/modules/returns/returns.service.ts\`, \`returns.controller.ts\`, \`engines/refund-tender.engine.ts\`; \`frontend/src/features/returns/components/ReturnsWorkspace.tsx\`, \`ReturnsCreateModal.tsx\`, \`ReturnsInvoiceItemsTable.tsx\`; \`backend/src/modules/cash-drawer/cash-drawer.service.ts\`, \`frontend/src/features/cash-drawer/components/CashDrawerReviewDialog.tsx\`; \`backend/src/modules/reports/helpers/reports-inventory.helper.ts\`, \`frontend/src/features/reports/api/reports.api.ts\`, \`components/sections/InventoryReportSection.tsx\`; and the documented catalog/GRN/retail flows from the first session. **Inspection of functions in these files must not be represented as exhaustive review of their entire module.**
+
+## A–F coverage at the end of this source-only continuation
+
+| Area | Status | What remains before marking complete |
+|---|---|---|
+| A. Clothing/fashion variants | **PARTIAL** | Every fashion import/export, multi-branch stock and returns, promotions/price overrides, label print hardware and large-catalog variant scenarios; full persistence and update lifecycle |
+| B. POS/register | **PARTIAL** | Full sale/discount/tax/payment split/COD/terminal response path, reprint/cancel/hold, real offline crash-reload/replay, tenant switching on SaaS and Electron; cash/card settlement reconciliation |
+| C. Cash drawer/shifts | **PARTIAL** | Full cashier/manager roles, blind close/review, concurrent closes and cash adjustments, mixed/card/wallet reconciliation, all accounting postings to close and variance ledgers |
+| D. Purchases/inventory | **PARTIAL** | Full PO/GRN/bill and purchase return, multi-branch stock counts, re-count and post all chunks, reservations, serial/batch traces and transfer refunds/cancellation, zero/negative stock and per-location valuation |
+| E. Returns/exchanges | **PARTIAL** | Full tax/discount proportional refunds, authorization and paid-tender reversals, bank/gateway refunds, partial multiple returns and Exchange atomicity with real DB concurrency; recovery across navigation/reloads |
+| F. Reports/screens/UX | **PARTIAL** | Comprehensive sales/profit/shift/stock report reconciliation to ledger; physical scanner/label/receipt printing and ECR/PAX; Arabic RTL/accessibility, small screens, low-spec Electron and full-size catalog perf |
+
+**No A–F area marked complete:** residual functional paths and runtime evidence remain. Work was performed without tests and builds at user's explicit instruction, so even modified paths are not operationally certified.
+
+## Shared core/security ownership and integration risks (not patched here)
+
+- Concurrent \`fix/platform-core-security-audit-20261025\` modifies auth/session guards, \`backend/src/modules/accounting/accounting.service.ts\`, \`backend/src/modules/reports/reports.service.ts\`, \`backend/src/modules/sales/services/price-lists.service.ts\`, DB migration 255, backup/tenant transfer and payment gateways. These are owned by the core audit and were **not edited** on commerce branch.
+- Payment gateway approved charge **vs** POS invoice unknown response, remote card refund/settlement and accounting journal equivalence require a coordinated integration test with the common security/accounting/payment components; these cannot be closed by a POS UI-only workaround or asserted from code inspection.
+- Ledger-driven valuation, financially sensitive stock counts, prior partially posted returns, and tenant-fence migration behavior need SQL fixture verification against the security branch once merged in a controlled integration environment. Do **not** merge either branch into \`main\` under this task without explicit approval.
+- Electron IndexedDB and offline persistence retain real-device and tenant-switch risks until tested; static keys, cache checks and new unit tests do not prove end-to-end transaction safety.
+
+## Verification gate and owner instructions
+
+**Written but not executed:** the initial four regression files and the new source tests listed above. User explicitly prohibits test suites, Build, Typecheck and migrations during code repairs. Before retail/clothing commercial sign-off, separately run relevant backend/frontend tests, true Postgres transaction fixtures, SKU/branch reconciliation, Electron offline crash tests and terminal/printer workflows, then fix failures on this same isolated branch or an explicitly authorized integration branch. Do not claim 'P0 complete' or 'ready to sell' based only on these code changes.
+
+**Conclusion:** Source-confirmed fixes were committed and pushed; the original whole-module A–F scope is **not fully reviewed** and remains blocked on substantive path coverage plus a later separately authorized verification phase.
