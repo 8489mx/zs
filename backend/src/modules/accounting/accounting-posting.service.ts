@@ -1343,6 +1343,8 @@ export class AccountingPostingService {
   async postSalesReturn(queryable: DbOrTx, returnId: number, auth: AuthContext,
     collectExchangeLines?: (lines: JournalLineDraft[]) => void): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingSalesReturnJournal(queryable, returnId, scope.tenantId);
     if (existing) {
@@ -1416,7 +1418,7 @@ export class AccountingPostingService {
     const cogsAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cogs_account_id, '5100');
     const inventoryAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.inventory_account_id, '1140');
 
-    const total = this.toMoney(returnDocument.total);
+    const total = toBookMoney(returnDocument.total);
     const originalSaleTotal = Number(sale?.total || 0);
     const originalSaleTax = Number(sale?.tax_amount || 0);
     const taxRatio = originalSaleTotal > 0 && originalSaleTax > 0 ? (originalSaleTax / originalSaleTotal) : 0;
@@ -1429,16 +1431,17 @@ export class AccountingPostingService {
       .where('tenant_id', '=', scope.tenantId)
       .executeTakeFirst();
     const taxAmount = Number(returnTax?.unallocated_lines || 0) === 0
-      ? this.toMoney(returnTax?.allocated_tax || 0) : this.toMoney(total * taxRatio);
-    const netReturnAmount = this.toMoney(Math.max(0, total - taxAmount));
+      ? toBookMoney(returnTax?.allocated_tax || 0) : toBookMoney(total * taxRatio);
+    const netReturnAmount = toBookMoney(Math.max(0, total - taxAmount));
     const customerPartnerId = sale?.customer_id ? Number(sale.customer_id) : null;
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     const branchId = returnDocument.branch_id ? Number(returnDocument.branch_id) : null;
     const locationId = returnDocument.location_id ? Number(returnDocument.location_id) : null;
     const invoiceNo = sale?.doc_no || returnDocument.doc_no || `Z-${returnDocument.invoice_id || ''}`;
 
     if (netReturnAmount > 0) {
-      this.addLine(lines, {
+      addBookLine( {
         accountId: salesReturnsAccountId,
         description: `مردودات مبيعات للفاتورة رقم ${invoiceNo}`,
         debit: netReturnAmount,
@@ -1451,7 +1454,7 @@ export class AccountingPostingService {
     }
 
     if (taxAmount > 0) {
-      this.addLine(lines, {
+      addBookLine( {
         accountId: salesTaxAccountId,
         description: `تخفيض ضريبة مبيعات من مرتجع فاتورة رقم ${invoiceNo}`,
         debit: taxAmount,
@@ -1481,11 +1484,11 @@ export class AccountingPostingService {
           : allocation.tender === 'receivable' ? customerAccountId
             : allocation.tender === 'cash' ? cashAccountId : bankAccountId;
         const partner = allocation.tender === 'store_credit' || allocation.tender === 'receivable';
-        this.addLine(lines, {
+        addBookLine( {
           accountId,
           description: `تسوية مرتجع فاتورة رقم ${invoiceNo} - ${allocation.tender}`,
           debit: 0,
-          credit: this.toMoney(allocation.amount),
+          credit: toBookMoney(allocation.amount),
           partnerType: partner && customerPartnerId ? 'customer' : 'none',
           partnerId: partner ? customerPartnerId : null,
           branchId,
@@ -1511,10 +1514,10 @@ export class AccountingPostingService {
         .execute()
       : [];
 
-    const inventoryReversalAmount = this.toMoney(calculateSalesReturnCost(returnItems, saleItems));
+    const inventoryReversalAmount = toBookMoney(calculateSalesReturnCost(returnItems, saleItems));
 
     if (inventoryReversalAmount > 0) {
-      this.addLine(lines, {
+      addBookLine( {
         accountId: inventoryAccountId,
         description: `إرجاع المخزون من مرتجع فاتورة رقم ${invoiceNo}`,
         debit: inventoryReversalAmount,
@@ -1524,7 +1527,7 @@ export class AccountingPostingService {
         branchId,
         locationId,
       });
-      this.addLine(lines, {
+      addBookLine( {
         accountId: cogsAccountId,
         description: `عكس تكلفة البضاعة المباعة لمرتجع فاتورة رقم ${invoiceNo}`,
         debit: 0,
@@ -1543,9 +1546,9 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting sales return ${returnId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced sales return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
     }
@@ -1810,6 +1813,8 @@ export class AccountingPostingService {
 
   async postPurchaseReturn(queryable: DbOrTx, returnId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await queryable
       .selectFrom('journal_entries')
@@ -1849,7 +1854,7 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting purchase return ${returnId}`);
 
-    const total = this.toMoney(returnDocument.total);
+    const total = toBookMoney(returnDocument.total);
     const originalPurchaseTotal = Number(purchase?.total || 0);
     const originalPurchaseTax = Number(purchase?.tax_amount || 0);
     const taxRatio = originalPurchaseTotal > 0 && originalPurchaseTax > 0 ? (originalPurchaseTax / originalPurchaseTotal) : 0;
@@ -1861,12 +1866,13 @@ export class AccountingPostingService {
       .where('return_document_id', '=', returnId).where('tenant_id', '=', scope.tenantId)
       .executeTakeFirst();
     const taxAmount = Number(lineTax?.unallocated_lines || 0) === 0
-      ? this.toMoney(lineTax?.allocated_tax || 0)
-      : this.toMoney(total * taxRatio); // Historical returns predating line-tax tracking.
+      ? toBookMoney(lineTax?.allocated_tax || 0)
+      : toBookMoney(total * taxRatio); // Historical returns predating line-tax tracking.
     if (taxAmount < 0 || taxAmount > total + 0.001) throw new Error(`Invalid purchase return VAT for ${returnId}`);
-    const netReturnAmount = this.toMoney(Math.max(0, total - taxAmount));
+    const netReturnAmount = toBookMoney(Math.max(0, total - taxAmount));
     const supplierPartnerId = purchase?.supplier_id ? Number(purchase?.supplier_id) : null;
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     const branchId = returnDocument.branch_id ? Number(returnDocument.branch_id) : null;
     const locationId = returnDocument.location_id ? Number(returnDocument.location_id) : null;
     const invoiceNo = purchase?.doc_no || returnDocument.doc_no || `ZP-${returnDocument.invoice_id || ''}`;
@@ -1901,11 +1907,11 @@ export class AccountingPostingService {
       for (const allocation of allocations) {
         const payable = allocation.tender === 'payable';
         const bank = allocation.tender === 'card';
-        this.addLine(lines, {
+        addBookLine( {
           accountId: payable ? supplierPayableAccountId : bank ? bankAccountId : cashAccountId,
           description: payable ? `تخفيض مديونية مورد من مردودات مشتريات فاتورة رقم ${invoiceNo}`
             : `استرداد ${bank ? 'بنكي' : 'نقدي'} من مورد لمرتجع فاتورة رقم ${invoiceNo}`,
-          debit: this.toMoney(allocation.amount),
+          debit: toBookMoney(allocation.amount),
           credit: 0,
           partnerType: payable && supplierPartnerId ? 'supplier' : 'none',
           partnerId: payable ? supplierPartnerId : null,
@@ -1918,16 +1924,16 @@ export class AccountingPostingService {
     const returnCosts = await queryable.selectFrom('return_items').select(['qty', 'cost_price'])
       .where('tenant_id', '=', scope.tenantId).where('return_document_id', '=', returnId).execute();
     if (returnCosts.some(item => item.cost_price == null)) throw new AppError('Purchase return requires an immutable WAC snapshot', 'PURCHASE_RETURN_COST_MISSING', 409);
-    const inventoryReturnCost = this.toMoney(returnCosts.reduce((sum, item) => sum + Number(item.qty) * Number(item.cost_price), 0));
-    const priceVariance = this.toMoney(inventoryReturnCost - netReturnAmount);
+    const inventoryReturnCost = toBookMoney(returnCosts.reduce((sum, item) => sum + Number(item.qty) * Number(item.cost_price), 0));
+    const priceVariance = toBookMoney(inventoryReturnCost - netReturnAmount);
     if (priceVariance !== 0) {
       const varianceAccount = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5190');
-      this.addLine(lines, { accountId: varianceAccount, description: 'فرق تكلفة مرتجع الشراء عن المتوسط المرجح', debit: Math.max(0, priceVariance), credit: Math.max(0, -priceVariance), partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine( { accountId: varianceAccount, description: 'فرق تكلفة مرتجع الشراء عن المتوسط المرجح', debit: Math.max(0, priceVariance), credit: Math.max(0, -priceVariance), partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     // Cr. Inventory Asset (1140)
     if (inventoryReturnCost > 0) {
-      this.addLine(lines, {
+      addBookLine( {
         accountId: inventoryAccountId,
         description: `تخفيض المخزون من مردودات مشتريات فاتورة رقم ${invoiceNo}`,
         debit: 0,
@@ -1941,7 +1947,7 @@ export class AccountingPostingService {
 
     // Cr. Purchase Tax (1150) (Reversing Input VAT)
     if (taxAmount > 0) {
-      this.addLine(lines, {
+      addBookLine( {
         accountId: purchaseTaxAccountId,
         description: `عكس ضريبة مشتريات من مردودات فاتورة رقم ${invoiceNo}`,
         debit: 0,
@@ -1960,9 +1966,9 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting purchase return ${returnId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced purchase return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
     }
