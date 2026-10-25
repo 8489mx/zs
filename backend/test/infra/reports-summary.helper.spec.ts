@@ -61,3 +61,8 @@ assert.equal(toMoney(0.001, 3), 0.001);
 assert.equal(toMoney(0.001, 2), 0);
 assert.equal(sumMoney([{amount:0.001},{amount:0.002}], row => row.amount, 3), 0.003);
 assert.equal(sumMoney([{amount:1.255},{amount:0.001}], row => row.amount, 3), 1.256);
+
+// Existing signed supplier ledger balances must not change at half-cent boundaries.
+assert.equal(toMoney(-10.505), -10.51);
+assert.equal(toMoney(15.255), 15.26);
+assert.equal(toMoney(0.001,3),0.001);
