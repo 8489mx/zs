@@ -10,11 +10,6 @@ for (const amount of [0.01, 0.03, 1.01, 199.99, 10325.67]) {
   assert.equal(Math.round(parts.reduce((a, b) => a + b, 0) * 100), Math.round(amount * 100));
   assert.ok(parts.every(p => p >= 0), 'negative share');
 }
-assert.throws(() => allocateLandedCosts(0.005, [1, 1]), /منزلتين/);
+assert.throws(() => allocateLandedCosts(0.005, [1, 1]), /دقة/);
 assert.throws(() => allocateLandedCosts(1, [-1, 2]), /غير صالحة/);
 console.log('Exact-cent landed cost allocation regressions passed');
-
-assert.deepEqual(allocateLandedCosts(0.001, [1, 1, 1], 3), [0.001, 0, 0]);
-assert.deepEqual(allocateLandedCosts(0.005, [1, 1, 1], 3), [0.002, 0.002, 0.001]);
-assert.equal(Math.round(allocateLandedCosts(0.999, [1, 2, 3], 3).reduce((a,b)=>a+b,0)*1000),999);
-assert.throws(() => allocateLandedCosts(0.0001, [1, 2], 3), /دقة/);

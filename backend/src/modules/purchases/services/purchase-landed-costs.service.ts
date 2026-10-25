@@ -9,6 +9,8 @@ import { allocateLandedCosts } from '../engines/landed-cost-allocation.engine';
 import { allocateReceiptCostByStockFlow, stockMovementGlobalDelta } from '../engines/landed-cost-wac.engine';
 import { lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { MoneyDigits, currencyMoneyDigits, toMinorUnits, fromMinorUnits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
 @Injectable()
 export class PurchaseLandedCostsService {
@@ -156,7 +158,7 @@ export class PurchaseLandedCostsService {
   }
 
   private async calculateStockFlowShares(trx: any, purchaseId: number, items: any[],
-    allocatedCosts: number[], tenantId: string, accountId: string) {
+    allocatedCosts: number[], tenantId: string, accountId: string, minorUnits: MoneyDigits) {
     const productIds = [...new Set(items.map((item) => Number(item.product_id || 0)).filter((id) => id > 0))].sort((a, b) => a - b);
     await lockStockProducts(trx, { tenantId, accountId, productIds });
     const productRows = productIds.length ? await trx.selectFrom('products')
@@ -215,7 +217,7 @@ export class PurchaseLandedCostsService {
           id: Number(row.id), globalDelta: stockMovementGlobalDelta(String(row.movement_type), Number(row.qty)),
         }));
         const portions = allocateReceiptCostByStockFlow({
-          currentStock: Number(products.get(productId).stock_qty), movements: movementFlow, receipts,
+          currentStock: Number(products.get(productId).stock_qty), movements: movementFlow, receipts, minorUnits,
         });
         for (const [key, value] of portions) splits.set(key, value);
       } catch (error) {
@@ -269,12 +271,22 @@ export class PurchaseLandedCostsService {
         throw new BadRequestException('الفاتورة لا تحتوي على أي بنود لتحميل التكلفة عليها.');
       }
 
-      if (!Array.isArray(dto.costs) || !dto.costs.length ||
-          dto.costs.some(c => !Number.isFinite(c.amount) || c.amount <= 0 ||
-            Math.abs(c.amount * 100 - Math.round(c.amount * 100)) > 0.000001)) {
-        throw new BadRequestException('مبالغ التكاليف الإضافية يجب أن تكون موجبة وصالحة وبمنزلتين عشريتين.');
+      const minorUnits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
+      if (!Array.isArray(dto.costs) || !dto.costs.length) {
+        throw new BadRequestException('يجب تحديد التكاليف الإضافية.');
       }
-      const totalLandedCost = dto.costs.reduce((sum, c) => sum + c.amount, 0);
+      let totalMinor = 0;
+      for (const cost of dto.costs) {
+        try {
+          const minor = toMinorUnits(Number(cost.amount), minorUnits);
+          if (minor <= 0) throw new Error('Non-positive');
+          totalMinor += minor;
+          if (!Number.isSafeInteger(totalMinor)) throw new Error('Unsafe');
+        } catch {
+          throw new BadRequestException('مبالغ التكاليف الإضافية لا تطابق دقة عملة الأساس.');
+        }
+      }
+      const totalLandedCost = fromMinorUnits(totalMinor, minorUnits);
       if (dto.costs.some((cost) => cost.vendorId != null &&
           (!Number.isSafeInteger(Number(cost.vendorId)) || Number(cost.vendorId) <= 0))) {
         throw new BadRequestException('معرّف مورد التكلفة الإضافية غير صالح.');
@@ -316,15 +328,15 @@ export class PurchaseLandedCostsService {
         if (dto.allocationMethod === 'qty') return Math.max(0, Number(item.qty || 0) * Number(item.unit_multiplier || 1));
         return 1;
       });
-      const allocatedCosts = allocateLandedCosts(Number(totalLandedCost.toFixed(2)), weights);
+      const allocatedCosts = allocateLandedCosts(totalLandedCost, weights, minorUnits);
       const { products, splits } = await this.calculateStockFlowShares(
-        trx, purchaseId, items, allocatedCosts, scope.tenantId, scope.accountId);
+        trx, purchaseId, items, allocatedCosts, scope.tenantId, scope.accountId, minorUnits);
       const inventoryAdditionByProduct = new Map<number, number>();
       for (const [index, item] of items.entries()) {
         const itemQty = Number(item.qty || 1);
         const allocatedCost = allocatedCosts[index];
         const baseUnitCost = Number(item.unit_cost || 0);
-        const landedUnitCost = Number((baseUnitCost + (itemQty > 0 ? allocatedCost / itemQty : 0)).toFixed(2));
+        const landedUnitCost = Number((baseUnitCost + (itemQty > 0 ? allocatedCost / itemQty : 0)).toFixed(6));
 
         // Update purchase_item
         await trx
@@ -358,7 +370,7 @@ export class PurchaseLandedCostsService {
         await trx.updateTable('products').set({ cost_price: newCostPrice, updated_at: new Date() })
           .where('tenant_id', '=', scope.tenantId).where('id', '=', productId).execute();
       }
-      if (Math.abs(Number((totalCapitalisedLandedCost + totalCogsLandedCost - totalLandedCost).toFixed(2))) > 0.001) {
+      if (toMinorUnits(roundMoney(totalCapitalisedLandedCost + totalCogsLandedCost, minorUnits), minorUnits) !== totalMinor) {
         throw new BadRequestException('توزيع التكلفة الإضافية بين المخزون والمباع غير متزن.');
       }
 
@@ -378,7 +390,7 @@ export class PurchaseLandedCostsService {
       // The cost is recognised when applied. Posting it on the old purchase date would rewrite
       // a signed-off month; the central journal guard checks both lock dates and monthly periods.
       if (totalLandedCost > 0) {
-        if (Number(totalLandedCost.toFixed(2)) <= 0) {
+        if (totalMinor <= 0) {
           throw new BadRequestException('التكاليف الإضافية أقل من أصغر وحدة نقدية؛ تعذر إنشاء القيد المحاسبي.');
         }
         const settings = await trx
@@ -404,8 +416,8 @@ export class PurchaseLandedCostsService {
           );
         }
 
-        const capitalised = Number(totalCapitalisedLandedCost.toFixed(2));
-        const toCogs = Number((Number(totalLandedCost.toFixed(2)) - capitalised).toFixed(2));
+        const capitalised = roundMoney(totalCapitalisedLandedCost, minorUnits);
+        const toCogs = fromMinorUnits(totalMinor - toMinorUnits(capitalised, minorUnits), minorUnits);
         await this.accountingPosting.postDomainJournal(trx, {
           sourceType: 'purchase_landed_cost', sourceId: purchaseId,
           tenantId: scope.tenantId, accountId: scope.accountId,
@@ -422,10 +434,10 @@ export class PurchaseLandedCostsService {
             ...Array.from(dto.costs.reduce((vendors, cost) => {
               const vendorId = Number(cost.vendorId || purchase.supplier_id || 0);
               if (!vendorId) throw new BadRequestException('يجب تحديد مورد كل تكلفة إضافية.');
-              vendors.set(vendorId, (vendors.get(vendorId) || 0) + cost.amount);
+              vendors.set(vendorId, (vendors.get(vendorId) || 0) + toMinorUnits(cost.amount, minorUnits));
               return vendors;
             }, new Map<number, number>()), ([vendorId, amount]) => ({
-              accountId: payableAccountId, debit: 0, credit: Number(amount.toFixed(2)),
+              accountId: payableAccountId, debit: 0, credit: fromMinorUnits(amount, minorUnits),
               description: 'استحقاق تكاليف الشحن والجمارك', partnerType: 'supplier' as const,
               partnerId: vendorId, branchId: null, locationId: null,
             })),
