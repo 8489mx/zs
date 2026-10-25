@@ -25,7 +25,6 @@ import {
   sortVariants,
   toCommonDraft,
   toVariantRows,
-  pickFashionStockConsolidationTarget,
   variantLabel,
   type CommonDraft,
   type VariantDraft
@@ -420,6 +419,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       }
     });
 
+    if (unconsumedWithStock.length > 0) {
       const sameColorConsolidatable: VariantDraft[] = [];
       const orphanColorRows: VariantDraft[] = [];
 
