@@ -4,6 +4,8 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { sql } from '../../../database/kysely';
 import { toMoney } from '../helpers/reports-math.helper';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { ReportRangeQueryDto } from '../dto/report-query.dto';
@@ -50,6 +52,8 @@ export class ReportsSummaryService {
 
   async debtAgingReport(auth: AuthContext): Promise<Record<string, unknown>> {
     const tenantId = this.tenantId(auth);
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId));
+    const toAgingMoney = (amount: number) => toMoney(amount, digits);
     const now = new Date();
 
     const customerRows = await this.db
@@ -78,7 +82,7 @@ export class ReportsSummaryService {
         join customers c on c.id = s.customer_id and c.tenant_id = s.tenant_id
         where s.tenant_id = ${tenantId} and c.balance > 0
           and s.payment_type = 'credit' and s.status = 'posted'
-          and s.total - coalesce(s.paid_amount, 0) > 0.01
+          and s.total - coalesce(s.paid_amount, 0) > 0
       ), allocated as (
         select partner_id, created_at, greatest(0, least(total, balance - prior_total)) as amount
         from ordered
@@ -103,11 +107,11 @@ export class ReportsSummaryService {
         id: String(cust.id),
         name: cust.name || 'عميل',
         phone: cust.phone || '',
-        totalBalance: toMoney(balance),
-        current: toMoney(current),
-        days31To60: toMoney(days31To60),
-        days61To90: toMoney(days61To90),
-        over90: toMoney(over90),
+        totalBalance: toAgingMoney(balance),
+        current: toAgingMoney(current),
+        days31To60: toAgingMoney(days31To60),
+        days61To90: toAgingMoney(days61To90),
+        over90: toAgingMoney(over90),
       };
     });
 
@@ -134,7 +138,7 @@ export class ReportsSummaryService {
         join suppliers s on s.id = p.supplier_id and s.tenant_id = p.tenant_id
         where p.tenant_id = ${tenantId} and s.balance > 0
           and p.payment_type = 'credit' and p.status = 'posted'
-          and p.total - coalesce(p.paid_amount, 0) > 0.01
+          and p.total - coalesce(p.paid_amount, 0) > 0
       ), allocated as (
         select partner_id, created_at, greatest(0, least(total, balance - prior_total)) as amount
         from ordered
@@ -159,31 +163,31 @@ export class ReportsSummaryService {
         id: String(sup.id),
         name: sup.name || 'مورد',
         phone: sup.phone || '',
-        totalBalance: toMoney(balance),
-        current: toMoney(current),
-        days31To60: toMoney(days31To60),
-        days61To90: toMoney(days61To90),
-        over90: toMoney(over90),
+        totalBalance: toAgingMoney(balance),
+        current: toAgingMoney(current),
+        days31To60: toAgingMoney(days31To60),
+        days61To90: toAgingMoney(days61To90),
+        over90: toAgingMoney(over90),
       };
     });
 
-    const totalReceivables = toMoney(receivables.reduce((sum, r) => sum + r.totalBalance, 0));
-    const totalPayables = toMoney(payables.reduce((sum, p) => sum + p.totalBalance, 0));
+    const totalReceivables = toAgingMoney(receivables.reduce((sum, r) => sum + r.totalBalance, 0));
+    const totalPayables = toAgingMoney(payables.reduce((sum, p) => sum + p.totalBalance, 0));
 
     const receivablesSummary = {
       total: totalReceivables,
-      current: toMoney(receivables.reduce((sum, r) => sum + r.current, 0)),
-      days31To60: toMoney(receivables.reduce((sum, r) => sum + r.days31To60, 0)),
-      days61To90: toMoney(receivables.reduce((sum, r) => sum + r.days61To90, 0)),
-      over90: toMoney(receivables.reduce((sum, r) => sum + r.over90, 0)),
+      current: toAgingMoney(receivables.reduce((sum, r) => sum + r.current, 0)),
+      days31To60: toAgingMoney(receivables.reduce((sum, r) => sum + r.days31To60, 0)),
+      days61To90: toAgingMoney(receivables.reduce((sum, r) => sum + r.days61To90, 0)),
+      over90: toAgingMoney(receivables.reduce((sum, r) => sum + r.over90, 0)),
     };
 
     const payablesSummary = {
       total: totalPayables,
-      current: toMoney(payables.reduce((sum, p) => sum + p.current, 0)),
-      days31To60: toMoney(payables.reduce((sum, p) => sum + p.days31To60, 0)),
-      days61To90: toMoney(payables.reduce((sum, p) => sum + p.days61To90, 0)),
-      over90: toMoney(payables.reduce((sum, p) => sum + p.over90, 0)),
+      current: toAgingMoney(payables.reduce((sum, p) => sum + p.current, 0)),
+      days31To60: toAgingMoney(payables.reduce((sum, p) => sum + p.days31To60, 0)),
+      days61To90: toAgingMoney(payables.reduce((sum, p) => sum + p.days61To90, 0)),
+      over90: toAgingMoney(payables.reduce((sum, p) => sum + p.over90, 0)),
     };
 
     return {
