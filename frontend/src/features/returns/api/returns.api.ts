@@ -48,6 +48,9 @@ export const returnsApi = {
     }
     return { returns: rows, summary };
   },
+  getInvoiceReturnedQuantities: (type: 'sale' | 'purchase', invoiceId: string | number) =>
+    http<{ returnedQtyByLine: Record<string, number>; blockedProductIds: string[] }>(
+      `/api/returns/invoices/${type}/${encodeURIComponent(String(invoiceId))}/quantities`),
   create: (payload: unknown, headers?: Record<string, string>) => http('/api/returns', {
     method: 'POST',
     headers: {

@@ -33,7 +33,9 @@ type Props = {
   onSetItemQty: (productId: string, value: string) => void;
   onSetSerials: (itemId: string, value: string) => void;
   onOpenConfirm: () => void;
-  returnedQtyByProduct?: Record<string, number>;
+  returnedQtyByLine?: Record<string, number>;
+  blockedProductIds?: string[];
+  returnHistoryReady?: boolean;
 };
 
 export function ReturnsCreateModal(props: Props) {
@@ -62,7 +64,9 @@ export function ReturnsCreateModal(props: Props) {
     onSetItemQty,
     onSetSerials,
     onOpenConfirm,
-    returnedQtyByProduct = {},
+    returnedQtyByLine = {},
+    blockedProductIds = [],
+    returnHistoryReady = false,
   } = props;
 
   if (!isOpen) return null;
@@ -217,6 +221,11 @@ export function ReturnsCreateModal(props: Props) {
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
                 {t('returns.available_items_label', 'الأصناف المتاحة للإرجاع في هذه الفاتورة:')}
               </div>
+              {!returnHistoryReady && selectedInvoice ? (
+                <div role="status" style={{ color: '#9a3412', marginBottom: 8, fontSize: 12 }}>
+                  كميات المرتجعات السابقة لم يتم تأكيدها؛ لا يمكن الاعتماد قبل تحميلها بنجاح.
+                </div>
+              ) : null}
               <ReturnsInvoiceItemsTable
                 invoiceItems={invoiceItems}
                 selectedItems={selectedItems}
@@ -224,7 +233,9 @@ export function ReturnsCreateModal(props: Props) {
                 onToggleItem={onToggleItem}
                 onSetItemQty={onSetItemQty}
                 onSetSerials={onSetSerials}
-                returnedQtyByProduct={returnedQtyByProduct}
+                returnedQtyByLine={returnedQtyByLine}
+                blockedProductIds={blockedProductIds}
+                returnHistoryReady={returnHistoryReady}
               />
             </div>
 
@@ -330,7 +341,7 @@ export function ReturnsCreateModal(props: Props) {
                 type="button"
                 variant="primary"
                 onClick={onOpenConfirm}
-                disabled={!selectedInvoice || selectedItemsCount === 0 || isBusy}
+                disabled={!selectedInvoice || selectedItemsCount === 0 || isBusy || !returnHistoryReady}
                 style={{
                   width: '100%',
                   padding: '10px',

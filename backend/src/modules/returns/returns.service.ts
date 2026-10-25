@@ -253,6 +253,41 @@ export class ReturnsService {
     return { returns: paged.rows, pagination: paged.pagination, summary: summarizeReturnRows(mapped, today), scope: this.scope(auth) };
   }
 
+  /** Unpaginated invoice-return history, used only to guide the UI.
+   * Transactional posting independently checks quantities with invoice locks.
+   */
+  async getInvoiceReturnedQuantities(type: string, invoiceId: number, auth: AuthContext):
+    Promise<{ returnedQtyByLine: Record<string, number>; blockedProductIds: string[] }> {
+    if (!['sale', 'purchase'].includes(type)) {
+      throw new AppError('Invalid return type', 'RETURN_TYPE_INVALID', 400);
+    }
+    if (!Number.isSafeInteger(invoiceId) || invoiceId <= 0) throw new AppError('Invalid invoice', 'INVOICE_NOT_FOUND', 404);
+    const tenantId = this.scope(auth).tenantId;
+    const parent = type === 'sale'
+      ? await this.db.selectFrom('sales').select('id').where('id', '=', invoiceId).where('tenant_id', '=', tenantId).where('status', '=', 'posted').executeTakeFirst()
+      : await this.db.selectFrom('purchases').select('id').where('id', '=', invoiceId).where('tenant_id', '=', tenantId).where('status', '=', 'posted').executeTakeFirst();
+    if (!parent) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
+    const rows = await this.db.selectFrom('return_items as ri')
+      .innerJoin('return_documents as rd', (join) => join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id'))
+      .select(['ri.product_id', 'ri.sale_item_id', 'ri.purchase_item_id',
+        (eb) => eb.fn.sum<number>('ri.qty').as('returned_qty')])
+      .where('rd.return_type', '=', type).where('rd.invoice_id', '=', invoiceId)
+      .where('rd.tenant_id', '=', tenantId).where('ri.tenant_id', '=', tenantId)
+      .groupBy(['ri.product_id', 'ri.sale_item_id', 'ri.purchase_item_id']).execute();
+    const returnedQtyByLine: Record<string, number> = {};
+    const blocked = new Set<string>();
+    for (const row of rows) {
+      const originalLineId = type === 'sale' ? row.sale_item_id : row.purchase_item_id;
+      if (originalLineId == null) {
+        if (row.product_id != null && Number(row.returned_qty || 0) > 0) blocked.add(String(row.product_id));
+        continue;
+      }
+      const id = String(originalLineId);
+      returnedQtyByLine[id] = Number((Number(returnedQtyByLine[id] || 0) + Number(row.returned_qty || 0)).toFixed(3));
+    }
+    return { returnedQtyByLine, blockedProductIds: [...blocked] };
+  }
+
   private async getManagerPin(trx: Kysely<Database>, auth: AuthContext): Promise<string> {
     const { tenantId } = requireTenantScope(auth);
     const result = await sql<{ key?: string; value?: string }>`

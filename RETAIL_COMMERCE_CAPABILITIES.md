@@ -515,3 +515,9 @@
 - كان `PosInstantExchangeDialog.tsx` يحذف `x-idempotency-key` وبيانات الاستبدال عند أي 4xx بما فيها `409 Operation is currently processing` و`422 Operation requires manual recovery`، ما يسمح بإرسال استبدال آخر بمفتاح جديد رغم غموض نتيجة الأول. الآن تفحص الواجهة `GET /api/operations/POST%3A%2Fapi%2Fsales/{key}/status`، تؤكد المستند الملتزم، وتحتفظ بمفتاح الطلب الأصلي عند غموض النتيجة؛ لا تسمح بإغلاق حوار العملية الغامضة دون مراجعتها.
 - أعيد استخدام عقد API الحالي `posApi.getSaleOperationStatus`، دون تعديل محرك idempotency أو المصادقة المشتركين.
 - اختبارات انحدار مكتوبة ولم تُشغّل: `frontend/src/features/pos/components/pos-workspace/pos-exchange-recovery.spec.ts`. هذا تدقيق لمسار الاستبدال المحدد فقط، وليس اعتمادا لكافة نقاط البيع.
+
+
+### 2026-10-25 — E/F: authoritative invoice return history for cashier selection
+
+- `ReturnsWorkspace` previously computed returned quantities from a filtered/paginated returns register, confusing a UI preview with complete invoice history. New tenant-scoped `GET /api/returns/invoices/:type/:invoiceId/quantities` computes all previous `return_items` per original invoice line, independently of pages/filters; unlinked legacy returns block affected products pending reconciliation. Editing/confirmation is disabled while history is missing or fetching; the transactional return service remains the final authority for concurrency.
+- New regression tests: `frontend/src/features/returns/lib/return-remaining-quantity.spec.ts` (written, not run). No claim of physical bank refund integration or runtime sign-off.

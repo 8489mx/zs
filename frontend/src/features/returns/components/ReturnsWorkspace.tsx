@@ -28,6 +28,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { remainingInvoiceLineQuantity } from '@/features/returns/lib/return-remaining-quantity';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function ReturnsWorkspace() {
@@ -89,19 +90,16 @@ export function ReturnsWorkspace() {
   const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId) || (Boolean(row.docNo) && String(row.docNo).toLowerCase() === String(form.invoiceId).toLowerCase())) as Sale | Purchase | undefined;
   const rows = useMemo(() => query.data?.returns || [], [query.data?.returns]);
   const invoiceItems = useMemo(() => (selectedInvoice?.items || []) as Array<SaleItem | PurchaseItem>, [selectedInvoice?.items]);
-  const returnedQtyByProduct = useMemo(() => {
-    if (!selectedInvoice) return {};
-    const selectedInvoiceId = String(selectedInvoice.id);
-    const selectedType = form.type;
-    return rows
-      .filter((row) => String(row.invoiceId || '') === selectedInvoiceId && String(row.returnType || 'sale') === selectedType)
-      .reduce<Record<string, number>>((acc, row) => {
-        const productId = String(row.productId || '');
-        if (!productId) return acc;
-        acc[productId] = Number(acc[productId] || 0) + Number(row.qty || 0);
-        return acc;
-      }, {});
-  }, [form.type, rows, selectedInvoice]);
+  const invoiceReturnQuantitiesQuery = useQuery({
+    queryKey: ['returns-invoice-quantities', form.type, selectedInvoice?.id],
+    queryFn: () => returnsApi.getInvoiceReturnedQuantities(form.type, selectedInvoice!.id),
+    enabled: isCreateOpen && Boolean(selectedInvoice?.id),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  const returnedQtyByLine = invoiceReturnQuantitiesQuery.data?.returnedQtyByLine || {};
+  const blockedProductIds = invoiceReturnQuantitiesQuery.data?.blockedProductIds || [];
+  const returnHistoryReady = Boolean(selectedInvoice && invoiceReturnQuantitiesQuery.isSuccess && !invoiceReturnQuantitiesQuery.isFetching);
   const settlementNeedsRefundMethod = form.settlementMode === 'refund';
   const canUseCreditSettlement = form.type === 'sale' && Boolean(selectedInvoice && 'customerId' in selectedInvoice && selectedInvoice.customerId);
 
@@ -184,6 +182,7 @@ export function ReturnsWorkspace() {
     }),
     onSuccess: async () => {
       await invalidateReturnsDomain(queryClient);
+      await queryClient.invalidateQueries({ queryKey: ['returns-invoice-quantities'] });
       setForm(createEmptyReturnForm());
       setSelectedItems({});
       setSelectedSerials({});
@@ -233,8 +232,9 @@ export function ReturnsWorkspace() {
     const invoiceItem = invoiceItems.find((item) => String(item.id || item.productId || '') === String(itemId));
     if (!invoiceItem) return;
     const productId = String(invoiceItem.productId || '');
-    const alreadyReturnedQty = Number(returnedQtyByProduct[productId] || 0);
-    const remainingQty = Math.max(0, Number(invoiceItem.qty || 0) - alreadyReturnedQty);
+    const alreadyReturnedQty = Number(returnedQtyByLine[itemId] || 0);
+    const remainingQty = remainingInvoiceLineQuantity(Number(invoiceItem.qty || 0),
+      alreadyReturnedQty, returnHistoryReady, blockedProductIds.includes(productId));
     const requestedQty = Number(value || 0);
     if (requestedQty > remainingQty) {
       setSelectedItems((current) => ({ ...current, [itemId]: String(remainingQty) }));
@@ -393,8 +393,10 @@ export function ReturnsWorkspace() {
           onToggleItem={toggleItem}
           onSetItemQty={setItemQty}
           onSetSerials={(itemId, value) => setSelectedSerials((current) => ({ ...current, [itemId]: value }))}
-          onOpenConfirm={() => setConfirmReturn(true)}
-          returnedQtyByProduct={returnedQtyByProduct}
+          onOpenConfirm={() => { if (returnHistoryReady) setConfirmReturn(true); }}
+          returnedQtyByLine={returnedQtyByLine}
+          blockedProductIds={blockedProductIds}
+          returnHistoryReady={returnHistoryReady}
         />
 
         {/* Modal for Viewing Return Details */}
