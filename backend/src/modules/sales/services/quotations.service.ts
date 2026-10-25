@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
+import { canWriteQuotations } from '../../../core/auth/utils/commerce-operation-guards';
 import { CreateQuotationDto, UpdateQuotationDto } from '../dto/quotation.dto';
 import { SalesWriteService } from './sales-write.service';
 import { UpsertSaleDto } from '../dto/upsert-sale.dto';
@@ -69,6 +70,7 @@ export class QuotationsService {
   }
 
   async createQuotation(dto: CreateQuotationDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    canWriteQuotations(auth);
     const scope = requireTenantScope(auth);
     const quotationNumber = `QUO-${Date.now().toString().slice(-6)}`;
     const now = new Date();
@@ -129,6 +131,7 @@ export class QuotationsService {
   }
 
   async updateQuotation(id: number, dto: UpdateQuotationDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    canWriteQuotations(auth);
     const scope = requireTenantScope(auth);
     const existing = await this.db
       .selectFrom('quotations')
@@ -203,6 +206,7 @@ export class QuotationsService {
   }
 
   async deleteQuotation(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    canWriteQuotations(auth);
     const scope = requireTenantScope(auth);
     const existing = await this.db
       .selectFrom('quotations')
@@ -234,6 +238,7 @@ export class QuotationsService {
   }
 
   async convertToSale(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
+    canWriteQuotations(auth);
     const scope = requireTenantScope(auth);
     const quotation = await this.db
       .selectFrom('quotations')

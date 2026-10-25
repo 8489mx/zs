@@ -4,6 +4,7 @@ import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
+import { canManageShippingConfig, canOperateShipping } from '../../core/auth/utils/commerce-operation-guards';
 import {
   BostaSettings,
   BostaCreateDeliveryDto,
@@ -23,6 +24,7 @@ export class BostaService {
    * استرجاع إعدادات الربط مع بوسطة
    */
   async getSettings(actor: AuthContext): Promise<BostaSettings> {
+    canManageShippingConfig(actor);
     const { tenantId } = requireTenantScope(actor);
     const rows = await this.db
       .selectFrom('settings')
@@ -55,6 +57,7 @@ export class BostaService {
    * حفظ أو تحديث إعدادات الربط مع بوسطة
    */
   async saveSettings(payload: Partial<BostaSettings>, actor: AuthContext): Promise<{ ok: boolean }> {
+    canManageShippingConfig(actor);
     const { tenantId, accountId } = requireTenantScope(actor);
 
     const updates: Array<{ key: string; val: any }> = [];
@@ -101,6 +104,7 @@ export class BostaService {
     dto: BostaCreateDeliveryDto,
     actor: AuthContext,
   ): Promise<BostaDeliveryResponse> {
+    canOperateShipping(actor);
     const { tenantId } = requireTenantScope(actor);
 
     // 1. جلب بيانات الطلب من قاعدة البيانات
@@ -276,6 +280,7 @@ export class BostaService {
    * إلغاء الشحنة في بوسطة
    */
   async cancelDelivery(deliveryId: string, actor: AuthContext): Promise<{ ok: boolean; message: string }> {
+    canOperateShipping(actor);
     const { tenantId } = requireTenantScope(actor);
     const rawApiKey = await this.getRawApiKey(tenantId);
 
