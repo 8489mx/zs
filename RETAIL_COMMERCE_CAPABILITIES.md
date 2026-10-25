@@ -537,3 +537,8 @@
 ### 2026-10-25 — F: inventory report location totals
 
 - Report top location formerly used first SQL row, not highest stock quantity; now sorts per-product location rows by quantity and name. Physical location balances exceeding global stock now expose `stockLocationExcessQty` with a visible reconciliation warning, without changing inventory quantities. Regression `backend/test/infra/reports-inventory.helper.spec.ts` amended (not run). Did not touch `reports.service.ts` or security-branch `REPORTS_CAPABILITIES.md`.
+
+
+### 2026-10-25 — B/E/F: serial validation before instant exchange submission
+
+- `PosInstantExchangeDialog.submit` threw serial quantity validation errors from `returned.map` **before its own try/catch**, leaving an unhandled asynchronous UI rejection. Preflight now validates exact serial quantity, duplicates, serial ownership against invoice snapshot and non-serial items inside a caught block, shows a user-facing error and does not issue an idempotency key or server transaction on invalid selection. Final serial and return ownership remain server-authoritative. Regression `pos-exchange-serial-validation.spec.ts` written, not executed.

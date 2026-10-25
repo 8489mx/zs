@@ -7,6 +7,7 @@ import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos/api/pos.api';
 import { salesApi } from '@/features/sales';
 import { getNormalizedInvoiceSearchTerms, matchesSaleDocNo } from '@/features/pos/lib/pos-barcode-normalizer';
+import { normalizeExchangeReturnSerials } from './pos-exchange-serial-validation';
 import { invalidateSalesDomain } from '@/app/query-invalidation';
 import { classifyExchangeRecovery, canResetExchangeRequest, type ExchangeOperationStatus } from './pos-exchange-recovery';
 import type { PosWorkspaceState } from './posWorkspace.helpers';
@@ -76,14 +77,22 @@ export function PosInstantExchangeDialog({ open, onClose, pos }: {
       toast.error('اختر فاتورة ومرتجعاً وبضاعة جديدة، وافتح وردية وأدخل رمز المشرف');
       return;
     }
-    const negativeItems = returned.map((item) => {
-      const qty = Number(quantities[item.id]);
-      const selected = String(serials[item.id] || '').split(',').map((serial) => serial.trim()).filter(Boolean);
-      const original = Array.isArray(item.serials) ? item.serials : [];
-      if (original.length && selected.length !== qty) throw new Error(`أدخل سيريالات المرتجع للصنف ${item.name} مفصولة بفاصلة`);
-      return { productId: Number(item.productId), originalSaleItemId: Number(item.id), qty: -qty,
-        price: 0, serials: selected };
-    });
+    let negativeItems: Array<{ productId: number; originalSaleItemId: number;
+      qty: number; price: number; serials: string[] }>;
+    try {
+      negativeItems = returned.map((item) => {
+        const qty = Number(quantities[item.id]);
+        const selected = normalizeExchangeReturnSerials(
+          Array.isArray(item.serials) ? item.serials : [],
+          String(serials[item.id] || ''), qty, item.name,
+        );
+        return { productId: Number(item.productId), originalSaleItemId: Number(item.id),
+          qty: -qty, price: 0, serials: selected };
+      });
+    } catch (validationError) {
+      toast.error(validationError instanceof Error ? validationError.message : 'راجع بيانات سيريالات المرتجع');
+      return;
+    }
     const items = pos.cart.map((item) => ({
       productId: Number(item.productId), qty: Number(item.qty), price: Number(item.price),
       unitName: item.unitName, unitMultiplier: Number(item.unitMultiplier || 1),
