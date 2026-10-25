@@ -13,6 +13,8 @@ import { UpsertTradeInDto } from './dto/upsert-tradein.dto';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
 import { valueStockReceipt } from '../accounting/inventory-valuation';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits, toMinorUnits } from '../accounting/engines/money-minor-units.engine';
 
 @Injectable()
 export class TradeInService {
@@ -153,6 +155,11 @@ export class TradeInService {
       const agreed = Number(payload.agreedPurchasePrice);
       if (!Number.isFinite(agreed) || agreed < 0) {
         throw new AppError('Trade-in acquisition value is invalid', 'TRADEIN_COST_INVALID', 400);
+      }
+      try {
+        toMinorUnits(agreed, currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId)));
+      } catch {
+        throw new AppError('Trade-in cost exceeds tenant currency minor-unit precision', 'TRADEIN_CURRENCY_PRECISION_INVALID', 422);
       }
       if (agreed > 0 && ((payload.transactionType ?? 'cash_purchase') !== 'cash_purchase' ||
           (payload.paymentMethod ?? 'cash') !== 'cash' ||

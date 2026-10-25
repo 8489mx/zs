@@ -17,7 +17,7 @@ import { assertAutomatedJournalPeriodOpen, lockAccountingPeriod } from './accoun
 import { assertTaxPeriodOpen } from './accounting-tax-lock';
 import { randomUUID } from 'node:crypto';
 import { tenantBaseCurrency } from './accounting-currency';
-import { currencyMoneyDigits, roundMoney } from './engines/money-minor-units.engine';
+import { currencyMoneyDigits, roundMoney, toMinorUnits, fromMinorUnits } from './engines/money-minor-units.engine';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -481,7 +481,8 @@ export class AccountingPostingService {
       .where('tenant_id', '=', scope.tenantId).where('id', '=', tradeInId)
       .executeTakeFirst();
     if (!source) throw new AppError('Trade-in document not found for posting', 'TRADEIN_SOURCE_NOT_FOUND', 404);
-    const amount = this.toMoney(source.agreed_purchase_price);
+    const sourceDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = fromMinorUnits(toMinorUnits(Number(source.agreed_purchase_price), sourceDigits), sourceDigits);
     if (amount < 0) throw new AppError('Invalid trade-in cost', 'TRADEIN_COST_INVALID', 400);
     if (amount === 0) return null;
     if (source.transaction_type !== 'cash_purchase' || source.payment_method !== 'cash' || !source.created_product_id) {
