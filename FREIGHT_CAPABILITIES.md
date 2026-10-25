@@ -14,6 +14,12 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+<a id="freight-rfq-boundary-p0a"></a>
+### Maritime carrier ownership — P0-A security follow-up, 2026-10-25
+`maritime-freight.service.ts` validates carrier IDs on public RFQ bids against the RFQ tenant. Migration 255 adds not-valid tenant-composite FKs for new maritime rows.
+
+[Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — code review and tests authored only; **not executed**.
+
 ## فهرس الأقسام المنقولة
 
 - [25. موديول الشحن واللوجستيات (Freight & Logistics Module)](#cap-107)
