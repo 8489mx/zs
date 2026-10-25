@@ -23,7 +23,7 @@ async function run(): Promise<void> {
       }),
     }),
   };
-  const service = new SessionService(db as any, {} as any, {} as any, {} as any);
+  const service = new SessionService(db as any, { get: () => 'default' } as any, {} as any, {} as any);
   await assert.rejects(() => (service as any).createAuthenticatedSession({
     id: 7, username: 'owner', role: 'admin', permissions_json: '[]',
     tenant_id: 'store-a', account_id: 'store-a:main',

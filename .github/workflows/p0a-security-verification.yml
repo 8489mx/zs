@@ -16,12 +16,12 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: zs_p0a_isolated
+          POSTGRES_DB: zs_core_audit_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports: ['5433:5432']
         options: >-
-          --health-cmd "pg_isready -U postgres -d zs_p0a_isolated"
+          --health-cmd "pg_isready -U postgres -d zs_core_audit_test"
           --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       NODE_ENV: test
@@ -33,7 +33,7 @@ jobs:
       APP_PORT: 3001
       DATABASE_HOST: 127.0.0.1
       DATABASE_PORT: 5433
-      DATABASE_NAME: zs_p0a_isolated
+      DATABASE_NAME: zs_core_audit_test
       DATABASE_USER: postgres
       DATABASE_PASSWORD: postgres
       DATABASE_SCHEMA: public

@@ -33,6 +33,6 @@ async function run(): Promise<void> {
   }
   assert.equal(transactions, 3);
   assert.equal(storedFailures, 0);
-  assert.ok(lastLockedUntil instanceof Date);
+  assert.equal(Object.prototype.toString.call(lastLockedUntil), '[object Date]');
 }
 run().catch(e => { console.error(e); process.exitCode = 1; });

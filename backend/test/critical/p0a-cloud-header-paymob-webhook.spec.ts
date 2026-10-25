@@ -27,6 +27,6 @@ async function run(): Promise<void> {
   assert.equal(captured?.hmac, 'signed-query-value');
   captured = undefined;
   await controller.handlePaymentWebhook('stripe', {}, {}, {} as any, 'not-a-stripe-signature');
-  assert.equal(captured?.hmac, undefined, 'Never inject Paymob signature into other gateways');
+  assert.equal((captured as Record<string, unknown> | undefined)?.['hmac'], undefined, 'Never inject Paymob signature into other gateways');
 }
 run().catch(e => { console.error(e); process.exitCode = 1; });

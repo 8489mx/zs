@@ -49,7 +49,7 @@ async function run(): Promise<void> {
       },
     }),
   };
-  const service = new SessionService(db, {} as any, {} as any, {} as any);
+  const service = new SessionService(db, { get: () => 'default' } as any, {} as any, {} as any);
 
   isActive = false;
   await assert.rejects(() => (service as any).createAuthenticatedSession(user), UnauthorizedException);
