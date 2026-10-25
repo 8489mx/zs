@@ -9,6 +9,7 @@ import { PaymobGatewayService } from './paymob.gateway';
 import { StripeGatewayService } from './stripe.gateway';
 import { PaymentInitiateInput, PaymentInitiateResult, WebhookValidationResult } from './payment-gateway.interface';
 import { decideSubscriptionGrant } from './subscription-grant.engine';
+import { assertSubscriptionSandboxAllowed } from './subscription-sandbox-policy';
 
 @Injectable()
 export class PaymentManagerService {
@@ -259,6 +260,8 @@ export class PaymentManagerService {
     currency: string;
     transactionReference: string;
   }): Promise<Record<string, unknown>> {
+    // Defense-in-depth: never rely only on the HTTP controller for billing grants.
+    assertSubscriptionSandboxAllowed();
     const tenant = await this.db.selectFrom('tenants').selectAll().where('id', '=', params.tenantId).executeTakeFirst();
     if (!tenant) throw new NotFoundException('المنشأة غير موجودة.');
 

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { IPaymentGateway, PaymentInitiateInput, PaymentInitiateResult, WebhookValidationResult } from './payment-gateway.interface';
 import * as crypto from 'crypto';
 import { platformNoReplyEmail } from '../../storefront/engines/store-public-url.engine';
+import { assertSubscriptionSandboxAllowed } from './subscription-sandbox-policy';
 
 @Injectable()
 export class XPayGatewayService implements IPaymentGateway {
@@ -74,6 +75,8 @@ export class XPayGatewayService implements IPaymentGateway {
       }
     }
 
+    // A failed real gateway request must never fall back to a fake successful purchase.
+    assertSubscriptionSandboxAllowed();
     // Sandbox / Simulation Checkout when live API keys are not configured
     let baseUrl = '';
     if (input.redirectUrl) {
