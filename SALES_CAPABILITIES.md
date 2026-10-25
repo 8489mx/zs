@@ -360,3 +360,9 @@
 
 
 <!-- migrated:cap-233:end -->
+
+### P0-C three-decimal KWD/OMR sale source (25 October 2026; branch only)
+
+- `sales-write.service.ts`, `sales-write.helper.ts`, invoice discount and tender allocation engines now accept the tenant book's 2/3-digit precision for sale source line amounts, discount/tax distribution, applied cash and receivables. `accounting-posting.service.ts` uses the same precision before journal-line aggregation for revenue/COGS and AR. `sales-finance.service.ts` retains the running customer-ledger mill value.
+- Additive migration `2040000000258_sale_minor_unit_precision.ts` widens required sale, product-price and customer-balance storage without truncating historic postings on rollback.
+- Disposable PostgreSQL acceptance now checks a 0.001 KWD credit sale from product stock and cost through customer debt and four-account GL. **Do not mark certified until the new SHA's CI/PG runs pass**. Mixed tender, tax, exchange, cancellation, downstream reporting and 8-cycle/11-sector certification still need testing.

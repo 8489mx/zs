@@ -161,3 +161,9 @@ The code observations above identify definite missing integration points; **fina
 - Removed the previously necessary unconditional three-decimal pharmacy distributor purchase block after the supplier purchase posting and numeric persistence work. Every distributor line now prechecks the minor-unit value produced by bonus dilution against its payable source amount before any stock/AP write.
 - Real PostgreSQL acceptance now exercises KWD 0.002 supplier debt, one posted purchase journal, a 3-unit paid+bonus lot, approximate six-decimal WAC conservation, and idempotent retry.
 - P0C-04 still requires cash settlement variations, historical lot reconciliation, errors across all stock locations, and a cross-module reversal audit. Full CI/new PG result pending at authoring time.
+
+## 25 October — KWD/OMR sales and customer AR source checkpoint
+
+- Added 2/3-digit currency parameters to POS line valuation, invoice discount/tax distribution and tender allocation, and preserved the same precision in `postSale` journal line aggregation and customer subledger running balances.
+- Additive migration 258 widens monetary evidence for sales, sale items/payments, customer AR, and price fields while refusing rollback that could discard posted fils.
+- New disposable PostgreSQL scenario checks a 0.001 KWD posted credit sale and proves the customer/source 0.001, inventory/COGS 0.001 and revenue 0.001 balance. **Results pending at commit time.** Does not certify returns, tax, mixed payments, discounts, FX, reports, 8 cycles or 11 sectors.
