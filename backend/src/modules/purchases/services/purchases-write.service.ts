@@ -22,6 +22,8 @@ import { PurchasesQueryService } from './purchases-query.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { detectDuplicateBills, normalizeBillNumber, type HistoricalPurchaseRecord } from '../engines/duplicate-bill-detector.engine';
 import { assertCustomerPaymentJobOwnership } from '../helpers/customer-payment-job-ownership';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
 type PurchaseRepricingCandidate = {
   productId: number;
@@ -204,6 +206,7 @@ export class PurchasesWriteService {
 
     try {
     const created = await this.tx.runInTransaction(this.db, async (trx) => {
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
 
@@ -269,11 +272,11 @@ export class PurchasesWriteService {
         }
         item.locationId = finalLocationId ?? undefined;
         
-        normalizedItems.push(buildNormalizedPurchaseItem(item, product));
+        normalizedItems.push(buildNormalizedPurchaseItem(item, product, moneyDigits));
         repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, Number(item.cost || 0)));
       }
 
-      const subtotal = calculatePurchaseSubtotal(normalizedItems);
+      const subtotal = calculatePurchaseSubtotal(normalizedItems, moneyDigits);
       const discount = Number(payload.discount || 0);
       if (!this.hasPermission(auth, 'canDiscount') && Math.abs(discount) > 0.0001) {
         throw new AppError('Discount change is not allowed', 'DISCOUNT_NOT_ALLOWED', 403);
@@ -377,7 +380,7 @@ export class PurchasesWriteService {
         .values({
           supplier_id: supplier.id,
           payment_type: paymentType,
-          subtotal: Number(subtotal.toFixed(2)),
+          subtotal: roundMoney(subtotal, moneyDigits),
           discount,
           tax_rate: Number(payload.taxRate || 0),
           tax_amount: taxAmount,
@@ -413,7 +416,7 @@ export class PurchasesWriteService {
       const docNo = await this.generatePurchaseDocNo(trx, id, scope.tenantId);
       await trx.updateTable('purchases').set({ doc_no: docNo, updated_at: sql`NOW()` }).where('id', '=', id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
 
-      const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
+      const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount, moneyDigits);
       for (const item of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const itemSerials = Array.isArray(item.serials) ? item.serials : [];
         // Recoverable input VAT is a separate asset, not inventory/COGS cost.
@@ -662,6 +665,7 @@ export class PurchasesWriteService {
     if (editReason.length < 5) throw new AppError('سبب التعديل مطلوب بشكل واضح.', 'PURCHASE_EDIT_REASON_REQUIRED', 400);
 
     const updated = await this.tx.runInTransaction(this.db, async (trx) => {
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', purchaseId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).forUpdate().executeTakeFirst();
       if (!purchase) throw new AppError('Purchase not found', 'PURCHASE_NOT_FOUND', 404);
       if (purchase.status === 'cancelled') throw new AppError('Cancelled purchase cannot be edited', 'PURCHASE_CANCELLED', 400);
@@ -800,7 +804,7 @@ export class PurchasesWriteService {
         }
         item.locationId = finalLocationId ?? undefined;
 
-        const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product);
+        const normalizedItem = buildNormalizedPurchaseItem({ ...item, cost: incomingCost }, product, moneyDigits);
         normalizedItems.push(normalizedItem);
         repricingCandidates.push(this.buildPurchaseRepricingCandidate(product, incomingCost));
         subtotal += normalizedItem.total;
@@ -814,7 +818,7 @@ export class PurchasesWriteService {
       const totals = computeInvoiceTotals(subtotal, discount, Number(payload.taxRate || 0), Boolean(payload.pricesIncludeTax));
       const paymentType = payload.paymentType === 'credit' ? 'credit' : 'cash';
 
-      const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount);
+      const allocatedItems = allocatePurchaseInvoiceDiscount(normalizedItems, discount, moneyDigits);
       for (const normalizedItem of [...allocatedItems].sort((a, b) => a.productId - b.productId)) {
         const repricedCost = Number(normalizedItem.effectiveUnitCost || 0);
         const netRepricedCost = payload.pricesIncludeTax
@@ -980,7 +984,7 @@ export class PurchasesWriteService {
       await trx.updateTable('purchases').set({
         supplier_id: supplier.id,
         payment_type: paymentType,
-        subtotal: Number(subtotal.toFixed(2)),
+        subtotal: roundMoney(subtotal, moneyDigits),
         discount,
         tax_rate: Number(payload.taxRate || 0),
         tax_amount: totals.taxAmount,
@@ -1667,7 +1671,7 @@ export class PurchasesWriteService {
           before_qty: stockChange.scopeBefore,
           after_qty: stockChange.scopeAfter,
           unit_cost: Number(effectiveUnitCost.toFixed(6)),
-          total_cost: Number((effectiveUnitCost * increasedQty).toFixed(2)),
+          total_cost: roundMoney(effectiveUnitCost * increasedQty, currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId))),
           reason: 'purchase_receipt',
           note: `استلام بضاعة لأمر شراء PUR-${purchaseId}`,
           reference_type: 'purchase',
