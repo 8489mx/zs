@@ -101,11 +101,15 @@ function isUniqueViolation(error: unknown): boolean {
 
 function normalizeDateOnly(value: unknown): string | null {
   const text = clean(value);
-  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+  // Accept a strict date or a genuine ISO timestamp only. The old /T.*/ 
+  // pattern silently accepted malformed strings like 2026-02-01Tgarbage.
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/);
   if (isoMatch) {
     const result = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
     const dt = new Date(result + 'T00:00:00Z');
-    return Number.isFinite(dt.getTime()) && dt.toISOString().slice(0, 10) === result ? result : null;
+    if (!Number.isFinite(dt.getTime()) || dt.toISOString().slice(0, 10) !== result) return null;
+    if (isoMatch[4] !== undefined && !Number.isFinite(Date.parse(text))) return null;
+    return result;
   }
   const usMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
