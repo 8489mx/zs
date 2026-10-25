@@ -215,3 +215,8 @@ The code observations above identify definite missing integration points; **fina
 - Found remaining hardcoded `Number(raw.toFixed(2))` in shared `syncPostedPartnerLedger`: domain journals could post one KWD/OMR fil to GL but silently skip the entire supplier/customer subledger update. Changed conversion to integer tenant minor units from validated base currency.
 - Added independent disposable PostgreSQL test: posted domain cost/payable 0.001, supplier running balance, source-linked immutable supplier ledger and report summary must all equal one fil; an earlier KWD pharmacy purchase/report test covers a two-fil canonical purchase.
 - **Not signed off until green CI for this SHA.** Broader P0-C scopes remain open, including formal clinical/maintenance reversals and eight-cycle/eleven-sector acceptance.
+
+### Aggregated report balance precision checkpoint
+
+- Shared `buildAggregatedBalances` used two-decimal rounding irrespective of the caller's book currency. The helper now accepts explicit 2/3 minor units, retaining the legacy cent default while allowing KWD/OMR subledger snapshots without dropped fils.
+- Infra tests cover positive fil balances and overriding posted-ledger totals; broad report and full-cycle release signoff remain open.
