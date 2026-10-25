@@ -8,7 +8,7 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, StarIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
-import { shouldTryAlternateTerminalCharge, canChangePaymentAfterTerminalApproval } from './pos-terminal-charge-safety';
+import { shouldTryAlternateTerminalCharge, canChangePaymentAfterTerminalApproval, terminalAuthorizationLabel } from './pos-terminal-charge-safety';
 import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -484,7 +484,7 @@ export function PosCheckoutPaymentSection({
         try {
           const res = await posApi.checkTerminalStatus(terminalSession.transactionId!);
           if (res.data?.status === 'approved') {
-            const authCode = res.data.approvalCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
+            const authCode = String(res.data.approvalCode || '').trim();
             const rrn = res.data.rrn || terminalSession.transactionId || '';
             const cardScheme = res.data.cardScheme || 'mada';
             const cardLastFour = res.data.cardLastFour || '';
@@ -493,8 +493,8 @@ export function PosCheckoutPaymentSection({
             setTerminalSession({
               status: 'approved',
               transactionId: terminalSession.transactionId,
-              message: `تمت الموافقة بنجاح (تفويض: ${authCode})`,
-              approvalCode: authCode
+              message: terminalAuthorizationLabel(authCode, rrn),
+              approvalCode: authCode || 'غير متاح'
             });
             const approvedAmount = Number(res.data.amount || (pos.cardAmount > 0 ? pos.cardAmount : (pos.totals.total || 0)));
             pos.setPaymentChannel('card');
@@ -538,7 +538,8 @@ export function PosCheckoutPaymentSection({
   }, [terminalSession.status, terminalSession.transactionId, onConfirmSale]);
 
   const handleDispatchTerminal = async () => {
-    if (terminalSession.status === 'recovery_required' || pos.terminalPaymentDetails?.authCode) {
+    if (terminalSession.status === 'recovery_required' ||
+        !canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
       toast.warning('راجع حالة الخصم السابق على الماكينة قبل إرسال طلب جديد؛ لا يجوز تكرار خصم غير محسوم.');
       return;
     }
@@ -579,7 +580,7 @@ export function PosCheckoutPaymentSection({
         });
 
         if (bridgeRes.status === 'approved') {
-          const authCode = bridgeRes.authCode || `AUTH-${Math.floor(100000 + Math.random() * 900000)}`;
+          const authCode = String(bridgeRes.authCode || '').trim();
           const rrn = bridgeRes.rrn || refId;
           const cardScheme = bridgeRes.cardScheme || 'visa';
           const cardLastFour = bridgeRes.cardLastFour || '';
@@ -587,8 +588,8 @@ export function PosCheckoutPaymentSection({
           setTerminalSession({
             status: 'approved',
             transactionId: refId,
-            message: `تمت الموافقة بنجاح (تفويض: ${authCode})`,
-            approvalCode: authCode,
+            message: terminalAuthorizationLabel(authCode, rrn),
+            approvalCode: authCode || 'غير متاح',
           });
           pos.setPaymentChannel('card');
           pos.setCardAmount(amount);
@@ -648,7 +649,7 @@ export function PosCheckoutPaymentSection({
 
   const handleCancelTerminal = async () => {
     if (terminalSession.status === 'approved' || terminalSession.status === 'recovery_required' ||
-        pos.terminalPaymentDetails?.authCode) {
+        !canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
       toast.warning('لا يمكن اعتبار الخصم المعتمد أو غير المحسوم ملغى دون إثبات الإلغاء من مزود الدفع');
       return;
     }
@@ -785,7 +786,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={isPaymentActive('cash') ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -806,7 +807,7 @@ export function PosCheckoutPaymentSection({
                 : 'secondary'
             }
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -829,7 +830,7 @@ export function PosCheckoutPaymentSection({
                 : 'secondary'
             }
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -847,7 +848,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={isPaymentActive('credit') ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -862,7 +863,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={transferSelected ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -881,7 +882,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={isPaymentActive('cash') ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -902,7 +903,7 @@ export function PosCheckoutPaymentSection({
                 : 'secondary'
             }
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -925,7 +926,7 @@ export function PosCheckoutPaymentSection({
                 : 'secondary'
             }
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -943,7 +944,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={isPaymentActive('credit') ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -958,7 +959,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={transferSelected ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -977,7 +978,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={isPaymentActive('cash') ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -992,7 +993,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={isPaymentActive('card') ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -1010,7 +1011,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={transferSelected ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }
@@ -1025,7 +1026,7 @@ export function PosCheckoutPaymentSection({
             type="button"
             variant={isPaymentActive('credit') ? 'primary' : 'secondary'}
             onClick={() => {
-              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode)) {
+              if (!canChangePaymentAfterTerminalApproval(pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn)) {
                 toast.warning('تم اعتماد دفع إلكتروني؛ لا تغيّر طريقة الدفع قبل إتمام الفاتورة أو التسوية.');
                 return;
               }

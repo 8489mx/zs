@@ -66,8 +66,8 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
   }, []);
   const handleDialogClose = useCallback(async () => {
     if (createSalePendingRef.current) return;
-    if (pos.terminalPaymentDetails?.authCode) {
-      toast.warning(`يوجد خصم معتمد من ماكينة الدفع (${pos.terminalPaymentDetails.authCode}). لا يمكن إلغاء الفاتورة قبل تسجيلها أو تسوية الدفع مع مزود الخدمة.`);
+    if (pos.terminalPaymentDetails?.authCode || pos.terminalPaymentDetails?.rrn) {
+      toast.warning(`يوجد خصم معتمد من ماكينة الدفع (${pos.terminalPaymentDetails.authCode || pos.terminalPaymentDetails.rrn}). لا يمكن إلغاء الفاتورة قبل تسجيلها أو تسوية الدفع مع مزود الخدمة.`);
       return;
     }
     clearInlineManagerApproval();
@@ -321,7 +321,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  if (pos.terminalPaymentDetails?.authCode) {
+                  if (pos.terminalPaymentDetails?.authCode || pos.terminalPaymentDetails?.rrn) {
                     toast.warning('لا يمكن تقسيم الشيك بعد اعتماد خصم الماكينة. أكمل الفاتورة أو راجع تسوية الدفع أولًا.');
                     return;
                   }

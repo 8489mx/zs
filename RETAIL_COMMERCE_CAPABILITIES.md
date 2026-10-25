@@ -592,3 +592,8 @@
 ### 2026-10-25 — B/F: ECR terminal double-charge and approved-payment abandonment
 
 - `PosCheckoutDialogSections` used to catch *all* hardware-bridge charge failures and automatically issue a new backend charge. A timeout **after ECR dispatch** could charge a card twice. Alternative route is now allowed only when the bridge call failed before a charge was issued; an uncertain dispatched request enters a visible `recovery_required` state without an automatic retry/cancel. Payment presets can't clear or reclassify a recorded approved card authorization. `PosCheckoutDialog` no longer allows dismissing a confirmed charged terminal transaction or splitting the bill while the authorization is outstanding. These changes do **not** implement a gateway void/refund or prove that any given payment was charged; manual provider reconciliation is required after an uncertain ECR response. Test `pos-terminal-charge-safety.spec.ts` is written, not executed. Cross-restart ECR recovery remains an explicit blocker requiring vendor integration.
+
+
+### 2026-10-25 — B: never fabricate card terminal authorization codes
+
+- Bridge/backend approval responses previously inserted random synthetic codes such as `AUTH-123456` when a bank authorization code was absent, incorrectly representing invented financial evidence. Now stores only the received code (empty if absent), displays absence explicitly with actual terminal transaction reference, and guards against discarding approved payment using its real RRN too. Test `pos-terminal-charge-safety.spec.ts` extended but not executed.
