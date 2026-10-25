@@ -465,6 +465,58 @@ export class AccountingPostingService {
     });
   }
 
+  /**
+   * A trade-in is an inventory acquisition, not an operating expense.
+   * Require the physical unit and the matching cash movement in the SAME
+   * transaction before releasing a balanced immutable acquisition journal.
+   */
+  async postTradeInCashPurchase(queryable: DbOrTx, tradeInId: number, auth: AuthContext): Promise<number | null> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+    const source = await queryable.selectFrom('trade_in_transactions')
+      .select(['id', 'agreed_purchase_price', 'transaction_type', 'payment_method',
+        'created_product_id', 'branch_id', 'location_id', 'created_at'])
+      .where('tenant_id', '=', scope.tenantId).where('id', '=', tradeInId)
+      .executeTakeFirst();
+    if (!source) throw new AppError('Trade-in document not found for posting', 'TRADEIN_SOURCE_NOT_FOUND', 404);
+    const amount = this.toMoney(source.agreed_purchase_price);
+    if (amount < 0) throw new AppError('Invalid trade-in cost', 'TRADEIN_COST_INVALID', 400);
+    if (amount === 0) return null;
+    if (source.transaction_type !== 'cash_purchase' || source.payment_method !== 'cash' || !source.created_product_id) {
+      throw new AppError('Trade-in requires a stocked cash purchase before posting', 'TRADEIN_POSTING_UNSUPPORTED', 422);
+    }
+    const movements = await queryable.selectFrom('stock_movements')
+      .select(['id', 'product_id', 'qty', 'total_cost'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('reference_type', '=', 'trade_in').where('reference_id', '=', tradeInId)
+      .where('movement_type', '=', 'tradein_in').execute();
+    if (movements.length !== 1 || Number(movements[0].product_id) !== Number(source.created_product_id) ||
+        Number(movements[0].qty) !== 1 || Math.abs(Number(movements[0].total_cost) - amount) > 0.000001) {
+      throw new AppError('Trade-in stock receipt and acquisition value do not reconcile', 'TRADEIN_STOCK_LEDGER_MISMATCH', 409);
+    }
+    const payouts = await queryable.selectFrom('treasury_transactions')
+      .select(['amount']).where('tenant_id', '=', scope.tenantId)
+      .where('reference_type', '=', 'trade_in').where('reference_id', '=', tradeInId).execute();
+    if (payouts.length !== 1 || Math.abs(Number(payouts[0].amount) + amount) > 0.000001) {
+      throw new AppError('Trade-in cash payout and acquisition value do not reconcile', 'TRADEIN_CASH_LEDGER_MISMATCH', 409);
+    }
+    const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
+    const inventoryAccount = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings?.inventory_account_id, '1140');
+    const cashAccount = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings?.cash_account_id, '1110');
+    return this.postDomainJournal(queryable, {
+      sourceType: 'trade_in', sourceId: tradeInId, tenantId: scope.tenantId, accountId: scope.accountId,
+      entryDate: source.created_at ? new Date(source.created_at) : new Date(),
+      description: `Acquisition of used inventory - trade-in #${tradeInId}`,
+      branchId: source.branch_id ? Number(source.branch_id) : null,
+      locationId: source.location_id ? Number(source.location_id) : null,
+      createdBy: auth.userId, postedBy: auth.userId,
+      lines: [
+        {accountId:inventoryAccount, description:'Trade-in inventory acquisition', debit:amount, credit:0, partnerType:'none', partnerId:null},
+        {accountId:cashAccount, description:'Cash payout for used stock purchase', debit:0, credit:amount, partnerType:'none', partnerId:null},
+      ],
+    });
+  }
+
   private async insertPostedJournal(
     queryable: any,
     params: {
@@ -488,7 +540,7 @@ export class AccountingPostingService {
     await lockAccountingPeriod(queryable, params.tenantId);
     // The early source lookups can race when recovery workers use different
     // connections. Recheck under the same transaction lock as the insert.
-    const oncePerSource = ['sale', 'purchase', 'sales_return', 'purchase_return', 'customer_payment', 'supplier_payment', 'supplier_payment_schedule_settlement', 'expense'].includes(params.sourceType);
+    const oncePerSource = ['sale', 'purchase', 'sales_return', 'purchase_return', 'customer_payment', 'supplier_payment', 'supplier_payment_schedule_settlement', 'expense', 'trade_in'].includes(params.sourceType);
     const deduplicate = oncePerSource || ['contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'marketplace_settlement', 'maritime_carrier_credit_note', 'customer_installment_interest', 'installment_interest_accrual'].includes(params.sourceType);
     let dedupKey = deduplicate ? `${params.sourceType}:${params.sourceId}` : null;
     if (params.sourceType.startsWith('pdc_cheque_')) {
