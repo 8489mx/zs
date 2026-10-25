@@ -13,8 +13,8 @@ function actor(overrides: Partial<AuthContext>): AuthContext {
     username: 'admin',
     role: 'admin',
     permissions: [],
-    tenantId: 'default',
-    accountId: 'default',
+    tenantId: 'backup-ci-tenant',
+    accountId: 'backup-ci-tenant',
     ...overrides,
   };
 }
@@ -24,8 +24,11 @@ const backupPayload = {
     version: '1.1.0',
     exportedAt: '2026-01-01T00:00:00.000Z',
     source: 'test',
+    tenantId: 'backup-ci-tenant',
   },
-  tables: {},
+  tables: {
+    settings: [{ key: 'company_name', value: 'Acceptance', tenant_id: 'backup-ci-tenant' }],
+  },
 };
 
 function createBackupService() {
@@ -49,7 +52,7 @@ async function run(): Promise<void> {
       const service = createBackupService();
       await assert.rejects(
         // Exercise runtime isolation after the independent backup-administrator permission gate.
-        () => service.saveBackupToConfiguredFolder(actor({ permissions: ['canManageBackups'] })),
+        () => service.saveBackupToConfiguredFolder(actor({ permissions: ['settings', 'canManageBackups'] })),
         (error: unknown) => error instanceof AppError && error.code === 'FEATURE_NOT_AVAILABLE',
       );
     } finally {
@@ -59,7 +62,7 @@ async function run(): Promise<void> {
   }
   {
     const service = createBackupService();
-    const result = await service.restoreBackup(backupPayload, actor({ permissions: ['canManageBackups'] }), true);
+    const result = await service.restoreBackup(backupPayload, actor({ permissions: ['settings'] }), true);
     assert.equal(result.ok, true);
     assert.equal(result.dryRun, true);
   }
