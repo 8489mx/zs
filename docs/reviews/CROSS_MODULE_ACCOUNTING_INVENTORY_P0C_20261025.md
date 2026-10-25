@@ -81,3 +81,11 @@ The code observations above identify definite missing integration points; **fina
 - Pre-existing catalog links now also receive physical stock; generated product barcodes include the unique transaction ID.
 - Disposable PostgreSQL acceptance now verifies a 37.25 cash payout, matching inventory and cash GL, one source-linked journal, physical WAC and concurrent duplicate prevention.
 - **Not full sector certification:** trade-in exchanges, bank payments and purchases without classified physical stock still need their own accounting flows. Existing economic documents cannot be hard-deleted; an audited cancellation/reversal workflow is not yet implemented.
+
+## 25 October follow-up — maintenance protections and pharmacy transaction boundary
+
+- Prevented destructive maintenance-ticket deletion when a cash receipt, any historical ticket-linked stock movement, delivered status, or recorded advance exists. Financially significant tickets must use a future audited reversal rather than hard-delete.
+- Prevented rewriting maintenance financial fields after an advance, delivery, or issued part; prevented adding parts to delivered/cancelled tickets.
+- Wrapped pharmacy distributor-invoice batch/drug creation and treasury write in one database transaction. The previous swallowed treasury exception no longer permits a successful partial batch import.
+- **P0C-02 and P0C-04 remain OPEN:** maintenance still lacks atomic central GL postings, and distributor invoices still require a canonical purchase/AP/stock/GL pipeline with idempotency. These changes are safety constraints, not full financial certification.
+- The new changes still require targeted tests and PostgreSQL acceptance plus full CI. No production or Electron verification is asserted here.
