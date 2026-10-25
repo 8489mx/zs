@@ -705,6 +705,7 @@ export class ReturnsService {
     const overrideAllowed = Boolean(approvedByName) || auth.role === 'admin' || auth.role === 'super_admin';
     if (overrideRequested && !overrideAllowed) throw new AppError('تجاوز سقف وسيلة الاسترداد يتطلب اعتماد مشرف', 'REFUND_OVERRIDE_MANAGER_REQUIRED', 403);
     const refundAllocations = allocateRefundTenders({
+      digits: moneyDigits,
       requested: settlementMode === 'store_credit' ? 'store_credit' : refundMethod,
       amount: total,
       originalCashPaid, originalNonCashPaid,
@@ -884,7 +885,8 @@ export class ReturnsService {
     // Purchase items hold after-discount values. Distribute the invoice's actual
     // input VAT to original lines in cents, including the last-line remainder.
     // Inclusive purchase prices already contain VAT; exclusive prices do not.
-    const originalTaxCents = Math.round(Number(purchase.tax_amount || 0) * 100);
+    const scale = 10 ** moneyDigits;
+    const originalTaxCents = Math.round(Number(purchase.tax_amount || 0) * scale);
     const weightedLines = purchaseItems.filter((line) => Number(line.line_total || 0) > 0);
     const netLinesTotal = weightedLines.reduce((sum, line) => sum + Number(line.line_total || 0), 0);
     const taxByLine = new Map<number, number>();
@@ -895,7 +897,7 @@ export class ReturnsService {
       const cents = last ? originalTaxCents - allocatedTaxCents
         : Math.min(originalTaxCents - allocatedTaxCents, Math.round(originalTaxCents * Number(line.line_total || 0) / netLinesTotal));
       allocatedTaxCents += cents;
-      taxByLine.set(Number(line.id), cents / 100);
+      taxByLine.set(Number(line.id), cents / scale);
     }
 
     const pendingQtyByProduct = new Map<number, number>();
@@ -1073,7 +1075,7 @@ export class ReturnsService {
         if (Array.isArray(rawAllocations)) {
           for (const allocation of rawAllocations) {
             if (allocation?.tender === 'payable') {
-              const cents = Math.round(Number(allocation.amount) * 100);
+              const cents = Math.round(Number(allocation.amount) * scale);
               if (!Number.isSafeInteger(cents) || cents < 0) {
                 throw new AppError('تسوية مرتجع شراء سابقة غير صالحة', 'PURCHASE_RETURN_SETTLEMENT_RECONCILIATION_REQUIRED', 409);
               }
@@ -1083,7 +1085,7 @@ export class ReturnsService {
         } else if (rawAllocations == null) {
           // The legacy credit-return flow reversed the entire document against
           // supplier payables without storing a tender breakdown.
-          priorPayableCents += Math.round(Number(prior.total || 0) * 100);
+          priorPayableCents += Math.round(Number(prior.total || 0) * scale);
         } else {
           throw new AppError('تسوية مرتجع شراء سابقة غير صالحة', 'PURCHASE_RETURN_SETTLEMENT_RECONCILIATION_REQUIRED', 409);
         }
@@ -1092,16 +1094,16 @@ export class ReturnsService {
         .select(sql<number>`coalesce(sum(paid_amount), 0)`.as('paid'))
         .where('purchase_id', '=', Number(purchase.id)).where(this.tenantPredicate(auth))
         .executeTakeFirst();
-      const scheduledPaidCents = Math.round(Number(scheduledPayments?.paid || 0) * 100);
+      const scheduledPaidCents = Math.round(Number(scheduledPayments?.paid || 0) * scale);
       const unpaidInvoiceCents = Math.max(0,
-        Math.round((Number(purchase.total || 0) - Number(purchase.paid_amount || 0)) * 100) - priorPayableCents - scheduledPaidCents);
-      const supplierOutstandingCents = Math.max(0, Math.round(Number(supplier.balance || 0) * 100));
-      payableCents = Math.min(Math.round(total * 100), unpaidInvoiceCents, supplierOutstandingCents);
+        Math.round((Number(purchase.total || 0) - Number(purchase.paid_amount || 0)) * scale) - priorPayableCents - scheduledPaidCents);
+      const supplierOutstandingCents = Math.max(0, Math.round(Number(supplier.balance || 0) * scale));
+      payableCents = Math.min(Math.round(total * scale), unpaidInvoiceCents, supplierOutstandingCents);
     }
-    const refundCents = Math.round(total * 100) - payableCents;
+    const refundCents = Math.round(total * scale) - payableCents;
     const allocations: Array<{ tender: 'payable' | 'cash' | 'card'; amount: number }> = [];
-    if (payableCents > 0) allocations.push({ tender: 'payable', amount: payableCents / 100 });
-    if (refundCents > 0) allocations.push({ tender: refundMethod, amount: refundCents / 100 });
+    if (payableCents > 0) allocations.push({ tender: 'payable', amount: payableCents / scale });
+    if (refundCents > 0) allocations.push({ tender: refundMethod, amount: refundCents / scale });
     const { id: returnDocumentId, docNo: returnDocNo } = await this.insertReturnDocument(trx, {
       returnType: 'purchase', invoiceId: Number(payload.invoiceId), settlementMode: 'refund',
       refundMethod: allocations.length > 1 ? 'mixed' : allocations[0].tender,
@@ -1110,9 +1112,9 @@ export class ReturnsService {
     }, auth);
     for (const line of normalizedLines) await this.insertReturnItem(trx, { returnDocumentId, productId: line.productId, productName: line.productName, qty: line.qty, unitTotal: line.unitTotal, lineTotal: line.lineTotal, allocatedTax: line.allocatedTax, costPrice: line.costPrice, purchaseItemId: line.purchaseItemId }, auth);
     if (payableCents > 0 && purchase.supplier_id) {
-      await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -(payableCents / 100), 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
+      await this.addSupplierLedgerEntry(trx, Number(purchase.supplier_id), -(payableCents / scale), 'purchase_return', 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id);
     }
-    if (refundCents > 0) await this.addTreasuryTransaction(trx, 'purchase_return_refund', refundCents / 100, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id, refundMethod === 'cash');
+    if (refundCents > 0) await this.addTreasuryTransaction(trx, 'purchase_return_refund', refundCents / scale, 'purchase return ' + returnDocNo, returnDocumentId, auth, purchase.branch_id, purchase.location_id, refundMethod === 'cash');
 
     try {
       const posting = await this.accountingPosting.postPurchaseReturn(trx, returnDocumentId, auth);
