@@ -53,7 +53,8 @@ import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type H
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction, calculatePayableMinutes, resolveExpectedDailyMinutes, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
-import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
+import { calculateEmployeeWithdrawalBalance, type EmployeeWithdrawalBalanceResult } from './engines/employee-withdrawal-balance.engine';
+import { createPasswordRecord, verifyPassword } from '../../core/auth/utils/password-hasher';
 import { assertSecurePasscode } from '../../core/auth/utils/password-policy';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 
@@ -6179,6 +6180,132 @@ export class HrService {
     };
   }
 
+  async getEmployeeWithdrawalBalance(employeeId: number, auth: AuthContext): Promise<EmployeeWithdrawalBalanceResult> {
+    const { tenantId } = requireTenantScope(auth);
+    if (!employeeId || employeeId <= 0) throw new AppError('Employee ID is required', 'HR_EMPLOYEE_ID_REQUIRED', 400);
+
+    const tenantTimezone = await getTenantTimezone(this.db, tenantId);
+    const today = todayTenantDate(tenantTimezone);
+    const currentMonthPrefix = today.slice(0, 7);
+    const monthStart = `${currentMonthPrefix}-01`;
+
+    // Concurrently fetch employee profile, active contract, active payroll item, punches, loans, and past unpaid runs
+    const [empRes, contractRes, activeRunItemRes, punchesRes, loansRes, unpaidItemsRes] = await Promise.all([
+      // 1. Employee Basic Info
+      sql<any>`
+        SELECT id, employee_no, display_name, compensation_type, pay_frequency,
+               hourly_rate, expected_daily_hours, to_char(hire_date, 'YYYY-MM-DD') AS hire_date, status
+        FROM hr_employees
+        WHERE id = ${employeeId} AND tenant_id = ${tenantId}
+        LIMIT 1
+      `.execute(this.db),
+
+      // 2. Active or Latest Employment Contract
+      sql<{ base_salary: string | number; currency: string }>`
+        SELECT base_salary, currency
+        FROM hr_employment_contracts
+        WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, start_date DESC NULLS LAST, id DESC
+        LIMIT 1
+      `.execute(this.db),
+
+      // 3. Active Unpaid Payroll Item (draft, reviewed, approved but not yet marked 'paid')
+      sql<any>`
+        SELECT i.id, i.run_id, r.status AS run_status, r.period_month,
+               COALESCE(i.base_salary, 0) AS base_salary,
+               COALESCE(i.allowance_amount, 0) AS allowance_amount,
+               COALESCE(i.gross_pay, 0) AS gross_pay,
+               COALESCE(i.deduction_amount, 0) AS deduction_amount,
+               COALESCE(i.loan_deduction_amount, 0) AS loan_deduction_amount,
+               COALESCE(i.net_pay, 0) AS net_pay
+        FROM hr_payroll_run_items i
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
+          AND r.status IN ('draft', 'reviewed', 'approved')
+          AND i.status <> 'excluded'
+        ORDER BY r.id DESC LIMIT 1
+      `.execute(this.db),
+
+      // 4. Punches for current month
+      sql<any>`
+        SELECT status, check_in_at, check_out_at, to_char(work_date, 'YYYY-MM-DD') AS work_date_text
+        FROM hr_attendance_records
+        WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          AND work_date >= ${monthStart}::date AND work_date <= ${today}::date
+        ORDER BY work_date ASC, check_in_at ASC
+      `.execute(this.db),
+
+      // 5. Outstanding loans & advances
+      sql<any>`
+        SELECT id, loan_type, principal_amount, remaining_amount,
+               to_char(issue_date, 'YYYY-MM-DD') AS issue_date, status
+        FROM hr_employee_loans
+        WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          AND status IN ('paid', 'partially_repaid', 'disbursed')
+          AND remaining_amount > 0
+      `.execute(this.db),
+
+      // 6. Unpaid past approved items from completed runs
+      sql<any>`
+        SELECT i.id, i.net_pay, i.gross_pay
+        FROM hr_payroll_run_items i
+        JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+        WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
+          AND r.status = 'approved' AND i.status <> 'excluded'
+      `.execute(this.db),
+    ]);
+
+    const emp = empRes.rows[0];
+    if (!emp) throw new AppError('الموظف غير موجود أو لا يتبع المنشأة الحالية', 'HR_EMPLOYEE_NOT_FOUND', 404);
+
+    const contract = contractRes.rows[0];
+    const activeItem = activeRunItemRes.rows[0];
+    const payFreq = clean(emp.pay_frequency) || 'monthly';
+    const cycleStart = payFreq === 'daily' ? today : monthStart;
+    const daysElapsed = Math.max(1, Math.floor((new Date(today + 'T00:00:00Z').getTime() - new Date(cycleStart + 'T00:00:00Z').getTime()) / 86400000) + 1);
+
+    const result = calculateEmployeeWithdrawalBalance({
+      employee: {
+        id: Number(emp.id),
+        employeeNo: emp.employee_no || undefined,
+        displayName: emp.display_name,
+        compensationType: emp.compensation_type || 'monthly',
+        payFrequency: emp.pay_frequency || 'monthly',
+        hourlyRate: Number(emp.hourly_rate || 0),
+        expectedDailyHours: Number(emp.expected_daily_hours || 8),
+        hireDate: emp.hire_date || undefined,
+        status: emp.status || 'active',
+      },
+      contract: contract ? {
+        baseSalary: Number(contract.base_salary || 0),
+        currency: contract.currency,
+      } : undefined,
+      activePayrollItem: activeItem ? {
+        id: Number(activeItem.id),
+        runId: Number(activeItem.run_id),
+        periodMonth: activeItem.period_month,
+        runStatus: activeItem.run_status,
+        baseSalary: Number(activeItem.base_salary || 0),
+        allowanceAmount: Number(activeItem.allowance_amount || 0),
+        grossPay: Number(activeItem.gross_pay || 0),
+        deductionAmount: Number(activeItem.deduction_amount || 0),
+        loanDeductionAmount: Number(activeItem.loan_deduction_amount || 0),
+        netPay: Number(activeItem.net_pay || 0),
+      } : undefined,
+      currentCycle: {
+        cycleStart,
+        cycleEnd: today,
+        daysElapsed,
+      },
+      punches: punchesRes.rows || [],
+      priorLoans: loansRes.rows || [],
+      unpaidApprovedPayrollItems: unpaidItemsRes.rows || [],
+      todayDate: today,
+    });
+
+    return result;
+  }
+
   async createQuickCashAdvance(payload: any, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId, accountId } = requireTenantScope(auth);
     const employeeId = Number(payload.employeeId);
@@ -6190,15 +6317,72 @@ export class HrService {
 
     const reason = clean(payload.notes);
     if (!reason) throw new AppError('تفاصيل المسحوب وسبب الصرف مطلوبة', 'HR_ADVANCE_REASON_REQUIRED', 400);
+
+    // Verify employee withdrawal eligibility and balance
+    const withdrawalBalance = await this.getEmployeeWithdrawalBalance(employeeId, auth);
+    const isDirectDisbursement = withdrawalBalance.netAvailableBalance > 0 && amount <= withdrawalBalance.netAvailableBalance;
+    const isCallerAdmin = ['admin', 'super_admin'].includes(String(auth.role || '').trim());
+
+    let managerApprovalTag = '';
+    if (isDirectDisbursement) {
+      managerApprovalTag = `[مسحوب من الرصيد المستحق (المتاح: ${withdrawalBalance.netAvailableBalance})]`;
+    } else {
+      // Overdraft / advance exceeding earned pay: requires manager password or admin caller
+      if (isCallerAdmin) {
+        managerApprovalTag = `[معتمد من الإدارة: ${auth.username || 'المدير'}]`;
+      } else {
+        const enteredPassword = String(payload.managerPassword || '').trim();
+        if (!enteredPassword) {
+          throw new AppError(
+            'الموظف لا يملك رصيداً مستحقاً كافياً لتغطية المسحوب؛ يلزم إدخال كلمة مرور المدير أو مالك المنشأة للاعتماد',
+            'HR_ADVANCE_MANAGER_APPROVAL_REQUIRED',
+            403,
+          );
+        }
+
+        // Verify manager password
+        let authorizedByName = '';
+        const managerPinSetting = await sql<{ value: string }>`
+          SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'pos_manager_pin' LIMIT 1
+        `.execute(this.db);
+        const pin = clean(managerPinSetting.rows[0]?.value).replace(/^"|"$/g, '');
+
+        if (pin && enteredPassword === pin) {
+          authorizedByName = 'رمز المدير (PIN)';
+        } else {
+          const adminUsers = await sql<{ id: number; username: string; display_name: string; password_hash: string; password_salt: string }>`
+            SELECT id, username, display_name, password_hash, password_salt
+            FROM users
+            WHERE tenant_id = ${tenantId} AND is_active = true AND role IN ('admin', 'super_admin')
+          `.execute(this.db);
+
+          for (const admin of adminUsers.rows) {
+            const check = await verifyPassword(enteredPassword, String(admin.password_hash || ''), String(admin.password_salt || ''));
+            if (check.valid) {
+              authorizedByName = clean(admin.display_name) || clean(admin.username) || 'المدير';
+              break;
+            }
+          }
+        }
+
+        if (!authorizedByName) {
+          throw new AppError('كلمة مرور المدير غير صحيحة', 'HR_ADVANCE_MANAGER_PASSWORD_INVALID', 400);
+        }
+
+        managerApprovalTag = `[سلفة معتمدة بكلمة مرور المدير: ${authorizedByName}]`;
+      }
+    }
+
     const localLoanDate = todayTenantDate(await getTenantTimezone(this.db, tenantId));
-    const notes = payload.shiftId ? `${reason} [وردية كاشير #${Number(payload.shiftId)}]` : reason;
+    const baseNotes = payload.shiftId ? `${reason} [وردية كاشير #${Number(payload.shiftId)}]` : reason;
+    const notes = `${baseNotes} ${managerApprovalTag}`.trim();
     let createdLoanId = 0;
     
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       // 1. Validate employee is active in this tenant
       const employee = await trx.selectFrom('hr_employees')
-        .select(['id', 'display_name', 'status'])
+        .select(['id', 'display_name', 'status', 'compensation_type', 'hourly_rate', 'expected_daily_hours'])
         .where('id', '=', employeeId)
         .where('tenant_id', '=', tenantId)
         .forUpdate()
@@ -6215,17 +6399,23 @@ export class HrService {
       `.execute(trx);
       const activeDebt = Number(activeRes.rows[0]?.total_debt || 0);
 
-      // Max quick cash advance is capped by 1 month base salary (or 5,000)
-      const contract = await trx.selectFrom('hr_employment_contracts')
-        .select('base_salary')
-        .where('employee_id', '=', employeeId)
-        .where('tenant_id', '=', tenantId)
-        .where('status', '=', 'active')
-        .where('start_date', '<=', localLoanDate)
-        .where(eb => eb.or([eb('end_date', 'is', null), eb('end_date', '>=', localLoanDate)]))
-        .orderBy('start_date', 'desc')
-        .executeTakeFirst();
-      const baseSalary = Number(contract?.base_salary || 0);
+      // Ceiling check: Contract salary, or hourly estimation, or 5,000 min
+      let baseSalary = 0;
+      if (employee.compensation_type === 'hourly') {
+        const estMonthly = Number(employee.hourly_rate || 0) * Number(employee.expected_daily_hours || 8) * 26;
+        baseSalary = Math.max(5000, estMonthly);
+      } else {
+        const contract = await trx.selectFrom('hr_employment_contracts')
+          .select('base_salary')
+          .where('employee_id', '=', employeeId)
+          .where('tenant_id', '=', tenantId)
+          .where('status', '=', 'active')
+          .where('start_date', '<=', localLoanDate)
+          .where(eb => eb.or([eb('end_date', 'is', null), eb('end_date', '>=', localLoanDate)]))
+          .orderBy('start_date', 'desc')
+          .executeTakeFirst();
+        baseSalary = Number(contract?.base_salary || 0);
+      }
       const quickCap = baseSalary > 0 ? baseSalary : 5000;
 
       if (activeDebt + amount > quickCap) {
@@ -6287,12 +6477,10 @@ export class HrService {
         const eligibleShift = await sql<{ id: number; branch_id: number | null; location_id: number | null }>`
           SELECT id, branch_id, location_id FROM cashier_shifts
           WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
-            AND (opened_by = ${auth.userId} OR ${auth.role === 'super_admin'})
+            AND (opened_by = ${auth.userId} OR ${auth.role === 'admin'} OR ${auth.role === 'super_admin'})
           FOR UPDATE
         `.execute(trx);
         if (!eligibleShift.rows.length) throw new AppError('وردية الكاشير غير مفتوحة أو لا تخص المستخدم الحالي', 'HR_CASHIER_SHIFT_INVALID', 400);
-        // The drawer recalculates expected cash from treasury_transactions;
-        // updating expected_cash alone loses the deduction on its next refresh.
         const shift = eligibleShift.rows[0];
         await sql`
           INSERT INTO treasury_transactions (
@@ -6336,14 +6524,13 @@ export class HrService {
         const runId = Number(run.id);
         await this.rebuildPayrollRunItems(trx, runId, 'draft', auth.tenantId || tenantId);
         if (run.status === 'reviewed') {
-          // Automatic loan deductions have changed the reviewed financial
-          // snapshot. Require a fresh human review before the next approval.
           await this.invalidatePayrollRunReview(trx, runId, tenantId);
         }
       }
     });
 
     await this.audit.log('Create Quick Cash Advance', `Cash advance #${createdLoanId} of ${amount} for employee #${employeeId} by ${auth.username}`, auth);
-    return { success: true, loanId: createdLoanId };
+    return { success: true, loanId: createdLoanId, isDirectDisbursement };
   }
 }
+

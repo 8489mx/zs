@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import React, { type FormEvent } from 'react';
-import { money, reviewStatusOptions, type PayrollReviewStatus, type PayFrequency, payFrequencyFilterOptions } from '@/features/hr/pages/payroll/hr-payroll.helpers';
+import { money, reviewStatusOptions, type PayrollReviewStatus } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { CustomSelect } from '@/shared/ui/custom-select';
 import type { PayrollDraft } from '@/features/hr/components/payroll/CreatePayrollRunModal';
 
@@ -26,7 +26,6 @@ export type HrPayrollTopSectionProps = {
   departmentFilter: string;
   reviewStatusFilter: PayrollReviewStatus;
   runStatusFilter: string;
-  frequencyFilter?: PayFrequency;
   departmentOptions: Array<{ value: string; label: string }>;
   runStatusOptions: Array<{ value: string; label: string }>;
   summary: Summary;
@@ -43,7 +42,6 @@ export type HrPayrollTopSectionProps = {
   onDepartmentFilterChange: (value: string) => void;
   onReviewStatusFilterChange: (value: PayrollReviewStatus) => void;
   onRunStatusFilterChange: (value: string) => void;
-  onFrequencyFilterChange?: (value: PayFrequency) => void;
   onDraftChange: React.Dispatch<React.SetStateAction<PayrollDraft>> | ((updater: (current: Draft) => Draft) => void);
   onCreateRun: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -59,7 +57,6 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     departmentFilter,
     reviewStatusFilter,
     runStatusFilter,
-    frequencyFilter,
     departmentOptions,
     runStatusOptions,
     summary,
@@ -70,7 +67,6 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     onDepartmentFilterChange,
     onReviewStatusFilterChange,
     onRunStatusFilterChange,
-    onFrequencyFilterChange,
   } = props;
 
   const payrollTerm = isEgypt ? 'كشف المرتبات' : 'مسير المرتبات';
@@ -147,16 +143,6 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
           />
         </div>
 
-        {/* Pay Frequency Filter */}
-        <select
-          value={frequencyFilter || 'all'}
-          onChange={(event) => onFrequencyFilterChange?.(event.target.value as PayFrequency)}
-          style={{ width: 'auto', minWidth: '110px', maxWidth: '140px', padding: '5px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem', background: '#fff', boxSizing: 'border-box', fontWeight: 600, color: '#0f172a' }}
-        >
-          {payFrequencyFilterOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
 
         <select
           value={departmentFilter}
