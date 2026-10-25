@@ -398,7 +398,9 @@ export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, targe
       await sql`delete from ${sql.table(spec.name)} where ${ownedRows(spec, target.tenantId)}`.execute(trx);
     }
     // everyone must log in again against the imported users
-    await sql`delete from sessions where tenant_id = ${target.tenantId}`.execute(trx).catch(() => undefined);
+    // Revocation is part of the same transaction as data replacement: a silent
+    // failure here would leave old live sessions authorized after import.
+    await sql`delete from sessions where tenant_id = ${target.tenantId}`.execute(trx);
 
     // 4. Insert with the original ids.
     let rows = 0;

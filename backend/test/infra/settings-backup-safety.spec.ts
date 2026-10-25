@@ -29,7 +29,12 @@ const backupPayload = {
 };
 
 function createBackupService() {
-  return new SettingsBackupService({} as any, { log: async () => undefined } as any);
+  return new SettingsBackupService(
+    {} as any,
+    { log: async () => undefined } as any,
+    { invalidateTenant: () => undefined } as any,
+    { invalidateSettingsCache: () => undefined, invalidateBranchesCache: () => undefined, invalidatePlanFeaturesCache: () => undefined } as any,
+  );
 }
 
 function createAdminService() {

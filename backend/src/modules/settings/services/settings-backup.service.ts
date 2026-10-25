@@ -12,6 +12,9 @@ import * as crypto from 'crypto';
 import AdmZip from 'adm-zip';
 import { findOrphanedReferences, listTenantTables, PLATFORM_TENANT_TABLES } from '../../../core/tenant-transfer/tenant-package';
 import { encryptBundle } from '../../../core/tenant-transfer/backup-bundle';
+import { AuthCacheService } from '../../../core/auth/services/auth-cache.service';
+import { SettingsService } from '../settings.service';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 type BackupTableName = Exclude<keyof Database, 'backup_snapshots'> | (string & {});
 
@@ -226,13 +229,17 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
   private schedulerBusy = false;
   private backupInFlight: Promise<Record<string, unknown>> | null = null;
 
-  constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService) {}
+  constructor(
+    @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
+    private readonly audit: AuditService,
+    private readonly authCache: AuthCacheService,
+    private readonly settings: SettingsService,
+  ) {}
 
   onModuleInit(): void {
     // Background backups must not require the shop owner to open Settings every day.
     // Never run a local-file scheduler in cloud SaaS or for another tenant.
-    if (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true') return;
-    if (process.env.APP_MODE === 'CLOUD_SAAS') return;
+    if (!isDesktopRuntimeMode(process.env.APP_MODE)) return;
     this.backupScheduler = setInterval(() => { void this.checkUnattendedBackup(); }, 5 * 60 * 1000);
     this.backupScheduler.unref?.();
     // Bootstrap migrations happen after provider init; the first scheduled poll will
@@ -314,7 +321,7 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
   private normalizeWeeklyDay(value: unknown): number { const day = Number(value); return Number.isFinite(day) ? Math.min(6, Math.max(0, Math.floor(day))) : 0; }
   private parseSettingValue<T>(rawValue: string | null | undefined, fallback: T): T { if (rawValue == null) return fallback; try { return JSON.parse(rawValue) as T; } catch { return fallback; } }
   private assertDesktopMode(): void {
-    if (process.env.APP_MODE === 'CLOUD_SAAS' || (process.env.APP_MODE !== 'SELF_CONTAINED' && process.env.PORTABLE_MODE !== 'true')) {
+    if (!isDesktopRuntimeMode(process.env.APP_MODE)) {
       throw new AppError('Local backup folders are only available in the desktop version', 'FEATURE_NOT_AVAILABLE', 400);
     }
   }
@@ -858,6 +865,14 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
         400
       );
     }
+
+    // Restore replaces the users, roles and settings but old auth/session and UI
+    // caches would otherwise keep the pre-restore tenant alive for up to 60s.
+    // Invalidate immediately after a committed transaction, never on a dry run.
+    this.authCache.invalidateTenant(scope.tenantId);
+    this.settings.invalidateSettingsCache(scope.tenantId);
+    this.settings.invalidateBranchesCache(scope.tenantId);
+    this.settings.invalidatePlanFeaturesCache(scope.tenantId);
 
     await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${`restore-${new Date().toISOString()}`}, ${'restore'}, ${JSON.stringify(envelope)}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
     // Ensure audit log uses a valid user id from the restored users or null if the restoring actor was replaced
