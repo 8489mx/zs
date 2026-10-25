@@ -13,8 +13,8 @@ function actor(overrides: Partial<AuthContext>): AuthContext {
     username: 'admin',
     role: 'admin',
     permissions: [],
-    tenantId: 'default',
-    accountId: 'default',
+    tenantId: 'tenant-test',
+    accountId: 'tenant-test',
     ...overrides,
   };
 }
@@ -24,10 +24,10 @@ const backupPayload = {
     version: '1.1.0',
     exportedAt: '2026-01-01T00:00:00.000Z',
     source: 'test',
-    tenantId: 'default',
+    tenantId: 'tenant-test',
   },
   tables: {
-    settings: [{ key: 'company_name', value: 'Test', tenant_id: 'default' }],
+    settings: [{ key: 'company_name', value: 'Test', tenant_id: 'tenant-test' }],
   },
 };
 
