@@ -203,3 +203,7 @@ All rows above describe **code changed**, not verified operation. Count as **15 
 
 ### Follow-up E/F after coverage addendum — audit radar data scope
 - The fraud/anomaly radar had been analyzing the filtered/paginated `rows` from the returns register rather than all sale returns. It now fetches complete sale return history on demand and blocks an empty/partial-risk display while unavailable; select-from-radar also works for a return outside the visible page. The new selection regression is authored only, unexecuted. **Axes E/F remain PARTIAL** because cross-cashier historical sales input, real Postgres fixtures and scale tests remain unverified. This is **one additional independent defect theme**, now 28 (12 original + 16 additional grouped themes) tracked for code changes, not runtime pass rate.
+
+
+### Follow-up E/F — export register cashier-filter parity
+- `ReturnsWorkspace` used to omit the selected cashier filter from Excel exports although the on-screen register and print respected it. Both use `buildReturnRegisterExportQuery` now, with an authored, unexecuted regression. This is one more distinct code-patched issue theme, bringing the running **documented grouped themes to 29 (12 initial + 17 subsequent)**. This does **not** mean 29 verified fixes or all A–F coverage is complete.
