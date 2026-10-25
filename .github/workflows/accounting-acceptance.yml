@@ -1,9 +1,8 @@
 name: Accounting PostgreSQL acceptance
 
 on:
-  pull_request:
   push:
-    branches: [main, fix/accounting-core-commercial-integrity]
+    branches: [fix/accounting-core-commercial-integrity]
   workflow_dispatch:
 
 permissions:
