@@ -74,3 +74,12 @@ assert.equal((supplierLedgerPayload.supplier as any).balance, 90);
 assert.equal(((supplierLedgerPayload.entries as any[])?.[0] || {}).type, 'bill');
 
 console.log('reports-ledger.helper.spec: ok');
+
+const kwdBalances=buildCustomerBalancesPayload([{id:9,name:'KWD payer',balance:0,credit_limit:0.004}],new Map([['9',0.001]]),{filter:'all'},3);
+assert.equal(kwdBalances.summary.totalBalance,0.001);
+assert.equal(kwdBalances.customers[0].availableCredit,0.003);
+const omrBalances=buildSupplierBalancesPayload([{id:10,name:'OMR vendor',balance:0}],new Map([['10',0.002]]),{filter:'all'},3);
+assert.equal(omrBalances.summary.totalBalance,0.002);
+assert.deepEqual(buildLedgerSummary(2,{debits_total:0.003,credits_total:-0.001},0.001,3),{
+  totalEntries:2,totalDebits:0.003,totalCredits:0.001,openingBalance:0.001,closingBalance:0.003,
+});

@@ -16,3 +16,7 @@ assert.equal(supplierTotals.get('9'), -10.51);
 assert.equal(supplierTotals.get('10'), 5);
 
 console.log('reports partner ledger helper checks passed');
+
+// Explicit tenant-book precision must preserve a KWD/OMR fil in subledger balances.
+assert.equal(buildCustomerLedgerTotals([{customer_id:100,balance_total:'0.001'}],3).get('100'),0.001);
+assert.equal(buildSupplierLedgerTotals([{supplier_id:200,balance_total:'0.003'}],3).get('200'),0.003);
