@@ -552,3 +552,9 @@
 ### 2026-10-25 — B: POS offline catalog is tenant-bound even on direct barcode fallback
 
 - `PosWorkspace.resolveRemoteBarcodeMatch` used `lookupProductByBarcodeFromStorage` directly after network failure, bypassing the tenant ownership preflight in `usePosCatalog`; a stale device IndexedDB cache could return a previous tenant's SKU. Direct lookup now checks the saved tenant ID against current auth scope and returns no product if mismatched or missing. `usePosCatalog` also rejects legacy unscoped localStorage arrays or metadata and only reads IndexedDB when both tenant IDs are present and equal. No security-core changes; regression checks appended to `pos-catalog-storage.spec.ts`, not run. Electron offline tenant/session migration still requires full device verification.
+
+
+### 2026-10-25 — E/F: fail-closed return selection after invoice-history refresh
+
+- A user could select a return quantity, switch focus or experience a parallel return, then press Confirm while the saved line quantity had decreased; the form only blocked initial text entry, not the final selected line quantities. `ReturnsWorkspace` now validates **all selected original invoice line IDs** against the complete invoice-specific returned balances before opening confirmation and inside the submission mutation. It rejects unlinked line IDs, invalid or excessive quantities and legacy-blocked products; it displays an actionable warning. A pre-existing ambiguous submission still retries its frozen original payload/key instead of generating a different request.
+- Test coverage added to `return-remaining-quantity.spec.ts` for refreshed balances and duplicate product IDs. Code authored, not executed; server-side transaction locking remains the final correctness boundary.

@@ -28,7 +28,7 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { remainingInvoiceLineQuantity } from '@/features/returns/lib/return-remaining-quantity';
+import { remainingInvoiceLineQuantity, isSelectedReturnQuantityValid } from '@/features/returns/lib/return-remaining-quantity';
 import { mayReleaseReturnIdempotencyKey, wasReturnCommitted } from '@/features/returns/lib/return-submission-recovery';
 import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
@@ -113,6 +113,9 @@ export function ReturnsWorkspace() {
     })
     .filter((entry) => entry.qty > 0), [invoiceItems, selectedItems]);
 
+  const returnQuantitiesValid = selectedReturnItems.length > 0 && selectedReturnItems.every(({ item, qty }) =>
+    isSelectedReturnQuantityValid(String(item.id || ''), String(item.productId || ''),
+      Number(item.qty || 0), qty, returnedQtyByLine, blockedProductIds, returnHistoryReady));
   const selectedItemsCount = selectedReturnItems.length;
   const selectedQtyTotal = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
   const expectedReturnValue = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.lineTotal || 0), 0);
@@ -166,6 +169,11 @@ export function ReturnsWorkspace() {
 
   const createMutation = useMutation({
     mutationFn: async ({ managerPin, reason }: { managerPin?: string; reason: string }) => {
+      // A confirmed retry must use its frozen payload; a fresh request must
+      // revalidate the complete invoice quantities after any refetch.
+      if (!returnAttempt.current && !returnQuantitiesValid) {
+        throw new Error('رصيد المرتجع تغير أو لم يتم تأكيده. راجع الكميات قبل الحفظ.');
+      }
       if (!returnAttempt.current) {
         const payload = {
           type: form.type,
@@ -440,10 +448,15 @@ export function ReturnsWorkspace() {
           onToggleItem={toggleItem}
           onSetItemQty={setItemQty}
           onSetSerials={(itemId, value) => { if (!returnAttempt.current) setSelectedSerials((current) => ({ ...current, [itemId]: value })); }}
-          onOpenConfirm={() => { if (returnHistoryReady || returnOutcomeUncertain) setConfirmReturn(true); }}
+          onOpenConfirm={() => {
+            if ((returnHistoryReady && returnQuantitiesValid) || returnOutcomeUncertain) {
+              setConfirmReturn(true);
+            }
+          }}
           returnedQtyByLine={returnedQtyByLine}
           blockedProductIds={blockedProductIds}
           returnHistoryReady={returnHistoryReady}
+          returnQuantitiesValid={returnQuantitiesValid}
           canRetryUnresolved={returnOutcomeUncertain}
         />
 
@@ -481,7 +494,14 @@ export function ReturnsWorkspace() {
         managerPinHint={!canDirectReturn ? t('returns.manager_pin_hint', 'يتطلب حساب هذا الكاشير اعتماد المشرف أو إدخال رمز المدير لإتمام المرتجع.') : undefined}
         isBusy={createMutation.isPending}
         onCancel={() => setConfirmReturn(false)}
-        onConfirm={({ reason, managerPin }) => void createMutation.mutate({ reason, managerPin })}
+        onConfirm={({ reason, managerPin }) => {
+          if (!returnAttempt.current && !returnQuantitiesValid) {
+            toast.warning('راجع كميات المرتجع بعد تحديث بيانات الفاتورة قبل الاعتماد');
+            setConfirmReturn(false);
+            return;
+          }
+          void createMutation.mutate({ reason, managerPin });
+        }}
       />
     </div>
   );

@@ -36,6 +36,7 @@ type Props = {
   returnedQtyByLine?: Record<string, number>;
   blockedProductIds?: string[];
   returnHistoryReady?: boolean;
+  returnQuantitiesValid?: boolean;
   canRetryUnresolved?: boolean;
 };
 
@@ -68,6 +69,7 @@ export function ReturnsCreateModal(props: Props) {
     returnedQtyByLine = {},
     blockedProductIds = [],
     returnHistoryReady = false,
+    returnQuantitiesValid = false,
     canRetryUnresolved = false,
   } = props;
 
@@ -223,6 +225,11 @@ export function ReturnsCreateModal(props: Props) {
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
                 {t('returns.available_items_label', 'الأصناف المتاحة للإرجاع في هذه الفاتورة:')}
               </div>
+              {returnHistoryReady && selectedItemsCount > 0 && !returnQuantitiesValid && !canRetryUnresolved ? (
+                <div role="alert" style={{ color: '#b91c1c', fontSize: 12, marginBottom: 8 }}>
+                  الكمية المطلوبة تتجاوز المتبقي في أحد بنود الفاتورة؛ عدّل الكمية قبل اعتماد المرتجع.
+                </div>
+              ) : null}
               {canRetryUnresolved ? (
                 <div role="alert" style={{ color: '#9a3412', marginBottom: 8, fontSize: 12 }}>
                   طلب المرتجع السابق غير محسوم. إعادة المحاولة تستخدم الطلب ومفتاح منع التكرار الأصليين فقط.
@@ -348,7 +355,7 @@ export function ReturnsCreateModal(props: Props) {
                 type="button"
                 variant="primary"
                 onClick={onOpenConfirm}
-                disabled={!selectedInvoice || selectedItemsCount === 0 || isBusy || (!returnHistoryReady && !canRetryUnresolved)}
+                disabled={!selectedInvoice || selectedItemsCount === 0 || isBusy || (!returnQuantitiesValid && !canRetryUnresolved)}
                 style={{
                   width: '100%',
                   padding: '10px',
