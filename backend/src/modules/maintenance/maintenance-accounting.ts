@@ -3,6 +3,8 @@ import { Database } from '../../database/database.types';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../common/errors/app-error';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../accounting/engines/money-minor-units.engine';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
 
@@ -19,8 +21,9 @@ export async function postMaintenanceJournal(
   lines: Array<{ code: string; debit?: number; credit?: number; description: string }>,
 ): Promise<number | null> {
   const scope = requireTenantScope(auth);
+  const digits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
   const normalized = lines
-    .map((line) => ({ ...line, debit: Number(Number(line.debit || 0).toFixed(2)), credit: Number(Number(line.credit || 0).toFixed(2)) }))
+    .map((line) => ({ ...line, debit: roundMoney(Number(line.debit || 0), digits), credit: roundMoney(Number(line.credit || 0), digits) }))
     .filter((line) => line.debit !== 0 || line.credit !== 0);
   if (!normalized.length) return null;
   if (normalized.some((line) => !Number.isFinite(line.debit) || !Number.isFinite(line.credit) || line.debit < 0 || line.credit < 0)) {

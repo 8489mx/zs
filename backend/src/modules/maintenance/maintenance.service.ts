@@ -11,6 +11,8 @@ import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
 import { postMaintenanceJournal } from './maintenance-accounting';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney, toMinorUnits } from '../accounting/engines/money-minor-units.engine';
 import { valueStockReceipt } from '../accounting/inventory-valuation';
 import { applyStockDelta } from '../../common/utils/location-stock-ledger';
 import { UpsertMaintenanceTicketDto } from './dto/upsert-maintenance-ticket.dto';
@@ -27,6 +29,14 @@ export class MaintenanceService {
     private readonly accountingPosting: AccountingPostingService,
     private readonly accountingFoundation: AccountingTenantFoundationService,
   ) {}
+
+  private isExactMaintenanceSettlement(remaining: number, advance: number, total: number, digits: 2 | 3): boolean {
+    try {
+      return toMinorUnits(remaining, digits) + toMinorUnits(advance, digits) === toMinorUnits(total, digits);
+    } catch {
+      return false;
+    }
+  }
 
   async listTickets(
     auth: AuthContext,
@@ -182,6 +192,13 @@ export class MaintenanceService {
     if (!Number.isFinite(advance) || advance < 0 || !Number.isFinite(Number(payload.finalCost ?? payload.expectedCost ?? 0)) ||
         Number(payload.finalCost ?? payload.expectedCost ?? 0) < 0 || payload.status === 'delivered') {
       throw new AppError('Invalid maintenance payment or initial state', 'MAINTENANCE_FINANCIAL_STATE_INVALID', 422);
+    }
+    const advanceDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+    try {
+      toMinorUnits(advance, advanceDigits);
+      toMinorUnits(Number(payload.finalCost ?? payload.expectedCost ?? 0), advanceDigits);
+    } catch {
+      throw new AppError('Maintenance amounts exceed tenant currency precision', 'MAINTENANCE_CURRENCY_PRECISION_INVALID', 422);
     }
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
       const tempTicketNo = `TMP-ZM-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
@@ -394,7 +411,7 @@ export class MaintenanceService {
           : Math.max(0, finalCost - advance);
         if (!Number.isFinite(finalCost) || !Number.isFinite(advance) ||
             !Number.isFinite(remaining) || finalCost < advance || finalCost < 0 ||
-            remaining < 0 || Math.abs(Number((remaining + advance - finalCost).toFixed(2))) > 0) {
+            remaining < 0 || !this.isExactMaintenanceSettlement(remaining, advance, finalCost, currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId)))) {
           throw new AppError('Maintenance delivery must settle its full balance; refund/credit requires a separate flow',
             'MAINTENANCE_SETTLEMENT_MISMATCH', 422);
         }
@@ -499,7 +516,7 @@ export class MaintenanceService {
       const product = await trx.selectFrom('products').select('cost_price')
         .where('tenant_id', '=', scope.tenantId).where('id', '=', payload.productId).executeTakeFirstOrThrow();
       const unitCost = Number(product.cost_price);
-      const stockValue = Number((unitCost * deductQty).toFixed(2));
+      const stockValue = roundMoney(unitCost * deductQty, currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId)));
       if (!Number.isFinite(stockValue) || unitCost < 0) {
         throw new AppError('Maintenance stock cost is invalid', 'MAINTENANCE_STOCK_COST_INVALID', 422);
       }
@@ -603,7 +620,7 @@ export class MaintenanceService {
         allowNegative: true,
       });
 
-      const stockValue = Number((Number(part.unit_cost) * returnQty).toFixed(2));
+      const stockValue = roundMoney(Number(part.unit_cost) * returnQty, currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId)));
       if (!Number.isFinite(stockValue) || Number(part.unit_cost) < 0) {
         throw new AppError('Historical part cost is invalid', 'MAINTENANCE_STOCK_COST_INVALID', 422);
       }
