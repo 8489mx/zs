@@ -164,6 +164,7 @@ export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[],
       effectiveByIndex.has(index)
         ? Number(effectiveByIndex.get(index) || 0)
         : gross,
+      digits,
     );
     return {
       ...item,
