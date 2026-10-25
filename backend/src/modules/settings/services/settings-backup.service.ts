@@ -10,7 +10,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import * as crypto from 'crypto';
 import AdmZip from 'adm-zip';
-import { findOrphanedReferences, listTenantTables } from '../../../core/tenant-transfer/tenant-package';
+import { findOrphanedReferences, listTenantTables, PLATFORM_TENANT_TABLES } from '../../../core/tenant-transfer/tenant-package';
 import { encryptBundle } from '../../../core/tenant-transfer/backup-bundle';
 
 type BackupTableName = Exclude<keyof Database, 'backup_snapshots'> | (string & {});
@@ -49,7 +49,13 @@ const BACKUP_TABLES: BackupTableName[] = [
   // invoices, inventory and journal entries. Incomplete backups lose real business data.
   'daily_financial_summaries', 'operation_executions', 'bank_statements', 'bank_statement_lines', 'accounting_cheques', 'accounting_fiscal_years', 'accounting_fiscal_periods', 'withholding_tax_transactions', 'crm_deals', 'crm_activities', 'accounting_posting_failures', 'product_serials', 'sale_pharmacy_batch_allocations', 'treasury_transfers', 'pos_audit_events', 'goods_receipt_notes', 'goods_receipt_lines', 'purchase_three_way_matches', 'purchase_landed_costs', 'purchase_orders', 'purchase_order_items', 'sales_orders', 'sales_order_items', 'manufacturing_unbuild_orders', 'services', 'hr_payroll_loan_deduction_allocations', 'hr_holidays', 'delivery_representatives', 'fleet_vehicles', 'van_sales_trips', 'van_field_returns', 'van_trip_expenses', 'van_trip_packaging_movements', 'delivery_rep_targets', 'van_load_requisitions', 'van_rep_financial_settlements'
 ];
-const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()];
+// Platform billing, session state and offline ID leases are server-owned data.
+// A tenant's backup must never grant entitlements or resurrect credentials.
+export function isTenantBackupDataTable(name: string): boolean {
+  return name !== 'tenants' && !PLATFORM_TENANT_TABLES.has(name);
+}
+const CLEAR_ORDER: (BackupTableName | 'services')[] = ['services', ...[...BACKUP_TABLES].reverse()]
+  .filter((name) => isTenantBackupDataTable(String(name)));
 const RESTORE_CONFIRMATION_TEXT = 'RESTORE BACKUP';
 // Never require a D: drive on a customer's standalone Windows computer.
 const DEFAULT_BACKUP_FOLDER = process.env.IS_ELECTRON === 'true' && process.env.Z_DATA_DIR
@@ -289,9 +295,11 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
     const raw = isObjectRecord(payload.tables) ? payload.tables : {};
     const tables: Partial<Record<BackupTableName, unknown[]>> = {};
     for (const [name, rows] of Object.entries(raw)) {
-      if (/^[a-z][a-z0-9_]*$/.test(name) && Array.isArray(rows)) tables[name] = rows;
+      // Old backups may contain billing/session tables. Ignore them for compatibility,
+      // but never allow their contents to cross the restore boundary.
+      if (isTenantBackupDataTable(name) && /^[a-z][a-z0-9_]*$/.test(name) && Array.isArray(rows)) tables[name] = rows;
     }
-    for (const name of BACKUP_TABLES) if (!tables[name]) tables[name] = [];
+    for (const name of BACKUP_TABLES) if (isTenantBackupDataTable(String(name)) && !tables[name]) tables[name] = [];
     return { meta, tables };
   }
   private normalizeFolderPath(value: unknown): string {
@@ -333,8 +341,8 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
     await sql`insert into backup_snapshots (label, source, payload_json, tenant_id, account_id) values (${'auto-' + reason + '-' + now.toISOString()}, ${'demo-data-guard'}, ${JSON.stringify({ manifest, filePath })}::jsonb, ${scope.tenantId}, ${scope.accountId})`.execute(this.db);
   }
 
-  private async tableExists(table: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = ${table}) as exists`.execute(this.db); return Boolean(result.rows[0]?.exists); }
-  private async tableHasColumn(table: string, column: string): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = ${column}) as exists`.execute(this.db); return Boolean(result.rows[0]?.exists); }
+  private async tableExists(table: string, db: Kysely<Database> = this.db): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = ${table}) as exists`.execute(db); return Boolean(result.rows[0]?.exists); }
+  private async tableHasColumn(table: string, column: string, db: Kysely<Database> = this.db): Promise<boolean> { const result = await sql<{ exists: boolean }>`select exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = ${table} and column_name = ${column}) as exists`.execute(db); return Boolean(result.rows[0]?.exists); }
   private async getSettingValue<T>(key: string, fallback: T, actor: AuthContext): Promise<T> { const scope = this.scope(actor); const row = await this.db.selectFrom('settings').select(['value']).where('key', '=', key).where(sql<boolean>`tenant_id = ${scope.tenantId}`).executeTakeFirst(); return this.parseSettingValue<T>(row?.value, fallback); }
   private async saveSettingValue(key: string, value: unknown, actor: AuthContext): Promise<void> { const scope = this.scope(actor); await sql`insert into settings (key, value, tenant_id, account_id) values (${key}, ${JSON.stringify(value)}, ${scope.tenantId}, ${scope.accountId}) on conflict (tenant_id, key) do update set value = excluded.value, account_id = excluded.account_id`.execute(this.db); }
   private async getBackupConfigState(actor: AuthContext): Promise<BackupConfigState> { const folderPath = this.normalizeFolderPath(await this.getSettingValue<string>(BACKUP_FOLDER_SETTING_KEY, DEFAULT_BACKUP_FOLDER, actor)); const automationRaw = await this.getSettingValue<Record<string, unknown>>(BACKUP_AUTOMATION_SETTING_KEY, {}, actor); const legacyAutoBackup = await this.getSettingValue<string>('autoBackup', 'on', actor); return { folderPath, automation: { enabled: typeof automationRaw.enabled === 'boolean' ? automationRaw.enabled : legacyAutoBackup !== 'off', frequency: this.normalizeFrequency(automationRaw.frequency), time: this.normalizeTime(automationRaw.time), weeklyDay: this.normalizeWeeklyDay(automationRaw.weeklyDay), lastSuccessAt: String(automationRaw.lastSuccessAt || '').trim() || undefined, lastAttemptAt: String(automationRaw.lastAttemptAt || '').trim() || undefined, lastAttemptStatus: String(automationRaw.lastAttemptStatus || '').trim() === 'failed' ? 'failed' : String(automationRaw.lastAttemptStatus || '').trim() === 'success' ? 'success' : '', lastError: String(automationRaw.lastError || '').trim() || undefined, lastScheduledFor: String(automationRaw.lastScheduledFor || '').trim() || undefined, lastSavedPath: String(automationRaw.lastSavedPath || '').trim() || undefined } }; }
@@ -434,17 +442,55 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
   async saveBackupToConfiguredFolder(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); this.assertDesktopMode(); const state = await this.getBackupConfigState(actor); const result = await this.saveBackupToFolder(state.folderPath, 'manual-save-to-folder', actor); state.automation.lastAttemptAt = new Date().toISOString(); state.automation.lastAttemptStatus = 'success'; state.automation.lastError = ''; state.automation.lastSuccessAt = state.automation.lastAttemptAt; state.automation.lastSavedPath = result.filePath; await this.saveBackupConfigState(state, actor); await this.audit.log('نسخ احتياطي إلى مجلد', `تم حفظ نسخة احتياطية في ${result.filePath} بواسطة ${actor.username}`, actor).catch(() => undefined); return { ok: true, folderPath: state.folderPath, fileName: result.fileName, filePath: result.filePath, message: `تم حفظ النسخة في: ${result.filePath}` }; }
 
   /** Include new tenant-owned module tables without having to remember a hard-coded list. */
-  private async getAllTenantBackupTables(): Promise<BackupTableName[]> {
+  private async getAllTenantBackupTables(db: Kysely<Database> = this.db): Promise<BackupTableName[]> {
     const discovered = await sql<{ table_name: string }>`
       SELECT DISTINCT table_name FROM information_schema.columns
       WHERE table_schema = 'public' AND column_name = 'tenant_id'
         AND table_name <> 'backup_snapshots'
       ORDER BY table_name
-    `.execute(this.db);
-    return [...new Set<BackupTableName>([...BACKUP_TABLES, ...discovered.rows.map((r) => r.table_name)])];
+    `.execute(db);
+    return [...new Set<BackupTableName>([...BACKUP_TABLES, ...discovered.rows.map((r) => r.table_name)])]
+      .filter((name) => isTenantBackupDataTable(String(name)));
   }
 
-  async exportBackup(actor: AuthContext): Promise<{ zipBuffer: Buffer; manifest: BackupManifest; envelope: BackupEnvelope }> { this.assertAdmin(actor); const scope = this.scope(actor); const tables = {} as Partial<Record<BackupTableName, unknown[]>>; for (const table of await this.getAllTenantBackupTables()) { const tableName = String(table); const exists = await this.tableExists(tableName); if (!exists) { tables[table] = []; continue; } const hasTenant = await this.tableHasColumn(tableName, 'tenant_id'); if (!hasTenant) { tables[table] = []; continue; } const baseQuery = (this.db as Kysely<any>).selectFrom(table).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`); const hasId = await this.tableHasColumn(tableName, 'id'); const hasCreatedAt = !hasId && await this.tableHasColumn(tableName, 'created_at'); if (hasId) { tables[table] = await baseQuery.orderBy('id', 'asc').execute(); } else if (hasCreatedAt) { tables[table] = await baseQuery.orderBy('created_at', 'asc').execute(); } else { tables[table] = await baseQuery.execute(); } } const envelope: BackupEnvelope = { meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId }, tables }; const dbJson = JSON.stringify(envelope); const hash = crypto.createHash('sha256').update(dbJson).digest('hex'); const manifest: BackupManifest = { formatVersion: '1.0', appVersion: process.env.npm_package_version || '1.0.0', createdAt: new Date().toISOString(), backupType: 'full', includesDatabase: true, includesFiles: false, databaseChecksumSha256: hash, backupSchemaVersion: '1.2.0' }; const zip = new AdmZip(); zip.addFile('database.json', Buffer.from(dbJson, 'utf8')); zip.addFile('backup-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8')); return { zipBuffer: zip.toBuffer(), manifest, envelope }; }
+  async exportBackup(actor: AuthContext): Promise<{ zipBuffer: Buffer; manifest: BackupManifest; envelope: BackupEnvelope }> {
+    this.assertAdmin(actor);
+    const scope = this.scope(actor);
+    // Every table must be read from one consistent PostgreSQL snapshot. Without
+    // REPEATABLE READ, a sale may appear in one table without its journal/items.
+    const tables = await this.db.transaction().setIsolationLevel('repeatable read').execute(async (trx) => {
+      await sql`set transaction read only`.execute(trx);
+      const snapshot = {} as Partial<Record<BackupTableName, unknown[]>>;
+      for (const table of await this.getAllTenantBackupTables(trx)) {
+        const name = String(table);
+        if (!(await this.tableExists(name, trx)) || !(await this.tableHasColumn(name, 'tenant_id', trx))) continue;
+        const baseQuery = (trx as Kysely<any>).selectFrom(name).selectAll().where(sql<boolean>`tenant_id = ${scope.tenantId}`);
+        const hasId = await this.tableHasColumn(name, 'id', trx);
+        const hasCreatedAt = !hasId && await this.tableHasColumn(name, 'created_at', trx);
+        snapshot[table] = hasId
+          ? await baseQuery.orderBy('id', 'asc').execute()
+          : hasCreatedAt
+            ? await baseQuery.orderBy('created_at', 'asc').execute()
+            : await baseQuery.execute();
+      }
+      return snapshot;
+    });
+    const envelope: BackupEnvelope = {
+      meta: { version: '1.2.0', exportedAt: new Date().toISOString(), source: 'manual-export', tenantId: scope.tenantId, accountId: scope.accountId },
+      tables,
+    };
+    const dbJson = JSON.stringify(envelope);
+    const hash = crypto.createHash('sha256').update(dbJson).digest('hex');
+    const manifest: BackupManifest = {
+      formatVersion: '1.0', appVersion: process.env.npm_package_version || '1.0.0',
+      createdAt: new Date().toISOString(), backupType: 'full', includesDatabase: true,
+      includesFiles: false, databaseChecksumSha256: hash, backupSchemaVersion: '1.2.0',
+    };
+    const zip = new AdmZip();
+    zip.addFile('database.json', Buffer.from(dbJson, 'utf8'));
+    zip.addFile('backup-manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8'));
+    return { zipBuffer: zip.toBuffer(), manifest, envelope };
+  }
   async listSnapshots(actor: AuthContext): Promise<Record<string, unknown>> { this.assertAdmin(actor); const scope = this.scope(actor); const result = await sql<{ id: number; created_at: string; label: string; source: string; payload_json: unknown }>`select id, created_at, label, source, payload_json from backup_snapshots where tenant_id = ${scope.tenantId} order by created_at desc, id desc limit 20`.execute(this.db); return { snapshots: result.rows.map((row) => ({ id: String(row.id), createdAt: row.created_at, reason: row.label || row.source || '', payload: row.payload_json })), scope }; }
   
   private async parseAndVerifyPayload(fileOrPayload: unknown): Promise<{ envelope: BackupEnvelope; manifest: BackupManifest }> {
@@ -590,7 +636,7 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
         for (const child of childSpecs) {
           await sql`delete from ${sql.table(child.name)} where ${sql.ref(child.fkColumn!)} in (
             select parent.${sql.ref(child.parentColumn!)} from ${sql.table(child.parent!)} as parent where parent.tenant_id = ${scope.tenantId}
-          )`.execute(trx).catch(() => undefined);
+          )`.execute(trx);
         }
 
         for (const table of CLEAR_ORDER) {
@@ -600,10 +646,10 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
 
         for (const [name, spec] of tenantSpecs) {
           if (spec.kind === 'tenant' && !CLEAR_ORDER.includes(name as any)) {
-            await sql`delete from ${sql.table(name)} where tenant_id = ${scope.tenantId}`.execute(trx).catch(() => undefined);
+            await sql`delete from ${sql.table(name)} where tenant_id = ${scope.tenantId}`.execute(trx);
           }
         }
-        await sql`delete from sessions where tenant_id = ${scope.tenantId}`.execute(trx).catch(() => undefined);
+        await sql`delete from sessions where tenant_id = ${scope.tenantId}`.execute(trx);
 
         // 2. Keep the backup's own ids whenever none of them is taken by another tenant (the normal
         // case: a tenant restoring its own backup on the same server). Then every FK, every
@@ -617,7 +663,7 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
         const pendingBranchDefaultLocations = new Map<string, string>();
 
         for (const table of [...new Set([...BACKUP_TABLES, ...Object.keys(envelope.tables)])]) {
-          if (String(table) === 'sessions' || String(table) === 'tenants') continue;
+          if (!isTenantBackupDataTable(String(table))) continue;
           const tableName = String(table);
           if (!(await this.tableExists(tableName))) continue;
           const colMeta = await this.getTableColumns(trx as unknown as Kysely<Database>, tableName);
