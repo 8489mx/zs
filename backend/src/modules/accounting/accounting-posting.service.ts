@@ -84,10 +84,10 @@ export class AccountingPostingService {
     }
   }
 
-  private toMoney(value: unknown): number {
+  private toMoney(value: unknown, digits: 2 | 3 = 2): number {
     const amount = Number(value ?? 0);
     if (!Number.isFinite(amount)) throw new AppError('Journal amount must be finite', 'INVALID_JOURNAL_AMOUNT', 400);
-    return Number(amount.toFixed(2));
+    return Number(amount.toFixed(digits));
   }
 
   private async resolveAccountWithFallback(
@@ -258,9 +258,9 @@ export class AccountingPostingService {
     return new Map(rows.map((row) => [Number(row.id), Boolean(row.is_active)]));
   }
 
-  private addLine(lines: JournalLineDraft[], next: JournalLineDraft): void {
-    const debit = this.toMoney(next.debit);
-    const credit = this.toMoney(next.credit);
+  private addLine(lines: JournalLineDraft[], next: JournalLineDraft, digits: 2 | 3 = 2): void {
+    const debit = this.toMoney(next.debit, digits);
+    const credit = this.toMoney(next.credit, digits);
     if (Number(next.debit) < 0 || Number(next.credit) < 0) throw new AppError('Journal amounts cannot be negative', 'INVALID_JOURNAL_LINE', 400);
     if (debit <= 0 && credit <= 0) return;
     if (debit > 0 && credit > 0) throw new AppError('Journal line cannot be both debit and credit', 'INVALID_JOURNAL_LINE', 400);
@@ -276,8 +276,8 @@ export class AccountingPostingService {
         && line.description === next.description,
     );
     if (existing) {
-      existing.debit = this.toMoney(existing.debit + debit);
-      existing.credit = this.toMoney(existing.credit + credit);
+      existing.debit = this.toMoney(existing.debit + debit, digits);
+      existing.credit = this.toMoney(existing.credit + credit, digits);
       return;
     }
 
@@ -1570,8 +1570,6 @@ export class AccountingPostingService {
 
   async postPurchase(queryable: DbOrTx, purchaseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
     const scope = requireTenantScope(auth);
-    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
-    const toBookMoney = (value: unknown) => Number(Number(value ?? 0).toFixed(bookDigits));
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingPurchaseJournal(queryable, purchaseId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -1591,6 +1589,7 @@ export class AccountingPostingService {
     if (!settings) throw new Error(`Accounting settings missing while posting purchase ${purchaseId}`);
 
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     const branchId = purchase.branch_id ? Number(purchase.branch_id) : null;
     const locationId = purchase.location_id ? Number(purchase.location_id) : null;
 
@@ -1607,16 +1606,16 @@ export class AccountingPostingService {
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
 
-    const lineCostTotal = toBookMoney(
+    const lineCostTotal = this.toMoney(
       purchaseItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.unit_cost || 0)), 0),
     );
 
-    const taxAmount = toBookMoney(purchase.tax_amount);
-    const total = toBookMoney(purchase.total);
+    const taxAmount = this.toMoney(purchase.tax_amount);
+    const total = this.toMoney(purchase.total);
     // Prefer header-consistent net purchase amount (total - tax) to keep discounts/tax aligned.
     // Fallback to summed item cost when header fields are not reliable.
-    const inventoryDebit = toBookMoney(Math.max(0, total - taxAmount)) > 0
-      ? toBookMoney(Math.max(0, total - taxAmount))
+    const inventoryDebit = this.toMoney(Math.max(0, total - taxAmount)) > 0
+      ? this.toMoney(Math.max(0, total - taxAmount))
       : lineCostTotal;
     const payableCredit = purchase.payment_type === 'credit' ? total : 0;
     const cashOrBankCredit = purchase.payment_type === 'credit' ? 0 : total;
@@ -1667,13 +1666,13 @@ export class AccountingPostingService {
         .where('tenant_id', '=', scope.tenantId)
         .execute();
       const grniBookedAmount = isGrnBill
-        ? toBookMoney(purchaseItems.reduce((sum, item) => sum + Number(item.grni_amount), 0))
-        : toBookMoney(grnLines.reduce((sum, line) => sum + Number(line.accepted_qty || 0) * Number(line.unit_cost || 0), 0));
+        ? this.toMoney(purchaseItems.reduce((sum, item) => sum + Number(item.grni_amount), 0))
+        : this.toMoney(grnLines.reduce((sum, line) => sum + Number(line.accepted_qty || 0) * Number(line.unit_cost || 0), 0));
 
-      const netInvoiceAmount = toBookMoney(Math.max(0, total - taxAmount));
-      const priceVariance = toBookMoney(netInvoiceAmount - grniBookedAmount);
+      const netInvoiceAmount = this.toMoney(Math.max(0, total - taxAmount));
+      const priceVariance = this.toMoney(netInvoiceAmount - grniBookedAmount);
 
-      this.addLine(lines, {
+      addBookLine({
         accountId: Number(grniAccount.id),
         description: `تصفية استحقاق بضاعة مستلمة GRNI - ${isGrnBill ? `فاتورة ${purchase.doc_no}` : `إذن رقم ${linkedGrn!.doc_no}`}`,
         debit: grniBookedAmount,
@@ -1688,7 +1687,7 @@ export class AccountingPostingService {
       if (Math.abs(priceVariance) > 0.0001 && ppvAccount) {
         if (priceVariance > 0) {
           // Unfavorable variance (invoice cost > GRN cost) -> Debit PPV (Expense)
-          this.addLine(lines, {
+          addBookLine({
             accountId: Number(ppvAccount.id),
             description: `فروق أسعار شراء غير مواتية PPV - فاتورة ${purchase.doc_no}`,
             debit: priceVariance,
@@ -1700,7 +1699,7 @@ export class AccountingPostingService {
           });
         } else {
           // Favorable variance (invoice cost < GRN cost) -> Credit PPV (Gain)
-          this.addLine(lines, {
+          addBookLine({
             accountId: Number(ppvAccount.id),
             description: `فروق أسعار شراء مواتية PPV - فاتورة ${purchase.doc_no}`,
             debit: 0,
@@ -1715,7 +1714,7 @@ export class AccountingPostingService {
     } else {
       // Direct purchase without prior GRN -> Dr. Inventory Asset (1140)
       if (inventoryDebit > 0) {
-        this.addLine(lines, {
+        addBookLine({
           accountId: inventoryAccountId,
           description: 'إثبات تكلفة شراء للمخزون',
           debit: inventoryDebit,
@@ -1729,7 +1728,7 @@ export class AccountingPostingService {
     }
 
     if (taxAmount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: purchaseTaxAccountId,
         description: 'ضريبة مشتريات قابلة للخصم',
         debit: taxAmount,
@@ -1742,7 +1741,7 @@ export class AccountingPostingService {
     }
 
     if (payableCredit > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: supplierPayableAccountId,
         description: 'استحقاق مورد من فاتورة شراء',
         debit: 0,
@@ -1755,7 +1754,7 @@ export class AccountingPostingService {
     }
 
     if (cashOrBankCredit > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: cashAccountId,
         description: 'سداد نقدي لفاتورة شراء',
         debit: 0,
@@ -1774,15 +1773,15 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting purchase ${purchaseId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
 
     if (normalizedLines.length === 0) {
       this.logger.warn(`Purchase ${purchaseId} resulted in empty journal lines (possibly 100% discount with no tax), skipping journal posting.`);
       return { posted: false, journalEntryId: 0 };
     }
 
-    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced purchase journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
