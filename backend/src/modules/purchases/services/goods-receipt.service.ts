@@ -14,6 +14,7 @@ import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-pe
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { normalizeBillNumber } from '../engines/duplicate-bill-detector.engine';
+import { assertGrnRequestedLocationScope } from '../engines/grn-location-policy.engine';
 
 @Injectable()
 export class GoodsReceiptService {
@@ -101,6 +102,9 @@ export class GoodsReceiptService {
       ? await this.db.selectFrom('stock_locations').select(['id', 'name'])
           .where('id', '=', locationId).where('tenant_id', '=', scope.tenantId).executeTakeFirst()
       : null;
+    // Never silently reroute an explicitly requested warehouse. The old
+    // fallback could create real stock and GRNI entries at the wrong location.
+    assertGrnRequestedLocationScope(locationId, location);
 
     if (!location) {
       // 1. If PO is specified, check if the PO has a warehouse_id that belongs to tenant
@@ -117,7 +121,7 @@ export class GoodsReceiptService {
         }
       }
 
-      // 2. If still not found (or legacy fallback 1 was sent but doesn't exist in this tenant),
+      // 2. If no location was requested and no PO warehouse was available,
       // auto-resolve tenant's default active location
       if (!location) {
         const defaultLoc = await this.db
