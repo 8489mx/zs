@@ -582,3 +582,8 @@
 ### 2026-10-25 — E/F: cashier fraud radar must not analyze only current register page
 
 - `ReturnsWorkspace` passed its currently filtered 20-row register page into `detectReturnsAnomalies` and the radar dashboard, causing false low risk scores and missing older rapid refunds. Radar now fetches the **complete sale-return history** lazily via paginated `returnsApi.listAll({filter:'sales'})` only when opened. While the full history is loading or unavailable, the screen displays loading/error instead of misleading zero fraud alerts. Suspicious row details can open from this history even when absent from the current register page. Regression `return-radar-selection.spec.ts` written, not executed. Full sales history quality and scalability must still be checked against real large tenants.
+
+
+### 2026-10-25 — B: tenant switch during asynchronous POS offline catalog warmup
+
+- `usePosCatalogWarmup` previously read the active tenant **after** receiving version response, and never checked tenant identity after downloading up to 25,000 items; an in-flight request could save an old tenant's catalog under a newly selected tenant, or clear the next tenant's cache on a stale zero-count response. Now capture the tenant before starting requests, fail closed when identity changes after each async stage and before writing/clearing local catalog. `pos-catalog-sync-policy` forces refreshing existing unowned metadata, preserving PERF-9 hourly/version cadence for owned caches. Regression tests appended to `pos-catalog-sync-policy.spec.ts`; not executed. Cross-tab IndexedDB transactions and actual Electron tenant changes require separate verification.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { POS_CATALOG_FULL_REFRESH_MS, shouldDownloadFullCatalog } from './pos-catalog-sync-policy';
+import { POS_CATALOG_FULL_REFRESH_MS, shouldDownloadFullCatalog, isPosCatalogWarmupTenantStable } from './pos-catalog-sync-policy';
 
 // PERF-9 guard (PERFORMANCE_CONSTITUTION.md). The offline catalog must stay available; only the
 // refresh cadence is policed here: version change or > 1 hour old — never on every heartbeat.
@@ -30,5 +30,21 @@ describe('shouldDownloadFullCatalog', () => {
 
   it('treats a last-sync time in the future (clock moved back) as stale', () => {
     expect(shouldDownloadFullCatalog({ remoteVersion: 'v2-1', storedVersion: 'v2-1', storedCount: 10, lastSyncedAt: minutesAgo(-120), now })).toBe(true);
+  });
+});
+
+
+describe('POS offline full-catalog tenant ownership', () => {
+  it('forces refresh of old caches missing tenant ownership even with same recent version', () => {
+    expect(shouldDownloadFullCatalog({
+      tenantId: 'tenant-b', storedTenantId: null, remoteVersion: 'v3',
+      storedVersion: 'v3', storedCount: 400, lastSyncedAt: minutesAgo(2), now,
+    })).toBe(true);
+  });
+  it('blocks old response after tenant change or logout, but allows stable ownership', () => {
+    expect(isPosCatalogWarmupTenantStable('tenant-a', 'tenant-b')).toBe(false);
+    expect(isPosCatalogWarmupTenantStable('tenant-a', '')).toBe(false);
+    expect(isPosCatalogWarmupTenantStable('', 'tenant-a')).toBe(false);
+    expect(isPosCatalogWarmupTenantStable('tenant-a', 'tenant-a')).toBe(true);
   });
 });
