@@ -13,6 +13,7 @@ import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
+import { assertFashionRemovedStockSafe } from '../engines/fashion-stock-safety.engine';
 
 type ProductRow = {
   id: number;
@@ -1798,6 +1799,7 @@ export class CatalogProductService {
     const drafts = rows.map((row) => ({ id: Number(row.id || 0), input: row, value: this.normalizeProductPayload(row) }));
     const newStyle = this.coerceNewStyleCode(drafts[0].value.styleCode);
     const groupKind = drafts[0].value.itemKind;
+    if (groupKind !== 'fashion') throw new AppError('Only fashion variants can be saved as a fashion group', 'FASHION_GROUP_INVALID', 400);
     if (!newStyle) throw new AppError('Style code is required', 'STYLE_CODE_INVALID', 400);
     const seenCombinations = new Set<string>();
     const seenNames = new Set<string>();
@@ -1898,11 +1900,14 @@ export class CatalogProductService {
               || drafts[0];
             const targetId = Number(target?.id);
             const removedId = Number(removedProduct.id);
-            if (!targetId || targetId === removedId) continue;
+            if (!targetId || targetId === removedId) {
+              throw new AppError('Keep an existing variant as the stock consolidation target', 'FASHION_CONSOLIDATION_TARGET_REQUIRED', 409);
+            }
 
             const locStocks = await trx.selectFrom('product_location_stock')
               .selectAll().where('product_id', '=', removedId)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+            assertFashionRemovedStockSafe(removedProduct, locStocks, Number(target?.value.costPrice ?? 0));
 
             for (const ls of locStocks) {
               const qtyToMove = Number(ls.qty || 0);
@@ -1910,7 +1915,7 @@ export class CatalogProductService {
 
               await applyStockDelta(trx, {
                 productId: removedId,
-                locationId: Number(ls.location_id),
+                locationId: ls.location_id == null ? null : Number(ls.location_id),
                 branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
                 delta: -qtyToMove,
                 tenantId: this.tenantId(actor),
@@ -1921,7 +1926,7 @@ export class CatalogProductService {
 
               await applyStockDelta(trx, {
                 productId: targetId,
-                locationId: Number(ls.location_id),
+                locationId: ls.location_id == null ? null : Number(ls.location_id),
                 branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
                 delta: qtyToMove,
                 tenantId: this.tenantId(actor),
@@ -1951,7 +1956,7 @@ export class CatalogProductService {
                 note: `دمج رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) إلى الصنف الأساسي`,
                 reference_type: 'product',
                 reference_id: removedId,
-                location_id: Number(ls.location_id),
+                location_id: ls.location_id == null ? null : Number(ls.location_id),
                 branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
@@ -1969,7 +1974,7 @@ export class CatalogProductService {
                 note: `تحويل ودمج رصيد المقاس الملغي إلى الصنف الأساسي (${target.value.name || targetId})`,
                 reference_type: 'product',
                 reference_id: targetId,
-                location_id: Number(ls.location_id),
+                location_id: ls.location_id == null ? null : Number(ls.location_id),
                 branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
@@ -1982,6 +1987,7 @@ export class CatalogProductService {
             const locStocks = await trx.selectFrom('product_location_stock')
               .selectAll().where('product_id', '=', removedId)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+            assertFashionRemovedStockSafe(removedProduct, locStocks);
 
             for (const ls of locStocks) {
               const qtyToDeduct = Number(ls.qty || 0);
@@ -1989,7 +1995,7 @@ export class CatalogProductService {
 
               await applyStockDelta(trx, {
                 productId: removedId,
-                locationId: Number(ls.location_id),
+                locationId: ls.location_id == null ? null : Number(ls.location_id),
                 branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
                 delta: -qtyToDeduct,
                 tenantId: this.tenantId(actor),
@@ -2013,7 +2019,7 @@ export class CatalogProductService {
                 note: `تسوية وتصفير رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) عند تعديل الموديل`,
                 reference_type: 'inventory_adjustment',
                 reference_id: removedId,
-                location_id: Number(ls.location_id),
+                location_id: ls.location_id == null ? null : Number(ls.location_id),
                 branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
@@ -2193,7 +2199,7 @@ export class CatalogProductService {
               reference_id: productId, location_id: resolvedWarehouseId!, created_by: actor.userId,
               ...this.tenantFields(actor),
             } as any).execute();
-            await this.postOpeningStock(trx, productId, stock, value.costPrice, value.warehouseId!, actor);
+            await this.postOpeningStock(trx, productId, stock, value.costPrice, resolvedWarehouseId, actor);
           }
           created++;
         }
@@ -2428,7 +2434,7 @@ export class CatalogProductService {
         consumer_price: normalized.consumerPrice === undefined ? (existing as any).consumer_price : (normalized.consumerPrice ?? null),
         min_selling_price: normalized.minSellingPrice === undefined ? existing.min_selling_price : normalized.minSellingPrice,
         min_stock_qty: normalized.minStock,
-        default_location_id: normalized.warehouseId || null,
+        default_location_id: normalized.warehouseId || existing.default_location_id || null,
         notes: normalized.notes,
         metadata: metaObj ? JSON.stringify(metaObj) : null,
         calories: normalized.calories ?? null,
