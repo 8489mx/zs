@@ -9,6 +9,11 @@ import { Database } from '../../database/database.types';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { validateDistributorInvoiceLines } from './engines/distributor-invoice-validation.engine';
+import { buildDistributorPurchaseItem } from './engines/distributor-purchase.engine';
+import { PurchasesService } from '../purchases/purchases.service';
+import { AppError } from '../../common/errors/app-error';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits, toMinorUnits, fromMinorUnits } from '../accounting/engines/money-minor-units.engine';
 import { UpsertDrugDto } from './dto/upsert-drug.dto';
 import { UpsertBatchDto } from './dto/upsert-batch.dto';
 import { UpsertPrescriptionDto } from './dto/upsert-prescription.dto';
@@ -21,6 +26,7 @@ export class PharmacyService {
   constructor(
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
+    private readonly purchases: PurchasesService,
   ) {}
 
   // -------------------------------------------------------------
@@ -226,145 +232,121 @@ export class PharmacyService {
   async importDistributorInvoice(
     auth: AuthContext,
     dto: {
-      distributor: string;
-      invoiceNumber?: string;
-      invoiceDate?: string;
+      distributor: string; supplierId?: number; locationId?: number;
+      invoiceNumber?: string; invoiceDate?: string;
+      paymentType?: 'credit' | 'cash';
       lines: Array<{
-        productName: string;
-        barcode?: string;
-        quantity: number;
-        bonusQuantity?: number;
-        publicPrice: number;
-        costPrice: number;
-        expiryDate: string;
-        batchNumber?: string;
+        productName: string; barcode?: string;
+        quantity: number; bonusQuantity?: number;
+        publicPrice: number; costPrice: number;
+        expiryDate: string; batchNumber?: string;
       }>;
     },
   ) {
     const scope = requireTenantScope(auth);
-    let importedItemsCount = 0;
-    let totalQuantity = 0;
-    let totalCostSum = 0;
-    let totalPublicSum = 0;
-
     validateDistributorInvoiceLines(dto.lines);
-    // All imported batches and their treasury source must commit together.
-    return await this.db.transaction().execute(async (trx) => {
+    const distributor = String(dto.distributor || '').trim();
+    const invoiceNo = String(dto.invoiceNumber || '').trim();
+    if (!distributor || !invoiceNo || invoiceNo.length > 100) {
+      throw new AppError('A named supplier and unique distributor invoice number are required',
+        'PHARMACY_SUPPLIER_INVOICE_REQUIRED', 422);
+    }
+    // This endpoint is an adapter to the existing purchase/GRN engine; it MUST
+    // NOT create independent inventory, cash, or batch rows.
+    let supplierQuery = this.db.selectFrom('suppliers')
+      .select(['id', 'name']).where('tenant_id', '=', scope.tenantId)
+      .where('is_active', '=', true);
+    if (dto.supplierId) {
+      supplierQuery = supplierQuery.where('id', '=', Number(dto.supplierId));
+    } else {
+      supplierQuery = supplierQuery.where(sql<boolean>`lower(trim(name)) = lower(${distributor})`);
+    }
+    const suppliers = await supplierQuery.limit(2).execute();
+    if (suppliers.length !== 1) {
+      throw new AppError('Distributor must match exactly one active tenant supplier',
+        'PHARMACY_SUPPLIER_NOT_LINKED', 422);
+    }
+    const supplierId = Number(suppliers[0].id);
+    let locationQuery = this.db.selectFrom('stock_locations')
+      .select(['id', 'branch_id']).where('tenant_id', '=', scope.tenantId)
+      .where('is_active', '=', true);
+    if (dto.locationId) locationQuery = locationQuery.where('id', '=', Number(dto.locationId));
+    const locations = await locationQuery.limit(2).execute();
+    if (locations.length !== 1 || !locations[0].branch_id) {
+      throw new AppError('Select a single active tenant receiving location',
+        'PHARMACY_RECEIPT_LOCATION_REQUIRED', 422);
+    }
+    const locationId = Number(locations[0].id);
+    const branchId = Number(locations[0].branch_id);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+
+    const items: ReturnType<typeof buildDistributorPurchaseItem>[] = [];
+    let totalQuantity = 0;
+    let totalCostMinor = 0;
+    let totalPublicSum = 0;
     for (const line of dto.lines) {
-
-      const qty = Number(line.quantity || 0) + Number(line.bonusQuantity || 0);
-      const cost = Number(line.costPrice || 0);
-      const pubPrice = Number(line.publicPrice || 0);
-
-      totalQuantity += qty;
-      totalCostSum += Number(line.quantity || 0) * cost;
-      totalPublicSum += qty * pubPrice;
-
-      // 1. Ensure drug exists in pharmacy_drugs
-      let query = trx
-        .selectFrom('pharmacy_drugs')
+      let query = this.db.selectFrom('pharmacy_drugs').select(['id', 'product_id'])
         .where('tenant_id', '=', scope.tenantId);
-
-      if (line.barcode) {
-        query = query.where((eb) =>
-          eb.or([
-            eb('trade_name', '=', line.productName),
-            eb('barcode', '=', line.barcode!),
-          ])
-        );
+      if (line.barcode?.trim()) {
+        const barcode = line.barcode.trim();
+        query = query.where((eb) => eb.or([
+          eb('barcode', '=', barcode), eb('trade_name', '=', line.productName.trim()),
+        ]));
       } else {
-        query = query.where('trade_name', '=', line.productName);
+        query = query.where('trade_name', '=', line.productName.trim());
       }
-
-      const drug = await query.select(['id', 'units_per_box']).executeTakeFirst();
-      let drugId: number;
-
-      if (!drug) {
-        // Look up in Master Catalog for rich info
-        const masterMatch = EGYPTIAN_MASTER_DRUGS.find(
-          (m) =>
-            m.trade_name.toLowerCase() === line.productName.toLowerCase() ||
-            (line.barcode && m.barcode === line.barcode)
-        );
-
-        const newDrug = await trx
-          .insertInto('pharmacy_drugs')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            trade_name: line.productName,
-            trade_name_ar: masterMatch?.trade_name_ar || null,
-            active_ingredient: masterMatch?.active_ingredient || 'دواء مسجل',
-            active_ingredient_ar: masterMatch?.active_ingredient_ar || null,
-            dosage_form: masterMatch?.dosage_form || 'أقراص (Tablets)',
-            strength: masterMatch?.strength || null,
-            manufacturer: masterMatch?.manufacturer || dto.distributor,
-            drug_class: masterMatch?.drug_class || 'أدوية عامة',
-            prescription_required: masterMatch?.prescription_required ?? false,
-            units_per_box: masterMatch?.units_per_box || 2,
-            unit_name: masterMatch?.unit_name || 'شريط',
-            box_price: pubPrice || masterMatch?.box_price || 0,
-            strip_price: pubPrice ? Number((pubPrice / (masterMatch?.units_per_box || 2)).toFixed(2)) : (masterMatch?.strip_price || 0),
-            barcode: line.barcode || masterMatch?.barcode || null,
-            controlled_level: masterMatch?.controlled_level || 'none',
-          })
-          .returningAll()
-          .executeTakeFirstOrThrow();
-
-        drugId = newDrug.id;
-      } else {
-        drugId = drug.id;
+      const matches = await query.limit(2).execute();
+      if (matches.length !== 1 || !matches[0].product_id) {
+        throw new AppError('Link the imported drug to exactly one inventory product before purchasing',
+          'PHARMACY_PRODUCT_NOT_LINKED', 422);
       }
-
-      // 2. Insert Batch entry
-      const batchNo = line.batchNumber || formatDailyDocumentNumber('BATCH', drugId);
-      await trx
-        .insertInto('pharmacy_batches')
-        .values({
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-          drug_id: drugId,
-          batch_number: batchNo,
-          expiry_date: line.expiryDate || '2027-12',
-          quantity: qty,
-          unit_cost: cost,
-          supplier_name: dto.distributor,
-          status: 'active',
-          notes: `وارد فاتورة ${dto.distributor} رقم ${dto.invoiceNumber || 'مباشرة'}`,
-        })
-        .execute();
-
-      importedItemsCount++;
+      const productId = Number(matches[0].product_id);
+      const product = await this.db.selectFrom('products').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', productId)
+        .where('is_active', '=', true).executeTakeFirst();
+      if (!product) {
+        throw new AppError('Linked inventory product is missing or inactive',
+          'PHARMACY_PRODUCT_NOT_LINKED', 422);
+      }
+      let item: ReturnType<typeof buildDistributorPurchaseItem>;
+      try {
+        item = buildDistributorPurchaseItem(line, productId, locationId, moneyDigits);
+        totalCostMinor += toMinorUnits(Number(line.quantity) * Number(line.costPrice), moneyDigits);
+      } catch (error) {
+        throw new AppError((error as Error).message, 'PHARMACY_INVOICE_LINE_INVALID', 422);
+      }
+      if (!Number.isSafeInteger(totalCostMinor)) {
+        throw new AppError('Distributor invoice monetary total exceeds safe range',
+          'PHARMACY_INVOICE_TOTAL_INVALID', 422);
+      }
+      totalQuantity += item.qty;
+      totalPublicSum += item.qty * Number(line.publicPrice);
+      items.push(item);
+    }
+    // Purchase totals are still rounded to cents upstream. Never silently book a
+    // 0.001 KWD/OMR purchase in that two-decimal purchase/AR engine.
+    if (moneyDigits === 3) {
+      throw new AppError('Three-decimal distributor purchase totals await full purchase engine certification',
+        'PHARMACY_PURCHASE_CURRENCY_PRECISION_PENDING', 422);
     }
 
-    // Record a single bulk cash outflow for the total invoice cost
-    if (totalCostSum > 0) {
-        await trx
-          .insertInto('treasury_transactions')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            txn_type: 'expense',
-            amount: -totalCostSum,
-            note: `فاتورة موزع: ${dto.distributor}${dto.invoiceNumber ? ` رقم ${dto.invoiceNumber}` : ''} — ${importedItemsCount} صنف — إجمالي التكلفة: ${totalCostSum.toFixed(2)} ج`,
-            reference_type: 'pharmacy_batch',
-            reference_id: null,
-            created_by: auth.userId ? Number(auth.userId) : null,
-          } as any)
-          .execute();
+    const recorded = await this.purchases.createPurchase({
+      supplierId, supplierInvoiceNo: invoiceNo,
+      paymentType: dto.paymentType === 'cash' ? 'cash' : 'credit',
+      branchId, locationId, items, taxRate: 0, pricesIncludeTax: false,
+      note: `Imported pharmacy distributor invoice ${distributor} / ${invoiceNo}`,
+    }, auth, `pharmacy:${supplierId}:${invoiceNo}`);
+    const purchaseId = Number(recorded.purchaseId);
+    if (!Number.isSafeInteger(purchaseId) || purchaseId <= 0) {
+      throw new AppError('Purchase creation did not return a valid source document',
+        'PHARMACY_PURCHASE_RECOVERY_REQUIRED', 422);
     }
-
     return {
-      success: true,
-      distributor: dto.distributor,
-      invoiceNumber: dto.invoiceNumber,
-      importedLinesCount: importedItemsCount,
-      totalQuantity,
-      totalCostSum,
-      totalPublicSum,
-      message: `تم استيراد فاتورة ${dto.distributor} وتحديث الأرصدة والتشغيلات لعدد ${importedItemsCount} صنف`,
+      success: true, distributor, invoiceNumber: invoiceNo, purchaseId,
+      importedLinesCount: items.length, totalQuantity,
+      totalCostSum: fromMinorUnits(totalCostMinor, moneyDigits), totalPublicSum,
+      message: 'Distributor invoice was posted through canonical purchasing, supplier, inventory and GL',
     };
-    });
   }
 
   // -------------------------------------------------------------
