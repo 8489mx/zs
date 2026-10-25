@@ -1,0 +1,422 @@
+{
+  "schema_version": 1,
+  "initialized_on": "2026-10-25",
+  "baseline_code_commit": "05433c03cc352160bf216f1b3d27375b20ca280f",
+  "meaning": "State reflects verification evidence for the CURRENT code; prior scoped audits remain in REVIEW_ROADMAP.md. No tests were rerun to initialize this register.",
+  "modules": [
+    {
+      "module": "accounting",
+      "owner": "ACCOUNTING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "activation",
+      "owner": "PLATFORM_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "addons",
+      "owner": "PRICING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "ai-copilot",
+      "owner": "AI_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "approvals",
+      "owner": "APPROVALS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "bosta",
+      "owner": "SHIPPING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "cash-drawer",
+      "owner": "ACCOUNTING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "catalog",
+      "owner": "CATALOG_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "contracting",
+      "owner": "CONTRACTING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "crm",
+      "owner": "CRM_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "delivery-reps",
+      "owner": "DELIVERY_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "gcc-shipping",
+      "owner": "SHIPPING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "hr",
+      "owner": "HR_CAPABILITIES.md",
+      "state": "release_blocked",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [
+        "Country-by-country official statutory rules and release validation for EG/SA/KW/QA/OM pending",
+        "KWD and OMR 3-decimal end-to-end accuracy and bank/WPS acceptance unverified",
+        "Full HR integration and user acceptance tests not run/accepted for current head"
+      ],
+      "blocker_sources": [
+        "REVIEW_ROADMAP.md",
+        "HR_PAYROLL_STATUTORY_RELEASE_MATRIX.md"
+      ]
+    },
+    {
+      "module": "import-sales",
+      "owner": "IMPORT_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "inventory",
+      "owner": "INVENTORY_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "maintenance",
+      "owner": "MAINTENANCE_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "manager-actions",
+      "owner": "APPROVALS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "manufacturing",
+      "owner": "MANUFACTURING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "maritime-freight",
+      "owner": "FREIGHT_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "partners",
+      "owner": "PARTNERS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "pharmacy",
+      "owner": "PHARMACY_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "pricing",
+      "owner": "PRICING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "public",
+      "owner": "SAAS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "purchases",
+      "owner": "PURCHASES_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "reports",
+      "owner": "REPORTS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "returns",
+      "owner": "RETURNS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "saas-admin",
+      "owner": "SAAS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "sales",
+      "owner": "SALES_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "services",
+      "owner": "SERVICES_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "sessions",
+      "owner": "PLATFORM_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "settings",
+      "owner": "SETTINGS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "storefront",
+      "owner": "STOREFRONT_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "tax-integration",
+      "owner": "TAX_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "tenant-subscription",
+      "owner": "SAAS_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "tradein",
+      "owner": "TRADEIN_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "treasury",
+      "owner": "ACCOUNTING_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    },
+    {
+      "module": "users",
+      "owner": "PLATFORM_CAPABILITIES.md",
+      "state": "unverified_current_head",
+      "last_verified_commit": null,
+      "verified_at": null,
+      "verified_scope": [],
+      "test_evidence": [],
+      "blockers": [],
+      "blocker_sources": []
+    }
+  ]
+}
