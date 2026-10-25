@@ -11,6 +11,8 @@ import { applyStockDelta } from '../../common/utils/location-stock-ledger';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { UpsertTradeInDto } from './dto/upsert-tradein.dto';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
+import { valueStockReceipt } from '../accounting/inventory-valuation';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
 
 @Injectable()
 export class TradeInService {
@@ -18,6 +20,7 @@ export class TradeInService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   async listTransactions(
@@ -147,6 +150,15 @@ export class TradeInService {
       if (existingIntake) {
         throw new AppError(`Device serial already has trade-in document ${existingIntake.doc_no}; reconcile the original before retrying`, 'TRADEIN_DUPLICATE_SERIAL', 409);
       }
+      const agreed = Number(payload.agreedPurchasePrice);
+      if (!Number.isFinite(agreed) || agreed < 0) {
+        throw new AppError('Trade-in acquisition value is invalid', 'TRADEIN_COST_INVALID', 400);
+      }
+      if (agreed > 0 && ((payload.transactionType ?? 'cash_purchase') !== 'cash_purchase' ||
+          (payload.paymentMethod ?? 'cash') !== 'cash' ||
+          (!payload.createdProductId && !payload.autoAddToInventory))) {
+        throw new AppError('Paid trade-in must be a cash purchase with a registered stock receipt; exchange or deferred purchase needs its dedicated settlement flow', 'TRADEIN_POSTING_UNSUPPORTED', 422);
+      }
       const conditionState = payload.deviceConditionState || 'used';
       const stateSuffixMap: Record<string, string> = {
         new_sealed: '(جديد متبرشم)',
@@ -208,121 +220,57 @@ export class TradeInService {
         .execute();
 
       let targetProductId = payload.createdProductId ?? null;
-
-      // If autoAddToInventory is requested, find or create the product in catalog
+      if (targetProductId != null) {
+        const target = await trx.selectFrom('products').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(targetProductId)).executeTakeFirst();
+        if (!target || !Number.isSafeInteger(Number(targetProductId))) {
+          throw new AppError('Trade-in linked product does not belong to this tenant', 'TRADEIN_PRODUCT_SCOPE_INVALID', 404);
+        }
+      }
       if (payload.autoAddToInventory && !targetProductId) {
         const brandPrefix = payload.deviceBrand?.trim() ? `${payload.deviceBrand.trim()} ` : '';
         const stateSuffix = stateSuffixMap[conditionState] || '(مستعمل)';
         const productName = `${brandPrefix}${payload.deviceModel.trim()} ${stateSuffix}`;
-
-        const existingProd = await trx
-          .selectFrom('products')
-          .select(['id', 'stock_qty'])
-          .where('tenant_id', '=', scope.tenantId)
-          .where('name', '=', productName)
-          .executeTakeFirst();
-
+        const existingProd = await trx.selectFrom('products')
+          .select('id').where('tenant_id', '=', scope.tenantId).where('name', '=', productName).executeTakeFirst();
         if (existingProd) {
           targetProductId = Number(existingProd.id);
-          await trx
-            .updateTable('products')
-            .set({ track_serials: true })
-            .where('tenant_id', '=', scope.tenantId)
-            .where('id', '=', targetProductId)
-            .execute();
-
-          const stockChange = await applyStockDelta(trx, {
-            productId: targetProductId,
-            delta: 1,
-            branchId: payload.branchId ?? null,
-            locationId: payload.locationId ?? null,
-            tenantId: scope.tenantId,
-            accountId: scope.accountId,
-            allowNegative: true,
-          });
-
-          await trx
-            .insertInto('stock_movements')
-            .values({
-              product_id: targetProductId,
-              movement_type: 'tradein_in',
-              qty: 1,
-              before_qty: stockChange.scopeBefore,
-              after_qty: stockChange.scopeAfter,
-              reason: 'شراء جهاز مستعمل',
-              note: `شراء مستعمل إيصال ${docNo}`,
-              reference_type: 'trade_in',
-              reference_id: txnId,
-              branch_id: payload.branchId ?? null,
-              location_id: payload.locationId ?? null,
-              created_by: auth.userId ? Number(auth.userId) : null,
-              tenant_id: scope.tenantId,
-              account_id: scope.accountId,
-            } as any)
-            .execute();
         } else {
-          const resalePrice = payload.resalePrice && payload.resalePrice > 0 ? payload.resalePrice : payload.agreedPurchasePrice;
-          const insertedProd = await trx
-            .insertInto('products')
-            .values({
-              tenant_id: scope.tenantId,
-              account_id: scope.accountId,
-              name: productName,
-              barcode: `DEV-${payload.serialNumber.trim().slice(-8)}`,
-              cost_price: payload.agreedPurchasePrice,
-              retail_price: resalePrice,
-              wholesale_price: payload.agreedPurchasePrice,
-              stock_qty: 0,
-              min_stock_qty: 0,
-              is_active: true,
-              notes: `تم شراؤه وتنازل العميل عبر إيصال ${docNo} [${conditionTag}]`,
-              track_serials: true,
-            })
-            .returning('id')
-            .executeTakeFirst();
-
-          if (insertedProd?.id) {
-            targetProductId = Number(insertedProd.id);
-            const stockChange = await applyStockDelta(trx, {
-              productId: targetProductId,
-              delta: 1,
-              branchId: payload.branchId ?? null,
-              locationId: payload.locationId ?? null,
-              tenantId: scope.tenantId,
-              accountId: scope.accountId,
-              allowNegative: true,
-            });
-
-            await trx
-              .insertInto('stock_movements')
-              .values({
-                product_id: targetProductId,
-                movement_type: 'tradein_in',
-                qty: 1,
-                before_qty: stockChange.scopeBefore,
-                after_qty: stockChange.scopeAfter,
-                reason: 'شراء جهاز مستعمل',
-                note: `شراء مستعمل إيصال ${docNo}`,
-                reference_type: 'trade_in',
-                reference_id: txnId,
-                branch_id: payload.branchId ?? null,
-                location_id: payload.locationId ?? null,
-                created_by: auth.userId ? Number(auth.userId) : null,
-                tenant_id: scope.tenantId,
-                account_id: scope.accountId,
-              } as any)
-              .execute();
-          }
+          const resalePrice = payload.resalePrice && payload.resalePrice > 0 ? payload.resalePrice : agreed;
+          const insertedProd = await trx.insertInto('products').values({
+            tenant_id: scope.tenantId, account_id: scope.accountId, name: productName,
+            barcode: `DEV-${payload.serialNumber.trim().slice(-8)}-${txnId}`,
+            cost_price: agreed, retail_price: resalePrice, wholesale_price: agreed,
+            stock_qty: 0, min_stock_qty: 0, is_active: true, track_serials: true,
+            notes: `تم شراؤه وتنازل العميل عبر إيصال ${docNo} [${conditionTag}]`,
+          }).returning('id').executeTakeFirst();
+          if (!insertedProd?.id) throw new AppError('Could not create used inventory product', 'TRADEIN_PRODUCT_CREATE_FAILED', 500);
+          targetProductId = Number(insertedProd.id);
         }
-
-        if (targetProductId) {
-          await trx
-            .updateTable('trade_in_transactions')
-            .set({ created_product_id: targetProductId })
-            .where('id', '=', txnId)
-            .where('tenant_id', '=', scope.tenantId)
-            .execute();
-        }
+      }
+      if (targetProductId) {
+        // Also receive explicit existing product links: a recorded IMEI without
+        // an actual stock movement previously created invisible inventory.
+        await trx.updateTable('products').set({track_serials:true})
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', Number(targetProductId)).execute();
+        const stockChange = await applyStockDelta(trx, {
+          productId: Number(targetProductId), delta: 1,
+          branchId: payload.branchId ?? null, locationId: payload.locationId ?? null,
+          tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: false,
+        });
+        await trx.insertInto('stock_movements').values({
+          product_id: Number(targetProductId), movement_type: 'tradein_in',
+          qty: 1, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter,
+          unit_cost: agreed, total_cost: agreed,
+          reason: 'شراء جهاز مستعمل', note: `شراء مستعمل إيصال ${docNo}`,
+          reference_type: 'trade_in', reference_id: txnId,
+          branch_id: payload.branchId ?? null, location_id: payload.locationId ?? null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+          tenant_id: scope.tenantId, account_id: scope.accountId,
+        } as any).execute();
+        await valueStockReceipt(trx, scope.tenantId, Number(targetProductId), stockChange.globalAfter, 1, agreed);
+        await trx.updateTable('trade_in_transactions').set({ created_product_id: Number(targetProductId) })
+          .where('tenant_id', '=', scope.tenantId).where('id', '=', txnId).execute();
       }
 
       // If a product ID was linked or auto-created, automatically register the IMEI in product_serials
@@ -372,6 +320,8 @@ export class TradeInService {
           .execute();
       }
 
+      // Receipt, cash transfer and posted journal commit or roll back as one unit.
+      await this.accountingPosting.postTradeInCashPurchase(trx, txnId, auth);
       return { id: String(txnId), docNo };
     });
 
