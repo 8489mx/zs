@@ -117,11 +117,14 @@ export function buildInventoryReportItems(
     const assignedQty = breakdown.reduce((sum, item) => sum + (item.locationId ? item.qty : 0), 0);
     const unassignedQty = Math.max(0, stockQty - assignedQty);
     const stockLocationExcessQty = Math.max(0, Number((assignedQty - stockQty).toFixed(3)));
-    const locationsLabel = stockLocationExcessQty > 0.001
-      ? `⚠ فرق مخزون يحتاج مصالحة: المواقع تزيد عن الإجمالي بـ ${stockLocationExcessQty}`
-      : breakdown.length
-        ? breakdown.slice(0, 3).map(formatLocationLabel).join(' • ')
-        : (stockQty > 0 ? `مخزون غير مخصص: ${stockQty}` : '—');
+    // Show the complete reconciliation state, not only the first three
+    // positive stock locations. Unassigned inventory is financially material.
+    const labels = breakdown.slice(0, 3).map(formatLocationLabel);
+    if (unassignedQty > 0.001) labels.push(`مخزون غير مخصص: ${unassignedQty}`);
+    if (stockLocationExcessQty > 0.001) {
+      labels.push(`فرق مخزون يحتاج مصالحة: المواقع تزيد عن الإجمالي بـ ${stockLocationExcessQty}`);
+    }
+    const locationsLabel = labels.length ? labels.join(' • ') : '—';
 
     return {
       id: String(row.id || ''),

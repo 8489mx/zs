@@ -30,6 +30,7 @@ import {
   assert.equal(items[0].topLocationName, 'المخزن أ');
   assert.equal(items[0].assignedQty, 6);
   assert.equal(items[0].unassignedQty, 3);
+  assert.match(items[0].locationsLabel, /مخزون غير مخصص: 3/);
   assert.equal(items[0].stockLocationExcessQty, 0);
   assert.match(items[0].locationsLabel, /المخزن أ/);
   assert.equal(items[1].status, 'out');

@@ -558,3 +558,8 @@
 
 - A user could select a return quantity, switch focus or experience a parallel return, then press Confirm while the saved line quantity had decreased; the form only blocked initial text entry, not the final selected line quantities. `ReturnsWorkspace` now validates **all selected original invoice line IDs** against the complete invoice-specific returned balances before opening confirmation and inside the submission mutation. It rejects unlinked line IDs, invalid or excessive quantities and legacy-blocked products; it displays an actionable warning. A pre-existing ambiguous submission still retries its frozen original payload/key instead of generating a different request.
 - Test coverage added to `return-remaining-quantity.spec.ts` for refreshed balances and duplicate product IDs. Code authored, not executed; server-side transaction locking remains the final correctness boundary.
+
+
+### 2026-10-25 — F follow-up: report unassigned stock and reconciliation detail
+
+- When site rows existed but did not sum to global stock, the inventory report displayed only the first locations while hiding remaining unassigned stock. The location label now explicitly shows the positive unassigned balance for each clothing SKU, and appends any over-assignment reconciliation warning without discarding the displayed location details. Existing tests amended for this output (not executed). Removed decorative warning emoji to follow UI standards.
