@@ -1,4 +1,6 @@
 import { valueStockReceipt } from '../accounting/inventory-valuation';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney as roundBookMoney } from '../accounting/engines/money-minor-units.engine';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
@@ -75,7 +77,7 @@ export class ReturnsService {
 
   private async addCustomerLedgerEntry(trx: Kysely<Database>, customerId: number, amount: number, entryType: string, note: string, returnDocumentId: number, auth: AuthContext, branchId: number | null, locationId: number | null): Promise<void> {
     const customer = await trx.selectFrom('customers').select(['balance']).where('id', '=', customerId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
-    const balanceAfter = calculateNextLedgerBalance(customer.balance, amount);
+    const balanceAfter = calculateNextLedgerBalance(customer.balance, amount, currencyMoneyDigits(await tenantBaseCurrency(trx, this.scope(auth).tenantId)));
     await trx.insertInto('customer_ledger').values({ customer_id: customerId, entry_type: entryType, amount, balance_after: balanceAfter, note, reference_type: 'return_document', reference_id: returnDocumentId, return_document_id: returnDocumentId, branch_id: branchId, location_id: locationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
     await trx.updateTable('customers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(auth)).execute();
   }
@@ -83,14 +85,14 @@ export class ReturnsService {
   private async addSupplierLedgerEntry(trx: Kysely<Database>, supplierId: number, amount: number, entryType: string, note: string, returnDocumentId: number, auth: AuthContext, branchId: number | null, locationId: number | null): Promise<void> {
     // Lock supplier ledger balance against concurrent payments and returns.
     const supplier = await trx.selectFrom('suppliers').select(['balance']).where('id', '=', supplierId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
-    const balanceAfter = calculateNextLedgerBalance(supplier.balance, amount);
+    const balanceAfter = calculateNextLedgerBalance(supplier.balance, amount, currencyMoneyDigits(await tenantBaseCurrency(trx, this.scope(auth).tenantId)));
     await trx.insertInto('supplier_ledger').values({ supplier_id: supplierId, entry_type: entryType, amount, balance_after: balanceAfter, note, reference_type: 'return_document', reference_id: returnDocumentId, return_document_id: returnDocumentId, branch_id: branchId, location_id: locationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
     await trx.updateTable('suppliers').set({ balance: balanceAfter, updated_at: sql`NOW()` }).where('id', '=', supplierId).where(this.tenantPredicate(auth)).execute();
   }
 
   private async addStoreCredit(trx: Kysely<Database>, customerId: number, amount: number, auth: AuthContext): Promise<void> {
     const customer = await trx.selectFrom('customers').select(['store_credit_balance']).where('id', '=', customerId).where(this.tenantPredicate(auth)).forUpdate().executeTakeFirstOrThrow();
-    const nextBalance = calculateNextLedgerBalance(customer.store_credit_balance, amount);
+    const nextBalance = calculateNextLedgerBalance(customer.store_credit_balance, amount, currencyMoneyDigits(await tenantBaseCurrency(trx, this.scope(auth).tenantId)));
     await trx.updateTable('customers').set({ store_credit_balance: nextBalance, updated_at: sql`NOW()` }).where('id', '=', customerId).where(this.tenantPredicate(auth)).execute();
   }
 
@@ -438,6 +440,7 @@ export class ReturnsService {
   private async createSaleReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext, approvedByName?: string,
     exchangePrepared?: (context: ExchangeReturnContext) => void): Promise<number[]> {
     const scope = this.scope(auth);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
     const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     if (exchangePrepared && (!sale.customer_id || Number(sale.total) - Number(sale.paid_amount) - Number(sale.store_credit_used || 0) > 0.001)) {
@@ -589,7 +592,7 @@ export class ReturnsService {
         qty: returnedQtyByLine.get(saleLineId) || 0,
         amount: returnedAmountByLine.get(saleLineId) || 0,
         tax: returnedTaxByLine.get(saleLineId) || 0,
-      });
+      }, moneyDigits);
       const returnedUnitCost = Number(saleItem.cost_price || 0) / Number(saleItem.unit_multiplier || 1);
       const previouslyReturnedBaseQty = Number((
         (returnedQtyByLine.get(saleLineId) || 0) +
@@ -678,7 +681,7 @@ export class ReturnsService {
 
                const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: returnToThis, branchId: branchId, locationId: alloc.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true, disableAutoDrain: true });
                await valueStockReceipt(trx, scope.tenantId, requestItem.productId, stockChange.globalAfter, returnToThis, returnedUnitCost * returnToThis);
-               await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * returnToThis).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+               await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: returnToThis, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: roundBookMoney(returnedUnitCost * returnToThis, moneyDigits), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: branchId, location_id: alloc.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
             }
          }
          
@@ -691,13 +694,13 @@ export class ReturnsService {
       } else {
          const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: preparedLine.stockDelta, branchId: sale.branch_id, locationId: sale.location_id, tenantId: scope.tenantId, accountId: scope.accountId, allowNegative: true, disableAutoDrain: true });
          await valueStockReceipt(trx, scope.tenantId, requestItem.productId, stockChange.globalAfter, preparedLine.stockDelta, returnedUnitCost * preparedLine.stockDelta);
-         await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: Number((returnedUnitCost * preparedLine.stockDelta).toFixed(2)), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+         await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: roundBookMoney(returnedUnitCost * preparedLine.stockDelta, moneyDigits), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
 
       normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: Number(saleItem.cost_price || 0), saleItemId: saleLineId });
     }
 
-    const total = calculateReturnDocumentTotal(normalizedLines);
+    const total = calculateReturnDocumentTotal(normalizedLines, moneyDigits);
     const overrideRequested = Boolean(String(payload.refundOverrideReason || '').trim());
     const overrideAllowed = Boolean(approvedByName) || auth.role === 'admin' || auth.role === 'super_admin';
     if (overrideRequested && !overrideAllowed) throw new AppError('تجاوز سقف وسيلة الاسترداد يتطلب اعتماد مشرف', 'REFUND_OVERRIDE_MANAGER_REQUIRED', 403);
@@ -871,6 +874,7 @@ export class ReturnsService {
 
   private async createPurchaseReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext): Promise<number[]> {
     const scope = this.scope(auth);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
     const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!purchase) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
     await lockStockProducts(trx, { ...scope, productIds: items.map((item) => item.productId) });
@@ -977,7 +981,7 @@ export class ReturnsService {
         qty: returnedQtyByLine.get(purchaseLineId) || 0,
         amount: returnedAmountByLine.get(purchaseLineId) || 0,
         tax: returnedTaxByLine.get(purchaseLineId) || 0,
-      });
+      }, moneyDigits);
 
       // The serial ledger and general stock ledger must leave the warehouse together.
       const itemLocationId = purchaseItem.location_id ?? purchase.location_id;
@@ -1041,11 +1045,11 @@ export class ReturnsService {
       }
 
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return', disableAutoDrain: true });
-      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: Number(product.cost_price), total_cost: Number((preparedLine.stockDelta * Number(product.cost_price)).toFixed(2)), reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: Number(product.cost_price), total_cost: roundBookMoney(preparedLine.stockDelta * Number(product.cost_price), moneyDigits), reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: Number(product.cost_price) * Number(purchaseItem.unit_multiplier || 1), purchaseItemId: purchaseLineId });
     }
 
-    const total = calculateReturnDocumentTotal(normalizedLines);
+    const total = calculateReturnDocumentTotal(normalizedLines, moneyDigits);
     if (!(total > 0)) throw new AppError('مرتجع الشراء يجب أن تكون قيمته موجبة', 'PURCHASE_RETURN_AMOUNT_INVALID', 400);
     const refundMethod = payload.refundMethod === 'card' ? 'card' : 'cash';
     // Supplier payments may have already settled part of an originally credit invoice.
