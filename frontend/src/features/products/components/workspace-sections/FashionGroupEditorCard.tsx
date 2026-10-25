@@ -419,32 +419,54 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     });
 
     if (unconsumedWithStock.length > 0) {
-      const totalStockToConsolidate = unconsumedWithStock.reduce((sum, r) => sum + Number(r.stock || 0), 0);
-      const confirmConsolidate = await systemConfirm({
-        title: 'دمج وتطهير رصيد المقاسات الملغاة تلقائياً',
-        message: `يوجد ${unconsumedWithStock.length} مقاساً تم إلغاؤها تحتوي على رصيد مخزني (إجمالي ${totalStockToConsolidate} قطعة).\n\nالنظام يتيح لك دمج كميات هذه المقاسات وإضافتها لرصيد اللون المقابل تلقائياً لتظل الكمية الإجمالية للموديل محفوظة بدقة دون أي نقص دفتري.\n\n- تأكيد ودمج الرصيد: سيقوم بدمج الكميات وتطهير الجدول فوراً من كافة المقاسات الملغاة.\n- إلغاء: سيبقي عليها في الجدول لمن يرغب في تعديلها يدوياً.`,
-        confirmText: 'تأكيد ودمج الرصيد',
-        cancelText: 'إلغاء ومراجعة يدوية',
+      const sameColorConsolidatable: VariantDraft[] = [];
+      const orphanColorRows: VariantDraft[] = [];
+
+      unconsumedWithStock.forEach((row) => {
+        const hasMatchingColor = nextRows.some((r) => 
+          normalizeArabicSearchKey(r.color) === normalizeArabicSearchKey(row.color)
+        );
+        if (hasMatchingColor) {
+          sameColorConsolidatable.push(row);
+        } else {
+          orphanColorRows.push(row);
+        }
       });
 
-      if (confirmConsolidate) {
-        unconsumedWithStock.forEach((unconsumed) => {
-          const matchingTarget = nextRows.find((r) => normalizeArabicSearchKey(r.color) === normalizeArabicSearchKey(unconsumed.color))
-            || nextRows[0];
-          if (matchingTarget) {
-            matchingTarget.stock = Number(matchingTarget.stock || 0) + Number(unconsumed.stock || 0);
-          }
+      if (sameColorConsolidatable.length > 0) {
+        const totalStockToConsolidate = sameColorConsolidatable.reduce((sum, r) => sum + Number(r.stock || 0), 0);
+        const confirmConsolidate = await systemConfirm({
+          title: 'دمج رصيد المقاسات لنفس الألوان',
+          message: `يوجد ${sameColorConsolidatable.length} مقاساً تم إلغاؤها تحتوي على رصيد مخزني (إجمالي ${totalStockToConsolidate} قطعة).\n\nالنظام يتيح لك دمج كميات هذه المقاسات وإضافتها لرصيد نفس اللون المقابل حصرياً (مثل دمج مقاسات الأبيض في صنف الأبيض المتبقي).\n\n- تأكيد ودمج الرصيد: سيقوم بدمج الكميات في نفس ألوانها فقط.\n- إلغاء: سيبقي عليها في الجدول للمراجعة اليدوية.`,
+          confirmText: 'تأكيد ودمج الرصيد لنفس اللون',
+          cancelText: 'إلغاء ومراجعة يدوية',
         });
-        setConsolidateStockOnSave(true);
-        setVariantRows(nextRows);
-        toast.success(`تم دمج رصيد المقاسات بنجاح وتطهير كافة المقاسات الملغاة (${nextRows.length} صنف متبقي)`);
-        return;
-      } else {
-        unconsumedWithStock.forEach((r) => nextRows.push(r));
-        setVariantRows(nextRows);
-        toast.info('تم الإبقاء على المقاسات ذات الرصيد المخزني في الجدول للمراجعة اليدوية');
-        return;
+
+        if (confirmConsolidate) {
+          sameColorConsolidatable.forEach((unconsumed) => {
+            const matchingTarget = nextRows.find((r) => normalizeArabicSearchKey(r.color) === normalizeArabicSearchKey(unconsumed.color));
+            if (matchingTarget) {
+              matchingTarget.stock = Number(matchingTarget.stock || 0) + Number(unconsumed.stock || 0);
+            }
+          });
+          setConsolidateStockOnSave(true);
+        } else {
+          sameColorConsolidatable.forEach((r) => nextRows.push(r));
+        }
       }
+
+      if (orphanColorRows.length > 0) {
+        // Keep orphan colors with stock in nextRows - NEVER merge across different colors!
+        orphanColorRows.forEach((r) => nextRows.push(r));
+        const orphanColorsList = orphanColorRows.map((r) => r.color || 'صنف فرعي').join('، ');
+        const orphanStock = orphanColorRows.reduce((sum, r) => sum + Number(r.stock || 0), 0);
+        toast.warning(`تم الإبقاء على أصناف الألوان المحذوفة (${orphanColorsList}) في الجدول لوجود رصيد مخزني لها (${orphanStock} قطعة). يُمنع منعاً باتاً نقل رصيد صنف إلى لون آخر.`);
+      } else if (sameColorConsolidatable.length > 0) {
+        toast.success(`تم دمج رصيد المقاسات في ألوانها المقابلة بنجاح (${nextRows.length} صنف متبقي)`);
+      }
+
+      setVariantRows(nextRows);
+      return;
     }
 
     setVariantRows(nextRows);

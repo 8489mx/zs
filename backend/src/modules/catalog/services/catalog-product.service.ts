@@ -1819,7 +1819,7 @@ export class CatalogProductService {
           fallbackWarehouseId = Number(settings.currentLocationId);
         } else {
           const activeLocs = await this.db.selectFrom('stock_locations').select('id').where('is_active', '=', true).where((eb) => eb.or([eb('location_type', 'is', null), eb('location_type', '!=', 'in_transit')])).where(this.tenantPredicate(actor)).execute();
-          if (activeLocs.length === 1) fallbackWarehouseId = Number(activeLocs[0].id);
+          if (activeLocs.length >= 1) fallbackWarehouseId = Number(activeLocs[0].id);
         }
       }
     }
@@ -1891,14 +1891,20 @@ export class CatalogProductService {
       const oldIds = existing.map((p) => Number(p.id));
       const removedWithStock = existing.filter((p) => !seenIds.has(Number(p.id)) && (Math.abs(Number(p.stock_qty || 0)) > 0.0001 || Number(p.reserved_qty || 0) > 0));
       if (removedWithStock.length) {
+        const stillUnresolvedWithStock: typeof removedWithStock = [];
+
         if (payload.consolidateStock) {
           for (const removedProduct of removedWithStock) {
-            const target = drafts.find((d) => d.id && normalizeArabicSearch(d.value.color) === normalizeArabicSearch(removedProduct.color || ''))
-              || drafts.find((d) => d.id)
-              || drafts[0];
+            // Strictly consolidate only into the EXACT SAME color
+            const target = drafts.find((d) => d.id && normalizeArabicSearch(d.value.color) === normalizeArabicSearch(removedProduct.color || ''));
             const targetId = Number(target?.id);
             const removedId = Number(removedProduct.id);
-            if (!targetId || targetId === removedId) continue;
+
+            // If no matching color target exists among remaining variants, it CANNOT be consolidated into a different color!
+            if (!target || !targetId || targetId === removedId) {
+              stillUnresolvedWithStock.push(removedProduct);
+              continue;
+            }
 
             const locStocks = await trx.selectFrom('product_location_stock')
               .selectAll().where('product_id', '=', removedId)
@@ -1908,9 +1914,12 @@ export class CatalogProductService {
               const qtyToMove = Number(ls.qty || 0);
               if (qtyToMove <= 0) continue;
 
+              const rawLocId = ls.location_id != null && Number(ls.location_id) > 0 ? Number(ls.location_id) : null;
+              const effectiveLocId = rawLocId || (removedProduct.default_location_id ? Number(removedProduct.default_location_id) : fallbackWarehouseId);
+
               await applyStockDelta(trx, {
                 productId: removedId,
-                locationId: Number(ls.location_id),
+                locationId: rawLocId,
                 branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
                 delta: -qtyToMove,
                 tenantId: this.tenantId(actor),
@@ -1921,7 +1930,7 @@ export class CatalogProductService {
 
               await applyStockDelta(trx, {
                 productId: targetId,
-                locationId: Number(ls.location_id),
+                locationId: rawLocId,
                 branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
                 delta: qtyToMove,
                 tenantId: this.tenantId(actor),
@@ -1948,10 +1957,10 @@ export class CatalogProductService {
                 unit_cost: Number(target.value.costPrice || 0),
                 total_cost: Number((qtyToMove * Number(target.value.costPrice || 0)).toFixed(2)),
                 reason: 'variant_consolidation',
-                note: `دمج رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) إلى الصنف الأساسي`,
+                note: `دمج رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) إلى نفس اللون (${target.value.color || target.value.name})`,
                 reference_type: 'product',
                 reference_id: removedId,
-                location_id: Number(ls.location_id),
+                location_id: effectiveLocId || null,
                 branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
@@ -1966,67 +1975,76 @@ export class CatalogProductService {
                 unit_cost: Number(removedProduct.cost_price || 0),
                 total_cost: Number((qtyToMove * Number(removedProduct.cost_price || 0)).toFixed(2)),
                 reason: 'variant_consolidation',
-                note: `تحويل ودمج رصيد المقاس الملغي إلى الصنف الأساسي (${target.value.name || targetId})`,
+                note: `تحويل ودمج رصيد المقاس الملغي إلى نفس اللون (${target.value.color || target.value.name})`,
                 reference_type: 'product',
                 reference_id: targetId,
-                location_id: Number(ls.location_id),
+                location_id: effectiveLocId || null,
                 branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
               } as any).execute();
             }
           }
-        } else if (payload.zeroRemovedStock) {
-          for (const removedProduct of removedWithStock) {
-            const removedId = Number(removedProduct.id);
-            const locStocks = await trx.selectFrom('product_location_stock')
-              .selectAll().where('product_id', '=', removedId)
-              .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+        } else {
+          stillUnresolvedWithStock.push(...removedWithStock);
+        }
 
-            for (const ls of locStocks) {
-              const qtyToDeduct = Number(ls.qty || 0);
-              if (qtyToDeduct <= 0) continue;
+        if (stillUnresolvedWithStock.length) {
+          if (payload.zeroRemovedStock) {
+            for (const removedProduct of stillUnresolvedWithStock) {
+              const removedId = Number(removedProduct.id);
+              const locStocks = await trx.selectFrom('product_location_stock')
+                .selectAll().where('product_id', '=', removedId)
+                .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
 
-              await applyStockDelta(trx, {
-                productId: removedId,
-                locationId: Number(ls.location_id),
-                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
-                delta: -qtyToDeduct,
-                tenantId: this.tenantId(actor),
-                accountId: actor.accountId,
-                disableAutoDrain: true,
-                allowNegative: false,
-              });
+              for (const ls of locStocks) {
+                const qtyToDeduct = Number(ls.qty || 0);
+                if (qtyToDeduct <= 0) continue;
 
-              removedProduct.stock_qty = Number(Math.max(0, Number(removedProduct.stock_qty || 0) - qtyToDeduct).toFixed(3)) as any;
+                const rawLocId = ls.location_id != null && Number(ls.location_id) > 0 ? Number(ls.location_id) : null;
+                const effectiveLocId = rawLocId || (removedProduct.default_location_id ? Number(removedProduct.default_location_id) : fallbackWarehouseId);
 
-              const unitCost = Number(removedProduct.cost_price || 0);
-              const insertedMovement = await trx.insertInto('stock_movements').values({
-                product_id: removedId,
-                movement_type: 'deduct',
-                qty: -qtyToDeduct,
-                before_qty: qtyToDeduct,
-                after_qty: 0,
-                unit_cost: unitCost,
-                total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
-                reason: 'fashion_matrix_adjustment',
-                note: `تسوية وتصفير رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) عند تعديل الموديل`,
-                reference_type: 'inventory_adjustment',
-                reference_id: removedId,
-                location_id: Number(ls.location_id),
-                branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
-                created_by: actor.userId,
-                ...this.tenantFields(actor),
-              } as any).returning('id').executeTakeFirst();
+                await applyStockDelta(trx, {
+                  productId: removedId,
+                  locationId: rawLocId,
+                  branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                  delta: -qtyToDeduct,
+                  tenantId: this.tenantId(actor),
+                  accountId: actor.accountId,
+                  disableAutoDrain: true,
+                  allowNegative: true,
+                });
 
-              if (insertedMovement?.id && this.accountingPosting) {
-                await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+                removedProduct.stock_qty = Number(Math.max(0, Number(removedProduct.stock_qty || 0) - qtyToDeduct).toFixed(3)) as any;
+
+                const unitCost = Number(removedProduct.cost_price || 0);
+                const insertedMovement = await trx.insertInto('stock_movements').values({
+                  product_id: removedId,
+                  movement_type: 'deduct',
+                  qty: -qtyToDeduct,
+                  before_qty: qtyToDeduct,
+                  after_qty: 0,
+                  unit_cost: unitCost,
+                  total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
+                  reason: 'fashion_matrix_adjustment',
+                  note: `تسوية وتصفير رصيد المقاس الملغي (${removedProduct.name || removedProduct.size}) عند تعديل الموديل`,
+                  reference_type: 'inventory_adjustment',
+                  reference_id: removedId,
+                  location_id: effectiveLocId || null,
+                  branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
+                  created_by: actor.userId,
+                  ...this.tenantFields(actor),
+                } as any).returning('id').executeTakeFirst();
+
+                if (insertedMovement?.id && this.accountingPosting) {
+                  await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+                }
               }
             }
+          } else {
+            const names = stillUnresolvedWithStock.map((p) => `${p.name || p.color || p.size || p.id} (رصيد: ${p.stock_qty})`).join('، ');
+            throw new AppError(`لا يمكن إخفاء المقاسات التالية لأن لها رصيد مخزني: ${names}. يرجى تسوية رصيدها أولاً، حيث يُمنع منعاً باتاً دمج رصيد صنف في لون مختلف`, 'FASHION_VARIANT_HAS_STOCK', 409);
           }
-        } else {
-          const names = removedWithStock.map((p) => `${p.name || p.color || p.size || p.id} (رصيد: ${p.stock_qty})`).join('، ');
-          throw new AppError(`لا يمكن إخفاء المقاسات التالية لأن لها رصيد مخزني: ${names}. يرجى تسوية رصيدها أولاً أو تفعيل خيار دمج أو تصفير الأرصدة`, 'FASHION_VARIANT_HAS_STOCK', 409);
         }
       }
       const outsiderProducts = await trx.selectFrom('products')
@@ -2092,9 +2110,12 @@ export class CatalogProductService {
               const locStock = await trx.selectFrom('product_location_stock')
                 .selectAll().where('product_id', '=', id)
                 .where(this.tenantPredicate(actor)).orderBy('qty', 'desc').limit(1).executeTakeFirst();
-              const effectiveLocationId = locStock?.location_id 
-                ? Number(locStock.location_id) 
-                : (value.warehouseId || (prior.default_location_id ? Number(prior.default_location_id) : (fallbackWarehouseId || null)));
+              const rawLocId = locStock?.location_id != null && Number(locStock.location_id) > 0 ? Number(locStock.location_id) : null;
+              const effectiveLocationId = rawLocId 
+                || (value.warehouseId && Number(value.warehouseId) > 0 ? Number(value.warehouseId) : null)
+                || (prior.default_location_id ? Number(prior.default_location_id) : null)
+                || fallbackWarehouseId
+                || null;
 
               if (!effectiveLocationId) {
                 throw new AppError('حدد مخزنًا لتسوية رصيد الصنف', 'LOCATION_REQUIRED', 400);
@@ -2155,7 +2176,10 @@ export class CatalogProductService {
           updated++;
         } else {
           const stock = Number(value.stock || 0);
-          const resolvedWarehouseId = value.warehouseId || (template?.default_location_id ? Number(template.default_location_id) : null);
+          const resolvedWarehouseId = (value.warehouseId && Number(value.warehouseId) > 0 ? Number(value.warehouseId) : null)
+            || (template?.default_location_id ? Number(template.default_location_id) : null)
+            || fallbackWarehouseId
+            || null;
           const inserted = await trx.insertInto('products').values({
             name: value.name, name_en: value.nameEn || template?.name_en || null,
             barcode: value.barcode || null, sku: value.sku || null,
@@ -2193,7 +2217,7 @@ export class CatalogProductService {
               reference_id: productId, location_id: resolvedWarehouseId!, created_by: actor.userId,
               ...this.tenantFields(actor),
             } as any).execute();
-            await this.postOpeningStock(trx, productId, stock, value.costPrice, value.warehouseId!, actor);
+            await this.postOpeningStock(trx, productId, stock, value.costPrice, resolvedWarehouseId, actor);
           }
           created++;
         }
@@ -2523,6 +2547,16 @@ export class CatalogProductService {
       }
 
       if (!nextActive) {
+        // Fetch active fallback warehouse once for the tenant
+        let fallbackLocationId: number | null = null;
+        const activeLoc = await trx.selectFrom('stock_locations').select('id')
+          .where('is_active', '=', true)
+          .where((eb) => eb.or([eb('location_type', 'is', null), eb('location_type', '!=', 'in_transit')]))
+          .where(this.tenantPredicate(actor))
+          .limit(1)
+          .executeTakeFirst();
+        if (activeLoc?.id) fallbackLocationId = Number(activeLoc.id);
+
         for (const product of targetProducts) {
           if (Number(product.reserved_qty || 0) > 0) {
             throw new AppError(
@@ -2539,36 +2573,76 @@ export class CatalogProductService {
               .selectAll().where('product_id', '=', product.id)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
 
-            for (const ls of locStocks) {
-              const qtyToDeduct = Number(ls.qty || 0);
-              if (qtyToDeduct <= 0) continue;
+            const unitCost = Number(product.cost_price || 0);
+
+            if (locStocks.length > 0) {
+              for (const ls of locStocks) {
+                const qtyToDeduct = Number(ls.qty || 0);
+                if (qtyToDeduct <= 0) continue;
+
+                const rawLocId = ls.location_id != null && Number(ls.location_id) > 0 ? Number(ls.location_id) : null;
+                const effectiveLocId = rawLocId || (product.default_location_id ? Number(product.default_location_id) : fallbackLocationId);
+
+                await applyStockDelta(trx, {
+                  productId: Number(product.id),
+                  locationId: rawLocId,
+                  branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                  delta: -qtyToDeduct,
+                  tenantId: this.tenantId(actor),
+                  accountId: actor.accountId,
+                  disableAutoDrain: true,
+                  allowNegative: true,
+                });
+
+                const insertedMovement = await trx.insertInto('stock_movements').values({
+                  product_id: product.id,
+                  movement_type: 'deduct',
+                  qty: -qtyToDeduct,
+                  before_qty: qtyToDeduct,
+                  after_qty: 0,
+                  unit_cost: unitCost,
+                  total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
+                  reason: 'archive_stock_zeroing',
+                  note: `تسوية وتصفير رصيد الصنف (${product.name}) عند الأرشفة والتعطيل`,
+                  reference_type: 'inventory_adjustment',
+                  reference_id: product.id,
+                  location_id: effectiveLocId || null,
+                  branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
+                  created_by: actor.userId,
+                  ...this.tenantFields(actor),
+                } as any).returning('id').executeTakeFirst();
+
+                if (insertedMovement?.id && this.accountingPosting) {
+                  await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+                }
+              }
+            } else {
+              const globalQty = Number(product.stock_qty || 0);
+              const effectiveLocId = product.default_location_id ? Number(product.default_location_id) : fallbackLocationId;
 
               await applyStockDelta(trx, {
                 productId: Number(product.id),
-                locationId: Number(ls.location_id),
-                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
-                delta: -qtyToDeduct,
+                locationId: effectiveLocId || null,
+                delta: -globalQty,
                 tenantId: this.tenantId(actor),
                 accountId: actor.accountId,
                 disableAutoDrain: true,
-                allowNegative: false,
+                allowNegative: true,
               });
 
-              const unitCost = Number(product.cost_price || 0);
               const insertedMovement = await trx.insertInto('stock_movements').values({
                 product_id: product.id,
                 movement_type: 'deduct',
-                qty: -qtyToDeduct,
-                before_qty: qtyToDeduct,
+                qty: -globalQty,
+                before_qty: globalQty,
                 after_qty: 0,
                 unit_cost: unitCost,
-                total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
+                total_cost: Number((globalQty * unitCost).toFixed(2)),
                 reason: 'archive_stock_zeroing',
                 note: `تسوية وتصفير رصيد الصنف (${product.name}) عند الأرشفة والتعطيل`,
                 reference_type: 'inventory_adjustment',
                 reference_id: product.id,
-                location_id: Number(ls.location_id),
-                branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
+                location_id: effectiveLocId || null,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
               } as any).returning('id').executeTakeFirst();
@@ -2577,6 +2651,18 @@ export class CatalogProductService {
                 await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
               }
             }
+
+            await trx.updateTable('products')
+              .set({ stock_qty: 0, catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
+              .where('id', '=', product.id)
+              .where(this.tenantPredicate(actor))
+              .execute();
+
+            await trx.updateTable('product_location_stock')
+              .set({ qty: 0, updated_at: sql`NOW()` })
+              .where('product_id', '=', product.id)
+              .where(this.tenantPredicate(actor))
+              .execute();
           }
         }
       } else {
