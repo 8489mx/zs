@@ -207,3 +207,7 @@ All rows above describe **code changed**, not verified operation. Count as **15 
 
 ### Follow-up E/F — export register cashier-filter parity
 - `ReturnsWorkspace` used to omit the selected cashier filter from Excel exports although the on-screen register and print respected it. Both use `buildReturnRegisterExportQuery` now, with an authored, unexecuted regression. This is one more distinct code-patched issue theme, bringing the running **documented grouped themes to 29 (12 initial + 17 subsequent)**. This does **not** mean 29 verified fixes or all A–F coverage is complete.
+
+
+### Follow-up D — inventory transfer status lookup identifiers
+- Static tracing from transfer creation and receipt/cancellation UI through `withIdempotency`, the Nest interceptor and `/api/operations` showed mismatched operation-type keys. Caller operation names now match interceptor route identities; authored tests are unexecuted. **D remains PARTIAL** pending durable keys and full transfer transaction drills. This raises grouped code-patched defect themes to **30** (12 original + 18 subsequent), not verified sign-offs.

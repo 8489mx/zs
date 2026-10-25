@@ -330,3 +330,8 @@
 ### 2026-10-25 — D: prevent conflicting barcode units inside one SKU
 
 - Unit-level stock scanning previously selected the first matching barcode in one product, even if another unit on that **same** product used the same barcode but a different multiplier. The count engine now rejects this ambiguity as it already rejects duplicate SKU barcodes, so a carton barcode cannot silently count as a single piece. Two identical base-unit representations with multiplier 1 remain valid. Regression specs authored, not executed.
+
+
+### 2026-10-25 — D: idempotency operation names for transfer recovery
+
+- `useInventoryWorkspaceMutations` passed made-up operation labels `createStockTransfer`, `receiveStockTransfer`, `cancelStockTransfer` to the generic status poller, but the Nest interceptor reserves `POST:/api/stock-transfers`, `POST:/api/stock-transfers/:id/receive`, and `POST:/api/stock-transfers/:id/cancel`. Polling could not locate a reserved operation after a lost response. Production now uses `inventory-operation-types.ts` for the exact route strings. Regression authored but not executed. Distinct retry keys and the shared poller's treatment of recorded failure remain separate open work.

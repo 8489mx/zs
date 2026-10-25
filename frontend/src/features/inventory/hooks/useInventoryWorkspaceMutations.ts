@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { invalidateInventoryDomain } from '@/app/query-invalidation';
 import { inventoryApi } from '@/features/inventory/api/inventory.api';
 import { withIdempotency } from '@/lib/idempotency';
+import { INVENTORY_OPERATION_TYPES } from '@/features/inventory/lib/inventory-operation-types';
 import type { StockCountItem, StockTransferItem, StockTransfer } from '@/types/domain';
 
 export function useInventoryWorkspaceMutations({
@@ -47,7 +48,7 @@ export function useInventoryWorkspaceMutations({
         recipientName: transferForm.recipientName,
         items: transferItems.map((item) => ({ productId: item.productId, qty: item.qty, serials: item.serials, batchAllocations: item.batchAllocations })), 
       }, headers),
-      'createStockTransfer',
+      INVENTORY_OPERATION_TYPES.createTransfer,
       crypto.randomUUID()
     ),
     onSuccess: async (data: unknown) => {
@@ -65,9 +66,9 @@ export function useInventoryWorkspaceMutations({
     }) => {
       for (const transferId of transferIds) {
         if (action === 'receive') {
-          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers, { items: receiptItems?.[transferId] }), 'receiveStockTransfer', crypto.randomUUID());
+          await withIdempotency((headers) => inventoryApi.receiveStockTransfer(transferId, headers, { items: receiptItems?.[transferId] }), INVENTORY_OPERATION_TYPES.receiveTransfer, crypto.randomUUID());
         } else {
-          await withIdempotency((headers) => inventoryApi.cancelStockTransfer(transferId, headers), 'cancelStockTransfer', crypto.randomUUID());
+          await withIdempotency((headers) => inventoryApi.cancelStockTransfer(transferId, headers), INVENTORY_OPERATION_TYPES.cancelTransfer, crypto.randomUUID());
         }
       }
     },
