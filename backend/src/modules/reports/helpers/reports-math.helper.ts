@@ -1,7 +1,8 @@
-import { type MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
+import { type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 
 export function toMoney(value: number | string | null | undefined, digits: MoneyDigits = 2): number {
-  return roundMoney(Number(value || 0), digits);
+  // Keep legacy Number#toFixed semantics for two-digit callers; only the scale is selectable.
+  return Number(Number(value || 0).toFixed(digits));
 }
 
 export function sumMoney<T>(rows: T[], selector: (row: T) => number | string | null | undefined, digits: MoneyDigits = 2): number {
