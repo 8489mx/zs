@@ -567,6 +567,66 @@ async function main() {
       assert.equal(Number(row.total_debit),Number(row.total_credit));
     }
     pass('KWD sale and supplier return reverse one-fil AR/AP and COGS with physical stock and balanced journals');
+    // Payments must settle a single fil without rounding to a cent or writing
+    // an unmatched journal/subledger balance. This uses a fresh tenant fixture.
+    const kwdPayments=await fixture('kwd_payment_settlement');
+    await db.updateTable('settings').set({value:'"KWD"'}).where('tenant_id','=',kwdPayments.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',kwdPayments.auth.tenantId!).where('is_base','=',true).execute();
+    const paymentPurchase=await purchases.createPurchase({
+      supplierId:kwdPayments.supplierId,paymentType:'credit',branchId:kwdPayments.branchId,
+      locationId:kwdPayments.locationId,taxRate:0,pricesIncludeTax:false,
+      items:[{productId:kwdPayments.productId,name:'Test product',qty:1,cost:0.001,
+        unitMultiplier:1,locationId:kwdPayments.locationId}],
+    },kwdPayments.auth,randomUUID());
+    assert.ok(Number(paymentPurchase.purchaseId)>0);
+    await db.updateTable('products').set({retail_price:0.001,wholesale_price:0.001})
+      .where('tenant_id','=',kwdPayments.auth.tenantId!).where('id','=',kwdPayments.productId).execute();
+    const paymentSale=await sales.createSale({
+      customerId:kwdPayments.customerId,paymentType:'credit',paymentChannel:'credit',
+      branchId:kwdPayments.branchId,locationId:kwdPayments.locationId,taxRate:0,
+      pricesIncludeTax:false,payments:[],source:'dashboard',
+      items:[{productId:kwdPayments.productId,name:'Test product',qty:1,price:0.001,
+        unitMultiplier:1,priceType:'retail'}],
+    } as any,kwdPayments.auth);
+    assert.ok(Number((paymentSale.sale as {id:string}).id)>0);
+    await purchases.createSupplierPayment({
+      supplierId:kwdPayments.supplierId,amount:0.001,paymentChannel:'cash',
+      branchId:kwdPayments.branchId,locationId:kwdPayments.locationId,
+    },kwdPayments.auth,randomUUID());
+    await purchases.createCustomerPayment({
+      customerId:kwdPayments.customerId,amount:0.001,paymentChannel:'cash',
+      branchId:kwdPayments.branchId,locationId:kwdPayments.locationId,
+    },kwdPayments.auth,randomUUID());
+    const settledSupplier=await db.selectFrom('suppliers').select('balance')
+      .where('tenant_id','=',kwdPayments.auth.tenantId!).where('id','=',kwdPayments.supplierId).executeTakeFirstOrThrow();
+    const settledCustomer=await db.selectFrom('customers').select('balance')
+      .where('tenant_id','=',kwdPayments.auth.tenantId!).where('id','=',kwdPayments.customerId).executeTakeFirstOrThrow();
+    assert.equal(Number(settledSupplier.balance),0);
+    assert.equal(Number(settledCustomer.balance),0);
+    const supplierPaymentRows=await db.selectFrom('supplier_payments').select('amount')
+      .where('tenant_id','=',kwdPayments.auth.tenantId!).execute();
+    const customerPaymentRows=await db.selectFrom('customer_payments').select('amount')
+      .where('tenant_id','=',kwdPayments.auth.tenantId!).execute();
+    assert.equal(supplierPaymentRows.length,1);
+    assert.equal(customerPaymentRows.length,1);
+    assert.equal(Number(supplierPaymentRows[0].amount),0.001);
+    assert.equal(Number(customerPaymentRows[0].amount),0.001);
+    const paymentGL=await sql<{source_type:string;debits:string;credits:string}>`
+      select j.source_type,sum(l.debit) as debits,sum(l.credit) as credits
+      from journal_entries j join journal_entry_lines l
+        on l.journal_entry_id=j.id and l.tenant_id=j.tenant_id
+      where j.tenant_id=${kwdPayments.auth.tenantId!}
+        and j.source_type in ('supplier_payment','customer_payment')
+      group by j.source_type
+    `.execute(db);
+    assert.equal(paymentGL.rows.length,2);
+    for(const row of paymentGL.rows){
+      assert.equal(Number(row.debits),0.001);
+      assert.equal(Number(row.credits),0.001);
+    }
+    pass('KWD supplier and customer payment 0.001 clears AP/AR and posts balanced GL without duplicate source rows');
+
 
 
 
