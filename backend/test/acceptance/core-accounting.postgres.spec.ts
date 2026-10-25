@@ -817,6 +817,71 @@ async function main() {
     assert.equal(failedPurchase.length,0,'failed purchase must not retain source document');
     pass('pharmacy pharmacyInvoice posts AP/stock/batches/GL atomically, idempotently, and rolls back expired batches');
 
+    // A paid clinical service or patient copay must be posted atomically:
+    // source + one treasury receipt + two balanced GL lines, in KWD fils.
+    const pharmacyCash = await fixture('pharmacy_cash');
+    await db.updateTable('settings').set({value:'"KWD"'}).where('tenant_id','=',pharmacyCash.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!).where('is_base','=',true).execute();
+    const clinical = await pharmacy.createClinicalService(pharmacyCash.auth, {
+      serviceType:'Blood pressure measurement',customerName:'Acceptance patient',fee:0.001,
+    });
+    const clinicalReceipt = await db.selectFrom('treasury_transactions').select(['amount'])
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!)
+      .where('reference_type','=','pharmacy_clinical_service')
+      .where('reference_id','=',Number(clinical.id)).execute();
+    assert.equal(clinicalReceipt.length,1);
+    assert.equal(Number(clinicalReceipt[0].amount),0.001);
+    const rxRecord = await pharmacy.upsertPrescription(pharmacyCash.auth,{
+      customerName:'Acceptance patient',totalAmount:0.002,patientAmount:0.002,
+      status:'dispensed',items:[],
+    });
+    const copayReceipt = await db.selectFrom('treasury_transactions').select('amount')
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!)
+      .where('reference_type','=','pharmacy_prescription')
+      .where('reference_id','=',Number(rxRecord.id)).execute();
+    assert.equal(copayReceipt.length,1);
+    assert.equal(Number(copayReceipt[0].amount),0.002);
+    await assert.rejects(pharmacy.upsertPrescription(pharmacyCash.auth,{
+      id:Number(rxRecord.id),customerName:'Changed prescription',totalAmount:0.003,
+      patientAmount:0.003,status:'dispensed',items:[],
+    }),(err:any)=>err.code==='PHARMACY_PRESCRIPTION_REVERSAL_REQUIRED');
+    await assert.rejects(pharmacy.upsertPrescription(pharmacyCash.auth,{
+      customerName:'Insurer',totalAmount:0.01,patientAmount:0,insuranceAmount:0.01,
+      status:'dispensed',
+    }),(err:any)=>err.code==='PHARMACY_INSURANCE_SETTLEMENT_REQUIRED');
+    await assert.rejects(pharmacy.createClinicalService(pharmacyCash.auth,{
+      serviceType:'Invalid sub-fil',customerName:'Patient',fee:0.0001,
+    }),(err:any)=>err.code==='PHARMACY_CURRENCY_PRECISION_INVALID');
+    const pharmacyJournalAmounts=await sql<{code:string;amount:string}>`
+      select a.code, sum(l.debit-l.credit) as amount from journal_entry_lines l
+      join journal_entries j on j.tenant_id=l.tenant_id and j.id=l.journal_entry_id
+      join accounting_accounts a on a.tenant_id=l.tenant_id and a.id=l.account_id
+      where j.tenant_id=${pharmacyCash.auth.tenantId}
+        and j.source_type in ('pharmacy_clinical_service','pharmacy_prescription_cash')
+      group by a.code`.execute(db);
+    const phLedger=new Map(pharmacyJournalAmounts.rows.map(row=>[row.code,Number(row.amount)]));
+    assert.equal(phLedger.get('1110'),0.003);
+    assert.equal(phLedger.get('4200'),-0.003);
+    const phEntries = await db.selectFrom('journal_entries').select(['id','source_type'])
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!)
+      .where('source_type','in',['pharmacy_clinical_service','pharmacy_prescription_cash'])
+      .execute();
+    assert.equal(phEntries.length,2,'One source-backed immutable GL per collection');
+    await db.updateTable('accounting_settings').set({lock_date_tax:'2099-12-31'})
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
+    const previousClinical = await db.selectFrom('pharmacy_clinical_services').select('id')
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
+    await assert.rejects(pharmacy.createClinicalService(pharmacyCash.auth,{
+      serviceType:'Must rollback',customerName:'Blocked patient',fee:0.001,
+    }));
+    const afterClinical = await db.selectFrom('pharmacy_clinical_services').select('id')
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
+    assert.equal(afterClinical.length,previousClinical.length,'GL failure rolls back clinical source and cash');
+    await db.updateTable('accounting_settings').set({lock_date_tax:null})
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
+    pass('pharmacy clinical fee and patient copay preserve KWD fils, post GL once, reject unsafe edits and roll back on posting failure');
+
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
     // drop dependent MFA constraints using CASCADE to make the test green.
