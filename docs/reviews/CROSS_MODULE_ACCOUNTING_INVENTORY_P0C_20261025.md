@@ -198,3 +198,9 @@ The code observations above identify definite missing integration points; **fina
 - Paid prescriptions carrying textual medicines without inventory/lot references are refused; otherwise a cash revenue journal could be posted without stock reduction or COGS. Insurer-funded prescriptions remain deliberately blocked pending their receivable workflow.
 - Dedicated PostgreSQL acceptance checks parallel same-number requests (only one source/cash/GL), unmapped sale rejection, KWD thousandths and transactional rollback.
 - **P0-C still open:** full insurer billing, canonical prescription stock COGS, refunds/reversals, clinical fee idempotency for retries without stable external keys, and complete eight-cycle/eleven-module verification.
+
+### Customer and supplier ledger precision + actual acceptance failure fix
+
+- Existing partner financial balance and ledger APIs rounded to 0.01 even after the transaction journal retained KWD/OMR fils. The tenant currency precision now flows through both query paths and presentation helpers, retaining 0.001 values in balances, available credit and debit/credit totals; no change to legacy cent-based default callers.
+- Added critical regression cases. The pharmacy PostgreSQL forced-failure check originally set `lock_date_tax`, which does not govern generic service journals; it now locks `lock_date_all` to exercise the actual posting rollback. The initial run failed at this test, not on a corrupted database.
+- A fresh full CI and disposable PostgreSQL run are still required on the new SHA. This patch does not certify all reports or all eight financial cycles/eleven sector integrations.

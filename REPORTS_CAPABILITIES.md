@@ -135,3 +135,9 @@
 
 
 <!-- migrated:cap-213:end -->
+
+### P0-C tenant minor-unit partner financial reports (2026-10-25; review branch)
+
+- `backend/src/modules/reports/services/reports-summary.service.ts` now passes validated tenant book precision into the customer/supplier balances and ledger summaries (SQL and compatibility paths); `reports-balances.helper.ts`, `reports-partner-ledger.helper.ts` and `reports-ledger.helper.ts` accept optional 2/3-digit precision with 2-digit defaults for existing callers.
+- Regression tests in `backend/test/infra/reports-balances.helper.spec.ts`, `reports-ledger.helper.spec.ts` and `reports-partner-ledger.helper.spec.ts` cover 0.001 customer/vendor balances, available credit, aggregated totals and opening/closing amounts.
+- Other reports/UI formatting and full cross-module integration require separate acceptance. No global P0-C signoff is claimed.
