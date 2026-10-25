@@ -99,3 +99,50 @@ No test results exist for this work. No build/typecheck/guard/migration runs wer
 5. Do not advertise the module as ready for sale until these blockers are cleared.
 
 **Conclusion:** **مراجعة غير مكتملة**, notwithstanding the five pushed source fix commits and no observed overlapping changed files with concurrent security work.
+
+
+## Coverage continuation — 2026-10-25 (code review only; not release acceptance)
+
+**Reviewed retail branch HEAD before this addendum:** `8cdef15e6e03e067937ea5408ceb7710be0f0b9f`. Base `main` was inspected; concurrent security branch remains isolated. The initial table's `12` fixes refer ONLY to the original reviewed checkpoint. The follow-up produced additional code patches and written regressions; do not interpret the total number of commits as the number of independent defects.
+
+### New confirmed source-code faults addressed after the original 12
+
+| Axis | Additional defect / outcome | Exact principal code paths | Verification |
+| --- | --- | --- | --- |
+| A/F | Barcode printing could use unsaved scanned/generated content, an unrelated unit, or an incomplete paginated set of model variants; now uses saved barcodes and full active model sibling lookup, with fail-closed errors | `ProductBarcodeDialog.tsx`, `product-barcode-print.helpers.ts` | New spec written; no print hardware test |
+| A/F | Matrix showed only first SKU for duplicate color/size, hiding inventory; now shows aggregate and warns about duplicates, no stock merge | `ProductsMatrixView.tsx`, `products-matrix.helpers.ts` | New spec written |
+| A/F | Potential conditional hook order in barcode dialog corrected | `ProductBarcodeDialog.tsx` | Static review only |
+| B/E | Instant exchange's serial validator could throw outside the UI catch and allow duplicate/foreign serials into request preparation; now validates and reports before booking | `PosInstantExchangeDialog.tsx`, `pos-exchange-serial-validation.ts` | New spec written |
+| C/E | Drawer review listed **gross sale return** as cash outflow even for mixed/card/store-credit refunds. It now lists only treasury cash refund legs actually linked to the shift | `cash-drawer.service.ts`, `cash-drawer.helper.ts` | Backend regression authored |
+| D | An empty location snapshot could expand a warehouse count to the entire company's catalog; unavailable data previously defaulted to empty. Now location-specific and fail-closed | `InventoryComposerCards.tsx`, `InventoryWorkspace.tsx`, `count-location-scoping.ts` | New spec written |
+| D | Manual stock count used company-total expected quantity instead of selected warehouse, now queries same location snapshot | `useInventoryWorkspaceController.ts` | Unit examples authored |
+| D/A | Counting a shared clothing model code selected arbitrary first size; scanner now uses distinct persisted SKU/unit barcodes | `count-barcode-identity.ts`, `InventoryComposerCards.tsx` | New spec written |
+| D/A | Unit barcode counter ignored carton multiplier; scanned counts now convert to base quantity, rejecting same-code units with contradictory multipliers | `count-barcode-identity.ts` | New spec written |
+| E/F | Previous return quantities were computed from a **filtered/paginated** register and merged repeated product lines. New tenant-scoped invoice history uses original sale/purchase line IDs and blocks unlinked historical rows | `returns.service.ts`, `return-invoice-quantities.helper.ts`, `ReturnsWorkspace.tsx` | Backend and UI specs written |
+| E/F | A lost return response could prompt a second refund under a NEW idempotency key; preserve a frozen request/key in mounted UI, query operation status and disallow resetting unresolved attempts | `ReturnsWorkspace.tsx`, `return-submission-recovery.ts` | New spec written; reload still needs recovery drill |
+| E/F | Purchase returns reset to sale mode after success/reset; selected mode now follows route | `returns-workspace.helpers.ts` | New spec written |
+| E/F | Saved selected return quantity could exceed newly refreshed historical balance; pre-commit UI validation now blocks confirmation, backend still locks/checks | `return-remaining-quantity.ts`, `ReturnsCreateModal.tsx` | New spec written |
+| F | Largest-stock-location column relied on database row order; now sorted by actual quantity | `reports-inventory.helper.ts` | Existing regression extended |
+| F | Inventory report hid site totals greater than company stock and did not show unassigned remainder alongside assigned sites; shows reconciliation warning and unresolved stock | `reports-inventory.helper.ts`, `InventoryReportSection.tsx` | Existing regression extended |
+
+All rows above describe **code changed**, not verified operation. Count as **15 additional defect themes** (original 12 + 15 documented themes = **27 cumulative documented themes**); note that themes group multiple related source changes, and this is not an exhaustive system defect count. Distinct concurrent changes (POS offline catalog and backend quantity aggregation hardening) were also observed, but are **not** counted as independently reviewed closure here.
+
+### Revised A–F status and remaining source scope
+
+| Axis | Updated evidence coverage | Still unverified / incomplete |
+| --- | --- | --- |
+| **A — PARTIAL** | Fashion editor/safety, sizes/colors, label dialog, matrix and full model print lookup, barcode collisions | Bulk import/export and unit conversion end-to-end; large inventory/branch matrices; promotions/cost/valuation across variants; actual barcode printers |
+| **B — PARTIAL** | POS checkout and offline sync paths previously traced; exchange serial preflight and recent offline catalog code changes identified | All tax/discount combinations, returns with partial tender, ECR/Fawry/Geidea, offline crash/restart reconciliation, device performance |
+| **C — PARTIAL** | Shift opening and close/read code previously inspected; itemized sale cash returns corrected | Blind close supervisor approval end-to-end, cash/supplier settlement journals, multi-shift cancellation and financial reconciliation fixtures |
+| **D — PARTIAL** | GRN explicit warehouse safety, selected warehouse count scope, barcode scan quantities and expected-location balances; count posting service reviewed | Physical recount/posting/rollback and serial traceability, transfers with in-transit shortage/cancel, combined reservations/COGS across sites, stock report matching real DB |
+| **E — PARTIAL** | Sale/purchase return transaction entrypoints, full invoice historical quantity read, frozen keyed retry and UI preflight, exchange serial validation | Card processor reversal settlement, accounting journal parity across mixed tenders, partial legacy returns reconciliation, idempotency after page/browser restart, full crash concurrency |
+| **F — PARTIAL** | POS exchange, apparel editor and barcode dialog, report matrix, cash review and return modal quality fixes | Exhaustive RTL and screen-size accessibility, modal focus/keyboard, 14-inch and kiosk operation, printer/Electron devices and high SKU load profiling |
+
+### Integration and verification gates
+
+- **No tests, typecheck, build, guard suite, manual POS scenario or deploy executed.** Unit and backend tests listed in the domain docs are **written only**. No row above is a runtime sign-off.
+- Review status JSON intentionally unchanged: the evidence policy requires executed verification evidence before promotion.
+- The concurrent `fix/platform-core-security-audit-20261025` branch owns `backend/src/modules/reports/reports.service.ts`, `backend/src/modules/sales/services/price-lists.service.ts`, central accounting, auth and migration work. No core-pricing or ledger workaround was added here; post-merge financial fixtures and SQL tenant/branch isolation checks are mandatory. Do not merge either branch blindly.
+- Code review cannot certify bank/card refunds, ECR terminal reversals, receipt printers, physical warehouse differences or fiscal compliance. These remain explicit release blockers.
+
+**Current conclusion:** incomplete A–F audit, all axes **PARTIAL**, release **BLOCKED** pending remaining code traces, authored-test execution, accounting fixtures and device UAT. No merge to `main`; no deploy.
