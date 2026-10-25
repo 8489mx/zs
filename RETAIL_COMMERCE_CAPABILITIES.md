@@ -532,3 +532,8 @@
 ### 2026-10-25 — C/E/F: cash drawer list reflects actual cash refunds only
 
 - `CashDrawerService.fetchShiftMovementItems` formerly inserted a `return` movement for the **gross** sale-return document amount under the CASH return group, labeling credit/card/mixed tender returns as cash outflows. Its separate shift summary already derived cash refunds from treasury transactions, but the itemized drawer review contradicted that summary. The item list now sums only negative cash `treasury_transactions` explicitly linked to **this shift** and the return document, excluding card/store-credit/refundable-debt legs and returns made in other shifts. No general accounting return posting was touched. Regression `backend/test/infra/cash-drawer-cash-return.spec.ts` written but not executed.
+
+
+### 2026-10-25 — F: inventory report location totals
+
+- Report top location formerly used first SQL row, not highest stock quantity; now sorts per-product location rows by quantity and name. Physical location balances exceeding global stock now expose `stockLocationExcessQty` with a visible reconciliation warning, without changing inventory quantities. Regression `backend/test/infra/reports-inventory.helper.spec.ts` amended (not run). Did not touch `reports.service.ts` or security-branch `REPORTS_CAPABILITIES.md`.

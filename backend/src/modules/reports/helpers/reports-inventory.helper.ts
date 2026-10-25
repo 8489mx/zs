@@ -52,6 +52,7 @@ export interface InventoryReportItem {
   locationsLabel: string;
   assignedQty: number;
   unassignedQty: number;
+  stockLocationExcessQty: number;
   locations: InventoryLocationSnapshot[];
 }
 
@@ -110,13 +111,17 @@ export function buildInventoryReportItems(
   return rows.map((row) => {
     const stockQty = toPositiveNumber(row.stock_qty);
     const minStock = toPositiveNumber(row.min_stock_qty);
-    const breakdown = breakdownByProduct.get(String(row.id)) || [];
+    const breakdown = [...(breakdownByProduct.get(String(row.id)) || [])]
+      .sort((a, b) => b.qty - a.qty || a.locationName.localeCompare(b.locationName, 'ar'));
     const topLocation = breakdown[0] || null;
     const assignedQty = breakdown.reduce((sum, item) => sum + (item.locationId ? item.qty : 0), 0);
     const unassignedQty = Math.max(0, stockQty - assignedQty);
-    const locationsLabel = breakdown.length
-      ? breakdown.slice(0, 3).map(formatLocationLabel).join(' • ')
-      : (stockQty > 0 ? `مخزون غير مخصص: ${stockQty}` : '—');
+    const stockLocationExcessQty = Math.max(0, Number((assignedQty - stockQty).toFixed(3)));
+    const locationsLabel = stockLocationExcessQty > 0.001
+      ? `⚠ فرق مخزون يحتاج مصالحة: المواقع تزيد عن الإجمالي بـ ${stockLocationExcessQty}`
+      : breakdown.length
+        ? breakdown.slice(0, 3).map(formatLocationLabel).join(' • ')
+        : (stockQty > 0 ? `مخزون غير مخصص: ${stockQty}` : '—');
 
     return {
       id: String(row.id || ''),
@@ -134,6 +139,7 @@ export function buildInventoryReportItems(
       locationsLabel,
       assignedQty,
       unassignedQty,
+      stockLocationExcessQty,
       locations: breakdown,
     };
   });

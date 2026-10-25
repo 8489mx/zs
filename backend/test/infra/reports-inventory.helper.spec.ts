@@ -30,8 +30,21 @@ import {
   assert.equal(items[0].topLocationName, 'المخزن أ');
   assert.equal(items[0].assignedQty, 6);
   assert.equal(items[0].unassignedQty, 3);
+  assert.equal(items[0].stockLocationExcessQty, 0);
   assert.match(items[0].locationsLabel, /المخزن أ/);
   assert.equal(items[1].status, 'out');
+
+  const inconsistent = buildInventoryReportItems(
+    [{ id: 12, name: 'مقاس XL', stock_qty: 3 }],
+    [
+      { product_id: 12, location_id: 1, qty: 2, location_name: 'مخزن صغير' },
+      { product_id: 12, location_id: 2, qty: 5, location_name: 'مخزن كبير' },
+    ],
+  );
+  assert.equal(inconsistent[0].topLocationName, 'مخزن كبير');
+  assert.equal(inconsistent[0].stockLocationExcessQty, 4);
+  assert.match(inconsistent[0].locationsLabel, /فرق مخزون/);
+  assert.equal(inconsistent[0].locations[0].qty, 5);
 
   const { trackedLocations, highlights } = buildInventoryLocationHighlights([
     { product_id: 10, location_id: 7, branch_id: 1, qty: 4, min_stock_qty: 6, location_name: 'المخزن أ', branch_name: 'الفرع الرئيسي' },
