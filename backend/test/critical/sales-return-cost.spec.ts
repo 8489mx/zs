@@ -50,6 +50,17 @@ assert.throws(
   /missing/
 );
 
+// هـ-2. لا يجوز للتكلفة المحفوظة تجاوز فحص مرجع سطر البيع الأصلي.
+assert.throws(
+  () => calculateSalesReturnCost([{ product_id: 8, sale_item_id: 11, qty: 1, cost_price: 50 }], originalSaleItems),
+  /mismatched/
+);
+assert.throws(
+  () => calculateSalesReturnCost([{ product_id: 7, sale_item_id: 999, qty: 1, cost_price: 10 }], originalSaleItems),
+  /missing/
+);
+assert.equal(calculateSalesReturnCost([{ product_id: 7, sale_item_id: 11, qty: 2, cost_price: 12.5 }], originalSaleItems), 25);
+
 // و. منع كميات سالبة أو صفرية أو غير صالحة
 assert.throws(() => calculateSalesReturnCost([{ product_id: 7, sale_item_id: 11, qty: 0 }], originalSaleItems), /Invalid sales return cost line/);
 assert.throws(() => calculateSalesReturnCost([{ product_id: 7, sale_item_id: 11, qty: -2 }], originalSaleItems), /Invalid sales return cost line/);
