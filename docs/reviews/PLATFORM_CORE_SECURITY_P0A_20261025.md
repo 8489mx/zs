@@ -59,6 +59,66 @@ These cases cover narrowly scoped guards/policies and a mocked login transaction
 - No change to `main`, deployment, live customer data, or production schema.
 - SaaS `zs` tenant guard and local-mode separation remain required, not waived.
 
-**Severity tally for confirmed corrected defects:** **P0: 2, P1: 12, P2: 1 (15 in total)**. This counts independently reproduced-by-source risk paths; no runtime proof.  
+**Initial batch tally (before follow-up):** **P0: 2, P1: 12, P2: 1 (15 total)**. This counts independently reproduced-by-source risk paths; no runtime proof.  
 
 **Conclusion:** The P0-A initiative has documented code fixes for the confirmed paths above; the full Platform Core audit **is not finished**. The unreviewed scope remains a release-acceptance limitation, even after these commits.
+
+---
+
+## P0-A follow-up code audit — 2026-10-25 (same branch; additional work)
+
+**Starting source SHA:** `bb91095fc96085eff91b545c8cab2ab2a3b3443a`  
+**New commits (separate pushes):** `4984d347`, `d91764aa`, `0c36ebaa`, `cef62d01`, `e2d4ad34`, `174ded81`, `bed6d341`, `8a493b9c`, `1ff3420e`.  
+**Status:** source-level code inspection, new migration, and authored regressions only. No test suite, build, typecheck, static guards, database migration, or UAT was executed. `main` is untouched.
+
+### Additional confirmed code defects corrected
+
+| ID | Priority | Confirmed code evidence / remediation |
+| --- | --- | --- |
+| P0A-16 | P1 | `MfaService.beginSetup` conflict-upsert could overwrite an already-confirmed factor during a concurrent confirmation. Upsert is now conditional on unconfirmed state; confirmation additionally checks the pending encrypted secret before update. |
+| P0A-17 | P1 | Authenticated cashiers could directly call AI API-key/model configuration routes without settings permission. Controller config reads/writes/test/models and shared `AiCopilotService.saveConfig` now enforce management role/permission. |
+| P0A-18 | P1 | `SessionAuthGuard` accepted x-session-id without CSRF in Cloud when `ALLOW_SESSION_ID_HEADER=true` (even in development). Fallback is now restricted to explicitly supported local runtime modes, preserving local clients. |
+| P0A-19 | P1 | Paymob webhook HMAC from callback query was not forwarded to the signature verifier, rejecting properly signed callbacks where no equivalent header existed. Controller forwards it only for Paymob; gateway still verifies cryptographically. |
+| P0A-20 | P1 | Manual backup restore sequence repair swallowed `pg_get_serial_sequence` and `setval` errors; broken sequences could be committed. Errors now fail the restore transaction. |
+| P0A-21 | P1 | A successful password check or pending signed MFA challenge could create a session after a concurrent password reset. Session creation checks the locked user's current password hash, and MFA challenges bind to a hash fingerprint. |
+| P0A-22 | P1 | Concurrent failed logins could overwrite one another's `failed_login_count` and evade lockout. Updates now serialize on the user row in a tenant-scoped transaction. |
+| P0A-23 | P0 | A manually constructed or old incomplete backup could silently clear missing live tenant tables during restore, and absent tenant metadata was accepted. Normalization fails closed, restore requires matching tenant identity, and preflights all discovered live tenant/child tables before deletion. **Older archives lacking tenant identity or unscoped child table support are now rejected; this is a documented compatibility/recovery limitation, not an implemented full migration pathway.** |
+| P0A-24 | P1 | A set of ID-only joins in accounting, reconciliation, partner/customer reports, maritime journals, returns and contracting could follow cross-tenant legacy references. Joins now require both IDs and matching `tenant_id`; contracting post-update read is tenant-scoped. |
+| P0A-25 | P1 | MFA encryption key derivation could fall back to a globally known local key on missing/unrecognized mode if `IS_ELECTRON` or `PORTABLE_MODE` was set. Canonical explicit desktop runtime mode is now mandatory for local fallback. |
+| P0A-26 | P1 | Public maritime RFQ bid could reference a `shipping_lines.id` belonging to another tenant. The carrier lookup now requires RFQ tenant ownership; journal joins also include tenant ID. |
+| P0A-27 | P1 | Tenant-aware writes were not consistently enforced by DB FKs for `user_mfa` and key maritime children. New additive migration `2040000000255_platform_tenant_fk_hardening.ts` creates supporting unique keys and tenant-composite `NOT VALID` constraints. **Not executed; existing invalid records remain and need explicit reconciliation.** |
+
+**Follow-up additions by severity:** P0 **1**, P1 **11**, P2 **0**.  
+**Combined source-confirmed corrections:** P0 **3**, P1 **23**, P2 **1**, **27 total**. These are independently described source defects; **not** a penetration-test result or proof of operational closure.
+
+### Code surface examined this follow-up (different levels of depth)
+
+- Enumerated actual repository tree: **83 backend controllers** in **37 modules**, **148 module service files**, and **349 migration `.ts` files**. Counts are inventory, **not** assertions that every file was fully inspected.
+- Read class-level guard and route declarations for representative sets across accounting, catalog, sales, purchases, treasury, returns, HR, reports, inventory, customers/partners, contracting, maritime, manufacturing, pharmacy, APIs for portals/webhooks, settings, SaaS/admin, activation and developers. Public endpoints were differentiated from normal authenticated controllers. A name/decorator check does not prove service authorization.
+- Traced actual implementations for session and MFA/crypto/rate limits, AI key-management APIs, Paymob callback/controller, authorization guard, backup ZIP normalization/export/restore, tenant transfer FK and session invalidation, maritime bid magic-link, accounting reconciliation, partners customer profile, reporting dashboard, contracting document revisions, selected settings operations, bridge terminal authentication.
+- Examined migration definitions `2040000000080`, `2040000000085`, `2040000000142`, `2040000000252`, `2040000000253`, `2040000000254`, migration runner, and authored `2040000000255`. **The other migrations are not individually audited.**
+- Prior 15 fixes received targeted re-inspection, notably auth guard modes, login transactions/test doubles, backup deletion/sequence logic, gateway HMAC handling, platform-tables exclusion, desktop key derivation, and tenant-aware joins. No test execution or full old-fix regression proof.
+
+### New regression files (written, NEVER run)
+
+- `backend/test/critical/p0a-mfa-ai-settings-boundaries.spec.ts`
+- `backend/test/critical/p0a-cloud-header-paymob-webhook.spec.ts`
+- `backend/test/critical/p0a-password-change-login-race.spec.ts`
+- `backend/test/critical/p0a-login-lockout-concurrency.spec.ts`
+- `backend/test/critical/p0a-backup-destructive-preflight.spec.ts`
+- `backend/test/critical/p0a-tenant-join-invariants.spec.ts` (source-contract test, not live SQL integration)
+- `backend/test/critical/p0a-mfa-encryption-mode.spec.ts`
+- `backend/test/critical/p0a-tenant-referential-constraints.spec.ts` (migration metadata check, not applied DB test)
+
+Adjusted older test fixtures `backend/test/critical/session-auth.guard.spec.ts` and `backend/test/critical/session-auth.spec.ts`. None executed. Real parallel PostgreSQL transactions, exact historical data, Electron packaging and Cloud gateways remain untested.
+
+### Outstanding, NOT cleared by this follow-up
+
+1. Every query/endpoint/guard in all 37 modules has **not** been traced through Frontend → API → Guard → Service → SQL. The enumerated route and service inventory is not endpoint-level evidence. Some role/permission checks and branch authorization may remain incorrect.
+2. Review of **all 349 migrations** and full historical composite FKs, `NOT VALID` legacy anomalies, constraints and migrations execution order is incomplete; latest 255 not applied.
+3. **Real PostgreSQL**, idempotency, parallel sessions, multi-tenant adversarial scenarios, restore interruption and event/GL/stock integrity tests not run.
+4. **Manual Backup Restore remains restricted** for legacy/incomplete archives or data stored in child tables lacking `tenant_id`; complete backward-compatible safe restore requires schema-aware child export/remapping or tenant package transfer. This is deliberately fail-closed and **not completed**.
+5. Electron SELF_CONTAINED / LOCAL_PILOT boot/activation/licensing, desktop updater, complete packaging, live cloud environment, enterprise CSP, vendor payment signatures and end-to-end real gateway settlement are unverified.
+6. All employee, driver, storefront, freight portal and other public token flows were **sampled**, not all deeply verified, including all frontend callers and load/rate-limit behavior.
+
+**Release acceptance:** all touched modules remain `unverified_current_head` (existing HR `release_blocked` unchanged). No claim that Platform Core is fully audited or ready for final release testing. The next approval must explicitly permit tests before the branch can be evaluated for merge.
