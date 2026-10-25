@@ -102,6 +102,10 @@ jobs:
             npx ts-node "test/critical/${f}" || failed=1
           done
           exit "${failed}"
+      - name: Electron syntax and offline updater regression contracts
+        if: ${{ always() && steps.install.outcome == 'success' }}
+        run: npm run qa:electron
+        working-directory: .
       - name: Apply every migration including 255 to disposable PostgreSQL
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm run migration:run
