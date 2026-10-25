@@ -50,7 +50,7 @@ import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInsta
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireStoredHrMoney, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
-import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
+import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction, calculatePayableMinutes, resolveExpectedDailyMinutes, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
 import { createPasswordRecord } from '../../core/auth/utils/password-hasher';
@@ -4267,7 +4267,22 @@ export class HrService {
               AND a.check_in_at IS NOT NULL AND a.check_out_at IS NOT NULL
               AND a.check_out_at > a.check_in_at AND a.check_out_at <= a.check_in_at + INTERVAL '24 hours'
               AND a.status NOT IN ('absent', 'leave')
-              THEN FLOOR(EXTRACT(EPOCH FROM (a.check_out_at - a.check_in_at)) / 60) ELSE 0 END), 0)::text AS payable_minutes,
+              THEN LEAST(
+                FLOOR(EXTRACT(EPOCH FROM (a.check_out_at - a.check_in_at)) / 60),
+                COALESCE(e.expected_daily_hours * 60, 480)
+              ) + CASE WHEN e.overtime_policy = 'auto_approved' THEN
+                GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (a.check_out_at - a.check_in_at)) / 60) - COALESCE(e.expected_daily_hours * 60, 480))
+              WHEN e.overtime_policy = 'disabled' THEN 0
+              ELSE
+                COALESCE((
+                  SELECT SUM(COALESCE(ex.approved_duration_minutes, ex.duration_minutes))
+                  FROM hr_attendance_exceptions ex
+                  WHERE ex.tenant_id = a.tenant_id AND ex.employee_id = a.employee_id
+                    AND ex.work_date = a.work_date AND ex.exception_type IN ('late_check_out', 'extra_hours')
+                    AND ex.status = 'approved'
+                ), 0)
+              END
+              ELSE 0 END), 0)::text AS payable_minutes,
           COUNT(*) FILTER (WHERE a.status = 'present')::text AS present,
           COUNT(*) FILTER (WHERE a.status = 'absent')::text AS absent,
           COUNT(*) FILTER (WHERE a.status = 'late')::text AS late
@@ -4291,7 +4306,22 @@ export class HrService {
           to_char(a.check_in_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_in_at_text,
           to_char(a.check_out_at AT TIME ZONE ${tenantTimezone}, 'YYYY-MM-DD"T"HH24:MI:SS') AS check_out_at_text,
           a.source, a.notes,
-          e.scheduled_check_in_time, e.scheduled_check_out_time, e.grace_minutes, e.department_id
+          e.scheduled_check_in_time, e.scheduled_check_out_time, e.grace_minutes, e.department_id,
+          e.expected_daily_hours, e.overtime_policy,
+          COALESCE((
+            SELECT SUM(COALESCE(ex.approved_duration_minutes, ex.duration_minutes))
+            FROM hr_attendance_exceptions ex
+            WHERE ex.tenant_id = a.tenant_id AND ex.employee_id = a.employee_id
+              AND ex.work_date = a.work_date AND ex.exception_type IN ('late_check_out', 'extra_hours')
+              AND ex.status = 'approved'
+          ), 0) AS approved_overtime_minutes,
+          COALESCE((
+            SELECT SUM(ex.duration_minutes)
+            FROM hr_attendance_exceptions ex
+            WHERE ex.tenant_id = a.tenant_id AND ex.employee_id = a.employee_id
+              AND ex.work_date = a.work_date AND ex.exception_type IN ('late_check_out', 'extra_hours')
+              AND ex.status IN ('pending', 'needs_review')
+          ), 0) AS pending_overtime_minutes
         FROM hr_attendance_records a
         JOIN hr_employees e ON e.id = a.employee_id AND e.tenant_id = a.tenant_id
         LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = e.tenant_id
@@ -4317,6 +4347,10 @@ export class HrService {
           scheduledCheckOutTime: clean(row.scheduled_check_out_time),
           graceMinutes: Number(row.grace_minutes || 0),
           departmentId: row.department_id ? String(row.department_id) : "",
+          expectedDailyHours: row.expected_daily_hours != null ? Number(row.expected_daily_hours) : null,
+          overtimePolicy: clean(row.overtime_policy) || 'review_only',
+          approvedOvertimeMinutes: Number(row.approved_overtime_minutes || 0),
+          pendingOvertimeMinutes: Number(row.pending_overtime_minutes || 0),
         })),
         pagination: { page: safePage, pageSize, totalItems, totalPages },
         summary: { totalItems, presentCount: Number(count.rows[0]?.present || 0),
@@ -4346,7 +4380,23 @@ export class HrService {
         e.scheduled_check_in_time,
         e.scheduled_check_out_time,
         e.grace_minutes,
-        e.department_id
+        e.department_id,
+        e.expected_daily_hours,
+        e.overtime_policy,
+        COALESCE((
+          SELECT SUM(COALESCE(ex.approved_duration_minutes, ex.duration_minutes))
+          FROM hr_attendance_exceptions ex
+          WHERE ex.tenant_id = e.tenant_id AND ex.employee_id = e.id
+            AND ex.work_date = ${workDate}::date AND ex.exception_type IN ('late_check_out', 'extra_hours')
+            AND ex.status = 'approved'
+        ), 0) AS approved_overtime_minutes,
+        COALESCE((
+          SELECT SUM(ex.duration_minutes)
+          FROM hr_attendance_exceptions ex
+          WHERE ex.tenant_id = e.tenant_id AND ex.employee_id = e.id
+            AND ex.work_date = ${workDate}::date AND ex.exception_type IN ('late_check_out', 'extra_hours')
+            AND ex.status IN ('pending', 'needs_review')
+        ), 0) AS pending_overtime_minutes
       FROM hr_employees e
       LEFT JOIN hr_departments d ON d.id = e.department_id AND d.tenant_id = e.tenant_id AND d.tenant_id = e.tenant_id
       LEFT JOIN hr_job_titles j ON j.id = e.job_title_id AND j.tenant_id = e.tenant_id AND j.tenant_id = e.tenant_id
@@ -4378,6 +4428,10 @@ export class HrService {
         scheduledCheckOutTime: clean(row.scheduled_check_out_time),
         graceMinutes: Number(row.grace_minutes || 0),
         departmentId: row.department_id ? String(row.department_id) : "",
+        expectedDailyHours: row.expected_daily_hours != null ? Number(row.expected_daily_hours) : null,
+        overtimePolicy: clean(row.overtime_policy) || 'review_only',
+        approvedOvertimeMinutes: Number(row.approved_overtime_minutes || 0),
+        pendingOvertimeMinutes: Number(row.pending_overtime_minutes || 0),
       };
     });
 
@@ -4407,7 +4461,15 @@ export class HrService {
     const payableMinutes = rows.reduce((total, row) => {
       if (row.compensationType !== 'hourly' || !row.checkInAt || !row.checkOutAt || ['absent', 'leave'].includes(row.status)) return total;
       const elapsed = Math.floor((new Date(row.checkOutAt).getTime() - new Date(row.checkInAt).getTime()) / 60000);
-      return total + (Number.isFinite(elapsed) && elapsed > 0 && elapsed <= 1440 ? elapsed : 0);
+      if (!Number.isFinite(elapsed) || elapsed <= 0 || elapsed > 1440) return total;
+      const expectedDailyMinutes = resolveExpectedDailyMinutes(row);
+      const { payableMinutes: rowPayable } = calculatePayableMinutes({
+        actualMinutes: elapsed,
+        expectedDailyMinutes,
+        overtimePolicy: row.overtimePolicy,
+        approvedOvertimeMinutes: row.approvedOvertimeMinutes,
+      });
+      return total + rowPayable;
     }, 0);
     const paged = paginateRows(rows, query, { defaultSize: 50 });
     return {

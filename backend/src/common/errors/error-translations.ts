@@ -32,6 +32,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   PRODUCT_HAS_STOCK: 'لا يمكن حذف الصنف لأن عليه مخزونًا حاليًا.',
   PRODUCT_HAS_HISTORY: 'لا يمكن حذف الصنف لأن له حركات أو تاريخًا سابقًا.',
   STOCK_UPDATE_FORBIDDEN: 'لا يمكن تعديل المخزون من شاشة بيانات الصنف. استخدم شاشة المخزون أو التسوية.',
+  STOCK_COST_EDIT_FORBIDDEN: 'لا يمكن تعديل تكلفة المخزون الحالي مباشرة بدون تسوية مخزنية.',
   PRICE_CHANGE_FORBIDDEN: 'تعديل الأسعار يتطلب صلاحية تعديل الأسعار.',
   DISCOUNT_CHANGE_FORBIDDEN: 'تعديل الخصم يتطلب صلاحية تعديل الخصم.',
   CUSTOMER_PRICE_INVALID: 'سعر العميل غير صحيح.',

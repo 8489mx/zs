@@ -17,6 +17,10 @@ export interface HrAttendanceRecord {
   scheduledCheckOutTime?: string;
   graceMinutes?: number;
   departmentId?: string;
+  expectedDailyHours?: number | null;
+  overtimePolicy?: string;
+  approvedOvertimeMinutes?: number;
+  pendingOvertimeMinutes?: number;
 }
 
 export interface HrAttendanceException {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
 import type { HrAttendanceRecord } from '@/types/domain';
+import { calculateAttendancePayableMinutes } from './attendance-types';
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; color: string; border: string }> = {
   present: { label: 'حاضر', bg: '#dcfce7', color: '#166534', border: '#bbf7d0' },
@@ -45,7 +46,11 @@ export function AttendanceRangeTable({ rows }: { rows: HrAttendanceRecord[] }) {
       const mins = getRowMinutes(row);
       totalMinutes += mins;
       if (row.compensationType === 'hourly') {
-        payableMinutes += mins;
+        const { payableMinutes: pMins } = calculateAttendancePayableMinutes({
+          ...row,
+          actualMinutes: mins,
+        });
+        payableMinutes += pMins;
       }
       if (row.status === 'present') presentCount += 1;
       else if (row.status === 'absent') absentCount += 1;
@@ -63,6 +68,7 @@ export function AttendanceRangeTable({ rows }: { rows: HrAttendanceRecord[] }) {
       lateCount,
     };
   }, [rows]);
+
 
   return (
     <div className="attendance-table-container">
@@ -184,12 +190,48 @@ export function AttendanceRangeTable({ rows }: { rows: HrAttendanceRecord[] }) {
             key: 'payableHours',
             header: 'ساعات الأجر',
             className: 'col-fit',
-            cell: (row) =>
-              row.compensationType === 'hourly' ? (
-                <span style={{ fontWeight: 700, color: '#0369a1' }}>{duration(row)}</span>
-              ) : (
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>راتب شهري</span>
-              ),
+            cell: (row) => {
+              if (row.compensationType !== 'hourly') {
+                return <span style={{ fontSize: '0.75rem', color: '#64748b' }}>راتب شهري</span>;
+              }
+              const mins = getRowMinutes(row);
+              if (mins <= 0) return '—';
+              const { payableMinutes, approvedOvertimeMinutes, pendingOvertimeMinutes, isCapped } = calculateAttendancePayableMinutes({
+                ...row,
+                actualMinutes: mins,
+              });
+              const pH = Math.floor(payableMinutes / 60);
+              const pM = payableMinutes % 60;
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                  <span style={{ fontWeight: 700, color: '#0369a1' }}>
+                    {pH} س {pM > 0 ? `${pM} د` : '0 د'}
+                  </span>
+                  {approvedOvertimeMinutes > 0 && (
+                    <span style={{ fontSize: '0.68rem', color: '#16a34a', fontWeight: 600 }}>
+                      (منها {Math.floor(approvedOvertimeMinutes / 60)}س {approvedOvertimeMinutes % 60}د إضافي معتمد)
+                    </span>
+                  )}
+                  {isCapped && pendingOvertimeMinutes > 0 && approvedOvertimeMinutes === 0 && (
+                    <span
+                      title="ساعات عمل زائدة عن الوردية بانتظار اعتماد المدير من تبويب الاستثناءات"
+                      style={{
+                        fontSize: '0.68rem',
+                        color: '#d97706',
+                        background: '#fef3c7',
+                        border: '1px solid #fde68a',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      +{Math.floor(pendingOvertimeMinutes / 60)}س بانتظار الاعتماد
+                    </span>
+                  )}
+                </div>
+              );
+            },
           },
           {
             key: 'status',

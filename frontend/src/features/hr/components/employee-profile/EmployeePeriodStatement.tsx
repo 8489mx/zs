@@ -55,7 +55,7 @@ export function EmployeePeriodStatement({ employeeId, employee, canViewLoans, ca
   const payableHours = (Number(attendance.data?.summary?.payableMinutes || 0) / 60).toFixed(2);
   const hourly = employee.compensationType === 'hourly';
   const rate = Number(employee.hourlyRate || 0);
-  const indicativePay = Number(((minutes / 60) * rate).toFixed(2));
+  const indicativePay = Number((Number(payableHours) * rate).toFixed(2));
   const rows = withdrawals.data?.rows || [];
 
   return (

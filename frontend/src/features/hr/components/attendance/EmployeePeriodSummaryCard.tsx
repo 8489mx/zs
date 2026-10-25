@@ -1,5 +1,6 @@
 import React from 'react';
 import type { HrAttendanceRecord } from '@/types/domain';
+import { calculateAttendancePayableMinutes } from './attendance-types';
 
 interface EmployeePeriodSummaryCardProps {
   employee?: {
@@ -10,6 +11,8 @@ interface EmployeePeriodSummaryCardProps {
     jobTitleName?: string;
     compensationType?: string;
     hourlyRate?: number;
+    expectedDailyHours?: number;
+    overtimePolicy?: string;
     scheduledCheckInTime?: string;
     scheduledCheckOutTime?: string;
     graceMinutes?: number;
@@ -52,7 +55,14 @@ export const EmployeePeriodSummaryCard: React.FC<EmployeePeriodSummaryCardProps>
     if (![ih, im, oh, om].every(Number.isFinite)) return acc;
     const start = ih * 60 + im, end = oh * 60 + om;
     const mins = end <= start ? end + 1440 - start : end - start;
-    return acc + (mins > 0 && mins <= 1440 ? mins : 0);
+    if (mins <= 0 || mins > 1440) return acc;
+    const { payableMinutes: pMins } = calculateAttendancePayableMinutes({
+      ...row,
+      expectedDailyHours: employee?.expectedDailyHours ?? row.expectedDailyHours,
+      overtimePolicy: employee?.overtimePolicy ?? row.overtimePolicy,
+      actualMinutes: mins,
+    });
+    return acc + pMins;
   }, 0);
 
   const presentDays = summary?.presentCount ?? rows.filter((r) => r.status === 'present').length;

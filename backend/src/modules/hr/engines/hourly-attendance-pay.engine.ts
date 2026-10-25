@@ -235,3 +235,92 @@ export function calculateHistoricalOvertimePay(
   }
   return Number(total.toFixed(2));
 }
+
+export function resolveExpectedDailyMinutes(params: {
+  expectedDailyHours?: number | null;
+  scheduledCheckInTime?: string | null;
+  scheduledCheckOutTime?: string | null;
+}): number {
+  if (params.expectedDailyHours != null && Number(params.expectedDailyHours) > 0) {
+    return Math.round(Number(params.expectedDailyHours) * 60);
+  }
+  const inTime = String(params.scheduledCheckInTime || '').trim();
+  const outTime = String(params.scheduledCheckOutTime || '').trim();
+  if (inTime && outTime) {
+    const [ih, im] = inTime.slice(0, 5).split(':').map(Number);
+    const [oh, om] = outTime.slice(0, 5).split(':').map(Number);
+    if ([ih, im, oh, om].every(Number.isFinite)) {
+      const shift = (oh * 60 + om) <= (ih * 60 + im)
+        ? (oh * 60 + om) + 1440 - (ih * 60 + im)
+        : (oh * 60 + om) - (ih * 60 + im);
+      if (shift > 0 && shift <= 1440) return shift;
+    }
+  }
+  return 8 * 60; // 8 hours default
+}
+
+export function calculatePayableMinutes(params: {
+  actualMinutes: number;
+  expectedDailyMinutes?: number;
+  overtimePolicy?: string;
+  approvedOvertimeMinutes?: number;
+}): {
+  payableMinutes: number;
+  baseMinutes: number;
+  approvedOvertimeMinutes: number;
+  unapprovedOvertimeMinutes: number;
+  isCapped: boolean;
+} {
+  const actual = Math.max(0, Math.floor(Number(params.actualMinutes || 0)));
+  if (actual === 0) {
+    return { payableMinutes: 0, baseMinutes: 0, approvedOvertimeMinutes: 0, unapprovedOvertimeMinutes: 0, isCapped: false };
+  }
+  const expected = Math.max(1, Math.floor(Number(params.expectedDailyMinutes || (8 * 60))));
+  const policy = String(params.overtimePolicy || 'review_only').toLowerCase();
+  const approved = Math.max(0, Math.floor(Number(params.approvedOvertimeMinutes || 0)));
+
+  if (actual <= expected) {
+    return {
+      payableMinutes: actual,
+      baseMinutes: actual,
+      approvedOvertimeMinutes: 0,
+      unapprovedOvertimeMinutes: 0,
+      isCapped: false,
+    };
+  }
+
+  const baseMinutes = expected;
+  const extraMinutes = actual - expected;
+
+  if (policy === 'auto_approved') {
+    return {
+      payableMinutes: actual,
+      baseMinutes,
+      approvedOvertimeMinutes: extraMinutes,
+      unapprovedOvertimeMinutes: 0,
+      isCapped: false,
+    };
+  }
+
+  if (policy === 'disabled') {
+    return {
+      payableMinutes: baseMinutes,
+      baseMinutes,
+      approvedOvertimeMinutes: 0,
+      unapprovedOvertimeMinutes: 0,
+      isCapped: true,
+    };
+  }
+
+  const validApproved = Math.min(extraMinutes, approved);
+  const unapproved = extraMinutes - validApproved;
+
+  return {
+    payableMinutes: baseMinutes + validApproved,
+    baseMinutes,
+    approvedOvertimeMinutes: validApproved,
+    unapprovedOvertimeMinutes: unapproved,
+    isCapped: unapproved > 0,
+  };
+}
+

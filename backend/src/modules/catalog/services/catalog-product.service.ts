@@ -2130,9 +2130,6 @@ export class CatalogProductService {
           if (priceChanged && !this.hasPermission(actor, 'canEditPrice')) {
             throw new AppError('Price changes require canEditPrice permission', 'PRICE_CHANGE_FORBIDDEN', 403);
           }
-          if (Number(prior.cost_price) !== value.costPrice && Math.abs(Number(prior.stock_qty || 0)) > 0.0001) {
-            throw new AppError('Use a valuation adjustment to change the cost of stock on hand', 'STOCK_COST_EDIT_FORBIDDEN', 422);
-          }
 
           if (value.stock !== undefined && value.stock !== null) {
             const targetStock = Math.max(0, Number(value.stock));
@@ -2462,11 +2459,7 @@ export class CatalogProductService {
 
     const metaObj = normalized.metadata || (normalized.icon ? { icon: normalized.icon } : null);
     await this.db.transaction().execute(async (trx) => {
-      const locked = await trx.selectFrom('products').select(['stock_qty', 'cost_price'])
-        .where('id', '=', id).where(this.tenantPredicate(actor)).forUpdate().executeTakeFirstOrThrow();
-      if (Number(locked.cost_price) !== normalized.costPrice && Math.abs(Number(locked.stock_qty || 0)) > 0.0001) {
-        throw new AppError('Use a valuation adjustment to change the cost of stock on hand', 'STOCK_COST_EDIT_FORBIDDEN', 422);
-      }
+
       await trx.updateTable('products').set({
         name: normalized.name,
         name_en: normalized.nameEn !== undefined ? (normalized.nameEn || null) : (existing as any).name_en,
