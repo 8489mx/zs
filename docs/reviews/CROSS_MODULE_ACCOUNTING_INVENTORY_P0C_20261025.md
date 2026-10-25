@@ -120,3 +120,9 @@ The code observations above identify definite missing integration points; **fina
 - Direct pharmacy batch creation/edits cannot adjust stock or cost outside purchase/GRN; deletion of drug master with batch history is rejected. The joined product listing now matches tenant_id on both sides.
 - Added PostgreSQL acceptance to check 2 paid + 1 bonus units, one purchase/AP/GL receipt, retry without duplicate inventory, rejection of manual cash bypass, and rollback of expired-batch purchase.
 - **Limits:** Linked stock product/supplier/location and invoice number are now mandatory. Three-decimal pharmacy purchases fail closed until the canonical purchases calculation path handles mill precision. Legacy unlinked batches/history need reconciliation on a disposable copy before deployment. No automatic cash outflow is fabricated for default credit invoices.
+
+### Currency-dependent integration test coverage and fixture repair
+
+- `backend/test/critical/accounting-commercial-posting.spec.ts`, `import-postgres-integration.spec.ts`, and `import-e2e-business-simulation.spec.ts` use isolated PGlite fixtures. They now create the `settings` / `currency_exchange_rates` metadata used by production tenant-base-currency validation instead of stubbing that guard.
+- The prior full CI failed with missing schema `42P01` in these miniature fixture databases; this was not an observed production migration failure. The new full CI run must pass before concluding these fixtures are fixed.
+- Disposable PostgreSQL acceptance has passed for KWD 0.001 and pharmacy importer source/stock/AP/GL on earlier revisions, but 8 commercial cycles and 11 sector pathways are not fully certified.
