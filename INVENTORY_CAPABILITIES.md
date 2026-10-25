@@ -344,3 +344,10 @@
 ### 2026-10-25 — D: bulk stock transfer receive/cancel recovery
 
 - A multi-selected transfer action originally minted a new operation key per document each time the whole batch was retried; a timeout after the first committed receive could cause a second receive/cancel attempt with a fresh key. The hook now retains a stable, frozen keyed request per transfer/action until the batch finishes. Rerunning a batch replays committed documents with their old keys instead of creating duplicate movements, and refuses switching selected IDs/action or altering partial quantities while any operation is unresolved. Written tests for unique document/action keys and immutable receipt payloads remain unexecuted. Browser reload and real transfer transaction failures still need UAT.
+
+## 25 October 2026 — P0-C inventory-to-ledger integration checkpoint (NOT CLOSED)
+
+- Review uncovered unverified valuation/GL integration for maintenance parts, trade-in intake and pharmacy distributor batches (including independently committed lot rows and a swallowed treasury failure).
+- Existing purchase/sale/return PostgreSQL acceptance and stock-movement code are **not** sufficient to certify the sector-specific integration.
+- Three-decimal KWD/OMR minor units also require coherent inventory receipt/landed-cost and ledger precision, not isolated rounding changes.
+- Detailed coverage/status and unresolved defects: [P0-C checkpoint](docs/reviews/CROSS_MODULE_ACCOUNTING_INVENTORY_P0C_20261025.md). Do not mark this module P0-C verified yet.
