@@ -2068,6 +2068,8 @@ export class AccountingPostingService {
 
   async postSupplierPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, digits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingSupplierPaymentJournal(queryable, paymentId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -2100,7 +2102,7 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting supplier payment ${paymentId}`);
 
-    const amount = this.toMoney(payment.amount);
+    const amount = toBookMoney(payment.amount);
     if (!(amount > 0)) {
       this.logger.warn(`Supplier payment ${paymentId} has non-positive amount; skipping accounting post`);
       return { posted: false, journalEntryId: null };
@@ -2116,7 +2118,8 @@ export class AccountingPostingService {
     const paymentAccountId = (payment.payment_channel || 'cash') === 'cash' ? cashAccountId :
       await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, digits);
+    addBookLine( {
       accountId: supplierPayableAccountId,
       description: 'سداد مستحقات مورد',
       debit: amount,
@@ -2126,7 +2129,7 @@ export class AccountingPostingService {
       branchId,
       locationId,
     });
-    this.addLine(lines, {
+    addBookLine( {
       accountId: paymentAccountId,
       description: (payment.payment_channel || 'cash') === 'cash' ? 'خروج نقدية لسداد مورد' : 'سداد مورد عبر البنك أو المدفوعات الإلكترونية',
       debit: 0,
@@ -2144,9 +2147,9 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting supplier payment ${paymentId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced supplier payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
     }
@@ -2279,6 +2282,8 @@ export class AccountingPostingService {
 
   async postCustomerPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, digits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingCustomerPaymentJournal(queryable, paymentId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -2310,7 +2315,7 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting customer payment ${paymentId}`);
 
-    const amount = this.toMoney(payment.amount);
+    const amount = toBookMoney(payment.amount);
     if (!(amount > 0)) {
       this.logger.warn(`Customer payment ${paymentId} has non-positive amount; skipping accounting post`);
       return { posted: false, journalEntryId: null };
@@ -2325,7 +2330,8 @@ export class AccountingPostingService {
     const paymentAccountId = (payment.payment_channel || 'cash') === 'cash' ? cashAccountId :
       await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, digits);
+    addBookLine( {
       accountId: paymentAccountId,
       description: (payment.payment_channel || 'cash') === 'cash' ? 'دخول نقدية من تحصيل عميل' : 'تحصيل عميل عبر البنك أو المدفوعات الإلكترونية',
       debit: amount,
@@ -2335,7 +2341,7 @@ export class AccountingPostingService {
       branchId,
       locationId,
     });
-    this.addLine(lines, {
+    addBookLine( {
       accountId: customerAccountId,
       description: 'تحصيل مستحقات عميل',
       debit: 0,
@@ -2353,9 +2359,9 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting customer payment ${paymentId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced customer payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
     }
