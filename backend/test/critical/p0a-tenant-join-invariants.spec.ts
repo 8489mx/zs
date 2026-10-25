@@ -1,0 +1,37 @@
+import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+// Source-contract checks complement PostgreSQL tests. They ensure previously
+// fixed raw Kysely joins do not revert to ID-only links on code review.
+const SRC = resolve(__dirname, '../../src/modules');
+const read = (path: string) => readFileSync(resolve(SRC, path), 'utf8');
+
+function check(file: string, required: string[]): void {
+  const source = read(file);
+  for (const join of required) {
+    assert.ok(source.includes(join), `${file}: missing tenant-aware join ${join}`);
+  }
+}
+function run(): void {
+  check('accounting/accounting.service.ts', [
+    "join.onRef('je.id', '=', 'l.journal_entry_id').onRef('je.tenant_id', '=', 'l.tenant_id')",
+    "join.onRef('bs.id', '=', 'bsl.statement_id').onRef('bs.tenant_id', '=', 'bsl.tenant_id')",
+    "join.onRef('je.id', '=', 'jel.journal_entry_id').onRef('je.tenant_id', '=', 'jel.tenant_id')",
+  ]);
+  check('reports/reports.service.ts', [
+    "join.onRef('s.id', '=', 'si.sale_id').onRef('s.tenant_id', '=', 'si.tenant_id')",
+    "join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id')",
+  ]);
+  check('partners/partners.service.ts', [
+    "join.onRef('s.id', '=', 'rd.invoice_id').onRef('s.tenant_id', '=', 'rd.tenant_id')",
+    "join.onRef('b.id', '=', 's.branch_id').onRef('b.tenant_id', '=', 's.tenant_id')",
+  ]);
+  check('maritime-freight/maritime-freight.service.ts', [
+    "join.onRef('jl.journal_entry_id', '=', 'je.id').onRef('jl.tenant_id', '=', 'je.tenant_id')",
+  ]);
+  check('contracting/contracting.service.ts', [
+    "trx.selectFrom('contracting_documents').selectAll().where('id', '=', documentId).where('tenant_id', '=', tenantId)",
+  ]);
+}
+run();
