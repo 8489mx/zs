@@ -122,3 +122,10 @@ Adjusted older test fixtures `backend/test/critical/session-auth.guard.spec.ts` 
 6. All employee, driver, storefront, freight portal and other public token flows were **sampled**, not all deeply verified, including all frontend callers and load/rate-limit behavior.
 
 **Release acceptance:** all touched modules remain `unverified_current_head` (existing HR `release_blocked` unchanged). No claim that Platform Core is fully audited or ready for final release testing. The next approval must explicitly permit tests before the branch can be evaluated for merge.
+
+### Latest additional cross-check — configured platform identity
+
+- **P0A-28 / P1:** Backup restore, tenant-transfer service import, and the low-level package importer each used a duplicated platform-ID condition that skipped protecting the configured Cloud platform ID when it was `default`. The shared `isProtectedTenantDataTarget` helper now recognizes `zs` universally and uses the canonical configured platform identity on Cloud, while preserving Desktop's legitimate local `default` tenant.
+- **Files modified:** `backend/src/core/tenant-transfer/protected-tenant-target.ts`, `backend/src/core/tenant-transfer/tenant-package.ts`, `backend/src/modules/settings/services/settings-backup.service.ts`, `backend/src/modules/settings/services/tenant-transfer.service.ts`.
+- **Regression authored only:** `backend/test/critical/p0a-protected-tenant-target.spec.ts`, not executed.
+- **Updated aggregate:** P0 **3**, P1 **24**, P2 **1** (**28** source-confirmed code correction items in this branch). No verification of complete 37-module tenant isolation, 349 migrations, restore compatibility, Cloud/Electron execution, or tests. Status remains unverified.
