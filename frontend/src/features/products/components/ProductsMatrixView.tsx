@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useMemo } from 'react';
 import type { Product } from '@/types/domain';
+import { groupClothingMatrixVariants } from './products-matrix.helpers';
 
 export interface ProductsMatrixViewProps {
   products: Product[];
@@ -57,20 +58,7 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
       return a.localeCompare(b, 'en');
     });
 
-    const matrix: Record<string, Record<string, Product | undefined>> = {};
-    colors.forEach((c) => {
-      matrix[c] = {};
-      sizes.forEach((s) => {
-        matrix[c][s] = undefined;
-      });
-    });
-
-    products.forEach((p) => {
-      const c = String(p.color || '').trim() || 'بدون لون';
-      const s = String(p.size || '').trim() || 'بدون مقاس';
-      if (!matrix[c]) matrix[c] = {};
-      if (!matrix[c][s]) matrix[c][s] = p;
-    });
+    const matrix = groupClothingMatrixVariants(products);
 
     return { colors, sizes, matrix };
   }, [products]);
@@ -99,18 +87,18 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
                 {c}
               </td>
               {sizes.map((s) => {
-                const variant = matrix[c][s];
-                if (!variant) {
+                const variants = matrix[c]?.[s] || [];
+                if (!variants.length) {
                   return <td key={s} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td>;
                 }
-                const stock = Number(variant.stock || 0);
+                const stock = variants.reduce((total, variant) => total + Number(variant.stock || 0), 0);
                 const isEmpty = stock <= 0;
-                
-                const title = [
+                const title = variants.map((variant) => [
+                  `الصنف: ${variant.id}`,
                   `الباركود: ${variant.barcode || t('products.products_matrix_view.s1', "غير محدد")}`,
+                  `المخزون: ${variant.stock}`,
                   `سعر البيع: ${variant.retailPrice}`,
-                  variant.notes ? `ملاحظات: ${variant.notes}` : null
-                ].filter(Boolean).join('\n');
+                ].join(' — ')).join('\n');
 
                 return (
                   <td key={s} title={title} style={{ textAlign: 'center', verticalAlign: 'middle' }}>
@@ -127,6 +115,11 @@ export function ProductsMatrixView({ products }: ProductsMatrixViewProps) {
                     }}>
                       {stock}
                     </div>
+                    {variants.length > 1 ? (
+                      <span role="alert" title="أكثر من صنف بنفس اللون والمقاس" style={{
+                        display: 'block', fontSize: 11, color: '#b91c1c', fontWeight: 700, marginTop: 3,
+                      }}>تكرار {variants.length} أصناف</span>
+                    ) : null}
                   </td>
                 );
               })}

@@ -563,3 +563,7 @@
 ### 2026-10-25 — F follow-up: report unassigned stock and reconciliation detail
 
 - When site rows existed but did not sum to global stock, the inventory report displayed only the first locations while hiding remaining unassigned stock. The location label now explicitly shows the positive unassigned balance for each clothing SKU, and appends any over-assignment reconciliation warning without discarding the displayed location details. Existing tests amended for this output (not executed). Removed decorative warning emoji to follow UI standards.
+
+
+### 2026-10-25 — A/F fashion matrix duplicate-SKU visibility
+- The original matrix silently displayed only the first SKU for a color-size cell and hid stock in additional historical rows. The view now shows the sum of all rows, explicitly flags multiple SKUs, and retains each underlying barcode and SKU in its tooltip; it does NOT merge stock automatically. Regression `products-matrix.helpers.spec.ts` written, NOT executed.
