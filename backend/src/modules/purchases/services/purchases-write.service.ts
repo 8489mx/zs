@@ -1144,6 +1144,8 @@ export class PurchasesWriteService {
   async createSupplierPayment(payload: CreateSupplierPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const operationType = 'supplier_payment_create';
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+    const scale = 10 ** digits;
     if (idempotencyKey) {
       const existing = await this.idempotency.reserveOperation({
         tenantId: scope.tenantId, accountId: scope.accountId, idempotencyKey, operationType,
@@ -1161,8 +1163,8 @@ export class PurchasesWriteService {
       const supplier = await trx.selectFrom('suppliers').select(['id', 'name', 'balance']).where('id', '=', payload.supplierId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).forUpdate().executeTakeFirst();
       if (!supplier) throw new AppError('Supplier not found', 'SUPPLIER_NOT_FOUND', 404);
       const amount = Number(payload.amount || 0);
-      if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
-        throw new AppError('Supplier payment must be positive and have at most two decimal places', 'INVALID_AMOUNT', 400);
+      if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * scale - Math.round(amount * scale)) > 0.000001) {
+        throw new AppError('Supplier payment must be positive and have at most tenant currency minor-unit precision', 'INVALID_AMOUNT', 400);
       }
       const currentBalance = Number(supplier.balance || 0);
       if (!(currentBalance > 0)) throw new AppError('Supplier has no outstanding balance', 'SUPPLIER_NO_BALANCE', 400);
@@ -1176,7 +1178,7 @@ export class PurchasesWriteService {
         .where('account_id', '=', scope.accountId)
         .where('supplier_id', '=', supplier.id)
         .where('status', '!=', 'cancelled').executeTakeFirst();
-      const unrestrictedBalance = Math.max(0, Math.round((currentBalance - Number(reservedSchedules?.reserved || 0)) * 100) / 100);
+      const unrestrictedBalance = Math.max(0, Math.round((currentBalance - Number(reservedSchedules?.reserved || 0)) * scale) / scale);
       if (amount > unrestrictedBalance + 0.0001) {
         throw new AppError('جزء من رصيد المورد محجوز في أقساط؛ سددها من جدول الأقساط أو استخدم الرصيد غير المجدول',
           'SUPPLIER_PAYMENT_SCHEDULE_RESERVED', 409);
@@ -1242,8 +1244,10 @@ export class PurchasesWriteService {
   async createCustomerPayment(payload: CreateCustomerPaymentDto, auth: AuthContext, idempotencyKey?: string): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const amount = Number(payload.amount);
-    if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
-      throw new AppError('Customer payment must be positive and have at most two decimal places', 'INVALID_PAYMENT_AMOUNT', 400);
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+    const scale = 10 ** digits;
+    if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * scale - Math.round(amount * scale)) > 0.000001) {
+      throw new AppError('Customer payment must be positive and have at most tenant currency minor-unit precision', 'INVALID_PAYMENT_AMOUNT', 400);
     }
     const operationType = 'customer_payment_create';
     if (idempotencyKey) {
