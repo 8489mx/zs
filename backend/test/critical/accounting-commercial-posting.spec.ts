@@ -48,6 +48,7 @@ async function main() {
         partner_type text, partner_id bigint, branch_id bigint, location_id bigint, is_reconciled boolean DEFAULT false);
       CREATE TABLE cost_centers (id bigint, tenant_id text, code text, name text);
       CREATE TABLE settings (tenant_id text, key text, value text);
+      CREATE TABLE currency_exchange_rates (tenant_id text, currency_code text, is_base boolean, exchange_rate numeric);
       CREATE TABLE customers (id bigint,tenant_id text,balance numeric DEFAULT 0);
       CREATE TABLE suppliers (id bigint,tenant_id text,balance numeric DEFAULT 0,updated_at timestamptz);
       INSERT INTO customers VALUES (25,'t1',0);
