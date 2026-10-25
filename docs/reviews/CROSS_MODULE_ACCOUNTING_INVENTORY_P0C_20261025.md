@@ -148,3 +148,10 @@ The code observations above identify definite missing integration points; **fina
 
 - Full backend CI exposed a regression in historical supplier-ledger half-cent rounding (-10.505 expected -10.51). The new optional-digit report utility now preserves legacy `Number.toFixed` rounding for existing two-decimal paths, and permits three-decimal KWD/OMR reporting where explicitly selected.
 - Added cent-boundary and fil-preservation assertions. The revised commit still requires full CI; PostgreSQL acceptance succeeded on the previous report patch SHA.
+
+## 25 October follow-up — purchase single-fil path
+
+- Purchase normalized line and residual discount allocation now select minor units from tenant base currency. Vendor source subtotal and stock receipts no longer round a 0.001 KWD / OMR cost to 0.00.
+- GL journal line combination in the `postPurchase` source path uses the same currency precision as the posted journal, instead of the previous hidden two-decimal `addLine` quantization.
+- Migration 257 preserves vendor debt and source precision in `purchases`, `purchase_items`, `suppliers`, `supplier_ledger`, and `stock_movements.unit_cost` without destructive rollback.
+- Real disposable PostgreSQL regression asserts one-fil purchase total, AP, supplier ledger, WAC, inventory movement, GL debit/credit and idempotent retry. New CI not yet verified when this note was committed; **P0-C is NOT closed**. GRN, cash and return matrix remains open.

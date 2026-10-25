@@ -144,3 +144,9 @@
 
 - راجعنا مسار `GoodsReceiptService.createGoodsReceipt` حتى فحص المورد والمخزن والأصناف وإنشاء رأس وبنود GRN. في السابق، معرف مخزن محدد صراحة وغير موجود في المنشأة كان يسبب اختيار مخزن أمر الشراء أو أول مخزن نشط بدلاً من رفضه. أصبح طلب المخزن الصريح الفاشل يرجع `GRN_LOCATION_NOT_FOUND` قبل إنشاء المستند. لا يزال الطلب الذي لم يحدد مخزناً يستخدم مخزن أمر الشراء ثم المخزن النشط الافتراضي كما كان.
 - ملفات التعديل: `backend/src/modules/purchases/services/goods-receipt.service.ts`, `backend/src/modules/purchases/engines/grn-location-policy.engine.ts`؛ اختبار `backend/test/critical/grn-explicit-location.spec.ts` **مكتوب ولم يُشغّل**. التحقق المالي التشغيلي وترحيل GRN ما زال يحتاج اختبارات فعلية ومراجعة تفصيلية قبل الاعتماد.
+
+### P0-C KWD/OMR thousandth-denominated purchase journey — 2026-10-25 (branch-only)
+
+- Vendor invoice normalization/discount allocation and stock receipts preserve the tenant book's 2/3-digit minor unit in `purchases-write.helper.ts`, `purchases-write.service.ts` and `accounting-posting.service.ts`.
+- Additive migration `2040000000257_purchase_minor_unit_precision.ts` widens purchase/line/supplier ledger and stock-movement unit-cost columns; down refuses data loss. Unit and disposable PostgreSQL acceptance now verify the 0.001 purchase → supplier/AP → inventory/WAC → GL retry path. CI pending on this SHA; do not merge before it passes.
+- This does **not** certify cash/credit returns, multicurrency exchange, sales, three-way GRN, or legacy tenant balances.
