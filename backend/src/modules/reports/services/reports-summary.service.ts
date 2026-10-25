@@ -455,6 +455,8 @@ export class ReportsSummaryService {
     const ledgerTable = isCust ? 'customer_ledger' : 'supplier_ledger';
     const partnerIdCol = isCust ? 'customer_id' : 'supplier_id';
     const tenantId = this.tenantId(auth);
+    const digits = typeof (this.db as any).getExecutor === 'function'
+      ? currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId)) : 2;
 
     if (typeof (this.db as any).getExecutor !== 'function') {
       const partners = await (this.db as any)
@@ -473,12 +475,12 @@ export class ReportsSummaryService {
         .execute();
 
       const totals = isCust
-        ? buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>)
-        : buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>);
+        ? buildCustomerLedgerTotals(ledgerRows as Array<{ customer_id?: number | string | null; balance_total?: number | string | null }>, digits)
+        : buildSupplierLedgerTotals(ledgerRows as Array<{ supplier_id?: number | string | null; balance_total?: number | string | null }>, digits);
 
       const payload = isCust
-        ? buildCustomerBalancesPayload(partners, totals, query as Record<string, unknown>)
-        : buildSupplierBalancesPayload(partners, totals, query as Record<string, unknown>);
+        ? buildCustomerBalancesPayload(partners, totals, query as Record<string, unknown>, digits)
+        : buildSupplierBalancesPayload(partners, totals, query as Record<string, unknown>, digits);
 
       return this.withScope(payload, auth);
     }
@@ -522,7 +524,7 @@ export class ReportsSummaryService {
       const balance = Number(row.balance || 0);
       const base = { id: String(row.id), name: row.name || '', phone: row.phone || '', balance };
       return isCust
-        ? { ...base, creditLimit: Number(row.credit_limit || 0), availableCredit: toMoney(Number(row.credit_limit || 0) - balance) }
+        ? { ...base, creditLimit: Number(row.credit_limit || 0), availableCredit: toMoney(Number(row.credit_limit || 0) - balance, digits) }
         : base;
     });
     return this.withScope({
@@ -530,7 +532,7 @@ export class ReportsSummaryService {
       pagination,
       summary: {
         totalItems,
-        totalBalance: toMoney(summaryRow?.total_balance || 0),
+        totalBalance: toMoney(summaryRow?.total_balance || 0, digits),
         ...(isCust ? { overLimit: Number(summaryRow?.over_limit || 0) } : {}),
       },
     }, auth);
@@ -541,6 +543,8 @@ export class ReportsSummaryService {
     const table = isCust ? 'customers' : 'suppliers';
     const ledgerTable = isCust ? 'customer_ledger' : 'supplier_ledger';
     const partnerIdCol = isCust ? 'customer_id' : 'supplier_id';
+    const digits = typeof (this.db as any).getExecutor === 'function'
+      ? currencyMoneyDigits(await tenantBaseCurrency(this.db, this.tenantId(auth))) : 2;
 
     const partner = await (this.db as any)
       .selectFrom(table)
@@ -597,7 +601,7 @@ export class ReportsSummaryService {
     const openingBalance = Number(openingRow?.opening_balance || 0);
 
     const payload = isCust
-      ? buildCustomerLedgerPayload({ customer: partner, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined, openingBalance })
+      ? buildCustomerLedgerPayload({ customer: partner, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined, openingBalance, digits })
       : buildSupplierLedgerPayload({ supplier: partner, rows: rows as PartnerLedgerEntryRow[], page, pageSize, totalItems, totalsRow: totalsRow as LedgerSummaryRow | undefined, openingBalance });
 
     return this.withScope(payload, auth);
