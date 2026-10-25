@@ -500,6 +500,8 @@ export class PurchasesWriteService {
             product_id: item.productId,
             movement_type: 'purchase',
             qty: increasedQty,
+            unit_cost: Number(baseUnitCost.toFixed(6)),
+            total_cost: roundMoney(netPurchaseUnitCost * item.qty, moneyDigits),
             before_qty: stockChange.scopeBefore,
             after_qty: stockChange.scopeAfter,
             reason: 'purchase',
