@@ -29,12 +29,13 @@ export function buildTrendMap<T>(
 export function buildAggregatedBalances<T extends { id?: unknown; balance?: unknown }>(
   rows: T[],
   totals: Map<string, number>,
+  digits: MoneyDigits = 2,
 ): Map<string, number> {
   const balances = new Map<string, number>();
   for (const row of rows) {
     const key = String(row.id || '');
     if (!key) continue;
-    balances.set(key, totals.has(key) ? toMoney(totals.get(key) || 0) : toMoney(row.balance as number | string | null | undefined));
+    balances.set(key, totals.has(key) ? toMoney(totals.get(key) || 0, digits) : toMoney(row.balance as number | string | null | undefined, digits));
   }
   return balances;
 }
