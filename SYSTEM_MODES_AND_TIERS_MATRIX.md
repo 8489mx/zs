@@ -3,7 +3,7 @@
 
 > **المصدر المرجعي الموحد والدائم لهيكلة الأنشطة والقطاعات والباقات في المنظومة**  
 > **تاريخ التوثيق:** أكتوبر 2026  
-> **الحالة:** معتمد وملزم معمارياً لكافة المطورين ووكلاء الذكاء الاصطناعي (AI Agents).  
+> **الحالة:** سياسة تجارية مستهدفة ومرجع لقواعد عرض الأنشطة والباقات؛ لا يثبت بمفرده تطبيق الصلاحيات في API أو عقود العملاء الحالية. يجب فحص محرك الاستحقاق والكود الفعلي قبل اعتماد أي سلوك.  
 > **القاعدة الحاكمة:** يُمنع منعاً باتاً استحداث أي نشاط جديد أو تعديل سايد بار أو تغيير إظهار/إخفاء شاشات دون الرجوع لهذه الوثيقة والالتزام بقواعد العزل المحددة فيها.
 
 ---
@@ -24,6 +24,8 @@
                      [ 3. مستوى الباقة والعمق ]
                (L1: محل/أساس | L2: فروع وتشغيل | L3: مؤسسة وERP)
 ```
+
+**ملاحظة معمارية:** هذه «محركات» بمعنى تجميع تجاري لشاشات وقدرات، وليست أربع خدمات نشر مستقلة أو قواعد بيانات منفصلة؛ تركيب NestJS الفعلي موثّق في [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md).
 
 ### البُعد الأول: نوع المحرك الرئيسي (Engine Type)
 المنظومة كلها تعمل بـ **4 محركات تشغيلية كبرى فقط**:
@@ -152,19 +154,19 @@
 عند الحاجة لأي تعديل معماري أو إضافة ميزة، هذه هي الملفات الحاكمة المعتمدة حصرياً:
 
 1. **الفرونت إند (Frontend UI & Routing):**
-   - حسم هوية النشاط والتحقق من المسارات: [`vertical-scope.ts`](file:///d:/zn/frontend/src/shared/verticals/vertical-scope.ts)
-   - السايد بار وترتيب التبويبات حسب النشاط: [`app-shell.tsx`](file:///d:/zn/frontend/src/shared/layout/app-shell.tsx)
-   - صلاحيات الميزات والمسارات المحمية: [`access.ts`](file:///d:/zn/frontend/src/app/router/access.ts)
+   - حسم هوية النشاط والتحقق من المسارات: [`vertical-scope.ts`](frontend/src/shared/verticals/vertical-scope.ts)
+   - السايد بار وترتيب التبويبات حسب النشاط: [`app-shell.tsx`](frontend/src/shared/layout/app-shell.tsx)
+   - صلاحيات الميزات والمسارات المحمية: [`access.ts`](frontend/src/app/router/access.ts)
 2. **الباك إند (Backend Profiles & Entitlements):**
-   - ملف تعريف الأنشطة وبطاقات الهوية: [`industry-profiles.ts`](file:///d:/zn/backend/src/core/tenant/industry-profiles.ts)
-   - محرك التحقق من باقات الاشتراكات والميزات الممنوحة: [`plan-feature.service.ts`](file:///d:/zn/backend/src/core/auth/services/plan-feature.service.ts)
-   - تهيئة إعدادات المستأجر الجديد آلياً: [`trial-tenant-provisioning.service.ts`](file:///d:/zn/backend/src/modules/saas-admin/trial-tenant-provisioning.service.ts)
+   - ملف تعريف الأنشطة وبطاقات الهوية: [`industry-profiles.ts`](backend/src/core/tenant/industry-profiles.ts)
+   - محرك التحقق من باقات الاشتراكات والميزات الممنوحة: [`plan-feature.service.ts`](backend/src/core/auth/services/plan-feature.service.ts)
+   - تهيئة إعدادات المستأجر الجديد آلياً: [`trial-tenant-provisioning.service.ts`](backend/src/modules/saas-admin/trial-tenant-provisioning.service.ts)
 3. **التسعير والباقات (Pricing & Packaging):**
-   - المصدر الوحيد لحقيقة الباقات والأسعار والمستويات: [`pricing-catalog.json`](file:///d:/zn/pricing/pricing-catalog.json)
+   - المصدر الوحيد لحقيقة الباقات والأسعار والمستويات: [`pricing-catalog.json`](pricing/pricing-catalog.json)
 4. **المراجع القطاعية المستقلة للقدرات (Sector Capabilities References):**
-   - وثيقة قدرات التجارة والتجزئة والأزياء ونقاط البيع: [`RETAIL_COMMERCE_CAPABILITIES.md`](file:///d:/zn/RETAIL_COMMERCE_CAPABILITIES.md)
-   - وثيقة قدرات المطاعم والأغذية والكافيهات: [`RESTAURANT_CAPABILITIES.md`](file:///d:/zn/RESTAURANT_CAPABILITIES.md)
-   - وثيقة قدرات الاستيراد والتجارة الدولية والحاويات: [`IMPORT_CAPABILITIES.md`](file:///d:/zn/IMPORT_CAPABILITIES.md)
+   - وثيقة قدرات التجارة والتجزئة والأزياء ونقاط البيع: [`RETAIL_COMMERCE_CAPABILITIES.md`](RETAIL_COMMERCE_CAPABILITIES.md)
+   - وثيقة قدرات المطاعم والأغذية والكافيهات: [`RESTAURANT_CAPABILITIES.md`](RESTAURANT_CAPABILITIES.md)
+   - وثيقة قدرات الاستيراد والتجارة الدولية والحاويات: [`IMPORT_CAPABILITIES.md`](IMPORT_CAPABILITIES.md)
 
 ---
 
@@ -177,4 +179,4 @@
 3. **قاعدة العزل الثنائي الصارم (Strict Bidirectional Isolation):**
    - لا تتسرب شاشات المقاولات (المقايسات والمستخلصات) أو الشحن البحري (بوالص الشحن ورادار الحاويات) إطلاقاً إلى أي نشاط تجاري، والعكس صحيح.
 4. **التوثيق الفوري:**
-   - أي تعديل في شاشات أو مفاتيح المودات يجب أن ينعكس فوراً في هذا الملف وفي `SYSTEM_CAPABILITIES.md`.
+   - تغييرات سياسة الأنشطة والباقات تُحدّث في هذا الملف، وتفاصيل الميزات في **ملف المجال المالك** وفق [الفهرس](SYSTEM_CAPABILITIES.md) و[بروتوكول التوثيق](docs/capabilities/README.md). لا تضاف نسخ متكررة إلى الفهرس.

@@ -2,7 +2,7 @@
 
 ## Capability documentation ownership
 
-Read [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md) for dependencies, then [SYSTEM_CAPABILITIES.md](SYSTEM_CAPABILITIES.md) to find the owning domain file. Follow [the documentation protocol](docs/capabilities/README.md).
+Read [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md) for dependencies, then [SYSTEM_CAPABILITIES.md](SYSTEM_CAPABILITIES.md) to find the owning domain file. Follow [the documentation protocol](docs/capabilities/README.md). For any audit, read [the review evidence policy](docs/reviews/README.md) and update `docs/reviews/module-review-status.json` only when scoped verification evidence exists; historic “100%” is not a current release sign-off.
 
 Document every changed/new capability in its owning domain file, including implementation references, limitations, and actual test evidence/date/commit. The central file is an index only: do not append feature histories there. Update the blueprint for dependency changes and the registry/index for new domains. Cross-domain changes use one owner and links, not copied descriptions. Historical “100%” labels are not current verification. This routing rule supersedes older instructions to append details to SYSTEM_CAPABILITIES.md.
 
