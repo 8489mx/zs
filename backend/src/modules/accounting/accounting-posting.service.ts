@@ -16,6 +16,8 @@ import { allocatePayrollAccrual } from '../hr/engines/payroll-accrual-allocation
 import { assertAutomatedJournalPeriodOpen, lockAccountingPeriod } from './accounting-period-lock';
 import { assertTaxPeriodOpen } from './accounting-tax-lock';
 import { randomUUID } from 'node:crypto';
+import { tenantBaseCurrency } from './accounting-currency';
+import { currencyMoneyDigits, roundMoney } from './engines/money-minor-units.engine';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -538,6 +540,11 @@ export class AccountingPostingService {
       return queryable.transaction().execute((trx: any) => this.insertPostedJournal(trx, params));
     }
     await lockAccountingPeriod(queryable, params.tenantId);
+    // Book journal lines in the tenant's base-currency precision. The DB migration widens
+    // journal_entry_lines so KWD/OMR fils survive both posting and reporting.
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, params.tenantId));
+    const toBookMoney = (value: unknown) => roundMoney(Number(value ?? 0), bookDigits);
+    const unit = 10 ** -bookDigits;
     // The early source lookups can race when recovery workers use different
     // connections. Recheck under the same transaction lock as the insert.
     const oncePerSource = ['sale', 'purchase', 'sales_return', 'purchase_return', 'customer_payment', 'supplier_payment', 'supplier_payment_schedule_settlement', 'expense', 'trade_in', 'maintenance_advance', 'maintenance_delivery', 'maintenance_part_issue', 'maintenance_part_return'].includes(params.sourceType);
@@ -575,7 +582,7 @@ export class AccountingPostingService {
       if (Number(line.debit) < 0 || Number(line.credit) < 0) {
         throw new AppError('Journal amounts cannot be negative', 'INVALID_JOURNAL_LINE', 400);
       }
-      return { ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) };
+      return { ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) };
     });
     for (const line of lines) {
       if (!(Number(line.accountId) > 0)) throw new AppError(`Missing account for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
@@ -588,12 +595,12 @@ export class AccountingPostingService {
     for (const line of lines) {
       if (!accounts.has(Number(line.accountId)) || (!fiscalTransitionSource && !accounts.get(Number(line.accountId)))) throw new AppError(`Account ${line.accountId} is missing or inactive for ${params.sourceType} #${params.sourceId}`, 'ACCOUNT_NOT_FOUND', 400);
     }
-    const totalDebit = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
-    const difference = this.toMoney(totalDebit - totalCredit);
-    if (Math.abs(difference) >= 0.001) {
+    const totalDebit = toBookMoney(lines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(lines.reduce((sum, line) => sum + line.credit, 0));
+    const difference = toBookMoney(totalDebit - totalCredit);
+    if (Math.abs(difference) >= unit / 2) {
       if (Math.abs(difference) > 0.05) {
-        throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}: debit=${totalDebit.toFixed(2)} credit=${totalCredit.toFixed(2)}`, 'UNBALANCED_JOURNAL', 400);
+        throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}: debit=${totalDebit.toFixed(bookDigits)} credit=${totalCredit.toFixed(bookDigits)}`, 'UNBALANCED_JOURNAL', 400);
       }
       if (!params.accountId) throw new AppError(`Tenant account scope is required to post ${params.sourceType} #${params.sourceId}`, 'TENANT_SCOPE_REQUIRED', 403);
       await this.accountingTenantFoundation.ensureForScope(queryable, { tenantId: params.tenantId, accountId: params.accountId });
@@ -607,9 +614,9 @@ export class AccountingPostingService {
         partnerType: 'none', partnerId: null, branchId: params.branchId, locationId: params.locationId,
       });
     }
-    const balancedDebit = this.toMoney(lines.reduce((sum, line) => sum + line.debit, 0));
-    const balancedCredit = this.toMoney(lines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(balancedDebit - balancedCredit) >= 0.001) throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}`, 'UNBALANCED_JOURNAL', 400);
+    const balancedDebit = toBookMoney(lines.reduce((sum, line) => sum + line.debit, 0));
+    const balancedCredit = toBookMoney(lines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(balancedDebit - balancedCredit) >= unit / 2) throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}`, 'UNBALANCED_JOURNAL', 400);
 
     // Serialize all postings touching the same ledger accounts. Every caller uses
     // the same ascending order, so concurrent cash transfers cannot deadlock and
@@ -730,8 +737,8 @@ export class AccountingPostingService {
             account_id: line.accountId,
             cost_center_id: line.costCenterId ?? null,
             description: line.description,
-            debit: this.toMoney(line.debit),
-            credit: this.toMoney(line.credit),
+            debit: toBookMoney(line.debit),
+            credit: toBookMoney(line.credit),
             partner_type: line.partnerType,
             partner_id: line.partnerId,
             branch_id: line.branchId,
