@@ -76,6 +76,7 @@ export function buildSupplierBalancesPayload(
   suppliers: SupplierBalanceSourceRow[],
   ledgerTotals: Map<string, number>,
   query: Record<string, unknown>,
+  digits: MoneyDigits = 2,
 ) {
   const rows = filterSupplierBalanceRows(buildSupplierBalanceRows(suppliers, ledgerTotals), query);
   const paged = paginate(rows, query as any, 20);
