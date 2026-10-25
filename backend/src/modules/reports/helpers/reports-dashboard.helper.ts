@@ -1,3 +1,4 @@
+import { type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import { TrendPoint, buildLastNDays, dateKey, getBusinessDayBounds } from './reports-range.helper';
 import { buildTrendMap, sumMoney, toMoney } from './reports-math.helper';
 
@@ -67,11 +68,12 @@ export function buildDashboardComputedState(args: {
   topTodayRows: TodayTopRow[];
   businessTimezone: string;
   todayKey: string;
+  moneyDigits?: MoneyDigits;
 }) {
   const todaySalesRows = args.recentSalesRows.filter((row) => dateKey(row.created_at, args.businessTimezone) === args.todayKey);
   const todayPurchasesRows = args.recentPurchasesRows.filter((row) => dateKey(row.created_at, args.businessTimezone) === args.todayKey);
   const todayOperations = buildTodayOperationsSnapshot(todaySalesRows, todayPurchasesRows, args.topTodayRows);
-  const trends = buildSevenDayTrends(args.recentSalesRows, args.recentPurchasesRows, args.businessTimezone);
+  const trends = buildSevenDayTrends(args.recentSalesRows, args.recentPurchasesRows, args.businessTimezone, args.moneyDigits);
 
   return {
     todayOperations,
@@ -179,10 +181,11 @@ export function buildSevenDayTrends(
   recentSalesRows: TimedMoneyRow[],
   recentPurchasesRows: TimedMoneyRow[],
   businessTimezone: string,
+  moneyDigits: MoneyDigits = 2,
 ): { sales: TrendPoint[]; purchases: TrendPoint[] } {
   const dayKeys = buildLastNDays(30, businessTimezone, new Date());
-  const sales: TrendPoint[] = buildTrendMap(recentSalesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total);
-  const purchases: TrendPoint[] = buildTrendMap(recentPurchasesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total);
+  const sales: TrendPoint[] = buildTrendMap(recentSalesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total, moneyDigits);
+  const purchases: TrendPoint[] = buildTrendMap(recentPurchasesRows, dayKeys, (row) => dateKey(row.created_at, businessTimezone), (row) => row.total, moneyDigits);
   return { sales, purchases };
 }
 
