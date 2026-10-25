@@ -179,3 +179,14 @@ import {
 
   console.log('reports-dashboard.helper.spec: ok');
 })();
+
+// Three-decimal dashboard daily trends must not discard one-fil invoices.
+{
+  const day = new Date().toISOString().slice(0,10);
+  const args = {recentSalesRows:[{created_at:day+'T12:00:00.000Z',total:0.001},{created_at:day+'T13:00:00.000Z',total:0.002}],recentPurchasesRows:[{created_at:day+'T12:00:00.000Z',total:0.001}],topTodayRows:[],businessTimezone:'UTC',todayKey:day,moneyDigits:3 as const};
+  const result=buildDashboardComputedState(args);
+  const todaySales=result.trends.sales.find(r=>r.key===day);
+  const todayPurchases=result.trends.purchases.find(r=>r.key===day);
+  assert.equal(todaySales?.value,0.003);
+  assert.equal(todayPurchases?.value,0.001);
+}
