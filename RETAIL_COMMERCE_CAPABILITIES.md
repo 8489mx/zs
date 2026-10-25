@@ -527,3 +527,8 @@
 
 - `returnsApi.create` historically minted a new `x-idempotency-key` for each call; on lost response, the create form could resubmit a second refund and second stock receipt. `ReturnsWorkspace` now pins an immutable request payload and key across retries, inspects the existing server `POST:/api/returns` operation status, recognizes committed documents, and prevents editing, clearing, or closing an unresolved return. It only releases a key on a confirmed failed operation or a definite 4xx that the server never reserved. **This protects only the mounted UI attempt; restoring after browser reload still needs end-to-end verification.**
 - Purchase returns route previously reset its form to type `sale` after success or Reset; form reset now honors current route. Regression cases written in `return-submission-recovery.spec.ts` and not executed.
+
+
+### 2026-10-25 — C/E/F: cash drawer list reflects actual cash refunds only
+
+- `CashDrawerService.fetchShiftMovementItems` formerly inserted a `return` movement for the **gross** sale-return document amount under the CASH return group, labeling credit/card/mixed tender returns as cash outflows. Its separate shift summary already derived cash refunds from treasury transactions, but the itemized drawer review contradicted that summary. The item list now sums only negative cash `treasury_transactions` explicitly linked to **this shift** and the return document, excluding card/store-credit/refundable-debt legs and returns made in other shifts. No general accounting return posting was touched. Regression `backend/test/infra/cash-drawer-cash-return.spec.ts` written but not executed.

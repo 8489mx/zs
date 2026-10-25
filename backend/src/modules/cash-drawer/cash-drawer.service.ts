@@ -1,7 +1,7 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
-import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNote, buildCashDrawerShiftDocNo, computeCashDrawerVariance, filterCashDrawerRows, mapCashDrawerShiftRow, normalizeCashDrawerMovementType, normalizeShiftOpenPayload, paginateCashDrawerRows, summarizeCashDrawerRows, toSignedCashDrawerAmount } from './helpers/cash-drawer.helper';
+import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNote, buildCashDrawerShiftDocNo, computeCashDrawerVariance, filterCashDrawerRows, mapCashDrawerShiftRow, normalizeCashDrawerMovementType, normalizeShiftOpenPayload, paginateCashDrawerRows, summarizeCashDrawerRows, toSignedCashDrawerAmount, buildShiftCashReturnItem } from './helpers/cash-drawer.helper';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
 import { verifyPassword } from '../../core/auth/utils/password-hasher';
@@ -608,29 +608,30 @@ export class CashDrawerService {
           createdAt: receipt.created_at ? new Date(receipt.created_at).toISOString() : '' });
       }
 
-      // 5. Returns (Sale Returns)
-      const retRows = await sql<{ id: number; doc_no?: string | null; total?: number | string | null; refund_method?: string | null; note?: string | null; created_at?: string | Date | null }>`
-        select rd.id, rd.doc_no, rd.total, rd.refund_method, rd.note, rd.created_at
-        from return_documents rd
-        where rd.tenant_id = ${scope.tenantId} and rd.return_type = 'sale' and rd.created_by = ${openerId} and rd.created_at >= ${shift.created_at}
-          and (${shift.closed_at || null}::timestamptz is null or rd.created_at <= ${shift.closed_at || null})
-          and (${shift.branch_id || null}::int is null or rd.branch_id is null or rd.branch_id = ${Number(shift.branch_id || 0) || null})
-          and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})
+      // 5. Cash paid out by THIS drawer for sale returns. A return document
+      // may have mixed cash/card/store-credit allocations or may belong to
+      // a different cashier's shift. Only linked cash treasury legs belong here.
+      const retRows = await sql<{ id: number; doc_no?: string | null;
+        cash_refund?: number | string | null; note?: string | null;
+        created_at?: string | Date | null }>`
+        select rd.id, rd.doc_no, rd.note, min(tt.created_at) as created_at,
+               sum(abs(tt.amount)) as cash_refund
+        from treasury_transactions tt
+        inner join return_documents rd
+          on rd.id = tt.return_document_id and rd.tenant_id = tt.tenant_id
+        where tt.tenant_id = ${scope.tenantId}
+          and tt.reference_type = 'cashier_shift'
+          and tt.reference_id = ${shiftId}
+          and tt.amount < 0
+          and coalesce(tt.payment_channel, 'cash') = 'cash'
+          and rd.return_type = 'sale' and rd.settlement_mode = 'refund'
+        group by rd.id, rd.doc_no, rd.note
         order by rd.id asc
       `.execute(this.db);
 
       for (const ret of retRows.rows || []) {
-        const amt = Number(ret.total || 0);
-        const methodLabel = ret.refund_method === 'card' ? 'فيزا' : 'كاش';
-        const note = [`مرتجع (${methodLabel})`, ret.doc_no ? `#${ret.doc_no}` : '', ret.note].filter(Boolean).join(' - ');
-        items.push({
-          id: `ret-${ret.id}`,
-          kind: 'return',
-          kindLabel: `مرتجع مبيعات (${methodLabel})`,
-          amount: Math.abs(amt),
-          note: note.trim() || 'مرتجع مبيعات',
-          createdAt: ret.created_at ? new Date(ret.created_at).toISOString() : '',
-        });
+        const item = buildShiftCashReturnItem(ret);
+        if (item) items.push(item);
       }
     }
 
