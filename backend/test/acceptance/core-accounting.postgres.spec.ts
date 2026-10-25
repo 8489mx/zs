@@ -26,6 +26,7 @@ import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
 import { PharmacyService } from '../../src/modules/pharmacy/pharmacy.service';
+import { ReportsSummaryService } from '../../src/modules/reports/services/reports-summary.service';
 import { AuditService } from '../../src/core/audit/audit.service';
 import { SettingsDemoDataService } from '../../src/modules/settings/services/settings-demo-data.service';
 import { up as up253, down as down253 } from '../../src/database/migrations/2040000000253_core_tenant_reference_integrity';
@@ -748,6 +749,17 @@ async function main() {
       .where('tenant_id','=',kwdPh.auth.tenantId!).where('id','=',kwdPh.productId)
       .executeTakeFirstOrThrow()).stock_qty),3,'pharmacy retry cannot duplicate drug stock');
     pass('KWD pharmacy 0.002 paid + bonus receipt posts one fil-safe supplier/AP/GL journal and WAC');
+    // A posted supplier liability of two fils must also appear in the real
+    // tenant-scoped report API, not just in the underlying journal.
+    const vendorReports = app.get(ReportsSummaryService);
+    const supplierBalances = await vendorReports.supplierBalances({} as any, kwdPh.auth);
+    const supplierRow = (supplierBalances.suppliers as Array<{id:string;balance:number}>)
+      .find(row=>row.id===String(kwdPh.supplierId));
+    assert.ok(supplierRow,'Posted KWD supplier must appear in partner balances');
+    assert.equal(Number(supplierRow.balance),0.002);
+    assert.equal(Number((supplierBalances.summary as {totalBalance:number}).totalBalance),0.002);
+    pass('real supplier balance report retains 0.002 KWD posted pharmacy AP rather than rounding to zero');
+
 
     const pf = await fixture('pharmacy_invoice');
     const pd = await db.insertInto('pharmacy_drugs').values({
