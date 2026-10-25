@@ -55,3 +55,10 @@
 ### P0-C three-decimal supplier invoice (25 October 2026; review branch)
 
 The distributor invoice adapter can now accept 2- or 3-digit tenant-currency vendor bills through canonical purchases after the purchase/AP source path was widened. Before posting any source, it reconciles each paid line's exact currency minor units to the stock quantity and diluted free-bonus unit cost, and rejects unrepresentable discrepancies. The source-purchase engine remains responsible for the single stock/treasury/AP/GL transaction, and the invoice idempotency key prevents duplicate receipt on replay. Disposable PostgreSQL regression checks KWD 0.002 paid cost, 2 paid + 1 bonus stock, lot, supplier balance, balanced journal and retry. This commit is **not** broad pharmacy certification; cash/FX, historical unlinked lots and partial supplier settlements remain open until separately verified.
+
+### P0-C pharmacy clinical cash and prescription copay posting (25 October 2026 — review branch)
+
+- `pharmacy.service.ts`, `pharmacy-accounting.ts` and `pharmacy.module.ts`: paid clinical services now commit source, treasury receipt and cash/service-revenue GL (1110/4200) atomically; failed posting rolls back the economic source.
+- Prescription patient cash copays now use an atomic receipt and posted GL; zero copays are no longer silently turned into full invoice cash. Historical dispensed/collected prescriptions refuse destructive financial rewrites without a formal reversal. Insurance-funded dispensations explicitly fail closed until insurer receivable/subledger settlement exists.
+- Money is validated in tenant minor units (KWD/OMR 0.001). The disposable PostgreSQL acceptance suite has cases for one-fil clinical fee, two-fil copay, journal/cash matching, forbidden financial edits, overprecision, insurance fail-closed and forced posting failure. **Do not claim release verification until CI on final SHA succeeds.**
+- Not closed: prescription-to-stock sale/COGS, insurer AP/AR, reversal/refund workflow, cross-location expiry/lot and older unlinked data still require explicit coverage.

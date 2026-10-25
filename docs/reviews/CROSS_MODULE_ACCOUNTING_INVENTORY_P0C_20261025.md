@@ -185,3 +185,9 @@ The code observations above identify definite missing integration points; **fina
 - Daily financial trend accumulation no longer rounds each invoice to cents, so numerous sub-cent KWD/OMR source amounts are summed before rounding in the tenant's actual minor units.
 - Dashboard overview resolves the validated tenant base currency, passes 2/3-digit precision to both sales and purchase trend helpers, and segregates cached results by precision. Existing cent-based report callers retain the two-digit default.
 - Critical report helper and dashboard tests now cover 0.001+0.002 KWD trend and purchasing trend; broad report/API/8-cycle/11-sector closure remains open until full verification.
+
+## Clinical pharmacy cash and prescription copay transaction follow-up
+
+- `pharmacy_clinical_services` fee and `pharmacy_prescriptions` cash copay flows previously inserted independent treasury rows with swallowed errors and no central journal. They now post source + cash + GL in one transaction, or roll back everything when posting rejects.
+- Prescription already dispensed or previously collected is immutable through the ordinary edit path; insurance-backed claims cannot generate unexplained cash without an insurer subledger. KWD/OMR minor-unit validation protects the last fil and rejects sub-fil amounts.
+- Added disposable PostgreSQL acceptance checks for the real clinical 0.001 / prescription 0.002 KWD flows, account 1110/4200, and failed posting rollback. **P0C-04 remains OPEN:** prescription inventory/COGS, insurer receivables, customer-visible refund/reversal, source deduplication and sector-wide reconciliation remain unverified.
