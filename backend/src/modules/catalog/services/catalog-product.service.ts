@@ -409,7 +409,7 @@ export class CatalogProductService {
       : filteredBaseRows.slice(start, start + pageSize);
     const pagedIds = pagedBaseRows.map((row) => Number(row.id));
 
-    const [relations, movementRows] = await Promise.all([
+    const [relations, movementRows, importRows, purchaseRows, saleRows] = await Promise.all([
       brief
         ? Promise.resolve({ unitsByProduct: new Map(), offersByProduct: new Map(), pricesByProduct: new Map() })
         : this.fetchListProductRelations(pagedIds, offerCapabilities.hasMinQty, actor),
@@ -422,8 +422,43 @@ export class CatalogProductService {
             .groupBy('product_id')
             .execute()
         : Promise.resolve([]),
+      pagedIds.length > 0
+        ? this.db
+            .selectFrom('import_shipment_items')
+            .select('product_id')
+            .where('product_id', 'in', pagedIds)
+            .where(this.tenantPredicate(actor))
+            .groupBy('product_id')
+            .execute()
+            .catch(() => [])
+        : Promise.resolve([]),
+      pagedIds.length > 0
+        ? this.db
+            .selectFrom('purchase_items')
+            .select('product_id')
+            .where('product_id', 'in', pagedIds)
+            .where(this.tenantPredicate(actor))
+            .groupBy('product_id')
+            .execute()
+            .catch(() => [])
+        : Promise.resolve([]),
+      pagedIds.length > 0
+        ? this.db
+            .selectFrom('sale_items')
+            .select('product_id')
+            .where('product_id', 'in', pagedIds)
+            .where(this.tenantPredicate(actor))
+            .groupBy('product_id')
+            .execute()
+            .catch(() => [])
+        : Promise.resolve([]),
     ]);
-    const productIdsWithMovements = new Set((movementRows as any[]).map((r) => Number(r.product_id)));
+    const productIdsWithMovements = new Set([
+      ...(movementRows as any[]).map((r) => Number(r.product_id)),
+      ...(importRows as any[]).map((r) => Number(r.product_id)),
+      ...(purchaseRows as any[]).map((r) => Number(r.product_id)),
+      ...(saleRows as any[]).map((r) => Number(r.product_id)),
+    ]);
 
     const pagedRows = this.mapListProducts(pagedBaseRows, {
       canViewCost,
@@ -1895,12 +1930,21 @@ export class CatalogProductService {
                 allowNegative: true,
               });
 
+              const targetPrior = byId.get(targetId);
+              const prevTargetStock = Number(targetPrior?.stock_qty || 0);
+              const nextTargetStock = prevTargetStock + qtyToMove;
+              if (targetPrior) {
+                targetPrior.stock_qty = Number(nextTargetStock.toFixed(3)) as any;
+              }
+              const prevRemovedStock = Number(removedProduct.stock_qty || 0);
+              removedProduct.stock_qty = Number(Math.max(0, prevRemovedStock - qtyToMove).toFixed(3)) as any;
+
               await trx.insertInto('stock_movements').values({
                 product_id: targetId,
                 movement_type: 'transfer',
                 qty: qtyToMove,
-                before_qty: 0,
-                after_qty: qtyToMove,
+                before_qty: prevTargetStock,
+                after_qty: nextTargetStock,
                 unit_cost: Number(target.value.costPrice || 0),
                 total_cost: Number((qtyToMove * Number(target.value.costPrice || 0)).toFixed(2)),
                 reason: 'variant_consolidation',
@@ -1908,6 +1952,25 @@ export class CatalogProductService {
                 reference_type: 'product',
                 reference_id: removedId,
                 location_id: Number(ls.location_id),
+                branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
+                created_by: actor.userId,
+                ...this.tenantFields(actor),
+              } as any).execute();
+
+              await trx.insertInto('stock_movements').values({
+                product_id: removedId,
+                movement_type: 'transfer',
+                qty: -qtyToMove,
+                before_qty: prevRemovedStock,
+                after_qty: Math.max(0, prevRemovedStock - qtyToMove),
+                unit_cost: Number(removedProduct.cost_price || 0),
+                total_cost: Number((qtyToMove * Number(removedProduct.cost_price || 0)).toFixed(2)),
+                reason: 'variant_consolidation',
+                note: `تحويل ودمج رصيد المقاس الملغي إلى الصنف الأساسي (${target.value.name || targetId})`,
+                reference_type: 'product',
+                reference_id: targetId,
+                location_id: Number(ls.location_id),
+                branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
               } as any).execute();
@@ -1934,6 +1997,8 @@ export class CatalogProductService {
                 disableAutoDrain: true,
                 allowNegative: false,
               });
+
+              removedProduct.stock_qty = Number(Math.max(0, Number(removedProduct.stock_qty || 0) - qtyToDeduct).toFixed(3)) as any;
 
               const unitCost = Number(removedProduct.cost_price || 0);
               const insertedMovement = await trx.insertInto('stock_movements').values({
@@ -2384,18 +2449,36 @@ export class CatalogProductService {
   }
 
   async deleteProduct(id: number, actor: AuthContext): Promise<Record<string, unknown>> {
-    await this.db.transaction().execute(async (trx) => {
-      const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
-      if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      if (Math.abs(Number(product.stock_qty || 0)) > 0.0001) throw new AppError('Product still has stock on hand', 'PRODUCT_HAS_STOCK', 400);
-      const movementCount = await trx.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
-      if (Number(movementCount.count || 0) > 0) throw new AppError('Product has transaction history and cannot be deleted', 'PRODUCT_HAS_HISTORY', 400);
+    try {
+      await this.db.transaction().execute(async (trx) => {
+        const product = await trx.selectFrom('products').select(['id', 'stock_qty']).where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
+        if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+        if (Math.abs(Number(product.stock_qty || 0)) > 0.0001) throw new AppError('Product still has stock on hand', 'PRODUCT_HAS_STOCK', 400);
+        const movementCount = await trx.selectFrom('stock_movements').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirstOrThrow();
+        if (Number(movementCount.count || 0) > 0) throw new AppError('Product has transaction history and cannot be deleted', 'PRODUCT_HAS_HISTORY', 400);
 
-      await trx.deleteFrom('product_units').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
-      await trx.deleteFrom('product_offers').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
-      await trx.deleteFrom('product_customer_prices').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
-      await trx.deleteFrom('products').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
-    });
+        // Pre-check linked transaction tables:
+        const [importCount, purchaseCount, saleCount] = await Promise.all([
+          trx.selectFrom('import_shipment_items').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirst().catch(() => ({ count: 0 })),
+          trx.selectFrom('purchase_items').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirst().catch(() => ({ count: 0 })),
+          trx.selectFrom('sale_items').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirst().catch(() => ({ count: 0 })),
+        ]);
+        if (Number(importCount?.count || 0) > 0 || Number(purchaseCount?.count || 0) > 0 || Number(saleCount?.count || 0) > 0) {
+          throw new AppError('لا يمكن حذف الصنف نهائياً لوجود سجلات ومعاملات تجارية مرتبطة به (شحنات استيراد أو فواتير سابقة). يمكنك أرشفة الصنف بدلاً من ذلك.', 'PRODUCT_HAS_HISTORY', 409);
+        }
+
+        await trx.deleteFrom('product_units').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
+        await trx.deleteFrom('product_offers').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
+        await trx.deleteFrom('product_customer_prices').where('product_id', '=', id).where(this.tenantPredicate(actor)).execute();
+        await trx.deleteFrom('products').where('id', '=', id).where(this.tenantPredicate(actor)).execute();
+      });
+    } catch (err: any) {
+      if (err instanceof AppError) throw err;
+      if (err?.code === '23503' || err?.code === '23001' || String(err?.message || '').includes('foreign key constraint') || String(err?.message || '').includes('violates RESTRICT')) {
+        throw new AppError('لا يمكن حذف الصنف نهائياً لوجود سجلات تجارية مرتبطة به في المنظومة. يمكنك أرشفة الصنف بدلاً من حذفه.', 'PRODUCT_HAS_HISTORY', 409);
+      }
+      throw err;
+    }
     (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
     await this.audit.log('حذف صنف', `تم حذف الصنف #${id} نهائياً بواسطة ${actor.username}`, actor);
     return { ok: true, products: (await this.listProducts({}, actor)).products };

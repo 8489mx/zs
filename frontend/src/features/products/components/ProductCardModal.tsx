@@ -522,53 +522,59 @@ export function ProductCardModal({
                 <CheckShieldIcon size={14} />
                 <span>تنشيط الصنف</span>
               </Button>
-            ) : product.canDelete && onDeleteProduct ? (
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => {
-                  onDeleteProduct(product);
-                  onClose();
-                }}
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '6px 12px',
-                  color: '#dc2626',
-                  borderColor: '#fecaca',
-                  background: '#fef2f2',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                }}
-              >
-                <TrashIcon size={14} />
-                <span>حذف الصنف</span>
-              </Button>
-            ) : onToggleArchiveProduct ? (
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => {
-                  onToggleArchiveProduct(product);
-                  onClose();
-                }}
-                style={{
-                  fontSize: '0.8rem',
-                  padding: '6px 12px',
-                  color: '#d97706',
-                  borderColor: '#fde68a',
-                  background: '#fffbeb',
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                }}
-              >
-                <ArchiveIcon size={14} />
-                <span>أرشفة وتعطيل</span>
-              </Button>
-            ) : null}
+            ) : (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                {onToggleArchiveProduct ? (
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={() => {
+                      onToggleArchiveProduct(product);
+                      onClose();
+                    }}
+                    style={{
+                      fontSize: '0.8rem',
+                      padding: '6px 12px',
+                      color: '#d97706',
+                      borderColor: '#fde68a',
+                      background: '#fffbeb',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <ArchiveIcon size={14} />
+                    <span>أرشفة وتعطيل</span>
+                  </Button>
+                ) : null}
+
+                {product.canDelete && onDeleteProduct ? (
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={() => {
+                      onDeleteProduct(product);
+                      onClose();
+                    }}
+                    style={{
+                      fontSize: '0.8rem',
+                      padding: '6px 12px',
+                      color: '#dc2626',
+                      borderColor: '#fecaca',
+                      background: '#fef2f2',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <TrashIcon size={14} />
+                    <span>حذف نهائي</span>
+                  </Button>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
 
