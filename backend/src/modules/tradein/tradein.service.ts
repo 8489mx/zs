@@ -135,6 +135,18 @@ export class TradeInService {
   async createTransaction(payload: UpsertTradeInDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
+      // A lost HTTP response or two cashier clicks must not purchase and pay
+      // for the same serial twice. Serialize the tenant+serial check across
+      // connections before creating stock, serial and treasury rows.
+      const serial = payload.serialNumber.trim();
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${scope.tenantId}), hashtext(${serial}))`.execute(trx);
+      const existingIntake = await trx.selectFrom('trade_in_transactions')
+        .select(['id', 'doc_no'])
+        .where('tenant_id', '=', scope.tenantId).where('serial_number', '=', serial)
+        .executeTakeFirst();
+      if (existingIntake) {
+        throw new AppError(`Device serial already has trade-in document ${existingIntake.doc_no}; reconcile the original before retrying`, 'TRADEIN_DUPLICATE_SERIAL', 409);
+      }
       const conditionState = payload.deviceConditionState || 'used';
       const stateSuffixMap: Record<string, string> = {
         new_sealed: '(جديد متبرشم)',
@@ -375,14 +387,28 @@ export class TradeInService {
   async deleteTransaction(id: number, auth: AuthContext) {
     const scope = requireTenantScope(auth);
     await this.tx.runInTransaction(this.db, async (trx) => {
-      await trx
-        .deleteFrom('trade_in_transactions')
-        .where('tenant_id', '=', scope.tenantId)
-        .where('id', '=', id)
-        .execute();
+      const document = await trx.selectFrom('trade_in_transactions')
+        .select(['id', 'agreed_purchase_price', 'created_product_id', 'sale_id', 'transaction_type'])
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', id)
+        .forUpdate().executeTakeFirst();
+      if (!document) throw new AppError('Trade-in document not found', 'TRADEIN_NOT_FOUND', 404);
+      const [stock, cash] = await Promise.all([
+        trx.selectFrom('stock_movements').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('reference_type', '=', 'trade_in').where('reference_id', '=', id)
+          .executeTakeFirst(),
+        trx.selectFrom('treasury_transactions').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('reference_type', '=', 'trade_in').where('reference_id', '=', id)
+          .executeTakeFirst(),
+      ]);
+      // Never delete a purchase/trade-in source after it has affected inventory,
+      // cash or an associated sale. A real reversal must preserve source history.
+      if (Number(document.agreed_purchase_price) > 0 || document.created_product_id ||
+          document.sale_id || document.transaction_type !== 'cash_purchase' || stock || cash) {
+        throw new AppError('Posted trade-in cannot be deleted; record an audited inventory/finance reversal instead', 'TRADEIN_REVERSAL_REQUIRED', 409);
+      }
+      await trx.deleteFrom('trade_in_transactions').where('tenant_id', '=', scope.tenantId).where('id', '=', id).execute();
     });
-
-    await this.audit.log('Delete Trade-In Transaction', `Deleted Trade-in ID ${id}`, auth);
+    await this.audit.log('Delete Trade-In Transaction', `Deleted zero-impact trade-in draft #${id}`, auth);
     return { ok: true };
   }
 }
