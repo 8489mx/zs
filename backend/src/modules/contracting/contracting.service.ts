@@ -8086,7 +8086,7 @@ export class ContractingService {
         .execute();
 
       return {
-        document: this.mapDocumentRow({ ...(await trx.selectFrom('contracting_documents').selectAll().where('id', '=', documentId).executeTakeFirstOrThrow()) }),
+        document: this.mapDocumentRow({ ...(await trx.selectFrom('contracting_documents').selectAll().where('id', '=', documentId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow()) }),
         revision: this.mapRevisionRow(revisionRow),
       };
     });
