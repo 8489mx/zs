@@ -38,7 +38,7 @@ async function runMultiModuleMasterSimulation() {
   const accountingPosting = new AccountingPostingService(accountingFoundation);
 
   const manufacturingService = new ManufacturingService(db as any, tx, auditService, accountingPosting);
-  const maintenanceService = new MaintenanceService(db as any, tx, auditService);
+  const maintenanceService = new MaintenanceService(db as any, tx, auditService, accountingPosting, accountingFoundation);
   const tradeinService = new TradeInService(db as any, tx, auditService, accountingPosting);
   const importSalesService = new ImportSalesService(db as any);
 
