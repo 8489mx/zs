@@ -5116,7 +5116,7 @@ export class HrService {
           globalThirdTimeDeduction: Number(globalPolicies.hrDelayPolicyThirdTimeDeduction || 1.00),
           globalFourthTimeDeduction: Number(globalPolicies.hrDelayPolicyFourthTimeDeduction || 1.00),
           graceMinutes: Number(row.grace_minutes || 0),
-          overtimeMultiplier: Number(globalPolicies.overtimeMultiplier || 1.5) || 1.5,
+          overtimeMultiplier: Number.isFinite(Number(globalPolicies.overtimeMultiplier)) && Number(globalPolicies.overtimeMultiplier) >= 1 ? Number(globalPolicies.overtimeMultiplier) : 1,
         });
 
         return {

@@ -428,7 +428,7 @@ export class CatalogProductService {
             .selectFrom('import_shipment_items')
             .select('product_id')
             .where('product_id', 'in', pagedIds)
-            .where(this.tenantPredicate(actor))
+            .where(sql<boolean>`tenant_id = ${this.tenantId(actor)}`)
             .groupBy('product_id')
             .execute()
             .catch(() => [])
@@ -2512,7 +2512,7 @@ export class CatalogProductService {
 
         // Pre-check linked transaction tables:
         const [importCount, purchaseCount, saleCount] = await Promise.all([
-          trx.selectFrom('import_shipment_items').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirst().catch(() => ({ count: 0 })),
+          trx.selectFrom('import_shipment_items').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).where(sql<boolean>`tenant_id = ${this.tenantId(actor)}`).executeTakeFirst().catch(() => ({ count: 0 })),
           trx.selectFrom('purchase_items').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirst().catch(() => ({ count: 0 })),
           trx.selectFrom('sale_items').select((eb) => eb.fn.countAll<number>().as('count')).where('product_id', '=', id).executeTakeFirst().catch(() => ({ count: 0 })),
         ]);

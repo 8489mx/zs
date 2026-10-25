@@ -5,13 +5,14 @@ import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
 import { DataTable } from '@/shared/ui/data-table';
 import { getErrorMessage } from '@/lib/errors';
-import { systemAlert } from '@/shared/components/system-alert';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 import {
   FileTextIcon,
   ClockIcon,
   BanknotesIcon,
   CalendarDaysIcon,
 } from '@/features/hr/components/HrIcons';
+import { SlidersIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
 
 type NavigateTo = (path: string) => void;
 
@@ -77,6 +78,65 @@ export function HrSettingsDocumentsSection({ navigate }: { navigate: NavigateTo 
 
 export function HrSettingsAttendanceSection({ navigate }: { navigate: NavigateTo }) {
   const { t } = useTranslation();
+  const policiesQuery = useHrPayrollPolicies();
+  const mutations = useHrMutations();
+
+  const [attendanceDraft, setAttendanceDraft] = useState({
+    workHoursPerDay: '8',
+    latenessGracePeriodMinutes: '15',
+    overtimeMultiplier: '1',
+  });
+  const [saveError, setSaveError] = useState('');
+
+  useEffect(() => {
+    if (policiesQuery.data) {
+      const data = policiesQuery.data as any;
+      setAttendanceDraft({
+        workHoursPerDay: String(data.workHoursPerDay ?? '8'),
+        latenessGracePeriodMinutes: String(data.latenessGracePeriodMinutes ?? '15'),
+        overtimeMultiplier: String(data.overtimeMultiplier ?? '1'),
+      });
+    }
+  }, [policiesQuery.data]);
+
+  async function handleSaveAttendancePolicies() {
+    setSaveError('');
+    const rawHours = Number(attendanceDraft.workHoursPerDay);
+    const rawGrace = Number(attendanceDraft.latenessGracePeriodMinutes);
+    const rawMult = Number(attendanceDraft.overtimeMultiplier);
+
+    if (!Number.isFinite(rawHours) || rawHours <= 0 || rawHours > 24) {
+      setSaveError('ساعات العمل اليومية يجب أن تكون قيمة صحيحة بين 1 و24 ساعة.');
+      return;
+    }
+    if (!Number.isFinite(rawGrace) || rawGrace < 0) {
+      setSaveError('فترة السماح يجب أن تكون صفر أو أكثر بالدقائق.');
+      return;
+    }
+    if (!Number.isFinite(rawMult) || rawMult < 1 || rawMult > 5) {
+      setSaveError('مضاعف الوقت الإضافي يجب أن يكون بين 1.0 و 5.0.');
+      return;
+    }
+
+    try {
+      const existing = (policiesQuery.data || {}) as Record<string, any>;
+      await mutations.updatePayrollPolicies.mutateAsync({
+        ...existing,
+        workHoursPerDay: rawHours,
+        latenessGracePeriodMinutes: rawGrace,
+        overtimeMultiplier: rawMult,
+      });
+      toast.success('تم حفظ وتحديث ضوابط الحضور والانصراف بنجاح');
+    } catch (err) {
+      const msg = getErrorMessage(err, 'تعذر حفظ ضوابط الحضور والانصراف');
+      setSaveError(msg);
+      toast.error(msg);
+    }
+  }
+
+  const isSaving = mutations.updatePayrollPolicies.isPending;
+  const currentMultiplier = Number(attendanceDraft.overtimeMultiplier) || 1;
+
   return (
     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
@@ -85,7 +145,7 @@ export function HrSettingsAttendanceSection({ navigate }: { navigate: NavigateTo
             <ClockIcon size={18} style={{ color: 'var(--primary, #170c5c)' }} />
             <span>{t('hr.settings.hr_settings_static_sections.s16', "سياسات وضوابط الحضور والانصراف")}</span>
           </strong>
-          <small style={{ color: '#64748b', fontSize: '0.775rem' }}>{t('hr.settings.hr_settings_static_sections.s17', "إدارة أوقات الورديات، فترات السماح، الاستيراد من البصمة، وقواعد الاحتساب التلقائي.")}</small>
+          <small style={{ color: '#64748b', fontSize: '0.775rem' }}>{t('hr.settings.hr_settings_static_sections.s17', "إدارة ساعات الورديات، فترات السماح، احتساب الإضافي، وقواعد ضبط ساعات الأجر.")}</small>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <Button type="button" variant="primary" onClick={() => navigate('/hr/attendance')} style={{ padding: '4px 12px', fontSize: '0.8rem' }}>
@@ -94,31 +154,176 @@ export function HrSettingsAttendanceSection({ navigate }: { navigate: NavigateTo
         </div>
       </div>
 
+      {/* Dynamic 4 Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '8px' }}>
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
-          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>{t('hr.settings.hr_settings_static_sections.s19', "طريقة التسجيل")}</span>
-          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.settings.hr_settings_static_sections.s20', "يدوي + استيراد إكسيل")}</strong>
+          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>ساعات العمل اليومية</span>
+          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{attendanceDraft.workHoursPerDay} ساعات / يوم</strong>
+          <small style={{ fontSize: '0.675rem', color: '#94a3b8', display: 'block' }}>سقف ساعات الأجر العادية</small>
         </div>
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
-          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>{t('hr.settings.hr_settings_static_sections.s21', "مراجعة الاستثناءات")}</span>
-          <strong style={{ fontSize: '0.95rem', color: '#2563eb' }}>{t('hr.settings.hr_settings_static_sections.s22', "شهرية تلقائية")}</strong>
+          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>فترة السماح للتأخير</span>
+          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{attendanceDraft.latenessGracePeriodMinutes} دقيقة</strong>
+          <small style={{ fontSize: '0.675rem', color: '#94a3b8', display: 'block' }}>قبل بدء احتساب الخصومات</small>
         </div>
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
-          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>{t('hr.settings.hr_settings_static_sections.s23', "احتساب الإضافي")}</span>
-          <strong style={{ fontSize: '0.95rem', color: '#166534' }}>{t('hr.settings.hr_settings_static_sections.s24', "مضاعف 1.5x")}</strong>
+          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>احتساب الإضافي</span>
+          <strong style={{ fontSize: '0.95rem', color: currentMultiplier === 1 ? '#2563eb' : '#166534' }}>
+            مضاعف {attendanceDraft.overtimeMultiplier}x
+          </strong>
+          <small style={{ fontSize: '0.675rem', color: currentMultiplier === 1 ? '#3b82f6' : '#15803d', display: 'block', fontWeight: 600 }}>
+            {currentMultiplier === 1 ? 'أجر عادي (ساعة بساعة)' : `ساعة × ${currentMultiplier}`}
+          </small>
         </div>
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px 10px' }}>
-          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>{t('hr.settings.hr_settings_static_sections.s25', "فترة السماح الافتراضية")}</span>
-          <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>{t('hr.settings.hr_settings_static_sections.s26', "15 دقيقة")}</strong>
+          <span style={{ fontSize: '0.725rem', color: '#64748b', display: 'block' }}>اعتماد ساعات الإضافي</span>
+          <strong style={{ fontSize: '0.95rem', color: '#166534' }}>اعتماد إداري إلزامي</strong>
+          <small style={{ fontSize: '0.675rem', color: '#15803d', display: 'block', fontWeight: 600 }}>محمي: لا تُصرف تلقائياً</small>
         </div>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
-        <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a', marginBottom: '6px' }}>{t('hr.settings.hr_settings_static_sections.s27', "قواعد الربط مع مسير المرتبات")}</strong>
+      {/* In-place Attendance Policies Editor Card */}
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+          <SlidersIcon size={16} style={{ color: 'var(--primary, #170c5c)' }} />
+          <strong style={{ fontSize: '0.875rem', color: '#0f172a' }}>ضبط وتعديل سياسات الحضور وساعات الأجر</strong>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span>ساعات العمل المقررة يومياً (ساعات)</span>
+            <input
+              type="number"
+              step="0.5"
+              min="1"
+              max="24"
+              value={attendanceDraft.workHoursPerDay}
+              onChange={(e) => setAttendanceDraft({ ...attendanceDraft, workHoursPerDay: e.target.value })}
+              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+            />
+            <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 400 }}>عدد الساعات المتفق عليها في الوردية والتي يُقفل عندها ساعات الأجر اليومية.</small>
+          </label>
+
+          <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span>فترة السماح للتأخير (بالدقائق)</span>
+            <input
+              type="number"
+              min="0"
+              max="180"
+              value={attendanceDraft.latenessGracePeriodMinutes}
+              onChange={(e) => setAttendanceDraft({ ...attendanceDraft, latenessGracePeriodMinutes: e.target.value })}
+              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+            />
+            <small style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 400 }}>الحد الأقصى للتأخير المسموح به قبل بدء احتساب خصومات الحضور.</small>
+          </label>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>مضاعف احتساب الوقت الإضافي (Overtime Multiplier)</span>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input
+                type="number"
+                step="0.1"
+                min="1"
+                max="5"
+                value={attendanceDraft.overtimeMultiplier}
+                onChange={(e) => setAttendanceDraft({ ...attendanceDraft, overtimeMultiplier: e.target.value })}
+                style={{ width: '90px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }}
+              />
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setAttendanceDraft({ ...attendanceDraft, overtimeMultiplier: '1' })}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '5px',
+                    border: '1px solid #cbd5e1',
+                    background: attendanceDraft.overtimeMultiplier === '1' ? '#170c5c' : '#f8fafc',
+                    color: attendanceDraft.overtimeMultiplier === '1' ? '#ffffff' : '#334155',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  1.0x (عادي)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttendanceDraft({ ...attendanceDraft, overtimeMultiplier: '1.5' })}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '5px',
+                    border: '1px solid #cbd5e1',
+                    background: attendanceDraft.overtimeMultiplier === '1.5' ? '#170c5c' : '#f8fafc',
+                    color: attendanceDraft.overtimeMultiplier === '1.5' ? '#ffffff' : '#334155',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  1.5x (ساعة ونصف)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttendanceDraft({ ...attendanceDraft, overtimeMultiplier: '2' })}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: '5px',
+                    border: '1px solid #cbd5e1',
+                    background: attendanceDraft.overtimeMultiplier === '2' ? '#170c5c' : '#f8fafc',
+                    color: attendanceDraft.overtimeMultiplier === '2' ? '#ffffff' : '#334155',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  2.0x (ضعف)
+                </button>
+              </div>
+            </div>
+            <small style={{ fontSize: '0.7rem', color: '#64748b' }}>
+              القيمة 1 تعني احتساب ساعة الإضافي المعتمدة كساعة عادية (1x)، و 1.5 تعني ساعة ونصف.
+            </small>
+          </div>
+        </div>
+
+        {saveError && (
+          <div style={{ color: '#dc2626', fontSize: '0.8rem', marginBottom: '8px', fontWeight: 600 }}>
+            {saveError}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => void handleSaveAttendancePolicies()}
+            disabled={isSaving}
+            style={{ padding: '5px 16px', fontSize: '0.825rem', background: '#170c5c' }}
+          >
+            {isSaving ? 'جاري الحفظ...' : 'حفظ ضوابط الحضور'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Rules Explanatory Box */}
+      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
+        <strong style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: '#0f172a', marginBottom: '6px' }}>
+          <CheckShieldIcon size={16} style={{ color: '#166534' }} />
+          <span>{t('hr.settings.hr_settings_static_sections.s27', "قواعد الربط مع مسير المرتبات وساعات الأجر")}</span>
+        </strong>
         <ul style={{ margin: 0, paddingRight: '20px', fontSize: '0.8rem', color: '#475569', lineHeight: 1.6 }}>
-          <li>{t('hr.settings.hr_settings_static_sections.s28', "يتم ترحيل ساعات الغياب والتأخير غير المبررة تلقائياً كخصومات عند إنشاء مسير المرتبات الشهري.")}</li>
-          <li>{t('hr.settings.hr_settings_static_sections.s29', "الاستثناءات المعتمدة كـ \"إضافي\" يتم إدراج قيمتها في خانة الإضافي بالمسير مباشرة.")}</li>
-          <li>{t('hr.settings.hr_settings_static_sections.s30', "يمكن ضبط فترة السماح وسياسة التأخير التصاعدية من تبويب \"المرتبات\" في الإعدادات.")}</li>
+          <li>
+            <strong>ساعات الأجر مسقوفة:</strong> ساعات الأجر اليومية لأي موظف مسقوفة بساعات العمل اليومية المقررة ({attendanceDraft.workHoursPerDay} ساعات)، حتى لو قضى الموظف ساعات أطول في مقر العمل.
+          </li>
+          <li>
+            <strong>حماية الساعات الإضافية:</strong> الساعات الزائدة عن الوردية تظهر تلقائياً كـ "إضافي بانتظار الاعتماد" ولا تُصرف ولا تدخل في ساعات الأجر إلا بعد اعتمادها من المدير في مراجعة الحضور.
+          </li>
+          <li>
+            <strong>احتساب قيمة الإضافي:</strong> عند اعتماد الساعات الإضافية، تُصرف وفقاً للمضاعف المحدد (مضاعف {attendanceDraft.overtimeMultiplier}x).
+          </li>
+          <li>
+            <strong>الغياب والتأخير:</strong> ساعات الغياب والتأخير غير المبررة تُرّحل تلقائياً كخصومات عند إنشاء مسير المرتبات الشهري.
+          </li>
         </ul>
       </div>
     </div>
@@ -217,31 +422,34 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
       return;
     }
     try {
-    await mutations.updatePayrollPolicies.mutateAsync({
-      workHoursPerDay: Number(draft.workHoursPerDay) || 8,
-      latenessGracePeriodMinutes: Number(draft.latenessGracePeriodMinutes) || 0,
-      latenessPenaltyMultiplier: Number(draft.latenessPenaltyMultiplier) || 0,
-      absencePenaltyMultiplier: Number(draft.absencePenaltyMultiplier) || 0,
-      overtimeMultiplier: Number(draft.overtimeMultiplier) || 0,
-      hrDelayPolicyEnabled: draft.hrDelayPolicyEnabled,
-      hrDelayPolicyFirstTimeDeduction: Number(draft.hrDelayPolicyFirstTimeDeduction) || 0,
-      hrDelayPolicySecondTimeDeduction: Number(draft.hrDelayPolicySecondTimeDeduction) || 0,
-      hrDelayPolicyThirdTimeDeduction: Number(draft.hrDelayPolicyThirdTimeDeduction) || 0,
-      hrDelayPolicyFourthTimeDeduction: Number(draft.hrDelayPolicyFourthTimeDeduction) || 0,
-      hrCommissionType: draft.hrCommissionType,
-      hrCommissionValue: Number(draft.hrCommissionValue) || 0,
-      hrCommissionTarget: Number(draft.hrCommissionTarget) || 0,
-      hrSocialInsuranceEnabled: draft.hrSocialInsuranceEnabled,
-      hrSocialInsuranceEmployeePct: Number(draft.hrSocialInsuranceEmployeePct) || 0,
-      hrIncomeTaxEnabled: draft.hrIncomeTaxEnabled,
-      taxPersonalExemption: Number(draft.taxPersonalExemption) || 0,
-      taxBrackets,
-      insuranceConfig: draft.insuranceConfig,
-      ...statutoryDraft,
-      hrWeekendDays: draft.hrWeekendDays,
-    });
+      await mutations.updatePayrollPolicies.mutateAsync({
+        workHoursPerDay: Number(draft.workHoursPerDay) || 8,
+        latenessGracePeriodMinutes: Number(draft.latenessGracePeriodMinutes) || 0,
+        latenessPenaltyMultiplier: Number(draft.latenessPenaltyMultiplier) || 0,
+        absencePenaltyMultiplier: Number(draft.absencePenaltyMultiplier) || 0,
+        overtimeMultiplier: Number(draft.overtimeMultiplier) || 1,
+        hrDelayPolicyEnabled: draft.hrDelayPolicyEnabled,
+        hrDelayPolicyFirstTimeDeduction: Number(draft.hrDelayPolicyFirstTimeDeduction) || 0,
+        hrDelayPolicySecondTimeDeduction: Number(draft.hrDelayPolicySecondTimeDeduction) || 0,
+        hrDelayPolicyThirdTimeDeduction: Number(draft.hrDelayPolicyThirdTimeDeduction) || 0,
+        hrDelayPolicyFourthTimeDeduction: Number(draft.hrDelayPolicyFourthTimeDeduction) || 0,
+        hrCommissionType: draft.hrCommissionType,
+        hrCommissionValue: Number(draft.hrCommissionValue) || 0,
+        hrCommissionTarget: Number(draft.hrCommissionTarget) || 0,
+        hrSocialInsuranceEnabled: draft.hrSocialInsuranceEnabled,
+        hrSocialInsuranceEmployeePct: Number(draft.hrSocialInsuranceEmployeePct) || 0,
+        hrIncomeTaxEnabled: draft.hrIncomeTaxEnabled,
+        taxPersonalExemption: Number(draft.taxPersonalExemption) || 0,
+        taxBrackets,
+        insuranceConfig: draft.insuranceConfig,
+        ...statutoryDraft,
+        hrWeekendDays: draft.hrWeekendDays,
+      });
+      toast.success('تم حفظ واعتماد سياسات وقواعد المرتبات بنجاح');
     } catch (error) {
-      setStatutoryInputError(getErrorMessage(error, 'تعذر اعتماد قواعد المرتبات'));
+      const msg = getErrorMessage(error, 'تعذر اعتماد قواعد المرتبات');
+      setStatutoryInputError(msg);
+      toast.error(msg);
     }
   }
 
@@ -282,7 +490,13 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
               </label>
               <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span>{t('hr.settings.hr_settings_static_sections.s38', "مضاعف الوقت الإضافي")}</span>
-                <input type="number" step="0.1" value={draft.overtimeMultiplier} onChange={(e) => setDraft({ ...draft, overtimeMultiplier: e.target.value })} style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <input type="number" step="0.1" min="1" max="5" value={draft.overtimeMultiplier} onChange={(e) => setDraft({ ...draft, overtimeMultiplier: e.target.value })} style={{ width: '80px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }} />
+                  <div style={{ display: 'flex', gap: '3px' }}>
+                    <button type="button" onClick={() => setDraft({ ...draft, overtimeMultiplier: '1' })} style={{ padding: '2px 6px', fontSize: '0.7rem', fontWeight: 600, borderRadius: '4px', border: '1px solid #cbd5e1', background: draft.overtimeMultiplier === '1' ? '#170c5c' : '#f8fafc', color: draft.overtimeMultiplier === '1' ? '#fff' : '#334155', cursor: 'pointer' }}>1.0x</button>
+                    <button type="button" onClick={() => setDraft({ ...draft, overtimeMultiplier: '1.5' })} style={{ padding: '2px 6px', fontSize: '0.7rem', fontWeight: 600, borderRadius: '4px', border: '1px solid #cbd5e1', background: draft.overtimeMultiplier === '1.5' ? '#170c5c' : '#f8fafc', color: draft.overtimeMultiplier === '1.5' ? '#fff' : '#334155', cursor: 'pointer' }}>1.5x</button>
+                  </div>
+                </div>
               </label>
             </div>
           </div>
@@ -454,17 +668,25 @@ export function HrSettingsHolidaysSection() {
     try {
       await mutations.saveHoliday.mutateAsync({ payload: { name, startDate: draft.startDate, endDate: draft.endDate } });
       setDraft({ name: '', startDate: '', endDate: '' });
+      toast.success('تمت إضافة العطلة الرسمية بنجاح');
     } catch (e) {
-      setError(getErrorMessage(e, 'تعذر حفظ العطلة.'));
+      const msg = getErrorMessage(e, 'تعذر حفظ العطلة.');
+      setError(msg);
+      toast.error(msg);
     }
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm('هل أنت متأكد من حذف هذه العطلة؟')) return;
+    const confirmed = await systemConfirm({
+      title: 'تأكيد حذف العطلة',
+      message: 'هل أنت متأكد من حذف هذه العطلة الرسمية؟ لن يتم احتسابها كعطلة في تقارير وسجلات الحضور مستقبلاً.',
+    });
+    if (!confirmed) return;
     try {
       await mutations.deleteHoliday.mutateAsync(id);
+      toast.success('تم حذف العطلة بنجاح');
     } catch (e) {
-      systemAlert(getErrorMessage(e, 'تعذر حذف العطلة.'));
+      toast.error(getErrorMessage(e, 'تعذر حذف العطلة.'));
     }
   }
 

@@ -108,6 +108,23 @@ export class PricingOptionsDto {
   skipManualExceptions?: boolean;
 }
 
+export class PricingSafeguardsDto {
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  preventBelowCost?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  skipActiveOffers?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  skipManualExceptions?: boolean;
+}
+
 class PricingProfilePayloadDto {
   @IsIn(['standard', 'inherit', 'manual'])
   pricingMode!: 'standard' | 'inherit' | 'manual';
@@ -154,6 +171,15 @@ export class PricingRuleUpsertDto {
   @ValidateNested()
   @Type(() => PricingOptionsDto)
   options?: PricingOptionsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PricingSafeguardsDto)
+  safeguards?: PricingSafeguardsDto;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
 
   @IsOptional()
   @IsString()
@@ -255,6 +281,15 @@ export class PricingPreviewDto {
 
   @IsOptional()
   @ValidateNested()
+  @Type(() => PricingSafeguardsDto)
+  safeguards?: PricingSafeguardsDto;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+
+  @IsOptional()
+  @ValidateNested()
   @Type(() => PricingPagingDto)
   paging?: PricingPagingDto;
 }
@@ -311,6 +346,12 @@ export type PricingPreviewPayload = {
     skipCustomerPrices: boolean;
     skipManualExceptions: boolean;
   };
+  safeguards?: {
+    preventBelowCost?: boolean;
+    skipActiveOffers?: boolean;
+    skipManualExceptions?: boolean;
+  };
+  reason?: string;
 };
 
 export type PricingPreviewRow = {

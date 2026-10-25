@@ -143,7 +143,7 @@ export function calculateDailyRate(params: DailyRateParams): { dailyRate: number
 export function calculateOvertime(params: OvertimeParams): number {
   const hours = Math.max(0, Number(params.overtimeMinutes || 0)) / 60;
   const rate = Math.max(0, Number(params.calculatedHourlyRate || 0));
-  const multiplier = Math.max(1, Number(params.overtimeMultiplier || 1.5));
+  const multiplier = Math.max(1, Number(params.overtimeMultiplier ?? 1.5));
   return toMoney(hours * rate * multiplier);
 }
 
