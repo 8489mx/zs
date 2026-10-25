@@ -283,8 +283,7 @@ export class MaintenanceService {
         throw new AppError('Posted maintenance ticket requires settlement document', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
       if ((payload.advancePayment !== undefined && Number(payload.advancePayment) !== Number(existing.advance_payment)) ||
-          (payload.status !== undefined && payload.status !== existing.status) ||
-          (existing.status === 'delivered' && payload.finalCost !== undefined && Number(payload.finalCost) !== Number(existing.final_cost))) {
+          (payload.status !== undefined && payload.status !== existing.status)) {
         throw new AppError('Posted ticket amounts and status require an audited reversal flow', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
       await trx
