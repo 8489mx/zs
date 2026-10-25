@@ -567,3 +567,8 @@
 
 ### 2026-10-25 — A/F fashion matrix duplicate-SKU visibility
 - The original matrix silently displayed only the first SKU for a color-size cell and hid stock in additional historical rows. The view now shows the sum of all rows, explicitly flags multiple SKUs, and retains each underlying barcode and SKU in its tooltip; it does NOT merge stock automatically. Regression `products-matrix.helpers.spec.ts` written, NOT executed.
+
+
+### 2026-10-25 — E/F: return register export filter parity
+
+- The visible returns register supported an employee/cashier filter, and its Print already passed `employeeFilter`, but Excel export silently dropped this filter, exporting unrelated cashiers' return records. Both print and Excel now build the same query from the visible search, type and employee filters (`return-register-export-query.ts`). Regression authored as `return-register-export-query.spec.ts`, not run.

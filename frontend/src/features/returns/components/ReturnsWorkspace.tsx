@@ -29,6 +29,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { remainingInvoiceLineQuantity, isSelectedReturnQuantityValid } from '@/features/returns/lib/return-remaining-quantity';
+import { buildReturnRegisterExportQuery } from '@/features/returns/lib/return-register-export-query';
 import { mayReleaseReturnIdempotencyKey, wasReturnCommitted } from '@/features/returns/lib/return-submission-recovery';
 import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
@@ -329,7 +330,7 @@ export function ReturnsWorkspace() {
   };
 
   const printReturns = async () => {
-    const payload = await returnsApi.listAll({ search, filter: viewFilter, employee: employeeFilter });
+    const payload = await returnsApi.listAll(buildReturnRegisterExportQuery({ search, filter: viewFilter, employee: employeeFilter }));
     printReturnsRegister(payload.returns || [], { totalItems: payload.summary?.totalItems, totalAmount: payload.summary?.totalAmount });
   };
 
@@ -364,7 +365,7 @@ export function ReturnsWorkspace() {
           copyFeedback={copyFeedback}
           onReset={resetReturnsView}
           onCopySummary={copyReturnsSummary}
-          onExportCsv={() => exportReturnsCsv({ search, filter: viewFilter })}
+          onExportCsv={() => exportReturnsCsv({ search, filter: viewFilter, employee: employeeFilter })}
           onPrint={printReturns}
           onOpenCreate={() => setIsCreateOpen(true)}
         />

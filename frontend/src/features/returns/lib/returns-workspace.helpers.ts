@@ -1,6 +1,7 @@
 import { downloadExcelFile, escapeHtml, printHtmlDocument } from '@/lib/browser';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { returnsApi } from '@/features/returns/api/returns.api';
+import { buildReturnRegisterExportQuery, type ReturnRegisterExportFilters } from './return-register-export-query';
 import type { ReturnRecord, AppSettings } from '@/types/domain';
 import { buildReceiptDocument } from '@/lib/pos-printing/template';
 import { openReceiptDocument } from '@/lib/pos-printing';
@@ -105,8 +106,8 @@ export function printReturnRecord(row: ReturnRecord, settings?: Partial<AppSetti
 }
 
 
-export async function exportReturnsCsv(params: { search: string; filter: 'all' | 'sales' | 'purchase' | 'today' }) {
-  const payload = await returnsApi.listAll(params);
+export async function exportReturnsCsv(params: ReturnRegisterExportFilters) {
+  const payload = await returnsApi.listAll(buildReturnRegisterExportQuery(params));
   const exportRows = payload.returns || [];
   downloadExcelFile('returns-register.xlsx', ['docNo', 'type', 'productName', 'qty', 'total', 'note', 'createdAt'], exportRows.map((row) => [
     row.docNo || '',
