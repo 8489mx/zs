@@ -1,8 +1,11 @@
 import { AppError } from '../../../common/errors/app-error';
 import { UpsertPurchaseDto } from '../dto/upsert-purchase.dto';
+import { type MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
-function roundCurrency(value: number): number {
-  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+function roundCurrency(value: number, digits: MoneyDigits = 2): number {
+  return digits === 2
+    ? Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
+    : roundMoney(value, digits);
 }
 
 export type PurchaseProductRow = {
@@ -51,6 +54,7 @@ export type PurchaseScope = {
 export function buildNormalizedPurchaseItem(
   item: UpsertPurchaseDto['items'][number],
   product: PurchaseProductRow,
+  digits: MoneyDigits = 2,
 ): NormalizedPurchaseItem {
   const productName = String(item.name || product.name || '').trim();
   if (!productName) {
@@ -72,7 +76,7 @@ export function buildNormalizedPurchaseItem(
     oldCostPrice: Number((product as any).cost_price || 0),
     unitName: String(item.unitName || 'قطعة').trim() || 'قطعة',
     unitMultiplier,
-    total: roundCurrency(qty * cost),
+    total: roundCurrency(qty * cost, digits),
     categoryId: item.categoryId ? Number(item.categoryId) : null,
     locationId: item.locationId ? Number(item.locationId) : null,
     ...(item.serials !== undefined ? { serials: item.serials } : {}),
@@ -81,33 +85,33 @@ export function buildNormalizedPurchaseItem(
   };
 }
 
-export function calculatePurchaseSubtotal(items: Array<{ total: number }>): number {
-  return roundCurrency(items.reduce((sum, item) => sum + Number(item.total || 0), 0));
+export function calculatePurchaseSubtotal(items: Array<{ total: number }>, digits: MoneyDigits = 2): number {
+  return roundCurrency(items.reduce((sum, item) => sum + Number(item.total || 0), 0), digits);
 }
 
-export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[], invoiceDiscount: number): DiscountAllocatedPurchaseItem[] {
-  const safeDiscount = roundCurrency(Number(invoiceDiscount || 0));
+export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[], invoiceDiscount: number, digits: MoneyDigits = 2): DiscountAllocatedPurchaseItem[] {
+  const safeDiscount = roundCurrency(Number(invoiceDiscount || 0), digits);
   if (!items.length || safeDiscount === 0) {
     return items.map((item) => ({
       ...item,
       allocatedDiscount: 0,
-      effectiveLineTotal: roundCurrency(item.total),
-      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total) / item.qty).toFixed(6)) : 0,
+      effectiveLineTotal: roundCurrency(item.total, digits),
+      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total, digits) / item.qty).toFixed(6)) : 0,
     }));
   }
 
-  const subtotal = roundCurrency(calculatePurchaseSubtotal(items));
+  const subtotal = roundCurrency(calculatePurchaseSubtotal(items, digits), digits);
   if (subtotal <= 0) {
     return items.map((item) => ({
       ...item,
       allocatedDiscount: 0,
-      effectiveLineTotal: roundCurrency(item.total),
-      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total) / item.qty).toFixed(6)) : 0,
+      effectiveLineTotal: roundCurrency(item.total, digits),
+      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total, digits) / item.qty).toFixed(6)) : 0,
     }));
   }
 
   const eligibleIndexes = items
-    .map((item, index) => ({ index, total: roundCurrency(item.total) }))
+    .map((item, index) => ({ index, total: roundCurrency(item.total, digits) }))
     .filter((entry) => entry.total > 0)
     .map((entry) => entry.index);
 
@@ -115,12 +119,12 @@ export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[],
     return items.map((item) => ({
       ...item,
       allocatedDiscount: 0,
-      effectiveLineTotal: roundCurrency(item.total),
-      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total) / item.qty).toFixed(6)) : 0,
+      effectiveLineTotal: roundCurrency(item.total, digits),
+      effectiveUnitCost: item.qty > 0 ? Number((roundCurrency(item.total, digits) / item.qty).toFixed(6)) : 0,
     }));
   }
 
-  const targetNetTotal = roundCurrency(subtotal - safeDiscount);
+  const targetNetTotal = roundCurrency(subtotal - safeDiscount, digits);
   const allocatedByIndex = new Map<number, number>();
   const effectiveByIndex = new Map<number, number>();
   let allocatedSoFar = 0;
@@ -129,33 +133,33 @@ export function allocatePurchaseInvoiceDiscount(items: NormalizedPurchaseItem[],
   for (let i = 0; i < eligibleIndexes.length; i += 1) {
     const index = eligibleIndexes[i];
     const item = items[index];
-    const gross = roundCurrency(item.total);
+    const gross = roundCurrency(item.total, digits);
     const isLastEligible = i === eligibleIndexes.length - 1;
 
     if (!isLastEligible) {
-      const proportional = roundCurrency((safeDiscount * gross) / subtotal);
+      const proportional = roundCurrency((safeDiscount * gross) / subtotal, digits);
       // For positive discounts, cap at gross to prevent negative net line totals. For negative discounts (surcharge), no cap needed.
       const allocated = safeDiscount > 0 ? Math.min(proportional, gross) : proportional;
-      const net = roundCurrency(gross - allocated);
+      const net = roundCurrency(gross - allocated, digits);
       allocatedByIndex.set(index, allocated);
       effectiveByIndex.set(index, net);
-      allocatedSoFar = roundCurrency(allocatedSoFar + allocated);
-      effectiveSoFar = roundCurrency(effectiveSoFar + net);
+      allocatedSoFar = roundCurrency(allocatedSoFar + allocated, digits);
+      effectiveSoFar = roundCurrency(effectiveSoFar + net, digits);
       continue;
     }
 
-    const allocated = roundCurrency(safeDiscount - allocatedSoFar);
+    const allocated = roundCurrency(safeDiscount - allocatedSoFar, digits);
     const adjustedAllocated = safeDiscount > 0 ? Math.min(allocated, gross) : allocated;
-    const net = roundCurrency(gross - adjustedAllocated);
+    const net = roundCurrency(gross - adjustedAllocated, digits);
     
     allocatedByIndex.set(index, adjustedAllocated);
     effectiveByIndex.set(index, net);
-    allocatedSoFar = roundCurrency(allocatedSoFar + adjustedAllocated);
+    allocatedSoFar = roundCurrency(allocatedSoFar + adjustedAllocated, digits);
   }
 
   return items.map((item, index) => {
-    const gross = roundCurrency(item.total);
-    const allocatedDiscount = roundCurrency(allocatedByIndex.get(index) || 0);
+    const gross = roundCurrency(item.total, digits);
+    const allocatedDiscount = roundCurrency(allocatedByIndex.get(index) || 0, digits);
     const effectiveLineTotal = roundCurrency(
       effectiveByIndex.has(index)
         ? Number(effectiveByIndex.get(index) || 0)
