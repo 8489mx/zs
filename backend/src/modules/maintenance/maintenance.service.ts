@@ -415,7 +415,7 @@ export class MaintenanceService {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
       }
 
-      if (ticket.status === 'delivered' || ticket.status === 'cancelled' || ticket.status === 'canceled') {
+      if (ticket.status === 'delivered' || ticket.status === 'cancelled') {
         throw new AppError('لا يمكن صرف قطع غيار بعد تسليم أو إلغاء التذكرة', 'MAINTENANCE_TICKET_CLOSED', 409);
       }
 
