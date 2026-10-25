@@ -30,13 +30,13 @@ describe('POS catalog tenant-scoped React Query', () => {
 
   it('creates separate query keys and does not show previous tenant as placeholder', () => {
     const { rerender } = renderHook(() => usePosCatalog('', 'branch-1', 'location-1'));
-    const first = queryMock.mock.calls.at(-1)![0];
+    const first = queryMock.mock.calls[queryMock.mock.calls.length - 1][0];
     expect(first.queryKey[2]).toBe('tenant-a');
     expect(first.enabled).toBe(true);
 
     current.tenantId = 'tenant-b';
     rerender();
-    const second = queryMock.mock.calls.at(-1)![0];
+    const second = queryMock.mock.calls[queryMock.mock.calls.length - 1][0];
     expect(second.queryKey[2]).toBe('tenant-b');
     expect(second.placeholderData([{ id: 'old' }], { queryKey: first.queryKey })).toBeUndefined();
     expect(second.placeholderData([{ id: 'current' }], { queryKey: second.queryKey })).toEqual([{ id: 'current' }]);
@@ -45,6 +45,6 @@ describe('POS catalog tenant-scoped React Query', () => {
   it('does not query without active tenant', () => {
     current.tenantId = '';
     renderHook(() => usePosCatalog('', '', ''));
-    expect(queryMock.mock.calls.at(-1)![0].enabled).toBe(false);
+    expect(queryMock.mock.calls[queryMock.mock.calls.length - 1][0].enabled).toBe(false);
   });
 });
