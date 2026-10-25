@@ -1,5 +1,13 @@
 # دستور الثوابت المعمارية وسجل التدقيق (Architecture Invariants & Audit Ledger)
 
+### 2026-10-25 P0-A updated invariants and test evidence
+
+- **TRANSFER-PACKAGE-COMPLETE:** Never delete/import target tenant rows if archive inventory omitted a live table (including FK-owned child tables), contains undeclared/malformed tables or imported row count differs from declared row count. Abort the transaction. Older incompatible archives must be converted/tested safely, never accepted by disabling checks.
+- **RESTORE-SNAPSHOT-ATOMIC:** A restore snapshot record is part of the same transaction as destructive tenant data replacement, not a post-commit statement that can fail after successful restoration. Session/cache invalidation is post-commit.
+- **CLOUD-BACKUP-DISABLED:** `enabled=false` blocks cloud backup uploads, regardless of actor privilege. Distinct `canManageBackups` access remains mandatory.
+- **VERIFICATION-SCOPE:** Isolated GitHub Actions run `40188575959` passed targeted P0-A regressions, backend typecheck/build/guards, PostgreSQL fresh migration history and migration-255 physical catalog checks plus core integrity; Electron source updater contracts passed. Separate new restore-snapshot change `d5fc804...` awaits linked CI `40188927253`. Historic `NOT VALID` rows, legacy archive rollback, concurrency, cross-module service traces and actual packaged Electron remain unverified. See `docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md`.
+
+
 ### Platform Core P0-A — ثوابت جديدة 25 أكتوبر 2026 (غير مختبرة تشغيلًا)
 
 - **AUTH-PASSWORD-VERSION:** MFA challenge and newly issued session are bound to the password hash verified during authentication. Admin resets invalidate in-flight logins; concurrent failure counters acquire a tenant-scoped row lock. A concurrent MFA setup must not overwrite confirmed enrolment.

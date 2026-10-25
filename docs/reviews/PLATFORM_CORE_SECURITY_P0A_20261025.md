@@ -2,7 +2,7 @@
 
 **Base:** `main@3b7e4619c4e66817c79036f70c2fde7f2795206f`  
 **Working branch:** `fix/platform-core-security-audit-20261025`  
-**Evidence:** source inspection and authored regressions only. **No tests, build, typecheck, guard suites, migrations, UAT, or operational security tests were executed.** No deployment or main merge.
+**Evidence (latest checkpoint):** Isolated CI has executed; see the dated operational CI checkpoint at the end. Initial findings and historic 'NOT RUN' notes record their earlier source-review state. No production deployment or main merge.
 
 ## Confirmed defects corrected in code
 
@@ -153,3 +153,23 @@ Adjusted older test fixtures `backend/test/critical/session-auth.guard.spec.ts` 
 **Verification still blocked:** Full repository checkout/dependencies and isolated PostgreSQL runtime unavailable to this session; therefore test suites, typecheck, build, migration 255, real restore/transfer rollback, historical archives, concurrent writes, Electron installer and external gateways have **not run**. Safe recovery for archives omitted from a later schema remains unimplemented; do not override completeness checks for compatibility. Status stays **unverified_current_head** and **not ready for merge**.
 
 **Source issue tally at this checkpoint:** previous **30** + this newly documented **1** = **31** (P0 **4**, P1 **26**, P2 **1**) *plus any separate concurrent work not yet reconciled*. Counts are source corrections, not verified passing tests.
+
+---
+
+## P0-A operational CI checkpoint — 2026-10-25 (overrides earlier 'NOT RUN' checkpoint statements)
+
+**Branch:** `fix/platform-core-security-audit-20261025`. **Source corrections documented:** 33 total: P0 4, P1 28, P2 1. The 28 originally handed over were not individually end-to-end attested; this count is of source fixes, not certification of all entrypoints.
+
+**Successful full CI evidence:** [Actions run 40188575959](https://github.com/8489mx/zs/actions/runs/40188575959), code SHA `6382c91a33fb49a78ee65eb1a65b2ce615c0fedd`. Real successful steps: npm ci; backend typecheck; backend build; architecture, permissions and environment guards; dedicated P0-A source/security regressions; core auth/permissions/tenant/backup/transfer/idempotency regressions; full migration history on disposable PostgreSQL 16; physical database catalog assertion for migration 255 (4 NOT VALID composite FKs, 3 unique indexes); Electron updater source contracts; PostgreSQL core-integrity acceptance. Earlier CI failures were diagnosed and repaired, notably typed joins, stale test fixtures, disposable DB naming and migration-dependent test ordering.
+
+**Additional code correction after that green run, requiring separate retest:** P0A-33 / P1: the restore snapshot audit row was inserted outside the destructive restore transaction. If that statement failed after data had committed, API could report failure on a successful restore. Move it inside the same transaction so a failed snapshot write aborts all restore writes; authored `backend/test/critical/p0a-restore-audit-atomicity.spec.ts` (source boundary, not a real rollback test). Implementation commit: `d5fc8040bb6df8db393233ecc904d9557678b7c6`. [Follow-up CI](https://github.com/8489mx/zs/actions/runs/40188927253) is required to verify this change.
+
+**P0A-32 / P1:** `cloud-backup.service.ts` previously checked `!config.enabled && !auth` after authentication, so an authorized actor could still upload while cloud backup was disabled. Now fail closed on `!config.enabled`, with a negative regression in `p0a-backup-credentials-permissions.spec.ts`. Production cloud integrations were not contacted.
+
+**P0A-31 / P0:** Tenant package importer rejects older archives omitting live tenant tables, malformed inventory and truncated row totals before destructive commit. Source/parser regression passed in CI; no real concurrent or historical-archive restoration performed. These compatibility failures intentionally remain blocked rather than bypass validation.
+
+**Coverage inventory:** [`PLATFORM_CORE_SECURITY_P0A_ROUTE_INVENTORY_20261025.csv`](PLATFORM_CORE_SECURITY_P0A_ROUTE_INVENTORY_20261025.csv) enumerates 83 module controllers, 1,310 HTTP decorator matches and source hints. ALL unchecked tenant/service/SQL/evidence cells are explicitly `UNVERIFIED`; this is not complete 37-module service-level tracing, an authorization proof or evidence of zero remaining vulnerabilities.
+
+**Residual release blockers:** (1) historical backup compatibility and real PostgreSQL rollback with concurrent writers; (2) historical migrations containing invalid references, `NOT VALID` rows, and validated-upgrade rehearsal; (3) comprehensive manual trace of tenant-scoped SQL, service guards and webhooks across unverified controllers; (4) packaged Windows Electron install/update, actual gateway/webhook/hardware tests; (5) 28-fix one-by-one operational evidence and final integration/UAT. No production DB, production migrations, merge to main, or deploy performed.
+
+**Verdict:** `P0-A Blocked` pending the above risk closure despite passing isolated regression and fresh-schema CI. Historic 'not run' statements elsewhere in this report refer to earlier checkpoints, not this dated CI run.

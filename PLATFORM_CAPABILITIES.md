@@ -33,6 +33,11 @@
 ### حدود المعدل في بوابات الجمهور — P0-A، 25 أكتوبر 2026
 `backend/src/app.module.ts` يسجّل `AuthBurstRateLimitMiddleware` لطرق تسجيل دخول بوابات الموظفين والمناديب والعملاء البحريين وكتابة عروض RFQ العامة؛ هذا مكمل وليس بديلًا لتوثيق رموز البوابات. `p0a-public-portal-burst-routes.spec.ts` تحقق انحدار من المصدر فقط، **لم يُشغّل**. مغطاة الواجهات المحددة، وليس كل API public.
 
+
+<a id="p0a-verified-route-inventory-20261025"></a>
+### P0-A CI verification and endpoint coverage boundary — 25 October 2026
+Automated controller inventory: `docs/reviews/PLATFORM_CORE_SECURITY_P0A_ROUTE_INVENTORY_20261025.csv` covers 83 module controllers and 1,310 HTTP decorator matches. Guard and permission metadata are hints only; untraced tenant/service/SQL/test evidence is `UNVERIFIED`. Targeted auth and P0-A security regressions, typecheck and architecture/permission checks passed in [isolated CI 40188575959](https://github.com/8489mx/zs/actions/runs/40188575959), not a declaration of whole-project tenant-isolation completeness. Desktop `infoadmin` handling remains unchanged; production Cloud cannot inherit Desktop permissions.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: الدرع المعماري والحصانة المطلقة لمنصة السوبر أدمن والمستأجر الجذري zs (Super Admin Platform Root Immunity Shield) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)](#cap-007)
