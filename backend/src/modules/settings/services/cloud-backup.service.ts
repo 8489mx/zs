@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Kysely } from 'kysely';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
+import { ForbiddenException } from '@nestjs/common';
 import { SettingsBackupService } from './settings-backup.service';
 
 export interface CloudBackupConfig {
@@ -31,6 +32,12 @@ export class CloudBackupService {
   ) {}
 
   async getCloudConfig(auth: AuthContext): Promise<CloudBackupConfig> {
+    // This contains plaintext S3 access credentials and allows offsite
+    // exfiltration of a full business backup. Generic settings permission
+    // is insufficient; use the existing dedicated backup capability.
+    if (!auth || (auth.role !== 'super_admin' && !auth.permissions?.includes('canManageBackups'))) {
+      throw new ForbiddenException('Backup management permission is required');
+    }
     const tenantId = String(auth.tenantId);
     const row = await this.db
       .selectFrom('settings')
