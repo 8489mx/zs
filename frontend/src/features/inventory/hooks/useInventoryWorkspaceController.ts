@@ -97,7 +97,15 @@ export function useInventoryWorkspaceController(currentSection: InventorySection
     const product = findProduct(products, state.countForm.productId);
     const countedQty = Number(state.countForm.countedQty || 0);
     if (!product || !Number.isFinite(countedQty) || countedQty < 0) return;
-    const expectedQty = Number(product.stock || 0);
+    const locationId = String(state.countForm.locationId || '');
+    const stocks = actionCatalog.locationStocksQuery.data;
+    if (!locationId || !Array.isArray(stocks)) {
+      toast.warning('حدد مخزن الجرد وتأكد من تحميل أرصدته قبل إضافة الصنف');
+      return;
+    }
+    const snapshot = stocks.find((row) => String(row.productId) === String(product.id) &&
+      String(row.locationId) === locationId);
+    const expectedQty = Number(snapshot?.qty || 0);
     state.setCountItems((current: StockCountItem[]) => [...current, {
       id: `${product.id}-${Date.now()}`,
       productId: product.id,

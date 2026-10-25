@@ -313,3 +313,10 @@
 
 
 <!-- migrated:cap-293:end -->
+
+
+### 2026-10-25 — D/F: warehouse count scope and inventory UI
+
+- `StockCountComposerCard` formerly showed the **whole tenant catalog** when `locationStocks` was an empty array, rather than a genuinely empty warehouse. A selected warehouse now uses only its location-stock entries (including zero balances); an absent/unavailable snapshot prevents start, rather than falling back to global stock. Location map avoids O(products × stocks) filtering.
+- Quick manual count in `useInventoryWorkspaceController` previously used global `product.stock` for `expectedQty`; now it uses the selected warehouse's physical balance, defaulting to 0 only if a valid location snapshot confirms no row.
+- Written (not executed) `frontend/src/features/inventory/lib/count-location-scoping.spec.ts`. Remaining physical count/ledger postings and live database concurrency tests are not yet validated.

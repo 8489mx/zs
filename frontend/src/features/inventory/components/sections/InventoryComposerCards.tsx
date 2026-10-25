@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { buildCountLocationStockMap, filterCountableProductsAtLocation } from '@/features/inventory/lib/count-location-scoping';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FormSection } from '@/shared/components/form-section';
 import { Button } from '@/shared/ui/button';
@@ -330,24 +331,15 @@ export function StockCountComposerCard({
     }
   }, [isSuccess]);
 
-  const getProductLocationStock = (productId: string | number) => {
-    if (!form.locationId || !locationStocks) return null;
-    const match = locationStocks.find(
-      (s) => String(s.productId) === String(productId) && String(s.locationId) === String(form.locationId)
-    );
-    return match ? Number(match.qty) : 0;
-  };
+  const scopedStocks = useMemo(() => buildCountLocationStockMap(form.locationId, locationStocks),
+    [form.locationId, locationStocks]);
+  const indexedProducts = useMemo(() => new Map(products.map((product) => [String(product.id), product])), [products]);
+  const getProductLocationStock = (productId: string | number) =>
+    scopedStocks === null ? null : scopedStocks.get(String(productId)) ?? 0;
 
   const scopeProducts = useMemo(() => {
-    let baseProducts = products;
-    if (form.locationId && locationStocks && locationStocks.length > 0) {
-      baseProducts = products.filter((product) =>
-        locationStocks.some(
-          (s) => String(s.productId) === String(product.id) && String(s.locationId) === String(form.locationId)
-        )
-      );
-    }
-
+    // Empty or unavailable warehouse stock never means the entire company.
+    const baseProducts = form.locationId ? filterCountableProductsAtLocation(products, scopedStocks) : products;
     if (countType === 'full') return baseProducts;
     if (countType === 'category') {
       const categoryId = selectedCategoryId || selectedProduct?.categoryId || '';
@@ -361,7 +353,7 @@ export function StockCountComposerCard({
     }
     if (selectedProduct) return [selectedProduct];
     return [];
-  }, [countType, products, selectedCategoryId, selectedSupplierId, selectedProduct, form.locationId, locationStocks]);
+  }, [countType, products, selectedCategoryId, selectedSupplierId, selectedProduct, form.locationId, scopedStocks]);
 
   const sheetRows: StockCountSheetRow[] = useMemo(() => {
     const resolveExpected = (pId: string | number, fallback: number) => {
@@ -382,7 +374,7 @@ export function StockCountComposerCard({
     }
     if (items.length) {
       return items.map((item) => {
-        const product = products.find((entry) => String(entry.id) === String(item.productId));
+        const product = indexedProducts.get(String(item.productId));
         return {
           code: product?.styleCode || String(item.productId),
           barcode: product?.barcode || product?.units?.find((unit) => unit.barcode)?.barcode || '',
@@ -403,7 +395,7 @@ export function StockCountComposerCard({
       countedQty: '',
       note: '',
     }));
-  }, [countType, items, products, scopeProducts, categories, form.locationId, locationStocks]);
+  }, [countType, items, indexedProducts, scopeProducts, categories, form.locationId, scopedStocks]);
 
   function handlePopulateScopeItems() {
     if (!scopeProducts.length) return;
@@ -544,8 +536,8 @@ export function StockCountComposerCard({
   }
 
   function handleStartCount() {
-    if (isLoadingCatalog) {
-      setStartCountMessage('جارٍ تحميل بيانات أصناف ومخزون المخزن، يرجى الانتظار ثوانٍ معدودة...');
+    if (isLoadingCatalog || locationStocks === undefined) {
+      setStartCountMessage('أرصدة المخزن لم تُحمّل بنجاح. تحقق من الاتصال ولا تبدأ جرداً برصيد عام.');
       return;
     }
     if (!form.locationId) {
