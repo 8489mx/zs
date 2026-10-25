@@ -84,6 +84,8 @@ jobs:
                    test/critical/session-login-atomic-p0a.spec.ts \
                    test/critical/backup-mode-boundary-p0a.spec.ts \
                    test/critical/login-mode-boundary-p0a.spec.ts; do
+            # Live PostgreSQL metadata assertion runs separately AFTER migrations.
+            if [[ "${f}" == "test/critical/p0a-migration-255-postgres.spec.ts" ]]; then continue; fi
             echo "::group::${f}"
             npx ts-node "${f}" || failed=1
             echo "::endgroup::"
