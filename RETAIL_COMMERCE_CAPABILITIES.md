@@ -508,3 +508,92 @@
 
 
 <!-- migrated:cap-161:end -->
+
+
+## مراجعة 25 أكتوبر 2026 — الاستبدال الفوري والـ Idempotency (تحقق كودي جزئي)
+
+- كان `PosInstantExchangeDialog.tsx` يحذف `x-idempotency-key` وبيانات الاستبدال عند أي 4xx بما فيها `409 Operation is currently processing` و`422 Operation requires manual recovery`، ما يسمح بإرسال استبدال آخر بمفتاح جديد رغم غموض نتيجة الأول. الآن تفحص الواجهة `GET /api/operations/POST%3A%2Fapi%2Fsales/{key}/status`، تؤكد المستند الملتزم، وتحتفظ بمفتاح الطلب الأصلي عند غموض النتيجة؛ لا تسمح بإغلاق حوار العملية الغامضة دون مراجعتها.
+- أعيد استخدام عقد API الحالي `posApi.getSaleOperationStatus`، دون تعديل محرك idempotency أو المصادقة المشتركين.
+- اختبارات انحدار مكتوبة ولم تُشغّل: `frontend/src/features/pos/components/pos-workspace/pos-exchange-recovery.spec.ts`. هذا تدقيق لمسار الاستبدال المحدد فقط، وليس اعتمادا لكافة نقاط البيع.
+
+
+### 2026-10-25 — E/F: authoritative invoice return history for cashier selection
+
+- `ReturnsWorkspace` previously computed returned quantities from a filtered/paginated returns register, confusing a UI preview with complete invoice history. New tenant-scoped `GET /api/returns/invoices/:type/:invoiceId/quantities` computes all previous `return_items` per original invoice line, independently of pages/filters; unlinked legacy returns block affected products pending reconciliation. Editing/confirmation is disabled while history is missing or fetching; the transactional return service remains the final authority for concurrency.
+- New regression tests: `frontend/src/features/returns/lib/return-remaining-quantity.spec.ts` (written, not run). No claim of physical bank refund integration or runtime sign-off.
+
+
+### 2026-10-25 — E/F: retries for posted returns and purchase-return UI mode
+
+- `returnsApi.create` historically minted a new `x-idempotency-key` for each call; on lost response, the create form could resubmit a second refund and second stock receipt. `ReturnsWorkspace` now pins an immutable request payload and key across retries, inspects the existing server `POST:/api/returns` operation status, recognizes committed documents, and prevents editing, clearing, or closing an unresolved return. It only releases a key on a confirmed failed operation or a definite 4xx that the server never reserved. **This protects only the mounted UI attempt; restoring after browser reload still needs end-to-end verification.**
+- Purchase returns route previously reset its form to type `sale` after success or Reset; form reset now honors current route. Regression cases written in `return-submission-recovery.spec.ts` and not executed.
+
+
+### 2026-10-25 — C/E/F: cash drawer list reflects actual cash refunds only
+
+- `CashDrawerService.fetchShiftMovementItems` formerly inserted a `return` movement for the **gross** sale-return document amount under the CASH return group, labeling credit/card/mixed tender returns as cash outflows. Its separate shift summary already derived cash refunds from treasury transactions, but the itemized drawer review contradicted that summary. The item list now sums only negative cash `treasury_transactions` explicitly linked to **this shift** and the return document, excluding card/store-credit/refundable-debt legs and returns made in other shifts. No general accounting return posting was touched. Regression `backend/test/infra/cash-drawer-cash-return.spec.ts` written but not executed.
+
+
+### 2026-10-25 — F: inventory report location totals
+
+- Report top location formerly used first SQL row, not highest stock quantity; now sorts per-product location rows by quantity and name. Physical location balances exceeding global stock now expose `stockLocationExcessQty` with a visible reconciliation warning, without changing inventory quantities. Regression `backend/test/infra/reports-inventory.helper.spec.ts` amended (not run). Did not touch `reports.service.ts` or security-branch `REPORTS_CAPABILITIES.md`.
+
+
+### 2026-10-25 — B/E/F: serial validation before instant exchange submission
+
+- `PosInstantExchangeDialog.submit` threw serial quantity validation errors from `returned.map` **before its own try/catch**, leaving an unhandled asynchronous UI rejection. Preflight now validates exact serial quantity, duplicates, serial ownership against invoice snapshot and non-serial items inside a caught block, shows a user-facing error and does not issue an idempotency key or server transaction on invalid selection. Final serial and return ownership remain server-authoritative. Regression `pos-exchange-serial-validation.spec.ts` written, not executed.
+
+
+### 2026-10-25 — E: return-quantity endpoint follow-up
+
+- Separated the new invoice-return quantity grouping into `return-invoice-quantities.helper.ts`, narrowed `returnType` to validated sale/purchase union before Kysely filtering, and fail-closed on invalid aggregate quantity. Backend grouping regression `backend/test/critical/return-invoice-quantities.spec.ts` added but not run; the endpoint's tenant and status SQL remains as previously patched.
+
+
+### 2026-10-25 — B: POS offline catalog is tenant-bound even on direct barcode fallback
+
+- `PosWorkspace.resolveRemoteBarcodeMatch` used `lookupProductByBarcodeFromStorage` directly after network failure, bypassing the tenant ownership preflight in `usePosCatalog`; a stale device IndexedDB cache could return a previous tenant's SKU. Direct lookup now checks the saved tenant ID against current auth scope and returns no product if mismatched or missing. `usePosCatalog` also rejects legacy unscoped localStorage arrays or metadata and only reads IndexedDB when both tenant IDs are present and equal. No security-core changes; regression checks appended to `pos-catalog-storage.spec.ts`, not run. Electron offline tenant/session migration still requires full device verification.
+
+
+### 2026-10-25 — E/F: fail-closed return selection after invoice-history refresh
+
+- A user could select a return quantity, switch focus or experience a parallel return, then press Confirm while the saved line quantity had decreased; the form only blocked initial text entry, not the final selected line quantities. `ReturnsWorkspace` now validates **all selected original invoice line IDs** against the complete invoice-specific returned balances before opening confirmation and inside the submission mutation. It rejects unlinked line IDs, invalid or excessive quantities and legacy-blocked products; it displays an actionable warning. A pre-existing ambiguous submission still retries its frozen original payload/key instead of generating a different request.
+- Test coverage added to `return-remaining-quantity.spec.ts` for refreshed balances and duplicate product IDs. Code authored, not executed; server-side transaction locking remains the final correctness boundary.
+
+
+### 2026-10-25 — F follow-up: report unassigned stock and reconciliation detail
+
+- When site rows existed but did not sum to global stock, the inventory report displayed only the first locations while hiding remaining unassigned stock. The location label now explicitly shows the positive unassigned balance for each clothing SKU, and appends any over-assignment reconciliation warning without discarding the displayed location details. Existing tests amended for this output (not executed). Removed decorative warning emoji to follow UI standards.
+
+
+### 2026-10-25 — A/F fashion matrix duplicate-SKU visibility
+- The original matrix silently displayed only the first SKU for a color-size cell and hid stock in additional historical rows. The view now shows the sum of all rows, explicitly flags multiple SKUs, and retains each underlying barcode and SKU in its tooltip; it does NOT merge stock automatically. Regression `products-matrix.helpers.spec.ts` written, NOT executed.
+
+
+### 2026-10-25 — E/F: return register export filter parity
+
+- The visible returns register supported an employee/cashier filter, and its Print already passed `employeeFilter`, but Excel export silently dropped this filter, exporting unrelated cashiers' return records. Both print and Excel now build the same query from the visible search, type and employee filters (`return-register-export-query.ts`). Regression authored as `return-register-export-query.spec.ts`, not run.
+
+
+### 2026-10-25 — C: supplier-payment drawer movement item consistency
+
+- The cash-drawer supplier **summary** filters `supplier_payments.payment_channel` to cash, but `fetchShiftMovementItems` previously listed card/wallet supplier payments as physical drawer outflows. Itemized supplier payments now apply the same cash-only predicate, and the supplier name JOIN includes tenant ownership. Regression `cash-drawer-cash-return.spec.ts` amended to assert payment-channel classification, not executed.
+
+
+### 2026-10-25 — E/F: cashier fraud radar must not analyze only current register page
+
+- `ReturnsWorkspace` passed its currently filtered 20-row register page into `detectReturnsAnomalies` and the radar dashboard, causing false low risk scores and missing older rapid refunds. Radar now fetches the **complete sale-return history** lazily via paginated `returnsApi.listAll({filter:'sales'})` only when opened. While the full history is loading or unavailable, the screen displays loading/error instead of misleading zero fraud alerts. Suspicious row details can open from this history even when absent from the current register page. Regression `return-radar-selection.spec.ts` written, not executed. Full sales history quality and scalability must still be checked against real large tenants.
+
+
+### 2026-10-25 — B: tenant switch during asynchronous POS offline catalog warmup
+
+- `usePosCatalogWarmup` previously read the active tenant **after** receiving version response, and never checked tenant identity after downloading up to 25,000 items; an in-flight request could save an old tenant's catalog under a newly selected tenant, or clear the next tenant's cache on a stale zero-count response. Now capture the tenant before starting requests, fail closed when identity changes after each async stage and before writing/clearing local catalog. `pos-catalog-sync-policy` forces refreshing existing unowned metadata, preserving PERF-9 hourly/version cadence for owned caches. Regression tests appended to `pos-catalog-sync-policy.spec.ts`; not executed. Cross-tab IndexedDB transactions and actual Electron tenant changes require separate verification.
+
+
+### 2026-10-25 — B/F: ECR terminal double-charge and approved-payment abandonment
+
+- `PosCheckoutDialogSections` used to catch *all* hardware-bridge charge failures and automatically issue a new backend charge. A timeout **after ECR dispatch** could charge a card twice. Alternative route is now allowed only when the bridge call failed before a charge was issued; an uncertain dispatched request enters a visible `recovery_required` state without an automatic retry/cancel. Payment presets can't clear or reclassify a recorded approved card authorization. `PosCheckoutDialog` no longer allows dismissing a confirmed charged terminal transaction or splitting the bill while the authorization is outstanding. These changes do **not** implement a gateway void/refund or prove that any given payment was charged; manual provider reconciliation is required after an uncertain ECR response. Test `pos-terminal-charge-safety.spec.ts` is written, not executed. Cross-restart ECR recovery remains an explicit blocker requiring vendor integration.
+
+
+### 2026-10-25 — B: never fabricate card terminal authorization codes
+
+- Bridge/backend approval responses previously inserted random synthetic codes such as `AUTH-123456` when a bank authorization code was absent, incorrectly representing invented financial evidence. Now stores only the received code (empty if absent), displays absence explicitly with actual terminal transaction reference, and guards against discarding approved payment using its real RRN too. Test `pos-terminal-charge-safety.spec.ts` extended but not executed.

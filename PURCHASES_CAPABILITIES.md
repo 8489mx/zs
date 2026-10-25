@@ -138,3 +138,9 @@
 
 
 <!-- migrated:cap-211:end -->
+
+
+## 25 أكتوبر 2026 — منع تغيير مخزن إذن الاستلام بصمت
+
+- راجعنا مسار `GoodsReceiptService.createGoodsReceipt` حتى فحص المورد والمخزن والأصناف وإنشاء رأس وبنود GRN. في السابق، معرف مخزن محدد صراحة وغير موجود في المنشأة كان يسبب اختيار مخزن أمر الشراء أو أول مخزن نشط بدلاً من رفضه. أصبح طلب المخزن الصريح الفاشل يرجع `GRN_LOCATION_NOT_FOUND` قبل إنشاء المستند. لا يزال الطلب الذي لم يحدد مخزناً يستخدم مخزن أمر الشراء ثم المخزن النشط الافتراضي كما كان.
+- ملفات التعديل: `backend/src/modules/purchases/services/goods-receipt.service.ts`, `backend/src/modules/purchases/engines/grn-location-policy.engine.ts`؛ اختبار `backend/test/critical/grn-explicit-location.spec.ts` **مكتوب ولم يُشغّل**. التحقق المالي التشغيلي وترحيل GRN ما زال يحتاج اختبارات فعلية ومراجعة تفصيلية قبل الاعتماد.

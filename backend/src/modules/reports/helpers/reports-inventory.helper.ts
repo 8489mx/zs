@@ -52,6 +52,7 @@ export interface InventoryReportItem {
   locationsLabel: string;
   assignedQty: number;
   unassignedQty: number;
+  stockLocationExcessQty: number;
   locations: InventoryLocationSnapshot[];
 }
 
@@ -110,13 +111,20 @@ export function buildInventoryReportItems(
   return rows.map((row) => {
     const stockQty = toPositiveNumber(row.stock_qty);
     const minStock = toPositiveNumber(row.min_stock_qty);
-    const breakdown = breakdownByProduct.get(String(row.id)) || [];
+    const breakdown = [...(breakdownByProduct.get(String(row.id)) || [])]
+      .sort((a, b) => b.qty - a.qty || a.locationName.localeCompare(b.locationName, 'ar'));
     const topLocation = breakdown[0] || null;
     const assignedQty = breakdown.reduce((sum, item) => sum + (item.locationId ? item.qty : 0), 0);
     const unassignedQty = Math.max(0, stockQty - assignedQty);
-    const locationsLabel = breakdown.length
-      ? breakdown.slice(0, 3).map(formatLocationLabel).join(' • ')
-      : (stockQty > 0 ? `مخزون غير مخصص: ${stockQty}` : '—');
+    const stockLocationExcessQty = Math.max(0, Number((assignedQty - stockQty).toFixed(3)));
+    // Show the complete reconciliation state, not only the first three
+    // positive stock locations. Unassigned inventory is financially material.
+    const labels = breakdown.slice(0, 3).map(formatLocationLabel);
+    if (unassignedQty > 0.001) labels.push(`مخزون غير مخصص: ${unassignedQty}`);
+    if (stockLocationExcessQty > 0.001) {
+      labels.push(`فرق مخزون يحتاج مصالحة: المواقع تزيد عن الإجمالي بـ ${stockLocationExcessQty}`);
+    }
+    const locationsLabel = labels.length ? labels.join(' • ') : '—';
 
     return {
       id: String(row.id || ''),
@@ -134,6 +142,7 @@ export function buildInventoryReportItems(
       locationsLabel,
       assignedQty,
       unassignedQty,
+      stockLocationExcessQty,
       locations: breakdown,
     };
   });

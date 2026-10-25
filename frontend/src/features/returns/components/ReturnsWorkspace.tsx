@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -28,6 +28,11 @@ import {
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { remainingInvoiceLineQuantity, isSelectedReturnQuantityValid } from '@/features/returns/lib/return-remaining-quantity';
+import { findReturnInRegisterOrRadar } from '@/features/returns/lib/return-radar-selection';
+import { buildReturnRegisterExportQuery } from '@/features/returns/lib/return-register-export-query';
+import { mayReleaseReturnIdempotencyKey, wasReturnCommitted } from '@/features/returns/lib/return-submission-recovery';
+import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function ReturnsWorkspace() {
@@ -44,15 +49,13 @@ export function ReturnsWorkspace() {
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [confirmReturn, setConfirmReturn] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [form, setForm] = useState<ReturnFormState>(() => {
-    const defaultForm = createEmptyReturnForm();
-    if (isPurchaseMode) {
-      defaultForm.type = 'purchase';
-    }
-    return defaultForm;
-  });
+  const [form, setForm] = useState<ReturnFormState>(() => createEmptyReturnForm(isPurchaseMode ? 'purchase' : 'sale'));
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const [selectedSerials, setSelectedSerials] = useState<Record<string, string>>({});
+  const [returnOutcomeUncertain, setReturnOutcomeUncertain] = useState(false);
+  // The exact payload and key survive HTTP failures within this mounted workspace.
+  // Never generate a new key when a refund may already have committed.
+  const returnAttempt = useRef<{ key: string; payload: Record<string, unknown> } | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -88,20 +91,26 @@ export function ReturnsWorkspace() {
 
   const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId) || (Boolean(row.docNo) && String(row.docNo).toLowerCase() === String(form.invoiceId).toLowerCase())) as Sale | Purchase | undefined;
   const rows = useMemo(() => query.data?.returns || [], [query.data?.returns]);
+  // Radar is independent of the register's page and user-applied filters.
+  // Load its full sale-return history only when the radar tab is visited.
+  const radarQuery = useQuery({
+    queryKey: ['returns', 'radar-all-sales'],
+    queryFn: () => returnsApi.listAll({ filter: 'sales' }),
+    enabled: activeTab === 'radar',
+    staleTime: 30_000,
+  });
+  const radarRows = useMemo(() => radarQuery.data?.returns || [], [radarQuery.data?.returns]);
   const invoiceItems = useMemo(() => (selectedInvoice?.items || []) as Array<SaleItem | PurchaseItem>, [selectedInvoice?.items]);
-  const returnedQtyByProduct = useMemo(() => {
-    if (!selectedInvoice) return {};
-    const selectedInvoiceId = String(selectedInvoice.id);
-    const selectedType = form.type;
-    return rows
-      .filter((row) => String(row.invoiceId || '') === selectedInvoiceId && String(row.returnType || 'sale') === selectedType)
-      .reduce<Record<string, number>>((acc, row) => {
-        const productId = String(row.productId || '');
-        if (!productId) return acc;
-        acc[productId] = Number(acc[productId] || 0) + Number(row.qty || 0);
-        return acc;
-      }, {});
-  }, [form.type, rows, selectedInvoice]);
+  const invoiceReturnQuantitiesQuery = useQuery({
+    queryKey: ['returns-invoice-quantities', form.type, selectedInvoice?.id],
+    queryFn: () => returnsApi.getInvoiceReturnedQuantities(form.type, selectedInvoice!.id),
+    enabled: isCreateOpen && Boolean(selectedInvoice?.id),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  const returnedQtyByLine = invoiceReturnQuantitiesQuery.data?.returnedQtyByLine || {};
+  const blockedProductIds = invoiceReturnQuantitiesQuery.data?.blockedProductIds || [];
+  const returnHistoryReady = Boolean(selectedInvoice && invoiceReturnQuantitiesQuery.isSuccess && !invoiceReturnQuantitiesQuery.isFetching);
   const settlementNeedsRefundMethod = form.settlementMode === 'refund';
   const canUseCreditSettlement = form.type === 'sale' && Boolean(selectedInvoice && 'customerId' in selectedInvoice && selectedInvoice.customerId);
 
@@ -115,6 +124,9 @@ export function ReturnsWorkspace() {
     })
     .filter((entry) => entry.qty > 0), [invoiceItems, selectedItems]);
 
+  const returnQuantitiesValid = selectedReturnItems.length > 0 && selectedReturnItems.every(({ item, qty }) =>
+    isSelectedReturnQuantityValid(String(item.id || ''), String(item.productId || ''),
+      Number(item.qty || 0), qty, returnedQtyByLine, blockedProductIds, returnHistoryReady));
   const selectedItemsCount = selectedReturnItems.length;
   const selectedQtyTotal = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.qty || 0), 0);
   const expectedReturnValue = selectedReturnItems.reduce((sum, entry) => sum + Number(entry.lineTotal || 0), 0);
@@ -123,17 +135,18 @@ export function ReturnsWorkspace() {
   const salesReturns = Number(summary?.salesReturns || 0);
   const purchaseReturns = Number(summary?.purchaseReturns || 0);
   const total = Number(summary?.totalAmount || 0);
-  const selectedReturn = rows.find((row) => String(row.id) === String(selectedReturnId)) || null;
+  const selectedReturn = findReturnInRegisterOrRadar(selectedReturnId, rows, radarRows);
 
   useEffect(() => {
-    if (selectedReturnId && !rows.some((row) => String(row.id) === String(selectedReturnId))) {
+    if (selectedReturnId && !findReturnInRegisterOrRadar(selectedReturnId, rows, radarRows)) {
       setSelectedReturnId('');
       setPage(1);
     }
-  }, [rows, selectedReturnId]);
+  }, [rows, radarRows, selectedReturnId]);
 
   useEffect(() => {
     setViewFilter(isPurchaseMode ? 'purchase' : 'all');
+    if (returnAttempt.current) return;
     setForm(current => {
       const nextType = isPurchaseMode ? 'purchase' : 'sale';
       if (current.type !== nextType) {
@@ -166,30 +179,69 @@ export function ReturnsWorkspace() {
   }, [selectedInvoice, form.invoiceId]);
 
   const createMutation = useMutation({
-    mutationFn: ({ managerPin, reason }: { managerPin?: string; reason: string }) => returnsApi.create({
-      type: form.type,
-      invoiceId: Number(selectedInvoice?.id || form.invoiceId),
-      items: selectedReturnItems.map(({ item, qty }) => ({ 
-        productId: Number(item.productId || 0), 
-        productName: item.name, 
-        qty,
-        saleItemId: form.type === 'sale' ? Number(item.id || 0) : undefined,
-        serials: form.type === 'sale' ? (selectedSerials[String(item.id || item.productId || '')] || '').split(/[\s,;]+/).filter(Boolean) : undefined,
-        purchaseItemId: form.type === 'purchase' ? Number(item.id || 0) : undefined,
-      })),
-      settlementMode: form.settlementMode,
-      refundMethod: form.refundMethod,
-      note: [reason.trim(), String(form.note || '').trim()].filter(Boolean).join(' — '),
-      managerPin
-    }),
+    mutationFn: async ({ managerPin, reason }: { managerPin?: string; reason: string }) => {
+      // A confirmed retry must use its frozen payload; a fresh request must
+      // revalidate the complete invoice quantities after any refetch.
+      if (!returnAttempt.current && !returnQuantitiesValid) {
+        throw new Error('رصيد المرتجع تغير أو لم يتم تأكيده. راجع الكميات قبل الحفظ.');
+      }
+      if (!returnAttempt.current) {
+        const payload = {
+          type: form.type,
+          invoiceId: Number(selectedInvoice?.id || form.invoiceId),
+          items: selectedReturnItems.map(({ item, qty }) => ({
+            productId: Number(item.productId || 0),
+            productName: item.name,
+            qty,
+            saleItemId: form.type === 'sale' ? Number(item.id || 0) : undefined,
+            serials: form.type === 'sale' ? (selectedSerials[String(item.id || item.productId || '')] || '').split(/[\\s,;]+/).filter(Boolean) : undefined,
+            purchaseItemId: form.type === 'purchase' ? Number(item.id || 0) : undefined,
+          })),
+          settlementMode: form.settlementMode,
+          refundMethod: form.refundMethod,
+          note: [reason.trim(), String(form.note || '').trim()].filter(Boolean).join(' — '),
+          managerPin,
+        };
+        returnAttempt.current = { key: crypto.randomUUID(), payload };
+      }
+      const attempt = returnAttempt.current;
+      try {
+        return await returnsApi.create(attempt.payload, { 'x-idempotency-key': attempt.key });
+      } catch (error) {
+        let status = 'unknown';
+        let documentId: string | null | undefined;
+        try {
+          const operation = await returnsApi.getReturnOperationStatus(attempt.key);
+          status = operation.status;
+          documentId = operation.documentId;
+        } catch {
+          // A missing status response is not proof of no financial posting.
+        }
+        if (wasReturnCommitted(status, documentId)) {
+          return { ok: true, recovered: true };
+        }
+        const httpStatus = error && typeof error === 'object' && 'status' in error
+          ? Number((error as { status?: number }).status) : 0;
+        if (mayReleaseReturnIdempotencyKey(httpStatus, status)) {
+          returnAttempt.current = null;
+          setReturnOutcomeUncertain(false);
+          throw error;
+        }
+        setReturnOutcomeUncertain(true);
+        throw new Error('نتيجة المرتجع غير مؤكدة. لا تنشئ مرتجعًا جديدًا؛ أعد تأكيد نفس الطلب للتحقق من حالته');
+      }
+    },
     onSuccess: async () => {
+      returnAttempt.current = null;
+      setReturnOutcomeUncertain(false);
       await invalidateReturnsDomain(queryClient);
-      setForm(createEmptyReturnForm());
+      await queryClient.invalidateQueries({ queryKey: ['returns-invoice-quantities'] });
+      setForm(createEmptyReturnForm(isPurchaseMode ? 'purchase' : 'sale'));
       setSelectedItems({});
       setSelectedSerials({});
       setConfirmReturn(false);
       setIsCreateOpen(false);
-    }
+    },
   });
 
   const resetReturnsView = () => {
@@ -201,12 +253,17 @@ export function ReturnsWorkspace() {
   };
 
   const resetReturnForm = () => {
-    setForm(createEmptyReturnForm());
+    if (returnAttempt.current) {
+      toast.warning('يجب التحقق من نتيجة المرتجع السابق قبل مسح الطلب');
+      return;
+    }
+    setForm(createEmptyReturnForm(isPurchaseMode ? 'purchase' : 'sale'));
     setSelectedItems({});
     setSelectedSerials({});
   };
 
   const updateForm = (updater: (current: ReturnFormState) => ReturnFormState) => {
+    if (returnAttempt.current) return;
     setForm((current) => {
       const next = updater(current);
       if (next.type !== current.type || next.invoiceId !== current.invoiceId) {
@@ -218,6 +275,7 @@ export function ReturnsWorkspace() {
   };
 
   const toggleItem = (itemId: string, checked: boolean) => {
+    if (returnAttempt.current) return;
     setSelectedItems((current) => {
       const next = { ...current };
       if (!checked) {
@@ -230,11 +288,13 @@ export function ReturnsWorkspace() {
   };
 
   const setItemQty = (itemId: string, value: string) => {
+    if (returnAttempt.current) return;
     const invoiceItem = invoiceItems.find((item) => String(item.id || item.productId || '') === String(itemId));
     if (!invoiceItem) return;
     const productId = String(invoiceItem.productId || '');
-    const alreadyReturnedQty = Number(returnedQtyByProduct[productId] || 0);
-    const remainingQty = Math.max(0, Number(invoiceItem.qty || 0) - alreadyReturnedQty);
+    const alreadyReturnedQty = Number(returnedQtyByLine[itemId] || 0);
+    const remainingQty = remainingInvoiceLineQuantity(Number(invoiceItem.qty || 0),
+      alreadyReturnedQty, returnHistoryReady, blockedProductIds.includes(productId));
     const requestedQty = Number(value || 0);
     if (requestedQty > remainingQty) {
       setSelectedItems((current) => ({ ...current, [itemId]: String(remainingQty) }));
@@ -280,7 +340,7 @@ export function ReturnsWorkspace() {
   };
 
   const printReturns = async () => {
-    const payload = await returnsApi.listAll({ search, filter: viewFilter, employee: employeeFilter });
+    const payload = await returnsApi.listAll(buildReturnRegisterExportQuery({ search, filter: viewFilter, employee: employeeFilter }));
     printReturnsRegister(payload.returns || [], { totalItems: payload.summary?.totalItems, totalAmount: payload.summary?.totalAmount });
   };
 
@@ -302,8 +362,8 @@ export function ReturnsWorkspace() {
   ] as const;
 
   const anomalySummary = useMemo(() => {
-    return detectReturnsAnomalies(rows, salesQuery.data || []);
-  }, [rows, salesQuery.data]);
+    return detectReturnsAnomalies(radarRows, salesQuery.data || []);
+  }, [radarRows, salesQuery.data]);
 
   return (
     <div className="page-stack page-shell returns-workspace" dir={i18n.dir()}>
@@ -315,7 +375,7 @@ export function ReturnsWorkspace() {
           copyFeedback={copyFeedback}
           onReset={resetReturnsView}
           onCopySummary={copyReturnsSummary}
-          onExportCsv={() => exportReturnsCsv({ search, filter: viewFilter })}
+          onExportCsv={() => exportReturnsCsv({ search, filter: viewFilter, employee: employeeFilter })}
           onPrint={printReturns}
           onOpenCreate={() => setIsCreateOpen(true)}
         />
@@ -333,7 +393,7 @@ export function ReturnsWorkspace() {
             onClick={() => setActiveTab('radar')}
           >
             {t('returns.tabs.radar', 'رقابة وتدقيق الشبهات')}
-            {anomalySummary.totalSuspectReturnsCount > 0 ? ` (${anomalySummary.totalSuspectReturnsCount})` : ''}
+            {radarQuery.isSuccess && anomalySummary.totalSuspectReturnsCount > 0 ? ` (${anomalySummary.totalSuspectReturnsCount})` : ''}
           </Button>
         </div>
 
@@ -362,17 +422,32 @@ export function ReturnsWorkspace() {
             />
           </>
         ) : (
-          <ReturnsAnomalyRadarCard
-            returns={rows}
-            sales={salesQuery.data || []}
-            onSelectReturn={(id) => setSelectedReturnId(id)}
-          />
+          radarQuery.isLoading ? (
+            <div role="status" className="surface-note">جارٍ تحميل سجل مرتجعات البيع الكامل للتحليل الرقابي...</div>
+          ) : radarQuery.isError ? (
+            <div role="alert" className="surface-note">
+              تعذر تحميل سجل المرتجعات الكامل. لن نعرض نتائج رقابة ناقصة.
+              <Button variant="secondary" onClick={() => void radarQuery.refetch()}>إعادة المحاولة</Button>
+            </div>
+          ) : (
+            <ReturnsAnomalyRadarCard
+              returns={radarRows}
+              sales={salesQuery.data || []}
+              onSelectReturn={(id) => setSelectedReturnId(id)}
+            />
+          )
         )}
 
         {/* Premium Modal for Creating Return */}
         <ReturnsCreateModal
           isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
+          onClose={() => {
+            if (returnAttempt.current) {
+              toast.warning('لا تغلق طلب مرتجع لم تُؤكّد نتيجته؛ أعد المحاولة بنفس المفتاح');
+              return;
+            }
+            setIsCreateOpen(false);
+          }}
           form={form}
           invoiceRows={invoiceRows}
           selectedInvoice={selectedInvoice}
@@ -392,9 +467,17 @@ export function ReturnsWorkspace() {
           onResetForm={resetReturnForm}
           onToggleItem={toggleItem}
           onSetItemQty={setItemQty}
-          onSetSerials={(itemId, value) => setSelectedSerials((current) => ({ ...current, [itemId]: value }))}
-          onOpenConfirm={() => setConfirmReturn(true)}
-          returnedQtyByProduct={returnedQtyByProduct}
+          onSetSerials={(itemId, value) => { if (!returnAttempt.current) setSelectedSerials((current) => ({ ...current, [itemId]: value })); }}
+          onOpenConfirm={() => {
+            if ((returnHistoryReady && returnQuantitiesValid) || returnOutcomeUncertain) {
+              setConfirmReturn(true);
+            }
+          }}
+          returnedQtyByLine={returnedQtyByLine}
+          blockedProductIds={blockedProductIds}
+          returnHistoryReady={returnHistoryReady}
+          returnQuantitiesValid={returnQuantitiesValid}
+          canRetryUnresolved={returnOutcomeUncertain}
         />
 
         {/* Modal for Viewing Return Details */}
@@ -431,7 +514,14 @@ export function ReturnsWorkspace() {
         managerPinHint={!canDirectReturn ? t('returns.manager_pin_hint', 'يتطلب حساب هذا الكاشير اعتماد المشرف أو إدخال رمز المدير لإتمام المرتجع.') : undefined}
         isBusy={createMutation.isPending}
         onCancel={() => setConfirmReturn(false)}
-        onConfirm={({ reason, managerPin }) => void createMutation.mutate({ reason, managerPin })}
+        onConfirm={({ reason, managerPin }) => {
+          if (!returnAttempt.current && !returnQuantitiesValid) {
+            toast.warning('راجع كميات المرتجع بعد تحديث بيانات الفاتورة قبل الاعتماد');
+            setConfirmReturn(false);
+            return;
+          }
+          void createMutation.mutate({ reason, managerPin });
+        }}
       />
     </div>
   );

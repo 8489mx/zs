@@ -205,7 +205,9 @@ export function InventoryReportSection({
                 { key: 'stock', header: t('reports.sections.inventory_report_section.s69', "المخزون"), cell: (row) => row.stock },
                 { key: 'minStock', header: t('reports.sections.inventory_report_section.s70', "الحد الأدنى"), cell: (row) => row.minStock },
                 { key: 'topLocation', header: t('reports.sections.inventory_report_section.s71', "أكبر مخزن"), cell: (row) => row.topLocationName ? `${row.topLocationName}${row.topLocationQty ? ` (${row.topLocationQty})` : ''}` : '—' },
-                { key: 'warehouses', header: t('reports.sections.inventory_report_section.s72', "توزيع المخازن"), cell: (row) => row.locationsLabel || '—' },
+                { key: 'warehouses', header: t('reports.sections.inventory_report_section.s72', "توزيع المخازن"), cell: (row) => row.stockLocationExcessQty && row.stockLocationExcessQty > 0.001
+                  ? <span role="alert" style={{ color: '#b91c1c', fontWeight: 700 }}>{row.locationsLabel}</span>
+                  : row.locationsLabel || '—' },
                 { key: 'status', header: t('reports.sections.inventory_report_section.s73', "الحالة"), cell: (row) => row.status || 'ok' },
               ]
         }

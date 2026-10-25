@@ -25,6 +25,7 @@ import {
   sortVariants,
   toCommonDraft,
   toVariantRows,
+  pickFashionStockConsolidationTarget,
   variantLabel,
   type CommonDraft,
   type VariantDraft
@@ -245,6 +246,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         retailPrice: Number(row.retailPrice || 0),
         wholesalePrice: Number(row.wholesalePrice || 0),
         stock: Number(row.stock || 0),
+        originalStock: row.originalStock,
         minStock: Number(row.minStock ?? commonDraft.minStock),
       })).filter((row) => Boolean(variantLabel(row))));
 
@@ -418,7 +420,6 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
       }
     });
 
-    if (unconsumedWithStock.length > 0) {
       const sameColorConsolidatable: VariantDraft[] = [];
       const orphanColorRows: VariantDraft[] = [];
 
@@ -462,7 +463,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         const orphanStock = orphanColorRows.reduce((sum, r) => sum + Number(r.stock || 0), 0);
         toast.warning(`تم الإبقاء على أصناف الألوان المحذوفة (${orphanColorsList}) في الجدول لوجود رصيد مخزني لها (${orphanStock} قطعة). يُمنع منعاً باتاً نقل رصيد صنف إلى لون آخر.`);
       } else if (sameColorConsolidatable.length > 0) {
-        toast.success(`تم دمج رصيد المقاسات في ألوانها المقابلة بنجاح (${nextRows.length} صنف متبقي)`);
+        toast.info(`تم تجهيز دمج المقاسات (${nextRows.length} صنف متبقي). اضغط حفظ المجموعة لاعتماد الحركة المخزنية`);
       }
 
       setVariantRows(nextRows);

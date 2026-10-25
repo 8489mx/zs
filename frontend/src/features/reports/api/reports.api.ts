@@ -39,6 +39,7 @@ export interface ReportInventoryRow {
   locationsLabel?: string;
   assignedQty?: number;
   unassignedQty?: number;
+  stockLocationExcessQty?: number;
   locations?: ReportInventoryLocationBreakdown[];
 }
 
@@ -218,6 +219,7 @@ export const reportsApi = {
           topLocationQty: Number(item.topLocationQty ?? 0),
           assignedQty: Number(item.assignedQty ?? 0),
           unassignedQty: Number(item.unassignedQty ?? 0),
+          stockLocationExcessQty: Number(item.stockLocationExcessQty ?? 0),
           locationsLabel: item.locationsLabel || '',
           locations: Array.isArray(item.locations) ? item.locations : [],
         }))

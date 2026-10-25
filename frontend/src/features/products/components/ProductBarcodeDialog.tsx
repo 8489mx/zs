@@ -12,33 +12,10 @@ import { productsApi } from '@/features/products/api/products.api';
 import { buildUpdatePayload, normalizeCustomerPrices, toProductFormValues } from '@/features/products/components/workspace-sections/product-workspace.utils';
 import { normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { buildCode128Svg, collectExistingBarcodes, createGeneratedBarcode, productUnitsWithFallback } from '@/lib/barcode';
-import { resolveBarcodeUnit, type BarcodePrintItem } from '@/lib/barcode-labels';
+import type { BarcodePrintItem } from '@/lib/barcode-labels';
+import { collectFashionBarcodeItems, getSavedUnitBarcode } from './product-barcode-print.helpers';
+import { toast } from '@/shared/components/system-alert';
 import type { Product, ProductUnit } from '@/types/domain';
-
-/** جمع كل متغيرات الموديل (ألوان + مقاسات) التي تشترك في نفس styleCode */
-function collectVariantItems(product: Product, allProducts: Product[]): BarcodePrintItem[] {
-  const styleCode = String(product.styleCode || '').trim();
-  if (!styleCode) {
-    // صنف عادي بدون متغيرات — ملصق واحد بعدد المخزون
-    return [{ product, unit: resolveBarcodeUnit(product), copies: Math.max(1, Number(product.stock || 1)) }];
-  }
-  // موديل ملابس له متغيرات — نجمع كل المتغيرات من نفس الموديل
-  const siblings = allProducts.filter((p) => String(p.styleCode || '').trim() === styleCode);
-  if (siblings.length <= 1) {
-    return [{ product, unit: resolveBarcodeUnit(product), copies: Math.max(1, Number(product.stock || 1)) }];
-  }
-  // ترتيب: لون ثم مقاس أبجدياً
-  const sorted = [...siblings].sort((a, b) => {
-    const colorDiff = String(a.color || '').localeCompare(String(b.color || ''), 'ar');
-    if (colorDiff !== 0) return colorDiff;
-    return String(a.size || '').localeCompare(String(b.size || ''), 'ar');
-  });
-  return sorted.map((p) => ({
-    product: p,
-    unit: resolveBarcodeUnit(p),
-    copies: Math.max(1, Number(p.stock || 1)),
-  }));
-}
 
 interface ProductBarcodeDialogProps {
   open: boolean;
@@ -58,13 +35,17 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
   const [scanValue, setScanValue] = useState('');
   const [generatedValue, setGeneratedValue] = useState('');
   const [helperMessage, setHelperMessage] = useState('');
+  const [lastSavedProduct, setLastSavedProduct] = useState<Product | null>(null);
 
   const units = useMemo(() => productUnitsWithFallback(product), [product]);
   const selectedUnit = useMemo(
     () => units.find((unit) => String(unit.id || '') === String(unitId)) || units.find((unit) => unit.isBaseUnit) || units[0],
     [units, unitId],
   );
-  const currentBarcode = selectedUnit?.barcode || product?.barcode || '';
+  const printableProduct = lastSavedProduct?.id === product?.id ? lastSavedProduct : product;
+  const persistedUnit = productUnitsWithFallback(printableProduct)
+    .find((unit) => String(unit.id) === String(selectedUnit?.id)) || selectedUnit;
+  const currentBarcode = printableProduct ? getSavedUnitBarcode(printableProduct, persistedUnit) : '';
   const previewSvg = buildCode128Svg(activeMode === 'generate' ? generatedValue : scanValue || currentBarcode);
 
   const unitOptions = useMemo(
@@ -80,6 +61,7 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
     const nextMode = mode === 'generate' ? 'generate' : 'scan';
     setActiveMode(nextMode);
     setUnitId('');
+    setLastSavedProduct(null);
     setScanValue('');
     setHelperMessage('');
     if (nextMode === 'generate') {
@@ -115,6 +97,11 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
     },
   });
 
+  const variantCount = useMemo(() => {
+    if (!product?.styleCode) return 1;
+    return collectFashionBarcodeItems(product, products).length;
+  }, [product, products]);
+
   if (!product) return null;
   const currentProduct = product;
 
@@ -129,16 +116,12 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
       return unit;
     });
     const nextProduct: Product = { ...currentProduct, barcode: selectedUnit?.isBaseUnit ? normalized : currentProduct.barcode, units: nextUnits };
+    setLastSavedProduct(nextProduct);
     onSaved?.(nextProduct);
     setHelperMessage(`تم حفظ الباركود على ${selectedUnit?.name || 'الوحدة الأساسية'} بنجاح.`);
   }
 
   const effectiveBarcode = activeMode === 'generate' ? generatedValue : scanValue;
-  const variantCount = useMemo(() => {
-    const styleCode = String(product.styleCode || '').trim();
-    if (!styleCode) return 1;
-    return products.filter((p) => String(p.styleCode || '').trim() === styleCode).length;
-  }, [product.styleCode, products]);
 
   return (
     <StandardDialog
@@ -154,18 +137,27 @@ export function ProductBarcodeDialog({ open, product, products, mode = 'scan', o
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => {
-                  const targetBarcode = currentBarcode || effectiveBarcode;
-                  const updatedProduct = targetBarcode && targetBarcode !== currentProduct.barcode
-                    ? { ...currentProduct, barcode: targetBarcode }
-                    : currentProduct;
-                  // جمع كل المتغيرات (ألوان + مقاسات) إذا كان الصنف موديل ملابس
-                  const variantItems = collectVariantItems(updatedProduct, products);
-                  if (variantItems.length > 1) {
-                    onOpenPrint(updatedProduct, selectedUnit, variantItems);
-                  } else {
-                    onOpenPrint(updatedProduct, selectedUnit);
+                onClick={async () => {
+                  // A generated/scanned candidate must never print before successful persistence.
+                  if (!printableProduct || !getSavedUnitBarcode(printableProduct, persistedUnit)) {
+                    toast.warning('احفظ باركود الوحدة أولاً قبل طباعة أي ملصق');
+                    return;
                   }
+                  if (printableProduct.itemKind === 'fashion' && printableProduct.styleCode) {
+                    try {
+                      const all = await productsApi.listAll({ q: String(printableProduct.styleCode) });
+                      const items = collectFashionBarcodeItems(printableProduct, all.products);
+                      if (items.length < 1 || items.some((item) => !getSavedUnitBarcode(item.product, item.unit))) {
+                        toast.warning('بعض مقاسات الموديل لا تملك باركودًا محفوظًا؛ أكمل باركوداتها قبل الطباعة');
+                        return;
+                      }
+                      onOpenPrint(printableProduct, persistedUnit, items);
+                    } catch {
+                      toast.error('تعذر تحميل جميع مقاسات الموديل. لن نطبع ملصقات ناقصة');
+                    }
+                    return;
+                  }
+                  onOpenPrint(printableProduct, persistedUnit);
                 }}
                 style={{ fontSize: '0.8rem' }}
               >

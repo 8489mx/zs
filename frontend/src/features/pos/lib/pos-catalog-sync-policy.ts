@@ -21,7 +21,8 @@ export interface PosCatalogSyncState {
 }
 
 export function shouldDownloadFullCatalog(state: PosCatalogSyncState): boolean {
-  if (state.tenantId && state.storedTenantId && state.tenantId !== state.storedTenantId) return true;
+  // Missing tenant metadata is not proof that the local catalog belongs to this tenant.
+  if (state.tenantId && state.storedTenantId !== state.tenantId) return true;
   if (!state.storedVersion || state.storedCount <= 0) return true;
   if (state.storedVersion !== state.remoteVersion) return true;
   const lastSynced = state.lastSyncedAt ? new Date(state.lastSyncedAt).getTime() : NaN;
@@ -29,4 +30,9 @@ export function shouldDownloadFullCatalog(state: PosCatalogSyncState): boolean {
   const now = state.now ?? Date.now();
   // A clock moved backwards (lastSynced in the future) counts as stale rather than "fresh forever".
   return now - lastSynced >= POS_CATALOG_FULL_REFRESH_MS || lastSynced > now + 60_000;
+}
+
+/** Authorization context must remain stable through every async catalog request. */
+export function isPosCatalogWarmupTenantStable(requestTenantId: string, currentTenantId: string): boolean {
+  return Boolean(requestTenantId && currentTenantId && requestTenantId === currentTenantId);
 }

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { formatCurrency } from '@/lib/format';
+import { remainingInvoiceLineQuantity } from '@/features/returns/lib/return-remaining-quantity';
 import type { PurchaseItem, SaleItem } from '@/types/domain';
 
 export function ReturnsInvoiceItemsTable({
@@ -10,7 +11,9 @@ export function ReturnsInvoiceItemsTable({
   onToggleItem,
   onSetItemQty,
   onSetSerials,
-  returnedQtyByProduct = {},
+  returnedQtyByLine = {},
+  blockedProductIds = [],
+  returnHistoryReady = false,
 }: {
   invoiceItems: Array<SaleItem | PurchaseItem>;
   selectedItems: Record<string, string>;
@@ -18,7 +21,9 @@ export function ReturnsInvoiceItemsTable({
   onToggleItem: (itemId: string, checked: boolean) => void;
   onSetItemQty: (itemId: string, value: string) => void;
   onSetSerials: (itemId: string, value: string) => void;
-  returnedQtyByProduct?: Record<string, number>;
+  returnedQtyByLine?: Record<string, number>;
+  blockedProductIds?: string[];
+  returnHistoryReady?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -46,8 +51,10 @@ export function ReturnsInvoiceItemsTable({
               const isSelected = Number(selectedItems[itemId] || 0) > 0;
               const qty = Number(selectedItems[itemId] || 0);
               const baseQty = Number(item.qty || 0);
-              const alreadyReturnedQty = Number(returnedQtyByProduct[String(item.productId)] || 0);
-              const remainingQty = Math.max(0, baseQty - alreadyReturnedQty);
+              const alreadyReturnedQty = Number(returnedQtyByLine[itemId] || 0);
+              const legacyBlocked = blockedProductIds.includes(String(item.productId));
+              const remainingQty = remainingInvoiceLineQuantity(baseQty, alreadyReturnedQty,
+                returnHistoryReady, legacyBlocked);
               const isFullyReturned = remainingQty <= 0.000001;
               const lineTotal = qty > 0 ? qty * (baseQty > 0 ? Number(item.total || 0) / baseQty : 0) : 0;
               return (
@@ -57,7 +64,8 @@ export function ReturnsInvoiceItemsTable({
                   </td>
                   <td>
                     <div>{item.name || '—'}</div>
-                    {isFullyReturned ? <span className="status-pill danger">{t('returns.fully_returned_pill', 'تم إرجاعه بالكامل')}</span> : alreadyReturnedQty > 0 ? <span className="status-pill warning">{t('returns.remaining_qty', 'متبقي للإرجاع: {{qty}}', { qty: remainingQty })}</span> : null}
+                    {legacyBlocked ? <span className="status-pill danger">مرتجع قديم يحتاج تسوية</span> : null}
+                    {isFullyReturned && !legacyBlocked ? <span className="status-pill danger">{t('returns.fully_returned_pill', 'تم إرجاعه بالكامل')}</span> : alreadyReturnedQty > 0 ? <span className="status-pill warning">{t('returns.remaining_qty', 'متبقي للإرجاع: {{qty}}', { qty: remainingQty })}</span> : null}
                     {'serials' in item && Array.isArray(item.serials) && item.serials.length > 0 ? (
                       <label style={{ display: 'block', marginTop: 6 }}>
                         {t('returns.serials_label', 'سيريالات المرتجع الجزئي')}

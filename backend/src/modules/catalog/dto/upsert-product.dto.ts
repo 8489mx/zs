@@ -392,6 +392,12 @@ export class FashionGroupRowDto extends UpsertProductDto {
 
   @IsOptional()
   @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  expectedStock?: number;
+
+  @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   id?: number;

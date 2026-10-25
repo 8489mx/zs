@@ -42,6 +42,14 @@ Document every changed/new capability in its owning domain file, including imple
 - Never decide a column's meaning from its name (`account_id` is an FK on `journal_entry_lines`).
 - Guards: `backup-restore-integrity.spec.ts`, `tenant-transfer.spec.ts`.
 
+## 1-e. Retail Clothing & Variant Stock Invariants (دستور عزل ألوان ومقاسات الملابس وحظر النقل العابر للأرصدة)
+- **Strict Color Isolation (حظر نقل رصيد صنف إلى لون مختلف نهائياً):**
+  - When consolidating or modifying variants in fashion groups (`saveFashionGroup` / `FashionGroupEditorCard`), stock consolidation is strictly allowed ONLY into the EXACT SAME color (`normalizeArabicSearch(target.color) === normalizeArabicSearch(source.color)`).
+  - NEVER fall back to `drafts[0]`, `kept[0]`, or an arbitrary remaining variant. If a color is removed and has stock, it MUST NOT be merged into a different color. It must be zeroed explicitly via inventory adjustment, preserved in the table for manual review, or rejected.
+- **Archive & Zero-Stock Unblocking (عدم تعطيل تصفير وأرشفة الأصناف ذات الفروقات التاريخية):**
+  - When zeroing stock on archive or variant deletion (`options.zeroStock` / `zeroRemovedStock`), the purpose IS to eliminate any historical discrepancies between global stock and location stock. Do NOT block zeroing with `FASHION_STOCK_RECONCILIATION_REQUIRED` when zeroing is requested; allow the zeroing engine to deduct available location rows and reset both global and location stock to 0 cleanly.
+  - Location resolution must never send `0` (`Number(null) === 0`) to `stock_movements`. If a product has no location specified, fall back to its `default_location_id` or active tenant location or pass SQL `null`.
+
 ## 2. Inviolable Core Invariants
 - Financial transactions & journal entries are immutable double-entry ledgers.
 - Passwords MUST always be hashed with `bcrypt` (never plaintext).

@@ -13,6 +13,7 @@ import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
+import { assertFashionExpectedStock, assertFashionRemovedStockSafe, fashionLocationAccessMode } from '../engines/fashion-stock-safety.engine';
 
 type ProductRow = {
   id: number;
@@ -1798,6 +1799,7 @@ export class CatalogProductService {
     const drafts = rows.map((row) => ({ id: Number(row.id || 0), input: row, value: this.normalizeProductPayload(row) }));
     const newStyle = this.coerceNewStyleCode(drafts[0].value.styleCode);
     const groupKind = drafts[0].value.itemKind;
+    if (groupKind !== 'fashion') throw new AppError('Only fashion variants can be saved as a fashion group', 'FASHION_GROUP_INVALID', 400);
     if (!newStyle) throw new AppError('Style code is required', 'STYLE_CODE_INVALID', 400);
     const seenCombinations = new Set<string>();
     const seenNames = new Set<string>();
@@ -1851,10 +1853,16 @@ export class CatalogProductService {
         await this.ensureCustomerPricesInTenant(value, actor);
         this.ensureAdvancedOffersSupported(value, await this.getProductOfferColumnCapabilities());
       }
-      if (value.warehouseId) await this.inventoryScope.assertLocationScope(value.warehouseId, actor);
+      if (value.warehouseId) {
+        await this.inventoryScope.assertLocationScope(value.warehouseId, actor, false,
+          fashionLocationAccessMode(!id, value.stock !== undefined, Boolean(payload.consolidateStock || payload.zeroRemovedStock)));
+      }
     }
 
     if (drafts.some((draft) => !draft.id && Number(draft.value.stock || 0) > 0)) {
+      if (!this.hasPermission(actor, 'canAdjustInventory')) {
+        throw new AppError('Opening stock requires canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+      }
       await this.ensureOpeningStockAccounts(actor);
     }
 
@@ -1868,6 +1876,12 @@ export class CatalogProductService {
         .where('is_active', '=', true).where(this.tenantPredicate(actor)).forUpdate().execute();
       if (!existing.length) throw new AppError('Fashion group no longer exists', 'FASHION_GROUP_NOT_FOUND', 404);
       const byId = new Map(existing.map((p) => [Number(p.id), p]));
+      const authorizedStockLocationIds = new Set<number>();
+      const assertStockLocationWriteScope = async (locationId: number | null) => {
+        if (locationId === null || authorizedStockLocationIds.has(locationId)) return;
+        await this.inventoryScope.assertLocationScope(locationId, actor, false, 'write', trx);
+        authorizedStockLocationIds.add(locationId);
+      };
       for (const draft of drafts) if (draft.id && !byId.has(draft.id)) {
         throw new AppError('Variant does not belong to this group', 'FASHION_VARIANT_SCOPE', 403);
       }
@@ -1890,6 +1904,21 @@ export class CatalogProductService {
 
       const oldIds = existing.map((p) => Number(p.id));
       const removedWithStock = existing.filter((p) => !seenIds.has(Number(p.id)) && (Math.abs(Number(p.stock_qty || 0)) > 0.0001 || Number(p.reserved_qty || 0) > 0));
+      // Stock moves do not update catalog_updated_at. Explicit adjustments must
+      // compare the original browser snapshot under the locked product rows.
+      const stockEdits = drafts.filter((d) => d.id
+        ? d.value.stock !== undefined && Math.abs(Number(d.value.stock) - Number(byId.get(d.id)!.stock_qty || 0)) > 0.0001
+        : Number(d.value.stock || 0) > 0);
+      for (const draft of drafts) {
+        if (draft.id && draft.value.stock !== undefined) {
+          assertFashionExpectedStock(draft.input.expectedStock, Number(byId.get(draft.id)!.stock_qty || 0));
+        }
+      }
+      const performsStockOperation = stockEdits.length > 0 ||
+        (removedWithStock.length > 0 && (payload.consolidateStock || payload.zeroRemovedStock));
+      if (performsStockOperation && !this.hasPermission(actor, 'canAdjustInventory')) {
+        throw new AppError('Inventory adjustments require canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+      }
       if (removedWithStock.length) {
         const stillUnresolvedWithStock: typeof removedWithStock = [];
 
@@ -1898,8 +1927,6 @@ export class CatalogProductService {
             // Strictly consolidate only into the EXACT SAME color
             const target = drafts.find((d) => d.id && normalizeArabicSearch(d.value.color) === normalizeArabicSearch(removedProduct.color || ''));
             const targetId = Number(target?.id);
-            const removedId = Number(removedProduct.id);
-
             // If no matching color target exists among remaining variants, it CANNOT be consolidated into a different color!
             if (!target || !targetId || targetId === removedId) {
               stillUnresolvedWithStock.push(removedProduct);
@@ -1909,6 +1936,8 @@ export class CatalogProductService {
             const locStocks = await trx.selectFrom('product_location_stock')
               .selectAll().where('product_id', '=', removedId)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+            assertFashionRemovedStockSafe(removedProduct, locStocks, Number(target?.value.costPrice ?? 0));
+            for (const locStock of locStocks) await assertStockLocationWriteScope(locStock.location_id);
 
             for (const ls of locStocks) {
               const qtyToMove = Number(ls.qty || 0);
@@ -1996,6 +2025,9 @@ export class CatalogProductService {
               const locStocks = await trx.selectFrom('product_location_stock')
                 .selectAll().where('product_id', '=', removedId)
                 .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+
+              assertFashionRemovedStockSafe(removedProduct, locStocks, undefined, { allowMismatchForZeroing: true });
+              for (const locStock of locStocks) await assertStockLocationWriteScope(locStock.location_id);
 
               for (const ls of locStocks) {
                 const qtyToDeduct = Number(ls.qty || 0);
@@ -2289,6 +2321,9 @@ export class CatalogProductService {
 
     let resolvedLocationId = normalized.warehouseId || null;
     const hasAnyInitialStock = drafts.some(d => Number(d.stock || 0) > 0);
+    if (hasAnyInitialStock && !this.hasPermission(actor, 'canAdjustInventory')) {
+      throw new AppError('Opening stock requires canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+    }
     if (hasAnyInitialStock) await this.ensureOpeningStockAccounts(actor);
     if (hasAnyInitialStock && !resolvedLocationId) {
       const settingsRaw = await this.db.selectFrom('settings').selectAll().where(this.tenantPredicate(actor)).execute();
@@ -2452,7 +2487,7 @@ export class CatalogProductService {
         consumer_price: normalized.consumerPrice === undefined ? (existing as any).consumer_price : (normalized.consumerPrice ?? null),
         min_selling_price: normalized.minSellingPrice === undefined ? existing.min_selling_price : normalized.minSellingPrice,
         min_stock_qty: normalized.minStock,
-        default_location_id: normalized.warehouseId || null,
+        default_location_id: normalized.warehouseId || existing.default_location_id || null,
         notes: normalized.notes,
         metadata: metaObj ? JSON.stringify(metaObj) : null,
         calories: normalized.calories ?? null,
@@ -2569,9 +2604,16 @@ export class CatalogProductService {
           }
 
           if (options?.zeroStock && Math.abs(Number(product.stock_qty || 0)) > 0.0001) {
+            if (!this.hasPermission(actor, 'canAdjustInventory')) {
+              throw new AppError('Stock zeroing requires canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+            }
             const locStocks = await trx.selectFrom('product_location_stock')
               .selectAll().where('product_id', '=', product.id)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+            assertFashionRemovedStockSafe(product, locStocks, undefined, { allowMismatchForZeroing: true });
+            for (const locStock of locStocks) {
+              if (locStock.location_id != null) await this.inventoryScope.assertLocationScope(Number(locStock.location_id), actor, false, 'write', trx);
+            }
 
             const unitCost = Number(product.cost_price || 0);
 

@@ -313,3 +313,34 @@
 
 
 <!-- migrated:cap-293:end -->
+
+
+### 2026-10-25 — D/F: warehouse count scope and inventory UI
+
+- `StockCountComposerCard` formerly showed the **whole tenant catalog** when `locationStocks` was an empty array, rather than a genuinely empty warehouse. A selected warehouse now uses only its location-stock entries (including zero balances); an absent/unavailable snapshot prevents start, rather than falling back to global stock. Location map avoids O(products × stocks) filtering.
+- Quick manual count in `useInventoryWorkspaceController` previously used global `product.stock` for `expectedQty`; now it uses the selected warehouse's physical balance, defaulting to 0 only if a valid location snapshot confirms no row.
+- Written (not executed) `frontend/src/features/inventory/lib/count-location-scoping.spec.ts`. Remaining physical count/ledger postings and live database concurrency tests are not yet validated.
+
+
+### 2026-10-25 — A/D/F: clothing stock count barcode safety
+
+- `InventoryComposerCards.handleBarcodeScan` formerly treated `styleCode` shared by all fashion colors/sizes as an individual SKU barcode, silently counting the first variant. Now only a persisted product or unit barcode can identify the size; shared/ambiguous barcodes and model codes are rejected. Unit barcode increments by unit `multiplier` in base pieces; first scanned expected stock derives from selected location, not company aggregate. Regression `count-barcode-identity.spec.ts` written, not executed.
+
+
+### 2026-10-25 — D: prevent conflicting barcode units inside one SKU
+
+- Unit-level stock scanning previously selected the first matching barcode in one product, even if another unit on that **same** product used the same barcode but a different multiplier. The count engine now rejects this ambiguity as it already rejects duplicate SKU barcodes, so a carton barcode cannot silently count as a single piece. Two identical base-unit representations with multiplier 1 remain valid. Regression specs authored, not executed.
+
+
+### 2026-10-25 — D: idempotency operation names for transfer recovery
+
+- `useInventoryWorkspaceMutations` passed made-up operation labels `createStockTransfer`, `receiveStockTransfer`, `cancelStockTransfer` to the generic status poller, but the Nest interceptor reserves `POST:/api/stock-transfers`, `POST:/api/stock-transfers/:id/receive`, and `POST:/api/stock-transfers/:id/cancel`. Polling could not locate a reserved operation after a lost response. Production now uses `inventory-operation-types.ts` for the exact route strings. Regression authored but not executed. Distinct retry keys and the shared poller's treatment of recorded failure remain separate open work.
+
+
+### 2026-10-25 — D: stable keyed creation of transfers and count sessions
+- The transfer dialog formerly minted a new key per retry, and stock-count drafts were submitted with no idempotency key. The mutation layer now freezes each attempted payload and key in memory, rejects changed fields while an attempt is unresolved, queries the server operation status, and only clears an attempt on a committed response or confirmed failed/never-received request. Count create now passes the supported idempotency header. No credentials are persisted to storage. `inventory-operation-attempt.spec.ts` authored, not run. Shared `withIdempotency` polling semantics and browser reload remain Core review blockers.
+
+
+### 2026-10-25 — D: bulk stock transfer receive/cancel recovery
+
+- A multi-selected transfer action originally minted a new operation key per document each time the whole batch was retried; a timeout after the first committed receive could cause a second receive/cancel attempt with a fresh key. The hook now retains a stable, frozen keyed request per transfer/action until the batch finishes. Rerunning a batch replays committed documents with their old keys instead of creating duplicate movements, and refuses switching selected IDs/action or altering partial quantities while any operation is unresolved. Written tests for unique document/action keys and immutable receipt payloads remain unexecuted. Browser reload and real transfer transaction failures still need UAT.

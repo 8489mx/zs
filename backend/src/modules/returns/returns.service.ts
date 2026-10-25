@@ -25,6 +25,7 @@ import { allocateInvoiceDiscount } from '../sales/engines/invoice-discount.engin
 import { settlePosExchange } from '../sales/engines/pos-exchange.engine';
 import { selectPurchaseReturnSerials, selectPurchaseReturnBatch } from './helpers/purchase-return-traceability.helper';
 import { restoreImportLotsFromSalesReturn } from '../import-sales/helpers/import-lot-allocation.helper';
+import { buildInvoiceReturnedQuantities } from './helpers/return-invoice-quantities.helper';
 
 export interface ExchangeReturnContext {
   returnId: number;
@@ -251,6 +252,31 @@ export class ReturnsService {
     const mapped = filterReturnRows(mapReturnRows(rows as Array<Record<string, unknown>>), query, today);
     const paged = paginateRows(mapped, query, { defaultSize: 20 });
     return { returns: paged.rows, pagination: paged.pagination, summary: summarizeReturnRows(mapped, today), scope: this.scope(auth) };
+  }
+
+  /** Unpaginated invoice-return history, used only to guide the UI.
+   * Transactional posting independently checks quantities with invoice locks.
+   */
+  async getInvoiceReturnedQuantities(type: string, invoiceId: number, auth: AuthContext):
+    Promise<{ returnedQtyByLine: Record<string, number>; blockedProductIds: string[] }> {
+    if (!['sale', 'purchase'].includes(type)) {
+      throw new AppError('Invalid return type', 'RETURN_TYPE_INVALID', 400);
+    }
+    if (!Number.isSafeInteger(invoiceId) || invoiceId <= 0) throw new AppError('Invalid invoice', 'INVOICE_NOT_FOUND', 404);
+    const tenantId = this.scope(auth).tenantId;
+    const returnType = type as 'sale' | 'purchase';
+    const parent = returnType === 'sale'
+      ? await this.db.selectFrom('sales').select('id').where('id', '=', invoiceId).where('tenant_id', '=', tenantId).where('status', '=', 'posted').executeTakeFirst()
+      : await this.db.selectFrom('purchases').select('id').where('id', '=', invoiceId).where('tenant_id', '=', tenantId).where('status', '=', 'posted').executeTakeFirst();
+    if (!parent) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
+    const rows = await this.db.selectFrom('return_items as ri')
+      .innerJoin('return_documents as rd', (join) => join.onRef('rd.id', '=', 'ri.return_document_id').onRef('rd.tenant_id', '=', 'ri.tenant_id'))
+      .select(['ri.product_id', 'ri.sale_item_id', 'ri.purchase_item_id',
+        (eb) => eb.fn.sum<number>('ri.qty').as('returned_qty')])
+      .where('rd.return_type', '=', returnType).where('rd.invoice_id', '=', invoiceId)
+      .where('rd.tenant_id', '=', tenantId).where('ri.tenant_id', '=', tenantId)
+      .groupBy(['ri.product_id', 'ri.sale_item_id', 'ri.purchase_item_id']).execute();
+    return buildInvoiceReturnedQuantities(returnType, rows);
   }
 
   private async getManagerPin(trx: Kysely<Database>, auth: AuthContext): Promise<string> {

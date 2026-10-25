@@ -303,3 +303,27 @@ export function assertCashDrawerNote(note: string, code = 'NOTE_REQUIRED', minLe
 export function normalizeCashDrawerMovementType(type?: string): 'cash_in' | 'cash_out' { return String(type || '').trim() === 'cash_out' ? 'cash_out' : 'cash_in'; }
 export function toSignedCashDrawerAmount(type: 'cash_in' | 'cash_out', amount: number): number { return type === 'cash_out' ? -Math.abs(amount) : Math.abs(amount); }
 export function computeCashDrawerVariance(countedCash: number, expectedCash: number): number { return Number((countedCash - expectedCash).toFixed(2)); }
+
+
+/** Cash drawer movement amount is the posted cash tender leg, never the gross return. */
+export function buildShiftCashReturnItem(row: {
+  id: number; doc_no?: string | null; cash_refund?: number | string | null;
+  note?: string | null; created_at?: string | Date | null;
+}): { id: string; kind: 'return'; kindLabel: string; amount: number; note: string; createdAt: string } | null {
+  const amount = Number(row.cash_refund || 0);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return {
+    id: `ret-${row.id}`,
+    kind: 'return',
+    kindLabel: 'مرتجع مبيعات (رد نقدي فعلي)',
+    amount: Number(amount.toFixed(2)),
+    note: ['مرتجع نقدي', row.doc_no ? `#${row.doc_no}` : '', row.note].filter(Boolean).join(' - '),
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : '',
+  };
+}
+
+
+/** Mirror shift cash total's coalesced tender rule for itemized supplier payouts. */
+export function isDrawerCashTender(channel: string | null | undefined): boolean {
+  return channel == null || channel === '' || channel === 'cash';
+}

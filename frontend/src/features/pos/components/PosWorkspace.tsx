@@ -34,6 +34,7 @@ import { matchProductByCode } from '@/features/pos/lib/pos-workspace.helpers';
 import { parseWeightedBarcode, matchProductByWeightedCode } from '@/features/pos/lib/weighted-barcode';
 import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { lookupProductByBarcodeFromStorage } from '@/features/pos/lib/pos-catalog-storage';
+import { useAuthStore } from '@/stores/auth-store';
 import { usePosWorkspace } from '@/features/pos/hooks/usePosWorkspace';
 import { usePosWorkspaceKeyboardShortcuts } from '@/features/pos/hooks/usePosWorkspaceKeyboardShortcuts';
 import {
@@ -319,6 +320,8 @@ export function PosWorkspace() {
       try {
         const parsed = parseQuantityPrefixQuery(rawQuery);
         const query = parsed.cleanQuery || rawQuery;
+        const activeTenantId = String(useAuthStore.getState().user?.tenantId ||
+          useAuthStore.getState().tenant?.id || '').trim();
 
         const weightedBarcode = parseWeightedBarcode(query, pos.settingsQuery.data || null);
         if (weightedBarcode) {
@@ -363,7 +366,7 @@ export function PosWorkspace() {
         try {
           lookupProducts = await posApi.lookupProducts({ barcode: query, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
         } catch {
-          const offlineItem = await lookupProductByBarcodeFromStorage(query);
+          const offlineItem = await lookupProductByBarcodeFromStorage(query, activeTenantId);
           if (offlineItem) lookupProducts = [offlineItem];
         }
         const remoteMatch = matchProductByCode(lookupProducts, query);
@@ -373,7 +376,7 @@ export function PosWorkspace() {
           try {
             remappedLookup = await posApi.lookupProducts({ barcode: remappedQuery, branchId: pos.branchId, locationId: pos.locationId, limit: 5 });
           } catch {
-            const offlineItem = await lookupProductByBarcodeFromStorage(remappedQuery);
+            const offlineItem = await lookupProductByBarcodeFromStorage(remappedQuery, activeTenantId);
             if (offlineItem) remappedLookup = [offlineItem];
           }
           const remappedMatch = matchProductByCode(remappedLookup, remappedQuery);

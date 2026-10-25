@@ -171,6 +171,22 @@ export function duplicateSummary(rows: VariantDraft[]) {
   return { duplicateCombos, duplicateBarcodes, duplicateSkus };
 }
 
+/**
+ * Never resend unchanged stock when only editing model details: a cashier
+ * may have sold units while the fashion editor was open.
+ */
+export function deriveFashionStockPatch(row: Pick<VariantDraft, 'id' | 'stock' | 'originalStock'>, sourceStock?: number) {
+  const stock = Number(row.stock || 0);
+  if (!row.id) return { stock, expectedStock: undefined };
+  const expectedStock = Number(row.originalStock ?? sourceStock ?? 0);
+  return { stock: stock === expectedStock ? undefined : stock, expectedStock };
+}
+
+export function pickFashionStockConsolidationTarget(rows: VariantDraft[], source: VariantDraft): VariantDraft | undefined {
+  const kept = rows.filter((row) => Boolean(row.id));
+  return kept.find((row) => normalizeArabicSearchKey(row.color) === normalizeArabicSearchKey(source.color));
+}
+
 export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Product, originalLocationId?: string) {
   const label = variantLabel(row);
   return {
@@ -190,7 +206,7 @@ export function buildPayload(common: CommonDraft, row: VariantDraft, source?: Pr
     supplierId: common.supplierId ? Number(common.supplierId) : undefined,
     warehouseId: ((source && originalLocationId === common.defaultLocationId ? source.defaultLocationId : common.defaultLocationId) || '') ? Number(source && originalLocationId === common.defaultLocationId ? source.defaultLocationId : common.defaultLocationId) : undefined,
     notes: common.notes || '',
-    stock: Number(row.stock || 0),
+    ...deriveFashionStockPatch(row, source?.stock == null ? undefined : Number(source.stock)),
     units: [
       {
         name: 'قطعة',

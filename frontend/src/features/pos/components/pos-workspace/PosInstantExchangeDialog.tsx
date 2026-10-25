@@ -7,7 +7,9 @@ import { toast } from '@/shared/components/system-alert';
 import { posApi } from '@/features/pos/api/pos.api';
 import { salesApi } from '@/features/sales';
 import { getNormalizedInvoiceSearchTerms, matchesSaleDocNo } from '@/features/pos/lib/pos-barcode-normalizer';
+import { normalizeExchangeReturnSerials } from './pos-exchange-serial-validation';
 import { invalidateSalesDomain } from '@/app/query-invalidation';
+import { classifyExchangeRecovery, canResetExchangeRequest, type ExchangeOperationStatus } from './pos-exchange-recovery';
 import type { PosWorkspaceState } from './posWorkspace.helpers';
 
 type SourceSale = Awaited<ReturnType<typeof posApi.getSaleForExchange>>['sale'];
@@ -75,14 +77,22 @@ export function PosInstantExchangeDialog({ open, onClose, pos }: {
       toast.error('اختر فاتورة ومرتجعاً وبضاعة جديدة، وافتح وردية وأدخل رمز المشرف');
       return;
     }
-    const negativeItems = returned.map((item) => {
-      const qty = Number(quantities[item.id]);
-      const selected = String(serials[item.id] || '').split(',').map((serial) => serial.trim()).filter(Boolean);
-      const original = Array.isArray(item.serials) ? item.serials : [];
-      if (original.length && selected.length !== qty) throw new Error(`أدخل سيريالات المرتجع للصنف ${item.name} مفصولة بفاصلة`);
-      return { productId: Number(item.productId), originalSaleItemId: Number(item.id), qty: -qty,
-        price: 0, serials: selected };
-    });
+    let negativeItems: Array<{ productId: number; originalSaleItemId: number;
+      qty: number; price: number; serials: string[] }>;
+    try {
+      negativeItems = returned.map((item) => {
+        const qty = Number(quantities[item.id]);
+        const selected = normalizeExchangeReturnSerials(
+          Array.isArray(item.serials) ? item.serials : [],
+          String(serials[item.id] || ''), qty, item.name,
+        );
+        return { productId: Number(item.productId), originalSaleItemId: Number(item.id),
+          qty: -qty, price: 0, serials: selected };
+      });
+    } catch (validationError) {
+      toast.error(validationError instanceof Error ? validationError.message : 'راجع بيانات سيريالات المرتجع');
+      return;
+    }
     const items = pos.cart.map((item) => ({
       productId: Number(item.productId), qty: Number(item.qty), price: Number(item.price),
       unitName: item.unitName, unitMultiplier: Number(item.unitMultiplier || 1),
@@ -108,21 +118,52 @@ export function PosInstantExchangeDialog({ open, onClose, pos }: {
       pos.resetPosDraft();
       void invalidateSalesDomain(queryClient, { includeDashboard: true });
       requestKey.current = null;
+      submittedPayload.current = null;
+      setAttempted(false);
       setSource(null);
       onClose();
     } catch (error) {
-      const status = typeof error === 'object' && error !== null && 'status' in error
+      const httpStatus = typeof error === 'object' && error !== null && 'status' in error
         ? Number((error as { status?: number }).status) : 0;
-      if (status >= 400 && status < 500) {
+      let operationStatus: ExchangeOperationStatus = 'unknown';
+      // A failed HTTP response is not proof of a failed sale. The server might
+      // already have committed the atomic exchange and lost the response.
+      try {
+        const operation = await posApi.getSaleOperationStatus(requestKey.current!);
+        operationStatus = classifyExchangeRecovery(operation);
+      } catch {
+        // Keep the same payload and idempotency key while outcome is unknown.
+      }
+      if (operationStatus === 'committed') {
+        toast.success('تم تأكيد تسجيل الاستبدال من سجل العمليات');
+        pos.resetPosDraft();
+        void invalidateSalesDomain(queryClient, { includeDashboard: true });
         requestKey.current = null;
         submittedPayload.current = null;
         setAttempted(false);
+        setSource(null);
+        onClose();
+      } else if (canResetExchangeRequest(httpStatus, operationStatus)) {
+        // Rejection was recorded or the operation never reached the server:
+        // user may correct inputs and submit a genuinely new attempt.
+        requestKey.current = null;
+        submittedPayload.current = null;
+        setAttempted(false);
+        toast.error(error instanceof Error ? error.message : 'تعذر تنفيذ الاستبدال');
+      } else {
+        toast.warning('حالة الاستبدال غير مؤكدة. لا تنشئ طلباً جديداً؛ أعد المحاولة بنفس الطلب للتحقق من النتيجة');
       }
-      toast.error(error instanceof Error ? error.message : 'تعذر تنفيذ الاستبدال');
     } finally { setPending(false); }
   }
 
-  return <DialogShell open={open} onClose={() => { if (!pending) onClose(); }} width="min(700px, 96vw)" ariaLabel={t('pos.pos_workspace.pos_instant_exchange_dialog.s0', "استبدال فوري")}>
+  return <DialogShell open={open} onClose={() => {
+    if (pending) return;
+    if (attempted) {
+      toast.warning('يوجد استبدال لم يتم تأكيد نتيجته. أعد المحاولة بنفس الطلب قبل إغلاق النافذة');
+      return;
+    }
+    onClose();
+  }} width="min(700px, 96vw)" ariaLabel={t('pos.pos_workspace.pos_instant_exchange_dialog.s0', "استبدال فوري")}>
     <div dir="rtl" style={{ padding: 20, maxHeight: 'min(620px, 82vh)', overflowY: 'auto' }}>
       <h2>{t('pos.pos_workspace.pos_instant_exchange_dialog.s1', "استبدال فوري")}</h2>
       <p>{t('pos.pos_workspace.pos_instant_exchange_dialog.s2', "البضاعة الجديدة من سلة الكاشير، والمرتجع من فاتورة العميل الأصلية. يُحسب الصافي عند الاعتماد على السيرفر.")}</p>
