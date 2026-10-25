@@ -116,7 +116,7 @@ function buildPostedSaleDocument(sale: Sale, options: PrintReceiptOptions) {
   const pointsPer100 = Number(options.settings?.loyaltyPointsPer100Egp ?? 10);
   const loyaltyPointsEarned = (sale as any).loyaltyPointsEarned !== undefined
     ? Number((sale as any).loyaltyPointsEarned)
-    : (Number(sale.paidAmount || 0) > 0 && pointsPer100 > 0 && options.settings?.loyaltyEnabled !== false
+    : (Number(sale.paidAmount || 0) > 0 && pointsPer100 > 0 && options.settings?.loyaltyEnabled === true
         ? Math.floor((Number(sale.paidAmount || 0) / 100) * pointsPer100)
         : undefined);
 

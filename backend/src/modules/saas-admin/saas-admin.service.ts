@@ -1308,7 +1308,6 @@ export class SaasAdminService {
         inventory: ['inventoryModuleEnabled'],
         hr: ['hrModuleEnabled'],
         deliveryReps: ['deliveryRepsModuleEnabled', 'deliveryFleetModuleEnabled'],
-        loyalty: ['loyaltyEnabled'],
         maintenance: ['enableMobileStoreFeatures'],
         services: ['servicesModuleEnabled'],
         clothing: ['clothingModuleEnabled'],

@@ -199,8 +199,8 @@ export function buildSettingsUpdatePayload(
       ? values.vanSalesModuleEnabled === true
       : current?.vanSalesModuleEnabled === true,
     loyaltyEnabled: values.loyaltyEnabled !== undefined
-      ? values.loyaltyEnabled !== false
-      : current?.loyaltyEnabled !== false,
+      ? values.loyaltyEnabled === true
+      : current?.loyaltyEnabled === true,
     loyaltyPointsPer100Egp: values.loyaltyPointsPer100Egp !== undefined
       ? Math.max(0, Number(values.loyaltyPointsPer100Egp ?? 10))
       : Math.max(0, Number(current?.loyaltyPointsPer100Egp ?? 10)),
@@ -214,8 +214,8 @@ export function buildSettingsUpdatePayload(
       ? Math.max(1, Math.min(100, Number(values.loyaltyMaxDiscountPercentage ?? 50)))
       : Math.max(1, Math.min(100, Number(current?.loyaltyMaxDiscountPercentage ?? 50))),
     printShowLoyaltyPoints: values.printShowLoyaltyPoints !== undefined
-      ? values.printShowLoyaltyPoints !== false
-      : current?.printShowLoyaltyPoints !== false,
+      ? values.printShowLoyaltyPoints === true
+      : current?.printShowLoyaltyPoints === true,
     allowNegativeStockSales: values.allowNegativeStockSales !== undefined
       ? values.allowNegativeStockSales === true
       : current?.allowNegativeStockSales === true,
@@ -353,8 +353,8 @@ export function buildSettingsUpdatePayload(
       ? Math.max(1, Number(values.stagnantProductDays || 60))
       : Math.max(1, Number(current?.stagnantProductDays || 60)),
     posTerminalEnabled: values.posTerminalEnabled !== undefined
-      ? values.posTerminalEnabled !== false
-      : current?.posTerminalEnabled !== false,
+      ? values.posTerminalEnabled === true
+      : current?.posTerminalEnabled === true,
     posTerminalProvider: values.posTerminalProvider !== undefined
       ? values.posTerminalProvider
       : (current?.posTerminalProvider || 'mock_sandbox'),

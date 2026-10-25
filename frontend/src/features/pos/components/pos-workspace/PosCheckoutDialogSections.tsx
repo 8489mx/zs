@@ -258,7 +258,7 @@ export function PosCheckoutCustomerSection({
         </div>
       )}
 
-      {pos.customerId && (loyaltyPoints > 0 || (pos.loyaltyPointsRedeemed || 0) > 0) ? (() => {
+      {pos.customerId && (pos.settings?.loyaltyEnabled === true) && (loyaltyPoints > 0 || (pos.loyaltyPointsRedeemed || 0) > 0) ? (() => {
         const pointValue = Number(pos.settings?.loyaltyPointRedeemValue ?? 0.1);
         const minPoints = Number(pos.settings?.loyaltyMinRedeemPoints ?? 50);
         const maxPct = Number(pos.settings?.loyaltyMaxDiscountPercentage ?? 50);
@@ -426,7 +426,7 @@ export function PosCheckoutPaymentSection({
 
     // Direct fallback to single configured terminal in settings
     const singleIp = pos.settingsQuery?.data?.posTerminalIp || (currentSettings as any)?.posTerminalIp;
-    if (singleIp && (pos.settingsQuery?.data?.posTerminalEnabled !== false)) {
+    if (singleIp && (pos.settingsQuery?.data?.posTerminalEnabled === true)) {
       return [{
         id: 'default-terminal',
         name: pos.settingsQuery?.data?.posTerminalName || (currentSettings as any)?.posTerminalName || 'ماكينة الدفع (Sunmi / EDC)',
@@ -996,7 +996,7 @@ export function PosCheckoutPaymentSection({
       ) : null}
 
       {/* EDC / Sunmi POS Terminal Direct Dispatch Banner (Active for Card payments when terminal exists) */}
-      {(isPaymentActive('card') || pos.cardAmount > 0) && (pos.settingsQuery?.data?.posTerminalEnabled !== false) && activeTerminals.length > 0 && (
+      {(isPaymentActive('card') || pos.cardAmount > 0) && (pos.settingsQuery?.data?.posTerminalEnabled === true) && activeTerminals.length > 0 && (
         <div style={{
           padding: '8px 12px',
           background: '#f8fafc',

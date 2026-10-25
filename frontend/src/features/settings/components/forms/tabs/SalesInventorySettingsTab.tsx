@@ -836,11 +836,11 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
   const [testingTerminalId, setTestingTerminalId] = useState<string | null>(null);
   const [terminalTestResults, setTerminalTestResults] = useState<Record<string, PosTerminalTestResult>>({});
 
-  const [isMasterPosTerminalEnabled, setIsMasterPosTerminalEnabled] = useState<boolean>(() => form.getValues('posTerminalEnabled') !== false);
+  const [isMasterPosTerminalEnabled, setIsMasterPosTerminalEnabled] = useState<boolean>(() => form.getValues('posTerminalEnabled') === true);
 
   useEffect(() => {
     if (settings?.posTerminalEnabled !== undefined) {
-      setIsMasterPosTerminalEnabled(settings.posTerminalEnabled !== false);
+      setIsMasterPosTerminalEnabled(settings.posTerminalEnabled === true);
     }
   }, [settings?.posTerminalEnabled]);
 
@@ -860,7 +860,7 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
         provider: (form.getValues('posTerminalProvider') || settings?.posTerminalProvider || defaultProv) as any,
         ip: form.getValues('posTerminalIp') || settings?.posTerminalIp || '192.168.1.150',
         port: Number(form.getValues('posTerminalPort') || settings?.posTerminalPort || 8080),
-        enabled: form.getValues('posTerminalEnabled') !== false,
+        enabled: form.getValues('posTerminalEnabled') === true,
         isDefault: true,
       },
     ];

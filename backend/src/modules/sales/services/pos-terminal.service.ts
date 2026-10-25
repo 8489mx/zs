@@ -337,7 +337,7 @@ export class PosTerminalService {
         }
       }
 
-      const isEnabled = settingsMap.posTerminalEnabled !== false;
+      const isEnabled = settingsMap.posTerminalEnabled === true || settingsMap.posTerminalEnabled === 'true';
       if (!isEnabled) {
         return [];
       }
@@ -416,17 +416,7 @@ export class PosTerminalService {
       return terminalsList;
     } catch (err) {
       this.logger.error(`Error loading terminals for tenant ${tenantId}:`, err);
-      return [
-        {
-          id: 'term-main-01',
-          name: 'جهاز شبكة الكاشير الرئيسي (EDC - Mada/Visa/KNET)',
-          type: 'edc_standalone',
-          status: 'online',
-          provider: 'Geidea / KNET / Network International / Fawry',
-          ipAddress: '192.168.1.150:8080',
-          isDefault: true,
-        },
-      ];
+      return [];
     }
   }
 

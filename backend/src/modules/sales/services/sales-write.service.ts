@@ -1262,7 +1262,7 @@ export class SalesWriteService {
       const settingsMap = await this.getTenantSettingsMap(trx, scope.tenantId);
 
       const loyaltyEnabledVal = settingsMap.get('loyaltyEnabled');
-      const loyaltyEnabled = loyaltyEnabledVal !== false && loyaltyEnabledVal !== 'false';
+      const loyaltyEnabled = loyaltyEnabledVal === true || loyaltyEnabledVal === 'true';
       const pointsPer100Egp = Number(settingsMap.get('loyaltyPointsPer100Egp') ?? 10);
       const pointRedeemValue = Number(settingsMap.get('loyaltyPointRedeemValue') ?? 0.1);
       const minRedeemPoints = Number(settingsMap.get('loyaltyMinRedeemPoints') ?? 0);

@@ -858,7 +858,7 @@ function renderLoyaltySummary(options: {
   settings?: Partial<AppSettings> | null;
   compact?: boolean;
 }) {
-  const showLoyalty = getPrintOption(options.settings, 'printShowLoyaltyPoints', true);
+  const showLoyalty = getPrintOption(options.settings, 'printShowLoyaltyPoints', false);
   if (!showLoyalty) return '';
 
   const earned = Number(options.loyaltyPointsEarned || 0);
