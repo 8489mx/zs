@@ -219,3 +219,28 @@ All rows above describe **code changed**, not verified operation. Count as **15 
 
 ### Follow-up D — bulk transfer receive/cancel duplicate prevention
 - Multi-document receipt/cancellation now pins an operation key and payload per document, retaining all keys until the entire batch succeeds; a partial failure cannot turn a previous successful item into a new mutation key. This is one more independently tracked source-code defect theme: **33 cumulative** (12 original + 21 subsequent). No tests executed. D remains PARTIAL.
+
+
+---
+
+## 2026-10-25 — Urgent offline clothing delivery validation (separate, test-authorized phase)
+
+**Scope deliberately reduced to customer clothing delivery:** sizes/colors/barcodes, POS sale and stock, purchases/inventory count, returns/exchange, drawer and financial regression, offline Electron build/update contracts. Broader A–F review remains deferred.
+
+**Validated source SHA:** `bfe25caabbeff073c16cb52f0e9e1e89b16cea26`. **All relevant isolated workflow jobs succeeded** without changing `main`, deploying, touching the concurrent security branch, or connecting to customer/production databases.
+
+- [Clothing offline readiness run](https://github.com/8489mx/zs/actions/runs/40191835216) — **success**: selected frontend clothing/POS/return/stock-count regression tests, backend catalog/purchase/return/cashier/accounting tests, frontend/backend Typecheck and Build, Electron JavaScript static checks and offline update lifecycle contract simulator.
+- [Retail offline acceptance run](https://github.com/8489mx/zs/actions/runs/40191835222) — **success**: **94/94 frontend test files, 467/467 frontend tests**, frontend typecheck, `build:electron-frontend`, backend typecheck/build and selected backend financial, inventory and return regressions. Selected 16-suite clothing flow had **56/56** tests pass on the preceding workflow as well.
+- Previous failures resolved before the successful reruns: **4 weighted-barcode UI tests** used an old mocked auth user with no tenant identity; corrected only the test identity fixture (not search production logic). **3 TS2550 errors** came from `Array.at(-1)` in a newly written test that conflicted with project TypeScript target; replaced with compatible indexing. Commits `f458073e` and `bfe25caa`.
+- CI workflows run on Linux runners. The Electron checks verify **frontend bundling, static startup/update invariants and a source-level update simulator**. They **DO NOT run the packaged Windows EXE, bundled PostgreSQL database, actual printer or hardware scanner, or simulate a power outage in the customer's setup**.
+- The frontend build may include nonfatal asset/chunk-size warnings; there is no new CI failure. **No SQL-backed end-to-end real transaction acceptance was performed against a freshly booted offline PostgreSQL instance** in this phase.
+
+### Windows sign-off required before handing over live shop operations
+
+1. On the intended Windows PC, run the **exact packaged EXE** with internet disconnected. Confirm app opens, local PostgreSQL starts, persisted admin session/activation works offline, and previous inventory survives a full app/PC restart.
+2. Enter shirt model + 2 colors × 3 sizes, give each size a **unique saved barcode**, verify stock by size/location. Print and scan at least one barcode per size with the real scanner/label printer.
+3. Receive a small purchase into the selected shop warehouse, count one size in that warehouse, then make a cash sale and verify **only that variant** stock reduces and sales invoice survives app restart. Confirm cash drawer open / close and accounting entries.
+4. Perform **partial return and exchange of different size** on the same invoice, verify returned and exchanged stock, refund/payment and journal impact, and that repeating a failed-looking operation does not create duplicate invoices.
+5. Kill/restart the program mid-safe dummy transaction, verify recovery/idempotency, data persistence, local backup/restore and offline software update + rollback behavior. If using ECR/PAX, verify terminal charge/reversal separately with the actual provider; never retry an uncertain payment automatically.
+
+**Release decision:** automated tests/typechecks/builds **PASS**, but **Windows Offline field acceptance remains NOT TESTED**. No confirmed remaining source-code defect was demonstrated by these successful workflows in the scoped scenarios; this is **not** proof that all offline client scenarios or database correctness are safe. Treat real-world install + transactional smoke as a **mandatory handover gate**, not a code/CI defect closure. No merge or deploy was done.
