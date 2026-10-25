@@ -929,37 +929,37 @@ async function main() {
 
     // The shared cross-sector partner posting helper must never round a 0.001
     // KWD payable away while its posted GL still holds the liability.
-    const filPartner=await fixture('kwd_cross_domain_partner');
+    const kwdDomainPartnerFixture=await fixture('kwd_cross_domain_partner');
     await db.updateTable('settings').set({value:'"KWD"'})
-      .where('tenant_id','=',filPartner.auth.tenantId!).where('key','=','currency').execute();
+      .where('tenant_id','=',kwdDomainPartnerFixture.auth.tenantId!).where('key','=','currency').execute();
     await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
-      .where('tenant_id','=',filPartner.auth.tenantId!).where('is_base','=',true).execute();
+      .where('tenant_id','=',kwdDomainPartnerFixture.auth.tenantId!).where('is_base','=',true).execute();
     const domainJournal=await posting.postDomainJournal(db,{
-      tenantId:filPartner.auth.tenantId!,accountId:filPartner.auth.accountId!,
-      sourceType:'contracting_ipc',sourceId:filPartner.productId,
+      tenantId:kwdDomainPartnerFixture.auth.tenantId!,accountId:kwdDomainPartnerFixture.auth.accountId!,
+      sourceType:'contracting_ipc',sourceId:kwdDomainPartnerFixture.productId,
       entryDate:new Date(),description:'Cross-sector supplier one-fil source',
-      createdBy:filPartner.auth.userId,
+      createdBy:kwdDomainPartnerFixture.auth.userId,
       lines:[
-        {accountId:filPartner.accounts.get('5200')!,description:'Recorded cross-sector cost',
+        {accountId:kwdDomainPartnerFixture.accounts.get('5200')!,description:'Recorded cross-sector cost',
           debit:0.001,credit:0,partnerType:'none',partnerId:null},
-        {accountId:filPartner.accounts.get('2110')!,description:'One-fil supplier liability',
-          debit:0,credit:0.001,partnerType:'supplier',partnerId:filPartner.supplierId},
+        {accountId:kwdDomainPartnerFixture.accounts.get('2110')!,description:'One-fil supplier liability',
+          debit:0,credit:0.001,partnerType:'supplier',partnerId:kwdDomainPartnerFixture.supplierId},
       ],
     });
     assert.ok(Number(domainJournal)>0);
     const partnerLedgerRows=await db.selectFrom('supplier_ledger').select(['amount','balance_after'])
-      .where('tenant_id','=',filPartner.auth.tenantId!)
+      .where('tenant_id','=',kwdDomainPartnerFixture.auth.tenantId!)
       .where('reference_type','=','journal_entry')
       .where('reference_id','=',domainJournal).execute();
     assert.equal(partnerLedgerRows.length,1);
     assert.equal(Number(partnerLedgerRows[0].amount),0.001);
     assert.equal(Number(partnerLedgerRows[0].balance_after),0.001);
     const supplierAfter=await db.selectFrom('suppliers').select('balance')
-      .where('tenant_id','=',filPartner.auth.tenantId!)
-      .where('id','=',filPartner.supplierId).executeTakeFirstOrThrow();
+      .where('tenant_id','=',kwdDomainPartnerFixture.auth.tenantId!)
+      .where('id','=',kwdDomainPartnerFixture.supplierId).executeTakeFirstOrThrow();
     assert.equal(Number(supplierAfter.balance),0.001);
-    assert.equal(await postingAmount(filPartner,'2110'),-0.001);
-    const filReport=await app.get(ReportsSummaryService).supplierBalances({} as any,filPartner.auth);
+    assert.equal(await postingAmount(kwdDomainPartnerFixture,'2110'),-0.001);
+    const filReport=await app.get(ReportsSummaryService).supplierBalances({} as any,kwdDomainPartnerFixture.auth);
     assert.equal(Number((filReport.summary as {totalBalance:number}).totalBalance),0.001);
     pass('generic cross-sector posting reconciles 0.001 KWD supplier ledger, GL and vendor balance report');
 
