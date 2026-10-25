@@ -1,0 +1,122 @@
+name: Clothing offline delivery readiness (isolated)
+
+on:
+  push:
+    branches:
+      - fix/retail-clothing-complete-audit-20261025
+    paths:
+      - '.github/workflows/retail-clothing-offline-readiness.yml'
+      - 'frontend/src/features/products/**'
+      - 'frontend/src/features/pos/**'
+      - 'frontend/src/features/inventory/**'
+      - 'frontend/src/features/returns/**'
+      - 'frontend/src/features/cash-drawer/**'
+      - 'backend/src/modules/catalog/**'
+      - 'backend/src/modules/sales/**'
+      - 'backend/src/modules/purchases/**'
+      - 'backend/src/modules/inventory/**'
+      - 'backend/src/modules/returns/**'
+      - 'backend/src/modules/cash-drawer/**'
+      - 'backend/src/modules/accounting/**'
+      - 'backend/test/critical/**'
+      - 'backend/test/infra/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clothing-offline-ready-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend-clothing-and-electron:
+    name: Clothing POS tests, typecheck, build and Electron static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Clothing, POS, stock count and refund regressions
+        working-directory: frontend
+        run: |
+          npm run test:run -- \
+            src/features/products/components/product-barcode-print.helpers.spec.ts \
+            src/features/products/components/products-matrix.helpers.spec.ts \
+            src/features/products/components/workspace-sections/FashionGroupEditorCard.helpers.spec.ts \
+            src/features/inventory/lib/count-barcode-identity.spec.ts \
+            src/features/inventory/lib/count-location-scoping.spec.ts \
+            src/features/inventory/lib/inventory-operation-attempt.spec.ts \
+            src/features/pos/components/pos-workspace/pos-exchange-recovery.spec.ts \
+            src/features/pos/components/pos-workspace/pos-exchange-serial-validation.spec.ts \
+            src/features/pos/components/pos-workspace/pos-terminal-charge-safety.spec.ts \
+            src/features/pos/lib/pos-catalog-storage.spec.ts \
+            src/features/pos/lib/pos-catalog-sync-policy.spec.ts \
+            src/features/pos/hooks/usePosCatalog.tenant.spec.tsx \
+            src/features/returns/lib/return-remaining-quantity.spec.ts \
+            src/features/returns/lib/return-submission-recovery.spec.ts \
+            src/features/returns/lib/return-register-export-query.spec.ts \
+            src/features/returns/lib/return-radar-selection.spec.ts
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Build frontend (no publish)
+        working-directory: frontend
+        run: npm run build
+      - name: Electron static checks and update lifecycle simulator (NOT a Windows GUI test)
+        run: |
+          node --check frontend/electron/main.cjs
+          node --check frontend/electron/postgres-manager.cjs
+          node --check frontend/electron/runtime-config.cjs
+          node scripts/test-electron-update-lifecycle.cjs
+
+  backend-clothing-and-finance:
+    name: Catalog, purchases, returns and cashier finance tests, typecheck and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_ENV: test
+      APP_MODE: CLOUD_SAAS
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+      - name: Clothing and offline finance regressions (no live DB)
+        working-directory: backend
+        run: |
+          set -e
+          for spec in \
+            test/critical/fashion-stock-safety.spec.ts \
+            test/critical/grn-explicit-location.spec.ts \
+            test/critical/return-invoice-quantities.spec.ts \
+            test/infra/cash-drawer-cash-return.spec.ts \
+            test/infra/reports-inventory.helper.spec.ts \
+            test/critical/pos-product-lookup.spec.ts \
+            test/critical/purchase-stock-integrity.spec.ts \
+            test/critical/purchase-return-traceability.spec.ts \
+            test/critical/held-sales-safety.spec.ts \
+            test/critical/offline-update-sha256.spec.ts \
+            test/critical/accounting-commercial-posting.spec.ts; do
+              echo "::group::${spec}"
+              npx ts-node "${spec}"
+              echo "::endgroup::"
+          done
+      - name: Backend typecheck
+        working-directory: backend
+        run: npm run typecheck
+      - name: Build backend (no publish)
+        working-directory: backend
+        run: npm run build
