@@ -539,6 +539,55 @@ async function main() {
     // Canonical pharmacy importer delegates atomic supplier purchase, batch WAC,
     // physical stock and one posted purchase/AP journal to the purchase engine.
     const pharmacy = app.get(PharmacyService);
+    const kwdPh=await fixture('kwd_pharmacy');
+    await db.updateTable('settings').set({value:'"KWD"'}).where('tenant_id','=',kwdPh.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',kwdPh.auth.tenantId!).where('is_base','=',true).execute();
+    const kwdDrug=await db.insertInto('pharmacy_drugs').values({
+      tenant_id:kwdPh.auth.tenantId!,account_id:kwdPh.auth.accountId!,
+      product_id:kwdPh.productId,trade_name:'KWD test drug',active_ingredient:'Acceptance substance',
+      dosage_form:'tablets',units_per_box:1,unit_name:'unit',box_price:0.001,strip_price:0.001,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    const kwdDistributorInvoice={
+      distributor:'Supplier',invoiceNumber:`KWD-PHARM-${tag}`,paymentType:'credit' as const,
+      lines:[{productName:'KWD test drug',quantity:2,bonusQuantity:1,
+        costPrice:0.001,publicPrice:0.002,expiryDate:'2030-12',batchNumber:`KWD-LOT-${tag}`}],
+    };
+    const kwdPhPosted=await pharmacy.importDistributorInvoice(kwdPh.auth,kwdDistributorInvoice);
+    assert.equal(kwdPhPosted.totalCostSum,0.002);
+    assert.equal(kwdPhPosted.totalQuantity,3);
+    const kwdPhPurchase=await db.selectFrom('purchases').select('total')
+      .where('tenant_id','=',kwdPh.auth.tenantId!).where('id','=',kwdPhPosted.purchaseId).executeTakeFirstOrThrow();
+    assert.equal(Number(kwdPhPurchase.total),0.002);
+    const kwdPhStock=await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id','=',kwdPh.auth.tenantId!).where('id','=',kwdPh.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(kwdPhStock.stock_qty),3);
+    assert.ok(Math.abs(Number(kwdPhStock.cost_price)*3-0.002)<0.000002,'bonus WAC retains supplier value');
+    const kwdPhBatch=await db.selectFrom('pharmacy_batches').select(['quantity','drug_id'])
+      .where('tenant_id','=',kwdPh.auth.tenantId!).where('batch_number','=',`KWD-LOT-${tag}`).execute();
+    assert.equal(kwdPhBatch.length,1);
+    assert.equal(Number(kwdPhBatch[0].quantity),3);
+    assert.equal(Number(kwdPhBatch[0].drug_id),Number(kwdDrug.id));
+    const kwdPhSupplier=await db.selectFrom('suppliers').select('balance')
+      .where('tenant_id','=',kwdPh.auth.tenantId!).where('id','=',kwdPh.supplierId).executeTakeFirstOrThrow();
+    assert.equal(Number(kwdPhSupplier.balance),0.002);
+    const kwdPhLines=await db.selectFrom('journal_entry_lines')
+      .innerJoin('journal_entries',j=>j.onRef('journal_entries.id','=','journal_entry_lines.journal_entry_id')
+        .onRef('journal_entries.tenant_id','=','journal_entry_lines.tenant_id'))
+      .select(['journal_entry_lines.debit','journal_entry_lines.credit'])
+      .where('journal_entries.tenant_id','=',kwdPh.auth.tenantId!)
+      .where('journal_entries.source_type','=','purchase')
+      .where('journal_entries.source_id','=',kwdPhPosted.purchaseId).execute();
+    assert.equal(kwdPhLines.length,2);
+    assert.equal(kwdPhLines.reduce((sum,x)=>sum+Number(x.debit),0),0.002);
+    assert.equal(kwdPhLines.reduce((sum,x)=>sum+Number(x.credit),0),0.002);
+    const kwdPhReplay=await pharmacy.importDistributorInvoice(kwdPh.auth,kwdDistributorInvoice);
+    assert.equal(kwdPhReplay.purchaseId,kwdPhPosted.purchaseId);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',kwdPh.auth.tenantId!).where('id','=',kwdPh.productId)
+      .executeTakeFirstOrThrow()).stock_qty),3,'pharmacy retry cannot duplicate drug stock');
+    pass('KWD pharmacy 0.002 paid + bonus receipt posts one fil-safe supplier/AP/GL journal and WAC');
+
     const pf = await fixture('pharmacy_invoice');
     const pd = await db.insertInto('pharmacy_drugs').values({
       tenant_id:pf.auth.tenantId!, account_id:pf.auth.accountId!,
