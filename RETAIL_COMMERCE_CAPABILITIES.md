@@ -521,3 +521,9 @@
 
 - `ReturnsWorkspace` previously computed returned quantities from a filtered/paginated returns register, confusing a UI preview with complete invoice history. New tenant-scoped `GET /api/returns/invoices/:type/:invoiceId/quantities` computes all previous `return_items` per original invoice line, independently of pages/filters; unlinked legacy returns block affected products pending reconciliation. Editing/confirmation is disabled while history is missing or fetching; the transactional return service remains the final authority for concurrency.
 - New regression tests: `frontend/src/features/returns/lib/return-remaining-quantity.spec.ts` (written, not run). No claim of physical bank refund integration or runtime sign-off.
+
+
+### 2026-10-25 — E/F: retries for posted returns and purchase-return UI mode
+
+- `returnsApi.create` historically minted a new `x-idempotency-key` for each call; on lost response, the create form could resubmit a second refund and second stock receipt. `ReturnsWorkspace` now pins an immutable request payload and key across retries, inspects the existing server `POST:/api/returns` operation status, recognizes committed documents, and prevents editing, clearing, or closing an unresolved return. It only releases a key on a confirmed failed operation or a definite 4xx that the server never reserved. **This protects only the mounted UI attempt; restoring after browser reload still needs end-to-end verification.**
+- Purchase returns route previously reset its form to type `sale` after success or Reset; form reset now honors current route. Regression cases written in `return-submission-recovery.spec.ts` and not executed.

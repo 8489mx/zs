@@ -13,8 +13,8 @@ export type ReturnFormState = {
   note: string;
 };
 
-export function createEmptyReturnForm(): ReturnFormState {
-  return { type: 'sale', invoiceId: '', settlementMode: 'refund', refundMethod: 'cash', note: '' };
+export function createEmptyReturnForm(type: 'sale' | 'purchase' = 'sale'): ReturnFormState {
+  return { type, invoiceId: '', settlementMode: 'refund', refundMethod: 'cash', note: '' };
 }
 
 export function getReturnTypeValue(row: ReturnRecord) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -29,6 +29,8 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { remainingInvoiceLineQuantity } from '@/features/returns/lib/return-remaining-quantity';
+import { mayReleaseReturnIdempotencyKey, wasReturnCommitted } from '@/features/returns/lib/return-submission-recovery';
+import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
 
 export function ReturnsWorkspace() {
@@ -45,15 +47,13 @@ export function ReturnsWorkspace() {
   const [copyFeedback, setCopyFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [confirmReturn, setConfirmReturn] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [form, setForm] = useState<ReturnFormState>(() => {
-    const defaultForm = createEmptyReturnForm();
-    if (isPurchaseMode) {
-      defaultForm.type = 'purchase';
-    }
-    return defaultForm;
-  });
+  const [form, setForm] = useState<ReturnFormState>(() => createEmptyReturnForm(isPurchaseMode ? 'purchase' : 'sale'));
   const [selectedItems, setSelectedItems] = useState<Record<string, string>>({});
   const [selectedSerials, setSelectedSerials] = useState<Record<string, string>>({});
+  const [returnOutcomeUncertain, setReturnOutcomeUncertain] = useState(false);
+  // The exact payload and key survive HTTP failures within this mounted workspace.
+  // Never generate a new key when a refund may already have committed.
+  const returnAttempt = useRef<{ key: string; payload: Record<string, unknown> } | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
@@ -132,6 +132,7 @@ export function ReturnsWorkspace() {
 
   useEffect(() => {
     setViewFilter(isPurchaseMode ? 'purchase' : 'all');
+    if (returnAttempt.current) return;
     setForm(current => {
       const nextType = isPurchaseMode ? 'purchase' : 'sale';
       if (current.type !== nextType) {
@@ -164,31 +165,64 @@ export function ReturnsWorkspace() {
   }, [selectedInvoice, form.invoiceId]);
 
   const createMutation = useMutation({
-    mutationFn: ({ managerPin, reason }: { managerPin?: string; reason: string }) => returnsApi.create({
-      type: form.type,
-      invoiceId: Number(selectedInvoice?.id || form.invoiceId),
-      items: selectedReturnItems.map(({ item, qty }) => ({ 
-        productId: Number(item.productId || 0), 
-        productName: item.name, 
-        qty,
-        saleItemId: form.type === 'sale' ? Number(item.id || 0) : undefined,
-        serials: form.type === 'sale' ? (selectedSerials[String(item.id || item.productId || '')] || '').split(/[\s,;]+/).filter(Boolean) : undefined,
-        purchaseItemId: form.type === 'purchase' ? Number(item.id || 0) : undefined,
-      })),
-      settlementMode: form.settlementMode,
-      refundMethod: form.refundMethod,
-      note: [reason.trim(), String(form.note || '').trim()].filter(Boolean).join(' — '),
-      managerPin
-    }),
+    mutationFn: async ({ managerPin, reason }: { managerPin?: string; reason: string }) => {
+      if (!returnAttempt.current) {
+        const payload = {
+          type: form.type,
+          invoiceId: Number(selectedInvoice?.id || form.invoiceId),
+          items: selectedReturnItems.map(({ item, qty }) => ({
+            productId: Number(item.productId || 0),
+            productName: item.name,
+            qty,
+            saleItemId: form.type === 'sale' ? Number(item.id || 0) : undefined,
+            serials: form.type === 'sale' ? (selectedSerials[String(item.id || item.productId || '')] || '').split(/[\\s,;]+/).filter(Boolean) : undefined,
+            purchaseItemId: form.type === 'purchase' ? Number(item.id || 0) : undefined,
+          })),
+          settlementMode: form.settlementMode,
+          refundMethod: form.refundMethod,
+          note: [reason.trim(), String(form.note || '').trim()].filter(Boolean).join(' — '),
+          managerPin,
+        };
+        returnAttempt.current = { key: crypto.randomUUID(), payload };
+      }
+      const attempt = returnAttempt.current;
+      try {
+        return await returnsApi.create(attempt.payload, { 'x-idempotency-key': attempt.key });
+      } catch (error) {
+        let status = 'unknown';
+        let documentId: string | null | undefined;
+        try {
+          const operation = await returnsApi.getReturnOperationStatus(attempt.key);
+          status = operation.status;
+          documentId = operation.documentId;
+        } catch {
+          // A missing status response is not proof of no financial posting.
+        }
+        if (wasReturnCommitted(status, documentId)) {
+          return { ok: true, recovered: true };
+        }
+        const httpStatus = error && typeof error === 'object' && 'status' in error
+          ? Number((error as { status?: number }).status) : 0;
+        if (mayReleaseReturnIdempotencyKey(httpStatus, status)) {
+          returnAttempt.current = null;
+          setReturnOutcomeUncertain(false);
+          throw error;
+        }
+        setReturnOutcomeUncertain(true);
+        throw new Error('نتيجة المرتجع غير مؤكدة. لا تنشئ مرتجعًا جديدًا؛ أعد تأكيد نفس الطلب للتحقق من حالته');
+      }
+    },
     onSuccess: async () => {
+      returnAttempt.current = null;
+      setReturnOutcomeUncertain(false);
       await invalidateReturnsDomain(queryClient);
       await queryClient.invalidateQueries({ queryKey: ['returns-invoice-quantities'] });
-      setForm(createEmptyReturnForm());
+      setForm(createEmptyReturnForm(isPurchaseMode ? 'purchase' : 'sale'));
       setSelectedItems({});
       setSelectedSerials({});
       setConfirmReturn(false);
       setIsCreateOpen(false);
-    }
+    },
   });
 
   const resetReturnsView = () => {
@@ -200,12 +234,17 @@ export function ReturnsWorkspace() {
   };
 
   const resetReturnForm = () => {
-    setForm(createEmptyReturnForm());
+    if (returnAttempt.current) {
+      toast.warning('يجب التحقق من نتيجة المرتجع السابق قبل مسح الطلب');
+      return;
+    }
+    setForm(createEmptyReturnForm(isPurchaseMode ? 'purchase' : 'sale'));
     setSelectedItems({});
     setSelectedSerials({});
   };
 
   const updateForm = (updater: (current: ReturnFormState) => ReturnFormState) => {
+    if (returnAttempt.current) return;
     setForm((current) => {
       const next = updater(current);
       if (next.type !== current.type || next.invoiceId !== current.invoiceId) {
@@ -217,6 +256,7 @@ export function ReturnsWorkspace() {
   };
 
   const toggleItem = (itemId: string, checked: boolean) => {
+    if (returnAttempt.current) return;
     setSelectedItems((current) => {
       const next = { ...current };
       if (!checked) {
@@ -229,6 +269,7 @@ export function ReturnsWorkspace() {
   };
 
   const setItemQty = (itemId: string, value: string) => {
+    if (returnAttempt.current) return;
     const invoiceItem = invoiceItems.find((item) => String(item.id || item.productId || '') === String(itemId));
     if (!invoiceItem) return;
     const productId = String(invoiceItem.productId || '');
@@ -372,7 +413,13 @@ export function ReturnsWorkspace() {
         {/* Premium Modal for Creating Return */}
         <ReturnsCreateModal
           isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
+          onClose={() => {
+            if (returnAttempt.current) {
+              toast.warning('لا تغلق طلب مرتجع لم تُؤكّد نتيجته؛ أعد المحاولة بنفس المفتاح');
+              return;
+            }
+            setIsCreateOpen(false);
+          }}
           form={form}
           invoiceRows={invoiceRows}
           selectedInvoice={selectedInvoice}
@@ -392,11 +439,12 @@ export function ReturnsWorkspace() {
           onResetForm={resetReturnForm}
           onToggleItem={toggleItem}
           onSetItemQty={setItemQty}
-          onSetSerials={(itemId, value) => setSelectedSerials((current) => ({ ...current, [itemId]: value }))}
-          onOpenConfirm={() => { if (returnHistoryReady) setConfirmReturn(true); }}
+          onSetSerials={(itemId, value) => { if (!returnAttempt.current) setSelectedSerials((current) => ({ ...current, [itemId]: value })); }}
+          onOpenConfirm={() => { if (returnHistoryReady || returnOutcomeUncertain) setConfirmReturn(true); }}
           returnedQtyByLine={returnedQtyByLine}
           blockedProductIds={blockedProductIds}
           returnHistoryReady={returnHistoryReady}
+          canRetryUnresolved={returnOutcomeUncertain}
         />
 
         {/* Modal for Viewing Return Details */}
