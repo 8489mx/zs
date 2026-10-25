@@ -29,6 +29,10 @@
 
 [Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
 
+<a id="runtime-dedicated-backup-permission-p0a"></a>
+### صلاحية الوصول للنسخ السحابية — P0-A، 25 أكتوبر 2026
+`settings-backup.service.ts` يمنع تنزيل النسخة الكاملة أو تعديل مسارات النسخ وقراءة Snapshot لمن لا يحمل `canManageBackups`، و`cloud-backup.service.ts:getCloudConfig` يمنع عرض `secretAccessKey` لحساب إعدادات عام، مع حراسة الخدمة نفسها. اختبار `p0a-backup-credentials-permissions.spec.ts` كُتب فقط ولم يُشغّل. أرشيفات Restore القديمة غير المكتملة قد تُرفض كما وثق المحضر.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: أداء وسرعة المنظومة (Performance) — ✅ مفعّلة ومحروسة (21 سبتمبر 2026)](#cap-003)

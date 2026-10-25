@@ -29,6 +29,10 @@
 
 [Audit evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md) — source fixes and regression cases only; **not executed**.
 
+<a id="platform-portal-burst-limit-p0a"></a>
+### حدود المعدل في بوابات الجمهور — P0-A، 25 أكتوبر 2026
+`backend/src/app.module.ts` يسجّل `AuthBurstRateLimitMiddleware` لطرق تسجيل دخول بوابات الموظفين والمناديب والعملاء البحريين وكتابة عروض RFQ العامة؛ هذا مكمل وليس بديلًا لتوثيق رموز البوابات. `p0a-public-portal-burst-routes.spec.ts` تحقق انحدار من المصدر فقط، **لم يُشغّل**. مغطاة الواجهات المحددة، وليس كل API public.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: الدرع المعماري والحصانة المطلقة لمنصة السوبر أدمن والمستأجر الجذري zs (Super Admin Platform Root Immunity Shield) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)](#cap-007)
