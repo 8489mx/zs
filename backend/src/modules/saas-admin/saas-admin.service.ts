@@ -1489,7 +1489,7 @@ export class SaasAdminService {
             updated_at: new Date(),
           })
           .where('tenant_id', '=', tenantId)
-          .where('status', 'in', ['active', 'past_due', 'trial'])
+          .where('status', 'in', ['active', 'past_due'])
           .execute();
       }
     } catch (err) {
