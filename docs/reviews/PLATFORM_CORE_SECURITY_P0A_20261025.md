@@ -138,3 +138,18 @@ Adjusted older test fixtures `backend/test/critical/session-auth.guard.spec.ts` 
 - **Final source correction tally to date:** P0 **3**, P1 **26**, P2 **1** = **30** documented findings, across the initial and follow-up passes. New/changed tests remain unexecuted. Report counts include the separately pushed configured-platform-identity fix P0A-28.
 
 **Important:** 30 source corrections do not establish absence of additional issues in the unexamined modules. Neither the authored tenant migration nor any tests were executed and safe legacy backup compatibility is not fully implemented.
+
+
+---
+
+## Implementation follow-up — tenant transfer completeness (2026-10-25)
+
+**P0A-31 / P0 — confirmed source defect:** An older tenant package could omit newer live tenant tables, yet `importTenantPackage` would delete their rows. A truncated multi-chunk package could satisfy the previous existence-only check in `readPackage` while inserting fewer rows than declared. Both cases could silently lose data on a destructive tenant transfer.
+
+**Code fixed on branch:** Import now preflights omitted tables with target-tenant rows (including FK-owned child tables) before clearing data; `readPackage` rejects malformed inventories and undeclared table chunks; import compares actual inserted per-table counts to the declared manifest before finishing the transaction. A mismatch aborts the transaction. No FK gate, account/tenant identity checks or session invalidation were weakened.
+
+**Commits:** `3a71d34cfdee67c1eaca97d4f982a98ecd80d7ab` (implementation), `e298a968d3804422a1efe62bffeac231b9d3efda` (regression). **New test (authored, not yet run):** `backend/test/critical/p0a-tenant-package-completeness.spec.ts` — source-contract and package-parser checks only, not PostgreSQL transaction proof.
+
+**Verification still blocked:** Full repository checkout/dependencies and isolated PostgreSQL runtime unavailable to this session; therefore test suites, typecheck, build, migration 255, real restore/transfer rollback, historical archives, concurrent writes, Electron installer and external gateways have **not run**. Safe recovery for archives omitted from a later schema remains unimplemented; do not override completeness checks for compatibility. Status stays **unverified_current_head** and **not ready for merge**.
+
+**Source issue tally at this checkpoint:** previous **30** + this newly documented **1** = **31** (P0 **4**, P1 **26**, P2 **1**) *plus any separate concurrent work not yet reconciled*. Counts are source corrections, not verified passing tests.
