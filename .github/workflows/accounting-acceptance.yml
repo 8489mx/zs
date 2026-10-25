@@ -2,7 +2,7 @@ name: Accounting PostgreSQL acceptance
 
 on:
   push:
-    branches: [fix/accounting-core-commercial-integrity]
+    branches: [fix/accounting-core-commercial-integrity, fix/cross-module-accounting-inventory-20261025]
   workflow_dispatch:
 
 permissions:
