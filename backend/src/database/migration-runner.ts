@@ -323,12 +323,13 @@ async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
       }
     }
 
-    // Reconcile shifted import migrations (commit d44a2a648 shifted 236..239 to 237..240 to insert supplier_payments_foreign_amount at 236)
+    // Reconcile shifted / resequenced migrations (commit d44a2a648 shifted 236..239 to 237..240; commit 7ce255c0 shifted 252 to 254)
     const shiftedImportMigrations: [string, string][] = [
       ['2040000000236_international_trade_procurement_and_sourcing', '2040000000237_international_trade_procurement_and_sourcing'],
       ['2040000000237_customs_broker_advances_and_container_deposits', '2040000000238_customs_broker_advances_and_container_deposits'],
       ['2040000000238_container_preorders_and_inventory_traceability', '2040000000239_container_preorders_and_inventory_traceability'],
       ['2040000000239_import_governance_approvals_and_reconciliation', '2040000000240_import_governance_approvals_and_reconciliation'],
+      ['2040000000252_hr_asset_recovery_money_type', '2040000000254_hr_asset_recovery_money_type'],
     ];
 
     for (const [oldName, newName] of shiftedImportMigrations) {
