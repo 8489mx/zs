@@ -1,5 +1,13 @@
 # خريطة المراجعة الشاملة والنهائية (Review Roadmap)
 
+### HR stabilization live checkpoint — 25 October 2026
+
+- HR branch: `fix/hr-stabilization-multicountry-20261024`. This continuation repaired payroll commission period boundaries, direct EOS conflicts, salary/adjustment RBAC, salary storage precision, late hires and reviewed rosters, withdrawal tenant calendar, atomic credential updates, missing manual-adjustment endpoints, HR profile controls, and retired EOS legal preview.
+- **Not a completed country-certified payroll module**: country-specific official schemes/legal rates, full KWD/OMR 3-decimal chain, WPS bank acceptance, annual/nonmonthly tax, and complete integration/UAT remain.
+- Unit regression examples authored, **no tests/build/typecheck/guards run**. `main` not edited.
+
+
+
 > **الغرض:** هذا الملف هو نقطة الدخول الوحيدة لأي جلسة مراجعة جديدة (Opus أو غيره).
 > افتح شات جديد، الصق رابط/محتوى هذا الملف، وقول: **"ابدأ بالبند رقم N"**.
 > لما يخلص، حدّث حالته هنا، وافتح شات جديد للبند التالي.

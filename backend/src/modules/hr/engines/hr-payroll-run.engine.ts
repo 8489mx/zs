@@ -95,6 +95,19 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
   });
 }
 
+/** All HR contract/compensation persistence currently uses two-decimal money.
+ * Do not silently round a third fractional digit. Kuwait/Oman require a full
+ * three-decimal storage, payroll, GL and export migration before enabling fils.
+ */
+export function requireStoredHrMoney(value: number): number {
+  const cents = Math.round(value * 100);
+  if (!Number.isFinite(value) || value < 0 || !Number.isSafeInteger(cents)
+      || Math.abs(value - cents / 100) > 0.000001) {
+    throw new RangeError('HR monetary amount requires non-negative exact two-decimal precision');
+  }
+  return cents / 100;
+}
+
 /** Preserve the distinction between system and user exclusions on rebuild. */
 export const AUTO_PAYROLL_EXCLUSION_NOTE = 'استبعاد آلي: الموظف غير مستحق في فترة المسير';
 export const MANUAL_PAYROLL_EXCLUSION_NOTE = 'استبعاد يدوي من مسؤول المرتبات';

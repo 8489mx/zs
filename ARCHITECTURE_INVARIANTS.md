@@ -152,6 +152,50 @@ Reference commits: a4ac7bf, 0fcac5c, fc0b54c, f0a9186.
 
 - HR-EOS-35 (25 October 2026): Final EOS posting acquires the tenant-wide payroll advisory transaction lock BEFORE settlement and loan rows, preventing salary accrual/manual loan repayment/EOS deadlocks and double deduction. Posted EOS journals cannot use a draft that predates any changed employee contracts or leave requests; future active contracts after termination must be addressed first. The contract end-date write excludes future-starting contracts. User-authorized runtime regression tests remain pending.
 
+- HR-FIN-36 (25 October 2026): Employee financial statement never treats an approved-but-undisbursed loan as cash received. Adjustments pending or already absorbed in payroll display as zero-balance informational records rather than double-posted receivables. The wage credit in the employee running ledger is net payable PLUS actual payroll loan offset, not tax/insurance/attendance/assets wrongly treated as employee cash. Excluded payroll items are excluded from monthly aggregates; monthly net movement reconciles to normalized transactions. Loan repayments are dated to the repayment ledger, not the loan disbursement. Synthetic regression cases added but NOT executed.
+
+- HR-UI-37 (25 October 2026): Salary financial statement requests are gated by explicit salary/payroll permissions in the frontend as well as backend. The quick cash advance action is only visible to loan-authorized users. All displayed monetary amounts use the tenant currency rather than hardcoding EGP; display precision alone does NOT unblock KWD/OMR payroll.
+- UI tests, build and typecheck were NOT run.
+
+- HR-LOAN-38 (25 October 2026): Installment previews and approvals use the LATER of loan issue_date and actual disbursed_at date as a cutoff. Backdating/future-dating either field cannot charge an employee's already-completed payroll. This remains independent of later installment due-date validation.
+
+- HR-PAY-39 (25 October 2026): **P0 reviewed-snapshot invalidation**. Explicit payroll recalculation, apply-attendance recalculation and automatic quick-advance rebuilding now demote previously reviewed runs and their reviewed line items to DRAFT and clear reviewed_by/reviewed_at. Previously, a late loan deduction or recalculation silently changed a reviewed snapshot while leaving approval immediately available. A human must re-run /review before /approve. Existing approved/paid runs remain immutable. Transactional shared payroll lock is required.
+- Regression integration verification pending; no tests, builds, typechecks or guards were executed.
+
+- HR-PAY-40 (25 October 2026): Manually entered payroll-item monetary adjustments and employee `amount_type=money` adjustments must be strictly positive with exact two-decimal precision. Previously a fractional-cent input could silently change when the 2-decimal ledger posted. Day/hour units can still be fractional and are converted by the effective-dated calculation engine. KWD/OMR remain blocked pending integrated 3-decimal support.
+
+- HR-FIN-41 (25 October 2026): Include standalone manual-cash loan repayment months in employee financial statement monthly breakdown even when no payroll or new loan exists that month. Exclude undisbursed approved loan commitments from the month selector; monthly movement is derived from the real repayment ledger date. Synthetic regression added, not executed.
+
+- HR-EMP-42 (25 October 2026): Editing an existing employee, including payroll-relevant hourly pay, status, tax/insurance flags, compensation and attendance policy, now takes the tenant payroll advisory transaction lock followed by an employee FOR UPDATE row lock. Main record update and primary phone update/insert are in one transaction; an error cannot leave partially updated employment records or bypass the payroll approval snapshot. Employee new-create path keeps its existing atomic transaction.
+- Historical statement immutability still relies on stored approved payroll items. No runtime tests/build/typecheck performed.
+
+- HR-EMP-43 (25 October 2026): Employee status changes and deactivations use the payroll advisory transaction lock plus the employee FOR UPDATE row lock and status revalidation inside the transaction. They cannot slip into a payroll approval's active-employee eligibility snapshot or race with a concurrent termination. Generic status setters remain prohibited from terminating/reactivating a terminated employee.
+- No tests/build/typecheck/guards executed per user instruction.
+
+### HR full-stabilization continuation — 25 October 2026 (unexecuted test gate)
+
+This checkpoint records only **code-proven** adjustments on `fix/hr-stabilization-multicountry-20261024`. It does **not** certify the HR module, bank exports, legal country rules, or deployment.
+
+- HR-EMP-44: Repaired a TypeScript scoping error: `updateEmployeeStatus` used `validStatus` outside its transaction callback. The audit name is now computed in outer method scope (`b1732d76`).
+- HR-PAY-45: Commission sales dates use an exclusive next-period midnight boundary; a midnight invoice cannot be counted in adjacent payroll runs. Holiday dates and weekday classifications are timezone-safe (`ec3e5a1d`).
+- HR-EOS-46: Direct termination serializes with accrual approval, rejects termination before hire and retroactive termination contradicting an approved payslip, and does not truncate unrelated/future-ended contracts (`04283a60`).
+- HR-RBAC-47: Immediate termination requires both directory and salary-management permissions; employee adjustments GET requires salary/payroll visibility (`3a49c632`).
+- HR-MONEY-48: Salary contracts, initial contracts, ATS hire salaries and fixed compensation reject silently rounded monetary fractions beyond 2 decimal places; engine test inputs were authored but not run (`bd29e943`, `e2b4d2b1`).
+- HR-EOS-49: An immediate termination request with a future-effective date is rejected; it must not silently deactivate a still-employed person (`e2b4d2b1`).
+- HR-PAY-50: Newly hired employees in manual or ATS workflows acquire the tenant payroll lock first, and invalidate overlapping reviewed runs for a fresh roster review (`cc1b5612`).
+- HR-FIN-51: Loan withdrawal reporting uses tenant-local date boundaries; invalid month and custom date ranges fail validation (`58f84f37`).
+- HR-EMP-52: Employee PIN and primary contact changes are atomic; document uploader joins are tenant-scoped (`3b5d0c45`).
+- HR-API-53: Previously missing POST/DELETE employee-adjustments endpoints were restored and protected with `hrEmployees` and `hrSalaryManage` (`829e963a`).
+- HR-UI-54: Employee-profile adjustment data is requested only with finance/salary viewing permissions; writes/termination options require authorized role. The manual monetary adjustment input now matches backend cent precision (`8f04b973` and subsequent UI patch).
+- HR-EOS-55: Removed the stale legal severance preview in the employee profile which called a deliberately disabled endpoint. Direct administrative termination is clearly separated from the dedicated `/hr/settlements` process (`46ccb7c4`).
+
+**Open gates (not presumed fixed):** official EG/SA/KW/QA/OM per-employee statutory coverage and rate verification; employee citizenship/residency insurance scheme; annual tax reconciliation and nonmonthly statutory payroll; KWD/OMR three-decimal persistence and GL; verified bank-specific WPS files; integrated HR/ledger UAT. Neither tests nor build/typecheck/guards have been run. No merge into main.
+
+- HR-WAGE-56 (25 October 2026): An hourly employee can no longer be stored with a zero, negative or nonfinite hourly wage or with missing/invalid expected daily hours; otherwise every payroll row could compute zero without a useful setup warning. The service also guards pay frequencies, commission/insurance amounts, commission percent ceiling, monetary precision and attendance grace. DTO adds nonnegative salary-related constraints. No tests/build/guards executed.
+
+- HR-ASSET-58 (25 October 2026): Data-repair migration `2040000000254_hr_asset_recovery_money_type.ts` corrects only legacy asset-recovery adjustments with noncanonical `amount_type='amount'` not tied to approved/paid runs. Approved/paid historical entries remain immutable and require supervised review; migration has NOT been executed.
+- HR-ASSET-57 (25 October 2026): Custody loss/damage deductions must use canonical `amount_type='money'`; a legacy `amount` enum value broke payroll adjustment conversion. Asset writers now serialize against payroll/EOS approval, verify employee tenant membership and active service, refuse reassigning historical/closed custody, reject unrepresentable cents, and prohibit changing an asset status when its linked recovery adjustment already exists. Changing accrued recoveries requires an independent, explicit reversal or adjustment workflow; not a silent status flip. Reconciliation/migration of preexisting rows using noncanonical `amount_type='amount'` remains a DATA FIX and must be audited before payroll processing. No tests/build/typecheck/guards run.
+
 ### Accounting ledger hardening (October 2026)
 
 ARCH02 local implementation and unexecuted acceptance work are tracked in [the ARCH02 closure register](docs/audits/ARCH02_FIX_STATUS_2026-10-24.md). Its implementation status is not evidence that tests, migrations, builds, or environment checks passed.

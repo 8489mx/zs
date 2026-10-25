@@ -168,7 +168,8 @@ export function buildEmployeeFinancialStatement(params: {
   for (const loan of loans) {
     if (loan.status === 'cancelled' || loan.status === 'rejected') continue;
     const isDisbursed = ['paid', 'partially_repaid', 'repaid', 'disbursed'].includes(loan.status);
-    if (!isDisbursed && loan.status !== 'approved') continue;
+    // Approved but undisbursed loans are commitments, not employee cash withdrawals.
+    if (!isDisbursed) continue;
 
     const date = (loan.disbursedAt || loan.createdAt || loan.issueDate || '').slice(0, 10);
     const timestamp = loan.disbursedAt || loan.createdAt || (date ? `${date} 00:00` : new Date().toISOString());
@@ -228,6 +229,13 @@ export function buildEmployeeFinancialStatement(params: {
 
     // 3.A Gross Earnings (Credit - استحقاق الراتب)
     const grossPay = round2(Number(item.grossPay || 0));
+    // A loan withheld from payroll offsets the employee's existing advance,
+    // but tax/insurance, attendance reductions and asset recoveries are NOT
+    // liabilities owed to the employee. Their gross amount is informational.
+    const employeeEntitlement = round2(Number(item.netPay || 0) + Number(item.loanDeductionAmount || 0));
+    if (employeeEntitlement < 0 || employeeEntitlement > grossPay + 0.01) {
+      throw new RangeError('Employee payroll settlement exceeds gross accrued wage');
+    }
     if (grossPay > 0) {
       rawTxns.push({
         id: `payroll-gross-${item.id}`,
@@ -235,13 +243,13 @@ export function buildEmployeeFinancialStatement(params: {
         timestamp: `${monthStr}-28 10:00`,
         category: 'salary_entitlement',
         typeLabel: `استحقاق راتب شهر ${monthStr}`,
-        description: `راتب أساسي: ${round2(item.baseSalary)} | بدلات: ${round2(item.allowanceAmount)} | إجمالي الاستحقاق: ${grossPay}`,
+        description: `إجمالي المرتب: ${grossPay} | صافٍ مستحق نقديًا: ${round2(item.netPay)} | سلفة مقاصة: ${round2(item.loanDeductionAmount)}`,
         referenceType: 'hr_payroll_run_item',
         referenceId: String(item.id),
         actorName: item.paidByName || '',
         channel: item.paymentChannel || 'مسير رواتب',
         debit: 0,
-        credit: grossPay,
+        credit: employeeEntitlement,
       });
     }
 
@@ -267,7 +275,9 @@ export function buildEmployeeFinancialStatement(params: {
     }
   }
 
-  // 4. Process Administrative Adjustments (Penalties & Extra Allowances)
+  // 4. Administrative adjustments are provisional until posted via a payroll.
+  // When already applied to a posted payroll, the amount is inside its
+  // financial snapshot; never duplicate it as a second debit/credit.
   for (const adj of adjustments) {
     if (adj.status === 'cancelled') continue;
     const date = (adj.date || '').slice(0, 10);
@@ -283,11 +293,11 @@ export function buildEmployeeFinancialStatement(params: {
         timestamp,
         category: 'penalty',
         typeLabel: 'جزاء / خصم إداري',
-        description: adj.reason ? `جزاء إداري: ${adj.reason}` : 'خصم إداري على الموظف',
+        description: `${adj.reason || 'خصم إداري'} — ${adj.status === 'applied' ? 'محتسب ضمن المسير' : 'تسوية غير مرحلة'} (${amount})`,
         referenceType: 'hr_employee_adjustment',
         referenceId: String(adj.id),
         actorName: adj.createdByName || '',
-        debit: amount,
+        debit: 0,
         credit: 0,
       });
     } else if (adj.adjustmentType === 'allowance') {
@@ -297,12 +307,12 @@ export function buildEmployeeFinancialStatement(params: {
         timestamp,
         category: 'allowance',
         typeLabel: 'مكافأة / بدل إضافي',
-        description: adj.reason ? `مكافأة: ${adj.reason}` : 'بدل إضافي للموظف',
+        description: `${adj.reason || 'بدل إضافي'} — ${adj.status === 'applied' ? 'محتسب ضمن المسير' : 'تسوية غير مرحلة'} (${amount})`,
         referenceType: 'hr_employee_adjustment',
         referenceId: String(adj.id),
         actorName: adj.createdByName || '',
         debit: 0,
-        credit: amount,
+        credit: 0,
       });
     }
   }
@@ -327,10 +337,7 @@ export function buildEmployeeFinancialStatement(params: {
   const totalGrossEarnings = round2(
     payrollItems
       .filter((i) => ['approved', 'paid'].includes(i.runStatus) && i.itemStatus !== 'excluded')
-      .reduce((sum, i) => sum + Number(i.grossPay || 0), 0) +
-    adjustments
-      .filter((a) => a.adjustmentType === 'allowance' && a.status !== 'cancelled')
-      .reduce((sum, a) => sum + Number(a.amount || 0), 0)
+      .reduce((sum, i) => sum + Number(i.grossPay || 0), 0)
   );
 
   const totalPaidSalaries = round2(
@@ -358,9 +365,6 @@ export function buildEmployeeFinancialStatement(params: {
   );
 
   const totalPenalties = round2(
-    adjustments
-      .filter((a) => a.adjustmentType === 'deduction' && a.status !== 'cancelled')
-      .reduce((sum, a) => sum + Number(a.amount || 0), 0) +
     payrollItems
       .filter((i) => ['approved', 'paid'].includes(i.runStatus) && i.itemStatus !== 'excluded')
       .reduce((sum, i) => sum + Number(i.penaltyDeduction || 0), 0)
@@ -369,10 +373,7 @@ export function buildEmployeeFinancialStatement(params: {
   const totalAllowances = round2(
     payrollItems
       .filter((i) => ['approved', 'paid'].includes(i.runStatus) && i.itemStatus !== 'excluded')
-      .reduce((sum, i) => sum + Number(i.allowanceAmount || 0), 0) +
-    adjustments
-      .filter((a) => a.adjustmentType === 'allowance' && a.status !== 'cancelled')
-      .reduce((sum, a) => sum + Number(a.amount || 0), 0)
+      .reduce((sum, i) => sum + Number(i.allowanceAmount || 0), 0)
   );
 
   // Net Balance: Total Gross - Total Paid - Remaining Debt - Unapplied Penalties
@@ -404,13 +405,22 @@ export function buildEmployeeFinancialStatement(params: {
     if (item.periodMonth) monthsSet.add(item.periodMonth);
   }
   for (const loan of loans) {
+    if (!['paid', 'partially_repaid', 'repaid', 'disbursed'].includes(loan.status)) continue;
     const d = (loan.disbursedAt || loan.createdAt || loan.issueDate || '').slice(0, 7);
     if (d && /^\d{4}-\d{2}$/.test(d)) monthsSet.add(d);
+  }
+  // A month with only manual repayments (and no loan disbursement or payroll)
+  // still carries an actual financial movement and must not disappear.
+  for (const entry of ledger) {
+    if (entry.entryType !== 'loan_repayment' || entry.repaymentMethod !== 'manual_cash') continue;
+    const month = String(entry.createdAt || '').slice(0, 7);
+    if (/^\d{4}-\d{2}$/.test(month)) monthsSet.add(month);
   }
 
   const sortedMonths = Array.from(monthsSet).sort().reverse();
   const monthlyBreakdown: MonthlyBreakdownItem[] = sortedMonths.map((m) => {
-    const mPayrolls = payrollItems.filter((p) => p.periodMonth === m && ['approved', 'paid'].includes(p.runStatus));
+    const mPayrolls = payrollItems.filter((p) => p.periodMonth === m
+      && ['approved', 'paid'].includes(p.runStatus) && p.itemStatus !== 'excluded');
     const gross = round2(mPayrolls.reduce((sum, p) => sum + Number(p.grossPay || 0), 0));
     const paid = round2(mPayrolls.filter((p) => p.runStatus === 'paid').reduce((sum, p) => sum + Number(p.netPay || 0), 0));
 
@@ -419,14 +429,20 @@ export function buildEmployeeFinancialStatement(params: {
       return d === m && ['paid', 'partially_repaid', 'repaid', 'disbursed'].includes(l.status);
     });
     const withdrawals = round2(mLoans.reduce((sum, l) => sum + Number(l.principalAmount || 0), 0));
-    const repayments = round2(mLoans.reduce((sum, l) => sum + Number(l.paidAmount || 0), 0));
+    // Repayments belong to the month they were actually recorded, not the
+    // disbursement month of a now-partially-repaid loan.
+    const repayments = round2(ledger.filter(l =>
+      l.entryType === 'loan_repayment' && (l.createdAt || '').slice(0, 7) === m
+    ).reduce((sum, l) => sum + Math.abs(Number(l.amount || 0)), 0));
 
-    const mPenalties = round2(
-      mPayrolls.reduce((sum, p) => sum + Number(p.penaltyDeduction || 0), 0) +
-      adjustments.filter((a) => (a.date || '').slice(0, 7) === m && a.adjustmentType === 'deduction').reduce((sum, a) => sum + Number(a.amount || 0), 0)
-    );
+    const mPenalties = round2(mPayrolls.reduce((sum, p) => sum + Number(p.penaltyDeduction || 0), 0));
 
-    const netMonth = round2(gross - paid - (withdrawals - repayments) - mPenalties);
+    // Monthly net is the actual movement in this statement's running balance.
+    // Re-deriving it from gross ignores statutory withholdings and duplicates
+    // applied adjustments; use the same normalized transactions as the ledger.
+    const netMonth = round2(rawTxns
+      .filter(tx => tx.date.slice(0, 7) === m)
+      .reduce((sum, tx) => sum + tx.credit - tx.debit, 0));
 
     return {
       month: m,

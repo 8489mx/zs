@@ -48,7 +48,7 @@ import {
 } from './attendance-punch.engine';
 import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
-import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
+import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireStoredHrMoney, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
@@ -101,11 +101,15 @@ function isUniqueViolation(error: unknown): boolean {
 
 function normalizeDateOnly(value: unknown): string | null {
   const text = clean(value);
-  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/);
+  // Accept a strict date or a genuine ISO timestamp only. The old /T.*/ 
+  // pattern silently accepted malformed strings like 2026-02-01Tgarbage.
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/);
   if (isoMatch) {
     const result = `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
     const dt = new Date(result + 'T00:00:00Z');
-    return Number.isFinite(dt.getTime()) && dt.toISOString().slice(0, 10) === result ? result : null;
+    if (!Number.isFinite(dt.getTime()) || dt.toISOString().slice(0, 10) !== result) return null;
+    if (isoMatch[4] !== undefined && !Number.isFinite(Date.parse(text))) return null;
+    return result;
   }
   const usMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (usMatch) {
@@ -377,7 +381,7 @@ export class HrService {
       LIMIT 1
     `.execute(db);
     if (duplicate.rows.length > 0) {
-      throw new AppError('ط±ظ‚ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ظپط¹ظ„', 'HR_EMPLOYEE_NO_EXISTS', 409);
+      throw new AppError('رقم الموظف مستخدم بالفعل', 'HR_EMPLOYEE_NO_EXISTS', 409);
     }
   }
 
@@ -749,29 +753,60 @@ export class HrService {
 
   async endOfService(id: number, payload: EndOfServiceDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(auth);
-    if (!normalizeDateOnly(payload.endOfServiceDate)) {
-      throw new AppError('تاريخ نهاية الخدمة مطلوب', 'HR_EOS_END_DATE_REQUIRED', 400);
+    const terminationDate = normalizeDateOnly(payload.endOfServiceDate);
+    if (!terminationDate) {
+      throw new AppError('تاريخ نهاية الخدمة غير صحيح', 'HR_EOS_END_DATE_REQUIRED', 400);
     }
-    await this.tx.runInTransaction(this.db, async (trx) => {
-      const employee = await sql<{ id: number; status: string }>`
-        SELECT id, status FROM hr_employees WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
+    // This endpoint ends employment IMMEDIATELY, rather than scheduling a
+    // future notice period. Future dates would exclude earned future wages.
+    const companyToday = todayTenantDate(await getTenantTimezone(this.db, tenantId));
+    if (terminationDate > companyToday) {
+      throw new AppError('لا يمكن إنهاء خدمة الموظف فعليًا بتاريخ مستقبلي؛ استخدم جدولة منفصلة', 'HR_EOS_FUTURE_TERMINATION_INVALID', 400);
+    }
+    await this.tx.runInTransaction(this.db, async trx => {
+      // Lock in the same order as payroll approval and statutory settlement.
+      // A concurrent approval must not use an employee state that termination
+      // rewrites while its financial snapshot is being accrued.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const employee = await sql<{ id: number; status: string; hire_date: string | null }>`
+        SELECT id, status, to_char(hire_date, 'YYYY-MM-DD') AS hire_date
+        FROM hr_employees WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
       `.execute(trx);
       if (!employee.rows.length) throw new NotFoundException('Employee not found');
       if (employee.rows[0].status === 'terminated') {
         throw new AppError('انتهت خدمة هذا الموظف بالفعل', 'HR_EOS_ALREADY_TERMINATED', 400);
       }
+      const hireDate = employee.rows[0].hire_date;
+      if (hireDate && terminationDate < hireDate) {
+        throw new AppError('تاريخ إنهاء الخدمة يسبق تاريخ التعيين', 'HR_EOS_BEFORE_HIRE', 400);
+      }
+      // A salary already accrued through a later day must NEVER be silently
+      // invalidated by backdating termination or truncating its salary contract.
+      const postedSalary = await sql<{ id: number }>`
+        SELECT r.id
+        FROM hr_payroll_runs r
+        JOIN hr_payroll_run_items i ON i.run_id = r.id AND i.tenant_id = r.tenant_id
+        WHERE r.tenant_id = ${tenantId} AND i.employee_id = ${id}
+          AND r.status IN ('approved', 'paid') AND i.status = 'approved'
+          AND r.end_date > ${terminationDate}::date
+        LIMIT 1
+      `.execute(trx);
+      if (postedSalary.rows.length) {
+        throw new AppError(
+          'لا يمكن إنهاء خدمة الموظف بأثر رجعي داخل فترة مرتبات معتمدة؛ يلزم تسوية مالية منفصلة',
+          'HR_EOS_APPROVED_PAYROLL_CONFLICT', 409,
+        );
+      }
       const unpaidLoans = await sql<{ id: number }>`
         SELECT id FROM hr_employee_loans
         WHERE employee_id = ${id} AND tenant_id = ${tenantId}
           AND status IN ('disbursed', 'paid', 'partially_repaid')
-          AND remaining_amount > 0
-        LIMIT 1
+          AND remaining_amount > 0 LIMIT 1
       `.execute(trx);
       const openAssets = await sql<{ id: number }>`
         SELECT id FROM hr_employee_assets
         WHERE employee_id = ${id} AND tenant_id = ${tenantId}
-          AND status NOT IN ('returned', 'cancelled')
-        LIMIT 1
+          AND status NOT IN ('returned', 'cancelled') LIMIT 1
       `.execute(trx);
       const unsettled = await sql<{ id: number }>`
         SELECT id FROM hr_end_of_service_settlements
@@ -783,19 +818,25 @@ export class HrService {
       }
       await sql`
         UPDATE hr_employees
-        SET status = 'terminated', end_of_service_date = ${payload.endOfServiceDate}::date,
+        SET status = 'terminated', end_of_service_date = ${terminationDate}::date,
             end_of_service_reason = ${payload.endOfServiceReason || null},
             updated_by = ${auth.userId}, updated_at = NOW()
         WHERE id = ${id} AND tenant_id = ${tenantId}
       `.execute(trx);
+      // Keep historical contract end dates unchanged. Close live contracts
+      // only up to service termination; never make end_date < start_date.
       await sql`
         UPDATE hr_employment_contracts
-        SET status = 'ended', end_date = ${payload.endOfServiceDate}::date,
+        SET status = 'ended',
+            end_date = CASE
+              WHEN start_date <= ${terminationDate}::date
+               AND (end_date IS NULL OR end_date > ${terminationDate}::date)
+              THEN ${terminationDate}::date ELSE end_date END,
             updated_by = ${auth.userId}, updated_at = NOW()
         WHERE employee_id = ${id} AND status = 'active' AND tenant_id = ${tenantId}
       `.execute(trx);
     });
-    await this.audit.log('End of Service', `Ended service for employee #${id} on ${payload.endOfServiceDate}`, auth);
+    await this.audit.log('End of Service', `Ended service for employee #${id} on ${terminationDate}`, auth);
     return { success: true, openAssets: 0, unpaidLoans: 0 };
   }
 
@@ -810,6 +851,9 @@ export class HrService {
     if (!Number.isFinite(salary) || salary <= 0) {
       throw new AppError('يجب تحديد راتب أساسي صحيح أكبر من صفر قبل تعيين المرشح', 'HR_RECRUITMENT_SALARY_REQUIRED', 400);
     }
+    try { requireStoredHrMoney(salary); } catch {
+      throw new AppError('راتب المرشح يجب أن يكون بدقة منزلتين دون تقريب', 'HR_RECRUITMENT_SALARY_PRECISION_INVALID', 400);
+    }
     const firstName = clean(input.firstName);
     const lastName = clean(input.lastName);
     if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
@@ -818,7 +862,9 @@ export class HrService {
       const branches = await sql<{ id: number }>`SELECT id FROM branches WHERE id = ${branchId} AND tenant_id = ${tenantId} LIMIT 1`.execute(trx);
       if (!branches.rows.length) throw new AppError('فرع الموظف غير تابع للمنشأة', 'HR_BRANCH_INVALID', 400);
     }
-    // Serialize generated employee numbers across concurrent recruitment hires.
+    // Payroll approval reads the active employee roster under the same lock.
+    // Acquire payroll before employee-number allocation (global lock ordering).
+    await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
     await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-employee:' + tenantId}))`.execute(trx);
     const employeeNo = await this.nextAvailableEmployeeNo(trx, auth);
     const timezone = await getTenantTimezone(trx, tenantId);
@@ -880,6 +926,7 @@ export class HrService {
       WHERE id = ${contractId} AND employee_id = ${employeeId}
         AND contract_no = ${tempNo} AND tenant_id = ${tenantId}
     `.execute(trx);
+    await this.invalidateReviewedPayrollForNewHire(trx, tenantId, hireDate, 'monthly');
     return employeeId;
   }
 
@@ -904,8 +951,45 @@ export class HrService {
     const scheduledCheckOutTime = normalizeTimeOnly(payload.scheduledCheckOutTime);
     const graceMinutes = Math.max(0, Math.floor(Number(payload.graceMinutes || 0)));
     const attendancePolicy = clean(payload.attendancePolicy) === 'flexible' ? 'flexible' : 'strict';
+    const commissionValue = payload.commissionValue == null ? null : Number(payload.commissionValue);
+    const commissionTarget = payload.commissionTarget == null ? null : Number(payload.commissionTarget);
+    const insuranceSalary = payload.insuranceSalary == null ? null : Number(payload.insuranceSalary);
 
-    if (!firstName) throw new AppError('ط§ط³ظ… ط§ظ„ظ…ظˆط¸ظپ ظ…ط·ظ„ظˆط¨', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
+    if (!['daily', 'weekly', 'biweekly', 'monthly'].includes(payFrequency)) {
+      throw new AppError('دورية صرف المرتب غير صحيحة', 'HR_EMPLOYEE_PAY_FREQUENCY_INVALID', 400);
+    }
+    if (compensationType === 'hourly') {
+      if (hourlyRate == null || !Number.isFinite(hourlyRate) || hourlyRate <= 0
+        || expectedDailyHours == null || !Number.isFinite(expectedDailyHours)
+        || expectedDailyHours <= 0 || expectedDailyHours > 24) {
+        throw new AppError('موظف الساعة يحتاج أجر ساعة موجبًا وساعات عمل يومية بين صفر و24 (غير شاملة الصفر)', 'HR_HOURLY_WAGE_SCHEDULE_INVALID', 400);
+      }
+      try { requireStoredHrMoney(hourlyRate); } catch {
+        throw new AppError('أجر الساعة يجب أن يكون بدقة منزلتين دون تقريب', 'HR_HOURLY_MONEY_PRECISION_INVALID', 400);
+      }
+    }
+    if (![commissionValue, commissionTarget, insuranceSalary].every(x => x == null || (Number.isFinite(x) && x >= 0))) {
+      throw new AppError('مبلغ العمولة أو الهدف أو الأجر التأميني غير صحيح', 'HR_EMPLOYEE_PAY_FIELDS_INVALID', 400);
+    }
+    if (commissionValue !== null && clean(payload.commissionType) === 'percentage' && commissionValue > 100
+      || commissionValue !== null && clean(payload.commissionType) === 'target_percentage' && commissionValue > 100) {
+      throw new AppError('نسبة العمولة يجب أن تكون من صفر إلى 100', 'HR_COMMISSION_PERCENT_INVALID', 400);
+    }
+    if (commissionValue !== null && clean(payload.commissionType) === 'fixed') {
+      try { requireStoredHrMoney(commissionValue); } catch {
+        throw new AppError('العمولة الثابتة يجب أن تكون بدقة منزلتين دون تقريب', 'HR_COMMISSION_MONEY_PRECISION_INVALID', 400);
+      }
+    }
+    if (insuranceSalary !== null) {
+      try { requireStoredHrMoney(insuranceSalary); } catch {
+        throw new AppError('الأجر التأميني يجب أن يكون بدقة منزلتين دون تقريب', 'HR_INSURANCE_WAGE_PRECISION_INVALID', 400);
+      }
+    }
+    if (!Number.isFinite(graceMinutes) || graceMinutes > 1440) {
+      throw new AppError('دقائق سماح الحضور غير صحيحة', 'HR_ATTENDANCE_GRACE_INVALID', 400);
+    }
+
+    if (!firstName) throw new AppError('اسم الموظف مطلوب', 'HR_EMPLOYEE_NAME_REQUIRED', 400);
     if (rawEmployeeNo && !employeeNo) {
       throw new AppError('رقم الموظف يجب أن يكون أرقامًا فقط مثل 001', 'HR_EMPLOYEE_NO_INVALID', 400);
     }
@@ -936,16 +1020,21 @@ export class HrService {
 
     try {
       if (id) {
-        const existingStatus = await sql<{ status: string }>`
-          SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-          LIMIT 1
-        `.execute(this.db);
+        await this.tx.runInTransaction(this.db, async trx => {
+          // Payroll approval takes this lock before all employee snapshots.
+          // Without it salary/attendance/insurance profile fields could change
+          // between a reviewed snapshot recalculation and final ledger posting.
+          await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+          const existingStatus = await sql<{ status: string }>`
+            SELECT status FROM hr_employees
+            WHERE id = ${id} AND tenant_id = ${auth.tenantId} FOR UPDATE
+          `.execute(trx);
         if (!existingStatus.rows.length) throw new NotFoundException('Employee not found');
         if (existingStatus.rows[0].status === 'terminated' && payload.status && payload.status !== 'terminated') {
           throw new AppError('لا يمكن إعادة تفعيل موظف انتهت خدمته بمجرد تعديل ملفه', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
         }
         if (employeeNo) {
-          await this.ensureEmployeeNoAvailable(this.db, employeeNo, id, auth);
+          await this.ensureEmployeeNoAvailable(trx, employeeNo, id, auth);
         }
         await sql`
           UPDATE hr_employees
@@ -983,19 +1072,22 @@ export class HrService {
               bank_swift_code = CASE WHEN ${payload.bankSwiftCode === undefined} THEN bank_swift_code ELSE ${clean(payload.bankSwiftCode) || null} END,
               updated_by = ${auth.userId}, updated_at = NOW()
           WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-        `.execute(this.db);
+        `.execute(trx);
 
         if (cleanPhone) {
-          const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
+          const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${id} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(trx);
           if (existing.rows.length > 0) {
-            await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
+            await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(trx);
           } else {
-            await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
+            await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(trx);
           }
         }
+        });
       } else {
         await this.tx.runInTransaction(this.db, async (trx) => {
-          // Serialize creation with ATS hires so auto numbers cannot race.
+          // New staff invalidate overlapping reviewed payroll. Serialize first
+          // with approval, then ATS/other employee number allocations.
+          await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
           await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-employee:' + auth.tenantId}))`.execute(trx);
           const nextEmployeeNo = employeeNo || await this.nextAvailableEmployeeNo(trx, auth);
           await this.ensureEmployeeNoAvailable(trx, nextEmployeeNo, null, auth);
@@ -1026,6 +1118,9 @@ export class HrService {
               if (!currencySetting || currencySetting !== contractCurrency) {
                 throw new AppError('عملة العقد يجب أن تطابق عملة المنشأة المحددة في الإعدادات', 'HR_INITIAL_CONTRACT_CURRENCY_MISMATCH', 400);
               }
+              try { requireStoredHrMoney(contractSalary); } catch {
+                throw new AppError('راتب العقد الأولي يجب أن يكون بدقة منزلتين دون تقريب', 'HR_INITIAL_CONTRACT_MONEY_PRECISION_INVALID', 400);
+              }
               const insertedContract = await sql<{ id: number }>`
                 INSERT INTO hr_employment_contracts (
                   tenant_id, account_id, employee_id, contract_no, contract_type,
@@ -1044,6 +1139,9 @@ export class HrService {
                 SET contract_no = ${formatDailyDocumentNumber('CON', contractId)}
                 WHERE id = ${contractId} AND employee_id = ${newId} AND tenant_id = ${auth.tenantId}
               `.execute(trx);
+            }
+            if (hireDate && (clean(payload.status) || 'active') === 'active') {
+              await this.invalidateReviewedPayrollForNewHire(trx, auth.tenantId || '', hireDate, payFrequency);
             }
           }
         });
@@ -1064,47 +1162,89 @@ export class HrService {
     if (status === 'terminated') {
       throw new AppError('استخدم إجراء إنهاء الخدمة المعتمد وليس تعديل حالة الموظف', 'HR_TERMINATION_WORKFLOW_REQUIRED', 400);
     }
-    const existing = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    if (existing.rows[0]?.status === 'terminated') {
-      throw new AppError('لا يمكن تعديل حالة موظف انتهت خدمته بدون إجراءات إعادة تعيين', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
-    }
     const validStatus = ['active', 'inactive', 'deactivated'].includes(status) ? status : 'active';
-    await sql`UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'`.execute(this.db);
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      const existing = await sql<{ status: string }>`
+        SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!existing.rows.length) throw new NotFoundException('Employee not found');
+      if (existing.rows[0].status === 'terminated') {
+        throw new AppError('لا يمكن إعادة تفعيل موظف انتهت خدمته بدون إجراءات إعادة تعيين', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 409);
+      }
+      await sql`
+        UPDATE hr_employees SET status = ${validStatus}, updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'
+      `.execute(trx);
+    });
     await this.audit.log('Update HR employee status', `Employee #${id} status changed to ${validStatus} by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
 
   async updateEmployeeCredentials(employeeId: number, payload: UpdateEmployeeCredentialsDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    await this.assertEmployeeBelongsToTenant(employeeId, auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     const cleanPin = String(payload.pinCode || '').trim();
     const cleanPhone = String(payload.phone || '').trim();
-
-    if (cleanPin) {
-      assertSecurePasscode(cleanPin, { phone: cleanPhone });
-      const pinRecord = await createPasswordRecord(cleanPin);
-      await sql`UPDATE hr_employees SET pin_hash = ${pinRecord.hash}, pin_salt = ${pinRecord.salt}, mobile_punch_enabled = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    }
-
-    if (cleanPhone) {
-      const existing = await sql<{ id: number }>`SELECT id FROM hr_employee_contacts WHERE employee_id = ${employeeId} AND tenant_id = ${auth.tenantId} ORDER BY is_primary DESC, id ASC LIMIT 1`.execute(this.db);
-      if (existing.rows.length > 0) {
-        await sql`UPDATE hr_employee_contacts SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = true, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${existing.rows[0].id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-      } else {
-        await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, 'mobile', ${cleanPhone}, 'الموبايل الأساسي', true, '', ${auth.userId}, ${auth.userId})`.execute(this.db);
+    // Hash BEFORE entering the DB transaction, so a slow password hash doesn't
+    // block other employee punch/profile operations.
+    if (cleanPin) assertSecurePasscode(cleanPin, { phone: cleanPhone });
+    const pinRecord = cleanPin ? await createPasswordRecord(cleanPin) : null;
+    await this.tx.runInTransaction(this.db, async trx => {
+      const employee = await sql<{ id: number }>`
+        SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!employee.rows.length) throw new NotFoundException('Employee not found');
+      if (pinRecord) {
+        await sql`
+          UPDATE hr_employees
+          SET pin_hash = ${pinRecord.hash}, pin_salt = ${pinRecord.salt},
+              mobile_punch_enabled = TRUE, updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${employeeId} AND tenant_id = ${tenantId}
+        `.execute(trx);
       }
-    }
-
+      if (cleanPhone) {
+        const existing = await sql<{ id: number }>`
+          SELECT id FROM hr_employee_contacts
+          WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          ORDER BY is_primary DESC, id ASC LIMIT 1
+        `.execute(trx);
+        if (existing.rows.length) {
+          await sql`
+            UPDATE hr_employee_contacts
+            SET value = ${cleanPhone}, contact_type = 'mobile', is_primary = TRUE,
+                updated_by = ${auth.userId}, updated_at = NOW()
+            WHERE id = ${existing.rows[0].id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+          `.execute(trx);
+        } else {
+          await sql`
+            INSERT INTO hr_employee_contacts
+              (tenant_id, account_id, employee_id, contact_type, value,
+               label, is_primary, notes, created_by, updated_by)
+            VALUES (${tenantId}, ${accountId}, ${employeeId}, 'mobile',
+                    ${cleanPhone}, 'الموبايل الأساسي', TRUE, '', ${auth.userId}, ${auth.userId})
+          `.execute(trx);
+        }
+      }
+    });
     await this.audit.log('Update HR employee credentials', `Employee #${employeeId} credentials updated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
 
   async deactivateEmployee(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
-    const status = await sql<{ status: string }>`SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    if (!status.rows.length) throw new NotFoundException('Employee not found');
-    if (status.rows[0].status === 'terminated') throw new AppError('لا يمكن إلغاء تفعيل موظف انتهت خدمته', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 400);
-    await sql`UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW()
-      WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'`.execute(this.db);
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
+      const status = await sql<{ status: string }>`
+        SELECT status FROM hr_employees WHERE id = ${id} AND tenant_id = ${auth.tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!status.rows.length) throw new NotFoundException('Employee not found');
+      if (status.rows[0].status === 'terminated') {
+        throw new AppError('لا يمكن إلغاء تفعيل موظف انتهت خدمته', 'HR_TERMINATED_EMPLOYEE_REACTIVATE_LOCKED', 409);
+      }
+      await sql`
+        UPDATE hr_employees SET status = 'deactivated', updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${auth.tenantId} AND status <> 'terminated'
+      `.execute(trx);
+    });
     await this.audit.log('Deactivate HR employee', `Employee #${id} deactivated by ${auth.username}`, auth);
     return { ok: true, ...(await this.listEmployees({}, auth)) };
   }
@@ -1116,19 +1256,55 @@ export class HrService {
   }
 
   async upsertContact(employeeId: number, id: number | null, payload: UpsertEmployeeContactDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    await this.assertEmployeeBelongsToTenant(employeeId, auth);
-    if (id) {
-      await sql`UPDATE hr_employee_contacts SET contact_type = ${clean(payload.contactType) || 'phone'}, value = ${clean(payload.value)}, label = ${clean(payload.label)}, is_primary = ${payload.isPrimary === true}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    } else {
-      await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${clean(payload.contactType) || 'phone'}, ${clean(payload.value)}, ${clean(payload.label)}, ${payload.isPrimary === true}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
-    }
-    await this.audit.log(`${id ? 'Update' : 'Create'} HR employee contact`, `Employee #${employeeId} contact metadata saved by ${auth.username}`, auth);
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async trx => {
+      // Serialize primary contact changes on the employee row. A tenant may have
+      // multiple contacts, but only one can be primary for that employee.
+      const parent = await sql<{ id: number }>`
+        SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!parent.rows.length) throw new AppError('الموظف غير موجود في المنشأة', 'HR_EMPLOYEE_NOT_FOUND', 404);
+      if (id) {
+        const existing = await sql<{ id: number }>`
+          SELECT id FROM hr_employee_contacts
+          WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId} FOR UPDATE
+        `.execute(trx);
+        if (!existing.rows.length) throw new AppError('بيانات الاتصال غير موجودة', 'HR_CONTACT_NOT_FOUND', 404);
+      }
+      if (payload.isPrimary === true) {
+        await sql`
+          UPDATE hr_employee_contacts SET is_primary = FALSE, updated_at = NOW()
+          WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId} AND is_primary = TRUE
+        `.execute(trx);
+      }
+      if (id) {
+        await sql`
+          UPDATE hr_employee_contacts SET contact_type = ${clean(payload.contactType) || 'phone'},
+            value = ${clean(payload.value)}, label = ${clean(payload.label)},
+            is_primary = ${payload.isPrimary === true}, notes = ${clean(payload.notes)},
+            updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        `.execute(trx);
+      } else {
+        await sql`
+          INSERT INTO hr_employee_contacts
+            (tenant_id, account_id, employee_id, contact_type, value, label,
+             is_primary, notes, created_by, updated_by)
+          VALUES (${tenantId}, ${auth.accountId}, ${employeeId},
+            ${clean(payload.contactType) || 'phone'}, ${clean(payload.value)},
+            ${clean(payload.label)}, ${payload.isPrimary === true},
+            ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+        `.execute(trx);
+      }
+    });
+    await this.audit.log(`${id ? 'Update' : 'Create'} HR employee contact`,
+      `Employee #${employeeId} contact metadata saved by ${auth.username}`, auth);
     return this.listContacts(employeeId, auth);
   }
 
   async listDocuments(employeeId: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.assertEmployeeBelongsToTenant(employeeId, auth);
-    const result = await sql<Record<string, unknown>>`SELECT d.*, u.username AS uploaded_by_name FROM hr_employee_documents d LEFT JOIN users u ON u.id = d.uploaded_by WHERE d.employee_id = ${employeeId} AND d.tenant_id = ${auth.tenantId} ORDER BY d.id DESC`.execute(this.db);
+    const result = await sql<Record<string, unknown>>`SELECT d.*, u.username AS uploaded_by_name FROM hr_employee_documents d LEFT JOIN users u ON u.id = d.uploaded_by AND u.tenant_id = d.tenant_id WHERE d.employee_id = ${employeeId} AND d.tenant_id = ${auth.tenantId} ORDER BY d.id DESC`.execute(this.db);
     return { rows: result.rows.map((row) => ({ id: String(row.id), employeeId: String(row.employee_id), title: clean(row.title), documentType: clean(row.document_type), fileUrl: clean(row.file_url), expiryDate: row.expiry_date ? String(row.expiry_date).slice(0, 10) : '', notes: clean(row.notes), uploadedByName: clean(row.uploaded_by_name) })) };
   }
 
@@ -1173,6 +1349,9 @@ export class HrService {
       }
       if (contractCurrency !== tenantCurrency) {
         throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة', 'HR_CONTRACT_CURRENCY_MISMATCH', 400);
+      }
+      try { requireStoredHrMoney(baseSalary); } catch {
+        throw new AppError('قيمة الراتب يجب أن تكون غير سالبة وبدقة منزلتين دون تقريب؛ عملات الثلاث منازل تنتظر تحديث التخزين', 'HR_CONTRACT_MONEY_PRECISION_INVALID', 400);
       }
       const oldContract = id ? await sql<{
         start_date: string; end_date: string | null; base_salary: string;
@@ -1276,6 +1455,9 @@ export class HrService {
       || !Number.isFinite(deduction) || deduction < 0) {
       throw new AppError('تواريخ أو مبالغ البدلات الثابتة غير صحيحة', 'HR_COMPENSATION_INVALID', 400);
     }
+    try { requireStoredHrMoney(allowance); requireStoredHrMoney(deduction); } catch {
+      throw new AppError('البدلات والخصومات الثابتة يجب أن تكون بدقة منزلتين دون تقريب', 'HR_COMPENSATION_MONEY_PRECISION_INVALID', 400);
+    }
     await this.tx.runInTransaction(this.db, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
       const contractId = toId(payload.contractId);
@@ -1366,6 +1548,13 @@ export class HrService {
       || !normalizeDateOnly(payload.date) || !['money', 'days', 'hours'].includes(clean(payload.amountType))
       || !['allowance', 'deduction'].includes(clean(payload.adjustmentType))) {
       throw new AppError('مبلغ أو نوع أو تاريخ تسوية الموظف غير صحيح', 'HR_EMPLOYEE_ADJUSTMENT_INVALID', 400);
+    }
+    // Days/hours may be fractional units; monetary adjustments must be exact
+    // cents to avoid silently converting an entered amount during GL posting.
+    if (clean(payload.amountType) === 'money') {
+      try { requireTwoDecimalLoanMoney(Number(payload.amount)); } catch {
+        throw new AppError('التسوية النقدية يجب أن تكون بدقة منزلتين عشريتين دون تقريب', 'HR_EMPLOYEE_ADJUSTMENT_MONEY_PRECISION_INVALID', 400);
+      }
     }
     await this.tx.runInTransaction(this.db, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
@@ -2217,7 +2406,7 @@ export class HrService {
       WHERE l.employee_id = ${employeeId} AND l.tenant_id = ${tenantId}
         AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
         AND l.status IN ('paid', 'partially_repaid', 'disbursed')
-        AND COALESCE(l.disbursed_at::date, l.issue_date) <= ${dueCutoff}::date
+        AND GREATEST(l.issue_date, COALESCE(l.disbursed_at::date, l.issue_date)) <= ${dueCutoff}::date
         AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
         AND (
           l.repayment_mode = 'deduct_next_salary'
@@ -2877,21 +3066,19 @@ export class HrService {
     }
 
     const holidaysRes = await sql<Record<string, unknown>>`
-      SELECT start_date, end_date FROM hr_holidays
+      SELECT to_char(start_date, 'YYYY-MM-DD') AS start_date_text,
+             to_char(end_date, 'YYYY-MM-DD') AS end_date_text
+      FROM hr_holidays
       WHERE tenant_id = ${tenantId}
         AND start_date <= ${range.to}::date
         AND end_date >= ${range.from}::date
     `.execute(db);
     
-    const isHoliday = (dateStr: string) => {
-      const d = new Date(dateStr);
-      for (const h of holidaysRes.rows) {
-        const s = new Date(String(h.start_date));
-        const e = new Date(String(h.end_date));
-        if (d >= s && d <= e) return true;
-      }
-      return false;
-    };
+    // DATE columns are tenant calendar dates, not instants. Never convert them
+    // through the server's timezone when deciding paid holidays.
+    const isHoliday = (dateStr: string) => holidaysRes.rows.some(h =>
+      dateStr >= String(h.start_date_text) && dateStr <= String(h.end_date_text),
+    );
 
     // Fetch sales grouped by user_id for the period
     const userIds = empResult.rows.map(r => Number(r.user_id)).filter(id => !isNaN(id) && id > 0);
@@ -2902,7 +3089,9 @@ export class HrService {
         FROM sales_invoices
         WHERE tenant_id = ${tenantId}
           AND created_at >= ${range.from}::date
-          AND created_at <= (${range.to}::date + INTERVAL '1 day')
+          -- Exclusive upper bound: exactly midnight belongs to the NEXT
+          -- payroll period, not both periods (duplicate commissions).
+          AND created_at < (${range.to}::date + INTERVAL '1 day')
           AND status = 'completed'
           AND created_by IN (${sql.join(userIds)})
         GROUP BY created_by
@@ -2923,7 +3112,7 @@ export class HrService {
       for (const rec of attendance.records) {
         if (rec.status === 'absent') {
           const dt = new Date(String(rec.work_date_text));
-          const dayName = dayNames[dt.getDay()];
+          const dayName = dayNames[dt.getUTCDay()];
           if (!hrWeekendDays.includes(dayName) && !isHoliday(String(rec.work_date_text))) {
             attendanceAbsentDays++;
           }
@@ -3285,12 +3474,49 @@ export class HrService {
     return this.getPayrollRun(runId, auth);
   }
 
+  /** A late hire inserted after review changes payroll's eligible employee
+   * population. Serialize both HR employee writers and payroll review/approve
+   * against the tenant payroll advisory lock BEFORE calling this helper.
+   */
+  private async invalidateReviewedPayrollForNewHire(
+    db: Kysely<Database>, tenantId: string, hireDate: string, payFrequency: string,
+  ): Promise<void> {
+    const reviewed = await sql<{ id: number }>`
+      SELECT id FROM hr_payroll_runs
+      WHERE tenant_id = ${tenantId} AND status = 'reviewed'
+        AND start_date <= ${hireDate}::date AND end_date >= ${hireDate}::date
+        AND (pay_frequency = 'all' OR pay_frequency = ${payFrequency})
+      FOR UPDATE
+    `.execute(db);
+    for (const run of reviewed.rows) {
+      await this.invalidatePayrollRunReview(db, Number(run.id), tenantId);
+    }
+  }
+
+  /** Financial recalculation invalidates the former review approval.
+   * Call only inside the run's locked transaction, AFTER rebuilding its items.
+   */
+  private async invalidatePayrollRunReview(db: Kysely<Database>, runId: number, tenantId: string): Promise<void> {
+    await sql`
+      UPDATE hr_payroll_run_items SET status = 'draft', updated_at = NOW()
+      WHERE run_id = ${runId} AND tenant_id = ${tenantId} AND status = 'reviewed'
+    `.execute(db);
+    await sql`
+      UPDATE hr_payroll_runs
+      SET status = 'draft', reviewed_by = NULL, reviewed_at = NULL, updated_at = NOW()
+      WHERE id = ${runId} AND tenant_id = ${tenantId} AND status = 'reviewed'
+    `.execute(db);
+  }
+
   async recalculatePayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
       if (status !== 'draft' && status !== 'reviewed') throw new AppError('Only draft or reviewed payroll runs can be recalculated', 'HR_PAYROLL_RECALCULATE_LOCKED', 400);
-      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || '');
+      await this.rebuildPayrollRunItems(trx, id, 'draft', auth.tenantId || '');
+      if (status === 'reviewed') {
+        await this.invalidatePayrollRunReview(trx, id, auth.tenantId || '');
+      }
     });
     await this.audit.log('Recalculate HR payroll run', `Payroll run #${id} recalculated by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
@@ -3313,7 +3539,10 @@ export class HrService {
             OR reason IN ('حصة الموظف في التأمينات الاجتماعية', 'ضريبة كسب العمل'))
       `.execute(trx);
       // The canonical payroll engine already includes all approved operational deductions.
-      await this.rebuildPayrollRunItems(trx, id, status, auth.tenantId || tenantId);
+      await this.rebuildPayrollRunItems(trx, id, 'draft', tenantId);
+      if (status === 'reviewed') {
+        await this.invalidatePayrollRunReview(trx, id, tenantId);
+      }
     });
     await this.audit.log('Recalculate HR payroll deductions', `Payroll run #${id} recalculated by ${auth.username}`, auth);
     return this.getPayrollRun(id, auth);
@@ -3371,7 +3600,7 @@ export class HrService {
           AND l.tenant_id = ${tenantId}
           AND l.repayment_mode IN ('deduct_next_salary', 'monthly_salary_installment')
           AND l.status IN ('paid', 'partially_repaid', 'disbursed')
-          AND COALESCE(l.disbursed_at::date, l.issue_date) <= ${dueCutoff}::date
+          AND GREATEST(l.issue_date, COALESCE(l.disbursed_at::date, l.issue_date)) <= ${dueCutoff}::date
           AND COALESCE(i.status, 'pending') IN ('pending', 'partial')
           AND (
             l.repayment_mode = 'deduct_next_salary'
@@ -3954,8 +4183,10 @@ export class HrService {
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
-    if (typeof payload.amount !== 'number' || !Number.isFinite(payload.amount) || payload.amount <= 0) {
-      throw new AppError('مبلغ التعديل يجب أن يكون موجبًا وصحيحًا', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
+    try {
+      requireTwoDecimalLoanMoney(Number(payload.amount));
+    } catch {
+      throw new AppError('مبلغ تعديل المرتب يجب أن يكون موجبًا وبدقة منزلتين عشريتين دون تقريب', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
     }
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
@@ -5372,47 +5603,106 @@ export class HrService {
   }
 
   async upsertEmployeeAsset(id: number | null, payload: UpsertEmployeeAssetDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
+    const { tenantId, accountId } = requireTenantScope(auth);
     const employeeId = toId(payload.employeeId);
     if (!employeeId) throw new AppError('Employee is required', 'HR_ASSET_EMPLOYEE_REQUIRED', 400);
     const assetType = clean(payload.assetType);
     if (!assetType) throw new AppError('Asset type is required', 'HR_ASSET_TYPE_REQUIRED', 400);
     const assetName = clean(payload.assetName);
     if (!assetName) throw new AppError('Asset name is required', 'HR_ASSET_NAME_REQUIRED', 400);
-    const tz = await getTenantTimezone(this.db, auth.tenantId);
-    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayTenantDate(tz);
-
-    if (id) {
-      await sql`
-        UPDATE hr_employee_assets
-        SET employee_id = ${employeeId},
-            asset_type = ${assetType},
-            asset_name = ${assetName},
-            asset_code = ${clean(payload.assetCode) || null},
-            serial_no = ${clean(payload.serialNo) || null},
-            assigned_at = ${assignedAt}::date,
-            notes = ${clean(payload.notes) || null},
-            updated_by = ${auth.userId},
-            updated_at = NOW()
-        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
-      `.execute(this.db);
-    } else {
-      await sql`
-        INSERT INTO hr_employee_assets (tenant_id, account_id, employee_id, asset_type, asset_name, asset_code, serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
-        VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${assetType}, ${assetName}, ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null}, ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null}, ${auth.userId}, ${auth.userId}, NOW(), NOW())
-      `.execute(this.db);
+    if (payload.assignedAt && !normalizeDateOnly(payload.assignedAt)) {
+      throw new AppError('تاريخ تسليم العهدة غير صحيح', 'HR_ASSET_ASSIGNED_DATE_INVALID', 400);
     }
-
+    const tz = await getTenantTimezone(this.db, tenantId);
+    const assignedAt = normalizeDateOnly(payload.assignedAt) || todayTenantDate(tz);
+    await this.tx.runInTransaction(this.db, async trx => {
+      // EOS/posting and employee-custody edits share this lock.
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const employee = await sql<{ id: number; status: string; hire_date: string | null }>`
+        SELECT id, status, to_char(hire_date, 'YYYY-MM-DD') AS hire_date
+        FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} LIMIT 1
+      `.execute(trx);
+      if (!employee.rows.length || employee.rows[0].status !== 'active') {
+        throw new AppError('لا يمكن تسليم عهدة لموظف غير نشط أو خارج المنشأة', 'HR_ASSET_EMPLOYEE_NOT_ACTIVE', 409);
+      }
+      const hireDate = employee.rows[0].hire_date;
+      if (hireDate && assignedAt < hireDate) {
+        throw new AppError('تاريخ تسليم العهدة يسبق تعيين الموظف', 'HR_ASSET_PRE_HIRE_DATE', 400);
+      }
+      if (id) {
+        const existing = await sql<{ employee_id: number; status: string }>`
+          SELECT employee_id, status FROM hr_employee_assets
+          WHERE id = ${id} AND tenant_id = ${tenantId} FOR UPDATE
+        `.execute(trx);
+        if (!existing.rows.length) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
+        if (existing.rows[0].status !== 'assigned' || Number(existing.rows[0].employee_id) !== employeeId) {
+          throw new AppError('لا يمكن تغيير صاحب عهدة أو تعديل عهدة أُقفلت أو سُجلت مفقودة/تالفة؛ استخدم إجراء تسليم جديد', 'HR_ASSET_HISTORICAL_EDIT_LOCKED', 409);
+        }
+        await sql`
+          UPDATE hr_employee_assets
+          SET asset_type = ${assetType}, asset_name = ${assetName},
+              asset_code = ${clean(payload.assetCode) || null},
+              serial_no = ${clean(payload.serialNo) || null},
+              assigned_at = ${assignedAt}::date, notes = ${clean(payload.notes) || null},
+              updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${id} AND tenant_id = ${tenantId} AND status = 'assigned'
+        `.execute(trx);
+      } else {
+        await sql`
+          INSERT INTO hr_employee_assets
+            (tenant_id, account_id, employee_id, asset_type, asset_name, asset_code,
+             serial_no, assigned_at, status, notes, created_by, updated_by, created_at, updated_at)
+          VALUES (${tenantId}, ${accountId}, ${employeeId}, ${assetType}, ${assetName},
+                  ${clean(payload.assetCode) || null}, ${clean(payload.serialNo) || null},
+                  ${assignedAt}::date, 'assigned', ${clean(payload.notes) || null},
+                  ${auth.userId}, ${auth.userId}, NOW(), NOW())
+        `.execute(trx);
+      }
+    });
     await this.audit.log(`${id ? 'Update' : 'Create'} HR employee asset`, `Asset custody ${id ? 'updated' : 'created'} by ${auth.username}`, auth);
     return this.listEmployeeAssets({}, auth);
   }
 
-  private async setEmployeeAssetStatus(id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled', payload: EmployeeAssetActionDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    requireTenantScope(auth);
-    await this.tx.runInTransaction(this.db, async (trx) => {
-      const current = await sql<{ status: string; employee_id: number; asset_name: string }>`SELECT status, employee_id, asset_name FROM hr_employee_assets WHERE id = ${id} AND tenant_id = ${auth.tenantId} LIMIT 1`.execute(trx);
-      if (!clean(current.rows[0]?.status)) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
-      const tz = await getTenantTimezone(trx, auth.tenantId);
+  private async setEmployeeAssetStatus(
+    id: number, status: 'returned' | 'lost' | 'damaged' | 'cancelled',
+    payload: EmployeeAssetActionDto, auth: AuthContext,
+  ): Promise<Record<string, unknown>> {
+    const { tenantId } = requireTenantScope(auth);
+    if (payload.deductionAmount != null) {
+      if (!['lost', 'damaged'].includes(status)) {
+        throw new AppError('خصم العهدة متاح للمفقود والتالف فقط', 'HR_ASSET_DEDUCTION_STATUS_INVALID', 400);
+      }
+      try { requireStoredHrMoney(Number(payload.deductionAmount)); } catch {
+        throw new AppError('خصم العهدة غير صحيح أو يتضمن جزءًا من قرش', 'HR_ASSET_DEDUCTION_AMOUNT_INVALID', 400);
+      }
+    }
+    if (payload.returnedAt && !normalizeDateOnly(payload.returnedAt)) {
+      throw new AppError('تاريخ رد العهدة غير صحيح', 'HR_ASSET_RETURNED_DATE_INVALID', 400);
+    }
+    await this.tx.runInTransaction(this.db, async trx => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
+      const current = await sql<{ status: string; employee_id: number; asset_name: string }>`
+        SELECT status, employee_id, asset_name
+        FROM hr_employee_assets
+        WHERE id = ${id} AND tenant_id = ${tenantId}
+        FOR UPDATE
+      `.execute(trx);
+      const asset = current.rows[0];
+      if (!asset) throw new AppError('Employee asset not found', 'HR_ASSET_NOT_FOUND', 404);
+      if (asset.status === status && !payload.deductionAmount) return;
+      if (['returned', 'cancelled'].includes(asset.status)) {
+        throw new AppError('العهدة مغلقة؛ لا يمكن إعادة تغيير حالتها', 'HR_ASSET_ALREADY_CLOSED', 409);
+      }
+      const linkedAdjustment = await sql<{ id: number }>`
+        SELECT id FROM hr_employee_adjustments
+        WHERE tenant_id = ${tenantId} AND source_type = 'hr_employee_asset'
+          AND source_id = ${String(id)} AND accounting_category = 'asset_recovery'
+        LIMIT 1
+      `.execute(trx);
+      if (linkedAdjustment.rows.length) {
+        throw new AppError('عهدة عليها خصم مالي مسجل؛ لا يمكن إعادة تسجيل حالتها أو قيمة الخصم دون تسوية مستقلة', 'HR_ASSET_RECOVERY_ALREADY_RECORDED', 409);
+      }
+      const tz = await getTenantTimezone(trx, tenantId);
       const returnedAt = status === 'returned' ? (normalizeDateOnly(payload.returnedAt) || todayTenantDate(tz)) : null;
       await sql`
         UPDATE hr_employee_assets
@@ -5420,18 +5710,24 @@ export class HrService {
             returned_at = CASE WHEN ${returnedAt}::text IS NULL THEN returned_at ELSE ${returnedAt}::date END,
             notes = ${clean(payload.notes) || null},
             return_notes = ${clean(payload.returnNotes) || null},
-            updated_by = ${auth.userId},
-            updated_at = NOW()
-        WHERE id = ${id} AND tenant_id = ${auth.tenantId}
+            updated_by = ${auth.userId}, updated_at = NOW()
+        WHERE id = ${id} AND tenant_id = ${tenantId}
       `.execute(trx);
-
-      if (['lost', 'damaged'].includes(status) && typeof payload.deductionAmount === 'number' && payload.deductionAmount > 0) {
-        const empId = Number(current.rows[0].employee_id);
-        const reason = `تسوية عهدة ${status === 'lost' ? 'مفقودة' : 'تالفة'}: ${current.rows[0].asset_name}. ${clean(payload.returnNotes) || ''}`.trim();
+      if (['lost', 'damaged'].includes(status) && Number(payload.deductionAmount || 0) > 0) {
+        const reason = `تسوية عهدة ${status === 'lost' ? 'مفقودة' : 'تالفة'}: ${asset.asset_name}. ${clean(payload.returnNotes) || ''}`.trim();
         await sql`
-          INSERT INTO hr_employee_adjustments (tenant_id, employee_id, adjustment_type, amount_type, amount, reason, date, status, source_type, source_id, accounting_category, created_by, updated_by, created_at, updated_at)
-          VALUES (${auth.tenantId}, ${empId}, 'deduction', 'amount', ${payload.deductionAmount}, ${reason}, NOW()::date, 'pending', 'hr_employee_asset', ${String(id)}, 'asset_recovery', ${auth.userId}, ${auth.userId}, NOW(), NOW())
-          ON CONFLICT (tenant_id, source_type, source_id) WHERE accounting_category = 'asset_recovery' AND source_type = 'hr_employee_asset' AND source_id IS NOT NULL DO NOTHING
+          INSERT INTO hr_employee_adjustments
+            (tenant_id, employee_id, adjustment_type, amount_type, amount, reason,
+             date, status, source_type, source_id, accounting_category,
+             created_by, updated_by, created_at, updated_at)
+          VALUES (${tenantId}, ${asset.employee_id}, 'deduction', 'money',
+                  ${Number(payload.deductionAmount)}, ${reason}, NOW()::date, 'pending',
+                  'hr_employee_asset', ${String(id)}, 'asset_recovery',
+                  ${auth.userId}, ${auth.userId}, NOW(), NOW())
+          ON CONFLICT (tenant_id, source_type, source_id)
+            WHERE accounting_category = 'asset_recovery'
+              AND source_type = 'hr_employee_asset' AND source_id IS NOT NULL
+          DO NOTHING
         `.execute(trx);
       }
     });
@@ -5474,14 +5770,21 @@ export class HrService {
     const employee = employeeResult.rows[0];
     if (!employee) throw new AppError('Employee not found', 'HR_EMPLOYEE_NOT_FOUND', 404);
 
-    const now = new Date();
-    const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-    const monthValue = /^\d{4}-\d{2}$/.test(requestedMonth) ? requestedMonth : currentMonth;
-    const [yearValue, monthValueNumber] = monthValue.split('-').map(Number);
-    const monthFrom = `${monthValue}-01`;
-    const monthTo = new Date(Date.UTC(yearValue, monthValueNumber, 0)).toISOString().slice(0, 10);
-
-    const today = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+    // Financial date selectors follow the tenant's local calendar, never UTC
+    // server midnight (which is a different payroll day in Egypt/GCC).
+    const today = todayTenantDate(await getTenantTimezone(this.db, tenantId));
+    const currentMonth = today.slice(0, 7);
+    if (requestedMonth && !normalizePayrollMonth(requestedMonth)) {
+      throw new AppError('الشهر المطلوب غير صحيح', 'HR_WITHDRAWALS_MONTH_INVALID', 400);
+    }
+    if (period === 'custom' && (
+      (query.from && !customFrom) || (query.to && !customTo)
+      || (customFrom && customTo && customFrom > customTo)
+    )) {
+      throw new AppError('نطاق تواريخ المسحوبات غير صحيح', 'HR_WITHDRAWALS_RANGE_INVALID', 400);
+    }
+    const monthValue = normalizePayrollMonth(requestedMonth) || currentMonth;
+    const { from: monthFrom, to: monthTo } = monthRange(monthValue);
     const hireDate = clean(employee.hire_date_text) || '1900-01-01';
     const fromDate = period === 'custom'
       ? customFrom || monthFrom
@@ -5966,7 +6269,12 @@ export class HrService {
       `.execute(trx);
       for (const run of activeRuns.rows) {
         const runId = Number(run.id);
-        await this.rebuildPayrollRunItems(trx, runId, run.status as 'draft' | 'reviewed', auth.tenantId || '');
+        await this.rebuildPayrollRunItems(trx, runId, 'draft', tenantId);
+        if (run.status === 'reviewed') {
+          // Automatic loan deductions have changed the reviewed financial
+          // snapshot. Require a fresh human review before the next approval.
+          await this.invalidatePayrollRunReview(trx, runId, tenantId);
+        }
       }
     });
 

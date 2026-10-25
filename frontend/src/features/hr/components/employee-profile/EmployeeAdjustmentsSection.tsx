@@ -7,12 +7,13 @@ import { FormSection } from '@/shared/components/form-section';
 
 interface EmployeeAdjustmentsSectionProps {
   adjustments: HrEmployeeAdjustment[];
+  canManage: boolean;
   onAddAdjustment: (payload: any) => Promise<void>;
   onDeleteAdjustment: (id: string) => Promise<void>;
   isBusy: boolean;
 }
 
-export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDeleteAdjustment, isBusy }: EmployeeAdjustmentsSectionProps) {
+export function EmployeeAdjustmentsSection({ adjustments, canManage, onAddAdjustment, onDeleteAdjustment, isBusy }: EmployeeAdjustmentsSectionProps) {
   const { t } = useTranslation();
   const [showAddForm, setShowAddForm] = useState(false);
   const [adjustmentType, setAdjustmentType] = useState<'allowance' | 'deduction'>('allowance');
@@ -32,6 +33,13 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
     }
     if (!date) {
       setError('الرجاء إدخال التاريخ.');
+      return;
+    }
+    if (amountType === 'money' && (
+      !Number.isSafeInteger(Math.round(Number(amount) * 100))
+      || Math.abs(Number(amount) - Math.round(Number(amount) * 100) / 100) > 0.000001
+    )) {
+      setError('المبلغ النقدي لازم يكون بدقة منزلتين عشريتين، مثال 125.50.');
       return;
     }
 
@@ -54,13 +62,13 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
 
   return (
     <FormSection title={t('hr.employee_profile.employee_adjustments_section.s0', "المكافآت والخصومات")} description={t('hr.employee_profile.employee_adjustments_section.s1', "سجل المكافآت أو الخصومات للموظف هنا. سيتم احتسابها تلقائياً مع أقرب مسير رواتب.")}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+      {canManage && <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
         <Button type="button" onClick={() => setShowAddForm(!showAddForm)} disabled={isBusy}>
           {showAddForm ? t('hr.employee_profile.employee_adjustments_section.s2', "إلغاء") : t('hr.employee_profile.employee_adjustments_section.s3', "إضافة مكافأة / خصم")}
         </Button>
-      </div>
+      </div>}
 
-      {showAddForm && (
+      {canManage && showAddForm && (
         <form onSubmit={handleSubmit} className="form-grid" style={{ marginBottom: '2rem', padding: '1rem', background: 'var(--bg-subtle)', borderRadius: 8 }}>
           <label className="field">
             <span>{t('hr.employee_profile.employee_adjustments_section.s4', "النوع")}</span>
@@ -83,7 +91,8 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
             <span>{t('hr.employee_profile.employee_adjustments_section.s11', "القيمة")}</span>
             <input 
               type="number" 
-              step="any" 
+              step={amountType === 'money' ? '0.01' : 'any'}
+              min="0.01"
               value={amount} 
               onChange={e => setAmount(e.target.value)} 
               placeholder={t('hr.employee_profile.employee_adjustments_section.s12', "مثال: 500")} 
@@ -130,7 +139,7 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
                 <th>{t('hr.employee_profile.employee_adjustments_section.s19', "القيمة")}</th>
                 <th>{t('hr.employee_profile.employee_adjustments_section.s20', "السبب")}</th>
                 <th>{t('hr.employee_profile.employee_adjustments_section.s21', "الحالة")}</th>
-                <th>{t('hr.employee_profile.employee_adjustments_section.s22', "إجراءات")}</th>
+                {canManage && <th>{t('hr.employee_profile.employee_adjustments_section.s22', "إجراءات")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -151,11 +160,11 @@ export function EmployeeAdjustmentsSection({ adjustments, onAddAdjustment, onDel
                       {adj.status === 'applied' ? t('hr.employee_profile.employee_adjustments_section.s27', "تم الاحتساب") : t('hr.employee_profile.employee_adjustments_section.s28', "قيد الانتظار")}
                     </span>
                   </td>
-                  <td>
+                  {canManage && <td>
                     {adj.status === 'pending' && (
                       <Button type="button" variant="danger" onClick={() => onDeleteAdjustment(adj.id)} disabled={isBusy}>{t('hr.employee_profile.employee_adjustments_section.s29', "حذف")}</Button>
                     )}
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>

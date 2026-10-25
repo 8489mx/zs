@@ -44,7 +44,7 @@ const overtime = calculateHistoricalOvertimePay([
   { date: '2026-10-10', minutes: 120 },
   { date: '2026-10-20', minutes: 120 },
 ], contracts, 8, 1.5);
-assert.equal(overtime, 112.5);
+assert.equal(overtime, 116.25);
 assert.throws(() => calculateHistoricalOvertimePay([{ date: '2026-10-20', minutes: 60 }],
   [contracts[0]], 8, 1.5), /exactly one/);
 assert.throws(() => calculateHistoricalOvertimePay([{ date: '2026-10-20', minutes: 1800 }],
