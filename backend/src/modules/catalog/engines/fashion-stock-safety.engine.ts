@@ -35,3 +35,11 @@ export function assertFashionRemovedStockSafe(
     throw new AppError('لا يمكن دمج مقاسين بتكلفتين مختلفتين دون تسوية تقييم مخزون', 'FASHION_VALUATION_ADJUSTMENT_REQUIRED', 409);
   }
 }
+
+/** Reject an obsolete or absent stock snapshot for explicit fashion adjustments. */
+export function assertFashionExpectedStock(expected: number | undefined, current: number): void {
+  if (expected === undefined || !Number.isFinite(expected) || !Number.isFinite(current) ||
+      Math.abs(expected - current) > 0.0001) {
+    throw new AppError('الرصيد تغير منذ فتح الموديل؛ حدّث المقاسات قبل تسوية المخزون', 'FASHION_STOCK_STALE', 409);
+  }
+}

@@ -25,6 +25,7 @@ import {
   sortVariants,
   toCommonDraft,
   toVariantRows,
+  pickFashionStockConsolidationTarget,
   variantLabel,
   type CommonDraft,
   type VariantDraft
@@ -245,6 +246,7 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
         retailPrice: Number(row.retailPrice || 0),
         wholesalePrice: Number(row.wholesalePrice || 0),
         stock: Number(row.stock || 0),
+        originalStock: row.originalStock,
         minStock: Number(row.minStock ?? commonDraft.minStock),
       })).filter((row) => Boolean(variantLabel(row))));
 
@@ -419,6 +421,20 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
     });
 
     if (unconsumedWithStock.length > 0) {
+      const canSafelyConsolidate = unconsumedWithStock.every((row) => {
+        const target = pickFashionStockConsolidationTarget(sortVariants(nextRows), row);
+        const sourceCost = Number(row.useCustomPricing ? row.costPrice : commonDraft.costPrice);
+        const targetCost = Number(target?.useCustomPricing ? target.costPrice : commonDraft.costPrice);
+        return Boolean(row.id && target && Number.isFinite(sourceCost) && Number.isFinite(targetCost) &&
+          Math.abs(sourceCost - targetCost) <= 0.0001);
+      });
+      if (!canSafelyConsolidate) {
+        unconsumedWithStock.forEach((row) => nextRows.push(row));
+        setConsolidateStockOnSave(false);
+        setVariantRows(nextRows);
+        toast.warning('احتفظنا بالمقاسات ذات الرصيد: الدمج يتطلب مقاس هدف محفوظاً وبنفس تكلفة المخزون، وإلا يلزم جرد وتسوية');
+        return;
+      }
       const totalStockToConsolidate = unconsumedWithStock.reduce((sum, r) => sum + Number(r.stock || 0), 0);
       const confirmConsolidate = await systemConfirm({
         title: 'دمج وتطهير رصيد المقاسات الملغاة تلقائياً',
@@ -429,15 +445,14 @@ export function FashionGroupEditorCard({ product, categories, suppliers, locatio
 
       if (confirmConsolidate) {
         unconsumedWithStock.forEach((unconsumed) => {
-          const matchingTarget = nextRows.find((r) => normalizeArabicSearchKey(r.color) === normalizeArabicSearchKey(unconsumed.color))
-            || nextRows[0];
+          const matchingTarget = pickFashionStockConsolidationTarget(sortVariants(nextRows), unconsumed);
           if (matchingTarget) {
             matchingTarget.stock = Number(matchingTarget.stock || 0) + Number(unconsumed.stock || 0);
           }
         });
         setConsolidateStockOnSave(true);
         setVariantRows(nextRows);
-        toast.success(`تم دمج رصيد المقاسات بنجاح وتطهير كافة المقاسات الملغاة (${nextRows.length} صنف متبقي)`);
+        toast.info(`تم تجهيز دمج المقاسات (${nextRows.length} صنف متبقي). اضغط حفظ المجموعة لاعتماد الحركة المخزنية`);
         return;
       } else {
         unconsumedWithStock.forEach((r) => nextRows.push(r));

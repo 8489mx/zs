@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { assertFashionRemovedStockSafe } from '../../src/modules/catalog/engines/fashion-stock-safety.engine';
+import { assertFashionExpectedStock, assertFashionRemovedStockSafe } from '../../src/modules/catalog/engines/fashion-stock-safety.engine';
 
 const item = { stock_qty: '5.000', reserved_qty: '0', cost_price: '25.00' };
 
@@ -35,4 +35,14 @@ test('zero stock with no reservation can be archived safely', () => {
   assert.doesNotThrow(() => assertFashionRemovedStockSafe({
     stock_qty: 0, reserved_qty: 0, cost_price: 25,
   }, []));
+});
+
+test('rejects stale or missing original stock before an explicit adjustment', () => {
+  assert.doesNotThrow(() => assertFashionExpectedStock(4, 4));
+  for (const expected of [undefined, 5]) {
+    assert.throws(
+      () => assertFashionExpectedStock(expected, 4),
+      (err: unknown) => (err as { code?: string }).code === 'FASHION_STOCK_STALE',
+    );
+  }
 });

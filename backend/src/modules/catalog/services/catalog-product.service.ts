@@ -13,7 +13,7 @@ import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
-import { assertFashionRemovedStockSafe } from '../engines/fashion-stock-safety.engine';
+import { assertFashionExpectedStock, assertFashionRemovedStockSafe } from '../engines/fashion-stock-safety.engine';
 
 type ProductRow = {
   id: number;
@@ -1892,6 +1892,21 @@ export class CatalogProductService {
 
       const oldIds = existing.map((p) => Number(p.id));
       const removedWithStock = existing.filter((p) => !seenIds.has(Number(p.id)) && (Math.abs(Number(p.stock_qty || 0)) > 0.0001 || Number(p.reserved_qty || 0) > 0));
+      // Stock moves do not update catalog_updated_at. Explicit adjustments must
+      // compare the original browser snapshot under the locked product rows.
+      const stockEdits = drafts.filter((d) => d.id
+        ? d.value.stock !== undefined && Math.abs(Number(d.value.stock) - Number(byId.get(d.id)!.stock_qty || 0)) > 0.0001
+        : Number(d.value.stock || 0) > 0);
+      for (const draft of drafts) {
+        if (draft.id && draft.value.stock !== undefined) {
+          assertFashionExpectedStock(draft.input.expectedStock, Number(byId.get(draft.id)!.stock_qty || 0));
+        }
+      }
+      const performsStockOperation = stockEdits.length > 0 ||
+        (removedWithStock.length > 0 && (payload.consolidateStock || payload.zeroRemovedStock));
+      if (performsStockOperation && !this.hasPermission(actor, 'canAdjustInventory')) {
+        throw new AppError('Inventory adjustments require canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+      }
       if (removedWithStock.length) {
         if (payload.consolidateStock) {
           for (const removedProduct of removedWithStock) {
@@ -2271,6 +2286,9 @@ export class CatalogProductService {
 
     let resolvedLocationId = normalized.warehouseId || null;
     const hasAnyInitialStock = drafts.some(d => Number(d.stock || 0) > 0);
+    if (hasAnyInitialStock && !this.hasPermission(actor, 'canAdjustInventory')) {
+      throw new AppError('Opening stock requires canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+    }
     if (hasAnyInitialStock) await this.ensureOpeningStockAccounts(actor);
     if (hasAnyInitialStock && !resolvedLocationId) {
       const settingsRaw = await this.db.selectFrom('settings').selectAll().where(this.tenantPredicate(actor)).execute();
@@ -2541,9 +2559,13 @@ export class CatalogProductService {
           }
 
           if (options?.zeroStock && Math.abs(Number(product.stock_qty || 0)) > 0.0001) {
+            if (!this.hasPermission(actor, 'canAdjustInventory')) {
+              throw new AppError('Stock zeroing requires canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+            }
             const locStocks = await trx.selectFrom('product_location_stock')
               .selectAll().where('product_id', '=', product.id)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+            assertFashionRemovedStockSafe(product, locStocks);
 
             for (const ls of locStocks) {
               const qtyToDeduct = Number(ls.qty || 0);
@@ -2551,7 +2573,7 @@ export class CatalogProductService {
 
               await applyStockDelta(trx, {
                 productId: Number(product.id),
-                locationId: Number(ls.location_id),
+                locationId: ls.location_id == null ? null : Number(ls.location_id),
                 branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
                 delta: -qtyToDeduct,
                 tenantId: this.tenantId(actor),
@@ -2573,7 +2595,7 @@ export class CatalogProductService {
                 note: `تسوية وتصفير رصيد الصنف (${product.name}) عند الأرشفة والتعطيل`,
                 reference_type: 'inventory_adjustment',
                 reference_id: product.id,
-                location_id: Number(ls.location_id),
+                location_id: ls.location_id == null ? null : Number(ls.location_id),
                 branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
                 created_by: actor.userId,
                 ...this.tenantFields(actor),
