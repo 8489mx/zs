@@ -602,10 +602,31 @@ export class SessionService {
     const passwordCheck = await verifyPassword(password, user.password_hash, user.password_salt);
     if (!passwordCheck.valid) {
       const { maxAttempts, lockoutMinutes } = this.lockoutConfig;
-      const nextFailedLoginCount = Number(user.failed_login_count ?? 0) + 1;
-      const shouldLock = nextFailedLoginCount >= maxAttempts;
-      await this.db.updateTable('users').set({ failed_login_count: shouldLock ? 0 : nextFailedLoginCount, locked_until: shouldLock ? new Date(Date.now() + lockoutMinutes * 60 * 1000) : null }).where('id', '=', user.id).execute();
       const tenantContext = this.resolveUserTenantContext(user);
+      // Do not increment using the account snapshot read BEFORE bcrypt:
+      // concurrent wrong passwords can otherwise all overwrite the counter
+      // with the same value and bypass the database-backed lockout policy.
+      await this.db.transaction().execute(async (trx) => {
+        const latest = await trx.selectFrom('users')
+          .select(['id', 'failed_login_count', 'locked_until'])
+          .where('id', '=', user.id)
+          .where('tenant_id', '=', tenantContext.tenantId)
+          .forUpdate()
+          .executeTakeFirst();
+        if (!latest) return;
+        const now = new Date();
+        if (latest.locked_until && new Date(latest.locked_until) > now) return;
+        const nextFailedLoginCount = Number(latest.failed_login_count ?? 0) + 1;
+        const shouldLock = nextFailedLoginCount >= maxAttempts;
+        await trx.updateTable('users')
+          .set({
+            failed_login_count: shouldLock ? 0 : nextFailedLoginCount,
+            locked_until: shouldLock ? new Date(now.getTime() + lockoutMinutes * 60 * 1000) : null,
+          })
+          .where('id', '=', user.id)
+          .where('tenant_id', '=', tenantContext.tenantId)
+          .execute();
+      });
       await this.audit.log('تسجيل دخول فاشل', `محاولة دخول فاشلة للمستخدم ${user.username}`, { userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId }, { targetTenantId: tenantContext.tenantId });
       return null;
     }
