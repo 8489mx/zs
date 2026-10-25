@@ -112,3 +112,11 @@ The code observations above identify definite missing integration points; **fina
 - Central journal insertion determines tenant book precision, instead of silently forcing every journal entry line to two decimals. Additive migration 256 widens a controlled set of numeric columns; rollback deliberately refuses to narrow the precision.
 - PostgreSQL acceptance now contains a real KWD 0.001 posted-journal persistence scenario. CI evidence for this revision must be attached after execution.
 - **P0C-01 remains OPEN for global release:** other posting paths still use 2-digit intermediate rounding, wider sales/purchase/report/payroll and FX flows need review, and tenant-level full-cycle three-decimal reconciliation has not been certified.
+
+## 25 October — pharmacy distributor invoice canonical purchase integration
+
+- Distributor invoice import now resolves one tenant-owned active supplier, a valid receiving warehouse, and catalog drugs linked to active stock products; it rejects missing/ambiguous mappings instead of inventing financial master data.
+- Each line's batch number and expiry enter the existing `PurchasesService.createPurchase` path. Supplier invoice reference becomes an idempotent purchase key. Existing purchase transaction handles warehouse receipts, lot quantities, stock WAC, supplier balance and double-entry GL with cash/credit distinction. Free bonus units raise stock quantity without manufacturing extra supplier liability.
+- Direct pharmacy batch creation/edits cannot adjust stock or cost outside purchase/GRN; deletion of drug master with batch history is rejected. The joined product listing now matches tenant_id on both sides.
+- Added PostgreSQL acceptance to check 2 paid + 1 bonus units, one purchase/AP/GL receipt, retry without duplicate inventory, rejection of manual cash bypass, and rollback of expired-batch purchase.
+- **Limits:** Linked stock product/supplier/location and invoice number are now mandatory. Three-decimal pharmacy purchases fail closed until the canonical purchases calculation path handles mill precision. Legacy unlinked batches/history need reconciliation on a disposable copy before deployment. No automatic cash outflow is fabricated for default credit invoices.

@@ -25,6 +25,7 @@ import { SalesService } from '../../src/modules/sales/sales.service';
 import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
+import { PharmacyService } from '../../src/modules/pharmacy/pharmacy.service';
 import { AuditService } from '../../src/core/audit/audit.service';
 import { SettingsDemoDataService } from '../../src/modules/settings/services/settings-demo-data.service';
 import { up as up253, down as down253 } from '../../src/database/migrations/2040000000253_core_tenant_reference_integrity';
@@ -410,6 +411,65 @@ async function main() {
     assert.equal(kwdLines.reduce((sum,line)=>sum+Number(line.debit),0),0.001);
     assert.equal(kwdLines.reduce((sum,line)=>sum+Number(line.credit),0),0.001);
     pass('KWD 0.001 journal lines survive real PostgreSQL persistence without cent rounding');
+
+    // Canonical pharmacy importer delegates atomic supplier purchase, batch WAC,
+    // physical stock and one posted purchase/AP journal to the purchase engine.
+    const pharmacy = app.get(PharmacyService);
+    const pf = await fixture('pharmacy_invoice');
+    const pd = await db.insertInto('pharmacy_drugs').values({
+      tenant_id:pf.auth.tenantId!, account_id:pf.auth.accountId!,
+      product_id:pf.productId, trade_name:'Test product',
+      active_ingredient:'Acceptance substance', dosage_form:'tablets',
+      units_per_box:1, unit_name:'unit', box_price:20, strip_price:20,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    const invoice={
+      distributor:'Supplier',invoiceNumber:`DISTRIB-${tag}-001`,
+      paymentType:'credit' as const,
+      lines:[{productName:'Test product',quantity:2,bonusQuantity:1,
+        costPrice:10,publicPrice:20,expiryDate:'2030-12',batchNumber:`LOT-${tag}`}],
+    };
+    const postedInvoice=await pharmacy.importDistributorInvoice(pf.auth,invoice);
+    assert.equal(postedInvoice.totalCostSum,20);
+    assert.equal(postedInvoice.totalQuantity,3);
+    const purchaseRows=await db.selectFrom('purchases').select(['id','supplier_id','total'])
+      .where('tenant_id','=',pf.auth.tenantId!).where('id','=',postedInvoice.purchaseId).execute();
+    assert.equal(purchaseRows.length,1);
+    assert.equal(Number(purchaseRows[0].supplier_id),pf.supplierId);
+    assert.equal(money(purchaseRows[0].total),20);
+    const physical=await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id','=',pf.auth.tenantId!).where('id','=',pf.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(physical.stock_qty),3);
+    assert.equal(money(Number(physical.stock_qty)*Number(physical.cost_price)),20);
+    const batches=await db.selectFrom('pharmacy_batches').select(['drug_id','quantity','product_id'])
+      .where('tenant_id','=',pf.auth.tenantId!).where('batch_number','=',`LOT-${tag}`).execute();
+    assert.equal(batches.length,1);assert.equal(Number(batches[0].quantity),3);
+    assert.equal(Number(batches[0].drug_id),Number(pd.id));
+    assert.equal(Number(batches[0].product_id),pf.productId);
+    assert.equal(await postingAmount(pf,'1140'),20);
+    assert.equal(await postingAmount(pf,'2110'),-20);
+    const retry=await pharmacy.importDistributorInvoice(pf.auth,invoice);
+    assert.equal(retry.purchaseId,postedInvoice.purchaseId);
+    const afterRetry=await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',pf.auth.tenantId!).where('id','=',pf.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(afterRetry.stock_qty),3,'invoice replay must not add inventory');
+    await assert.rejects(
+      pharmacy.upsertBatch(pf.auth,{productId:pf.productId,drugId:Number(pd.id),batchNumber:'MANUAL',
+        expiryDate:'2030-12',quantity:1,unitCost:10}),
+      (err:any)=>err.code==='PHARMACY_BATCH_PURCHASE_REQUIRED',
+    );
+    await assert.rejects(pharmacy.deleteDrug(pf.auth,Number(pd.id)),
+      (err:any)=>err.code==='PHARMACY_DRUG_BATCH_HISTORY');
+    await assert.rejects(pharmacy.importDistributorInvoice(pf.auth,{
+      ...invoice,invoiceNumber:`DISTRIB-${tag}-EXP`,
+      lines:[{...invoice.lines[0],batchNumber:`OLD-${tag}`,expiryDate:'2020-01'}],
+    }));
+    const afterFailed=await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',pf.auth.tenantId!).where('id','=',pf.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(afterFailed.stock_qty),3,'expired-batch purchase must rollback inventory');
+    const failedPurchase=await db.selectFrom('purchases').select('id')
+      .where('tenant_id','=',pf.auth.tenantId!).where('supplier_invoice_no','=',`DISTRIB-${tag}-EXP`).execute();
+    assert.equal(failedPurchase.length,0,'failed purchase must not retain source document');
+    pass('pharmacy invoice posts AP/stock/batches/GL atomically, idempotently, and rolls back expired batches');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not

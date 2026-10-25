@@ -43,3 +43,11 @@
 
 
 <!-- migrated:cap-039:end -->
+
+
+### 2026-10-25 P0-C — Distributor purchase integration (pending final CI)
+
+- `PharmacyService.importDistributorInvoice` now routes through `PurchasesService.createPurchase` with linked tenant supplier/product/warehouse, supplier invoice idempotency and purchase-line batch metadata. Canonical purchase commits stock, expiry lot, AP/cash and posted journal in a single DB transaction; paid versus bonus quantities preserve real supplier cost.
+- `PharmacyService.upsertBatch` refuses direct quantity or unit-cost mutations, including zero-cost stock creation, and only permits batch metadata changes; `deleteDrug` rejects deleting catalog history referenced by batches. Production purchase handler cross-checks the linked pharmacy product during purchase.
+- Unlinked catalog records and three-decimal pharmacy purchase totals deliberately fail closed pending safe product linking and full purchase-currency implementation; old unlinked batch records still need historical reconciliation.
+- Regression: `backend/test/critical/pharmacy-distributor-purchase.spec.ts`, and `backend/test/acceptance/core-accounting.postgres.spec.ts` real-DB scenario.

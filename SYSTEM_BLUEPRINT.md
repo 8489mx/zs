@@ -391,3 +391,8 @@ erDiagram
 ### P0-C — تبعية الصيانة على القيد المحاسبي (فرع المراجعة، 25 أكتوبر 2026)
 
 `MaintenanceModule` يستورد `AccountingModule` ليستخدم `AccountingPostingService` و`AccountingTenantFoundationService`. جميع قيود العربون والتسليم وصرف/إرجاع القطع تتم داخل نفس `TransactionHelper.runInTransaction` مع `treasury_transactions` و`stock_movements`؛ فشل الترحيل يُجهض المستند والحركة. يمنع مسار التعديل العادي إعادة كتابة العربون بعد الترحيل ويمنع حذف العمليات ذات الأثر المالي. يظل مسار الإلغاء/الاسترداد المدقق والدفعات الجزئية وتدقيق الواجهة ضمن النطاق غير المغلق.
+
+
+### P0-C pharmacy distributor integration (2026-10-25; verification required)
+
+- The pharmacy distributor importer now depends on PurchasesModule/PurchasesService for the canonical supplier purchase/GRN stock-and-GL transaction. Pharmacy batches are never a standalone monetary posting source. See `PHARMACY_CAPABILITIES.md` for limits and verification.
