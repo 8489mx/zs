@@ -516,6 +516,59 @@ async function main() {
     assert.equal(Number(afterFilSale.stock_qty),0);
     pass('KWD credit sale 0.001 receivable, unit cost, inventory and balanced revenue/COGS GL');
 
+    // Reverse the same one-fil sale and purchase through their public return
+    // services: recover stock at source cost and settle both partner subledgers.
+    const filSaleLineId=await db.selectFrom('sale_items').select('id')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('sale_id','=',oneFilSaleId)
+      .executeTakeFirstOrThrow();
+    const oneFilSaleRefund=await returns.createReturn({
+      type:'sale',invoiceId:oneFilSaleId,
+      items:[{productId:kwd.productId,saleItemId:Number(filSaleLineId.id),qty:1}],
+      settlementMode:'refund',refundMethod:'cash',
+    },kwd.auth);
+    const oneFilSalesReturn=await db.selectFrom('return_documents').select('total')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',Number(oneFilSaleRefund.returnDocumentId))
+      .executeTakeFirstOrThrow();
+    assert.equal(Number(oneFilSalesReturn.total),0.001);
+    const afterFilSaleReturn=await db.selectFrom('customers').select('balance')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.customerId).executeTakeFirstOrThrow();
+    assert.equal(Number(afterFilSaleReturn.balance),0);
+    const returnedFilQty=await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(returnedFilQty.stock_qty),1);
+    const filPurchaseLineId=await db.selectFrom('purchase_items').select('id')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('purchase_id','=',filInvoiceId).executeTakeFirstOrThrow();
+    const oneFilPurchaseRefund=await returns.createReturn({
+      type:'purchase',invoiceId:filInvoiceId,
+      items:[{productId:kwd.productId,purchaseItemId:Number(filPurchaseLineId.id),qty:1}],
+      settlementMode:'refund',refundMethod:'cash',
+    },kwd.auth);
+    const oneFilVendorReturn=await db.selectFrom('return_documents').select('total')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',Number(oneFilPurchaseRefund.returnDocumentId))
+      .executeTakeFirstOrThrow();
+    assert.equal(Number(oneFilVendorReturn.total),0.001);
+    const afterFilVendor=await db.selectFrom('suppliers').select('balance')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.supplierId).executeTakeFirstOrThrow();
+    assert.equal(Number(afterFilVendor.balance),0);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.productId)
+      .executeTakeFirstOrThrow()).stock_qty),0);
+    const filReturnGL=await sql<{source_type:string;total_debit:string;total_credit:string}>`
+      select j.source_type, sum(l.debit) as total_debit, sum(l.credit) as total_credit
+      from journal_entries j join journal_entry_lines l
+        on l.journal_entry_id=j.id and l.tenant_id=j.tenant_id
+      where j.tenant_id=${kwd.auth.tenantId!} and j.source_type in ('sales_return','purchase_return')
+        and j.source_id in (${Number(oneFilSaleRefund.returnDocumentId)},${Number(oneFilPurchaseRefund.returnDocumentId)})
+      group by j.source_type
+    `.execute(db);
+    assert.equal(filReturnGL.length,2);
+    for (const row of filReturnGL.rows) {
+      assert.ok(Number(row.total_debit)>=0.001);
+      assert.equal(Number(row.total_debit),Number(row.total_credit));
+    }
+    pass('KWD sale and supplier return reverse one-fil AR/AP and COGS with physical stock and balanced journals');
+
+
 
 
     // Exercise actual cross-module 0.001 cash and inventory paths, not merely an isolated journal.
