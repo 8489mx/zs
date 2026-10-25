@@ -1570,6 +1570,8 @@ export class AccountingPostingService {
 
   async postPurchase(queryable: DbOrTx, purchaseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => Number(Number(value ?? 0).toFixed(bookDigits));
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingPurchaseJournal(queryable, purchaseId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -1605,16 +1607,16 @@ export class AccountingPostingService {
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
 
-    const lineCostTotal = this.toMoney(
+    const lineCostTotal = toBookMoney(
       purchaseItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.unit_cost || 0)), 0),
     );
 
-    const taxAmount = this.toMoney(purchase.tax_amount);
-    const total = this.toMoney(purchase.total);
+    const taxAmount = toBookMoney(purchase.tax_amount);
+    const total = toBookMoney(purchase.total);
     // Prefer header-consistent net purchase amount (total - tax) to keep discounts/tax aligned.
     // Fallback to summed item cost when header fields are not reliable.
-    const inventoryDebit = this.toMoney(Math.max(0, total - taxAmount)) > 0
-      ? this.toMoney(Math.max(0, total - taxAmount))
+    const inventoryDebit = toBookMoney(Math.max(0, total - taxAmount)) > 0
+      ? toBookMoney(Math.max(0, total - taxAmount))
       : lineCostTotal;
     const payableCredit = purchase.payment_type === 'credit' ? total : 0;
     const cashOrBankCredit = purchase.payment_type === 'credit' ? 0 : total;
@@ -1665,11 +1667,11 @@ export class AccountingPostingService {
         .where('tenant_id', '=', scope.tenantId)
         .execute();
       const grniBookedAmount = isGrnBill
-        ? this.toMoney(purchaseItems.reduce((sum, item) => sum + Number(item.grni_amount), 0))
-        : this.toMoney(grnLines.reduce((sum, line) => sum + Number(line.accepted_qty || 0) * Number(line.unit_cost || 0), 0));
+        ? toBookMoney(purchaseItems.reduce((sum, item) => sum + Number(item.grni_amount), 0))
+        : toBookMoney(grnLines.reduce((sum, line) => sum + Number(line.accepted_qty || 0) * Number(line.unit_cost || 0), 0));
 
-      const netInvoiceAmount = this.toMoney(Math.max(0, total - taxAmount));
-      const priceVariance = this.toMoney(netInvoiceAmount - grniBookedAmount);
+      const netInvoiceAmount = toBookMoney(Math.max(0, total - taxAmount));
+      const priceVariance = toBookMoney(netInvoiceAmount - grniBookedAmount);
 
       this.addLine(lines, {
         accountId: Number(grniAccount.id),
@@ -1772,15 +1774,15 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting purchase ${purchaseId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
 
     if (normalizedLines.length === 0) {
       this.logger.warn(`Purchase ${purchaseId} resulted in empty journal lines (possibly 100% discount with no tax), skipping journal posting.`);
       return { posted: false, journalEntryId: 0 };
     }
 
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced purchase journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
