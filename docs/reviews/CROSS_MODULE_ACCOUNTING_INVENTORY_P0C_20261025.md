@@ -220,3 +220,8 @@ The code observations above identify definite missing integration points; **fina
 
 - Shared `buildAggregatedBalances` used two-decimal rounding irrespective of the caller's book currency. The helper now accepts explicit 2/3 minor units, retaining the legacy cent default while allowing KWD/OMR subledger snapshots without dropped fils.
 - Infra tests cover positive fil balances and overriding posted-ledger totals; broad report and full-cycle release signoff remain open.
+
+### Trade-in already-registered IMEI integrity follow-up
+
+- Trade-in physical acquisition now refuses a serial registered in `product_serials` even when it has no earlier `trade_in_transactions` document. Previously, the service booked another stock receipt, WAC and payout but skipped the serial insert, losing one-to-one device provenance.
+- The rejection occurs inside the stock/treasury/GL transaction; new disposable PostgreSQL acceptance asserts no trade-in source or inventory movement after refusal. Verification is pending for this SHA; full exchange, serial resale, reversal and sector close remain OPEN.
