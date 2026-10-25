@@ -23,6 +23,7 @@ import { MarketplaceSyncService } from '../../src/modules/storefront/services/ma
 import { PurchasesService } from '../../src/modules/purchases/purchases.service';
 import { SalesService } from '../../src/modules/sales/sales.service';
 import { ReturnsService } from '../../src/modules/returns/returns.service';
+import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { AuditService } from '../../src/core/audit/audit.service';
 import { SettingsDemoDataService } from '../../src/modules/settings/services/settings-demo-data.service';
 import { up as up253, down as down253 } from '../../src/database/migrations/2040000000253_core_tenant_reference_integrity';
@@ -52,6 +53,7 @@ async function main() {
   const purchases = app.get(PurchasesService);
   const sales = app.get(SalesService);
   const returns = app.get(ReturnsService);
+  const tradein = app.get(TradeInService);
   const sheet = app.get(BalanceSheetService);
   const tag = randomUUID().replaceAll('-','').slice(0,10);
   const createdTenants: string[] = [];
@@ -275,6 +277,33 @@ async function main() {
       await assert.rejects(down252(trx),/reviewed financial reconciliation/);
     });
     pass('accounting foundation migration up/up preserves per-tenant ledger counts and money; rollback refuses to discard financial evidence');
+
+    const traded=await fixture('tradein_guard');
+    const deviceSerial=`ACCEPT-${tag}-001`;
+    const intake={sellerName:'Acceptance Seller',sellerPhone:'01000000000',sellerNationalId:'00000000000000',
+      deviceModel:'Test used terminal',serialNumber:deviceSerial,agreedPurchasePrice:37.25,
+      transactionType:'cash_purchase' as const,paymentMethod:'cash',autoAddToInventory:false,
+      branchId:traded.branchId,locationId:traded.locationId};
+    // Independent concurrent requests and lost-response repeats must never double-pay.
+    const simultaneous=await Promise.allSettled([
+      tradein.createTransaction(intake,traded.auth),tradein.createTransaction({...intake},traded.auth),
+    ]);
+    assert.equal(simultaneous.filter(x=>x.status==='fulfilled').length,1);
+    assert.equal(simultaneous.filter(x=>x.status==='rejected' && (x.reason as any).code==='TRADEIN_DUPLICATE_SERIAL').length,1);
+    const recorded=await db.selectFrom('trade_in_transactions').select(['id','doc_no'])
+      .where('tenant_id','=',traded.auth.tenantId!).where('serial_number','=',deviceSerial).execute();
+    assert.equal(recorded.length,1);
+    const cashRecorded=await db.selectFrom('treasury_transactions').select(['id','amount'])
+      .where('tenant_id','=',traded.auth.tenantId!).where('reference_type','=','trade_in')
+      .where('reference_id','=',Number(recorded[0].id)).execute();
+    assert.equal(cashRecorded.length,1);
+    assert.equal(money(cashRecorded[0].amount),-37.25);
+    await assert.rejects(tradein.createTransaction(intake,traded.auth),(e:any)=>e.code==='TRADEIN_DUPLICATE_SERIAL');
+    await assert.rejects(tradein.deleteTransaction(Number(recorded[0].id),traded.auth),(e:any)=>e.code==='TRADEIN_REVERSAL_REQUIRED');
+    const retained=await db.selectFrom('trade_in_transactions').select('id')
+      .where('tenant_id','=',traded.auth.tenantId!).where('id','=',Number(recorded[0].id)).executeTakeFirst();
+    assert.ok(retained,'financially relevant trade-in source must remain immutable');
+    pass('concurrent trade-in duplicate and lost response cannot create a second cash movement; economic history cannot be hard-deleted');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
