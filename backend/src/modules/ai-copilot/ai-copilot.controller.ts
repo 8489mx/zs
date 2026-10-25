@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, Req, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Post, Delete, Body, Param, Req, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
@@ -14,6 +14,15 @@ export class AiCopilotController {
     private readonly agentService: AiAgentService,
     private readonly knowledgeService: AiKnowledgeService,
   ) {}
+
+  private assertCanManageAiSettings(req: RequestWithAuth): void {
+    const auth = req.authContext;
+    if (!auth || (auth.role !== 'admin' && auth.role !== 'super_admin'
+      && !auth.permissions?.includes('settings')
+      && !auth.permissions?.includes('canManageSettings'))) {
+      throw new ForbiddenException('Missing settings management permission');
+    }
+  }
 
   /**
    * New Conversational Reasoning Agent Endpoint (Multi-turn + Tools + Out-of-the-box reasoning)
@@ -125,6 +134,7 @@ export class AiCopilotController {
 
   @Get('config')
   getConfig(@Req() req: RequestWithAuth) {
+    this.assertCanManageAiSettings(req);
     return this.copilotService.getConfig(req.authContext!);
   }
 
@@ -140,6 +150,7 @@ export class AiCopilotController {
     },
     @Req() req: RequestWithAuth,
   ) {
+    this.assertCanManageAiSettings(req);
     return this.copilotService.saveConfig(body, req.authContext!);
   }
 
@@ -154,6 +165,7 @@ export class AiCopilotController {
     },
     @Req() req: RequestWithAuth,
   ) {
+    this.assertCanManageAiSettings(req);
     return this.copilotService.testAiKey(body, req.authContext!);
   }
 
@@ -166,6 +178,7 @@ export class AiCopilotController {
     },
     @Req() req: RequestWithAuth,
   ) {
+    this.assertCanManageAiSettings(req);
     return this.copilotService.getAvailableModels(body, req.authContext!);
   }
 

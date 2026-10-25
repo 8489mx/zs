@@ -96,7 +96,7 @@ export class MfaService {
     const encrypted = encryptMfaSecret(secret);
     const now = new Date();
 
-    await this.db
+    const saved = await this.db
       .insertInto('user_mfa')
       .values({
         user_id: auth.userId,
@@ -116,8 +116,14 @@ export class MfaService {
         last_used_step: 0,
         recovery_codes: JSON.stringify([]),
         updated_at: now,
-      }))
-      .execute();
+      // Concurrent confirmation must NEVER be reset back to an unenrolled factor.
+      }).where('tenant_id', '=', tenantId).where('confirmed_at', 'is', null))
+      .returning('user_id')
+      .executeTakeFirst();
+
+    if (!saved) {
+      throw new AppError('المصادقة الثنائية مفعّلة بالفعل. أوقفها أولاً إن أردت ربط تطبيق آخر.', 'MFA_ALREADY_ENABLED', 400);
+    }
 
     return {
       secret,
@@ -144,7 +150,7 @@ export class MfaService {
     if (step === null) throw new AppError('رمز التحقق غير صحيح. تأكد من وقت الهاتف ثم أعد المحاولة.', 'MFA_CODE_INVALID', 400);
 
     const recoveryCodes = generateRecoveryCodes();
-    await this.db
+    const confirmed = await this.db
       .updateTable('user_mfa')
       .set({
         confirmed_at: new Date(),
@@ -154,7 +160,16 @@ export class MfaService {
       })
       .where('user_id', '=', auth.userId)
       .where('tenant_id', '=', tenantId)
-      .execute();
+      // Another setup/confirmation may have replaced the pending secret since
+      // our read. Never confirm a different secret with this request's OTP.
+      .where('secret_encrypted', '=', row.secret_encrypted)
+      .where('confirmed_at', 'is', null)
+      .returning('user_id')
+      .executeTakeFirst();
+
+    if (!confirmed) {
+      throw new AppError('تغير إعداد المصادقة الثنائية، أعد بدء التسجيل.', 'MFA_SETUP_CHANGED', 409);
+    }
 
     await this.audit.log('تفعيل المصادقة الثنائية', `فعّل المستخدم ${auth.username} المصادقة الثنائية`, auth, {
       targetTenantId: tenantId,
