@@ -11,6 +11,9 @@ import { formatDailyDocumentNumber } from '../../common/utils/document-number.ut
 import { validateDistributorInvoiceLines } from './engines/distributor-invoice-validation.engine';
 import { buildDistributorPurchaseItem } from './engines/distributor-purchase.engine';
 import { PurchasesService } from '../purchases/purchases.service';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
+import { postPharmacyCashReceipt } from './pharmacy-accounting';
 import { AppError } from '../../common/errors/app-error';
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
 import { currencyMoneyDigits, toMinorUnits, fromMinorUnits, roundMoney } from '../accounting/engines/money-minor-units.engine';
@@ -27,6 +30,8 @@ export class PharmacyService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
     private readonly purchases: PurchasesService,
+    private readonly accountingFoundation: AccountingTenantFoundationService,
+    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   // -------------------------------------------------------------
@@ -1007,45 +1012,38 @@ export class PharmacyService {
 
   async createClinicalService(auth: AuthContext, dto: UpsertClinicalServiceDto) {
     const scope = requireTenantScope(auth);
-    const service = await this.db
-      .insertInto('pharmacy_clinical_services')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-        service_type: dto.serviceType,
-        customer_name: dto.customerName,
-        customer_phone: dto.customerPhone ?? null,
-        metric_value_1: dto.metricValue1 ?? null,
-        metric_value_2: dto.metricValue2 ?? null,
-        pharmacist_notes: dto.pharmacistNotes ?? null,
-        fee: dto.fee || 0,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    // Record revenue if a fee was collected
-    const fee = Number(dto.fee || 0);
-    if (fee > 0) {
-      try {
-        await this.db
-          .insertInto('treasury_transactions')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            txn_type: 'revenue',
-            amount: fee,
-            note: `خدمة صيدلانية: ${dto.serviceType} — العميل: ${dto.customerName} — رسوم: ${fee.toFixed(2)} ج`,
-            reference_type: 'pharmacy_clinical_service',
-            reference_id: Number(service.id),
-            created_by: auth.userId ? Number(auth.userId) : null,
-          })
-          .execute();
-      } catch (err) {
-        console.warn('Failed to record pharmacy clinical service fee to treasury:', err);
-      }
+    const fee = Number(dto.fee ?? 0);
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+    try {
+      toMinorUnits(fee, digits);
+    } catch {
+      throw new AppError('Clinical service fee exceeds currency precision', 'PHARMACY_CURRENCY_PRECISION_INVALID', 422);
     }
+    if (fee < 0) throw new AppError('Clinical service fee cannot be negative', 'PHARMACY_CASH_AMOUNT_INVALID', 422);
 
-    return service;
+    // Persist the source, collected cash and its immutable GL as one economic event.
+    return this.db.transaction().execute(async (trx) => {
+      const service = await trx.insertInto('pharmacy_clinical_services').values({
+        tenant_id: scope.tenantId, account_id: scope.accountId,
+        service_type: dto.serviceType, customer_name: dto.customerName,
+        customer_phone: dto.customerPhone ?? null,
+        metric_value_1: dto.metricValue1 ?? null, metric_value_2: dto.metricValue2 ?? null,
+        pharmacist_notes: dto.pharmacistNotes ?? null, fee,
+      }).returningAll().executeTakeFirstOrThrow();
+      if (fee > 0) {
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: scope.tenantId, account_id: scope.accountId,
+          txn_type: 'revenue', amount: fee,
+          note: `خدمة صيدلانية: ${dto.serviceType} — رسوم: ${fee.toFixed(digits)}`,
+          reference_type: 'pharmacy_clinical_service',
+          reference_id: Number(service.id),
+          created_by: auth.userId ? Number(auth.userId) : null,
+        }).execute();
+        await postPharmacyCashReceipt(trx, this.accountingFoundation, this.accountingPosting,
+          auth, 'pharmacy_clinical_service', Number(service.id), fee);
+      }
+      return service;
+    });
   }
 
   // -------------------------------------------------------------
