@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { assertFashionExpectedStock, assertFashionRemovedStockSafe } from '../../src/modules/catalog/engines/fashion-stock-safety.engine';
+import { assertFashionExpectedStock, assertFashionRemovedStockSafe, fashionLocationAccessMode } from '../../src/modules/catalog/engines/fashion-stock-safety.engine';
 
 const item = { stock_qty: '5.000', reserved_qty: '0', cost_price: '25.00' };
 
@@ -45,4 +45,11 @@ test('rejects stale or missing original stock before an explicit adjustment', ()
       (err: unknown) => (err as { code?: string }).code === 'FASHION_STOCK_STALE',
     );
   }
+});
+
+test('fashion stock mutations require location write scope, not just catalog read scope', () => {
+  assert.equal(fashionLocationAccessMode(false, false, false), 'read');
+  assert.equal(fashionLocationAccessMode(false, true, false), 'write');
+  assert.equal(fashionLocationAccessMode(true, false, false), 'write');
+  assert.equal(fashionLocationAccessMode(false, false, true), 'write');
 });

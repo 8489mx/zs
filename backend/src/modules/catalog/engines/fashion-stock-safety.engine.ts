@@ -43,3 +43,10 @@ export function assertFashionExpectedStock(expected: number | undefined, current
     throw new AppError('الرصيد تغير منذ فتح الموديل؛ حدّث المقاسات قبل تسوية المخزون', 'FASHION_STOCK_STALE', 409);
   }
 }
+
+/** Editing descriptions only needs read access; stock-affecting saves need branch write scope. */
+export function fashionLocationAccessMode(
+  isNewVariant: boolean, hasStockUpdate: boolean, requestedConsolidation: boolean,
+): 'read' | 'write' {
+  return isNewVariant || hasStockUpdate || requestedConsolidation ? 'write' : 'read';
+}

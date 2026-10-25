@@ -13,7 +13,7 @@ import { buildPosCatalogVersion } from '../engines/pos-catalog-version.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
-import { assertFashionExpectedStock, assertFashionRemovedStockSafe } from '../engines/fashion-stock-safety.engine';
+import { assertFashionExpectedStock, assertFashionRemovedStockSafe, fashionLocationAccessMode } from '../engines/fashion-stock-safety.engine';
 
 type ProductRow = {
   id: number;
@@ -1853,10 +1853,16 @@ export class CatalogProductService {
         await this.ensureCustomerPricesInTenant(value, actor);
         this.ensureAdvancedOffersSupported(value, await this.getProductOfferColumnCapabilities());
       }
-      if (value.warehouseId) await this.inventoryScope.assertLocationScope(value.warehouseId, actor);
+      if (value.warehouseId) {
+        await this.inventoryScope.assertLocationScope(value.warehouseId, actor, false,
+          fashionLocationAccessMode(!id, value.stock !== undefined, Boolean(payload.consolidateStock || payload.zeroRemovedStock)));
+      }
     }
 
     if (drafts.some((draft) => !draft.id && Number(draft.value.stock || 0) > 0)) {
+      if (!this.hasPermission(actor, 'canAdjustInventory')) {
+        throw new AppError('Opening stock requires canAdjustInventory permission', 'INVENTORY_ADJUSTMENT_FORBIDDEN', 403);
+      }
       await this.ensureOpeningStockAccounts(actor);
     }
 
@@ -1870,6 +1876,12 @@ export class CatalogProductService {
         .where('is_active', '=', true).where(this.tenantPredicate(actor)).forUpdate().execute();
       if (!existing.length) throw new AppError('Fashion group no longer exists', 'FASHION_GROUP_NOT_FOUND', 404);
       const byId = new Map(existing.map((p) => [Number(p.id), p]));
+      const authorizedStockLocationIds = new Set<number>();
+      const assertStockLocationWriteScope = async (locationId: number | null) => {
+        if (locationId === null || authorizedStockLocationIds.has(locationId)) return;
+        await this.inventoryScope.assertLocationScope(locationId, actor, false, 'write', trx);
+        authorizedStockLocationIds.add(locationId);
+      };
       for (const draft of drafts) if (draft.id && !byId.has(draft.id)) {
         throw new AppError('Variant does not belong to this group', 'FASHION_VARIANT_SCOPE', 403);
       }
@@ -1923,6 +1935,7 @@ export class CatalogProductService {
               .selectAll().where('product_id', '=', removedId)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
             assertFashionRemovedStockSafe(removedProduct, locStocks, Number(target?.value.costPrice ?? 0));
+            for (const locStock of locStocks) await assertStockLocationWriteScope(locStock.location_id);
 
             for (const ls of locStocks) {
               const qtyToMove = Number(ls.qty || 0);
@@ -2003,6 +2016,7 @@ export class CatalogProductService {
               .selectAll().where('product_id', '=', removedId)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
             assertFashionRemovedStockSafe(removedProduct, locStocks);
+            for (const locStock of locStocks) await assertStockLocationWriteScope(locStock.location_id);
 
             for (const ls of locStocks) {
               const qtyToDeduct = Number(ls.qty || 0);
@@ -2566,6 +2580,9 @@ export class CatalogProductService {
               .selectAll().where('product_id', '=', product.id)
               .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
             assertFashionRemovedStockSafe(product, locStocks);
+            for (const locStock of locStocks) {
+              if (locStock.location_id != null) await this.inventoryScope.assertLocationScope(Number(locStock.location_id), actor, false, 'write', trx);
+            }
 
             for (const ls of locStocks) {
               const qtyToDeduct = Number(ls.qty || 0);
