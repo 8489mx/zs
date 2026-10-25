@@ -48,7 +48,8 @@ async function run(): Promise<void> {
     try {
       const service = createBackupService();
       await assert.rejects(
-        () => service.saveBackupToConfiguredFolder(actor({ permissions: ['settings'] })),
+        // Exercise runtime isolation after the independent backup-administrator permission gate.
+        () => service.saveBackupToConfiguredFolder(actor({ permissions: ['canManageBackups'] })),
         (error: unknown) => error instanceof AppError && error.code === 'FEATURE_NOT_AVAILABLE',
       );
     } finally {
@@ -58,7 +59,7 @@ async function run(): Promise<void> {
   }
   {
     const service = createBackupService();
-    const result = await service.restoreBackup(backupPayload, actor({ permissions: ['settings'] }), true);
+    const result = await service.restoreBackup(backupPayload, actor({ permissions: ['canManageBackups'] }), true);
     assert.equal(result.ok, true);
     assert.equal(result.dryRun, true);
   }
