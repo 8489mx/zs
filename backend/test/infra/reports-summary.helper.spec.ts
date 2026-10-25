@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { toMoney, sumMoney } from '../../src/modules/reports/helpers/reports-math.helper';
+import { toMoney, sumMoney, buildTrendMap } from '../../src/modules/reports/helpers/reports-math.helper';
 import { buildReportSummaryPayload, splitReturnRowsByType } from '../../src/modules/reports/helpers/reports-summary.helper';
 
 (function testSplitReturnRowsByType() {
@@ -66,3 +66,6 @@ assert.equal(sumMoney([{amount:1.255},{amount:0.001}], row => row.amount, 3), 1.
 assert.equal(toMoney(-10.505), -10.51);
 assert.equal(toMoney(15.255), 15.26);
 assert.equal(toMoney(0.001,3),0.001);
+
+assert.deepEqual(buildTrendMap([{k:'day',v:0.001},{k:'day',v:0.002}],['day'],r=>r.k,r=>r.v,3),[{key:'day',value:0.003}]);
+assert.deepEqual(buildTrendMap([{k:'day',v:0.004},{k:'day',v:0.004}],['day'],r=>r.k,r=>r.v),[{key:'day',value:0.01}]);
