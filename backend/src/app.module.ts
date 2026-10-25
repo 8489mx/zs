@@ -111,6 +111,7 @@ export class AppModule implements NestModule {
       .apply(LoginRateLimitMiddleware)
       .forRoutes(
         { path: 'api/auth/login', method: RequestMethod.POST },
+        { path: 'api/auth/login/mfa', method: RequestMethod.POST },
         { path: 'api/developer/feature-plans', method: RequestMethod.GET },
         { path: 'api/developer/update-plan', method: RequestMethod.POST },
       );
