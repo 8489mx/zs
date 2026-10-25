@@ -60,6 +60,7 @@ export interface Product {
   itemType?: 'product' | 'raw_material' | 'service';
   itemKind?: 'standard' | 'fashion';
   styleCode?: string;
+  variantsCount?: number;
   sku?: string;
   catalogUpdatedAt?: string;
   color?: string;
