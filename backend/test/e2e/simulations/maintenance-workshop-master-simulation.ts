@@ -44,7 +44,7 @@ async function runMaintenanceWorkshopMasterSimulation() {
 
   const tx = new TransactionHelper();
   const audit = new AuditService(db);
-  const maintenanceService = new MaintenanceService(db, tx, audit);
+  const maintenanceService = new MaintenanceService(db, tx, audit, new AccountingPostingService(new AccountingTenantFoundationService()), new AccountingTenantFoundationService());
   const tradeInService = new TradeInService(db, tx, audit, new AccountingPostingService(new AccountingTenantFoundationService()));
   const fleetService = new VanFleetService(db);
 
