@@ -89,3 +89,9 @@ The code observations above identify definite missing integration points; **fina
 - Wrapped pharmacy distributor-invoice batch/drug creation and treasury write in one database transaction. The previous swallowed treasury exception no longer permits a successful partial batch import.
 - **P0C-02 and P0C-04 remain OPEN:** maintenance still lacks atomic central GL postings, and distributor invoices still require a canonical purchase/AP/stock/GL pipeline with idempotency. These changes are safety constraints, not full financial certification.
 - The new changes still require targeted tests and PostgreSQL acceptance plus full CI. No production or Electron verification is asserted here.
+
+### Additional safety guard follow-up
+
+- Maintenance delivered tickets cannot be reopened and charged again, and already delivered tickets reject retrospective changes to final cost or collected amount. New collected amounts and final costs reject negative/non-finite inputs.
+- Pharmacy distributor invoices reject invalid product names, non-finite numbers, zero/negative purchased quantities and negative bonus quantity/prices before creating stock batches. These checks run within the same rollback boundary as batch and treasury inserts.
+- These protections do not replace transactionally linked GL journal posting, audited reversals, purchase/AP matching, or real-database end-to-end signoff.
