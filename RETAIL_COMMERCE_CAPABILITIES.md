@@ -577,3 +577,8 @@
 ### 2026-10-25 — C: supplier-payment drawer movement item consistency
 
 - The cash-drawer supplier **summary** filters `supplier_payments.payment_channel` to cash, but `fetchShiftMovementItems` previously listed card/wallet supplier payments as physical drawer outflows. Itemized supplier payments now apply the same cash-only predicate, and the supplier name JOIN includes tenant ownership. Regression `cash-drawer-cash-return.spec.ts` amended to assert payment-channel classification, not executed.
+
+
+### 2026-10-25 — E/F: cashier fraud radar must not analyze only current register page
+
+- `ReturnsWorkspace` passed its currently filtered 20-row register page into `detectReturnsAnomalies` and the radar dashboard, causing false low risk scores and missing older rapid refunds. Radar now fetches the **complete sale-return history** lazily via paginated `returnsApi.listAll({filter:'sales'})` only when opened. While the full history is loading or unavailable, the screen displays loading/error instead of misleading zero fraud alerts. Suspicious row details can open from this history even when absent from the current register page. Regression `return-radar-selection.spec.ts` written, not executed. Full sales history quality and scalability must still be checked against real large tenants.

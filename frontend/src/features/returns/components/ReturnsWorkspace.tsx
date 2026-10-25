@@ -29,6 +29,7 @@ import { formatCurrency, formatDate } from '@/lib/format';
 import type { Purchase, PurchaseItem, Sale, SaleItem } from '@/types/domain';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { remainingInvoiceLineQuantity, isSelectedReturnQuantityValid } from '@/features/returns/lib/return-remaining-quantity';
+import { findReturnInRegisterOrRadar } from '@/features/returns/lib/return-radar-selection';
 import { buildReturnRegisterExportQuery } from '@/features/returns/lib/return-register-export-query';
 import { mayReleaseReturnIdempotencyKey, wasReturnCommitted } from '@/features/returns/lib/return-submission-recovery';
 import { toast } from '@/shared/components/system-alert';
@@ -90,6 +91,15 @@ export function ReturnsWorkspace() {
 
   const selectedInvoice = invoiceRows.find((row) => String(row.id) === String(form.invoiceId) || (Boolean(row.docNo) && String(row.docNo).toLowerCase() === String(form.invoiceId).toLowerCase())) as Sale | Purchase | undefined;
   const rows = useMemo(() => query.data?.returns || [], [query.data?.returns]);
+  // Radar is independent of the register's page and user-applied filters.
+  // Load its full sale-return history only when the radar tab is visited.
+  const radarQuery = useQuery({
+    queryKey: ['returns', 'radar-all-sales'],
+    queryFn: () => returnsApi.listAll({ filter: 'sales' }),
+    enabled: activeTab === 'radar',
+    staleTime: 30_000,
+  });
+  const radarRows = useMemo(() => radarQuery.data?.returns || [], [radarQuery.data?.returns]);
   const invoiceItems = useMemo(() => (selectedInvoice?.items || []) as Array<SaleItem | PurchaseItem>, [selectedInvoice?.items]);
   const invoiceReturnQuantitiesQuery = useQuery({
     queryKey: ['returns-invoice-quantities', form.type, selectedInvoice?.id],
@@ -125,14 +135,14 @@ export function ReturnsWorkspace() {
   const salesReturns = Number(summary?.salesReturns || 0);
   const purchaseReturns = Number(summary?.purchaseReturns || 0);
   const total = Number(summary?.totalAmount || 0);
-  const selectedReturn = rows.find((row) => String(row.id) === String(selectedReturnId)) || null;
+  const selectedReturn = findReturnInRegisterOrRadar(selectedReturnId, rows, radarRows);
 
   useEffect(() => {
-    if (selectedReturnId && !rows.some((row) => String(row.id) === String(selectedReturnId))) {
+    if (selectedReturnId && !findReturnInRegisterOrRadar(selectedReturnId, rows, radarRows)) {
       setSelectedReturnId('');
       setPage(1);
     }
-  }, [rows, selectedReturnId]);
+  }, [rows, radarRows, selectedReturnId]);
 
   useEffect(() => {
     setViewFilter(isPurchaseMode ? 'purchase' : 'all');
@@ -352,8 +362,8 @@ export function ReturnsWorkspace() {
   ] as const;
 
   const anomalySummary = useMemo(() => {
-    return detectReturnsAnomalies(rows, salesQuery.data || []);
-  }, [rows, salesQuery.data]);
+    return detectReturnsAnomalies(radarRows, salesQuery.data || []);
+  }, [radarRows, salesQuery.data]);
 
   return (
     <div className="page-stack page-shell returns-workspace" dir={i18n.dir()}>
@@ -383,7 +393,7 @@ export function ReturnsWorkspace() {
             onClick={() => setActiveTab('radar')}
           >
             {t('returns.tabs.radar', 'رقابة وتدقيق الشبهات')}
-            {anomalySummary.totalSuspectReturnsCount > 0 ? ` (${anomalySummary.totalSuspectReturnsCount})` : ''}
+            {radarQuery.isSuccess && anomalySummary.totalSuspectReturnsCount > 0 ? ` (${anomalySummary.totalSuspectReturnsCount})` : ''}
           </Button>
         </div>
 
@@ -412,11 +422,20 @@ export function ReturnsWorkspace() {
             />
           </>
         ) : (
-          <ReturnsAnomalyRadarCard
-            returns={rows}
-            sales={salesQuery.data || []}
-            onSelectReturn={(id) => setSelectedReturnId(id)}
-          />
+          radarQuery.isLoading ? (
+            <div role="status" className="surface-note">جارٍ تحميل سجل مرتجعات البيع الكامل للتحليل الرقابي...</div>
+          ) : radarQuery.isError ? (
+            <div role="alert" className="surface-note">
+              تعذر تحميل سجل المرتجعات الكامل. لن نعرض نتائج رقابة ناقصة.
+              <Button variant="secondary" onClick={() => void radarQuery.refetch()}>إعادة المحاولة</Button>
+            </div>
+          ) : (
+            <ReturnsAnomalyRadarCard
+              returns={radarRows}
+              sales={salesQuery.data || []}
+              onSelectReturn={(id) => setSelectedReturnId(id)}
+            />
+          )
         )}
 
         {/* Premium Modal for Creating Return */}
