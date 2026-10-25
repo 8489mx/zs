@@ -1,4 +1,5 @@
 import { AppError } from '../../../common/errors/app-error';
+import { type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 
 export type RefundTender = 'cash' | 'card' | 'store_credit' | 'receivable';
 
@@ -14,10 +15,12 @@ export function allocateRefundTenders(input: {
   hasCustomer: boolean;
   override?: boolean;
   overrideReason?: string;
+  digits?: MoneyDigits;
 }): Array<{ tender: RefundTender; amount: number }> {
+  const scale = 10 ** (input.digits ?? 2);
   const toCents = (value: number): number => {
-    const rounded = Math.round(Number(value) * 100);
-    if (!Number.isSafeInteger(rounded) || rounded < 0 || Math.abs(Number(value) * 100 - rounded) > 0.001) {
+    const rounded = Math.round(Number(value) * scale);
+    if (!Number.isSafeInteger(rounded) || rounded < 0 || Math.abs(Number(value) * scale - rounded) > 0.001) {
       throw new AppError('Refund amounts require cent precision', 'INVALID_REFUND_AMOUNT', 400);
     }
     return rounded;
@@ -30,7 +33,7 @@ export function allocateRefundTenders(input: {
   const result: Array<{ tender: RefundTender; amount: number }> = [];
   const apply = (tender: RefundTender, available: number): void => {
     const used = Math.min(remaining, Math.max(0, available));
-    if (used > 0) result.push({ tender, amount: used / 100 });
+    if (used > 0) result.push({ tender, amount: used / scale });
     remaining -= used;
   };
   const debtAvailable = Math.max(0, toCents(input.originalDebt) - toCents(input.previousDebtReversed));
