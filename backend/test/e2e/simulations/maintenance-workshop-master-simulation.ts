@@ -6,6 +6,8 @@ import { TransactionHelper } from '../../../src/database/helpers/transaction.hel
 import { AuditService } from '../../../src/core/audit/audit.service';
 import { MaintenanceService } from '../../../src/modules/maintenance/maintenance.service';
 import { TradeInService } from '../../../src/modules/tradein/tradein.service';
+import { AccountingPostingService } from '../../../src/modules/accounting/accounting-posting.service';
+import { AccountingTenantFoundationService } from '../../../src/modules/accounting/accounting-tenant-foundation.service';
 import { VanFleetService } from '../../../src/modules/delivery-reps/services/van-fleet.service';
 import { applyStockDelta } from '../../../src/common/utils/location-stock-ledger';
 import { AuthContext } from '../../../src/core/auth/interfaces/auth-context.interface';
@@ -43,7 +45,7 @@ async function runMaintenanceWorkshopMasterSimulation() {
   const tx = new TransactionHelper();
   const audit = new AuditService(db);
   const maintenanceService = new MaintenanceService(db, tx, audit);
-  const tradeInService = new TradeInService(db, tx, audit);
+  const tradeInService = new TradeInService(db, tx, audit, new AccountingPostingService(new AccountingTenantFoundationService()));
   const fleetService = new VanFleetService(db);
 
   const tenantId = 'zs';

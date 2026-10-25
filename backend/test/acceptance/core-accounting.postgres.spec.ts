@@ -282,7 +282,7 @@ async function main() {
     const deviceSerial=`ACCEPT-${tag}-001`;
     const intake={sellerName:'Acceptance Seller',sellerPhone:'01000000000',sellerNationalId:'00000000000000',
       deviceModel:'Test used terminal',serialNumber:deviceSerial,agreedPurchasePrice:37.25,
-      transactionType:'cash_purchase' as const,paymentMethod:'cash',autoAddToInventory:false,
+      transactionType:'cash_purchase' as const,paymentMethod:'cash',autoAddToInventory:true,
       branchId:traded.branchId,locationId:traded.locationId};
     // Independent concurrent requests and lost-response repeats must never double-pay.
     const simultaneous=await Promise.allSettled([
@@ -298,12 +298,25 @@ async function main() {
       .where('reference_id','=',Number(recorded[0].id)).execute();
     assert.equal(cashRecorded.length,1);
     assert.equal(money(cashRecorded[0].amount),-37.25);
+    assert.equal(await postingAmount(traded,'1140'),37.25);
+    assert.equal(await postingAmount(traded,'1110'),-37.25);
+    const acquired=await db.selectFrom('trade_in_transactions').select('created_product_id')
+      .where('tenant_id','=',traded.auth.tenantId!).where('id','=',Number(recorded[0].id)).executeTakeFirstOrThrow();
+    const stocked=await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id','=',traded.auth.tenantId!).where('id','=',Number(acquired.created_product_id)).executeTakeFirstOrThrow();
+    assert.equal(Number(stocked.stock_qty),1);
+    assert.equal(money(stocked.cost_price),37.25);
+    const posted=await db.selectFrom('journal_entries').select('id').where('tenant_id','=',traded.auth.tenantId!)
+      .where('source_type','=','trade_in').where('source_id','=',Number(recorded[0].id)).where('status','=','posted').execute();
+    assert.equal(posted.length,1);
+    const integrity=await inspectAccountingIntegrity(db,traded.auth.tenantId!);
+    assert.equal(integrity.passed,true,JSON.stringify(integrity));
     await assert.rejects(tradein.createTransaction(intake,traded.auth),(e:any)=>e.code==='TRADEIN_DUPLICATE_SERIAL');
     await assert.rejects(tradein.deleteTransaction(Number(recorded[0].id),traded.auth),(e:any)=>e.code==='TRADEIN_REVERSAL_REQUIRED');
     const retained=await db.selectFrom('trade_in_transactions').select('id')
       .where('tenant_id','=',traded.auth.tenantId!).where('id','=',Number(recorded[0].id)).executeTakeFirst();
     assert.ok(retained,'financially relevant trade-in source must remain immutable');
-    pass('concurrent trade-in duplicate and lost response cannot create a second cash movement; economic history cannot be hard-deleted');
+    pass('concurrent trade-in purchase posts exact cash/inventory GL and WAC once; history is immutable');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
