@@ -7,6 +7,9 @@
 - **BACKUP-CONSISTENT-SNAPSHOT:** كل جداول النسخة تُقرأ من معاملة `REPEATABLE READ` واحدة. لا تُبتلع أخطاء الحذف أثناء Restore عندما تكون قيود FK معطلة مؤقتًا.
 - **AUTH-COOKIE-TRUST:** `Host` / `X-Forwarded-Host` لا يلغيان `Secure` في Cloud؛ استثناء localhost محلي فقط. `PermissionsGuard` لا يمنح إذنًا دون AuthContext ولا يرفع دور `super_admin` خارج نطاق المنصة.
 - **SESSION-ATOMIC-CREATION:** يعاد التحقق من حالة المستخدم وهو مقفول داخل المعاملة، ويُحدث المستخدم وتُنشأ جلسته بصورة ذرية. يجب تطابق `account_id` و`tenant_id` للجلسة والمستخدم.
+- **RESTORE-SESSION-REVOCATION:** نجاح استرجاع النسخة يستلزم إبطال AuthCache وكاش إعدادات وفروع وباقات المنشأة، وإلغاء جلسات الشركة داخل معاملة الاسترجاع أو نقلها، بلا تجاهل لأخطاء DELETE.
+- **AUTH-RATE-MODE-BOUNDARY:** `POST /api/auth/login/mfa` محروس بعدّاد محاولات الدخول؛ لا يجوز لأعلام `IS_ELECTRON` و`PORTABLE_MODE` أن تلغي التحديد في Cloud أو في وضع تشغيل غير صالح.
+- **DESKTOP-BACKUP-MODE-BOUNDARY:** جدولة النسخ ومسارات حفظ الملفات المحلية تتطلب وضع تشغيل محلي صريح ومعترف به عبر `isDesktopRuntimeMode`، لا الاعتماد على علم Desktop وحده.
 - **حالة التحقق:** تغييرات مصدرية + اختبارات انحدار مكتوبة **لم تُشغّل**. لم تُشغّل Tests أو Build أو Typecheck أو Migrations أو اختبار قاعدة بيانات، ولم يحدث Deploy/دمج. [نطاق الأدلة والجزاءات غير المفحوصة](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md).
 
 ### Core Architecture Audit 01 — إصلاحات 23 أكتوبر 2026 (بانتظار التحقق التنفيذي)

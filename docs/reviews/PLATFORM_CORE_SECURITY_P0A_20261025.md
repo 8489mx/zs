@@ -18,13 +18,18 @@
 | P0A-08 | P1 | Multi-table tenant backup export read tables across different database snapshots, making inconsistent invoices/journals possible during concurrent writes. Export now uses one read-only REPEATABLE READ transaction. |
 | P0A-09 | P1 | Backup restore silently swallowed failures of child/tenant/session deletion while FK checks were disabled. Those errors now abort the encompassing transaction. |
 | P0A-10 | P2 | Malformed percent-encoded authentication cookies could throw during parsing rather than result in unauthenticated handling. Parsing now safely rejects malformed cookie values. |
+| P0A-11 | P1 | After successful destructive backup restore, the cached session permissions and tenant settings remained usable until TTL even though sessions/users were replaced. Invalidate tenant auth/settings/branch/plan caches after commit. |
+| P0A-12 | P1 | Tenant-package import silently swallowed SQL failure when revoking pre-import sessions, allowing a completed import to retain live old sessions. Session revocation is now mandatory in the same transaction. |
+| P0A-13 | P1 | Local scheduled backup and backup-folder API relied on `PORTABLE_MODE` even for unsupported environment combinations. Both now require canonical explicit `isDesktopRuntimeMode(APP_MODE)`. |
+| P0A-14 | P1 | Second-factor login endpoint `POST /api/auth/login/mfa` was absent from the login rate-limit middleware route registration, leaving repeated MFA guesses at unbounded middleware rate. It now uses the login limit. |
+| P0A-15 | P1 | Login rate limiter treated raw `IS_ELECTRON` / `PORTABLE_MODE` flags as bypass flags even for Cloud SaaS. Only explicitly supported desktop modes now bypass local login throttling. |
 
 ## Paths inspected
 
 - `config/app-mode.ts`, `config/env.schema.ts`, core auth session/permission/platform guards, session caching, MFA and reset entrypoints.
 - Subscription checkout controller → gateway initiation / direct grant / webhook manager → tenant subscription DB operations.
 - Backup controller/service export & restore → tenant package table classifier / FK reconciliation → transaction.
-- Tenant-transfer core package import flow and exclusions (read-only, no changes).
+- Tenant-transfer core package import flow and exclusions; session deletion error propagation hardened.
 - Architecture maps and required review protocol documents.
 
 ## Paths NOT comprehensively verified
@@ -42,6 +47,9 @@
 - `backend/test/critical/platform-auth-boundaries-p0a.spec.ts`
 - `backend/test/critical/backup-platform-boundary-p0a.spec.ts`
 - `backend/test/critical/session-login-atomic-p0a.spec.ts`
+- `backend/test/critical/backup-mode-boundary-p0a.spec.ts`
+- `backend/test/critical/login-mode-boundary-p0a.spec.ts`
+- Existing `backend/test/infra/settings-backup-safety.spec.ts` fixture updated for backup constructor dependencies.
 
 These cases cover narrowly scoped guards/policies and a mocked login transaction; they **do not** prove database behavior or production readiness. Existing regression suites were not run. No migration was created or applied. Review status stays `unverified_current_head` for affected modules, per `docs/reviews/README.md`.
 
@@ -50,5 +58,7 @@ These cases cover narrowly scoped guards/policies and a mocked login transaction
 - No change to the owner-authorized `infoadmin` Desktop acceptance path.
 - No change to `main`, deployment, live customer data, or production schema.
 - SaaS `zs` tenant guard and local-mode separation remain required, not waived.
+
+**Severity tally for confirmed corrected defects:** **P0: 2, P1: 12, P2: 1 (15 in total)**. This counts independently reproduced-by-source risk paths; no runtime proof.  
 
 **Conclusion:** The P0-A initiative has documented code fixes for the confirmed paths above; the full Platform Core audit **is not finished**. The unreviewed scope remains a release-acceptance limitation, even after these commits.

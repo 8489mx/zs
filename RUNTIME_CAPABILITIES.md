@@ -19,7 +19,7 @@
 ### فصل بيانات المنصة عن Backup شركة واتساق لقطة التصدير — تدقيق مصدر الكود 25 أكتوبر 2026
 - السلوك الحالي: استرجاع بيانات شركة لا يعيد كتابة صفوف الفوترة والجلسات وسجلات التجارب وحجوزات Offline IDs التابعة للمنصة، حتى لو تضمنتها أرشيفات قديمة. تُصدَّر الجداول داخل معاملة قراءة موحدة `REPEATABLE READ`، وفشل الحذف أثناء Restore يوقف المعاملة دون كتمان.
 - المصدر: `backend/src/modules/settings/services/settings-backup.service.ts` مع قائمة الحظر المشتركة في `core/tenant-transfer/tenant-package.ts`.
-- الانحدار المكتوب: `backend/test/critical/backup-platform-boundary-p0a.spec.ts`. اختبار PostgreSQL والتوافق مع الأرشيفات القديمة مطلوب قبل اعتماد التشغيل.
+- الانحدار المكتوب: `backend/test/critical/backup-platform-boundary-p0a.spec.ts`. اختبار PostgreSQL والتوافق مع الأرشيفات القديمة مطلوب قبل اعتماد التشغيل. نجاح Restore يبطل AuthCache وإعدادات/فروع/ميزات المنشأة فورًا؛ حذف الجلسات في Tenant Package Import صار إلزاميًا داخل المعاملة. مسارات النسخ المحلية تتطلب `isDesktopRuntimeMode` صراحة. انحدار إضافي: `backend/test/critical/backup-mode-boundary-p0a.spec.ts` (لم يُشغّل).
 
 **الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
 

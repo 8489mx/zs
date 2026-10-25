@@ -19,7 +19,7 @@
 ### عزل الصلاحيات وكوكيز Cloud واتساق إنشاء الجلسة — تدقيق مصدر الكود 25 أكتوبر 2026
 - السلوك الحالي: `PermissionsGuard` يرفض هوية غائبة ولا يعتبر `super_admin` استثناءً إلا في هوية المنصة المعترف بها. كوكيز Cloud لا تفقد خاصية Secure بسبب Host متحكم فيه العميل. جلسة قاعدة البيانات ترفض اختلاف tenant/account، وإنشاء الجلسة وتحديث المستخدم أصبحا ذريين مع إعادة فحص الحساب المقفل.
 - الملفات: `core/auth/guards/*` و`core/auth/services/session.service.ts` و`core/auth/utils/auth-cookie-cleanup.ts` و`sessions.controller.ts`.
-- الانحدار المكتوب: `backend/test/critical/platform-auth-boundaries-p0a.spec.ts` و`session-login-atomic-p0a.spec.ts`؛ لم يُغيَّر قبول `infoadmin` في Desktop.
+- الانحدار المكتوب: `backend/test/critical/platform-auth-boundaries-p0a.spec.ts` و`session-login-atomic-p0a.spec.ts`؛ لم يُغيَّر قبول `infoadmin` في Desktop. أُضيف حد محاولات على `POST /api/auth/login/mfa` إلى `AppModule` ولا يُعطَّل في Cloud بأعلام Desktop، مع `login-mode-boundary-p0a.spec.ts` غير مشغّل.
 
 **الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
 
