@@ -305,3 +305,11 @@
 
 
 <!-- migrated:cap-298:end -->
+
+## 25 October 2026 — P0-C cross-module accounting checkpoint (NOT CLOSED)
+
+- The shared return-cost engine now validates original sale-line/product provenance even when the return already has a stored unit cost; regression: `backend/test/critical/sales-return-cost.spec.ts`.
+- The PostgreSQL accounting acceptance migration probe now requires the safe 253 rollback refusal while 255 composite MFA foreign keys depend on it.
+- **Open P0:** `AccountingPostingService.toMoney` still quantizes every ledger line to two decimals, which is insufficient for KWD/OMR when the tenant's base currency has three decimals. No 3-digit ledger/valuation certification is claimed.
+- **Open P0:** direct cash/stock writes in maintenance, trade-in and pharmacy require real atomic integration into posting and balance reports.
+- Evidence and unfinished cycle/sector matrix: [P0-C checkpoint](docs/reviews/CROSS_MODULE_ACCOUNTING_INVENTORY_P0C_20261025.md). **Not release-verified.**
