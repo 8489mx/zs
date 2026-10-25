@@ -82,6 +82,15 @@ The code observations above identify definite missing integration points; **fina
 - Disposable PostgreSQL acceptance now verifies a 37.25 cash payout, matching inventory and cash GL, one source-linked journal, physical WAC and concurrent duplicate prevention.
 - **Not full sector certification:** trade-in exchanges, bank payments and purchases without classified physical stock still need their own accounting flows. Existing economic documents cannot be hard-deleted; an audited cancellation/reversal workflow is not yet implemented.
 
+
+## Maintenance P0-C implementation checkpoint (code staged; PostgreSQL verification pending)
+
+- `maintenance-accounting.ts` routes advances (Dr 1110 / Cr 2150), delivery (Dr 2150 and remaining 1110/1120 / Cr 4200), consumed spare parts (Dr 5100 / Cr 1140), and returned parts (reverse) through central `postDomainJournal`, within each stock/cash transaction.
+- Issued spare-part cost derives from authoritative product WAC, not user-supplied unit cost; returns retain historical issue valuation and recompute WAC after stock receipt.
+- Repeat delivery, non-matching settlement, direct advance edits, financial hard deletion and post-delivery removal are rejected, so they cannot silently mutate already-posted documents.
+- Disposable PostgreSQL regression was added for full receipt, issue, repricing, return, delivery, retry, and journal/stock reconciliation. **Test result is pending at this checkpoint.**
+- Remaining **P0C-02**: formal maintenance cancellation/refund, partial receivables/credit settlement, already-posted historical ticket reconciliation, extended payment rails and UI coverage; not certified. **P0C-01** KWD/OMR 3-decimal precision and **P0C-04** pharmacy distributor import remain open; trade-in exchange/bank/reversals also remain open. Do not merge/deploy.
+
 ## 25 October follow-up — maintenance protections and pharmacy transaction boundary
 
 - Prevented destructive maintenance-ticket deletion when a cash receipt, any historical ticket-linked stock movement, delivered status, or recorded advance exists. Financially significant tickets must use a future audited reversal rather than hard-delete.

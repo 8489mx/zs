@@ -24,6 +24,7 @@ import { PurchasesService } from '../../src/modules/purchases/purchases.service'
 import { SalesService } from '../../src/modules/sales/sales.service';
 import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
+import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
 import { AuditService } from '../../src/core/audit/audit.service';
 import { SettingsDemoDataService } from '../../src/modules/settings/services/settings-demo-data.service';
 import { up as up253, down as down253 } from '../../src/database/migrations/2040000000253_core_tenant_reference_integrity';
@@ -110,6 +111,73 @@ async function main() {
     assert.equal(balanceSheet.isBalanced,true,`balance-sheet difference ${balanceSheet.difference}`);
   }
   try {
+    // P0-C maintenance receipts are liabilities until delivery; spare parts are
+    // costed from locked warehouse WAC and every mutation posts in the SAME trx.
+    const maintenance = app.get(MaintenanceService);
+    const mf = await fixture('maintenance');
+    await purchase(mf, 8, 3);
+    const ticket = await maintenance.createTicket({
+      customerName: 'Repair test', customerPhone: '01000000000',
+      deviceModel: 'Test device', problemDescription: 'Repair',
+      finalCost: 100, expectedCost: 100, advancePayment: 20,
+      branchId: mf.branchId, locationId: mf.locationId,
+    } as any, mf.auth);
+    const tid = Number(ticket.id);
+    assert.equal(await postingAmount(mf, '1110'), 20);
+    assert.equal(await postingAmount(mf, '2150'), -20);
+    assert.equal(await postingAmount(mf, '4200'), 0);
+    const issued = await maintenance.addPart(tid, {
+      productId: mf.productId, productName: 'Part', qty: 1,
+      unitCost: 9999, unitPrice: 15, locationId: mf.locationId,
+    }, mf.auth);
+    const recordedPart = await db.selectFrom('maintenance_ticket_parts').select('unit_cost')
+      .where('tenant_id', '=', mf.auth.tenantId!).where('id', '=', Number(issued.partId)).executeTakeFirstOrThrow();
+    assert.equal(Number(recordedPart.unit_cost), 8, 'caller supplied cost never overrides stock WAC');
+    assert.equal(await postingAmount(mf, '1140'), 16);
+    assert.equal(await postingAmount(mf, '5100'), 8);
+    await purchase(mf, 14, 2);
+    assert.equal(await postingAmount(mf, '1140'), 44);
+    await maintenance.removePart(tid, Number(issued.partId), mf.auth);
+    assert.equal(await postingAmount(mf, '1140'), 52);
+    assert.equal(await postingAmount(mf, '5100'), 0);
+    const returnedProduct = await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id', '=', mf.auth.tenantId!).where('id', '=', mf.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(returnedProduct.stock_qty), 5);
+    assert.equal(Number(returnedProduct.cost_price), 10.4, 'return restores historical cost and recalculates WAC');
+    const reissued = await maintenance.addPart(tid, {
+      productId: mf.productId, productName: 'Part', qty: 1,
+      unitPrice: 15, locationId: mf.locationId,
+    }, mf.auth);
+    await assert.rejects(maintenance.deleteTicket(tid, mf.auth),
+      (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
+    await assert.rejects(maintenance.updateTicket(tid, {
+      customerName: 'Repair test', advancePayment: 30,
+    } as any, mf.auth), (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
+    await assert.rejects(maintenance.updateTicketStatus(tid, {
+      status: 'delivered', finalCost: 100, collectedAmount: 79,
+    }, mf.auth), (e:any) => e.code === 'MAINTENANCE_SETTLEMENT_MISMATCH');
+    assert.equal(await postingAmount(mf, '1110'), 20, 'failed delivery must roll back cash');
+    assert.equal((await db.selectFrom('maintenance_tickets').select('status')
+      .where('tenant_id', '=', mf.auth.tenantId!).where('id', '=', tid).executeTakeFirstOrThrow()).status, 'received');
+    await maintenance.updateTicketStatus(tid, {
+      status: 'delivered', finalCost: 100, collectedAmount: 80,
+    }, mf.auth);
+    assert.equal(await postingAmount(mf, '1110'), 100);
+    assert.equal(await postingAmount(mf, '2150'), 0);
+    assert.equal(await postingAmount(mf, '4200'), -100);
+    assert.equal(await postingAmount(mf, '1140'), 41.6);
+    assert.equal(await postingAmount(mf, '5100'), 10.4);
+    await maintenance.updateTicketStatus(tid, {status:'delivered'}, mf.auth);
+    const postedDelivery = await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id', '=', mf.auth.tenantId!).where('source_type', '=', 'maintenance_delivery')
+      .where('source_id', '=', tid).execute();
+    assert.equal(postedDelivery.length,1,'delivery retry cannot duplicate revenue or collection');
+    await assert.rejects(maintenance.removePart(tid, Number(reissued.partId), mf.auth),
+      (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
+    await assert.rejects(maintenance.deleteTicket(tid, mf.auth));
+    await reconciliation(mf);
+    pass('maintenance cash advance liability / WAC spare part issue and return / exact service settlement / retry / GL');
+
     const f=await fixture('commercial');
     const p1=await purchase(f,10); await purchase(f,20);
     let product=await db.selectFrom('products').select(['stock_qty','cost_price']).where('id','=',f.productId).executeTakeFirstOrThrow();

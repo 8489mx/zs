@@ -8,6 +8,10 @@ import { AppError } from '../../common/errors/app-error';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
+import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
+import { postMaintenanceJournal } from './maintenance-accounting';
+import { valueStockReceipt } from '../accounting/inventory-valuation';
 import { applyStockDelta } from '../../common/utils/location-stock-ledger';
 import { UpsertMaintenanceTicketDto } from './dto/upsert-maintenance-ticket.dto';
 import { UpdateTicketStatusDto, AddTicketPartDto } from './dto/update-ticket-status.dto';
@@ -20,6 +24,8 @@ export class MaintenanceService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly tx: TransactionHelper,
     private readonly audit: AuditService,
+    private readonly accountingPosting: AccountingPostingService,
+    private readonly accountingFoundation: AccountingTenantFoundationService,
   ) {}
 
   async listTickets(
@@ -172,6 +178,11 @@ export class MaintenanceService {
 
   async createTicket(payload: UpsertMaintenanceTicketDto, auth: AuthContext) {
     const scope = requireTenantScope(auth);
+    const advance = Number(payload.advancePayment || 0);
+    if (!Number.isFinite(advance) || advance < 0 || !Number.isFinite(Number(payload.finalCost ?? payload.expectedCost ?? 0)) ||
+        Number(payload.finalCost ?? payload.expectedCost ?? 0) < 0 || payload.status === 'delivered') {
+      throw new AppError('Invalid maintenance payment or initial state', 'MAINTENANCE_FINANCIAL_STATE_INVALID', 422);
+    }
     const result = await this.tx.runInTransaction(this.db, async (trx) => {
       const tempTicketNo = `TMP-ZM-${Date.now()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
@@ -236,6 +247,11 @@ export class MaintenanceService {
             created_by: auth.userId ? Number(auth.userId) : null,
           })
           .execute();
+        await postMaintenanceJournal(trx, this.accountingFoundation, this.accountingPosting, auth,
+          'maintenance_advance', ticketId, payload.branchId ?? null, payload.locationId ?? null, [
+            { code: '1110', debit: advance, description: 'Cash received as maintenance customer advance' },
+            { code: '2150', credit: advance, description: 'Unearned maintenance customer advance' },
+          ]);
       }
 
       return { id: String(ticketId), ticketNo };
@@ -253,20 +269,24 @@ export class MaintenanceService {
         .selectAll()
         .where('tenant_id', '=', scope.tenantId)
         .where('id', '=', id)
+        .forUpdate()
         .executeTakeFirst();
 
       if (!existing) {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
       }
 
-      // Financial fields cannot be rewritten after an advance, delivery, or stock issue.
-      const issuedPart = await trx.selectFrom('maintenance_ticket_parts')
-        .select('id').where('tenant_id', '=', scope.tenantId)
-        .where('ticket_id', '=', id).executeTakeFirst();
+      // A regular edit is not a financial adjustment, refund or delivery transition.
+      const issuedPart = await trx.selectFrom('maintenance_ticket_parts').select('id')
+        .where('tenant_id', '=', scope.tenantId).where('ticket_id', '=', id).executeTakeFirst();
       if (Number(existing.advance_payment || 0) > 0 || existing.status === 'delivered' || issuedPart) {
-        throw new AppError('لا يمكن تعديل تذكرة ذات حركة مالية أو مخزنية دون مستند تسوية', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+        throw new AppError('Posted maintenance ticket requires settlement document', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
-
+      if ((payload.advancePayment !== undefined && Number(payload.advancePayment) !== Number(existing.advance_payment)) ||
+          (payload.status !== undefined && payload.status !== existing.status) ||
+          (existing.status === 'delivered' && payload.finalCost !== undefined && Number(payload.finalCost) !== Number(existing.final_cost))) {
+        throw new AppError('Posted ticket amounts and status require an audited reversal flow', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      }
       await trx
         .updateTable('maintenance_tickets')
         .set({
@@ -279,10 +299,10 @@ export class MaintenanceService {
           passcode: payload.passcode?.trim() ?? null,
           problem_description: (payload.problemDescription || (payload as any).customerProblem || (payload as any).problem || 'صيانة عامة').trim(),
           device_condition: payload.deviceCondition?.trim() ?? null,
-          expected_cost: payload.expectedCost ?? 0,
-          final_cost: payload.finalCost ?? 0,
-          advance_payment: payload.advancePayment ?? 0,
-          status: payload.status ?? 'received',
+          expected_cost: payload.expectedCost ?? existing.expected_cost,
+          final_cost: payload.finalCost ?? existing.final_cost,
+          advance_payment: existing.advance_payment,
+          status: existing.status,
           technician_id: payload.technicianId ?? null,
           technician_name: payload.technicianName?.trim() ?? null,
           technician_notes: payload.technicianNotes?.trim() ?? null,
@@ -317,20 +337,30 @@ export class MaintenanceService {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
       }
 
-      // Delivery is an economic event; reopening would allow a second collection.
-      if (ticket.delivered_at && payload.status !== 'delivered') {
-        throw new AppError('التذكرة مسلمة بالفعل؛ يلزم عكس محاسبي قبل تغيير حالتها', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
-      }
-      if (ticket.delivered_at && (payload.finalCost !== undefined || payload.collectedAmount !== undefined)) {
-        throw new AppError('لا يمكن تعديل مبلغ تذكرة تم تحصيلها', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      // The ticket row lock serializes delivery retries and cash collection.
+      if (ticket.delivered_at && (payload.status !== 'delivered' ||
+          payload.finalCost !== undefined || payload.collectedAmount !== undefined)) {
+        throw new AppError('Delivered maintenance cannot be revised', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
       if (payload.collectedAmount !== undefined && (!Number.isFinite(Number(payload.collectedAmount)) || Number(payload.collectedAmount) < 0)) {
-        throw new AppError('مبلغ التحصيل غير صالح', 'INVALID_MAINTENANCE_COLLECTION', 400);
+        throw new AppError('Invalid maintenance collection', 'INVALID_MAINTENANCE_COLLECTION', 400);
       }
       if (payload.finalCost !== undefined && (!Number.isFinite(Number(payload.finalCost)) || Number(payload.finalCost) < 0)) {
-        throw new AppError('التكلفة النهائية غير صالحة', 'INVALID_MAINTENANCE_COST', 400);
+        throw new AppError('Invalid maintenance final cost', 'INVALID_MAINTENANCE_COST', 400);
       }
-
+      if (ticket.status === 'delivered' &&
+          (payload.status !== 'delivered' ||
+           (payload.finalCost !== undefined && Number(payload.finalCost) !== Number(ticket.final_cost)) ||
+           (payload.collectedAmount !== undefined && Number(payload.collectedAmount) > 0))) {
+        throw new AppError('Delivered maintenance cannot be rebooked without reversal', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      }
+      if (['cancelled', 'unrepairable'].includes(payload.status) && ticket.status !== payload.status) {
+        const part = await trx.selectFrom('maintenance_ticket_parts').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('ticket_id', '=', id).executeTakeFirst();
+        if (Number(ticket.advance_payment) > 0 || part) {
+          throw new AppError('Refund advance and reverse issued parts before cancellation', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+        }
+      }
       const updates: Record<string, any> = {
         status: payload.status,
         updated_at: new Date(),
@@ -363,6 +393,13 @@ export class MaintenanceService {
         const remaining = payload.collectedAmount !== undefined
           ? Number(payload.collectedAmount)
           : Math.max(0, finalCost - advance);
+        if (!Number.isFinite(finalCost) || !Number.isFinite(advance) ||
+            !Number.isFinite(remaining) || finalCost < advance || finalCost < 0 ||
+            remaining < 0 || Math.abs(Number((remaining + advance - finalCost).toFixed(2))) > 0) {
+          throw new AppError('Maintenance delivery must settle its full balance; refund/credit requires a separate flow',
+            'MAINTENANCE_SETTLEMENT_MISMATCH', 422);
+        }
+        const nonCash = ['card', 'wallet', 'instapay'].includes(payload.paymentMethod || '');
         if (remaining > 0) {
           await trx
             .insertInto('treasury_transactions')
@@ -371,6 +408,7 @@ export class MaintenanceService {
               account_id: scope.accountId,
               txn_type: 'revenue',
               amount: remaining,
+              payment_channel: nonCash ? payload.paymentMethod as 'card' | 'wallet' | 'instapay' : 'cash',
               note: `تحصيل صيانة وتسليم جهاز ${ticket.ticket_no} - العميل: ${ticket.customer_name}`,
               reference_type: 'maintenance_ticket',
               reference_id: Number(ticket.id),
@@ -379,6 +417,16 @@ export class MaintenanceService {
               created_by: auth.userId ? Number(auth.userId) : null,
             })
             .execute();
+        }
+        if (finalCost > 0) {
+          await postMaintenanceJournal(trx, this.accountingFoundation, this.accountingPosting, auth,
+            'maintenance_delivery', id,
+            ticket.branch_id ? Number(ticket.branch_id) : null,
+            ticket.location_id ? Number(ticket.location_id) : null, [
+              { code: '2150', debit: advance, description: 'Apply maintenance customer advance' },
+              { code: nonCash ? '1120' : '1110', debit: remaining, description: 'Maintenance final settlement' },
+              { code: '4200', credit: finalCost, description: 'Earned maintenance service revenue' },
+            ]);
         }
       }
 
@@ -415,14 +463,13 @@ export class MaintenanceService {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
       }
 
-      if (ticket.status === 'delivered' || ticket.status === 'cancelled' || ticket.status === 'canceled') {
-        throw new AppError('لا يمكن صرف قطع غيار بعد تسليم أو إلغاء التذكرة', 'MAINTENANCE_TICKET_CLOSED', 409);
-      }
-
       const targetLocationId = payload.locationId ?? (ticket.location_id ? Number(ticket.location_id) : null);
       const targetBranchId = ticket.branch_id ? Number(ticket.branch_id) : null;
       const deductQty = Number(payload.qty);
 
+      if (ticket.status === 'delivered' || ticket.status === 'cancelled' || ticket.status === 'canceled' || ticket.status === 'unrepairable') {
+        throw new AppError('Cannot issue parts to a closed maintenance ticket', 'MAINTENANCE_CLOSED', 409);
+      }
       const partRes = await trx
         .insertInto('maintenance_ticket_parts')
         .values({
@@ -450,7 +497,17 @@ export class MaintenanceService {
         errorMessage: `الرصيد غير كافٍ لصرف قطعة الغيار ${payload.productName.trim()}`,
       });
 
-      await trx
+      const product = await trx.selectFrom('products').select('cost_price')
+        .where('tenant_id', '=', scope.tenantId).where('id', '=', payload.productId).executeTakeFirstOrThrow();
+      const unitCost = Number(product.cost_price);
+      const stockValue = Number((unitCost * deductQty).toFixed(2));
+      if (!Number.isFinite(stockValue) || unitCost < 0) {
+        throw new AppError('Maintenance stock cost is invalid', 'MAINTENANCE_STOCK_COST_INVALID', 422);
+      }
+      await trx.updateTable('maintenance_ticket_parts')
+        .set({ unit_cost: unitCost }).where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', Number(partRes?.id)).execute();
+      const movement = await trx
         .insertInto('stock_movements')
         .values({
           product_id: payload.productId,
@@ -462,13 +519,22 @@ export class MaintenanceService {
           note: `تذكرة صيانة #${ticketId} - قطعة: ${payload.productName.trim()}`,
           reference_type: 'maintenance_ticket',
           reference_id: ticketId,
+          unit_cost: unitCost,
+          total_cost: stockValue,
           branch_id: targetBranchId,
           location_id: targetLocationId,
           created_by: auth.userId ? Number(auth.userId) : null,
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any)
-        .execute();
+        .returning('id').executeTakeFirstOrThrow();
+      if (stockValue > 0) {
+        await postMaintenanceJournal(trx, this.accountingFoundation, this.accountingPosting, auth,
+          'maintenance_part_issue', Number(movement.id), targetBranchId, targetLocationId, [
+            { code: '5100', debit: stockValue, description: 'Maintenance part consumption cost' },
+            { code: '1140', credit: stockValue, description: 'Inventory consumed on maintenance job' },
+          ]);
+      }
 
       let newFinalCost = Number(ticket.final_cost || 0);
       if (newFinalCost === 0 && Number(ticket.expected_cost || 0) === 0) {
@@ -514,6 +580,9 @@ export class MaintenanceService {
       if (!part) {
         throw new AppError('قطعة الغيار غير موجودة بالتذكرة', 'PART_NOT_FOUND', 404);
       }
+      if (ticket.status === 'delivered') {
+        throw new AppError('Delivered maintenance parts require a formal reversal', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      }
 
       await trx
         .deleteFrom('maintenance_ticket_parts')
@@ -535,7 +604,15 @@ export class MaintenanceService {
         allowNegative: true,
       });
 
-      await trx
+      const stockValue = Number((Number(part.unit_cost) * returnQty).toFixed(2));
+      if (!Number.isFinite(stockValue) || Number(part.unit_cost) < 0) {
+        throw new AppError('Historical part cost is invalid', 'MAINTENANCE_STOCK_COST_INVALID', 422);
+      }
+      // A return restores inventory at its historical consumed cost, not the
+      // current price of any later purchases; refresh WAC under product lock.
+      await valueStockReceipt(trx, scope.tenantId, Number(part.product_id),
+        stockChange.globalAfter, returnQty, stockValue);
+      const movement = await trx
         .insertInto('stock_movements')
         .values({
           product_id: Number(part.product_id),
@@ -545,6 +622,8 @@ export class MaintenanceService {
           after_qty: stockChange.scopeAfter,
           reason: 'إلغاء صرف قطعة غيار من تذكرة صيانة',
           note: `إلغاء من تذكرة صيانة #${ticketId}`,
+          unit_cost: Number(part.unit_cost),
+          total_cost: stockValue,
           reference_type: 'maintenance_ticket',
           reference_id: ticketId,
           branch_id: targetBranchId,
@@ -553,7 +632,14 @@ export class MaintenanceService {
           tenant_id: scope.tenantId,
           account_id: scope.accountId,
         } as any)
-        .execute();
+        .returning('id').executeTakeFirstOrThrow();
+      if (stockValue > 0) {
+        await postMaintenanceJournal(trx, this.accountingFoundation, this.accountingPosting, auth,
+          'maintenance_part_return', Number(movement.id), targetBranchId, targetLocationId, [
+            { code: '1140', debit: stockValue, description: 'Returned maintenance spare part inventory' },
+            { code: '5100', credit: stockValue, description: 'Reverse maintenance part cost' },
+          ]);
+      }
     });
 
     return { ok: true };
@@ -574,26 +660,24 @@ export class MaintenanceService {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
       }
 
-      // A hard delete would orphan treasury activity or destroy stock movement provenance.
       const historicalMovement = await trx.selectFrom('stock_movements')
         .select('id').where('tenant_id', '=', scope.tenantId)
-        .where('reference_type', '=', 'maintenance_ticket')
-        .where('reference_id', '=', id).executeTakeFirst();
+        .where('reference_type', '=', 'maintenance_ticket').where('reference_id', '=', id).executeTakeFirst();
       const cashMovement = await trx.selectFrom('treasury_transactions')
         .select('id').where('tenant_id', '=', scope.tenantId)
-        .where('reference_type', '=', 'maintenance_ticket')
-        .where('reference_id', '=', id).executeTakeFirst();
-      if (Number(ticket.advance_payment || 0) > 0 || ticket.status === 'delivered' || historicalMovement || cashMovement) {
-        throw new AppError('لا يمكن حذف تذكرة صيانة ذات أثر مالي أو مخزني؛ يلزم مستند عكس', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+        .where('reference_type', '=', 'maintenance_ticket').where('reference_id', '=', id).executeTakeFirst();
+      if (Number(ticket.advance_payment) > 0 || ticket.status === 'delivered' || historicalMovement || cashMovement) {
+        throw new AppError('Financial maintenance ticket cannot be deleted', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
-
-      // Return all consumed parts back to inventory before deletion
       const parts = await trx
         .selectFrom('maintenance_ticket_parts')
         .selectAll()
         .where('tenant_id', '=', scope.tenantId)
         .where('ticket_id', '=', id)
         .execute();
+      if (parts.length > 0) {
+        throw new AppError('Reverse issued parts before deleting ticket', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      }
 
       for (const part of parts) {
         const returnQty = Number(part.qty);
