@@ -675,17 +675,38 @@ export class SessionService {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Parallel: session insert + user security update (independent operations)
+    // The authenticated user's state and new session must commit together.
+    // Re-lock and re-check the user: an admin may have disabled the account
+    // while password verification / MFA was in progress.
     const userSecurityUpdates: Record<string, unknown> = { failed_login_count: 0, last_login_at: now, locked_until: null };
     if (options?.rehashPassword) {
       const upgradedPassword = await createPasswordRecord(options.rehashPassword);
       userSecurityUpdates.password_hash = upgradedPassword.hash;
       userSecurityUpdates.password_salt = upgradedPassword.salt;
     }
-    await Promise.all([
-      this.db.insertInto('sessions').values({ id: sessionId, user_id: user.id, tenant_id: tenantContext.tenantId, account_id: tenantContext.accountId, expires_at: expiresAt, last_seen_at: now, ip_address: meta?.ipAddress?.slice(0, 255) || '', user_agent: meta?.userAgent?.slice(0, 500) || '' }).execute(),
-      this.db.updateTable('users').set(userSecurityUpdates).where('id', '=', user.id).execute(),
-    ]);
+    await this.db.transaction().execute(async (trx) => {
+      const currentUser = await trx.selectFrom('users')
+        .select(['is_active', 'locked_until'])
+        .where('id', '=', user.id)
+        .where('tenant_id', '=', tenantContext.tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!currentUser?.is_active || (currentUser.locked_until && new Date(currentUser.locked_until) > now)) {
+        throw new UnauthorizedException('User account is no longer eligible for login');
+      }
+
+      await trx.updateTable('users').set(userSecurityUpdates)
+        .where('id', '=', user.id)
+        .where('tenant_id', '=', tenantContext.tenantId)
+        .execute();
+      await trx.insertInto('sessions').values({
+        id: sessionId, user_id: user.id,
+        tenant_id: tenantContext.tenantId, account_id: tenantContext.accountId,
+        expires_at: expiresAt, last_seen_at: now,
+        ip_address: meta?.ipAddress?.slice(0, 255) || '',
+        user_agent: meta?.userAgent?.slice(0, 500) || '',
+      }).execute();
+    });
 
     const isPlatformTenant = isPlatformTenantId(tenantContext.tenantId);
     const effectiveRole = (user.role === 'super_admin' && !isPlatformTenant) ? 'admin' : user.role;
