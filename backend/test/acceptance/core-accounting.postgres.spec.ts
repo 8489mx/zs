@@ -388,6 +388,27 @@ async function main() {
     assert.ok(retained,'financially relevant trade-in source must remain immutable');
     pass('concurrent trade-in purchase posts exact cash/inventory GL and WAC once; history is immutable');
 
+    // A product serial from a pre-existing catalog receipt cannot be purchased
+    // a second time through trade-in without reconciliation.
+    const occupiedSerial = `OCCUPIED-${tag}`;
+    await db.insertInto('product_serials').values({
+      tenant_id:traded.auth.tenantId!,account_id:traded.auth.accountId!,
+      product_id:traded.productId,serial_number:occupiedSerial,status:'in_stock',
+      cost_price:12,
+    } as any).execute();
+    const intakeCountBefore=await db.selectFrom('trade_in_transactions').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',traded.auth.tenantId!).executeTakeFirstOrThrow();
+    await assert.rejects(tradein.createTransaction({...intake,serialNumber:occupiedSerial},traded.auth),
+      (e:any)=>e.code==='TRADEIN_SERIAL_ALREADY_REGISTERED');
+    const intakeCountAfter=await db.selectFrom('trade_in_transactions').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',traded.auth.tenantId!).executeTakeFirstOrThrow();
+    assert.equal(Number(intakeCountAfter.n),Number(intakeCountBefore.n),'occupied serial may not create a second payable intake');
+    const occupiedMovements=await db.selectFrom('stock_movements').select('id')
+      .where('tenant_id','=',traded.auth.tenantId!).where('reference_type','=','trade_in')
+      .where('product_id','=',traded.productId).execute();
+    assert.equal(occupiedMovements.length,0,'occupied serial must not create a stock receipt');
+    pass('pre-registered catalog IMEI rejects duplicate trade-in and rolls back stock and cash');
+
     // Real PostgreSQL must preserve the third minor unit from journal source
     // through DB storage and the FX/PDC base-currency snapshot.
     const kwd = await fixture('kwd_precision');
