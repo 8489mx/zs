@@ -25,6 +25,7 @@ import { MfaService } from './mfa.service';
 import { DisableMfaDto, MfaCodeDto, MfaLoginDto } from './dto/mfa.dto';
 import { resolveClientIp } from '../../common/middleware/storefront-public-rate-limit.middleware';
 import { createCsrfToken } from '../../core/auth/utils/csrf-token';
+import { isLocalAuthCookieHost } from '../../core/auth/utils/auth-cookie-cleanup';
 import { ActivationService } from '../activation/activation.service';
 import { clearKnownAuthCookies } from '../../core/auth/utils/auth-cookie-cleanup';
 
@@ -56,8 +57,8 @@ export class SessionsController {
 
   private sharedCookieDomain(req?: RequestWithAuth): string | undefined {
     if (req) {
-      const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(':')[0].toLowerCase();
-      if (['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host)) {
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      if (isLocalAuthCookieHost(this.configService.get('APP_MODE') || process.env.APP_MODE, host)) {
         return undefined;
       }
     }
@@ -66,8 +67,10 @@ export class SessionsController {
   }
 
   private cookieOptions(expiresAt?: Date, req?: RequestWithAuth) {
-    const host = String(req?.headers['x-forwarded-host'] || req?.headers?.host || '').split(':')[0].toLowerCase();
-    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
+    const isLoopback = isLocalAuthCookieHost(
+      this.configService.get('APP_MODE') || process.env.APP_MODE,
+      req?.headers['x-forwarded-host'] || req?.headers.host,
+    );
     const domain = isLoopback ? undefined : this.sharedCookieDomain(req);
     const secure = isLoopback ? false : this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true;
 
@@ -82,8 +85,10 @@ export class SessionsController {
   }
 
   private csrfCookieOptions(expiresAt?: Date, req?: RequestWithAuth) {
-    const host = String(req?.headers['x-forwarded-host'] || req?.headers?.host || '').split(':')[0].toLowerCase();
-    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
+    const isLoopback = isLocalAuthCookieHost(
+      this.configService.get('APP_MODE') || process.env.APP_MODE,
+      req?.headers['x-forwarded-host'] || req?.headers.host,
+    );
     const domain = isLoopback ? undefined : this.sharedCookieDomain(req);
     const secure = isLoopback ? false : this.configService.get<boolean>('SESSION_COOKIE_SECURE') === true;
 
@@ -118,8 +123,10 @@ export class SessionsController {
   }
 
   private clearAuthCookies(res: Response, req?: RequestWithAuth): void {
-    const host = String(req?.headers['x-forwarded-host'] || req?.headers?.host || '').split(':')[0].toLowerCase();
-    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
+    const isLoopback = isLocalAuthCookieHost(
+      this.configService.get('APP_MODE') || process.env.APP_MODE,
+      req?.headers['x-forwarded-host'] || req?.headers.host,
+    );
     clearKnownAuthCookies(res, {
       sessionCookieName: this.getSessionCookieName(),
       csrfCookieName: this.getCsrfCookieName(),

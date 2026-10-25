@@ -295,6 +295,7 @@ export class SessionService {
     if (!row) return null;
     if (Number(row.session_user_id || 0) !== Number(row.user_id || 0)) return null;
     if (toNonEmpty(row.session_tenant_id) !== toNonEmpty(row.tenant_id)) return null;
+    if (toNonEmpty(row.session_account_id) !== toNonEmpty(row.account_id)) return null;
     if (!row.is_active) return null;
     if (row.expires_at <= new Date()) return null;
     if (row.locked_until && row.locked_until > new Date()) return null;

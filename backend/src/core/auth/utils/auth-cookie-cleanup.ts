@@ -1,4 +1,17 @@
 import type { Response } from 'express';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
+
+/**
+ * Never let a client-supplied Host/X-Forwarded-Host disable the Secure attribute
+ * for Cloud SaaS cookies. Plain HTTP loopback is a desktop-only exception.
+ */
+export function isLocalAuthCookieHost(appMode: unknown, hostHeader: unknown): boolean {
+  if (!isDesktopRuntimeMode(appMode)) return false;
+  const host = String(hostHeader || '').split(',')[0].trim().toLowerCase().split(':')[0];
+  return ['localhost', '127.0.0.1', '0.0.0.0'].includes(host)
+    || String(hostHeader || '').trim().toLowerCase().startsWith('[::1]');
+}
+
 
 type CookieSameSite = 'lax' | 'strict' | 'none';
 

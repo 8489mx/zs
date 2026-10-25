@@ -9,7 +9,8 @@ import { PaymentManagerService } from '../../src/modules/tenant-subscription/gat
 const payment = {
   tenantId: 'merchant-a', tenantSlug: 'merchant-a', planId: 2,
   planName: 'Suite', amount: 100, currency: 'EGP', durationMonths: 12,
-  businessName: 'Merchant', redirectUrl: '/settings/subscription',
+  businessName: 'Merchant', ownerName: 'Owner', ownerPhone: '01000000000',
+  redirectUrl: '/settings/subscription',
 };
 
 async function withEnv(vars: Record<string, string | undefined>, action: () => Promise<void>): Promise<void> {

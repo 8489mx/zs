@@ -4,7 +4,7 @@ import type { Response } from 'express';
 import { SessionService } from '../../../core/auth/services/session.service';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { CSRF_HEADER_NAME, verifyCsrfToken } from '../utils/csrf-token';
-import { clearKnownAuthCookies } from '../utils/auth-cookie-cleanup';
+import { clearKnownAuthCookies, isLocalAuthCookieHost } from '../utils/auth-cookie-cleanup';
 
 function parseCookie(request: RequestWithAuth, name: string): string {
   const cookieHeader = request.headers.cookie;
@@ -14,7 +14,12 @@ function parseCookie(request: RequestWithAuth, name: string): string {
 
   const parts = cookieHeader.split(';').map((part) => part.trim());
   const pair = parts.find((part) => part.startsWith(`${name}=`));
-  return pair ? decodeURIComponent(pair.slice(`${name}=`.length)) : '';
+  if (!pair) return '';
+  try {
+    return decodeURIComponent(pair.slice(`${name}=`.length));
+  } catch {
+    return ''; // Malformed user-supplied cookie must never turn a 401 into a 500.
+  }
 }
 
 function readSessionId(request: RequestWithAuth, allowHeaderAuth: boolean, cookieName: string): string {
@@ -89,8 +94,10 @@ export class SessionAuthGuard implements CanActivate {
   }
 
   private clearAuthCookies(response: Response, request?: RequestWithAuth): void {
-    const host = String(request?.headers['x-forwarded-host'] || request?.headers?.host || '').split(':')[0].toLowerCase();
-    const isLoopback = ['localhost', '127.0.0.1', '0.0.0.0', '::1'].includes(host);
+    const isLoopback = isLocalAuthCookieHost(
+      this.configService.get('APP_MODE') || process.env.APP_MODE,
+      request?.headers['x-forwarded-host'] || request?.headers.host,
+    );
     clearKnownAuthCookies(response, {
       sessionCookieName: this.configService.get<string>('SESSION_COOKIE_NAME')?.trim() || 'session_id',
       csrfCookieName: this.configService.get<string>('SESSION_CSRF_COOKIE_NAME')?.trim() || 'csrf_token',
