@@ -2502,13 +2502,13 @@ export class HrService {
         e.compensation_type,
         e.hourly_rate,
         e.expected_daily_hours,
-        e.hire_date,
-        e.end_of_service_date,
+        to_char(e.hire_date, 'YYYY-MM-DD') AS hire_date,
+        to_char(e.end_of_service_date, 'YYYY-MM-DD') AS end_of_service_date,
         e.has_social_insurance,
         e.insurance_salary,
         e.has_income_tax,
-        c.start_date AS contract_start_date,
-        c.end_date AS contract_end_date
+        to_char(c.start_date, 'YYYY-MM-DD') AS contract_start_date,
+        to_char(c.end_date, 'YYYY-MM-DD') AS contract_end_date
       FROM hr_employees e
       LEFT JOIN LATERAL (
         SELECT *
@@ -2619,7 +2619,10 @@ export class HrService {
     await sql`
       UPDATE hr_payroll_run_items i
       SET status = 'excluded',
-          notes = CONCAT_WS(' | ', NULLIF(i.notes, ''), ${AUTO_PAYROLL_EXCLUSION_NOTE}),
+          notes = CASE
+            WHEN i.notes LIKE '%' || ${AUTO_PAYROLL_EXCLUSION_NOTE}::text || '%' THEN i.notes
+            ELSE CONCAT_WS(' | ', NULLIF(i.notes, ''), ${AUTO_PAYROLL_EXCLUSION_NOTE}::text)
+          END,
           updated_at = NOW()
       WHERE i.run_id = ${runId} AND i.tenant_id = ${tenantId}
         AND i.status IN ('draft', 'reviewed')
@@ -2649,8 +2652,8 @@ export class HrService {
     const payRangeByEmployee = new Map<number, { from: string; to: string }>();
     for (const e of employees.rows) {
       const id = Number(e.employee_id);
-      const hire = e.hire_date ? String(e.hire_date).slice(0, 10) : range.from;
-      const employmentEnd = e.end_of_service_date ? String(e.end_of_service_date).slice(0, 10) : range.to;
+      const hire = normalizeDateOnly(e.hire_date) || range.from;
+      const employmentEnd = normalizeDateOnly(e.end_of_service_date) || range.to;
       const from = [range.from, hire].sort().at(-1)!;
       const to = [range.to, employmentEnd].sort()[0];
       payRangeByEmployee.set(id, { from, to });
