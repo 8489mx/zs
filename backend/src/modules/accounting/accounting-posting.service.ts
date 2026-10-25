@@ -756,6 +756,8 @@ export class AccountingPostingService {
 
   async postSale(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingSaleJournal(queryable, saleId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -782,24 +784,25 @@ export class AccountingPostingService {
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
 
-    const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
-    const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+    const cashAmount = toBookMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+    const nonCashAmount = toBookMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
 
-    const subtotal = this.toMoney(sale.subtotal);
-    const discount = this.toMoney(sale.discount);
-    const taxAmount = this.toMoney(sale.tax_amount);
-    const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
-    const serviceCharge = this.toMoney((sale as any).service_charge ?? 0);
-    const tipAmount = this.toMoney((sale as any).tip_amount ?? 0);
-    const paidAmount = this.toMoney(sale.paid_amount);
-    const storeCreditUsed = this.toMoney(sale.store_credit_used);
-    const saleTotal = this.toMoney(sale.total);
-    const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
+    const subtotal = toBookMoney(sale.subtotal);
+    const discount = toBookMoney(sale.discount);
+    const taxAmount = toBookMoney(sale.tax_amount);
+    const deliveryFee = toBookMoney((sale as any).delivery_fee ?? 0);
+    const serviceCharge = toBookMoney((sale as any).service_charge ?? 0);
+    const tipAmount = toBookMoney((sale as any).tip_amount ?? 0);
+    const paidAmount = toBookMoney(sale.paid_amount);
+    const storeCreditUsed = toBookMoney(sale.store_credit_used);
+    const saleTotal = toBookMoney(sale.total);
+    const receivableAmount = toBookMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
     const revenueCredit = sale.prices_include_tax
-      ? this.toMoney(subtotal + serviceCharge - taxAmount + deliveryFee + tipAmount)
-      : this.toMoney(subtotal + serviceCharge + deliveryFee + tipAmount);
+      ? toBookMoney(subtotal + serviceCharge - taxAmount + deliveryFee + tipAmount)
+      : toBookMoney(subtotal + serviceCharge + deliveryFee + tipAmount);
 
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
 
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
@@ -814,7 +817,7 @@ export class AccountingPostingService {
     const inventoryAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.inventory_account_id, '1140');
 
     if (cashAmount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: cashAccountId,
         description: 'تحصيل نقدي من فاتورة بيع',
         debit: cashAmount,
@@ -827,7 +830,7 @@ export class AccountingPostingService {
     }
 
     if (nonCashAmount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: bankAccountId,
         description: 'تحصيل غير نقدي من فاتورة بيع',
         debit: nonCashAmount,
@@ -848,7 +851,7 @@ export class AccountingPostingService {
       if (isVanSale && paymentType === 'cash') {
         // Cash collected in the field sits in rep custody (partnerType: 'none') until settleTrip clears it.
         // Even if customer_id is set on the invoice, the customer does not owe a receivable.
-        this.addLine(lines, {
+        addBookLine({
           accountId: customerAccountId,
           description: 'عهدة نقدية لدى مندوب التوزيع من فاتورة بيع نقدي',
           debit: receivableAmount,
@@ -867,11 +870,11 @@ export class AccountingPostingService {
           .where('entry_type', '=', 'sale_credit')
           .where('tenant_id', '=', scope.tenantId)
           .executeTakeFirst();
-        const creditPortion = this.toMoney(Math.min(receivableAmount, Math.max(0, Number(creditLedgerRow?.amount || 0))));
-        const repCashPortion = this.toMoney(Math.max(0, receivableAmount - creditPortion));
+        const creditPortion = toBookMoney(Math.min(receivableAmount, Math.max(0, Number(creditLedgerRow?.amount || 0))));
+        const repCashPortion = toBookMoney(Math.max(0, receivableAmount - creditPortion));
 
         if (repCashPortion > 0) {
-          this.addLine(lines, {
+          addBookLine({
             accountId: customerAccountId,
             description: 'عهدة نقدية لدى مندوب التوزيع (الجزء النقدي من فاتورة مجزأة)',
             debit: repCashPortion,
@@ -883,7 +886,7 @@ export class AccountingPostingService {
           });
         }
         if (creditPortion > 0) {
-          this.addLine(lines, {
+          addBookLine({
             accountId: customerAccountId,
             description: 'مديونية عميل من فاتورة بيع مجزأة',
             debit: creditPortion,
@@ -895,7 +898,7 @@ export class AccountingPostingService {
           });
         }
       } else {
-        this.addLine(lines, {
+        addBookLine({
           accountId: customerAccountId,
           description: 'مديونية عميل من فاتورة بيع',
           debit: receivableAmount,
@@ -909,7 +912,7 @@ export class AccountingPostingService {
     }
 
     if (storeCreditUsed > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: storeCreditAccountId,
         description: 'استخدام رصيد دائن للعميل (Store Credit)',
         debit: storeCreditUsed,
@@ -922,7 +925,7 @@ export class AccountingPostingService {
     }
 
     if (discount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: salesDiscountAccountId,
         description: 'خصم مبيعات على الفاتورة',
         debit: discount,
@@ -935,7 +938,7 @@ export class AccountingPostingService {
     }
 
     if (revenueCredit > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: salesRevenueAccountId,
         description: 'إيراد مبيعات الفاتورة',
         debit: 0,
@@ -948,7 +951,7 @@ export class AccountingPostingService {
     }
 
     if (taxAmount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: salesTaxAccountId,
         description: 'ضريبة مبيعات مستحقة',
         debit: 0,
@@ -969,10 +972,10 @@ export class AccountingPostingService {
       .where('sale_id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
-    const cogsAmount = this.toMoney(saleItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.cost_price || 0)), 0));
+    const cogsAmount = toBookMoney(saleItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.cost_price || 0)), 0));
 
     if (cogsAmount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: cogsAccountId,
         description: 'تكلفة البضاعة المباعة',
         debit: cogsAmount,
@@ -982,7 +985,7 @@ export class AccountingPostingService {
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: inventoryAccountId,
         description: 'إخراج مخزون مقابل المبيعات',
         debit: 0,
@@ -1001,9 +1004,9 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting sale ${saleId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
