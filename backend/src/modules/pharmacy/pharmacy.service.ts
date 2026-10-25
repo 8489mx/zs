@@ -11,9 +11,6 @@ import { formatDailyDocumentNumber } from '../../common/utils/document-number.ut
 import { validateDistributorInvoiceLines } from './engines/distributor-invoice-validation.engine';
 import { buildDistributorPurchaseItem } from './engines/distributor-purchase.engine';
 import { PurchasesService } from '../purchases/purchases.service';
-import { AccountingPostingService } from '../accounting/accounting-posting.service';
-import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
-import { postPharmacyCashReceipt } from './pharmacy-accounting';
 import { AppError } from '../../common/errors/app-error';
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
 import { currencyMoneyDigits, toMinorUnits, fromMinorUnits, roundMoney } from '../accounting/engines/money-minor-units.engine';
@@ -30,8 +27,6 @@ export class PharmacyService {
     @Inject(KYSELY_DB) private readonly db: Kysely<Database>,
     private readonly audit: AuditService,
     private readonly purchases: PurchasesService,
-    private readonly accountingFoundation: AccountingTenantFoundationService,
-    private readonly accountingPosting: AccountingPostingService,
   ) {}
 
   // -------------------------------------------------------------
@@ -784,101 +779,90 @@ export class PharmacyService {
 
   async upsertPrescription(auth: AuthContext, dto: UpsertPrescriptionDto) {
     const scope = requireTenantScope(auth);
-
-    const initialRxNo = dto.prescriptionNo || 'PENDING_RX';
-    const itemsJsonStr = dto.items ? JSON.stringify(dto.items) : '[]';
-
-    if (dto.id) {
-      return await this.db
-        .updateTable('pharmacy_prescriptions')
-        .set({
-          customer_name: dto.customerName,
-          customer_phone: dto.customerPhone ?? null,
-          doctor_name: dto.doctorName ?? null,
-          doctor_specialty: dto.doctorSpecialty ?? null,
-          diagnosis: dto.diagnosis ?? null,
-          insurance_provider: dto.insuranceProvider ?? null,
-          insurance_card_no: dto.insuranceCardNo ?? null,
-          approval_code: dto.approvalCode ?? null,
-          patient_copay_percent: dto.patientCopayPercent || 0,
-          total_amount: dto.totalAmount || 0,
-          patient_amount: dto.patientAmount || 0,
-          insurance_amount: dto.insuranceAmount || 0,
-          items_json: itemsJsonStr,
-          dispensed_by: dto.dispensedBy ?? null,
-          status: dto.status || 'dispensed',
-          notes: dto.notes ?? null,
-          updated_at: sql`now()`,
-        })
-        .where('id', '=', dto.id)
-        .where('tenant_id', '=', scope.tenantId)
-        .returningAll()
-        .executeTakeFirstOrThrow();
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+    // A zero patient copay is deliberate; never replace it with total invoice value.
+    const total = Number(dto.totalAmount ?? 0);
+    const insurance = Number(dto.insuranceAmount ?? 0);
+    const patientCash = Number(dto.patientAmount ?? (dto.insuranceAmount == null ? total : 0));
+    const status = dto.status || 'dispensed';
+    let totalMinor: number;
+    let cashMinor: number;
+    let insuranceMinor: number;
+    try {
+      totalMinor = toMinorUnits(total, digits);
+      cashMinor = toMinorUnits(patientCash, digits);
+      insuranceMinor = toMinorUnits(insurance, digits);
+    } catch {
+      throw new AppError('Prescription amount exceeds tenant currency precision', 'PHARMACY_CURRENCY_PRECISION_INVALID', 422);
     }
-
-    const rx = await this.db
-      .insertInto('pharmacy_prescriptions')
-      .values({
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-        prescription_no: initialRxNo,
-        customer_name: dto.customerName,
-        customer_phone: dto.customerPhone ?? null,
-        doctor_name: dto.doctorName ?? null,
-        doctor_specialty: dto.doctorSpecialty ?? null,
-        diagnosis: dto.diagnosis ?? null,
-        insurance_provider: dto.insuranceProvider ?? null,
-        insurance_card_no: dto.insuranceCardNo ?? null,
-        approval_code: dto.approvalCode ?? null,
-        patient_copay_percent: dto.patientCopayPercent || 0,
-        total_amount: dto.totalAmount || 0,
-        patient_amount: dto.patientAmount || 0,
-        insurance_amount: dto.insuranceAmount || 0,
-        items_json: itemsJsonStr,
-        dispensed_by: dto.dispensedBy ?? null,
-        status: dto.status || 'dispensed',
-        notes: dto.notes ?? null,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-
-    const rxNo = dto.prescriptionNo || formatDailyDocumentNumber('RX', Number(rx.id));
-    if (!dto.prescriptionNo) {
-      await this.db
-        .updateTable('pharmacy_prescriptions')
-        .set({ prescription_no: rxNo })
-        .where('id', '=', rx.id)
-        .where('tenant_id', '=', scope.tenantId)
-        .execute();
-      rx.prescription_no = rxNo;
+    if (totalMinor < 0 || cashMinor < 0 || insuranceMinor < 0 || cashMinor + insuranceMinor !== totalMinor) {
+      throw new AppError('Prescription total must equal patient and insurance allocations', 'PHARMACY_PRESCRIPTION_SETTLEMENT_MISMATCH', 422);
     }
-
-    // Record cash revenue for patient cash payment (excluding insurance portion)
-    const patientCash = Number(dto.patientAmount || dto.totalAmount || 0);
-    if (patientCash > 0 && (dto.status || 'dispensed') === 'dispensed') {
-      try {
-        const insuranceSuffix = dto.insuranceProvider && Number(dto.insuranceAmount || 0) > 0
-          ? ` (التأمين ${dto.insuranceProvider}: ${Number(dto.insuranceAmount).toFixed(2)} ج)`
-          : '';
-        await this.db
-          .insertInto('treasury_transactions')
-          .values({
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-            txn_type: 'revenue',
-            amount: patientCash,
-            note: `صرف روشتة ${rxNo} — العميل: ${dto.customerName} — إجمالي: ${Number(dto.totalAmount || 0).toFixed(2)} ج — نقدي: ${patientCash.toFixed(2)} ج${insuranceSuffix}`,
-            reference_type: 'pharmacy_prescription',
-            reference_id: Number(rx.id),
-            created_by: auth.userId ? Number(auth.userId) : null,
+    // Insurance settlement needs an insurer receivable/subledger, not fabricated cash.
+    if (status === 'dispensed' && insuranceMinor > 0) {
+      throw new AppError('Insurer receivable requires a dedicated settlement document', 'PHARMACY_INSURANCE_SETTLEMENT_REQUIRED', 422);
+    }
+    const initialRxNo = String(dto.prescriptionNo || '').trim() || 'PENDING_RX';
+    const itemsJsonStr = JSON.stringify(dto.items ?? []);
+    return this.db.transaction().execute(async (trx) => {
+      let rx: any;
+      if (dto.id) {
+        const previous = await trx.selectFrom('pharmacy_prescriptions')
+          .selectAll().where('tenant_id', '=', scope.tenantId).where('id', '=', dto.id)
+          .forUpdate().executeTakeFirst();
+        if (!previous) throw new AppError('Prescription not found', 'PHARMACY_PRESCRIPTION_NOT_FOUND', 404);
+        const historicalCash = await trx.selectFrom('treasury_transactions').select('id')
+          .where('tenant_id', '=', scope.tenantId)
+          .where('reference_type', '=', 'pharmacy_prescription')
+          .where('reference_id', '=', dto.id).executeTakeFirst();
+        if (historicalCash || previous.status === 'dispensed') {
+          throw new AppError('Dispensed prescription requires formal reversal before editing', 'PHARMACY_PRESCRIPTION_REVERSAL_REQUIRED', 409);
+        }
+        rx = await trx.updateTable('pharmacy_prescriptions')
+          .set({
+            customer_name: dto.customerName,
+            customer_phone: dto.customerPhone ?? null, doctor_name: dto.doctorName ?? null,
+            doctor_specialty: dto.doctorSpecialty ?? null, diagnosis: dto.diagnosis ?? null,
+            insurance_provider: dto.insuranceProvider ?? null, insurance_card_no: dto.insuranceCardNo ?? null,
+            approval_code: dto.approvalCode ?? null, patient_copay_percent: dto.patientCopayPercent ?? 0,
+            total_amount: total, patient_amount: patientCash, insurance_amount: insurance,
+            items_json: itemsJsonStr, dispensed_by: dto.dispensedBy ?? null,
+            status, notes: dto.notes ?? null, updated_at: sql`now()`,
           })
-          .execute();
-      } catch (err) {
-        console.warn('Failed to record pharmacy prescription revenue to treasury:', err);
+          .where('id', '=', dto.id).where('tenant_id', '=', scope.tenantId)
+          .returningAll().executeTakeFirstOrThrow();
+      } else {
+        rx = await trx.insertInto('pharmacy_prescriptions').values({
+          tenant_id: scope.tenantId, account_id: scope.accountId, prescription_no: initialRxNo,
+          customer_name: dto.customerName,
+          customer_phone: dto.customerPhone ?? null, doctor_name: dto.doctorName ?? null,
+          doctor_specialty: dto.doctorSpecialty ?? null, diagnosis: dto.diagnosis ?? null,
+          insurance_provider: dto.insuranceProvider ?? null, insurance_card_no: dto.insuranceCardNo ?? null,
+          approval_code: dto.approvalCode ?? null, patient_copay_percent: dto.patientCopayPercent ?? 0,
+          total_amount: total, patient_amount: patientCash, insurance_amount: insurance,
+          items_json: itemsJsonStr, dispensed_by: dto.dispensedBy ?? null,
+          status, notes: dto.notes ?? null,
+        }).returningAll().executeTakeFirstOrThrow();
+        if (!dto.prescriptionNo?.trim()) {
+          const rxNo = formatDailyDocumentNumber('RX', Number(rx.id));
+          await trx.updateTable('pharmacy_prescriptions').set({ prescription_no: rxNo })
+            .where('id', '=', rx.id).where('tenant_id', '=', scope.tenantId).execute();
+          rx.prescription_no = rxNo;
+        }
       }
-    }
-
-    return rx;
+      if (status === 'dispensed' && cashMinor > 0) {
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: scope.tenantId, account_id: scope.accountId,
+          txn_type: 'revenue', amount: patientCash,
+          note: `صرف روشتة ${rx.prescription_no} — نقدي: ${patientCash.toFixed(digits)}`,
+          reference_type: 'pharmacy_prescription', reference_id: Number(rx.id),
+          created_by: auth.userId ? Number(auth.userId) : null,
+        }).execute();
+        await postPharmacyCashReceipt(trx, this.accountingFoundation, this.accountingPosting,
+          auth, 'pharmacy_prescription_cash', Number(rx.id), patientCash);
+      }
+      return rx;
+    });
   }
 
   // -------------------------------------------------------------
@@ -1012,38 +996,45 @@ export class PharmacyService {
 
   async createClinicalService(auth: AuthContext, dto: UpsertClinicalServiceDto) {
     const scope = requireTenantScope(auth);
-    const fee = Number(dto.fee ?? 0);
-    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
-    try {
-      toMinorUnits(fee, digits);
-    } catch {
-      throw new AppError('Clinical service fee exceeds currency precision', 'PHARMACY_CURRENCY_PRECISION_INVALID', 422);
-    }
-    if (fee < 0) throw new AppError('Clinical service fee cannot be negative', 'PHARMACY_CASH_AMOUNT_INVALID', 422);
-
-    // Persist the source, collected cash and its immutable GL as one economic event.
-    return this.db.transaction().execute(async (trx) => {
-      const service = await trx.insertInto('pharmacy_clinical_services').values({
-        tenant_id: scope.tenantId, account_id: scope.accountId,
-        service_type: dto.serviceType, customer_name: dto.customerName,
+    const service = await this.db
+      .insertInto('pharmacy_clinical_services')
+      .values({
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+        service_type: dto.serviceType,
+        customer_name: dto.customerName,
         customer_phone: dto.customerPhone ?? null,
-        metric_value_1: dto.metricValue1 ?? null, metric_value_2: dto.metricValue2 ?? null,
-        pharmacist_notes: dto.pharmacistNotes ?? null, fee,
-      }).returningAll().executeTakeFirstOrThrow();
-      if (fee > 0) {
-        await trx.insertInto('treasury_transactions').values({
-          tenant_id: scope.tenantId, account_id: scope.accountId,
-          txn_type: 'revenue', amount: fee,
-          note: `خدمة صيدلانية: ${dto.serviceType} — رسوم: ${fee.toFixed(digits)}`,
-          reference_type: 'pharmacy_clinical_service',
-          reference_id: Number(service.id),
-          created_by: auth.userId ? Number(auth.userId) : null,
-        }).execute();
-        await postPharmacyCashReceipt(trx, this.accountingFoundation, this.accountingPosting,
-          auth, 'pharmacy_clinical_service', Number(service.id), fee);
+        metric_value_1: dto.metricValue1 ?? null,
+        metric_value_2: dto.metricValue2 ?? null,
+        pharmacist_notes: dto.pharmacistNotes ?? null,
+        fee: dto.fee || 0,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    // Record revenue if a fee was collected
+    const fee = Number(dto.fee || 0);
+    if (fee > 0) {
+      try {
+        await this.db
+          .insertInto('treasury_transactions')
+          .values({
+            tenant_id: scope.tenantId,
+            account_id: scope.accountId,
+            txn_type: 'revenue',
+            amount: fee,
+            note: `خدمة صيدلانية: ${dto.serviceType} — العميل: ${dto.customerName} — رسوم: ${fee.toFixed(2)} ج`,
+            reference_type: 'pharmacy_clinical_service',
+            reference_id: Number(service.id),
+            created_by: auth.userId ? Number(auth.userId) : null,
+          })
+          .execute();
+      } catch (err) {
+        console.warn('Failed to record pharmacy clinical service fee to treasury:', err);
       }
-      return service;
-    });
+    }
+
+    return service;
   }
 
   // -------------------------------------------------------------
