@@ -1245,13 +1245,49 @@ export class HrService {
   }
 
   async upsertContact(employeeId: number, id: number | null, payload: UpsertEmployeeContactDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    await this.assertEmployeeBelongsToTenant(employeeId, auth);
-    if (id) {
-      await sql`UPDATE hr_employee_contacts SET contact_type = ${clean(payload.contactType) || 'phone'}, value = ${clean(payload.value)}, label = ${clean(payload.label)}, is_primary = ${payload.isPrimary === true}, notes = ${clean(payload.notes)}, updated_by = ${auth.userId}, updated_at = NOW() WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${auth.tenantId}`.execute(this.db);
-    } else {
-      await sql`INSERT INTO hr_employee_contacts (tenant_id, account_id, employee_id, contact_type, value, label, is_primary, notes, created_by, updated_by) VALUES (${auth.tenantId}, ${auth.accountId}, ${employeeId}, ${clean(payload.contactType) || 'phone'}, ${clean(payload.value)}, ${clean(payload.label)}, ${payload.isPrimary === true}, ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})`.execute(this.db);
-    }
-    await this.audit.log(`${id ? 'Update' : 'Create'} HR employee contact`, `Employee #${employeeId} contact metadata saved by ${auth.username}`, auth);
+    const { tenantId } = requireTenantScope(auth);
+    await this.tx.runInTransaction(this.db, async trx => {
+      // Serialize primary contact changes on the employee row. A tenant may have
+      // multiple contacts, but only one can be primary for that employee.
+      const parent = await sql<{ id: number }>`
+        SELECT id FROM hr_employees WHERE id = ${employeeId} AND tenant_id = ${tenantId} FOR UPDATE
+      `.execute(trx);
+      if (!parent.rows.length) throw new AppError('الموظف غير موجود في المنشأة', 'HR_EMPLOYEE_NOT_FOUND', 404);
+      if (id) {
+        const existing = await sql<{ id: number }>`
+          SELECT id FROM hr_employee_contacts
+          WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId} FOR UPDATE
+        `.execute(trx);
+        if (!existing.rows.length) throw new AppError('بيانات الاتصال غير موجودة', 'HR_CONTACT_NOT_FOUND', 404);
+      }
+      if (payload.isPrimary === true) {
+        await sql`
+          UPDATE hr_employee_contacts SET is_primary = FALSE, updated_at = NOW()
+          WHERE employee_id = ${employeeId} AND tenant_id = ${tenantId} AND is_primary = TRUE
+        `.execute(trx);
+      }
+      if (id) {
+        await sql`
+          UPDATE hr_employee_contacts SET contact_type = ${clean(payload.contactType) || 'phone'},
+            value = ${clean(payload.value)}, label = ${clean(payload.label)},
+            is_primary = ${payload.isPrimary === true}, notes = ${clean(payload.notes)},
+            updated_by = ${auth.userId}, updated_at = NOW()
+          WHERE id = ${id} AND employee_id = ${employeeId} AND tenant_id = ${tenantId}
+        `.execute(trx);
+      } else {
+        await sql`
+          INSERT INTO hr_employee_contacts
+            (tenant_id, account_id, employee_id, contact_type, value, label,
+             is_primary, notes, created_by, updated_by)
+          VALUES (${tenantId}, ${auth.accountId}, ${employeeId},
+            ${clean(payload.contactType) || 'phone'}, ${clean(payload.value)},
+            ${clean(payload.label)}, ${payload.isPrimary === true},
+            ${clean(payload.notes)}, ${auth.userId}, ${auth.userId})
+        `.execute(trx);
+      }
+    });
+    await this.audit.log(`${id ? 'Update' : 'Create'} HR employee contact`,
+      `Employee #${employeeId} contact metadata saved by ${auth.username}`, auth);
     return this.listContacts(employeeId, auth);
   }
 
