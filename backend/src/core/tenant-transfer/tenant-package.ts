@@ -1,6 +1,7 @@
 import * as zlib from 'zlib';
 import { sql, type Kysely } from 'kysely';
 import { isPlatformTenantId } from '../auth/utils/tenant-boundary';
+import { isProtectedTenantDataTarget } from './protected-tenant-target';
 
 // Tenant package (.zsbak): every row of one tenant, moved between the cloud and a desktop install
 // (both directions) with every row keeping its ORIGINAL id. Because nothing is renumbered, foreign
@@ -353,7 +354,7 @@ export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, targe
   const { manifest, chunks } = readPackage(buffer);
   const warnings: string[] = [];
 
-  if (target.tenantId === 'zs' || (process.env.APP_MODE === 'CLOUD_SAAS' && target.tenantId === String(process.env.PLATFORM_TENANT_ID || 'zs').trim() && target.tenantId !== 'default')) {
+  if (isProtectedTenantDataTarget(target.tenantId)) {
     throw new TenantPackageError('TENANT_MISMATCH', 'Cannot import tenant package into platform root tenant');
   }
 

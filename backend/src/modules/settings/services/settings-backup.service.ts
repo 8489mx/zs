@@ -15,6 +15,7 @@ import { encryptBundle } from '../../../core/tenant-transfer/backup-bundle';
 import { AuthCacheService } from '../../../core/auth/services/auth-cache.service';
 import { SettingsService } from '../settings.service';
 import { isDesktopRuntimeMode } from '../../../config/app-mode';
+import { isProtectedTenantDataTarget } from '../../../core/tenant-transfer/protected-tenant-target';
 
 type BackupTableName = Exclude<keyof Database, 'backup_snapshots'> | (string & {});
 
@@ -612,7 +613,7 @@ export class SettingsBackupService implements OnModuleInit, OnModuleDestroy {
 
   async restoreBackup(payload: unknown, actor: AuthContext, dryRun = false): Promise<Record<string, unknown>> {
     const scope = this.scope(actor);
-    if (scope.tenantId === 'zs' || (process.env.APP_MODE === 'CLOUD_SAAS' && scope.tenantId === String(process.env.PLATFORM_TENANT_ID || 'zs').trim() && scope.tenantId !== 'default')) {
+    if (isProtectedTenantDataTarget(scope.tenantId)) {
 
       throw new ForbiddenException(
         'ممنوع منعاً باتاً استرجاع أي نسخة احتياطية على منشأة المنصة المركزية السحابية (zs). المنصة المركزية مخصصة للإدارة فقط ولا تقبل استرجاع بيانات تجارية.',
