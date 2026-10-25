@@ -1,8 +1,11 @@
 import { AppError } from '../../../common/errors/app-error';
 import { NormalizedSalePayload } from '../dto/upsert-sale.dto';
+import { type MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
-function roundCurrency(value: number): number {
-  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+function roundCurrency(value: number, digits: MoneyDigits = 2): number {
+  return digits === 2
+    ? Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
+    : roundMoney(value, digits);
 }
 
 export type SaleProductOfferRow = {
@@ -56,7 +59,7 @@ export type PreparedSaleItem = {
 export function buildPreparedSaleItem(
   product: SaleProductRow,
   item: NormalizedSalePayload['items'][number],
-  options: { allowNegativeStockSales?: boolean } = {},
+  options: { allowNegativeStockSales?: boolean; moneyDigits?: MoneyDigits } = {},
 ): PreparedSaleItem {
   const productName = String(product.name || '').trim();
   const exactRequiredQty = Number(item.qty || 0) * Number(item.unitMultiplier || 1);
@@ -71,7 +74,7 @@ export function buildPreparedSaleItem(
   }
 
   const modifiersTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + (Number(mod.price || 0) * Number(mod.qty || 1)), 0);
-  const lineTotal = roundCurrency(Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal));
+  const lineTotal = roundCurrency(Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal), options.moneyDigits ?? 2);
   const modifiersCostTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + (Number(mod.costPrice || 0) * Number(mod.qty || 1)), 0);
 
   return {
@@ -88,7 +91,7 @@ export function buildPreparedSaleItem(
     unitMultiplier: Number(item.unitMultiplier || 1) || 1,
     priceType: item.priceType === 'wholesale' ? 'wholesale' : 'retail',
     // Stored as cost per sold unit on sale_items (not per base piece) so accounting COGS can use qty * cost_price.
-    costPrice: roundCurrency((Number(product.cost_price || 0) * Number(item.unitMultiplier || 1)) + modifiersCostTotal),
+    costPrice: roundCurrency((Number(product.cost_price || 0) * Number(item.unitMultiplier || 1)) + modifiersCostTotal, options.moneyDigits ?? 2),
     requiredQty,
     beforeQty,
     afterQty: Number((beforeQty - requiredQty).toFixed(3)),
@@ -99,8 +102,8 @@ export function buildPreparedSaleItem(
   };
 }
 
-export function calculateCollectibleTotal(total: number, storeCreditUsed: number): number {
-  return roundCurrency(Number(total || 0) - Number(storeCreditUsed || 0));
+export function calculateCollectibleTotal(total: number, storeCreditUsed: number, digits: MoneyDigits = 2): number {
+  return roundCurrency(Number(total || 0) - Number(storeCreditUsed || 0), digits);
 }
 
 function normalizeDateOnly(value: unknown): string {
