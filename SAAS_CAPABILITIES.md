@@ -14,6 +14,15 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+
+<a id="saas-sandbox-cloud-failclosed-p0a"></a>
+### حصر محاكاة تجديد الاشتراك خارج Cloud SaaS — تدقيق مصدر الكود 25 أكتوبر 2026
+- السلوك الحالي: إتمام دفع تجريبي يولّد اشتراكًا حقيقيًا، لذلك يُرفض في Cloud SaaS حتى لو غابت مفاتيح بوابات الدفع، ويُسمح به فقط في الوضع المحلي الصريح دون بوابة حقيقية. لا يتحول فشل XPay/Paymob/Stripe إلى نجاح افتراضي.
+- الملفات المالكة: `tenant-subscription.controller.ts`، `gateways/payment-manager.service.ts`، `gateways/subscription-sandbox-policy.ts`، ملفات XPay/Paymob/Stripe.
+- الانحدار المكتوب: `backend/test/critical/subscription-sandbox-boundary.spec.ts`.
+
+**الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
+
 ## فهرس الأقسام المنقولة
 
 - [15. إدارة المنصة والساس وتعدد المستأجرين (SaaS Admin & Multi-Tenancy)](#cap-041)
