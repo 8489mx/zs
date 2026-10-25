@@ -86,12 +86,12 @@ async function main() {
     const accounts=await db.selectFrom('accounting_accounts').select(['id','code']).where('tenant_id','=',tenantId).execute();
     return {auth,branchId:Number(branch.id),locationId:Number(location.id),supplierId:Number(supplier.id),customerId:Number(customer.id),productId:Number(product.id),accounts:new Map(accounts.map(row=>[row.code,Number(row.id)]))};
   }
-  const postingAmount=async(f:Fixture,code:string)=>{
+  const postingAmount=async(f:Fixture,code:string,digits:2|3=2)=>{
     const rows=await sql<{amount:string}>`select coalesce(sum(l.debit-l.credit),0) as amount from journal_entry_lines l
       join journal_entries j on j.id=l.journal_entry_id and j.tenant_id=l.tenant_id
       join accounting_accounts a on a.id=l.account_id and a.tenant_id=l.tenant_id
       where l.tenant_id=${f.auth.tenantId} and a.code=${code} and j.status='posted'`.execute(db);
-    return money(rows.rows[0].amount);
+    return Number(Number(rows.rows[0].amount).toFixed(digits));
   };
   const purchase=(f:Fixture,cost:number,qty=10,key=randomUUID())=>purchases.createPurchase({supplierId:f.supplierId,paymentType:'credit',branchId:f.branchId,locationId:f.locationId,taxRate:14,pricesIncludeTax:false,items:[{productId:f.productId,name:'Test product',qty,cost,unitMultiplier:1,locationId:f.locationId}]},f.auth,key);
   const sale=(f:Fixture,qty:number)=>sales.createSale({customerId:f.customerId,paymentType:'credit',branchId:f.branchId,locationId:f.locationId,taxRate:14,pricesIncludeTax:false,items:[{productId:f.productId,name:'Test product',qty,price:30,unitMultiplier:1,priceType:'retail'}],payments:[]} as any,f.auth);
@@ -958,7 +958,7 @@ async function main() {
       .where('tenant_id','=',kwdDomainPartnerFixture.auth.tenantId!)
       .where('id','=',kwdDomainPartnerFixture.supplierId).executeTakeFirstOrThrow();
     assert.equal(Number(supplierAfter.balance),0.001);
-    assert.equal(await postingAmount(kwdDomainPartnerFixture,'2110'),-0.001);
+    assert.equal(await postingAmount(kwdDomainPartnerFixture,'2110',3),-0.001);
     const filReport=await app.get(ReportsSummaryService).supplierBalances({} as any,kwdDomainPartnerFixture.auth);
     assert.equal(Number((filReport.summary as {totalBalance:number}).totalBalance),0.001);
     pass('generic cross-sector posting reconciles 0.001 KWD supplier ledger, GL and vendor balance report');
