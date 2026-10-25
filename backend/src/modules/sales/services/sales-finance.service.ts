@@ -5,6 +5,8 @@ import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AppError } from '../../../common/errors/app-error';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -59,7 +61,8 @@ export class SalesFinanceService {
       .returning(['balance'])
       .executeTakeFirst();
     if (!updatedCustomer) throw new AppError('Customer credit limit exceeded', 'CUSTOMER_CREDIT_LIMIT', 400);
-    const nextBalance = Number(updatedCustomer.balance).toFixed(2);
+    const nextBalance = roundMoney(Number(updatedCustomer.balance),
+      currencyMoneyDigits(await tenantBaseCurrency(queryable, this.tenantScope(auth).tenantId)));
     await queryable
       .insertInto('customer_ledger')
       .values({
@@ -120,7 +123,8 @@ export class SalesFinanceService {
       .where(this.tenantPredicate(auth))
       .returning(['balance'])
       .executeTakeFirstOrThrow();
-    const nextBalance = Number(updatedCustomer.balance).toFixed(2);
+    const nextBalance = roundMoney(Number(updatedCustomer.balance),
+      currencyMoneyDigits(await tenantBaseCurrency(queryable, this.tenantScope(auth).tenantId)));
     await queryable
       .insertInto('customer_ledger')
       .values({
