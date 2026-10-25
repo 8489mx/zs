@@ -256,6 +256,16 @@ export class TradeInService {
         }
       }
       if (targetProductId) {
+        // A serial already owned by any catalog product must never be silently
+        // reused while acquiring a second physical device and paying again.
+        const occupiedSerial = await trx.selectFrom('product_serials')
+          .select(['id', 'product_id', 'status'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('serial_number', '=', payload.serialNumber.trim())
+          .executeTakeFirst();
+        if (occupiedSerial) {
+          throw new AppError('Serial is already registered in inventory; reconcile the original receipt', 'TRADEIN_SERIAL_ALREADY_REGISTERED', 409);
+        }
         // Also receive explicit existing product links: a recorded IMEI without
         // an actual stock movement previously created invisible inventory.
         await trx.updateTable('products').set({track_serials:true})
@@ -289,7 +299,10 @@ export class TradeInService {
           .where('serial_number', '=', payload.serialNumber.trim())
           .executeTakeFirst();
 
-        if (!existingSerial) {
+        if (existingSerial) {
+          throw new AppError('Serial was registered during trade-in intake; roll back duplicate receipt', 'TRADEIN_SERIAL_ALREADY_REGISTERED', 409);
+        }
+        {
           await trx
             .insertInto('product_serials')
             .values({
