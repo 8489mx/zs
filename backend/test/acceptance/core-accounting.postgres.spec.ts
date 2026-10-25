@@ -882,6 +882,39 @@ async function main() {
       .where('tenant_id','=',pharmacyCash.auth.tenantId!).execute();
     pass('pharmacy clinical fee and patient copay preserve KWD fils, post GL once, reject unsafe edits and roll back on posting failure');
 
+    // Named prescription receipts must survive a retry/concurrent replay without duplicate cash/GL.
+    const duplicateRx = {
+      prescriptionNo:`PH-RX-${tag}-CONC`,
+      customerName:'Concurrent payer', totalAmount:0.001, patientAmount:0.001,
+      status:'dispensed', items:[],
+    };
+    const rxRace = await Promise.allSettled([
+      pharmacy.upsertPrescription(pharmacyCash.auth, duplicateRx),
+      pharmacy.upsertPrescription(pharmacyCash.auth, {...duplicateRx}),
+    ]);
+    assert.equal(rxRace.filter(x=>x.status==='fulfilled').length,1);
+    assert.equal(rxRace.filter(x=>x.status==='rejected' && (x.reason as any).code==='PHARMACY_DUPLICATE_PRESCRIPTION').length,1);
+    const matchedRx=await db.selectFrom('pharmacy_prescriptions').select('id')
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!)
+      .where('prescription_no','=',duplicateRx.prescriptionNo).execute();
+    assert.equal(matchedRx.length,1);
+    const namedId=Number(matchedRx[0].id);
+    const duplicateCash=await db.selectFrom('treasury_transactions').select('id')
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!)
+      .where('reference_type','=','pharmacy_prescription')
+      .where('reference_id','=',namedId).execute();
+    assert.equal(duplicateCash.length,1);
+    const duplicateGl=await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id','=',pharmacyCash.auth.tenantId!)
+      .where('source_type','=','pharmacy_prescription_cash')
+      .where('source_id','=',namedId).execute();
+    assert.equal(duplicateGl.length,1);
+    await assert.rejects(pharmacy.upsertPrescription(pharmacyCash.auth, {
+      customerName:'Unlinked medicine',totalAmount:0.001,patientAmount:0.001,
+      status:'dispensed',items:[{drugName:'Unknown stock item',price:0.001}],
+    }),(err:any)=>err.code==='PHARMACY_PRESCRIPTION_SALE_REQUIRED');
+    pass('concurrent duplicate prescription number cannot double-collect cash or journal; unlinked drug billing fails closed');
+
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
     // drop dependent MFA constraints using CASCADE to make the test green.
