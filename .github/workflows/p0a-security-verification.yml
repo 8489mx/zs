@@ -106,6 +106,10 @@ jobs:
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npm run migration:run
         working-directory: backend
+      - name: Verify migration 255 composite constraints in live test PostgreSQL
+        if: ${{ always() && steps.install.outcome == 'success' }}
+        run: npx ts-node test/critical/p0a-migration-255-postgres.spec.ts
+        working-directory: backend
       - name: PostgreSQL core integrity acceptance
         if: ${{ always() && steps.install.outcome == 'success' }}
         run: npx ts-node test/critical/core-integrity-audit.spec.ts
