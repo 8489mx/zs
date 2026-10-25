@@ -8,6 +8,7 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { normalizeArabicSearch } from '../../common/utils/arabic-search.util';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
+import { validateDistributorInvoiceLines } from './engines/distributor-invoice-validation.engine';
 import { UpsertDrugDto } from './dto/upsert-drug.dto';
 import { UpsertBatchDto } from './dto/upsert-batch.dto';
 import { UpsertPrescriptionDto } from './dto/upsert-prescription.dto';
@@ -246,21 +247,10 @@ export class PharmacyService {
     let totalCostSum = 0;
     let totalPublicSum = 0;
 
-    if (!dto.lines?.length) {
-      throw new Error('Distributor invoice requires at least one line');
-    }
+    validateDistributorInvoiceLines(dto.lines);
     // All imported batches and their treasury source must commit together.
     return await this.db.transaction().execute(async (trx) => {
     for (const line of dto.lines) {
-      if (!line.productName?.trim()) {
-        throw new Error('Distributor invoice line requires a product name');
-      }
-      if (![line.quantity, line.bonusQuantity ?? 0, line.costPrice, line.publicPrice].every((value) => Number.isFinite(Number(value)))) {
-        throw new Error('Distributor invoice contains a non-finite quantity or price');
-      }
-      if (Number(line.quantity) <= 0 || Number(line.bonusQuantity || 0) < 0 || Number(line.costPrice) < 0 || Number(line.publicPrice) < 0) {
-        throw new Error('Distributor invoice contains a negative or zero purchase quantity or price');
-      }
 
       const qty = Number(line.quantity || 0) + Number(line.bonusQuantity || 0);
       const cost = Number(line.costPrice || 0);
