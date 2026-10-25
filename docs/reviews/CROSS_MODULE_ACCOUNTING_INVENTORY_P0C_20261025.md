@@ -73,3 +73,11 @@ The code observations above identify definite missing integration points; **fina
 - **P0C-03 is still OPEN**: these controls address duplicate intake and destructive deletion; the existing trade-in intake/payout still lacks its required full GL/valuation posting contract.
 - Review-branch workflows now cancel only superseded branch push runs using `concurrency` with `cancel-in-progress` and a non-main predicate. Main, required pull request checks, and Oracle deploy triggers stay unchanged.
 - Previous isolated accounting PostgreSQL acceptance [40198134273](https://github.com/8489mx/zs/actions/runs/40198134273) passed on prior revision. This does **not** certify new trade-in changes until a new run confirms them.
+
+## Cash used-goods acquisition posting checkpoint
+
+- Cash trade-in now requires a tenant-owned physical stock receipt. The intake records an explicitly costed `tradein_in` movement and recomputes WAC through `valueStockReceipt`.
+- `AccountingPostingService.postTradeInCashPurchase` posts debit `1140` Inventory and credit `1110` Cash in the **same transaction** as the stock receipt and treasury payout. It checks the exact one-to-one value/quantity/cash source before posting. `trade_in` source is now deduplicated.
+- Pre-existing catalog links now also receive physical stock; generated product barcodes include the unique transaction ID.
+- Disposable PostgreSQL acceptance now verifies a 37.25 cash payout, matching inventory and cash GL, one source-linked journal, physical WAC and concurrent duplicate prevention.
+- **Not full sector certification:** trade-in exchanges, bank payments and purchases without classified physical stock still need their own accounting flows. Existing economic documents cannot be hard-deleted; an audited cancellation/reversal workflow is not yet implemented.
