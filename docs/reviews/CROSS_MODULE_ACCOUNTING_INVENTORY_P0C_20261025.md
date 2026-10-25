@@ -179,3 +179,9 @@ The code observations above identify definite missing integration points; **fina
 - Customer/supplier payment voucher amount validation and vendor schedule available balance now respect the tenant's 2/3 minor-unit scales; payable/receivable GL payment journals retain thousandths.
 - Real PostgreSQL acceptance includes 0.001 KWD customer and supplier payment settlement with source/GL/AP/AR reconciliation. A previous acceptance run exposed a test-only Kysely `QueryResult.length` type error in return assertions; corrected to `.rows.length`.
 - This is not blanket treasury/FX/cheque/returns certification. The complete 8-cycle and 11-sector matrix is still open until each requested scenario has passing proof.
+
+## Dashboard minor-unit trend precision follow-up
+
+- Daily financial trend accumulation no longer rounds each invoice to cents, so numerous sub-cent KWD/OMR source amounts are summed before rounding in the tenant's actual minor units.
+- Dashboard overview resolves the validated tenant base currency, passes 2/3-digit precision to both sales and purchase trend helpers, and segregates cached results by precision. Existing cent-based report callers retain the two-digit default.
+- Critical report helper and dashboard tests now cover 0.001+0.002 KWD trend and purchasing trend; broad report/API/8-cycle/11-sector closure remains open until full verification.
