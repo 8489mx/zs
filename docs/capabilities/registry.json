@@ -1,0 +1,274 @@
+{
+  "version": 1,
+  "domains": [
+    {
+      "id": "platform",
+      "title": "الهوية والأمان وعزل الشركات",
+      "file": "PLATFORM_CAPABILITIES.md",
+      "modules": [
+        "activation",
+        "sessions",
+        "users"
+      ]
+    },
+    {
+      "id": "runtime",
+      "title": "التشغيل والنشر والأداء والنسخ الاحتياطي",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "modules": []
+    },
+    {
+      "id": "ui",
+      "title": "الواجهة والتنقل والتوطين",
+      "file": "UI_CAPABILITIES.md",
+      "modules": []
+    },
+    {
+      "id": "qa",
+      "title": "التحقق والتدقيق والسجلات المشتركة",
+      "file": "QA_CAPABILITIES.md",
+      "modules": []
+    },
+    {
+      "id": "settings",
+      "title": "الإعدادات والأنشطة والباقات",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "modules": [
+        "settings"
+      ]
+    },
+    {
+      "id": "accounting",
+      "title": "المحاسبة والخزينة والقيود",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "modules": [
+        "accounting",
+        "cash-drawer",
+        "treasury"
+      ]
+    },
+    {
+      "id": "tax",
+      "title": "الضرائب والتكامل الضريبي",
+      "file": "TAX_CAPABILITIES.md",
+      "modules": [
+        "tax-integration"
+      ]
+    },
+    {
+      "id": "inventory",
+      "title": "المخزون والمستودعات",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "modules": [
+        "inventory"
+      ]
+    },
+    {
+      "id": "catalog",
+      "title": "الأصناف والوحدات والمتغيرات",
+      "file": "CATALOG_CAPABILITIES.md",
+      "modules": [
+        "catalog"
+      ]
+    },
+    {
+      "id": "sales",
+      "title": "المبيعات ونقاط البيع",
+      "file": "SALES_CAPABILITIES.md",
+      "modules": [
+        "sales"
+      ]
+    },
+    {
+      "id": "purchases",
+      "title": "المشتريات والموردون",
+      "file": "PURCHASES_CAPABILITIES.md",
+      "modules": [
+        "purchases"
+      ]
+    },
+    {
+      "id": "partners",
+      "title": "العملاء والتحصيل والولاء",
+      "file": "PARTNERS_CAPABILITIES.md",
+      "modules": [
+        "partners"
+      ]
+    },
+    {
+      "id": "delivery",
+      "title": "التوصيل وأجور المناديب",
+      "file": "DELIVERY_CAPABILITIES.md",
+      "modules": [
+        "delivery-reps"
+      ]
+    },
+    {
+      "id": "vans",
+      "title": "التوزيع الميداني والفان",
+      "file": "VANS_CAPABILITIES.md",
+      "modules": []
+    },
+    {
+      "id": "hr",
+      "title": "الموارد البشرية والرواتب",
+      "file": "HR_CAPABILITIES.md",
+      "modules": [
+        "hr"
+      ]
+    },
+    {
+      "id": "maintenance",
+      "title": "الصيانة",
+      "file": "MAINTENANCE_CAPABILITIES.md",
+      "modules": [
+        "maintenance"
+      ]
+    },
+    {
+      "id": "manufacturing",
+      "title": "التصنيع والجودة",
+      "file": "MANUFACTURING_CAPABILITIES.md",
+      "modules": [
+        "manufacturing"
+      ]
+    },
+    {
+      "id": "tradein",
+      "title": "الاستبدال والمستعمل",
+      "file": "TRADEIN_CAPABILITIES.md",
+      "modules": [
+        "tradein"
+      ]
+    },
+    {
+      "id": "pharmacy",
+      "title": "الصيدليات",
+      "file": "PHARMACY_CAPABILITIES.md",
+      "modules": [
+        "pharmacy"
+      ]
+    },
+    {
+      "id": "ai",
+      "title": "المساعد الذكي وقنوات المحادثة",
+      "file": "AI_CAPABILITIES.md",
+      "modules": [
+        "ai-copilot"
+      ]
+    },
+    {
+      "id": "saas",
+      "title": "إدارة المنصة والاشتراكات",
+      "file": "SAAS_CAPABILITIES.md",
+      "modules": [
+        "public",
+        "saas-admin",
+        "tenant-subscription"
+      ]
+    },
+    {
+      "id": "storefront",
+      "title": "المتجر الإلكتروني والمدفوعات والمنصات",
+      "file": "STOREFRONT_CAPABILITIES.md",
+      "modules": [
+        "storefront"
+      ]
+    },
+    {
+      "id": "pricing",
+      "title": "التسعير والعروض",
+      "file": "PRICING_CAPABILITIES.md",
+      "modules": [
+        "addons",
+        "pricing"
+      ]
+    },
+    {
+      "id": "reports",
+      "title": "التقارير والتحليلات",
+      "file": "REPORTS_CAPABILITIES.md",
+      "modules": [
+        "reports"
+      ]
+    },
+    {
+      "id": "shipping",
+      "title": "تكاملات شركات الشحن",
+      "file": "SHIPPING_CAPABILITIES.md",
+      "modules": [
+        "bosta",
+        "gcc-shipping"
+      ]
+    },
+    {
+      "id": "restaurant",
+      "title": "المطاعم والأغذية",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "modules": []
+    },
+    {
+      "id": "import",
+      "title": "الاستيراد والتجارة الدولية",
+      "file": "IMPORT_CAPABILITIES.md",
+      "modules": [
+        "import-sales"
+      ]
+    },
+    {
+      "id": "retail",
+      "title": "التجزئة والأنشطة التجارية",
+      "file": "RETAIL_COMMERCE_CAPABILITIES.md",
+      "modules": []
+    },
+    {
+      "id": "contracting",
+      "title": "المقاولات",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "modules": [
+        "contracting"
+      ]
+    },
+    {
+      "id": "freight",
+      "title": "الشحن واللوجستيات الدولية",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "modules": [
+        "maritime-freight"
+      ]
+    },
+    {
+      "id": "crm",
+      "title": "إدارة علاقات العملاء والفرص",
+      "file": "CRM_CAPABILITIES.md",
+      "modules": [
+        "crm"
+      ]
+    },
+    {
+      "id": "returns",
+      "title": "المرتجعات",
+      "file": "RETURNS_CAPABILITIES.md",
+      "modules": [
+        "returns"
+      ]
+    },
+    {
+      "id": "services",
+      "title": "الخدمات",
+      "file": "SERVICES_CAPABILITIES.md",
+      "modules": [
+        "services"
+      ]
+    },
+    {
+      "id": "approvals",
+      "title": "الموافقات واستثناءات المدير",
+      "file": "APPROVALS_CAPABILITIES.md",
+      "modules": [
+        "approvals",
+        "manager-actions"
+      ]
+    }
+  ]
+}

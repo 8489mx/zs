@@ -1,0 +1,2143 @@
+{
+  "source_commit": "d26a40c8475e381269a66bfd40c45b8291fda01d",
+  "source_file": "SYSTEM_CAPABILITIES.md",
+  "normalization": "CRLF to LF only",
+  "source_sha256": "237213d5ed259dccf42b3135f17968eea375bd1a4a6692676cad85d89e1c1a13",
+  "sections": [
+    {
+      "id": "cap-legacy-preface",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "# سجل قدرات ومنظومة Z-Systems (System Capabilities & Feature Matrix)",
+      "source_line": 1,
+      "sha256": "449036d411cab6cfb3256b3b59869385829a48450d45d732595c4718dedf7cf4"
+    },
+    {
+      "id": "cap-001",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## 📐 ملف مصاحب إلزامي: دستور الثوابت المعمارية",
+      "source_line": 18,
+      "sha256": "409aae5ca379365e084cdfb230fbebc2dfcaf5d1d431793d510461b6b6c7a230"
+    },
+    {
+      "id": "cap-002",
+      "file": "HR_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة كشوف المرتبات والأجور ودورات الصرف المتعددة والتعريب الإقليمي لمصر والخليج (HR Multi-Frequency Payroll & Regional Egyptian Terminology Hub) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 35,
+      "sha256": "e9d9ac8f196c6bd15a33ed724c537d9bb6e77ba9a21a1dda55796093dc6bc3f2"
+    },
+    {
+      "id": "cap-003",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "### قدرة: أداء وسرعة المنظومة (Performance) — ✅ مفعّلة ومحروسة (21 سبتمبر 2026)",
+      "source_line": 58,
+      "sha256": "0c57e817f2fbd528587a5577aa2c56da8ca603531855f3f2e323e0a589ca9031"
+    },
+    {
+      "id": "cap-004",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة الدفع والـ QR الذكي متعدد القنوات (Z-Pay Multi-Channel Smart Payment Hub) لماكينات Sunmi ونقاط البيع — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 68,
+      "sha256": "791768a2a60eda1154361fc1a5539a8783a8184289f986d6edcf052968072fe5"
+    },
+    {
+      "id": "cap-005",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "### قدرة: النمط الذكي المزدوج لمسح الباركود بنقاط البيع (Smart Dual-Mode Barcode Scanning Architecture) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 93,
+      "sha256": "063484cd29164b9c90f8a98c9b9ce6e818caee7dc3d03e0b268b495ff08184bf"
+    },
+    {
+      "id": "cap-006",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة بونات وملاحظات المطبخ الذكية ثنائية اللغة وشاشات KDS (Bilingual Kitchen Order System & Quick Modifier Tags Hub) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 107,
+      "sha256": "060eb8bafcd54b485324426338ad4f8e37175f35ea06111db25b6721cdd6379a"
+    },
+    {
+      "id": "cap-007",
+      "file": "PLATFORM_CAPABILITIES.md",
+      "heading": "### قدرة: الدرع المعماري والحصانة المطلقة لمنصة السوبر أدمن والمستأجر الجذري zs (Super Admin Platform Root Immunity Shield) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 134,
+      "sha256": "5963be62ba86af63595b8e1f71111f32d896dd7a79d0c1dfc66301be240f2444"
+    },
+    {
+      "id": "cap-008",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "### قدرة: دستور منع التكرار الصارم في القوائم الجانبية ومساحات العمل (Zero Sidebar Duplication Invariant) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 148,
+      "sha256": "f5ae25c9a9634336fff72096cee5c5098ec991b905ae4d3d671036d790cb7c6f"
+    },
+    {
+      "id": "cap-009",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "### قدرة: دستور التابات والتمرير الأفقي الذكي بعجلة الماوس (Universal Horizontal Scroll Tabs Standard) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 158,
+      "sha256": "2f3811f6ecd9d5376c170f9609883a86977531258c13b3e5799eedde09354e57"
+    },
+    {
+      "id": "cap-010",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة الترجمة والتعريب والتحويل متعدد اللغات الآلي الذكي (Automated Universal Multi-Language Architecture & Instant Locale Generation Engine) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 172,
+      "sha256": "def535fd1ffc5364f07d6c447cafc913103ca9c5b59a9276bb1edeb00b1e2697"
+    },
+    {
+      "id": "cap-011",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "### قدرة: نظام التبويبات المتعددة والتنقل المكتبي كالمتصفح في Electron وDesktop (Browser-like In-App Tabs & Desktop Popouts) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 192,
+      "sha256": "63f330c0a4c2af01c0d00d1cd4df70b38d20054af3b1944aa1feec90ab5f9644"
+    },
+    {
+      "id": "cap-012",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "### قدرة: مصفوفة سيناريوهات ومحاكاة مسارات العمل الشاملة (Master 21-Scenario E2E Simulation Matrix) — ✅ مفعّلة ومختبرة 100% (9 أكتوبر 2026)",
+      "source_line": 214,
+      "sha256": "202320d5cfb98ad15c94b125287a1ac359619a9547ab23d08d95b170ae542a47"
+    },
+    {
+      "id": "cap-013",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة الأغذية والمشروبات التنافسية (Foodics F&B Killer Platform) — ✅ مفعّلة ومكتملة 100%",
+      "source_line": 234,
+      "sha256": "2be5f8753adaf0e237feaa866edf9e06ee9416e23982d1e01cfcb136f16d2df3"
+    },
+    {
+      "id": "cap-014",
+      "file": "IMPORT_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة الاستيراد والتجارة الدولية الشاملة (Import & International Trade ERP Platform) — ✅ مفعّلة ومكتملة 100%",
+      "source_line": 246,
+      "sha256": "1cd968eda342bdec90c0217f321e0cee750e8ca86400e6562c659b11c6d46425"
+    },
+    {
+      "id": "cap-015",
+      "file": "RETAIL_COMMERCE_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة التجارة والتجزئة ونقاط البيع الشاملة والأنشطة التخصصية (Retail, Fashion & Commerce Platform) — ✅ مفعّلة ومكتملة 100%",
+      "source_line": 257,
+      "sha256": "844ededd64fe5f4e835bbd79439787eb17510f6a8e282caad137a9b9ac9ccfa6"
+    },
+    {
+      "id": "cap-016",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "### قدرة: دستور الفصل والعزل التام بين الأنماط المؤسسية (Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)",
+      "source_line": 269,
+      "sha256": "84698f00ac7d7b053d6b62ebd3e43cbff1ce365f855780deb60ee54a6dd5dda0"
+    },
+    {
+      "id": "cap-017",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "### قدرة: نمط ومساحة عمل إدارة المستودعات والتحويلات المخزنية المعزولة (Dedicated Warehousing & Multi-Branch Stock Transfers Sub-Vertical — WMS) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)",
+      "source_line": 280,
+      "sha256": "039d21a61e49bb9ff99be0a3e0b44249fb9104bde50d29d72c697be582d58ad9"
+    },
+    {
+      "id": "cap-018",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "### قدرة: العزل القطاعي الشامل لكافة صفحات وتبويبات وأقسام الإعدادات (Settings Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)",
+      "source_line": 305,
+      "sha256": "6ff573ca33d36481b22c38b21851e9613cb99d3a744dd707d955542c09bb1497"
+    },
+    {
+      "id": "cap-019",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "### قدرة: دستور شاشات الموبايل المضغوطة وعزل نسخة الكمبيوتر وحظر أسهم الرجوع في الشاشات الرئيسية — ✅ مفعّلة ومحروسة (أكتوبر 2026)",
+      "source_line": 323,
+      "sha256": "82d6d95ae24776181e1b0718de5da4ec6a625d6f0171b6d8ab1a532144fe3703"
+    },
+    {
+      "id": "cap-020",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: العزل الشامل بين حسابات المناديب للعميل المشترك وتفصيل إجمالي المشرف والمالك (Rep-to-Rep Customer Account & Collection Isolation — VAN-12) — ✅ مفعّلة ومحروسة (أكتوبر 2026)",
+      "source_line": 333,
+      "sha256": "2d9e4b01ad1999efe985050d43683fb14cb4c5377f92fb5a1ef53280113892d8"
+    },
+    {
+      "id": "cap-021",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة التحصين الهجومي الشامل لكافة أنماط التوزيع الميداني (Van Sales Exhaustive Adversarial Governance) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)",
+      "source_line": 340,
+      "sha256": "fac6f6b56176e60332298da0fd3b3b831df8d733120959104be570a22d4e7af3"
+    },
+    {
+      "id": "cap-022",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: بوابة الفحص الإلزامي للـ GPS ومنع بدء الزيارات أو البيع الميداني عند إغلاق الموقع (Mandatory GPS Visit Gate & Action Enforcement) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)",
+      "source_line": 361,
+      "sha256": "2e945da216d8dd0528f6721fb2cfff0a03a67b338b70fdc3635b824e91d21252"
+    },
+    {
+      "id": "cap-023",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: جدولة زيارات العملاء وتخصيص المناديب المتعددين وجداول الأيام المستقلة (Multi-Rep Assignment & Rep-Specific Itinerary Schedules) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)",
+      "source_line": 367,
+      "sha256": "6efba0d4bab3f4545097cbc3090667b8ffd910d3f9fc6858464484779d53aa09"
+    },
+    {
+      "id": "cap-024",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة صلاحيات وضوابط المناديب في الميدان (Field Rep Permissions & Operational Governance) — ✅ مفعّلة ومحروسة 100% (أكتوبر 2026)",
+      "source_line": 378,
+      "sha256": "42f20750048bdbde9d4e65ad4667e531988ee3689e17bee9e285f2cb787fb7a5"
+    },
+    {
+      "id": "cap-025",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: المركز المالي الموحد لتسويات وعجوزات وبونص مناديب التوزيع والربط بمسير الرواتب (Van Rep Financial Ledger, Shortages Settlement Hub & HR Payroll Bridge) — ✅ مفعّلة ومكتملة 100% (أكتوبر 2026)",
+      "source_line": 394,
+      "sha256": "237c55991fa6925da0fcd4d6cf362c66126376f2f6d98260f4554cf6a118574a"
+    },
+    {
+      "id": "cap-026",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## بيئة التشغيل والاستضافة السحابية المعتمدة (Cloud Hosting & Infrastructure)",
+      "source_line": 406,
+      "sha256": "f4b31327692992e2b097e2594894d9a8a7f4a672b23c69bdfac576ea97f9afb7"
+    },
+    {
+      "id": "cap-027",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## دلالات شارات الحالة (Status Badges)",
+      "source_line": 413,
+      "sha256": "f3bd92e22a9ac1b83001b30d2932002e0b9667a6ae6512290f722ec3a8ef60f1"
+    },
+    {
+      "id": "cap-028",
+      "file": "STOREFRONT_CAPABILITIES.md",
+      "heading": "## 1. المتجر الإلكتروني وقنوات البيع الموحدة (Storefront & Omnichannel)",
+      "source_line": 420,
+      "sha256": "d8f99db852a3336efb80e1f2323b443ca26af80e15066c84a3dda367894eab22"
+    },
+    {
+      "id": "cap-029",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 2. نقاط البيع والمبيعات والكاشير (POS & Sales Management)",
+      "source_line": 452,
+      "sha256": "5442bdec7773deaff0e7c597dcd6c69c3881f9f949e5f662b47d6674889dc9af"
+    },
+    {
+      "id": "cap-030",
+      "file": "PURCHASES_CAPABILITIES.md",
+      "heading": "## 4. المشتريات وحسابات الموردين (Purchases & Suppliers)",
+      "source_line": 505,
+      "sha256": "d435532226a7afefa46e278680177554007175e6c865e8b70ae703e3b2aac26b"
+    },
+    {
+      "id": "cap-031",
+      "file": "PARTNERS_CAPABILITIES.md",
+      "heading": "## 5. العملاء والمبيعات الآجلة (Customers & Accounts Receivable)",
+      "source_line": 525,
+      "sha256": "e21019d9c16a19331846709923e219bff62a5f40d69cfb53e54b2ab3cc5fb833"
+    },
+    {
+      "id": "cap-032",
+      "file": "DELIVERY_CAPABILITIES.md",
+      "heading": "## 6. مناديب التوصيل والدليفري (Delivery Representatives & Fleet)",
+      "source_line": 543,
+      "sha256": "bda95509b54d3ae5e5be9e39379202db3dee1a1c3461503a1ab7996dfce596b1"
+    },
+    {
+      "id": "cap-033",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 7. المحاسبة والمالية والخزينة (Accounting, Finance & Treasury)",
+      "source_line": 572,
+      "sha256": "d120a9b7cee147ca04c5aaed969f58a2b4e6a66cd3bb436df0dda4935bddb026"
+    },
+    {
+      "id": "cap-034",
+      "file": "TAX_CAPABILITIES.md",
+      "heading": "## 8. الضرائب والفاتورة الإلكترونية المصرية والخليجية (Tax Integration)",
+      "source_line": 604,
+      "sha256": "20e18d444c3b64bddcef7d18ca5a0924481bb47440301da3a411fbb4f84c7f37"
+    },
+    {
+      "id": "cap-035",
+      "file": "HR_CAPABILITIES.md",
+      "heading": "## 9. الموارد البشرية والرواتب (HR & Payroll)",
+      "source_line": 617,
+      "sha256": "2e26cd9be553c6701c00c5df958d4f7db78ca2ebfbf89f66f7f7ce9209748958"
+    },
+    {
+      "id": "cap-036",
+      "file": "MAINTENANCE_CAPABILITIES.md",
+      "heading": "## 10. الصيانة وأوامر الشغل وتذاكر الأجهزة (Maintenance & Repairs)",
+      "source_line": 635,
+      "sha256": "9d967ccf47c60c5a69bf1402e7a8695d6087a787f2c9de71ede618fae56c45d3"
+    },
+    {
+      "id": "cap-037",
+      "file": "MANUFACTURING_CAPABILITIES.md",
+      "heading": "## 11. التصنيع وشجرة المنتج (Manufacturing & BOM)",
+      "source_line": 648,
+      "sha256": "ef3e8ed72fae14bde869075930edef29d4600124d12ee5872e53a2b25d415049"
+    },
+    {
+      "id": "cap-038",
+      "file": "TRADEIN_CAPABILITIES.md",
+      "heading": "## 12. استبدال وتقييم المستعمل (Trade-in)",
+      "source_line": 662,
+      "sha256": "891cd0bf99e808f667e6fc1091c3623b6ef59bd1ced0edfe0005ca574a474214"
+    },
+    {
+      "id": "cap-039",
+      "file": "PHARMACY_CAPABILITIES.md",
+      "heading": "## 13. الصيدليات وإدارة أرقام التشغيلات وتواريخ الصلاحية (Pharmacy & Batches & FEFO) 🥫💊",
+      "source_line": 674,
+      "sha256": "818dc6989b6b3a2b3dd37be527ad0843d58963c348668faa91a2380d707cf3b2"
+    },
+    {
+      "id": "cap-040",
+      "file": "AI_CAPABILITIES.md",
+      "heading": "## 14. المساعد التنفيذي ومستودع المعرفة والتحليلات التنبؤية (AI Copilot & Knowledge RAG)",
+      "source_line": 691,
+      "sha256": "aa2b682856d1671a5abd001b4fb955deecd233d4183863362025bc1958c8e1d1"
+    },
+    {
+      "id": "cap-041",
+      "file": "SAAS_CAPABILITIES.md",
+      "heading": "## 15. إدارة المنصة والساس وتعدد المستأجرين (SaaS Admin & Multi-Tenancy)",
+      "source_line": 706,
+      "sha256": "c1b431abea221b192ab53b690fdfaac108fa72e4207f162652f706d6e32e4d40"
+    },
+    {
+      "id": "cap-042",
+      "file": "PLATFORM_CAPABILITIES.md",
+      "heading": "## 16. الصلاحيات والأمان وإعدادات الفروع (RBAC, Branches & Core Settings)",
+      "source_line": 723,
+      "sha256": "7cc9f61cc1e8b3548115126c3d785b4957522e71649039216a2ab98726b4249e"
+    },
+    {
+      "id": "cap-043",
+      "file": "PARTNERS_CAPABILITIES.md",
+      "heading": "## 17. برنامج ولاء ونقاط المكافآت للعملاء (Customer Loyalty Points Engine)",
+      "source_line": 743,
+      "sha256": "2206ae4cc8830e68cbc7903b28ce4d4d41ce49492ee16c14f75854c1ab348e6a"
+    },
+    {
+      "id": "cap-044",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 18. نظام باقات الاشتراك وفلترة القائمة الجانبية المعيارية (Modular Subscription Plans & Sidebar Dynamic Gating)",
+      "source_line": 759,
+      "sha256": "b65f12dffc55eeeac1ef120af6b23efa515e272bef55d8c347d764bbdc5ee9d1"
+    },
+    {
+      "id": "cap-045",
+      "file": "REPORTS_CAPABILITIES.md",
+      "heading": "## 19. لوحات ذكاء الأعمال والرسوم البيانية المتقدمة (Executive BI Charts & Business Intelligence)",
+      "source_line": 792,
+      "sha256": "4def6778e82c383788dab3d50809c71e50640c9f9188235f6af93e5f37356ad0"
+    },
+    {
+      "id": "cap-046",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 20. خط النشر السحابي المستمر المؤتمت لسيرفر أوراكل (Automated CI/CD Pipeline to Oracle Cloud VPS)",
+      "source_line": 808,
+      "sha256": "1f7832d63f924bbe7f85c03e4f1fb46bbf81405400e0a3d9d7671cea03e08144"
+    },
+    {
+      "id": "cap-047",
+      "file": "SHIPPING_CAPABILITIES.md",
+      "heading": "## 21. الربط المتكامل مع شركات الشحن الخارجية (Bosta Couriers API Integration)",
+      "source_line": 824,
+      "sha256": "f248b12eadc198964ebb603214958852dc0d4fc0cebe33f0d9d77cb83c27efcf"
+    },
+    {
+      "id": "cap-048",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 22. منظومة المراقبة والرصد السحابي الاستباقي وتنبيهات التيليجرام (Proactive APM & Telegram Incident Alerts)",
+      "source_line": 838,
+      "sha256": "f6df4adbda31d5fe7ca6fca357fdd11c31d763bb921f537cf3b54da7107741a8"
+    },
+    {
+      "id": "cap-049",
+      "file": "STOREFRONT_CAPABILITIES.md",
+      "heading": "## 23. بوابات الدفع الإلكتروني الخليجية والدولية (Tap Payments GCC & Stripe Global Integration)",
+      "source_line": 852,
+      "sha256": "8d11e942acd6fc97c86a05ccfa15f6d3066543078044d8f04d6bb267e29afdec"
+    },
+    {
+      "id": "cap-050",
+      "file": "AI_CAPABILITIES.md",
+      "heading": "## 24. بوت واتساب التفاعلي بالذكاء الاصطناعي المجاني (Conversational WhatsApp AI Bot & Google Gemini Flash)",
+      "source_line": 866,
+      "sha256": "b6f79434b41bbf18fbbe9a94596af6768a8f61724ad6c3a50effd037155c98a9"
+    },
+    {
+      "id": "cap-051",
+      "file": "SHIPPING_CAPABILITIES.md",
+      "heading": "## 25. الربط مع شركات الشحن الخليجية الداخلية (Aramex & SMSA Express Gateways)",
+      "source_line": 880,
+      "sha256": "38ff4e011420adc2a6fb4f14249a92166a3fcdcd98e547090e839aa451a1395c"
+    },
+    {
+      "id": "cap-052",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 26. معالج استيراد البيانات التجريبية السريعة حسب النشاط (One-Click Demo Data Wizard)",
+      "source_line": 897,
+      "sha256": "eb535e555cfe4209dded52ce242de3692a6e36dfc522e8967425694e2fdcba3f"
+    },
+    {
+      "id": "cap-053",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 27. شاشة عرض العميل المقابلة للكاشير (Customer Facing Display - CFD)",
+      "source_line": 915,
+      "sha256": "adc6c4dd2268305fbfe858b4f65e1048374c2132b5dd07b130e38111c8131623"
+    },
+    {
+      "id": "cap-054",
+      "file": "PRICING_CAPABILITIES.md",
+      "heading": "## 28. محرك العروض الترويجية المتقدمة والباقات (Advanced Promotions, BOGO & Happy Hours Engine)",
+      "source_line": 934,
+      "sha256": "ffdf36a3c7fa58040a46e8475bff4a6357d3273f3a00f30f90464c4bff65be15"
+    },
+    {
+      "id": "cap-055",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "## 29. محرك إمداد الأرفف الذكي وأمر التحميل والملخص التنفيذي واللوجستي اليومي (Smart Shelf Replenishment & Executive Daily Digest) ⚡🌙",
+      "source_line": 960,
+      "sha256": "2f93163722710cb03c70061ff070c5291c92f3a7c1ab01bbbc200d518ef164ee"
+    },
+    {
+      "id": "cap-056",
+      "file": "PRICING_CAPABILITIES.md",
+      "heading": "## 31. محرك حماية هامش الربح وتحديث الأسعار التلقائي عند غلاء المورد (Margin Protection & Smart Repricing Engine) 🛡️📈",
+      "source_line": 980,
+      "sha256": "e62aff58ded09176cb6ecb2853ff0bc141c22c7776108c0b0204afe98aac391c"
+    },
+    {
+      "id": "cap-057",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 32. رادار كشف تلاعب وسرقات الكاشير ومنع الخسائر (Cashier Loss Prevention & Fraud Audit Radar) 🕵️‍♂️🚨",
+      "source_line": 1000,
+      "sha256": "e7bb4128e4326b98a662c2c79c17012e9e7e9b6c311bf1471eaa963f79cf4f3a"
+    },
+    {
+      "id": "cap-058",
+      "file": "STOREFRONT_CAPABILITIES.md",
+      "heading": "## 33. محرك الربط والمزامنة مع منصات التجارة الإلكترونية والماركت بليس (Marketplaces Suite - Amazon, Noon, Jumia, Trendyol, Profit Calculator & Studio)",
+      "source_line": 1020,
+      "sha256": "2630345cdc90dd5223bd2d796e669f919a6cf3dab889c5bc1c787c78903fb0f7"
+    },
+    {
+      "id": "cap-059",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 34. شاشة المطبخ التفاعلية للمطاعم والكافيهات (Interactive Kitchen Display System - KDS) 🍳📱",
+      "source_line": 1057,
+      "sha256": "fd3668fa47aab0078230985cfde95139ac33d18e176080ac3ed41858a2a0a673"
+    },
+    {
+      "id": "cap-060",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 35. شاشة العروض الترويجية الرقمية لصالة العرض (Digital Signage / Promo Board) 📺✨",
+      "source_line": 1077,
+      "sha256": "c048b83c8fe5b0fb1ccb8114a07a54e8af0343cc7d198de095e62f4836f68680"
+    },
+    {
+      "id": "cap-061",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 36. مبيعات وتوزيع سيارات الفان الميدانية وأسطول الشركة (Van Sales & Fleet Management) 🚚📦",
+      "source_line": 1096,
+      "sha256": "49e0c10ce769eeaf3049c9e13f69cdca26aaecbf2bb25db44b8d6493e4faad21"
+    },
+    {
+      "id": "cap-062",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 37. الطلب الذاتي من الطاولة بالـ QR للمطاعم والكافيهات (Dine-In QR Table Ordering) 🍽️📲",
+      "source_line": 1131,
+      "sha256": "91583c869fe1109a253bf8e5fa371bc453df57ccee9293f50e6cf282b0f89365"
+    },
+    {
+      "id": "cap-063",
+      "file": "HR_CAPABILITIES.md",
+      "heading": "## 38. بصمة الحضور والانصراف بالـ GPS وصورة الوجه من هاتف الموظف (Mobile GPS Geofenced & Face Attendance)",
+      "source_line": 1153,
+      "sha256": "5c228f9df3e626a16add0d2fd24a895a279c75887998083961ab59231e54ca3d"
+    },
+    {
+      "id": "cap-064",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## 39. ما ينقص النظام فعلياً أو يمكن التوسع فيه مستقبلاً (Optional Future Expansions)",
+      "source_line": 1171,
+      "sha256": "a2c7d2be6e39f672bf8fabf1d26ed90458336a9d5b31de1cff29a6eb9340b113"
+    },
+    {
+      "id": "cap-065",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 40. الهوية البصرية المؤسسية وتطهير الأيقونات الكرتونية (UI Enterprise Standardization & Zero Emoji Policy)",
+      "source_line": 1182,
+      "sha256": "de0990b316480fa82ee385c97bc63a0abd8fdab36e65e5359cea0f9651aa5960"
+    },
+    {
+      "id": "cap-066",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 41. شاشات العرض الملحقة لنقاط البيع المتطابقة مع دستور النظام البصري (POS Auxiliary Screens: CFD, KDS & Digital Signage)",
+      "source_line": 1197,
+      "sha256": "5f12d853437cb4c72b9f22652db79c035ae8a3779e38fb2a846f0ee83a6de073"
+    },
+    {
+      "id": "cap-067",
+      "file": "HR_CAPABILITIES.md",
+      "heading": "## 42. بوابة الخدمة الذاتية للموظف (Employee Self-Service - ESS Portal)",
+      "source_line": 1214,
+      "sha256": "16ee0b09ea780735bafe8a50c53bb287197c65354ba58cb4eb50ddf3cd0fde79"
+    },
+    {
+      "id": "cap-068",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 43. مركز البوابات والخدمات الميدانية الموحد (Enterprise Portals & Field Services Launchpad)",
+      "source_line": 1232,
+      "sha256": "7a658baba24e7621e3d753b702461cd5f3c3fe29240f15c6d34f0cdbe0619fa6"
+    },
+    {
+      "id": "cap-069",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 44. معالج استيراد وتصفير البيانات التجريبية حسب النشاط (Demo Data Wizard & Clean Reset)",
+      "source_line": 1252,
+      "sha256": "45b1a6731c64e9b0e308ac32ee1117f00bb01bf6d52d04e4c912f9ec84cb3423"
+    },
+    {
+      "id": "cap-070",
+      "file": "REPORTS_CAPABILITIES.md",
+      "heading": "## 45. الملخص التنفيذي واللوجستي اليومي للمدير عبر واتساب (WhatsApp Daily Executive & Logistics Digest)",
+      "source_line": 1269,
+      "sha256": "2d059e8c06bae875c803d1dfe8cb7e09a833569e3faf30c07df2c3685707a065"
+    },
+    {
+      "id": "cap-071",
+      "file": "REPORTS_CAPABILITIES.md",
+      "heading": "## 46. لوحة التحليلات التنفيذية والشبكة المتوازنة (Executive BI Symmetrical Grid)",
+      "source_line": 1285,
+      "sha256": "c8bf3b96bc81cb867ba773e778680bf2749ef3b27a815d9748e958b6d828e5e3"
+    },
+    {
+      "id": "cap-072",
+      "file": "SAAS_CAPABILITIES.md",
+      "heading": "## 47. إدارة دورة حياة بيانات المشتركين وتصفير المنشآت من الساس (SaaS Tenant Demo Seeding & Factory Reset)",
+      "source_line": 1298,
+      "sha256": "327a82735ac60af8c5429a3e540b70b7c171442df6cc7cca44c5ba1b73552bf0"
+    },
+    {
+      "id": "cap-073",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 48. تحويل نقطة البيع والكاشير إلى موديول اختياري مرن (Modular POS & Cashier Workspace for B2B & Wholesale ERP)",
+      "source_line": 1313,
+      "sha256": "4e5e1fbf5628fd94b8fa3fdb34e165d078dad095df36ed0bc2a4b959b275ff69"
+    },
+    {
+      "id": "cap-074",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 49. التوحيد البصري المؤسسي الفاخر للقوائم الجانبية وكروت الإعدادات (Ultra-Clean Monochrome Enterprise Sidebar & Cards)",
+      "source_line": 1327,
+      "sha256": "ecaf4629ca9f4c1d65a5b0849e055a0de039e99d2a2ed66e13532713346dfefc"
+    },
+    {
+      "id": "cap-075",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 50. معالج التخصيص الذكي للموديولات والأنشطة التجارية (Smart Modular Configurator & Industry Presets)",
+      "source_line": 1341,
+      "sha256": "8180b0efc6d3ea420433aa7a684a04bd6cf779746630f83fa56d879c6ab336e6"
+    },
+    {
+      "id": "cap-076",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 51. الهيكلية النمطية الشاملة وتحويل النواة الكلاسيكية لموديولات اختيارية (Full Modular Core: Purchases, Advanced Inventory & HR)",
+      "source_line": 1361,
+      "sha256": "00a0ff4b808acb24da23e42440ac9ee02c32d16889ede37202f13e62a52aefc2"
+    },
+    {
+      "id": "cap-077",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 52. أتمتة تهيئة الموديولات عند التسطيب الأول في الإلكترون وصفحة الترحيب والتخصيص المستقلة في الساس (Desktop First-Run Setup & SaaS Full-Page Onboarding Hub)",
+      "source_line": 1386,
+      "sha256": "298534868b9aa17909d2b1c60d00df3dd59dbe66626ebd2e2d2c86e5331229be"
+    },
+    {
+      "id": "cap-078",
+      "file": "PLATFORM_CAPABILITIES.md",
+      "heading": "## 53. منظومة الهوية الموحدة بالموبايل وعزل المستأجرين الصارم (Zero-Trust Mobile-First Identity & Multi-Tenant Disambiguation)",
+      "source_line": 1414,
+      "sha256": "5e09524e0ab8f52e1eb30ae63c60fc61363ce46ef462c08ce118bb1684890382"
+    },
+    {
+      "id": "cap-079",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 54. مركز البوابات الموحد وإدارة السائقين ومبيعات الفان الميدانية (Portals Hub & Driver Portal & Van Sales Navigation)",
+      "source_line": 1480,
+      "sha256": "759cd07490a1a855fed4ccac1a778865a0bcd00070628cca398d815bdb453806"
+    },
+    {
+      "id": "cap-080",
+      "file": "PLATFORM_CAPABILITIES.md",
+      "heading": "## 55. مركز إدارة الهويات والوصول الموحد للعاملين والمناديب والموظفين (Unified Identity & Access Management - IAM Directory)",
+      "source_line": 1496,
+      "sha256": "b8243410ccf74f7de7769ef5c7718ca3eedfe988fa43627980970c53b3da694e"
+    },
+    {
+      "id": "cap-081",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 56. إعادة هيكلة وتوحيد شاشات وتبويبات الإعدادات وهرمية التنقل المؤسسية (Settings Architecture & Enterprise Navigation Overhaul)",
+      "source_line": 1533,
+      "sha256": "87724d4a168e09ad66d197fbe4bf59a71d46ff2ceb513056c83f994b8a2d5e1c"
+    },
+    {
+      "id": "cap-082",
+      "file": "AI_CAPABILITIES.md",
+      "heading": "## 57. بنية محرك الذكاء الاصطناعي الشامل ومتعدد المزودين (Universal AI Engine & Multi-Provider LLM Gateway)",
+      "source_line": 1554,
+      "sha256": "8d347bdee254d47f40f3ba0089c7b5670cf98be62eb1bcaf0d87a0c533d83d17"
+    },
+    {
+      "id": "cap-083",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 58. حزمة التوطين الخليجي الشاملة وتعدد العملات ومحرك الفلس ثلاثي الخانات (GCC Localization Pack & 3-Decimal Fils Engine)",
+      "source_line": 1578,
+      "sha256": "4d992373898fd1129cdaaa9bb388db7fdd3b0215c42ecb4fdb4ad4d43c7c012f"
+    },
+    {
+      "id": "cap-084",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 59. محرك مراكز التكلفة المحاسبية وشجرة مراكز التكلفة وتحليل الربحية (Cost Centers Accounting Engine & P&L Reporting)",
+      "source_line": 1597,
+      "sha256": "b6ba983be797624189577f1962129f66c8c4c4a29f2363fe4c8e9729e2c49077"
+    },
+    {
+      "id": "cap-085",
+      "file": "CRM_CAPABILITIES.md",
+      "heading": "## 60. ترقية مراكز التكلفة بالموازنات التقديرية وموديول إدارة علاقات العملاء والصفقات المؤسسي (Cost Center Budgets & Enterprise CRM Pipeline Engine)",
+      "source_line": 1620,
+      "sha256": "5b6265e700a0b9f5acc39a9d21ab1981a4ec63cbef739614418ce5f510cea2f5"
+    },
+    {
+      "id": "cap-086",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 61. محرك قفل الفترات المحاسبية المحكم والقيود اليومية اليدوية المتزنة (Fiscal Lock Dates & Manual Journal Entries Engine)",
+      "source_line": 1656,
+      "sha256": "3a5ad09e72eb0328a1cf6b731b23e906910ae28e9b650716630da7ea54ec3e74"
+    },
+    {
+      "id": "cap-087",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 62. إدارة ومتابعة الشيكات المؤجلة وحافظة الشيكات (PDC - Post-Dated Cheques Management)",
+      "source_line": 1685,
+      "sha256": "a7b09bb7e27c965ce1030070b8a7da35dc14389563814c41e0beb1e1bf5dbfcc"
+    },
+    {
+      "id": "cap-088",
+      "file": "TAX_CAPABILITIES.md",
+      "heading": "## 63. ضريبة الخصم والإضافة المصرية ونموذج 41 ضرائب (Egyptian Withholding Tax - WHT & Form 41)",
+      "source_line": 1701,
+      "sha256": "11382fecc2421c60c7aa773f7f22a659d845c1bdeaffc38ba5f34b28159eccce"
+    },
+    {
+      "id": "cap-089",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 64. التقويم الهجري (أم القرى) المزدوج (Dual Hijri & Gregorian Calendar Engine)",
+      "source_line": 1717,
+      "sha256": "d8ae8c837bb0ab3935feea3f75ec3e9e892500f355800e1b2bd8f7da6232bacd"
+    },
+    {
+      "id": "cap-090",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 65. أوامر البيع وحجز المخزون المؤقت (Sales Orders & Stock Reservation Engine)",
+      "source_line": 1735,
+      "sha256": "573fcc733cea6c0351147da5de54f4295ed695d0ccad8879c847a3a4062d83be"
+    },
+    {
+      "id": "cap-091",
+      "file": "PURCHASES_CAPABILITIES.md",
+      "heading": "## 66. دورة أوامر الشراء واعتماد الموردين والاستلام المخزني (Purchase Orders & Goods Receipt)",
+      "source_line": 1753,
+      "sha256": "229fa867b0d4fde56877f060ab96cff53e56b5933de535cdbb42bf24947a40a7"
+    },
+    {
+      "id": "cap-092",
+      "file": "MANUFACTURING_CAPABILITIES.md",
+      "heading": "## 67. إضافات التصنيع الذكية (Smart Manufacturing: Unbuild Orders, By-Products & MTO)",
+      "source_line": 1769,
+      "sha256": "a153a19badfa1c94f91895b8dbf3561103120dce8699586fe4099813e14c4d33"
+    },
+    {
+      "id": "cap-093",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 68. دستور وتوحيد التيبوجرافي المؤسسي وأحجام الخطوط (Enterprise Typography Hierarchy)",
+      "source_line": 1784,
+      "sha256": "eb96419e0157d93122fc629ed9664d8f6ce4bc3f0371d112bf657810dfd74b94"
+    },
+    {
+      "id": "cap-094",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 69. نظام حفظ واسترجاع المسودات التلقائي عديم الحمل (Zero-Overhead Auto-Draft Persistence Engine)",
+      "source_line": 1794,
+      "sha256": "2ff1697af98e71b458ec8965f517f0386f03b85710f644bd72248396c47e62d9"
+    },
+    {
+      "id": "cap-095",
+      "file": "PRICING_CAPABILITIES.md",
+      "heading": "## 70. قوائم أسعار العملاء وشرائح الكميات (Customer Price Lists & Volume Tiers)",
+      "source_line": 1815,
+      "sha256": "210768fed6beba91271aad4b248b674dc4e592b075e05cd467d2b1fcf2331058"
+    },
+    {
+      "id": "cap-096",
+      "file": "PURCHASES_CAPABILITIES.md",
+      "heading": "## 71. طلبات عروض أسعار الموردين ومصفوفة المقارنة والترسية (Vendor RFQs & Comparison Matrix)",
+      "source_line": 1830,
+      "sha256": "bcf5b483ec02b3e73f2fa8c21feed5ab07eaa0873560f4e8560964706b79f347"
+    },
+    {
+      "id": "cap-097",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 72. تسوية وتخصيص المدفوعات والقيود العكسية الآلية (Invoice Payment Allocation & Auto-Reversals)",
+      "source_line": 1845,
+      "sha256": "f8f0e2caebf9beccd112894244586083264eda64e11636906d4a68bbacaa07bf"
+    },
+    {
+      "id": "cap-098",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "## 73. أماكن التخزين والأرفف والجرد الفوري بالباركود (Warehouse Bins, Shelves & Mobile Audit)",
+      "source_line": 1861,
+      "sha256": "16bfd0b59a5b7f63c87e32d70760f6deb7c93380304b07734c826d801b678abe"
+    },
+    {
+      "id": "cap-099",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 74. مصفوفة خيارات ومعدلات الأصناف ونقاط البيع (POS Item Modifiers & Fast Combos Matrix)",
+      "source_line": 1876,
+      "sha256": "5526028efe33adee749b2735703e4cfc936ed645b68867c614213aa0bbe3cb23"
+    },
+    {
+      "id": "cap-100",
+      "file": "HR_CAPABILITIES.md",
+      "heading": "## 75. محرك تصفية المستحقات ومكافأة نهاية الخدمة والعهد (HR End of Service Settlement & Gratuity Engine)",
+      "source_line": 1891,
+      "sha256": "6df46854cc7457ca527d18663ea65ab7462574663b3c5071cfa7ff41e815a798"
+    },
+    {
+      "id": "cap-101",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 76. معمارية تقسيم الملفات والوحدات وتحسين سرعة وصيانة النظام (Modularization & High-Performance Architecture)",
+      "source_line": 1908,
+      "sha256": "8a3a2f9c3da564376c4739c194b9441392a292d59dd423aa6bcff3ddf143fa6d"
+    },
+    {
+      "id": "cap-102",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 65. أوامر البيع وحجز المخزون المؤقت (Sales Orders & Stock Reservation Engine)",
+      "source_line": 1934,
+      "sha256": "d4b1a30b7679fcae5a1092590f7641f5aa19b7f9628b78e86c45cd772865821e"
+    },
+    {
+      "id": "cap-103",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 76. معمارية تقسيم الملفات والوحدات وتحسين سرعة وصيانة النظام (Modularization & High-Performance Architecture)",
+      "source_line": 1949,
+      "sha256": "a5888e7b44e26bb5b8f3c0a20f680d38b7c2965af11b5b85254307a33e4ee308"
+    },
+    {
+      "id": "cap-104",
+      "file": "PRICING_CAPABILITIES.md",
+      "heading": "## 70. قوائم أسعار العملاء وشرائح الكميات (Customer Price Lists & Volume Tiers)",
+      "source_line": 1989,
+      "sha256": "a747ba9992c572f713bb36e4c601bf99ee43f4678074e1bcee2d628ce77a4112"
+    },
+    {
+      "id": "cap-105",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 76. معمارية تقسيم الملفات والوحدات وتحسين سرعة وصيانة النظام (Modularization & High-Performance Architecture)",
+      "source_line": 2004,
+      "sha256": "3260b0d544a9d28a26254dce5e9f6da06f9bec366726e0e9758100068f801082"
+    },
+    {
+      "id": "cap-106",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 76. معمارية تقسيم الملفات والوحدات وتحسين سرعة وصيانة النظام (Modularization & High-Performance Architecture)",
+      "source_line": 2107,
+      "sha256": "779cee6716040ded27ad164da25511917945cc4e4bb4200116dffe681f84f66a"
+    },
+    {
+      "id": "cap-107",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 25. موديول الشحن واللوجستيات (Freight & Logistics Module)",
+      "source_line": 2279,
+      "sha256": "2a088f00f7ccbfb9fd92b5d982947180e3c574d79607104fe1945825f5069517"
+    },
+    {
+      "id": "cap-108",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 77. موديول المقاولات وإدارة المشاريع الإنشائية المتكامل (Contracting & Construction ERP Module)",
+      "source_line": 2396,
+      "sha256": "64078c6b552f104e9b6e5477c65fb3f251e09d3e482a7d99387826451108224e"
+    },
+    {
+      "id": "cap-109",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 78. محرك التخصيص والعزل الرأسي للأنشطة والقطاعات (Industry Vertical Isolation Engine)",
+      "source_line": 2481,
+      "sha256": "379ff014f876ba9b7183ac257bebcac88e90364c96ceb21409d610bbdcdda504"
+    },
+    {
+      "id": "cap-110",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 79. معمارية المسارات والصفحات المستقلة لموديولات المقاولات والشحن البحري (Modular Sub-Route Architecture)",
+      "source_line": 2534,
+      "sha256": "41925189137b52dc9126ecbebb8764ae1f726811e5bece38bcad59ee9d2b3e40"
+    },
+    {
+      "id": "cap-111",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 80. وحدة المقاولات المتكاملة - النظام المؤسسي الكامل لمقاول البناء (Enterprise Contracting ERP - Full Contractor Workflow)",
+      "source_line": 2581,
+      "sha256": "00cf4be04e69c41d8743bbd99f4f1d5e0e731610d7802bc477e6f38a835ed943"
+    },
+    {
+      "id": "cap-112",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 80. بنك بنود المقاولات المرجعي الشامل ومحرك الاستيراد لكافة التخصصات (Multi-Trade Master BOQ Library & 1-Click Importer)",
+      "source_line": 2654,
+      "sha256": "bf801cd0cd34868eb1f52e7779707123f7ff14261edea970df0843e65e552b38"
+    },
+    {
+      "id": "cap-113",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 81. بيئة عمل المشروع الموحدة المدمجة (Unified Project Workspace & 5 Operational Hubs)",
+      "source_line": 2695,
+      "sha256": "f6c1144b1fd8a97c871637e86fa4aad6be29d481e3c254c0ef4a22090f9436ee"
+    },
+    {
+      "id": "cap-114",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 82. المولد التلقائي للأكواد التسلسلية لبنود المقاولات وترتيب واجهة بنك البنود (Auto-Sequential BOQ Code Generator & Master Library UI Polish)",
+      "source_line": 2717,
+      "sha256": "3eaf7db182344988f4963341238f4b0859f234a1f4ba3e0353ac2e0762033414"
+    },
+    {
+      "id": "cap-115",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 83. تصحيح ربط بيانات المقايسة وإضافة إجراءات التعديل والحذف وتنسيق الجدول (Project BOQ Data Mapping & Actions Polish)",
+      "source_line": 2745,
+      "sha256": "e57036b6f843e5355fb54bfd7f7de03bd435b9fd10121efa383b85f1b04ec92b"
+    },
+    {
+      "id": "cap-116",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 84. معمارية المصدر الموحد للنوافذ المنبثقة والقضاء على تكرار الأكواد (Single Source of Truth & Universal BOQ Modal Standard)",
+      "source_line": 2765,
+      "sha256": "311f2d0000d1b6ac5e728308eb1c6fcdc396baa26670f9f9f4a434f96f351b71"
+    },
+    {
+      "id": "cap-117",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 85. توحيد وضبط أبعاد جدول مقايسة المشروع وهندسة الحقول العددية (Contracting BOQ Table Fixed Layout & Numeric Column Balancing)",
+      "source_line": 2786,
+      "sha256": "443f0e7ebcd6e75578c1edae8449acb2f62edbe9d85c6bff1c311c86fdca2acf"
+    },
+    {
+      "id": "cap-118",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 86. تحصين حقول الإدخال الرقمية والكميات ودعم الأرقام العربية (Numeric Input Hardening & Eastern Arabic Digit Support)",
+      "source_line": 2803,
+      "sha256": "56ec0468a58f91a809b5457d9271c3c045af1004b39d59ba4423951ccc6d6bc9"
+    },
+    {
+      "id": "cap-119",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 87. القضاء التام على وميض ورعشة التبديل بين تابات المقاولات واستقرار الهيكل (Zero Tab Layout Flicker & Persistent Workspace Standard)",
+      "source_line": 2818,
+      "sha256": "64e68f1e1e6ae1f0999cb34469ed73845e9fd6b70c132f0bdf7a398606a2bccc"
+    },
+    {
+      "id": "cap-120",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 88. موديول الشحن البحري واللوجستيات ودورة الأتمتة الكاملة (End-to-End Maritime Freight & Mail Automation Engine)",
+      "source_line": 2838,
+      "sha256": "6742e7c4eefcd38f6252be0a8833764bbd95421a31450ff942eb5e25d89541a9"
+    },
+    {
+      "id": "cap-121",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 89. دستور الضبط المتوازي للنصوص والمواصفات الهندسية الطويلة (Strict Multi-line Text Justification Standard)",
+      "source_line": 2874,
+      "sha256": "437af21a560190774ff0a19a581139bf3d5d649378dae182277c13bb0740c93d"
+    },
+    {
+      "id": "cap-122",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 90. محرك الاستيراد الذكي الشامل لجداول الكميات والمقايسات (Universal Smart BOQ Excel Import Engine)",
+      "source_line": 2902,
+      "sha256": "f2785b6ecab57a2e308fa38fb12f9d06a2b9e28fdefea7934bf2b397bd90502e"
+    },
+    {
+      "id": "cap-123",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 85. توحيد وضبط أبعاد جدول مقايسة المشروع وهندسة الحقول العددية (Contracting BOQ Table Fixed Layout & Numeric Column Balancing)",
+      "source_line": 2939,
+      "sha256": "1451afcf3382cf56d0484310d1432a4eb406a7c320fddc017d1a46e450880ef9"
+    },
+    {
+      "id": "cap-124",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 90. محرك الاستيراد الذكي الشامل لجداول الكميات والمقايسات (Universal Smart BOQ Excel Import Engine)",
+      "source_line": 2956,
+      "sha256": "e216fd083b84a00dde4abbcd5da63d450d1f28c3ab67132aec817c061327877f"
+    },
+    {
+      "id": "cap-125",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 43. الشحن البحري وإدارة عروض أسعار الخطوط (Maritime Freight & Carrier RFQs)",
+      "source_line": 3048,
+      "sha256": "45a0ce4bd5452096a5ba2db0205eae7cca833436049a630d1daabfb65b8ad436"
+    },
+    {
+      "id": "cap-126",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 91. معمارية القوائم المنسدلة الموحدة والكومبوبوكس المركزي (Centralized Universal Combobox & CustomSelect Standard)",
+      "source_line": 3060,
+      "sha256": "567ec8f337b7c713000d77181279e88cf58b76b00bbde9a20d1d83e220daaaac"
+    },
+    {
+      "id": "cap-127",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 92. العزل القطاعي الشامل والتهيئة الذكية للمودات الـ 16 (Total Vertical Isolation & 16-Mode Industry Automation)",
+      "source_line": 3072,
+      "sha256": "8520b8887da4d1257ac8f87a8d91058ffc3beb0196c47600e2925cfdaa46c094"
+    },
+    {
+      "id": "cap-128",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 93. دستور بيئات العمل التفاعلية ومنع وميض وتصفير العدادات (Workspace Keep-Alive & Anti-Flicker Architecture)",
+      "source_line": 3102,
+      "sha256": "a3e4c5727f3cb8ac7c450632ae07b4fd8c9b6a54eb4a85ae213774d106088f8c"
+    },
+    {
+      "id": "cap-129",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 94. دستور العرض القياسي الموحد 1280px وحظر تذبذب العرض وضغط الجداول (Universal 1280px Layout & Zero-Jumping Standard)",
+      "source_line": 3123,
+      "sha256": "55021cc57987e0e09504fa99cc8f9d8d3af884116f6ba74bbd7dd0fd27c6bcf2"
+    },
+    {
+      "id": "cap-130",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 95. دستور وثبات أبعاد النوافذ المنبثقة التلقائي (Universal Anti-Ballooning & Anti-Shrink Modal Architecture)",
+      "source_line": 3141,
+      "sha256": "1f0635225cf81c5369ecef1ec72a22e71250556f2fb783ed59ae10893745a881"
+    },
+    {
+      "id": "cap-131",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 96. منظومة أتمتة البريد الملاحي والأرشفة التلقائية في مجلد المرسل (Maritime Email Automation & IMAP Sent Archiving)",
+      "source_line": 3166,
+      "sha256": "6c841cd7e91793fce8d496755e036077557141d38025edbef98dd10582568ea2"
+    },
+    {
+      "id": "cap-132",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 97. التطوير البريميوم لنافذة إصدار عرض سعر العميل الملاحي (Maritime Freight Quotation & Profit Margin Modal)",
+      "source_line": 3182,
+      "sha256": "e63101c010b7d445c3668ffe48499b0bc98951698c63e95e6035f3a8eaa807c4"
+    },
+    {
+      "id": "cap-133",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 98. منظومة إشعارات التوست المؤسسية ودرع اعتراض الـ Alerts الخام (Universal Toast Framework & Global Alert Shield)",
+      "source_line": 3205,
+      "sha256": "a2816c5df641d068ee2fe8c1e00ad85c58840444561a2aa8812ceced2b70e240"
+    },
+    {
+      "id": "cap-134",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 99. معيار أزرار التحديث التفاعلية الحية وتزامن البيانات (Interactive Live Refresh Standard)",
+      "source_line": 3231,
+      "sha256": "b3efeecce312b3ea8ec15de1070829ab0298cff90f68dce1826472f1bbfaaad4"
+    },
+    {
+      "id": "cap-135",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 100. منظومة نوافذ التأكيد التفاعلية المؤسسية وتطهير المتصفح من confirm البدائية (Universal Promise-based systemConfirm & Zero Native Confirm Standard)",
+      "source_line": 3253,
+      "sha256": "9ae5f996a1d4ad4a990e3a231a816cef2176182c4505470bd344aaa553ee1305"
+    },
+    {
+      "id": "cap-136",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 101. معيار المحاذاة العمودية الصارمة لأزرار الإجراءات وشارات الجداول (Strict Column Alignment & Action Grid Slots Standard)",
+      "source_line": 3291,
+      "sha256": "9aa55dbff9bd2c8a0bab54b3bb0ec057424c68782b47eee2359087bc8f38ea7c"
+    },
+    {
+      "id": "cap-137",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 102. محرك التوليد الزمني الذكي للإنشاءات والمقاولات (Turnkey Construction Schedule Generator & CPM WBS Builder)",
+      "source_line": 3313,
+      "sha256": "e9668cc053d7fd6d29ee127f31897177d93829c5bc361e56c7d20571913fa801"
+    },
+    {
+      "id": "cap-138",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 103. معيار ثبات أبعاد نافذة أمر التشغيل وتوحيد ارتفاع التابات (JobDetailsModal Stable-Sizing & Anti-Shrink Standard)",
+      "source_line": 3347,
+      "sha256": "07aebe0de823ae672e94d60534906c40680374f8150322e822e8cd2ff90d5014"
+    },
+    {
+      "id": "cap-139",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 104. ترقية وإكمال تبويبات الشحن البحري التشغيلية (Maritime Freight Operational Tabs Upgrade)",
+      "source_line": 3371,
+      "sha256": "d4f78ac1566c7ab9da0d1c10987091faca0d6a9c8b150554aa43e8e3c7d563db"
+    },
+    {
+      "id": "cap-140",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 105. منظومة إثبات وقائع التأخير والترحيل الزمني ثلاثي الخيارات للأنشطة الإنشائية (Contracting 3-Way Task Delay & Cascade Shifter)",
+      "source_line": 3396,
+      "sha256": "01ae97a523c15699072a13ff67e3b6da37d7e91f141302a439f26ce6d77bca12"
+    },
+    {
+      "id": "cap-141",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 106. المرحلة الأولى لأتمتة وربط الشحن الملاحي محاسبياً وجدولة المزامنة الذكية (Maritime Freight Phase 1: GL Financial Ledger Automation, Background Scheduler & Universal Combobox)",
+      "source_line": 3420,
+      "sha256": "a9b3b4515fc9f433b8d55686f63995cf599cb719c67f89c386384b96973db8ae"
+    },
+    {
+      "id": "cap-142",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 107. الأتمتة الكاملة لموديول الشحن واللوجستك: إشعارات الواتساب السحابية، بوابة التتبع المباشر، محرك بوالص e-B/L ومستندات الموانئ، ورادار الأقمار الصناعية (Maritime Freight Complete Automation: Cloud WhatsApp, Public Tracking Portal, e-B/L Engine & AIS Satellite Radar)",
+      "source_line": 3444,
+      "sha256": "f588893032942e39c6c3aaf3d88a16e7dbdd320055936e04358d86e1e9c30117"
+    },
+    {
+      "id": "cap-143",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 108. محرك مسارات الأتمتة الملاحية وهوامش الربح ومحطات التوقف البشرية (Autonomous Freight Pipeline, Margins Engine & Human-in-the-Loop Checkpoints)",
+      "source_line": 3480,
+      "sha256": "5425949f74f81e776bde85bbd942715a0630fe5eec9f8ed177a7692af6fa108b"
+    },
+    {
+      "id": "cap-144",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 109. دليل الخطوط والوكلاء الموسع (59 جهة) ونظام الفرز والتحديد الهرمي الذكي (Two-Tier Hierarchical Carrier/Agent Selection Engine)",
+      "source_line": 3513,
+      "sha256": "181ef858ff81ccf184f0904451d583cd84e82e9151770852b3712d98411f38f2"
+    },
+    {
+      "id": "cap-145",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 110. تعميم المعيار القياسي للنوافذ المنبثقة المتناظرة رباعية الأعمدة وحظر السكرول على موديول المقاولات (Symmetric 4-Column Zero-Scroll Modal Standard for Contracting)",
+      "source_line": 3544,
+      "sha256": "825c6835a00392973c4faed0da036880cdef0f94ea9199806dfc7e034e0eba95"
+    },
+    {
+      "id": "cap-146",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 111. اعتماد دستور البطاقات المقسمة القياسي للنوافذ وتعميمه على موديول المقاولات (Standard Sectional Card Modal Architecture)",
+      "source_line": 3571,
+      "sha256": "3e0733e922e33da39c3409202fb137443febb70ab894c81f8836014000428a04"
+    },
+    {
+      "id": "cap-147",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 112. معمارية العزل القطاعي الصارم، الأجنحة المتكاملة، وحصر التخصيص في التهيئة الأولى (All-Inclusive Pillars & Onboarding-Only Selection)",
+      "source_line": 3599,
+      "sha256": "b252f276765a8f2c5bbd6252f62a9e7d92b680fe1c726cb79b0cf921d7a5632b"
+    },
+    {
+      "id": "cap-148",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 113. متجر التطبيقات والموديولات المؤسسي المستقل (Enterprise Apps Store & Modular Grid Ecosystem)",
+      "source_line": 3628,
+      "sha256": "fa75e520a61cd4a1f7a6b38d6d6fa7bebd27722b952544dd077c71127e066709"
+    },
+    {
+      "id": "cap-149",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 114. التفعيل التلقائي الشامل ومزامنة خانات الاختيار للأجنحة التخصصية (All-Inclusive Suites Checkbox & State Synchronization)",
+      "source_line": 3655,
+      "sha256": "6a6ecc3fa017278e503ee7de187f2ebd2b11d18210003f972573c132e17defe2"
+    },
+    {
+      "id": "cap-150",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 115. العزل والتوجيه الذكي للموديولات ومتجر التطبيقات بحسب النشاط المؤسسي (Context-Scoped Modules & Apps Isolation)",
+      "source_line": 3679,
+      "sha256": "15c80a21386417f04855cc6bad651c013617ec4b499c17c8468d16374851b495"
+    },
+    {
+      "id": "cap-151",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 110. تعميم المعيار القياسي للنوافذ المنبثقة المتناظرة رباعية الأعمدة وحظر السكرول على موديول المقاولات (Symmetric 4-Column Zero-Scroll Modal Standard for Contracting)",
+      "source_line": 3708,
+      "sha256": "01e135cfe9d9991bf91a4ae3c09a1210d4572eba3d71e45e47f0c9c1d780f79b"
+    },
+    {
+      "id": "cap-152",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 114. التفعيل التلقائي الشامل ومزامنة خانات الاختيار للأجنحة التخصصية (All-Inclusive Suites Checkbox & State Synchronization)",
+      "source_line": 3735,
+      "sha256": "189fd18ecd7265cf928fff11e8e4ff014093713b9af2205941e47c43ff45942e"
+    },
+    {
+      "id": "cap-153",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 115. العزل والتوجيه الذكي للموديولات ومتجر التطبيقات بحسب النشاط المؤسسي (Context-Scoped Modules & Apps Isolation)",
+      "source_line": 3759,
+      "sha256": "bd0cc4ac888430592652b023afbaeebd982a084afcad1c23455b6813980b4231"
+    },
+    {
+      "id": "cap-154",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 129. موديول الحسابات العامة والشجرة المالية وإدارة الضرائب والشيكات (StandardDialog Modals & Enterprise Architecture 100%)",
+      "source_line": 4182,
+      "sha256": "497ab9110e941a86b096caf66b246eb5744010d336476f7c4af4395d17a57bf2"
+    },
+    {
+      "id": "cap-155",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 130. موديول المبيعات وعروض الأسعار وخطط التقسيط وسندات القبض (StandardDialog & Enterprise Modals 100%)",
+      "source_line": 4222,
+      "sha256": "0696c615310f0541fe3ab1c682b7eae261114845ff47933fff8f8a067745462b"
+    },
+    {
+      "id": "cap-156",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 131. موديول التصنيع والإنتاج ومراكز العمل وأوامر التفكيك (StandardDialog & CustomSelect 100%)",
+      "source_line": 4249,
+      "sha256": "741a5a13496a15581971058bd27bd8c9ce6bac394ecea921622d5b2cc195aad1"
+    },
+    {
+      "id": "cap-157",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 132. إصلاح وحوكمة تفعيل موديولات متجر التطبيقات ومطابقة مخطط الإعدادات العامة (Apps Store Module Activation & Settings Validation Schema Alignment)",
+      "source_line": 4272,
+      "sha256": "b63da0058e910317920e66b630b697ac1686cfef68b9267718146d5fd97fb2a6"
+    },
+    {
+      "id": "cap-158",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 133. حوكمة وتدقيق الأنماط القطاعية الأربعة والربط الموديولي الصارم (4 Industry Pillars Governance & Leak-Proof Module Alignment 100%)",
+      "source_line": 4291,
+      "sha256": "bc134d5e458071336cb61b5fa4f9436dc5f8b5fa3865d8dcffe69d16dc2cdf0c"
+    },
+    {
+      "id": "cap-159",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 134. توحيد أبعاد أزرار نافذة إتمام البيع السريع وإضافة اختصار طباعة النسختين F4 (POS Sale Success Dialog Uniform Buttons & Dual Print F4 Shortcut)",
+      "source_line": 4314,
+      "sha256": "1f8e1a5c644be71e3593eec2f3d276d7744762f4ea9b79785628b77509a621e7"
+    },
+    {
+      "id": "cap-160",
+      "file": "RETAIL_COMMERCE_CAPABILITIES.md",
+      "heading": "## 135. حوكمة التخصصات الفرعية لقطاع التجارة وعزل موديولات الاستيراد وقطع الغيار (Commerce Sub-Verticals Hierarchy, Auto Parts Decoupling & Strict Default Isolation)",
+      "source_line": 4329,
+      "sha256": "25cc65c5599a46714ab5b3ed9067c01a606d893d5f81dbf3a3955627f7a59e6a"
+    },
+    {
+      "id": "cap-161",
+      "file": "RETAIL_COMMERCE_CAPABILITIES.md",
+      "heading": "## 136. توحيد بطاقة هوية المنشأة وتكامل بادج النشاط والقطاع التشغيلي (Store Identity Card & Sector Classification Integration)",
+      "source_line": 4353,
+      "sha256": "370c238fae9161fbc1cbad8a52ef47a791e2f0d3fbfb786c5aac1fb19e427e08"
+    },
+    {
+      "id": "cap-162",
+      "file": "IMPORT_CAPABILITIES.md",
+      "heading": "## 137. العزل الحصري لموديول الاستيراد في القائمة الجانبية وحظر ظهوره في التجزئة العامة (Strict Import Navigation Isolation to Import Sub-Vertical)",
+      "source_line": 4368,
+      "sha256": "44f3ba67e189ea8a72466ab31b7055cdbfe01a6d448ed70c730c607023d0cc5f"
+    },
+    {
+      "id": "cap-163",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 138. نقل بطاقة نمط المنظومة إلى تبويب تخصيص الموديولات والأنشطة (Relocating Industry Mode Selector to Modules Settings Tab)",
+      "source_line": 4383,
+      "sha256": "0045cc9c227bffc3c9e3a2ac73025c39d5459a61de5aca2955ba3ab60dfad959"
+    },
+    {
+      "id": "cap-164",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 139. إزالة شريط القوالب القديم المكرر وتوحيد إدارة الأنماط والموديولات (Eliminating Duplicate QuickBar & Consolidating Modular Controls)",
+      "source_line": 4398,
+      "sha256": "d36c76aeed514a199a8354b11ad20c1aebd94314d93c0f3b9f12420b21aa683f"
+    },
+    {
+      "id": "cap-165",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 140. التوسيع الشامل لبنك بنود المقاولات المرجعي لـ 124 بنداً وتسعير واقعي لعام 2026 وتطوير واجهة الاستيراد (Comprehensive Master BOQ Library Expansion to 124 Items & 2026 Market Pricing)",
+      "source_line": 4411,
+      "sha256": "bbdfc8d341d747f2c538177a6c34b2338065cab0eeb541edbbc9869bd4f08fe7"
+    },
+    {
+      "id": "cap-166",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 141. بيئة عمل دراسة وتسعير العطاءات والمشروعات المحتملة ومحرك تفكيك الكود الهندسي القياسي (Tender & Pre-Award Estimator with Standard Engineering BOM Exploder)",
+      "source_line": 4433,
+      "sha256": "f1404877b75b3a9a2392b009940757aa68e40bf7433e6bf021436dc12d2cd5d1"
+    },
+    {
+      "id": "cap-167",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 142. مسار إدارة المشاريع الإنشائية الموحد والموجه الذكي للخطوة التالية (The 7-Phase Construction Lifecycle Engine & Smart Next Action Guide)",
+      "source_line": 4487,
+      "sha256": "231a14ce4747bbdd390056f11be9d22a0743b2699bb4df94188065bcf1f48149"
+    },
+    {
+      "id": "cap-168",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## 143. الأركان الهندسية الخمسة المتقدمة لإدارة المقاولات الكبرى (Global Tier-1 Benchmark Suite)",
+      "source_line": 4519,
+      "sha256": "b8ef9015152d684d55c4ca4878d482760f9c4b45659901e60d070f6f71068ecd"
+    },
+    {
+      "id": "cap-169",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 141. إدارة تهيئة المخزون وتصفير البيانات للبدء الفعلي (Operational Inventory Reset & Catalog Wipe Engine)",
+      "source_line": 4579,
+      "sha256": "221727c4fd07716ddfca7767a57826cf516f2242d05c5a152aeb42b7b5fa2966"
+    },
+    {
+      "id": "cap-170",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 144. منظومة العزل والتخصيص الديناميكي لشاشات الإعدادات طبقاً لمود النشاط (Mode-Based Dynamic Settings Isolation & Vertical Configuration Suite)",
+      "source_line": 4600,
+      "sha256": "aed4d86e82430fc2f7482b5b5b849a51627ce5392ef174929a515f844e18d168"
+    },
+    {
+      "id": "cap-171",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 145. محرك استخراج وتحليل مقايسات المشروعات والعطاءات من ملفات الـ PDF (Native PDF BOQ & SOV Ingestion Engine)",
+      "source_line": 4639,
+      "sha256": "23af9b17bda70aaa5d0663052402a151aea9365a3065469ef3573778d1660a1b"
+    },
+    {
+      "id": "cap-172",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 142. مسار إدارة المشاريع الإنشائية الموحد والموجه الذكي للخطوة التالية (The 7-Phase Construction Lifecycle Engine & Smart Next Action Guide)",
+      "source_line": 4682,
+      "sha256": "74f7cd6019d8099f904d408e9051726be7111aa0429059d814684a6a22ddcaa1"
+    },
+    {
+      "id": "cap-173",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 141. إدارة تهيئة المخزون وتصفير البيانات للبدء الفعلي (Operational Inventory Reset & Catalog Wipe Engine)",
+      "source_line": 4714,
+      "sha256": "aaed995ccb18c10c10c6bf6a525a4da9126fd0d2aed33bcfa2d591d8b22d2ba9"
+    },
+    {
+      "id": "cap-174",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 145. محرك استخراج وتحليل مقايسات المشروعات والعطاءات من ملفات الـ PDF (Native PDF BOQ & SOV Ingestion Engine)",
+      "source_line": 4731,
+      "sha256": "f600410f1a313b24b24b985fa7edad2ef7f69f70b95d69311bb98b031d2cac40"
+    },
+    {
+      "id": "cap-175",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 146. محرك التسعير الفوري الاستباقي والمكتبة الهندسية المرجعية الموحدة لمقايسات المشروعات (Proactive BOQ Auto-Pricing & Master Engineering Pricing Core)",
+      "source_line": 4754,
+      "sha256": "a1605342f1062506f784f60e11a836d93d6a18fac63ab0e1b544e14494cbd150"
+    },
+    {
+      "id": "cap-176",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 147. منظومة التبويب المستقل للشيتات وعروض الأسعار متعددة الحزم وتصدير الإكسيل المسعر بهوية الشركة والـ PDF المطبوع (Multi-Sheet Preserved Tabs, Zero-Scroll Multi-line Quotations & Priced Excel/PDF Engine)",
+      "source_line": 4785,
+      "sha256": "8333a4e36d05076afafd7053264c62666c7215b2a49cb9bf9c66c8605894a521"
+    },
+    {
+      "id": "cap-177",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 148. دورة حياة العطاءات والمناقصات الهندسية ومسار الترسية والأرشفة المرجعية (Tender Lifecycle, Revisions, Historical Archive & Awarding Pipeline)",
+      "source_line": 4821,
+      "sha256": "399b4f39d685e05561ff3a678ae1b91a3098e3f503e5979f3639e07cbe4535b5"
+    },
+    {
+      "id": "cap-178",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 149. منظومة إدارة مقاولي الباطن، دليل المهن، كشف الحساب المالي التراكمي، وسندات الصرف (Subcontractors Master Directory, Real-Time Financial Ledger & Disbursements Management)",
+      "source_line": 4860,
+      "sha256": "b8286e06fc6c14231ffcbeafdf0fc1b64294593748f40cbf93661b767c8feca5"
+    },
+    {
+      "id": "cap-179",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 150. محرك توليد الجداول الزمنية الشامل متعدد الحزم والتخصصات والمزامنة التلقائية مع المقايسة (Universal Multi-Trade & Modular Schedule Engine)",
+      "source_line": 4898,
+      "sha256": "856a8e67ae750f1f9ca75662f1eb90dbd7017f6e7ad7eeb2c586db4035652124"
+    },
+    {
+      "id": "cap-180",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 151. إحكام المعمارية التعاقدية الشاملة وتوحيد هوية مقاولي الباطن وتفكيك خصومات المستخلصات (Phase 0 Contracting Architecture Hardening)",
+      "source_line": 4934,
+      "sha256": "8b0676b5bc516a169fe08339e43f0b314ab097ad91be9c397fdb64e5afc0c88d"
+    },
+    {
+      "id": "cap-181",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 152. منظومة خطابات الضمان البنكية والبوابة الرقابية G1 وحجب المستخلصات والغطاء التراكمي (Phase 1: Bank Guarantees, Gateway G1, Invariant G1-C, Expiry Alerts & IPC Interlocking)",
+      "source_line": 4970,
+      "sha256": "e560d2762f6ed8b520e6dec0bfc11d3bedaca7ebc3807efe1b72a54d144e4e41"
+    },
+    {
+      "id": "cap-182",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 153. محرك توزيع المصاريف غير المباشرة للموقع والربحية الحقيقية لبنود المقايسة (Track 1: Field Indirect Costs & Distributables Allocation Engine - AACE RP 10S-90 / 34R-05)",
+      "source_line": 5011,
+      "sha256": "b52d268cd3885ea3b53416adf66ad26af53a4508042a8d69963d1f1636b258c9"
+    },
+    {
+      "id": "cap-183",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 154. موديول اللوجستيات وحركات المناديب والأسطول والشحن ودستور الترقيم الموحد (Phase 8: Logistics, Fleet & Maritime Invariants & Universal Document Numbering)",
+      "source_line": 5041,
+      "sha256": "0a7e98eb30b27b247ce60161c8c85fff33022860685202da0d6e96782886e875"
+    },
+    {
+      "id": "cap-184",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 151. إحكام المعمارية التعاقدية الشاملة وتوحيد هوية مقاولي الباطن وتفكيك خصومات المستخلصات (Phase 0 Contracting Architecture Hardening)",
+      "source_line": 5093,
+      "sha256": "fbdda98e87aabb72674086337e919ea249db206984cb3ede30fde8a0efcb3ec6"
+    },
+    {
+      "id": "cap-185",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 153. محرك توزيع المصاريف غير المباشرة للموقع والربحية الحقيقية لبنود المقايسة (Track 1: Field Indirect Costs & Distributables Allocation Engine - AACE RP 10S-90 / 34R-05)",
+      "source_line": 5129,
+      "sha256": "2a4f7963eee03fb5f734fa4a1bf79a7bbd907cf93e822c184062586543f45fd3"
+    },
+    {
+      "id": "cap-186",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 154. موديول اللوجستيات وحركات المناديب والأسطول والشحن ودستور الترقيم الموحد (Phase 8: Logistics, Fleet & Maritime Invariants & Universal Document Numbering)",
+      "source_line": 5159,
+      "sha256": "d1b65ee49ade3471a3fd7b4805f2f676cc58e5aaa0fe7e6c17ddd19960ce7042"
+    },
+    {
+      "id": "cap-187",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## 155. موديول الوحدات القطاعية ونقاط البيع والورديات والتصنيع والصيدليات والاستبدال (Phase 9: Sectoral Invariants, Manufacturing WAC, Pharmacy FEFO & Universal Numbering)",
+      "source_line": 5188,
+      "sha256": "4a9f0d9ef376a3966f8e3bab1c8e9561e654463e4e36bbcb8dcdbdbd88d4303c"
+    },
+    {
+      "id": "cap-188",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 156. موديول الأصول الثابتة ومراكز التكلفة وإعادة تقييم العملات والحوكمة (Phase 10: Fixed Assets, Cost Centers, Forex Revaluation & Accounting Governance)",
+      "source_line": 5213,
+      "sha256": "d92427a07f2d37bf25e0bc1b7914427db2d285d9701303f4c59e68daff7d5020"
+    },
+    {
+      "id": "cap-189",
+      "file": "SAAS_CAPABILITIES.md",
+      "heading": "## 157. منصة SaaS السحابية وحوكمة المشتركين وعزل المنصة المركزية وحراسة الباقات (Phase 11: Cloud SaaS Platform, Multi-Tenant Governance & Plan Enforcement)",
+      "source_line": 5236,
+      "sha256": "2d108d132e125ed630e3054dd2bba3cc0f950fc6dc3f2f7e106201b221f8cb57"
+    },
+    {
+      "id": "cap-190",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## 158. تدقيق مسار الاستدعاء وإصلاحات المصادقة عبر المراحل 6-10 (Cross-Phase Controller/Guard Call-Path Audit)",
+      "source_line": 5260,
+      "sha256": "783be62164b962d035905f26c4215a324e3f8a6f7975922966486a54d18ca4a0"
+    },
+    {
+      "id": "cap-191",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 159. إغلاق فجوات موديول المقاولات مقارنة بمعايير Procore/CMiC/Primavera (Tier-1 Contracting ERP Gap-Closing)",
+      "source_line": 5274,
+      "sha256": "760b324bfef6f1126d0c03767fb95ee7aefb661f73b75839ec6e55838332ab59"
+    },
+    {
+      "id": "cap-191-1",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "### 160. إغلاق فجوات موديول اللوجستيات والشحن البحري مقارنة بـCargoWise/GoFreight (Freight Forwarding Gap-Closing)",
+      "source_line": 5286,
+      "sha256": "cb972049aeb43a65f4a8d1b7ea8aa19404a93beffa467f6137f0530f9af71f8c"
+    },
+    {
+      "id": "cap-192",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 161. تكامل الشحن متعدد الوسائط (بحري / جوي / بري) في واجهات الفرونت إند (Multimodal Freight UI Integration)",
+      "source_line": 5298,
+      "sha256": "12242d5623918305494f4fa0db438f30c2aa33294a9c2c5a4461cd9055a94e71"
+    },
+    {
+      "id": "cap-193",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 162. معيار أمان القوائم المنسدلة وعزل سهم الدروب داون (Strict Dropdown Chevron & Safe-Padding Standard)",
+      "source_line": 5326,
+      "sha256": "73e9ad423e4bdd25f6e96e7468aabc7a71e3c2b176962f1ae4453cc88b8b6b51"
+    },
+    {
+      "id": "cap-194",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 163. دستور النوافذ المنبثقة الذهبي الموحد (The 10/10 Golden Modal Standard)",
+      "source_line": 5342,
+      "sha256": "3fce49dda4b42e3fef85ff33a81e8d952c051138f6a4fa568d080eeda281cf09"
+    },
+    {
+      "id": "cap-195",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 164. معيار عزل نمط المحلات المبسط عن نمط المؤسسات المتقدم (Commercial Scope & Operation Mode Standard)",
+      "source_line": 5362,
+      "sha256": "0c2419d55f6bb79845aa6ba44b4866b8495f1837b06235eee9463aab723f107b"
+    },
+    {
+      "id": "cap-196",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 165. دستور العزل القطاعي التام للمتاجر والتجزئة عن بيئة المقاولات (Contracting Vertical Isolation & Zero-Retail Standard)",
+      "source_line": 5391,
+      "sha256": "bd014e8a324387230bc9ce2156e266397e50346cd837cd38b2588e5671a2d337"
+    },
+    {
+      "id": "cap-197",
+      "file": "CONTRACTING_CAPABILITIES.md",
+      "heading": "## 166. تنظيم وتوحيد تابات التخصصات الهندسية في بنك بنود المقاولات المرجعي ومنع التكرار (Master BOQ Trades Deduplication & Symmetrical Tabs Standard)",
+      "source_line": 5412,
+      "sha256": "1c982a022818c1055ddb2c6c7e796850635198438173339ffd639050013f9fe4"
+    },
+    {
+      "id": "cap-198",
+      "file": "PLATFORM_CAPABILITIES.md",
+      "heading": "## 167. استعادة كلمة المرور الذاتية لمالك المنشأة (Self-Service Password Reset)",
+      "source_line": 5442,
+      "sha256": "ea5d5fe66908c60cd066b464c70f4bb377c5102b7f50bc4c9aef916fd373c29a"
+    },
+    {
+      "id": "cap-199",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 168. تقليص زمن فقد البيانات وأتمتة تمرين الاسترجاع (Backup RPO Reduction & Automated Restore Drill)",
+      "source_line": 5463,
+      "sha256": "da71b4267d33a338684fd6294b16b64c022618304f524d01d84d8b3094b774b5"
+    },
+    {
+      "id": "cap-200",
+      "file": "PLATFORM_CAPABILITIES.md",
+      "heading": "## 169. المصادقة الثنائية — TOTP (Two-Factor Authentication)",
+      "source_line": 5478,
+      "sha256": "21dbf5746f5d5948126aa8a2aac4c317629d5d4bf3ef52ea6451727553f93880"
+    },
+    {
+      "id": "cap-201",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 170. الفترات المحاسبية الشهرية وإقفال الشهور (Monthly Fiscal Periods & Closing — O6)",
+      "source_line": 5520,
+      "sha256": "71d717a9062a0188531a940b853a685f5c230137ecc7af1784845790308f6eeb"
+    },
+    {
+      "id": "cap-202",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 171. أحجام قابلة للضبط لاختبارات الحمل ومعايرتها على مواصفات الإنتاج (Load Profiles & Client-Address Simulation)",
+      "source_line": 5550,
+      "sha256": "9e8d6c4b28685b5f3516ce1d7a2e5e1a2a9f5fe9c675baa39f255b1aa8c31739"
+    },
+    {
+      "id": "cap-203",
+      "file": "TAX_CAPABILITIES.md",
+      "heading": "## 172. الربط المباشر والإبلاغ والتخليص اللحظي مع هيئة الزكاة السعودية ZATCA Phase 2 (Clearance & Reporting — O47)",
+      "source_line": 5565,
+      "sha256": "484493420b54f0b217bd3714f51fa417a986535128b8e3b6d34aef0206ce5938"
+    },
+    {
+      "id": "cap-204",
+      "file": "CATALOG_CAPABILITIES.md",
+      "heading": "## 173. الحصانة الذاتية لأرقام الباركود الطويلة ومنع تشويه الصيغ العلمية في ملفات الإكسل (Barcode Scientific Notation Auto-Protection)",
+      "source_line": 5597,
+      "sha256": "8fb05233780fce5914ef71d06d507cb97cd466c6da4ca0fd9200536276f32293"
+    },
+    {
+      "id": "cap-205",
+      "file": "DELIVERY_CAPABILITIES.md",
+      "heading": "## 174. حوكمة صرف أجرة المناديب وحماية نقدية الدرج في مبيعات الدليفري (Delivery Freelance Rep Payout Governance)",
+      "source_line": 5613,
+      "sha256": "1da3c371d1e1162ca41a6d92b97eb567b3c13fed5977cc992eb905a8d3c3af5f"
+    },
+    {
+      "id": "cap-206",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 175. منظومة توزيع الفان وجملة السلع الاستهلاكية السريعة الميدانية وإدارة وصيانة أسطول المركبات (Wholesale Van Sales & FMCG Route Distribution & Fleet Maintenance)",
+      "source_line": 5633,
+      "sha256": "5b3e785c5b44f41a5b0e9ede7afdb5e0ba8d2748918ff33d73ecf43f4bf21222"
+    },
+    {
+      "id": "cap-207",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: منظومة أذونات تحميل سيارات الفان الموحدة والإسناد المباشر بدون بوب اب (Unified Van Load Requisitions & Direct Dispatch Engine)",
+      "source_line": 5692,
+      "sha256": "2c9955261f1f236992a780223bf3480c47ff0f193d6068e932a6b9767ab97e78"
+    },
+    {
+      "id": "cap-208",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: محرك الطباعة الحرارية 80 مم لفواتير الفان سيلز الميدانية والمشاركة اللحظية (POS 80mm Thermal Receipt & Instant WhatsApp Sharing)",
+      "source_line": 5719,
+      "sha256": "af006f77f1897647b30f6d101f64abcaf7361cae0e169ba0ac5ca0f5bfe4c672"
+    },
+    {
+      "id": "cap-209",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "### قدرة: نظام تخصيص وتوزيع خطوط السير والمناديب للمشرف (Supervisor Route & Rep Assignment System)",
+      "source_line": 5737,
+      "sha256": "6f11dc41dab00fa8e56661aeda0f5998d1eb212f6e39d0f72aaa58e1d263909d"
+    },
+    {
+      "id": "cap-210",
+      "file": "SAAS_CAPABILITIES.md",
+      "heading": "## 176. حوكمة حذف النسخ التجريبية والمستأجرين واستثناء التدقيق الجنائي أثناء التطهير الكامل (SaaS Tenant Purge Governance & Tamper Audit Exemption Invariant)",
+      "source_line": 5759,
+      "sha256": "2ef457378efbce6849a2b4c13f13c07e12efed227a087073305b0c09d64340cb"
+    },
+    {
+      "id": "cap-211",
+      "file": "PURCHASES_CAPABILITIES.md",
+      "heading": "## 177. كاشف فواتير الموردين المكررة ورادار التحذير الاستباقي وحوكمة التجاوز (Vendor Duplicate Bill & Fraud Detection Engine)",
+      "source_line": 5782,
+      "sha256": "706863a6bb77cd7542b67824454d78e7aec072860e367088d1b38f8402b9ee71"
+    },
+    {
+      "id": "cap-212",
+      "file": "PARTNERS_CAPABILITIES.md",
+      "heading": "## 178. محرك متابعة وتصعيد التحصيلات المستقل ومركز الإنذارات وحظر الآجل الآلي (Dedicated AR Collections & Dunning Hub)",
+      "source_line": 5825,
+      "sha256": "87830e151ce11ada6dde2321cb9732348270f678f5326318c41b19709a7327f0"
+    },
+    {
+      "id": "cap-213",
+      "file": "REPORTS_CAPABILITIES.md",
+      "heading": "## 179. محرك التقارير المحورية وتحليل البيانات المرن (Dynamic Pivot & Custom BI Reports)",
+      "source_line": 5873,
+      "sha256": "b155b9063465c0ab1fb4fe82078bd22eb4071b270d9de7ddd560199159458203"
+    },
+    {
+      "id": "cap-214",
+      "file": "STOREFRONT_CAPABILITIES.md",
+      "heading": "## 180. إدارة العقود والاشتراكات المتكررة للشركات والفوترة الآلية (B2B Recurring Invoicing & Subscriptions)",
+      "source_line": 5913,
+      "sha256": "124a84f88700cc1d996acd85c9f36e696172ebb4e5a7da7b95c7c84699a040d6"
+    },
+    {
+      "id": "cap-215",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "## 181. إدارة الطرود والتعبئة متعددة الطبقات والطبليات (Pack-in-Pack & Pallet Barcoding)",
+      "source_line": 5954,
+      "sha256": "9f8cade1e7d98ae33b389172cf6f73511baa24b85c3a984051dcb7791b8280cb"
+    },
+    {
+      "id": "cap-216",
+      "file": "MANUFACTURING_CAPABILITIES.md",
+      "heading": "## 182. إدارة الجودة والامتثال الصناعي وتقارير عدم المطابقة (Quality Assurance & NCR)",
+      "source_line": 6000,
+      "sha256": "bb665f664ff5310a62e9a0c58d2645d5532197ea382294298190509713cc90e3"
+    },
+    {
+      "id": "cap-217",
+      "file": "HR_CAPABILITIES.md",
+      "heading": "## 183. منظومة تتبع المتقدمين للوظائف ومجمعات المواهب (Recruitment ATS & Talent Pools)",
+      "source_line": 6045,
+      "sha256": "b4ccb5e8845621146284ebb9c472c82456f4cf438343275cfb284b5f82aaa210"
+    },
+    {
+      "id": "cap-218",
+      "file": "CATALOG_CAPABILITIES.md",
+      "heading": "## 184. تكامل التسوية السريعة للمخزون داخل شاشة تعديل الصنف بنمط المصدر الموحد (Product Edit Quick Stock Adjustment Single Source Integration)",
+      "source_line": 6091,
+      "sha256": "2b897a89e8e36d83c18027f19e0452056290da16f17b86bce4ef4216e9d17da8"
+    },
+    {
+      "id": "cap-219",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## 185. معيار ثبات نافذة خيارات وتفريعات الأصناف بنقاط البيع داخل مجال الرؤية المباشر (POS Variants Modal Viewport-Anchored Standard)",
+      "source_line": 6123,
+      "sha256": "bbf9d6eb55e4746e13f49d1e36b46190ddefd53575d480fb367c15aee2b21c40"
+    },
+    {
+      "id": "cap-220",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "## 186. محرك قواعد إعادة الطلب التلقائي وتوليد أوامر الشراء (Automated Reordering Rules & Min/Max Auto-PO Generation - Odoo 18 Standard)",
+      "source_line": 6143,
+      "sha256": "7553546a417997b75d5e8bdec920cee8cd449d829e884e853ba65a3a6ffadd5a"
+    },
+    {
+      "id": "cap-221",
+      "file": "CATALOG_CAPABILITIES.md",
+      "heading": "## 187. منظومة أرشفة وتعطيل الأصناف الذكية والحذف الشرطي القياسي (Enterprise Product Archiving & Conditional Deletion Standard)",
+      "source_line": 6192,
+      "sha256": "cf6f97514f6f4350d9fc27c6bc24b16b154bf09b2cd1b6d071f084fac46da688"
+    },
+    {
+      "id": "cap-222",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 188. محرك التحمل والسرعة الفائقة لـ 10 سنوات (Enterprise 10-Year Scalability & High-Volume Engine)",
+      "source_line": 6233,
+      "sha256": "a0b61c505f5d4d59da9d3ee3a7b95391c9377149561912b72e4bb23d4d76ae75"
+    },
+    {
+      "id": "cap-223",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 189. منظومة تعبئة أذونات التحميل الميداني ووحدات التوزيع المتعددة (Van Sales Load Requisition Multi-Unit Packaging Standard)",
+      "source_line": 6265,
+      "sha256": "333e6496018428ce5da18a6dde7353ad6ca6bcb3fb51ac0818894555fb45ee46"
+    },
+    {
+      "id": "cap-224",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## Operational hardening added 30 September 2026",
+      "source_line": 6296,
+      "sha256": "09abe8704f8ffdf5ca4baf313d88133e0fd3adac4f1bbe618a32ec3859d50a85"
+    },
+    {
+      "id": "cap-225",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 190. دستور عزل الأنماط المؤسسية والباقات التابعة والتطابق متعدد القنوات (Universal Omnichannel Vertical Isolation, Dependent Plans Constitution & Real Functional Wiring)",
+      "source_line": 6305,
+      "sha256": "92b927b1537cabe63c58addf6bafdc60766ec895178bba101a0bb6d0ee0e8a91"
+    },
+    {
+      "id": "cap-226",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## POS and cashier integrity (2 October 2026)",
+      "source_line": 6346,
+      "sha256": "da90ba596e1b5992b623253376c151dcbe431eddcc3767cb380ec6233edb0ecf"
+    },
+    {
+      "id": "cap-227",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "## Purchases and inventory integrity (2 October 2026)",
+      "source_line": 6352,
+      "sha256": "c6443e2d393318cb55513172bc0cf08ebef2bbf11167a00435897543169f6ed3"
+    },
+    {
+      "id": "cap-228",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## Shared database scale controls (2 October 2026)",
+      "source_line": 6358,
+      "sha256": "5b0b2d26f94eca93cedb0ab61e587d71915add47d3100b0b61cade2f303e299e"
+    },
+    {
+      "id": "cap-229",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## Phase 6 financial infrastructure hardening (3 October 2026)",
+      "source_line": 6365,
+      "sha256": "ead5ec8fed532c9ae27471269793b36e75a2a6aa987b3081592ba1df6e3e090e"
+    },
+    {
+      "id": "cap-230",
+      "file": "STOREFRONT_CAPABILITIES.md",
+      "heading": "## Storefront audit follow-up (3 October 2026)",
+      "source_line": 6371,
+      "sha256": "fd2ad53c2c6ae009323093d2f3622bb1e9227b1cb0fd16393b5642ee7b9a155c"
+    },
+    {
+      "id": "cap-231",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## Commercial core follow-up (5 October 2026)",
+      "source_line": 6377,
+      "sha256": "7b4e75993e956754540ad5c67de1e89a0bbf34561494f1341680e4c30bbdc04e"
+    },
+    {
+      "id": "cap-232",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## Retail and POS field-readiness follow-up (5 October 2026)",
+      "source_line": 6384,
+      "sha256": "00f022d20b4bd4e8d52ff08e58d54c9dcbcddd452852e6b19c19feeeac68867a"
+    },
+    {
+      "id": "cap-233",
+      "file": "SALES_CAPABILITIES.md",
+      "heading": "## POS financial controls follow-up (5 October 2026)",
+      "source_line": 6394,
+      "sha256": "5770e620550837e5fc877cb1f651af184a6537f98beb5757a3f14a836e4c650e"
+    },
+    {
+      "id": "cap-234",
+      "file": "HR_CAPABILITIES.md",
+      "heading": "## HR, Payroll, Loans and End-of-Service Hardening (5 October 2026)",
+      "source_line": 6402,
+      "sha256": "0944b0a5bfc684621556605f3c7dd01f1b16012928abd77a7719d88b0c65bb2b"
+    },
+    {
+      "id": "cap-235",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## Commercial accounting and POS closure update (5 October 2026)",
+      "source_line": 6420,
+      "sha256": "1c759467f8c97c33c89bfa4ce71391144890fd3688ff39e2f35d7c2c38aafad9"
+    },
+    {
+      "id": "cap-236",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## Maritime Freight & Multimodal Logistics Complete Architectural Closure (6 October 2026)",
+      "source_line": 6428,
+      "sha256": "128959294ab0ede8ed2a57328368b71491161bb7be7d6f5a989eeb3d16cf26ab"
+    },
+    {
+      "id": "cap-237",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## B2B Customer Self-Service Freight Portal - بوابة الخدمة الذاتية لعملاء الشحن (7 October 2026)",
+      "source_line": 6439,
+      "sha256": "d47f3802d8bece5dc28c723dc73bf7e650e2f95b333a6527fe7713cb0208f097"
+    },
+    {
+      "id": "cap-238",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 162. التدقيق التشغيلي الشامل والاختبار الآلي لدورة الشحن البحري الدولي (End-to-End Sea Freight Verification & Hardening - 7 October 2026)",
+      "source_line": 6479,
+      "sha256": "bf354afbd9ac6f408cceb8f98221f691f7981afca754ddd4a20ed006afe58834"
+    },
+    {
+      "id": "cap-239",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 163. تسريع تجميع خادم التطوير المحلي للباك إند (Backend Incremental Dev Compilation Acceleration - 8 October 2026)",
+      "source_line": 6510,
+      "sha256": "ae9e84539d2e46b3f1937d4ceb04cd4e1b5b069917b2048fe76f8b09c64ba69e"
+    },
+    {
+      "id": "cap-240",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 164. منظومة الشحن الجوي الدولي ومطابقة معايير إياتا (International Air Freight, IATA Resolution 502 & Cargo iQ Standards - 8 October 2026)",
+      "source_line": 6521,
+      "sha256": "3a2bda8a2f7744fa90f857b1aa044e757dd3764e05459f4c6d24a1cdc6c7dcdd"
+    },
+    {
+      "id": "cap-241",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 165. منظومة الشحن البري والنقل الداخلي والموانئ الجافة (Road Freight, Inland Trucking & Dry Ports Architecture - 8 October 2026)",
+      "source_line": 6566,
+      "sha256": "bcbc11d68f11d1c6ec89d1f5e5a1deafa45ba4256e0081a30a74b463059dc618"
+    },
+    {
+      "id": "cap-242",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 43. تكامل روابط التنقل المباشر لمود الشحن واللوجستيات في القائمة الجانبية (Maritime Freight Sidebar Navigation Integration)",
+      "source_line": 6618,
+      "sha256": "857e16402058cf531ee2588fa96a932f5cbacbddad32998d32a52ec896f274ed"
+    },
+    {
+      "id": "cap-243",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "## 166. ترقية أداء الملاحة والتنقل اللحظي بين التابات ومساحات العمل (Instant Navigation & Keep-Alive Zero-Re-render Architecture - 8 October 2026)",
+      "source_line": 6635,
+      "sha256": "ca2c4549db2128effb995b77ab9341ab3f42fb2c489447aaedf86c721e9857ff"
+    },
+    {
+      "id": "cap-244",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 167. العزل والتخصيص القطاعي الشامل لتبويبات وشاشات الإعدادات (Vertical-Scoped Enterprise Settings Isolation & Specialization Suite - 8 October 2026)",
+      "source_line": 6663,
+      "sha256": "17370c9495ca39f0dab6a99dd920fdf605d554f63c644437148a1c2cc677bf8c"
+    },
+    {
+      "id": "cap-245",
+      "file": "SETTINGS_CAPABILITIES.md",
+      "heading": "## 204. دستور عزل الإعدادات حسب النشاط (Vertical Isolation) وضغط نافذة المستخدمين بدون سكرول (Universal Zero-Scroll User Modal)",
+      "source_line": 6704,
+      "sha256": "d666384312040f9bf6e8875ee74095bae55e61057b32a86ebd2624868950a72c"
+    },
+    {
+      "id": "cap-246",
+      "file": "SAAS_CAPABILITIES.md",
+      "heading": "## 205. دستور العزل التام لباقات وأسعار الاشتراكات السحابية حسب النشاط (Subscription Vertical Scope & Dynamic Catalog Resolution)",
+      "source_line": 6727,
+      "sha256": "5167bad163be10a34867e9cf38b8099c11f8119d87c4fcb65a7dab4ac7802ee2"
+    },
+    {
+      "id": "cap-247",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 206. تطهير واجهات التدقيق والاشتراكات وإلغاء تكييف الفروع في قطاع الشحن (Maritime Audit & Settings Purification)",
+      "source_line": 6760,
+      "sha256": "6f90a129d27e4fc6038cf2669d7c24bdcd629c124556b2132849235453bd6730"
+    },
+    {
+      "id": "cap-248",
+      "file": "RUNTIME_CAPABILITIES.md",
+      "heading": "## 207. البنية التحتية لتطبيقات الموبايل الأصلية والنشر على المتاجر (Store-Ready Native Mobile Architecture - Android & iOS)",
+      "source_line": 6783,
+      "sha256": "47e5c5465a69e4e76b357cdd519473a0bacf19c0b71e57048879fb3300e1aa36"
+    },
+    {
+      "id": "cap-249",
+      "file": "STOREFRONT_CAPABILITIES.md",
+      "heading": "## 208. منظومة الربط مع المنصات الإلكترونية وتأهيل حسابات التجار (Marketplaces Suite & Seller Onboarding Engine)",
+      "source_line": 6829,
+      "sha256": "904ef43530631bc46cc9406fa6024497f541e91894b2194be57bbbfc6e1f1a71"
+    },
+    {
+      "id": "cap-250",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 206. منظومة تقرير انحراف تكلفة الطعام الفعلي مقابل النظري للمطاعم وسحق فودكس (Restaurant Theoretical vs. Actual Food Cost Variance Report)",
+      "source_line": 6870,
+      "sha256": "096f869178bf31b3a5c3da135248ef2959474e47c5671fbe243f532da0248a7a"
+    },
+    {
+      "id": "cap-251",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 207. منظومة طباعة الشيك المبدئي وشارات تسليم الحساب (Guest Check / Proforma Bill & Delivered Badges)",
+      "source_line": 6902,
+      "sha256": "0c0016b5dccd40525756c028d7e82a085bc9ad7d59c05be4f765cb17dc896f60"
+    },
+    {
+      "id": "cap-252",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 208. منظومة احتساب رسوم خدمة الصالة التلقائية للطلبات الداخلية (Dine-in Service Charge System)",
+      "source_line": 6924,
+      "sha256": "8d01d41842e0e872e1109b994251bdf15e76b90abb33ff8e912ce9e62c616a36"
+    },
+    {
+      "id": "cap-253",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 209. عداد الضيوف ومؤشر متوسط إنفاق الفرد في قطاع المطاعم (Covers Count & Spend Per Guest KPI)",
+      "source_line": 6950,
+      "sha256": "4ed2b327090086ed78db882722874b9e562ce0aff08883cd02d69cfbfeed4365"
+    },
+    {
+      "id": "cap-254",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 210. منظومة حجوزات الطاولات وإدارة تدفق الضيوف (Table Reservations & Hostess Management)",
+      "source_line": 6971,
+      "sha256": "f275fcf769011cee5098f474c83c2791c1cb49cb5a4168689582980dd22ca05f"
+    },
+    {
+      "id": "cap-255",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 211. شاشة إعلان جاهزية الطلبات للعملاء وسائقي التوصيل (Customer Pickup / Order Status Display Board)",
+      "source_line": 6998,
+      "sha256": "0dad17107f1d08596b1f5bcb50369aa43e7c35556b63773bd81ebcb31600efb8"
+    },
+    {
+      "id": "cap-256",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 212. محطة كابتن الصالة والويتر الميداني السريع (Handheld Waiter / Captain Station)",
+      "source_line": 7018,
+      "sha256": "dfec3eaad964b695bb1059966c07ece71e517779fcb0303dce34c2134372301d"
+    },
+    {
+      "id": "cap-257",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 213. معالج وجبات الكومبو السريعة بنظام الخطوات (Step-by-Step Combo Meals Builder)",
+      "source_line": 7039,
+      "sha256": "5065b945b8205b0e18e880a91a594b1f7d7a83f5c5f527013b66d507f739db4f"
+    },
+    {
+      "id": "cap-258",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 214. مصفوفة هندسة قائمة الطعام وتحليل الربحية والشعبية (Menu Engineering Matrix - BCG F&B Analysis)",
+      "source_line": 7058,
+      "sha256": "c14ed8c10f2730947b5b7790fbe3287f6f14a90254aecad6b677c428ca6fbb93"
+    },
+    {
+      "id": "cap-259",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 215. شبكة طابعات المطبخ والبار وتوجيه البونات حسب المحطة (Multi-Printer Network KOT Routing)",
+      "source_line": 7086,
+      "sha256": "2004cac73397fcceeb4aa8eb2a34f45497b2c411ecba290ea2b879ecb7f7083e"
+    },
+    {
+      "id": "cap-260",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 216. شاشة منسق تسليم المطبخ وتتبع جاهزية الأصناف (Kitchen Expediter / Expo KDS Station)",
+      "source_line": 7111,
+      "sha256": "6742569fbbf141c1ba1e54ee07b1c19efed4449d4c97a419120cc1ab2e120d11"
+    },
+    {
+      "id": "cap-261",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 217. محرك الاستبعاد اللحظي للأصناف النافذة بالمطبخ والكاشير (Fast 86'd Items Engine & KDS Integration)",
+      "source_line": 7130,
+      "sha256": "7ebf99b191dd9c5872575974c63b7f7ecf908c6c5662f898114cdccf990ed2cb"
+    },
+    {
+      "id": "cap-262",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 218. مجمع الإكراميات وتوزيع حصص الوردية على طاقم الصالة والمطبخ (Tip Pooling & Shift Distribution Engine)",
+      "source_line": 7153,
+      "sha256": "c06c4f82226faee2b9fef3e30324254ccb443fa7c7ef6e029a28c1ca95fed886"
+    },
+    {
+      "id": "cap-263",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 219. خريطة الصالة متعددة الأجنحة وتخصيص الطاولات (Multi-Zone Floor Plan & Dining Sections)",
+      "source_line": 7175,
+      "sha256": "423b25c253d025bb9b6d9992243ff82b0f32ab1cdc09cb186588e776441bd1e3"
+    },
+    {
+      "id": "cap-264",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 220. جدول التحضير اليومي للمطبخ المركزي والأصناف نصف المصنعة (Daily Prep Sheet & Central Commissary Engine)",
+      "source_line": 7194,
+      "sha256": "7b9e0308cd31193ad936d867806c5c4216999066cc34ffca76fc36aaddba5c57"
+    },
+    {
+      "id": "cap-265",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 221. كروت الأختام الرقمية وبرنامج ولاء المقاهي والمطاعم (Digital Stamp Loyalty & Punch Cards)",
+      "source_line": 7215,
+      "sha256": "3d65879e3737715d6530601c0b90aa96ff3929b6aa4f83d19328040e1bff7ab0"
+    },
+    {
+      "id": "cap-266",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 222. رادار تذبذب تكلفة الأطباق وهوامش الربح الحية (Live Plate Cost & Food Inflation Radar)",
+      "source_line": 7235,
+      "sha256": "b6ea26ceb906f80f7f6eb4778c3e1278e247d3150d325414be6f2ec2f7ff71de"
+    },
+    {
+      "id": "cap-267",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 223. نقل الأصناف الفردية بين الطاولات وفصل الفواتير (Item-Level Table Transfer & Split-Destination Engine)",
+      "source_line": 7257,
+      "sha256": "66a4331f78a194b1bdcdd46ee6d33049dc443698a157cf6b14286d860f5367fc"
+    },
+    {
+      "id": "cap-268",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 224. طباعة ملصقات الأكواب والوجبات السريعة الحرارية 50x30 مم (Sticky Cup & Box Label Thermal Printing)",
+      "source_line": 7273,
+      "sha256": "62f4298795ed676e2a5cf57a39c01e32922331123d59522c5537e8d7b130c8b4"
+    },
+    {
+      "id": "cap-269",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 225. وضع كشك الخدمة الذاتية الرأسي التفاعلي للعملاء (Self-Ordering Kiosk Mode - Portrait Touch UX)",
+      "source_line": 7290,
+      "sha256": "c22aade8f97c64b9fa9556b26376db5a10a734d2341aefe28ff59cd595e43138"
+    },
+    {
+      "id": "cap-270",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 226. محرك ضيافة الإدارة والخصومات الرسمية والتوثيق المحاسبي (Manager Comps & House Accounts Engine)",
+      "source_line": 7308,
+      "sha256": "828c5a203c85f0df2ad626f7e39e84dfdea6ed058ceb4f54895a54436271019b"
+    },
+    {
+      "id": "cap-271",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 227. رادار تقييم العميل اللحظي عند الطاولة وتنبيه الإنقاذ الفوري (Table QR Post-Payment Rating & Rescue Alert)",
+      "source_line": 7332,
+      "sha256": "69ac60eb8210d39fd1289a88aae5c8ee060bed4270794ee23f2544d6f84cf9ea"
+    },
+    {
+      "id": "cap-272",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 228. توقيت الطهي الذكي وتنسيق خروج أطباق الطلب معاً (Kitchen Pacing & Staggered Prep Scheduling)",
+      "source_line": 7353,
+      "sha256": "31acd2102889490712cccfdb849b54e990728c9b4f2a061188b41f7d6245901e"
+    },
+    {
+      "id": "cap-273",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 229. طلب المقاعد الفردية والتقسيم التلقائي للفاتورة حسب المقعد (Seat-Level Ordering & 1-Click Split by Seat)",
+      "source_line": 7374,
+      "sha256": "d3b5a6334c4b1404396a159b766f4a83aac55a4f7b87762315a611e52b715756"
+    },
+    {
+      "id": "cap-274",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 230. محرك الاقتراح والترقية الذكية وزيادة متوسط الفاتورة (Smart Upselling & Cross-Sell Engine)",
+      "source_line": 7397,
+      "sha256": "ccaa98ef0e608caf65894be0f3fc22c3b0d8494f225569921ffd5c51e1ae00cd"
+    },
+    {
+      "id": "cap-275",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 231. طابور طلبات السيارات ومؤشر سرعة الخدمة (Drive-Thru Lane & Speed of Service Timer - SOS)",
+      "source_line": 7421,
+      "sha256": "775a44332e54c5ffd75fd2a457dd2e2b7c15e11b029859421a085dfc79255896"
+    },
+    {
+      "id": "cap-276",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 232. ملصقات صلاحية وسلامة الأغذية المحضرة بالمطبخ (Kitchen Day-Dots & HACCP Prep Expiry Labels 50x30mm)",
+      "source_line": 7447,
+      "sha256": "8edd5f56849b3ae765473119b1b2a068c53d839e95eda1160650c0ffa24b3237"
+    },
+    {
+      "id": "cap-277",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 233. فرض الحد الأدنى لإنفاق الطاولات ومناطق الصالة (Table Zone Minimum Spend Enforcer)",
+      "source_line": 7468,
+      "sha256": "8f50a4a8509a55e853a7f1355a823bf736474294109231ba38ff2d6e442a154d"
+    },
+    {
+      "id": "cap-278",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 234. الترقية المؤسسية المتكاملة لقطاع الفان وتوزيع الجملة (Wholesale & Van Distribution Enterprise Enhancements)",
+      "source_line": 7491,
+      "sha256": "6d29aeea748bff6159e3ab795d8cde7ade0a6731329f0dfdbc125e2839aaf13d"
+    },
+    {
+      "id": "cap-279",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 235. رادار مكافحة الشبهات والتلاعب لمناديب التوزيع وعزل مديونيات العملاء المشتركين (Van Sales Fraud Radar & Multi-Rep Isolated Balances)",
+      "source_line": 7530,
+      "sha256": "fa03a02c09873aa8a65ed5316dda0a57a2c138041be57a2a82987276af8db4cf"
+    },
+    {
+      "id": "cap-280",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 236. محرك العروض الترويجية الشرائحية المركبة والتحسين الرياضي لمسارات السير (FMCG Tiered Promotions & TSP Route Optimization)",
+      "source_line": 7582,
+      "sha256": "98329c1a7bd9acad15dc437f86d09b7ccd60d29a128964c0f44826863bffea86"
+    },
+    {
+      "id": "cap-281",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 237. جناح التنفيذ الميداني لمبيعات الفان والتسويق التجاري والطباعة الحرارية وتتبع الزيارات ومعدل الضرب (FMCG Van Sales Execution, Trade Marketing, Direct Bluetooth ESC/POS & Live Fleet Supervisor)",
+      "source_line": 7630,
+      "sha256": "0a76bfceaf5e089c23828326c8ace7039b650873b831ffda1d093c58cefb2477"
+    },
+    {
+      "id": "cap-282",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 238. جناح السوق المصري المتخصص لشركات التوزيع وسيارات الفان FMCG (Egyptian FMCG Van Sales Suite: InstaPay Segregation, Digital Signature on Glass, Live Target Booster & Field Damaged Goods Swap)",
+      "source_line": 7687,
+      "sha256": "bdda5d4a46f333ff9c489278dd86ab7748628605f02187c274a46397fcf9e816"
+    },
+    {
+      "id": "cap-283",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 239. حوكمة خطوط السير متعددة المناديب، صلاحيات المناديب الميدانية، وتخصيص إلزامية رمز المشرف (PIN) لتصفية الورديات من الإعدادات",
+      "source_line": 7723,
+      "sha256": "545f6daa45b79d80dd4d7732356686387056a00fb9582e2af67883b33224f556"
+    },
+    {
+      "id": "cap-284",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 240. المركز المالي وكشف حساب المناديب والربط الآلي مع مسير الرواتب (Rep Financial Ledger, Variance Settlement Hub & HR Payroll Bridge)",
+      "source_line": 7764,
+      "sha256": "9289ecae93602c2c523b60bdcdd0ef33de3b68a6b0f97ebd938e3054f22ea637"
+    },
+    {
+      "id": "cap-285",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 241. درع الحماية اللحظي ومنع تكرار الفواتير والتحصيلات في مبيعات الفان الميدانية (Van Sales Concurrency, Deduplication & Idempotency Shield)",
+      "source_line": 7799,
+      "sha256": "044ae20e5ffdc91d8f7675bd9c19249214bfde9c361b6b8f632e13c0c03427ea"
+    },
+    {
+      "id": "cap-286",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 242. جناح المشاركة الفورية عبر واتساب لفواتير الميدان وكشوف حسابات العملاء (Van Sales Direct WhatsApp Sharing & One-Click Statement Dispatch)",
+      "source_line": 7817,
+      "sha256": "dded3a7c8c47d50995d16df7d63798707edc2ac9582bc5b2c68bad537ab2f745"
+    },
+    {
+      "id": "cap-287",
+      "file": "VANS_CAPABILITIES.md",
+      "heading": "## 243. حوكمة أذونات شحن البضاعة ومنع تكرار الطلبات المعلقة مع استرجاع الأصناف ودعم الشحن الإضافي (Van Single Pending Requisition Governance, Cancellation Recovery & Supplementary Load Support)",
+      "source_line": 7839,
+      "sha256": "aaa598300e324ce3e85263485d7b727048fcd3bd074f29e132efe2dbdb8927cf"
+    },
+    {
+      "id": "cap-288",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 244. محرك التوطين الإقليمي لدولة الكويت والتهيئة التلقائية المتسلسلة للمطاعم والضيافة (Kuwait Regional Profile, Country Cascading Engine & PACI/K-NET F&B Localization)",
+      "source_line": 7868,
+      "sha256": "f656e33966b9e4c0989e0e447bf082b579c720d331dbeecd0a37f55f93d6380c"
+    },
+    {
+      "id": "cap-289",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "## 221. منظومة عزل وتخصيص تقارير وجرد المخازن المستقلة (Strict Warehouse-Scoped Inventory Reports & Stock Counting)",
+      "source_line": 7957,
+      "sha256": "f6f0eb99b75014fa1de63e675840e816ad9f10e332e6eae419886f491f8a6718"
+    },
+    {
+      "id": "cap-290",
+      "file": "RESTAURANT_CAPABILITIES.md",
+      "heading": "## 222. إعادة هيكلة كشك الخدمة الذاتية للمطاعم ودستور الدفع فائق السرعة (Restaurant Self-Ordering Kiosk Overhaul & 3-Second Checkout)",
+      "source_line": 7993,
+      "sha256": "cfe31ee37eed3ea634175a5a699d1a947f458e36057fb9b5a327ca01e2384296"
+    },
+    {
+      "id": "cap-290-1",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "### 115. معيار مساحات العمل المجمعة وتبسيط القوائم (Unified Workspaces & Sidebar Decluttering Standard)",
+      "source_line": 8026,
+      "sha256": "ec1d88a41438699427999855736a66f883caf37cdca470058734415d0516b9c1"
+    },
+    {
+      "id": "cap-290-2",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "### 115. تقسيم وتبويب أماكن المخزون الذكي وفصل سيارات التوزيع عن المستودعات الثابتة (Warehouse Locations Segmentation & Van Stock Isolation)",
+      "source_line": 8071,
+      "sha256": "4e2d0d14ec2b7f01c0fdfe138614b08e106ff350115ad99512826c1070ff5941"
+    },
+    {
+      "id": "cap-290-3",
+      "file": "UI_CAPABILITIES.md",
+      "heading": "### 116. توحيد مساحات عمل المبيعات والتصنيع (Sales & Manufacturing Workspaces Consolidation)",
+      "source_line": 8088,
+      "sha256": "38bd744b0f67b096508871bf3de34922aa76f7568f9a681f4f85aeed54797ff8"
+    },
+    {
+      "id": "cap-291",
+      "file": "DELIVERY_CAPABILITIES.md",
+      "heading": "## 245. الفصل المعماري والتشغيلي الصارم بين إدارة مناديب التوصيل ومبيعات وتوزيع الفان (Strict Delivery Reps & Van Sales Decoupling Architecture)",
+      "source_line": 8107,
+      "sha256": "0ebd183cb7c24e4d458cb9515d47b4156a71e4e362afb3e2a622cf2ec2953a29"
+    },
+    {
+      "id": "cap-292",
+      "file": "FREIGHT_CAPABILITIES.md",
+      "heading": "## 246. جناح الاختبارات العدائية ومحاكاة التخريب الشامل للشحن واللوجستيات وسد الثغرات (Logistics Chaos Monkey & Multimodal Freight Adversarial Hardening Suite - 20 October 2026)",
+      "source_line": 8144,
+      "sha256": "33ab1766ef0b7a65b7f97eba0ea99fcf3f769e019698e13ce01b0b3e6daea749"
+    },
+    {
+      "id": "cap-292-1",
+      "file": "IMPORT_CAPABILITIES.md",
+      "heading": "### 247–253. منظومة الاستيراد والتجارة الدولية الشاملة (Import & International Trade ERP Platform)",
+      "source_line": 8172,
+      "sha256": "7262a7747c41f6b128d61e224a125f3c22325d38062e7f0a111c26b7d9bb5834"
+    },
+    {
+      "id": "cap-293",
+      "file": "INVENTORY_CAPABILITIES.md",
+      "heading": "## 254. أدوات التصفير السريع والجرد الصفري الذكي لجلسات جرد المخزون (Smart Zero-Count & Quick Zeroing Tools for Inventory Sessions - 23 October 2026)",
+      "source_line": 8177,
+      "sha256": "d0fe48f8fe09d2c0758a5869ff83ed42378bc90c6db70a176fc5daf2393eecca"
+    },
+    {
+      "id": "cap-294",
+      "file": "CATALOG_CAPABILITIES.md",
+      "heading": "## 255. المزامنة الذكية وتطهير مصفوفة مقاسات وألوان الملابس وحماية الأرصدة المخزنية (Smart Fashion Variants Matrix Sync, Pruning & Stock Protection - 24 October 2026)",
+      "source_line": 8202,
+      "sha256": "470df66379142ee8d3a7bcc0259fcc96964f890a7dc23e8c7efd742806b6f725"
+    },
+    {
+      "id": "cap-295",
+      "file": "CATALOG_CAPABILITIES.md",
+      "heading": "## 256. دعم الشرطة (-) كفاصل معتمد ومولد فوري لمتغيرات الأصناف (Product Variants Dash Separator & Instant Row Generation - 24 October 2026)",
+      "source_line": 8227,
+      "sha256": "4a2aee8bd6d1f49b98f4f92c952a484e74bef568105b43048673a7b40a0411a7"
+    },
+    {
+      "id": "cap-296",
+      "file": "CATALOG_CAPABILITIES.md",
+      "heading": "## 257. منظومة التسوية المخزنية اللحظية والتصفير التلقائي لموديلات الملابس والمتغيرات (Fashion Variants Inline Stock Adjustment & Auto-Reconciliation Engine - 24 October 2026)",
+      "source_line": 8244,
+      "sha256": "6e8581d478cc2a3451d73adcd886ee9d8a8c83cacb76f36cc77be6105ac98ad8"
+    },
+    {
+      "id": "cap-297",
+      "file": "CATALOG_CAPABILITIES.md",
+      "heading": "## 258. الأرشفة الذكية للأصناف القياسية والتسوية المخزنية الآلية المحاسبية (Standard Products Smart Archive & Auto-Reconciliation Engine - 25 October 2026)",
+      "source_line": 8268,
+      "sha256": "50246d2268a1b6ff18efc0c992a27e53e2d8f1f28c5ebc71dddbb5303d812646"
+    },
+    {
+      "id": "cap-298",
+      "file": "ACCOUNTING_CAPABILITIES.md",
+      "heading": "## 259. منظومة سلامة القيود المحاسبية والتجارية (Accounting and Commercial Integrity — 24 October 2026)",
+      "source_line": 8299,
+      "sha256": "a7eecad18267d63eff1359ee13c8906f49224220ca43b1cf1da91559fa4013a8"
+    },
+    {
+      "id": "cap-299",
+      "file": "QA_CAPABILITIES.md",
+      "heading": "## 260. اختبارات القبول التنفيذي لسلامة المحاسبة وقواعد البيانات (Core/accounting Executable Acceptance — 24 October 2026)",
+      "source_line": 8310,
+      "sha256": "a95ed74199189e706dbb07cedf7bddcdcf64823e37df789a5e7fbeca39ab49c6"
+    }
+  ]
+}

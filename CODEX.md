@@ -1,4 +1,10 @@
 # Z-Systems Commercial Hardening & Codex Collaboration Protocol
+
+## Capability documentation ownership
+
+Read [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md) for dependencies, then [SYSTEM_CAPABILITIES.md](SYSTEM_CAPABILITIES.md) to find the owning domain file. Follow [the documentation protocol](docs/capabilities/README.md).
+
+Document every changed/new capability in its owning domain file, including implementation references, limitations, and actual test evidence/date/commit. The central file is an index only: do not append feature histories there. Update the blueprint for dependency changes and the registry/index for new domains. Cross-domain changes use one owner and links, not copied descriptions. Historical “100%” labels are not current verification. This routing rule supersedes older instructions to append details to SYSTEM_CAPABILITIES.md.
 > **Target:** 1,000 Active Multi-Tenant Scale on Shared PostgreSQL DB (`APP_MODE=CLOUD_SAAS`)
 > **Hosting & Environment:** Oracle Cloud VPS (PostgreSQL, NestJS Backend, React Vite Frontend)
 > **Active Working Branch:** `audit/work` (Merged to `main` upon green CI)

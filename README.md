@@ -1,5 +1,9 @@
 # zs-main
 
+## System documentation
+
+Start with [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md) for architecture and [SYSTEM_CAPABILITIES.md](SYSTEM_CAPABILITIES.md) for the domain capability index. Update capabilities in their owning domain files following the [documentation protocol](docs/capabilities/README.md).
+
 نظام إدارة مبيعات ومخازن متكامل، يدعم العمل كسحابة (SaaS) أو نسخة أوفلاين (Portable).
 **[📚 حالة جاهزية المنتج (Product Readiness Status)](docs/PRODUCT_READINESS_STATUS.md)**
 

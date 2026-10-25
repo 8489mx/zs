@@ -1,5 +1,11 @@
 # Project Rules & Guidelines for Z-Systems (d:\zn)
 
+## Capability documentation ownership
+
+Read [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md) for dependencies, then [SYSTEM_CAPABILITIES.md](SYSTEM_CAPABILITIES.md) to find the owning domain file. Follow [the documentation protocol](docs/capabilities/README.md).
+
+Document every changed/new capability in its owning domain file, including implementation references, limitations, and actual test evidence/date/commit. The central file is an index only: do not append feature histories there. Update the blueprint for dependency changes and the registry/index for new domains. Cross-domain changes use one owner and links, not copied descriptions. Historical “100%” labels are not current verification. This routing rule supersedes older instructions to append details to SYSTEM_CAPABILITIES.md.
+
 ## 1. Strict Build, Push & Verification Policy (قاعدة البناء والبوش وتأجيل الحراس)
 - **NEVER** run `npm run build` or any production bundle build command automatically unless the user explicitly commands it (e.g. "رن بيلد", "اعمل بيلد وبوش", "build").
 - **NEVER** run `git push` automatically unless the user explicitly requests it (e.g. "اعمل بوش", "بوش للـ main", "push").
@@ -37,7 +43,7 @@
 ## 5. System Capability Verification Rule (سجل قدرات النظام ومنع تكرار الميزات)
 - **ممنوع نهائياً** اقتراح ميزات أو التخمين بوجود أو عدم وجود ميزة من الذاكرة أو تقديم اقتراحات لميزات معمولة بالفعل عند سؤال المستخدم عن "ما ينقص النظام".
 - **دستور الأداء (إلزامي):** قبل تعديل `vite.config.ts` أو `backend/src/main.ts` أو استيرادات الـShell أو كتالوج الأصناف/نقطة البيع أو كتالوج المتجر العام أو أي هجرة فهارس — اقرأ `PERFORMANCE_CONSTITUTION.md` (الثوابت PERF-1..PERF-12 والأنماط المحظورة P1..P10). ممنوع استيراد مكتبة ثقيلة (`jspdf`/`xlsx`/`recharts`/`html5-qrcode`/`pdfjs-dist`/`@sentry/react`) استيراداً ثابتاً من كود يصله الـShell. الحارسان `performance-hot-paths.spec.ts` و`qa:perf` داخل `npm run guards`.
-- **قاعدة التحديث الإلزامي:** أي ميزة أو شاشة أو منطق جديد يتم إضافته أو تعديله في النظام يجب فوراً توثيقه وتحديث حالته ونسبته وملفاته في `SYSTEM_CAPABILITIES.md`.
+- **قاعدة التحديث الإلزامي:** أي ميزة أو شاشة أو منطق جديد يتم إضافته أو تعديله في النظام يجب توثيقه في ملف مجاله المشار إليه من `SYSTEM_CAPABILITIES.md` مع الحالة الفعلية ومراجع التنفيذ ونتائج التحقق؛ الملف المركزي فهرس فقط.
 
 ## 6. Infrastructure & Deployment Environment (سيرفر أوراكل حصرياً - Oracle Cloud VPS)
 - تم نقل المنظومة بالكامل (Frontend, Backend, Database - PostgreSQL) إلى سيرفر **Oracle Cloud VPS** (لا وجود لهوستنجر نهائياً).

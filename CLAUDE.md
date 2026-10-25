@@ -1,5 +1,11 @@
 # Project Instructions for Claude (Z-Systems)
 
+## Capability documentation ownership
+
+Read [SYSTEM_BLUEPRINT.md](SYSTEM_BLUEPRINT.md) for dependencies, then [SYSTEM_CAPABILITIES.md](SYSTEM_CAPABILITIES.md) to find the owning domain file. Follow [the documentation protocol](docs/capabilities/README.md).
+
+Document every changed/new capability in its owning domain file, including implementation references, limitations, and actual test evidence/date/commit. The central file is an index only: do not append feature histories there. Update the blueprint for dependency changes and the registry/index for new domains. Cross-domain changes use one owner and links, not copied descriptions. Historical “100%” labels are not current verification. This routing rule supersedes older instructions to append details to SYSTEM_CAPABILITIES.md.
+
 > 🔴 **CRITICAL SYSTEM NOTICE FOR CLAUDE:**
 > Before modifying or writing ANY code in this repository, you MUST read and strictly adhere to:
 > 1. `SAAS_ELECTRON_ISOLATION_CONSTITUTION.md` (Architectural Safety Constitution)
@@ -35,7 +41,7 @@
 After completing ANY phase of the audit, or any structural fix, you MUST — before reporting done:
 1. Update `ARCHITECTURE_INVARIANTS.md`: new invariants, newly forbidden patterns, migration ledger,
    phase status table, and the open-items list.
-2. Update `SYSTEM_CAPABILITIES.md` for any capability whose behaviour or status changed.
+2. Update the owning domain file linked from `SYSTEM_CAPABILITIES.md` for any capability whose behaviour or status changed; keep the central file an index.
 3. Update `REVIEW_ROADMAP.md`: move the completed item from the priority queue to the "reviewed and
    trusted" table, and note the commit/date it was reviewed as of (for future delta reviews).
 This is what lets the next session (Claude, another AI, or a human) resume without re-deriving context.
