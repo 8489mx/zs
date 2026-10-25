@@ -386,6 +386,31 @@ async function main() {
     assert.ok(retained,'financially relevant trade-in source must remain immutable');
     pass('concurrent trade-in purchase posts exact cash/inventory GL and WAC once; history is immutable');
 
+    // Real PostgreSQL must preserve the third minor unit from journal source
+    // through DB storage and the FX/PDC base-currency snapshot.
+    const kwd = await fixture('kwd_precision');
+    await db.updateTable('settings').set({value:'"KWD"'}).where('tenant_id','=',kwd.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',kwd.auth.tenantId!).where('is_base','=',true).execute();
+    const raw = await sql<{numeric_scale:number}>`select numeric_scale from information_schema.columns
+      where table_schema=current_schema() and table_name='journal_entry_lines' and column_name='debit'`.execute(db);
+    assert.ok(Number(raw.rows[0]?.numeric_scale)>=3,'journal storage must accept fils');
+    const kwdEntry=await posting.postDomainJournal(db,{
+      tenantId:kwd.auth.tenantId!,accountId:kwd.auth.accountId!,sourceType:'currency_precision_probe',
+      sourceId:kwd.productId,entryDate:new Date(),description:'Three-decimal currency GL acceptance',
+      createdBy:kwd.auth.userId,
+      lines:[
+        {accountId:kwd.accounts.get('1110')!,description:'One fil in cash',debit:0.001,credit:0,partnerType:'none',partnerId:null},
+        {accountId:kwd.accounts.get('4200')!,description:'One fil in revenue',debit:0,credit:0.001,partnerType:'none',partnerId:null},
+      ],
+    });
+    const kwdLines=await db.selectFrom('journal_entry_lines').select(['debit','credit'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('journal_entry_id','=',kwdEntry).execute();
+    assert.equal(kwdLines.length,2);
+    assert.equal(kwdLines.reduce((sum,line)=>sum+Number(line.debit),0),0.001);
+    assert.equal(kwdLines.reduce((sum,line)=>sum+Number(line.credit),0),0.001);
+    pass('KWD 0.001 journal lines survive real PostgreSQL persistence without cent rounding');
+
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
     // drop dependent MFA constraints using CASCADE to make the test green.

@@ -104,3 +104,11 @@ The code observations above identify definite missing integration points; **fina
 - Maintenance delivered tickets cannot be reopened and charged again, and already delivered tickets reject retrospective changes to final cost or collected amount. New collected amounts and final costs reject negative/non-finite inputs.
 - Pharmacy distributor invoices reject invalid product names, non-finite numbers, zero/negative purchased quantities and negative bonus quantity/prices before creating stock batches. These checks run within the same rollback boundary as batch and treasury inserts.
 - These protections do not replace transactionally linked GL journal posting, audited reversals, purchase/AP matching, or real-database end-to-end signoff.
+
+## 25 October — KWD/OMR precision implementation checkpoint
+
+- Added shared currency minor-unit utilities, KWD/OMR and standard-cent tests, exact landed-cost allocation and stock/COGS splits, and base-currency-aware PDC snapshots.
+- Purchase landed-cost journal source and supplier allocations now use tenant base-currency minor units, preserving thousandths without floating-point residuals. Landed unit WAC retains 6-decimal interim precision.
+- Central journal insertion determines tenant book precision, instead of silently forcing every journal entry line to two decimals. Additive migration 256 widens a controlled set of numeric columns; rollback deliberately refuses to narrow the precision.
+- PostgreSQL acceptance now contains a real KWD 0.001 posted-journal persistence scenario. CI evidence for this revision must be attached after execution.
+- **P0C-01 remains OPEN for global release:** other posting paths still use 2-digit intermediate rounding, wider sales/purchase/report/payroll and FX flows need review, and tenant-level full-cycle three-decimal reconciliation has not been certified.

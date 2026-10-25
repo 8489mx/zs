@@ -313,3 +313,10 @@
 - **Open P0:** `AccountingPostingService.toMoney` still quantizes every ledger line to two decimals, which is insufficient for KWD/OMR when the tenant's base currency has three decimals. No 3-digit ledger/valuation certification is claimed.
 - **Open P0:** direct cash/stock writes in maintenance, trade-in and pharmacy require real atomic integration into posting and balance reports.
 - Evidence and unfinished cycle/sector matrix: [P0-C checkpoint](docs/reviews/CROSS_MODULE_ACCOUNTING_INVENTORY_P0C_20261025.md). **Not release-verified.**
+
+
+### P0-C 2026-10-25 — currency minor-unit ledger work (pending final CI)
+
+- `backend/src/modules/accounting/engines/money-minor-units.engine.ts` defines strict integer minor-unit validation and rounding for KWD/OMR three-decimal currency and ordinary two-decimal currencies.
+- `backend/src/modules/accounting/accounting-posting.service.ts` posts journal-entry lines using tenant base-currency digits and migration `2040000000256_currency_minor_unit_precision.ts` widens finance NUMERIC columns without truncating history on rollback.
+- `backend/src/modules/accounting/pdc-currency.ts` rounds converted base amounts by base-currency digits; pure and disposable-PostgreSQL tests are included. Other module totals and reports need additional reconciliation before three-decimal release certification.

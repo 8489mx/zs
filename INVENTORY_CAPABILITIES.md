@@ -351,3 +351,9 @@
 - Existing purchase/sale/return PostgreSQL acceptance and stock-movement code are **not** sufficient to certify the sector-specific integration.
 - Three-decimal KWD/OMR minor units also require coherent inventory receipt/landed-cost and ledger precision, not isolated rounding changes.
 - Detailed coverage/status and unresolved defects: [P0-C checkpoint](docs/reviews/CROSS_MODULE_ACCOUNTING_INVENTORY_P0C_20261025.md). Do not mark this module P0-C verified yet.
+
+
+### P0-C 2026-10-25 — landed cost currency digits (pending final CI)
+
+- `backend/src/modules/purchases/engines/landed-cost-allocation.engine.ts` and `landed-cost-wac.engine.ts` allocate incoming receipt costs and sold-stock COGS in base-currency minor units (2 or 3), always reconciling the original sum exactly.
+- `backend/src/modules/purchases/services/purchase-landed-costs.service.ts` obtains tenant base currency, validates source money precision, and carries thousandths into stock WAC and GL. Purchase import legacy assumptions and full mixed-currency receipts remain release blockers.
