@@ -137,3 +137,9 @@ The code observations above identify definite missing integration points; **fina
 - Removed hard-coded 2-digit rounding for maintenance journals and spare-part COGS movements; delivery now compares exact integer tenant minor units and rejects overprecision instead of concealing a mill mismatch.
 - Trade-in validates user acquisition amounts in tenant minor units before transactional stock/cash writes; the trade-in acquisition posting no longer truncates the last KWD/OMR fil.
 - New disposable PostgreSQL checks cover KWD 0.001 advance + 0.002 settlement; KWD 0.001 trade-in physical stock, treasury and GL; and 0.0001 rejection. Results pending for the new SHA; no broad 8-cycle/11-sector certification or migration/deploy approval is claimed.
+
+## 25 October — debt-aging KWD/OMR precision scope
+
+- Reporting money helpers now accept explicit tenant minor units; `ReportsSummaryService.debtAgingReport` formats supplier/customer bucket balances and totals in the validated tenant's 2/3-digit currency and includes tiny positive open invoice balances previously filtered at 0.01.
+- Focused `reports-summary.helper.spec.ts` assertions cover 0.001 and 0.003 KWD/OMR totals while preserving ordinary EGP-cent defaults.
+- No blanket precision certification: other reporting methods, sales/purchase base columns and frontend currency formatting require further review; P0C-01 remains OPEN. CI for this patch set pending at staging time.
