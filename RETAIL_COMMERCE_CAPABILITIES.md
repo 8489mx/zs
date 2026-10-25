@@ -508,3 +508,10 @@
 
 
 <!-- migrated:cap-161:end -->
+
+
+## مراجعة 25 أكتوبر 2026 — الاستبدال الفوري والـ Idempotency (تحقق كودي جزئي)
+
+- كان `PosInstantExchangeDialog.tsx` يحذف `x-idempotency-key` وبيانات الاستبدال عند أي 4xx بما فيها `409 Operation is currently processing` و`422 Operation requires manual recovery`، ما يسمح بإرسال استبدال آخر بمفتاح جديد رغم غموض نتيجة الأول. الآن تفحص الواجهة `GET /api/operations/POST%3A%2Fapi%2Fsales/{key}/status`، تؤكد المستند الملتزم، وتحتفظ بمفتاح الطلب الأصلي عند غموض النتيجة؛ لا تسمح بإغلاق حوار العملية الغامضة دون مراجعتها.
+- أعيد استخدام عقد API الحالي `posApi.getSaleOperationStatus`، دون تعديل محرك idempotency أو المصادقة المشتركين.
+- اختبارات انحدار مكتوبة ولم تُشغّل: `frontend/src/features/pos/components/pos-workspace/pos-exchange-recovery.spec.ts`. هذا تدقيق لمسار الاستبدال المحدد فقط، وليس اعتمادا لكافة نقاط البيع.

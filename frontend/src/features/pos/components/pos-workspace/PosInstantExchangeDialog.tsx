@@ -8,6 +8,7 @@ import { posApi } from '@/features/pos/api/pos.api';
 import { salesApi } from '@/features/sales';
 import { getNormalizedInvoiceSearchTerms, matchesSaleDocNo } from '@/features/pos/lib/pos-barcode-normalizer';
 import { invalidateSalesDomain } from '@/app/query-invalidation';
+import { classifyExchangeRecovery, canResetExchangeRequest, type ExchangeOperationStatus } from './pos-exchange-recovery';
 import type { PosWorkspaceState } from './posWorkspace.helpers';
 
 type SourceSale = Awaited<ReturnType<typeof posApi.getSaleForExchange>>['sale'];
@@ -108,21 +109,52 @@ export function PosInstantExchangeDialog({ open, onClose, pos }: {
       pos.resetPosDraft();
       void invalidateSalesDomain(queryClient, { includeDashboard: true });
       requestKey.current = null;
+      submittedPayload.current = null;
+      setAttempted(false);
       setSource(null);
       onClose();
     } catch (error) {
-      const status = typeof error === 'object' && error !== null && 'status' in error
+      const httpStatus = typeof error === 'object' && error !== null && 'status' in error
         ? Number((error as { status?: number }).status) : 0;
-      if (status >= 400 && status < 500) {
+      let operationStatus: ExchangeOperationStatus = 'unknown';
+      // A failed HTTP response is not proof of a failed sale. The server might
+      // already have committed the atomic exchange and lost the response.
+      try {
+        const operation = await posApi.getSaleOperationStatus(requestKey.current!);
+        operationStatus = classifyExchangeRecovery(operation);
+      } catch {
+        // Keep the same payload and idempotency key while outcome is unknown.
+      }
+      if (operationStatus === 'committed') {
+        toast.success('تم تأكيد تسجيل الاستبدال من سجل العمليات');
+        pos.resetPosDraft();
+        void invalidateSalesDomain(queryClient, { includeDashboard: true });
         requestKey.current = null;
         submittedPayload.current = null;
         setAttempted(false);
+        setSource(null);
+        onClose();
+      } else if (canResetExchangeRequest(httpStatus, operationStatus)) {
+        // Rejection was recorded or the operation never reached the server:
+        // user may correct inputs and submit a genuinely new attempt.
+        requestKey.current = null;
+        submittedPayload.current = null;
+        setAttempted(false);
+        toast.error(error instanceof Error ? error.message : 'تعذر تنفيذ الاستبدال');
+      } else {
+        toast.warning('حالة الاستبدال غير مؤكدة. لا تنشئ طلباً جديداً؛ أعد المحاولة بنفس الطلب للتحقق من النتيجة');
       }
-      toast.error(error instanceof Error ? error.message : 'تعذر تنفيذ الاستبدال');
     } finally { setPending(false); }
   }
 
-  return <DialogShell open={open} onClose={() => { if (!pending) onClose(); }} width="min(700px, 96vw)" ariaLabel={t('pos.pos_workspace.pos_instant_exchange_dialog.s0', "استبدال فوري")}>
+  return <DialogShell open={open} onClose={() => {
+    if (pending) return;
+    if (attempted) {
+      toast.warning('يوجد استبدال لم يتم تأكيد نتيجته. أعد المحاولة بنفس الطلب قبل إغلاق النافذة');
+      return;
+    }
+    onClose();
+  }} width="min(700px, 96vw)" ariaLabel={t('pos.pos_workspace.pos_instant_exchange_dialog.s0', "استبدال فوري")}>
     <div dir="rtl" style={{ padding: 20, maxHeight: 'min(620px, 82vh)', overflowY: 'auto' }}>
       <h2>{t('pos.pos_workspace.pos_instant_exchange_dialog.s1', "استبدال فوري")}</h2>
       <p>{t('pos.pos_workspace.pos_instant_exchange_dialog.s2', "البضاعة الجديدة من سلة الكاشير، والمرتجع من فاتورة العميل الأصلية. يُحسب الصافي عند الاعتماد على السيرفر.")}</p>
