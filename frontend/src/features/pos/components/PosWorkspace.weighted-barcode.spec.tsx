@@ -62,13 +62,16 @@ vi.mock('@/lib/api/cash-drawer', () => ({
 }));
 
 // Mock Auth Store for shifting context
-vi.mock('@/stores/auth-store', () => ({
-  useAuthStore: (selector: any) => {
-    const state = { user: { id: 'u1', name: 'Tester', permissions: ['*'], roles: ['admin'] } };
-    return typeof selector === 'function' ? selector(state) : state;
-  },
-  isAdminUser: () => true,
-}));
+vi.mock('@/stores/auth-store', () => {
+  // Real POS queries intentionally fail closed without a tenant identity.
+  // A cashier test must supply a legitimate tenant context, not disable isolation.
+  const state = { user: { id: 'u1', tenantId: 'tenant-test', name: 'Tester', permissions: ['*'], roles: ['admin'] } };
+  const useAuthStore = Object.assign(
+    (selector?: (value: typeof state) => unknown) => typeof selector === 'function' ? selector(state) : state,
+    { getState: () => state },
+  );
+  return { useAuthStore, isAdminUser: () => true };
+});
 
 vi.mock('@/lib/http', () => ({
   http: vi.fn(),
