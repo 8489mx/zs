@@ -14,15 +14,16 @@ export function buildTrendMap<T>(
   keys: string[],
   keySelector: (row: T) => string,
   valueSelector: (row: T) => number | string | null | undefined,
+  digits: MoneyDigits = 2,
 ): Array<{ key: string; value: number }> {
   const totals = new Map<string, number>();
   for (const row of rows) {
     const key = keySelector(row);
     if (!key) continue;
-    totals.set(key, Number((Number(totals.get(key) || 0) + Number(valueSelector(row) || 0)).toFixed(2)));
+    totals.set(key, Number(totals.get(key) || 0) + Number(valueSelector(row) || 0));
   }
 
-  return keys.map((key) => ({ key, value: toMoney(totals.get(key) || 0) }));
+  return keys.map((key) => ({ key, value: toMoney(totals.get(key) || 0, digits) }));
 }
 
 export function buildAggregatedBalances<T extends { id?: unknown; balance?: unknown }>(
