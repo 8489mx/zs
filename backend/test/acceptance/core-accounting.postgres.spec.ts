@@ -561,7 +561,7 @@ async function main() {
         and j.source_id in (${Number(oneFilSaleRefund.returnDocumentId)},${Number(oneFilPurchaseRefund.returnDocumentId)})
       group by j.source_type
     `.execute(db);
-    assert.equal(filReturnGL.length,2);
+    assert.equal(filReturnGL.rows.length,2);
     for (const row of filReturnGL.rows) {
       assert.ok(Number(row.total_debit)>=0.001);
       assert.equal(Number(row.total_debit),Number(row.total_credit));
