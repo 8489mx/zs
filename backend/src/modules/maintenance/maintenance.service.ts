@@ -11,6 +11,7 @@ import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
 import { postMaintenanceJournal } from './maintenance-accounting';
+import { valueStockReceipt } from '../accounting/inventory-valuation';
 import { applyStockDelta } from '../../common/utils/location-stock-ledger';
 import { UpsertMaintenanceTicketDto } from './dto/upsert-maintenance-ticket.dto';
 import { UpdateTicketStatusDto, AddTicketPartDto } from './dto/update-ticket-status.dto';
@@ -589,6 +590,13 @@ export class MaintenanceService {
       });
 
       const stockValue = Number((Number(part.unit_cost) * returnQty).toFixed(2));
+      if (!Number.isFinite(stockValue) || Number(part.unit_cost) < 0) {
+        throw new AppError('Historical part cost is invalid', 'MAINTENANCE_STOCK_COST_INVALID', 422);
+      }
+      // A return restores inventory at its historical consumed cost, not the
+      // current price of any later purchases; refresh WAC under product lock.
+      await valueStockReceipt(trx, scope.tenantId, Number(part.product_id),
+        stockChange.globalAfter, returnQty, stockValue);
       const movement = await trx
         .insertInto('stock_movements')
         .values({
