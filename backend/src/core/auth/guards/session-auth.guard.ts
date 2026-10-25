@@ -5,6 +5,7 @@ import { SessionService } from '../../../core/auth/services/session.service';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { CSRF_HEADER_NAME, verifyCsrfToken } from '../utils/csrf-token';
 import { clearKnownAuthCookies, isLocalAuthCookieHost } from '../utils/auth-cookie-cleanup';
+import { isDesktopRuntimeMode } from '../../../config/app-mode';
 
 function parseCookie(request: RequestWithAuth, name: string): string {
   const cookieHeader = request.headers.cookie;
@@ -85,12 +86,17 @@ export class SessionAuthGuard implements CanActivate {
   ) {}
 
   private allowSessionIdHeaderFallback(): boolean {
+    // A single unsafe development flag must never re-enable CSRF-free header
+    // sessions on Cloud, including a Cloud deployment running NODE_ENV=development.
+    const appMode = this.configService.get<string>('app.mode')
+      || this.configService.get<string>('APP_MODE')
+      || process.env.APP_MODE
+      || 'CLOUD_SAAS';
+    if (!isDesktopRuntimeMode(appMode)) return false;
     const configured = this.configService.get('ALLOW_SESSION_ID_HEADER');
     if (String(configured).toLowerCase() === 'false') return false;
     if (String(configured).toLowerCase() === 'true') return true;
-    const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
-    const appMode = this.configService.get<string>('app.mode') || this.configService.get<string>('APP_MODE') || '';
-    return (nodeEnv === 'development' || appMode === 'SELF_CONTAINED' || appMode === 'PORTABLE') && appMode !== 'CLOUD_SAAS';
+    return true; // Explicitly supported local runtimes retain legacy hardware clients.
   }
 
   private clearAuthCookies(response: Response, request?: RequestWithAuth): void {

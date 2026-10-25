@@ -16,7 +16,7 @@ async function run(): Promise<void> {
   assert.equal(writes, 0);
   await controller.saveConfig({ provider: 'gemini' }, { authContext: { ...cashier.authContext, permissions: ['canManageSettings'] } } as any);
   assert.equal(writes, 1);
-  const service = new AiCopilotService({} as any, {} as any, {} as any);
+  const service = new AiCopilotService({} as any);
   await assert.rejects(() => service.saveConfig({ apiKey: 'attacker-key' }, cashier.authContext as any), ForbiddenException);
 }
 run().catch(e => { console.error(e); process.exitCode = 1; });

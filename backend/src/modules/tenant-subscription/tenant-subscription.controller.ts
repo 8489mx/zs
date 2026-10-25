@@ -373,8 +373,15 @@ export class TenantSubscriptionController {
     @Headers() headers: Record<string, any>,
     @Body() body: any,
     @Req() req: RequestWithAuth,
+    @Query('hmac') paymobQueryHmac?: string,
   ): Promise<Record<string, unknown>> {
     const rawBody: Buffer | undefined = (req as any).rawBody;
-    return this.paymentManager.processWebhook(gateway, headers, body, rawBody);
+    // Paymob delivers the signed HMAC in the callback query string, not
+    // necessarily in an HTTP header. The gateway must still verify the
+    // signature itself before any subscription credit is granted.
+    const verifiedHeaders = gateway.toLowerCase() === 'paymob' && typeof paymobQueryHmac === 'string'
+      ? { ...headers, hmac: paymobQueryHmac }
+      : headers;
+    return this.paymentManager.processWebhook(gateway, verifiedHeaders, body, rawBody);
   }
 }

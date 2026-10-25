@@ -114,7 +114,7 @@ async function run(): Promise<void> {
 
   const allowedHeaderSessionGuard = new SessionAuthGuard(
     new FakeSessionService() as any,
-    new FakeConfigService({ SESSION_CSRF_SECRET: csrfSecret, ALLOW_SESSION_ID_HEADER: true }) as any,
+    new FakeConfigService({ SESSION_CSRF_SECRET: csrfSecret, ALLOW_SESSION_ID_HEADER: true, APP_MODE: 'SELF_CONTAINED' }) as any,
   );
   const allowed = await allowedHeaderSessionGuard.canActivate(
     createContext({ method: 'GET', headers: { 'x-session-id': 'session-1' } } as any),
