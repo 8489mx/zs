@@ -246,6 +246,11 @@ export class PharmacyService {
     let totalCostSum = 0;
     let totalPublicSum = 0;
 
+    if (!dto.lines?.length) {
+      throw new Error('Distributor invoice requires at least one line');
+    }
+    // All imported batches and their treasury source must commit together.
+    return await this.db.transaction().execute(async (trx) => {
     for (const line of dto.lines) {
       if (!line.productName || !line.quantity) continue;
 
@@ -258,7 +263,7 @@ export class PharmacyService {
       totalPublicSum += qty * pubPrice;
 
       // 1. Ensure drug exists in pharmacy_drugs
-      let query = this.db
+      let query = trx
         .selectFrom('pharmacy_drugs')
         .where('tenant_id', '=', scope.tenantId);
 
@@ -284,7 +289,7 @@ export class PharmacyService {
             (line.barcode && m.barcode === line.barcode)
         );
 
-        const newDrug = await this.db
+        const newDrug = await trx
           .insertInto('pharmacy_drugs')
           .values({
             tenant_id: scope.tenantId,
@@ -315,7 +320,7 @@ export class PharmacyService {
 
       // 2. Insert Batch entry
       const batchNo = line.batchNumber || formatDailyDocumentNumber('BATCH', drugId);
-      await this.db
+      await trx
         .insertInto('pharmacy_batches')
         .values({
           tenant_id: scope.tenantId,
@@ -336,8 +341,7 @@ export class PharmacyService {
 
     // Record a single bulk cash outflow for the total invoice cost
     if (totalCostSum > 0) {
-      try {
-        await this.db
+        await trx
           .insertInto('treasury_transactions')
           .values({
             tenant_id: scope.tenantId,
@@ -350,9 +354,6 @@ export class PharmacyService {
             created_by: auth.userId ? Number(auth.userId) : null,
           } as any)
           .execute();
-      } catch (err) {
-        console.warn('Failed to record distributor invoice to treasury:', err);
-      }
     }
 
     return {
@@ -365,6 +366,7 @@ export class PharmacyService {
       totalPublicSum,
       message: `تم استيراد فاتورة ${dto.distributor} وتحديث الأرصدة والتشغيلات لعدد ${importedItemsCount} صنف`,
     };
+    });
   }
 
   // -------------------------------------------------------------
