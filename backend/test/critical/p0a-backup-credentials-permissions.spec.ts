@@ -13,5 +13,12 @@ async function run(): Promise<void> {
   await assert.rejects(() => cloud.getCloudConfig(cashier), ForbiddenException);
   const adminWithoutBackups = { ...cashier, role: 'admin', permissions: ['settings'] };
   await assert.rejects(() => cloud.getCloudConfig(adminWithoutBackups), ForbiddenException);
+  // P0A-32: even an authorized actor cannot upload backups to a disabled cloud destination.
+  const disabled = new CloudBackupService({} as any, backup);
+  (disabled as any).getCloudConfig = async () => ({ enabled: false });
+  await assert.rejects(
+    () => disabled.uploadBackupToCloud(Buffer.from('test'), 'backup.zip', { ...cashier, permissions: ['canManageBackups'] }),
+    /النسخ الاحتياطي السحابي غير مفعل/,
+  );
 }
 run().catch((err) => { console.error(err); process.exitCode = 1; });
