@@ -173,3 +173,26 @@ Adjusted older test fixtures `backend/test/critical/session-auth.guard.spec.ts` 
 **Residual release blockers:** (1) historical backup compatibility and real PostgreSQL rollback with concurrent writers; (2) historical migrations containing invalid references, `NOT VALID` rows, and validated-upgrade rehearsal; (3) comprehensive manual trace of tenant-scoped SQL, service guards and webhooks across unverified controllers; (4) packaged Windows Electron install/update, actual gateway/webhook/hardware tests; (5) 28-fix one-by-one operational evidence and final integration/UAT. No production DB, production migrations, merge to main, or deploy performed.
 
 **Verdict:** `P0-A Blocked` pending the above risk closure despite passing isolated regression and fresh-schema CI. Historic 'not run' statements elsewhere in this report refer to earlier checkpoints, not this dated CI run.
+
+---
+
+## Latest operational CI result — code HEAD `cd754dcaa7011615968c6e3d1b55b363f4ef5f96`
+
+**Overall result: PASS** — [GitHub Actions run 40189418578](https://github.com/8489mx/zs/actions/runs/40189418578). This supersedes the intermediate failure at run 40188927253. That earlier failure was the existing `backup-restore-integrity.spec.ts` requiring restore snapshots to be recorded *after* commit; the corrected test now asserts the strictly stronger invariant that both the orphan gate and snapshot recording execute inside the same transaction. Regression change: `cd754dcaa7011615968c6e3d1b55b363f4ef5f96`.
+
+| Operational check | Final CI status |
+|---|---|
+| Backend npm dependency installation, typecheck, build | Passed |
+| Architecture / permission / environment guards | Passed |
+| Dedicated P0-A source regressions, including P0A-31/32/33 | Passed |
+| Auth, RBAC, MFA, tenant, transfer, backup-integrity and idempotency targeted tests | Passed |
+| Electron updater/startup source regression contracts | Passed (source only) |
+| Full database migrations on disposable PostgreSQL 16, including 255 | Passed |
+| Actual PostgreSQL catalog inspection: 4 composite `NOT VALID` FKs, 3 unique supporting indexes | Passed |
+| Core integrity acceptance on disposable PostgreSQL | Passed |
+| Historical customer archive compatibility and real failed-restore rollback with concurrent writers | NOT RUN |
+| Old production-schema invalid historical FK reconciliation and `VALIDATE CONSTRAINT` | NOT RUN |
+| Installer/Windows update/physical gateways or devices | NOT RUN |
+| Deep manual authorization→tenant→service→SQL tracing of all 1,310 inventoried route matches | NOT COMPLETE |
+
+**Full task verdict remains `P0-A Blocked`.** Targeted code checks pass, but operational legacy restoration compatibility, historical migration validation, high-risk cross-module route tracing, real-device testing and end-to-end review of the handed-over original 28 fixes are still release blockers. No confirmed unaddressed P0 was proven by the executed checks, but coverage is not sufficient to certify that no P0 remains. `main` and production were not changed.
