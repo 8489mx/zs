@@ -13,7 +13,7 @@ import { buildDistributorPurchaseItem } from './engines/distributor-purchase.eng
 import { PurchasesService } from '../purchases/purchases.service';
 import { AppError } from '../../common/errors/app-error';
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
-import { currencyMoneyDigits, toMinorUnits, fromMinorUnits } from '../accounting/engines/money-minor-units.engine';
+import { currencyMoneyDigits, toMinorUnits, fromMinorUnits, roundMoney } from '../accounting/engines/money-minor-units.engine';
 import { UpsertDrugDto } from './dto/upsert-drug.dto';
 import { UpsertBatchDto } from './dto/upsert-batch.dto';
 import { UpsertPrescriptionDto } from './dto/upsert-prescription.dto';
@@ -311,7 +311,12 @@ export class PharmacyService {
       let item: ReturnType<typeof buildDistributorPurchaseItem>;
       try {
         item = buildDistributorPurchaseItem(line, productId, locationId, moneyDigits);
-        totalCostMinor += toMinorUnits(Number(line.quantity) * Number(line.costPrice), moneyDigits);
+        const payableMinor = toMinorUnits(Number(line.quantity) * Number(line.costPrice), moneyDigits);
+        const roundedPurchaseMinor = toMinorUnits(roundMoney(item.qty * item.cost, moneyDigits), moneyDigits);
+        if (payableMinor !== roundedPurchaseMinor) {
+          throw new Error('Drug bonus unit dilution exceeds permitted vendor invoice precision');
+        }
+        totalCostMinor += payableMinor;
       } catch (error) {
         throw new AppError((error as Error).message, 'PHARMACY_INVOICE_LINE_INVALID', 422);
       }
@@ -323,12 +328,8 @@ export class PharmacyService {
       totalPublicSum += item.qty * Number(line.publicPrice);
       items.push(item);
     }
-    // Purchase totals are still rounded to cents upstream. Never silently book a
-    // 0.001 KWD/OMR purchase in that two-decimal purchase/AR engine.
-    if (moneyDigits === 3) {
-      throw new AppError('Three-decimal distributor purchase totals await full purchase engine certification',
-        'PHARMACY_PURCHASE_CURRENCY_PRECISION_PENDING', 422);
-    }
+    // The canonical purchasing path now persists the same 2/3-digit tenant
+    // invoice amount in supplier AP, inventory and journal entries.
 
     const recorded = await this.purchases.createPurchase({
       supplierId, supplierInvoiceNo: invoiceNo,
