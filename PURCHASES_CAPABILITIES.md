@@ -150,3 +150,9 @@
 - Vendor invoice normalization/discount allocation and stock receipts preserve the tenant book's 2/3-digit minor unit in `purchases-write.helper.ts`, `purchases-write.service.ts` and `accounting-posting.service.ts`.
 - Additive migration `2040000000257_purchase_minor_unit_precision.ts` widens purchase/line/supplier ledger and stock-movement unit-cost columns; down refuses data loss. Unit and disposable PostgreSQL acceptance now verify the 0.001 purchase → supplier/AP → inventory/WAC → GL retry path. CI pending on this SHA; do not merge before it passes.
 - This does **not** certify cash/credit returns, multicurrency exchange, sales, three-way GRN, or legacy tenant balances.
+
+### P0-C 2026-10-25 — KWD/OMR supplier/customer payment voucher precision
+
+- Supplier and customer payment endpoints validate the tenant base currency's two/three decimal precision before any transaction; supplier installment-unrestricted balance is also computed at the same scale. `AccountingPostingService` uses that precision when preparing both payment voucher GL journals.
+- Disposable PostgreSQL acceptance now exercises 0.001 KWD AP/AR settlement with matching supplier/customer ledger, one cash voucher each, and posted balanced journals. The new SHA's tests must pass before claiming verification.
+- FX, schedule aggregation, multi-channel reconciliations and remaining sector modules still require dedicated tests.

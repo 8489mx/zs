@@ -173,3 +173,9 @@ The code observations above identify definite missing integration points; **fina
 - Return helpers, running partner balances, sales refund tender allocator and vendor payable/cash split no longer quantize KWD/OMR 0.001 to cents. Journal posting for both return source types now retains original currency precision.
 - Return valuation stock-movement amounts follow the original WAC cost in tenant digits. Migration 259 widens return source document and item values without loss on rollback.
 - Added pure `returns-write.helper` and `sales-return-cost` critical regressions plus disposable PostgreSQL 0.001 sale return and vendor return source→stock→partner balance→GL tests. Their final CI/PostgreSQL results must be checked before signoff. Multi-channel partial refunds, serial/lot reversals and full 8-cycle/11-sector verification are still OPEN.
+
+## P0-C payment vouchers and credit/debit return rounding follow-up
+
+- Customer/supplier payment voucher amount validation and vendor schedule available balance now respect the tenant's 2/3 minor-unit scales; payable/receivable GL payment journals retain thousandths.
+- Real PostgreSQL acceptance includes 0.001 KWD customer and supplier payment settlement with source/GL/AP/AR reconciliation. A previous acceptance run exposed a test-only Kysely `QueryResult.length` type error in return assertions; corrected to `.rows.length`.
+- This is not blanket treasury/FX/cheque/returns certification. The complete 8-cycle and 11-sector matrix is still open until each requested scenario has passing proof.
