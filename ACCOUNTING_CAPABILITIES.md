@@ -326,3 +326,9 @@
 - Financial report rounding utilities now accept explicit base-currency digits, preserving KWD/OMR minor units without changing two-decimal legacy callers.
 - `ReportsSummaryService.debtAgingReport` reads tenant book precision and uses it for customer/supplier aging, totals and returned values; positive one-fil debt no longer vanishes behind a 0.01 SQL threshold.
 - Unit assertions were added to `backend/test/infra/reports-summary.helper.spec.ts`. Full accounting/reporting certification and PostgreSQL backing-column widening are still outstanding; verify the SHA CI before declaring success.
+
+### P0-C shared partner subledger minor units (2026-10-25, review branch)
+
+- `backend/src/modules/accounting/partner-subledger.ts` now converts source-linked supplier and customer GL movements using validated tenant book minor units, rather than rounding to two decimals. This protects KWD/OMR payable/receivable balances posted from contracting, maritime and other central domain journals.
+- Disposable PostgreSQL acceptance adds a real `0.001 KWD` cross-domain posting, verifies `supplier_ledger.amount`/`balance_after`, supplier balance, posted GL account 2110 and supplier balance report. **CI acceptance is pending on the new SHA.**
+- Existing journal line and source/table precision still require sector-by-sector certification and legacy tenant reconciliation; P0-C not closed.

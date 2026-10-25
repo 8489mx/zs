@@ -209,3 +209,9 @@ The code observations above identify definite missing integration points; **fina
 
 - Acceptance now reads the real supplier-balances API after booking a 0.002 KWD pharmacy distributor credit purchase, and compares the returned vendor row and aggregate summary to 0.002. This is stronger than pure-helper assertions and confirms the API path once its new CI passes.
 - The previous branch SHA `4368327a` passed disposable PostgreSQL acceptance after the corrected accounting-period-lock failure probe. Full CI and this new reporter scenario must pass on the final SHA before a green-branch claim.
+
+### P0-C cross-sector subledger 0.001 regression (2026-10-25)
+
+- Found remaining hardcoded `Number(raw.toFixed(2))` in shared `syncPostedPartnerLedger`: domain journals could post one KWD/OMR fil to GL but silently skip the entire supplier/customer subledger update. Changed conversion to integer tenant minor units from validated base currency.
+- Added independent disposable PostgreSQL test: posted domain cost/payable 0.001, supplier running balance, source-linked immutable supplier ledger and report summary must all equal one fil; an earlier KWD pharmacy purchase/report test covers a two-fil canonical purchase.
+- **Not signed off until green CI for this SHA.** Broader P0-C scopes remain open, including formal clinical/maintenance reversals and eight-cycle/eleven-sector acceptance.
