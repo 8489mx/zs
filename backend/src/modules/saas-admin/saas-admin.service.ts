@@ -987,6 +987,9 @@ export class SaasAdminService {
       const effectivePlanId = dto.planId !== undefined ? dto.planId : (tenant as any).plan_id;
       const effectiveExtra = dto.extraFeatures !== undefined ? dto.extraFeatures : (tenant as any).extra_features;
       await this.syncTenantModuleSettingsForPlan(id, effectivePlanId, effectiveExtra);
+      if (effectivePlanId) {
+        await this.syncTenantSubscriptionPlan(id, effectivePlanId);
+      }
 
       this.authCache.invalidateTenant(id);
       this.settingsService.invalidateSettingsCache(id);
@@ -1129,6 +1132,9 @@ export class SaasAdminService {
       const effectivePlanId = dto.planId !== undefined ? (dto.planId === '' ? null : dto.planId) : tenant.plan_id;
       const effectiveExtra = dto.extraFeatures !== undefined ? dto.extraFeatures : (typeof tenant.extra_features === 'string' ? JSON.parse(tenant.extra_features || '[]') : tenant.extra_features || []);
       await this.syncTenantModuleSettingsForPlan(tenant.id, effectivePlanId, effectiveExtra);
+      if (effectivePlanId) {
+        await this.syncTenantSubscriptionPlan(tenant.id, effectivePlanId);
+      }
 
       // O40: the actor used to carry no tenant/account, so requireTenantScope threw inside the audit
       // service and the catch below swallowed it — a plan change with no trace anywhere. The developer
@@ -1455,6 +1461,39 @@ export class SaasAdminService {
         `module switches may be out of step with the plan.`,
         err,
       );
+    }
+  }
+
+  public async syncTenantSubscriptionPlan(tenantId: string, planId: string): Promise<void> {
+    try {
+      const cleanPlan = planId.trim();
+      const codeUpper = cleanPlan.replace(/^plan_/, '').toUpperCase();
+      const targetPlan = await this.db
+        .selectFrom('saas_plans')
+        .select(['id', 'max_users', 'code'])
+        .where((eb) =>
+          eb.or([
+            eb('feature_plan_id', '=', cleanPlan),
+            eb('code', '=', codeUpper),
+            eb(sql<string>`LOWER(code)`, '=', cleanPlan.toLowerCase()),
+          ]),
+        )
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+
+      if (targetPlan) {
+        await this.db
+          .updateTable('tenant_subscriptions')
+          .set({
+            plan_id: targetPlan.id,
+            updated_at: new Date(),
+          })
+          .where('tenant_id', '=', tenantId)
+          .where('status', 'in', ['active', 'past_due', 'trial'])
+          .execute();
+      }
+    } catch (err) {
+      console.error(`[syncTenantSubscriptionPlan] failed for tenant ${tenantId} (plan ${planId}):`, err);
     }
   }
 

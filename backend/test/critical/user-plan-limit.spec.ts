@@ -114,11 +114,45 @@ async function testInactiveTenantDefaultFallback(): Promise<void> {
   assert.equal(isUserLimitReached(limit, 3), true);
 }
 
+async function testProTenantWithMismatchedLegacyBasicSub(): Promise<void> {
+  const limit = resolveUserLimit({
+    hasActiveSubscription: true,
+    subscriptionMaxUsers: 2,
+    subscriptionPlanCode: 'BASIC',
+    subscriptionFeaturePlanId: 'plan_basic',
+    planFoundInDb: true,
+    planFromDbMaxUsers: 6,
+    tenantPlanId: 'plan_pro',
+    isTrial: false,
+  });
+  assert.equal(limit, 6, 'Pro tenant must NOT be throttled to 2 users by a stale basic subscription');
+  assert.equal(isUserLimitReached(limit, 2), false, 'Must allow 3rd user on Pro');
+  assert.equal(isUserLimitReached(limit, 5), false, 'Must allow 6th user on Pro');
+  assert.equal(isUserLimitReached(limit, 6), true, 'Must reach limit at 6 users on Pro');
+}
+
+async function testUltimateTenantWithMismatchedLegacyBasicSub(): Promise<void> {
+  const limit = resolveUserLimit({
+    hasActiveSubscription: true,
+    subscriptionMaxUsers: 2,
+    subscriptionPlanCode: 'BASIC',
+    subscriptionFeaturePlanId: 'plan_basic',
+    planFoundInDb: true,
+    planFromDbMaxUsers: null,
+    tenantPlanId: 'plan_ultimate',
+    isTrial: false,
+  });
+  assert.equal(limit, null, 'Ultimate tenant must be unlimited even if subscription had stale basic');
+  assert.equal(isUserLimitReached(limit, 100), false);
+}
+
 (async () => {
   await testOmnichannelUnlimitedWithActiveSubscription();
   await testOmnichannelTenantWithoutActiveSub();
   await testUltimateEnterpriseUnlimited();
   await testProPlanCapped();
+  await testProTenantWithMismatchedLegacyBasicSub();
+  await testUltimateTenantWithMismatchedLegacyBasicSub();
   await testBasicPosPlanCapped();
   await testTrialFallback();
   await testInactiveTenantDefaultFallback();

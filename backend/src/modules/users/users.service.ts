@@ -214,6 +214,9 @@ export class UsersService {
         .selectFrom('tenant_subscriptions as s')
         .leftJoin('saas_plans as p', 'p.id', 's.plan_id')
         .select([
+          's.id as subscription_id',
+          's.plan_id as sub_plan_id',
+          'p.id as saas_plan_id',
           'p.max_users',
           'p.code as plan_code',
           'p.name as plan_name',
@@ -228,14 +231,14 @@ export class UsersService {
     }
 
     // 2. قراءة الباقة من saas_plans بالربط: tenants.plan_id ⇄ saas_plans.code أو feature_plan_id
-    let planFromDb: { max_users: number | null; code: string; name: string } | undefined;
+    let planFromDb: { id: number; max_users: number | null; code: string; name: string; feature_plan_id: string | null } | undefined;
     if (tenant?.plan_id) {
       const cleanPlan = tenant.plan_id.trim();
       const codeUpper = cleanPlan.replace(/^plan_/, '').toUpperCase();
       try {
         planFromDb = await this.db
           .selectFrom('saas_plans')
-          .select(['max_users', 'code', 'name'])
+          .select(['id', 'max_users', 'code', 'name', 'feature_plan_id'])
           .where((eb) =>
             eb.or([
               eb('feature_plan_id', '=', cleanPlan),
@@ -247,6 +250,28 @@ export class UsersService {
           .executeTakeFirst();
       } catch {
         planFromDb = undefined;
+      }
+    }
+
+    // مزامنة علاجية تلقائية إذا كان الاشتراك معلقاً على باقة قديمة تختلف عن باقة المنشأة الحالية
+    if (activeSub && planFromDb && activeSub.sub_plan_id !== planFromDb.id) {
+      try {
+        await this.db
+          .updateTable('tenant_subscriptions')
+          .set({
+            plan_id: planFromDb.id,
+            updated_at: new Date(),
+          })
+          .where('id', '=', activeSub.subscription_id)
+          .execute();
+
+        activeSub.max_users = planFromDb.max_users;
+        activeSub.plan_code = planFromDb.code;
+        activeSub.plan_name = planFromDb.name;
+        activeSub.feature_plan_id = planFromDb.feature_plan_id;
+        activeSub.sub_plan_id = planFromDb.id;
+      } catch (err) {
+        this.logger.warn(`Failed to auto-heal tenant subscription for ${tenantId}: ${err}`);
       }
     }
 
@@ -263,8 +288,8 @@ export class UsersService {
 
     const isUnlimited = limit === null;
     const isLimitReached = !isUnlimited && activeUsersCount >= limit;
-    const planName = activeSub?.plan_name || planFromDb?.name || (tenant?.status === 'trial' ? 'فترة تجريبية' : 'الافتراضية');
-    const planCode = activeSub?.plan_code || planFromDb?.code || null;
+    const planName = planFromDb?.name || activeSub?.plan_name || (tenant?.status === 'trial' ? 'فترة تجريبية' : 'الافتراضية');
+    const planCode = planFromDb?.code || activeSub?.plan_code || null;
 
     return {
       maxUsers: limit,
