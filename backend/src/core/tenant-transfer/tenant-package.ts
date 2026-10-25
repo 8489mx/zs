@@ -297,11 +297,24 @@ export function readPackage(buffer: Buffer): { manifest: PackageManifest; chunks
     throw new TenantPackageError('PACKAGE_INVALID', 'Not a tenant package (bad header)');
   }
   const manifest = JSON.parse(manifestJson) as PackageManifest;
+  if (!manifest || manifest.format !== PACKAGE_FORMAT || !manifest.tables || typeof manifest.tables !== 'object' || Array.isArray(manifest.tables)) {
+    throw new TenantPackageError('PACKAGE_INVALID', 'Package manifest has no valid table inventory');
+  }
+  for (const [table, info] of Object.entries(manifest.tables)) {
+    if (!/^[a-z][a-z0-9_]*$/.test(table) || !info || !Number.isSafeInteger(info.rows) || info.rows < 0 || !Array.isArray(info.columns)) {
+      throw new TenantPackageError('PACKAGE_INVALID', 'Invalid table inventory: ' + table);
+    }
+  }
   const chunks = lines.slice(1).filter(Boolean).map((line) => {
     const [table, json] = splitOnce(line);
     if (!table || !json) throw new TenantPackageError('PACKAGE_INVALID', 'Corrupt tenant package line');
     return { table, json };
   });
+  for (const chunk of chunks) {
+    if (!Object.prototype.hasOwnProperty.call(manifest.tables, chunk.table)) {
+      throw new TenantPackageError('PACKAGE_INVALID', 'Undeclared package table: ' + chunk.table);
+    }
+  }
   for (const [table, info] of Object.entries(manifest.tables)) {
     const found = chunks.filter((c) => c.table === table).length;
     if (info.rows > 0 && found === 0) throw new TenantPackageError('PACKAGE_INVALID', `Package is missing the rows of ${table}`);
@@ -393,6 +406,18 @@ export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, targe
 
     const specs = await listTenantTables(trx);
 
+    // Older packages cannot erase live tables absent from their manifest.
+    // The ownedRows predicate includes FK-scoped child tables without tenant_id.
+    for (const spec of specs.values()) {
+      if (Object.prototype.hasOwnProperty.call(manifest.tables, spec.name)) continue;
+      const live = await sql<{ exists: boolean }>`
+        select exists(select 1 from ${sql.table(spec.name)} where ${ownedRows(spec, target.tenantId)}) as exists
+      `.execute(trx);
+      if (live.rows[0]?.exists) {
+        throw new TenantPackageError('PACKAGE_INCOMPLETE', 'Package omits live tenant table ' + spec.name);
+      }
+    }
+
     // 3. Clear the target tenant: children first (they are found through their parent rows).
     const ordered = [...specs.values()].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'child' ? -1 : 1));
     for (const spec of ordered) {
@@ -405,6 +430,7 @@ export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, targe
 
     // 4. Insert with the original ids.
     let rows = 0;
+    const insertedRowsByTable = new Map<string, number>();
     for (const chunk of chunks) {
       const spec = specs.get(chunk.table);
       if (!spec) {
@@ -426,7 +452,9 @@ export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, targe
           insert into ${sql.table(spec.name)} (${sql.join(cols.map((c) => sql.ref(c.name)))}) ${overriding}
           select ${sql.join(exprs)} from jsonb_populate_recordset(null::${sql.table(spec.name)}, ${chunk.json}::jsonb) as p
         `.execute(trx);
-        rows += Number(inserted.numAffectedRows ?? 0);
+        const insertedRows = Number(inserted.numAffectedRows ?? 0);
+        rows += insertedRows;
+        insertedRowsByTable.set(chunk.table, (insertedRowsByTable.get(chunk.table) ?? 0) + insertedRows);
       } catch (error: any) {
         if (error?.code === '23505') {
           throw new TenantPackageError(
@@ -435,6 +463,15 @@ export async function importTenantPackage(db: Kysely<any>, buffer: Buffer, targe
           );
         }
         throw error;
+      }
+    }
+
+    // A truncated multi-chunk file may contain at least one valid chunk but
+    // fewer rows than promised. Verify inside the transaction before commit.
+    for (const [table, info] of Object.entries(manifest.tables)) {
+      if (!specs.has(table)) continue; // unknown nonempty tables are rejected above
+      if ((insertedRowsByTable.get(table) ?? 0) !== info.rows) {
+        throw new TenantPackageError('PACKAGE_INCOMPLETE', 'Imported row count differs from manifest for ' + table);
       }
     }
 
