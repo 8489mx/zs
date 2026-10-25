@@ -469,6 +469,54 @@ async function main() {
       .executeTakeFirstOrThrow()).stock_qty),1,'retried purchase must not duplicate one-fil stock');
     pass('KWD purchase 0.001 source, physical WAC, supplier/AP GL and idempotent retry reconcile');
 
+    // One-fil credit sale: cash/AR, revenue, COGS and inventory GL must not
+    // disappear at the legacy two-cent sale and journal allocation layers.
+    await db.updateTable('products').set({retail_price:0.001,wholesale_price:0.001})
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.productId).execute();
+    const oneFilSale=await sales.createSale({
+      customerId:kwd.customerId,paymentType:'credit',paymentChannel:'credit',
+      branchId:kwd.branchId,locationId:kwd.locationId,taxRate:0,
+      pricesIncludeTax:false,payments:[],source:'dashboard',
+      items:[{productId:kwd.productId,name:'Test product',qty:1,price:0.001,
+        unitMultiplier:1,priceType:'retail'}],
+    } as any,kwd.auth);
+    const oneFilSaleId=Number((oneFilSale.sale as {id:string}).id);
+    assert.ok(oneFilSaleId>0);
+    const filSaleHeader=await db.selectFrom('sales').select(['subtotal','total','paid_amount'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',oneFilSaleId).executeTakeFirstOrThrow();
+    assert.equal(Number(filSaleHeader.subtotal),0.001);
+    assert.equal(Number(filSaleHeader.total),0.001);
+    assert.equal(Number(filSaleHeader.paid_amount),0);
+    const filSaleItem=await db.selectFrom('sale_items').select(['line_total','unit_price','cost_price'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('sale_id','=',oneFilSaleId).executeTakeFirstOrThrow();
+    assert.equal(Number(filSaleItem.line_total),0.001);
+    assert.equal(Number(filSaleItem.unit_price),0.001);
+    assert.equal(Number(filSaleItem.cost_price),0.001);
+    const filCustomer=await db.selectFrom('customers').select('balance')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.customerId).executeTakeFirstOrThrow();
+    assert.equal(Number(filCustomer.balance),0.001);
+    const filCustomerEntry=await db.selectFrom('customer_ledger').select(['amount','balance_after'])
+      .where('tenant_id','=',kwd.auth.tenantId!).where('reference_type','=','sale')
+      .where('reference_id','=',oneFilSaleId).executeTakeFirstOrThrow();
+    assert.equal(Number(filCustomerEntry.amount),0.001);
+    assert.equal(Number(filCustomerEntry.balance_after),0.001);
+    const filSaleGL=await sql<{code:string;total:string}>`select a.code,sum(l.debit-l.credit) as total
+      from journal_entry_lines l join journal_entries j
+        on j.id=l.journal_entry_id and j.tenant_id=l.tenant_id
+      join accounting_accounts a on a.id=l.account_id and a.tenant_id=l.tenant_id
+      where j.tenant_id=${kwd.auth.tenantId!} and j.source_type='sale'
+        and j.source_id=${oneFilSaleId} group by a.code`.execute(db);
+    const glByCode=new Map(filSaleGL.rows.map(row=>[row.code,Number(row.total)]));
+    assert.equal(glByCode.get('1130'),0.001);
+    assert.equal(glByCode.get('4100'),-0.001);
+    assert.equal(glByCode.get('5100'),0.001);
+    assert.equal(glByCode.get('1140'),-0.001);
+    const afterFilSale=await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(afterFilSale.stock_qty),0);
+    pass('KWD credit sale 0.001 receivable, unit cost, inventory and balanced revenue/COGS GL');
+
+
 
     // Exercise actual cross-module 0.001 cash and inventory paths, not merely an isolated journal.
     const filTicket = await maintenance.createTicket({
