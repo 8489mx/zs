@@ -61,6 +61,20 @@ async function setupDatabase(): Promise<{ db: Kysely<Database>; accounts: Record
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    CREATE TABLE settings (
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (tenant_id, key)
+    );
+
+    CREATE TABLE currency_exchange_rates (
+      tenant_id TEXT NOT NULL REFERENCES tenants(id),
+      currency_code TEXT NOT NULL,
+      is_base BOOLEAN NOT NULL DEFAULT FALSE,
+      exchange_rate NUMERIC(18, 8) NOT NULL DEFAULT 1
+    );
+
     CREATE TABLE users (
       id BIGSERIAL PRIMARY KEY,
       tenant_id TEXT NOT NULL REFERENCES tenants(id),
