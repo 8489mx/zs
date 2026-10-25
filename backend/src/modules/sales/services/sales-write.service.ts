@@ -1,4 +1,6 @@
 import { valueStockReceipt } from '../../accounting/inventory-valuation';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 import { assertBusinessAccountingDate } from '../../accounting/accounting-boundaries';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Kysely, sql, type Transaction } from '../../../database/kysely';
@@ -919,6 +921,7 @@ export class SalesWriteService {
     const txStartedAt = Date.now();
     const saleId = await this.tx.runInTransaction(this.db, async (trx) => {
       await assertBusinessAccountingDate(trx, scope.tenantId, new Date(), true);
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       let exchange: ExchangeReturnContext | undefined;
       if (isExchange) {
         const original = await trx.selectFrom('sales').select(['id', 'customer_id', 'branch_id'])
@@ -1236,7 +1239,7 @@ export class SalesWriteService {
         const preparedItem = buildPreparedSaleItem(
           { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
-          { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service' }
+          { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service', moneyDigits }
         );
 
         subtotal += preparedItem.lineTotal;
@@ -1297,7 +1300,7 @@ export class SalesWriteService {
       const { taxAmount: itemOnlyTaxAmount } = computeInvoiceTotals(subtotal, effectiveDiscount, normalized.taxRate, normalized.pricesIncludeTax, 0, 0, 0);
       const allocatedLines = allocateInvoiceDiscount({
         lines: preparedItems.map((item) => ({ lineTotal: item.lineTotal, qty: item.qty })),
-        invoiceDiscount: effectiveDiscount, invoiceTax: itemOnlyTaxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
+        invoiceDiscount: effectiveDiscount, invoiceTax: itemOnlyTaxAmount, pricesIncludeTax: normalized.pricesIncludeTax, digits: moneyDigits,
       });
       const allocationByItem = new Map(preparedItems.map((item, index) => [item, allocatedLines[index]]));
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
@@ -1331,7 +1334,7 @@ export class SalesWriteService {
           .forUpdate().executeTakeFirstOrThrow();
         customer.store_credit_balance = refreshed.store_credit_balance;
       }
-      const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
+      const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed, moneyDigits);
       
       if (normalized.source === 'pos') {
         const hasOpenShift = await this.authz.hasOpenCashierShift(trx, auth, normalized.branchId);
@@ -1344,11 +1347,11 @@ export class SalesWriteService {
       const tenderAllocation = allocateSaleTenders({
         paymentType: normalized.paymentType, payments: normalized.payments, collectibleTotal,
         fallbackChannel: (['card', 'wallet', 'instapay'].includes(normalized.paymentChannel) ? normalized.paymentChannel : 'cash') as SaleTenderChannel,
-        tenderedCash: normalized.tenderedAmount,
+        tenderedCash: normalized.tenderedAmount, digits: moneyDigits,
       });
       const payments = tenderAllocation.payments;
       const paidAmount = tenderAllocation.appliedAmount;
-      const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+      const remainingDebt = roundMoney(Math.max(0, collectibleTotal - paidAmount), moneyDigits);
       const isDelivery = String(normalized.orderType || '').trim() === 'delivery';
 
       if (remainingDebt > 0 && (customer || !isDelivery)) {
@@ -1453,7 +1456,7 @@ export class SalesWriteService {
           customer_address: payload.customerAddress || null,
           payment_type: effectivePaymentType,
           payment_channel: resolvePostedSalePaymentChannel(effectivePaymentType, payments),
-          subtotal: Number(subtotal.toFixed(2)),
+          subtotal: roundMoney(subtotal, moneyDigits),
           discount: effectiveDiscount,
           delivery_fee: normalized.deliveryFee,
           delivery_fee_mode: resolvedDeliveryFeeMode,
@@ -2069,6 +2072,7 @@ export class SalesWriteService {
     if (!isAdmin || managerPin) await this.authz.authorizeDiscountOverride(managerPin, auth, this.db);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const sale = await trx
         .selectFrom('sales')
         .selectAll()
@@ -2568,7 +2572,7 @@ export class SalesWriteService {
         const preparedItem = buildPreparedSaleItem(
           { ...product, name: finalProductName, stock_qty: availableStockQty }, 
           item, 
-          { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service' }
+          { allowNegativeStockSales: allowNegativeStockSales || hasBOM || (product as any).item_type === 'service', moneyDigits }
         );
         subtotal += preparedItem.lineTotal;
         preparedItems.push({ ...preparedItem, isService: (product as any).item_type === 'service' });
@@ -2591,11 +2595,11 @@ export class SalesWriteService {
       const { taxAmount: itemOnlyTaxAmount } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, 0, 0, 0);
       const allocatedLines = allocateInvoiceDiscount({
         lines: preparedItems.map((item) => ({ lineTotal: item.lineTotal, qty: item.qty })),
-        invoiceDiscount: normalized.discount, invoiceTax: itemOnlyTaxAmount, pricesIncludeTax: normalized.pricesIncludeTax,
+        invoiceDiscount: normalized.discount, invoiceTax: itemOnlyTaxAmount, pricesIncludeTax: normalized.pricesIncludeTax, digits: moneyDigits,
       });
       const allocationByItem = new Map(preparedItems.map((item, index) => [item, allocatedLines[index]]));
       if (normalized.storeCreditUsed > total + 0.0001) throw new AppError('Store credit cannot exceed invoice total', 'INVALID_STORE_CREDIT', 400);
-      const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed);
+      const collectibleTotal = calculateCollectibleTotal(total, normalized.storeCreditUsed, moneyDigits);
       if (normalized.storeCreditUsed > 0) {
         if (!customer) throw new AppError('Store credit requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
         if (normalized.storeCreditUsed > Number(customer.store_credit_balance || 0) + 0.0001) throw new AppError('Store credit exceeds available balance', 'STORE_CREDIT_EXCEEDED', 400);
@@ -2604,7 +2608,7 @@ export class SalesWriteService {
       const tenderAllocation = allocateSaleTenders({
         paymentType: normalized.paymentType, payments: normalized.payments, collectibleTotal,
         fallbackChannel: (['card', 'wallet', 'instapay'].includes(normalized.paymentChannel) ? normalized.paymentChannel : 'cash') as SaleTenderChannel,
-        tenderedCash: normalized.tenderedAmount,
+        tenderedCash: normalized.tenderedAmount, digits: moneyDigits,
       });
       const payments = tenderAllocation.payments;
       const paidAmount = tenderAllocation.appliedAmount;
@@ -2614,7 +2618,7 @@ export class SalesWriteService {
       const isPartialCredit = Boolean(normalized.customerId) && paidAmount + 0.0001 < collectibleTotal;
       const effectivePaymentType = (isPartialCredit || normalized.paymentType === 'credit') ? 'credit' : 'cash';
       if (effectivePaymentType !== 'credit' && paidAmount + 0.0001 < collectibleTotal) throw new AppError('Paid amount cannot be less than invoice total', 'INVALID_PAID_AMOUNT', 400);
-      const newDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+      const newDebt = roundMoney(Math.max(0, collectibleTotal - paidAmount), moneyDigits);
       if (newDebt > 0) {
         if (!customer) throw new AppError('Credit sale requires a customer', 'CUSTOMER_REQUIRED_FOR_CREDIT', 400);
         if (Number(customer.balance || 0) + newDebt > Number(customer.credit_limit || 0) + 0.001
@@ -2631,7 +2635,7 @@ export class SalesWriteService {
         customer_address: payload.customerAddress || null,
         payment_type: effectivePaymentType,
         payment_channel: resolvePostedSalePaymentChannel(effectivePaymentType, payments),
-        subtotal: Number(subtotal.toFixed(2)),
+        subtotal: roundMoney(subtotal, moneyDigits),
         discount: normalized.discount,
         delivery_fee: normalized.deliveryFee,
         service_charge: normalized.serviceCharge || 0,
@@ -2897,7 +2901,7 @@ export class SalesWriteService {
         }).where('id', '=', customer.id).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       }
 
-      const remainingDebt = Number(Math.max(0, collectibleTotal - paidAmount).toFixed(2));
+      const remainingDebt = roundMoney(Math.max(0, collectibleTotal - paidAmount), moneyDigits);
       if (customer && remainingDebt > 0) {
         await this.finance.createCustomerLedgerEntry(
           trx,
