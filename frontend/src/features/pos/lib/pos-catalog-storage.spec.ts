@@ -6,6 +6,7 @@ import {
   lookupProductByBarcodeFromStorage,
   searchCatalogFromStorage,
   getAllCatalogFromStorage,
+  isPosCachedTenantCompatible,
 } from './pos-catalog-storage';
 import type { Product } from '@/types/domain';
 
@@ -123,6 +124,15 @@ function createMockIndexedDB() {
     },
   };
 }
+
+describe('POS cached catalog tenant isolation', () => {
+  it('rejects unknown, legacy unscoped, and other-tenant caches', () => {
+    expect(isPosCachedTenantCompatible('tenant-b', 'tenant-a')).toBe(false);
+    expect(isPosCachedTenantCompatible('tenant-b', null)).toBe(false);
+    expect(isPosCachedTenantCompatible('', 'tenant-b')).toBe(false);
+    expect(isPosCachedTenantCompatible('tenant-b', 'tenant-b')).toBe(true);
+  });
+});
 
 describe('pos-catalog-storage with mocked IndexedDB', () => {
   const sampleProducts: Product[] = [

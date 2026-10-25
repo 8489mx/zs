@@ -5,7 +5,7 @@ import { getAvailableSaleProducts } from '@/features/pos/lib/pos.domain';
 import { POS_PRODUCT_CACHE_LIMIT, POS_PRODUCT_LOOKUP_LIMIT, createProductBarcodeMap, isLikelyBarcodeQuery, mergeLookupProducts } from '@/features/pos/lib/pos-product-lookup';
 import { parseQuantityPrefixQuery } from '@/features/pos/lib/pos-quantity-prefix';
 import { useDebouncedValue } from '@/shared/hooks/use-debounced-value';
-import { searchCatalogFromStorage, getAllCatalogFromStorage, getStoredTenantIdFromStorage, clearCatalogStorage } from '@/features/pos/lib/pos-catalog-storage';
+import { searchCatalogFromStorage, getAllCatalogFromStorage, getStoredTenantIdFromStorage, clearCatalogStorage, isPosCachedTenantCompatible } from '@/features/pos/lib/pos-catalog-storage';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Product } from '@/types/domain';
 
@@ -26,12 +26,11 @@ function getStoredCatalog(): Product[] {
     const parsed = JSON.parse(raw);
     const activeTenantId = getActiveTenantId();
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.products)) {
-      if (activeTenantId && parsed.tenantId && parsed.tenantId !== activeTenantId) {
-        return [];
-      }
+      if (!isPosCachedTenantCompatible(activeTenantId, parsed.tenantId || null)) return [];
       return parsed.products as Product[];
     }
-    return activeTenantId ? [] : (parsed as Product[]);
+    // Unscoped legacy arrays must never be replayed under any SaaS identity.
+    return [];
   } catch {
     return [];
   }
@@ -41,6 +40,7 @@ function storeCatalog(products: Product[]) {
   try {
     if (products && products.length > 0) {
       const activeTenantId = getActiveTenantId();
+      if (!activeTenantId) return;
       const existing = getStoredCatalog();
       const merged = mergeLookupProducts(products, existing).slice(0, 1000);
       localStorage.setItem(
@@ -92,8 +92,8 @@ export function usePosCatalog(search: string, branchId: string, locationId: stri
         // High-performance offline fallback from IndexedDB persistent storage
         const activeTenantId = getActiveTenantId();
         const storedTenantId = await getStoredTenantIdFromStorage();
-        if (activeTenantId && storedTenantId && activeTenantId !== storedTenantId) {
-          await clearCatalogStorage();
+        if (!isPosCachedTenantCompatible(activeTenantId, storedTenantId)) {
+          if (activeTenantId && storedTenantId && activeTenantId !== storedTenantId) await clearCatalogStorage();
           return [];
         }
         const idbStored = await searchCatalogFromStorage(lookupTerm, POS_PRODUCT_LOOKUP_LIMIT);

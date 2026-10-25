@@ -547,3 +547,8 @@
 ### 2026-10-25 — E: return-quantity endpoint follow-up
 
 - Separated the new invoice-return quantity grouping into `return-invoice-quantities.helper.ts`, narrowed `returnType` to validated sale/purchase union before Kysely filtering, and fail-closed on invalid aggregate quantity. Backend grouping regression `backend/test/critical/return-invoice-quantities.spec.ts` added but not run; the endpoint's tenant and status SQL remains as previously patched.
+
+
+### 2026-10-25 — B: POS offline catalog is tenant-bound even on direct barcode fallback
+
+- `PosWorkspace.resolveRemoteBarcodeMatch` used `lookupProductByBarcodeFromStorage` directly after network failure, bypassing the tenant ownership preflight in `usePosCatalog`; a stale device IndexedDB cache could return a previous tenant's SKU. Direct lookup now checks the saved tenant ID against current auth scope and returns no product if mismatched or missing. `usePosCatalog` also rejects legacy unscoped localStorage arrays or metadata and only reads IndexedDB when both tenant IDs are present and equal. No security-core changes; regression checks appended to `pos-catalog-storage.spec.ts`, not run. Electron offline tenant/session migration still requires full device verification.

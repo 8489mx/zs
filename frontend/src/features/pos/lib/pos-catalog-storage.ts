@@ -172,7 +172,15 @@ export async function getLastSyncedAtFromStorage(): Promise<string | null> {
   }
 }
 
-export async function lookupProductByBarcodeFromStorage(rawCode: string): Promise<Product | null> {
+export function isPosCachedTenantCompatible(activeTenantId: string, storedTenantId: string | null): boolean {
+  return Boolean(activeTenantId && storedTenantId && activeTenantId === storedTenantId);
+}
+
+export async function lookupProductByBarcodeFromStorage(rawCode: string, expectedTenantId?: string): Promise<Product | null> {
+  if (expectedTenantId !== undefined) {
+    const storedTenant = await getStoredTenantIdFromStorage();
+    if (!isPosCachedTenantCompatible(expectedTenantId, storedTenant)) return null;
+  }
   if (!isIndexedDbSupported() || !rawCode) return null;
   const cleanCode = rawCode.trim().toLowerCase();
   if (!cleanCode) return null;
