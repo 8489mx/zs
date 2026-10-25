@@ -1,7 +1,7 @@
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kysely, sql } from 'kysely';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
@@ -632,14 +632,20 @@ export class SessionService {
       return {
         mfaRequired: true,
         mfaToken: signPortalToken(
-          { kind: MFA_CHALLENGE_KIND, userId: user.id, tenantId: tenantContext.tenantId, accountId: tenantContext.accountId },
+          {
+            kind: MFA_CHALLENGE_KIND, userId: user.id,
+            tenantId: tenantContext.tenantId, accountId: tenantContext.accountId,
+            // Bind the pending 2FA challenge to the password that was verified.
+            // An admin password reset must invalidate an in-flight challenge.
+            passwordVerifier: createHash('sha256').update(user.password_hash).digest('hex'),
+          },
           MFA_CHALLENGE_TTL_MS,
         ),
         username: user.username,
       };
     }
 
-    return this.createAuthenticatedSession(user, meta, { rehashPassword: passwordCheck.needsRehash ? password : null });
+    return this.createAuthenticatedSession(user, meta, { rehashPassword: passwordCheck.needsRehash ? password : null, expectedPasswordHash: user.password_hash });
   }
 
   /** هل لهذا المستخدم مصادقة ثنائية **مؤكَّدة**؟ الإعداد غير المؤكَّد لا يحجب الدخول. */
@@ -668,7 +674,7 @@ export class SessionService {
       account_id: string;
     },
     meta?: { ipAddress?: string; userAgent?: string },
-    options?: { rehashPassword?: string | null },
+    options?: { rehashPassword?: string | null; expectedPasswordHash?: string },
   ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date }> {
     const tenantContext = this.resolveUserTenantContext(user);
     const sessionId = randomUUID();
@@ -686,13 +692,16 @@ export class SessionService {
     }
     await this.db.transaction().execute(async (trx) => {
       const currentUser = await trx.selectFrom('users')
-        .select(['is_active', 'locked_until'])
+        .select(['is_active', 'locked_until', 'password_hash'])
         .where('id', '=', user.id)
         .where('tenant_id', '=', tenantContext.tenantId)
         .forUpdate()
         .executeTakeFirst();
       if (!currentUser?.is_active || (currentUser.locked_until && new Date(currentUser.locked_until) > now)) {
         throw new UnauthorizedException('User account is no longer eligible for login');
+      }
+      if (options?.expectedPasswordHash && currentUser.password_hash !== options.expectedPasswordHash) {
+        throw new UnauthorizedException('Password was changed during login; please authenticate again');
       }
 
       await trx.updateTable('users').set(userSecurityUpdates)
@@ -726,7 +735,7 @@ export class SessionService {
     code: string,
     meta?: { ipAddress?: string; userAgent?: string },
   ): Promise<{ sessionId: string; auth: AuthContext; expiresAt: Date }> {
-    const payload = verifyPortalToken<{ kind?: string; userId?: number; tenantId?: string }>(
+    const payload = verifyPortalToken<{ kind?: string; userId?: number; tenantId?: string; passwordVerifier?: string }>(
       `Bearer ${String(mfaToken || '')}`,
       MFA_CHALLENGE_ERRORS,
     );
@@ -742,7 +751,7 @@ export class SessionService {
 
     const user = await this.db
       .selectFrom('users')
-      .select(['id', 'username', 'role', 'permissions_json', 'tenant_id', 'account_id', 'is_active', 'locked_until'])
+      .select(['id', 'username', 'role', 'permissions_json', 'tenant_id', 'account_id', 'is_active', 'locked_until', 'password_hash'])
       .where('id', '=', userId)
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .executeTakeFirst();
@@ -751,6 +760,12 @@ export class SessionService {
       throw new AppError('انتهت جلسة التحقق. أعد تسجيل الدخول.', 'MFA_CHALLENGE_INVALID', 401);
     }
 
+    // The user may have reset their password since this token was signed.
+    // Do not consume an MFA recovery code for an already invalid challenge.
+    const currentVerifier = createHash('sha256').update(user.password_hash).digest('hex');
+    if (!payload.passwordVerifier || payload.passwordVerifier !== currentVerifier) {
+      throw new AppError('انتهت جلسة التحقق. أعد تسجيل الدخول.', 'MFA_CHALLENGE_INVALID', 401);
+    }
     const tenantContext = this.resolveUserTenantContext(user);
     await this.assertTenantLoginAllowed(tenantContext.tenantId);
 
@@ -765,7 +780,7 @@ export class SessionService {
       throw new AppError('رمز التحقق غير صحيح.', 'MFA_CODE_INVALID', 401);
     }
 
-    return this.createAuthenticatedSession(user as never, meta);
+    return this.createAuthenticatedSession(user as never, meta, { expectedPasswordHash: user.password_hash });
   }
 
   /**
