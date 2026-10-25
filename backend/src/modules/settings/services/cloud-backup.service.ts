@@ -148,7 +148,7 @@ export class CloudBackupService {
    */
   async uploadBackupToCloud(zipBuffer: Buffer, fileName: string, auth: AuthContext): Promise<string> {
     const config = await this.getCloudConfig(auth);
-    if (!config.enabled && !auth) {
+    if (!config.enabled) {
       throw new BadRequestException('النسخ الاحتياطي السحابي غير مفعل');
     }
 
