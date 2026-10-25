@@ -2,6 +2,16 @@
 
 ### Platform Core P0-A — ثوابت جديدة 25 أكتوبر 2026 (غير مختبرة تشغيلًا)
 
+- **AUTH-PASSWORD-VERSION:** MFA challenge and newly issued session are bound to the password hash verified during authentication. Admin resets invalidate in-flight logins; concurrent failure counters acquire a tenant-scoped row lock. A concurrent MFA setup must not overwrite confirmed enrolment.
+- **AUTH-CLOUD-SESSION-HEADER:** A Cloud SaaS `x-session-id` header never bypasses cookie/CSRF session authentication, even if `ALLOW_SESSION_ID_HEADER` is set. Local desktop header compatibility is retained.
+- **TENANT-JOIN-AND-FK:** Financial, reporting, partner and maritime joins bind *both* `tenant_id` and entity ID. New migration 255 defines NOT VALID tenant-composite FKs for MFA and maritime records, preserving historical violations for audit without validation/mutation.
+- **BACKUP-NONDESTRUCTIVE-PREFLIGHT:** Destructive backup restore requires a matching tenant identity and refuses a missing table with live tenant data or unsupported child rows. Restore fails on sequence errors. Older incompatible ZIP files are explicitly not guaranteed restorable; safe migration path remains outstanding.
+- **MFA-ENCRYPTION-BOUNDARY:** Globally known desktop encryption fallback is only permitted in explicit local runtime mode; a stray Electron/Portable flag on Cloud cannot enable it.
+- **AI-SECRETS-MANAGEMENT:** AI key configuration endpoints and service writes require settings management rights, never authentication alone.
+- **PAYMOB-HMAC-INGRESS:** Paymob callback query HMAC is routed to the cryptographic verifier; controller never itself treats the presence of a signature as proof of payment.
+- **EVIDENCE:** [P0-A source audit follow-up](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md), regressions authored only, zero tests/build/typecheck/guards/migrations executed this turn. Full Platform Core is NOT release-certified.
+
+
 - **BILLING-SANDBOX-CLOUD-DENY:** محاكاة دفع اشتراك تُنشئ اشتراكًا حقيقيًا، لذلك لا يمكن الوصول إليها من Cloud SaaS مهما كانت مفاتيح البوابات؛ خدمة الإيداع المباشر تحرس نفسها قبل DB. فشل بوابة حقيقية لا يتحول إلى فاتورة دفع افتراضية.
 - **BACKUP-PLATFORM-IMMUTABILITY:** النسخة التي يتحكم بها Tenant لا تنقل ولا تعيد صفوف `PLATFORM_TENANT_TABLES` (بما فيها الاشتراكات، المدفوعات، الجلسات وOffline ID leases). المنع في الاستكشاف، التطبيع، والحذف/الإدراج، مع قبول أرشيفات قديمة دون تطبيق بيانات المنصة منها.
 - **BACKUP-CONSISTENT-SNAPSHOT:** كل جداول النسخة تُقرأ من معاملة `REPEATABLE READ` واحدة. لا تُبتلع أخطاء الحذف أثناء Restore عندما تكون قيود FK معطلة مؤقتًا.

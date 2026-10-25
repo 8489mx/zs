@@ -23,6 +23,10 @@
 
 **الدليل:** [محضر P0-A](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md). أضيفت اختبارات انحدار فقط، **لم تُشغّل**؛ لا يوجد اعتماد تشغيل أو UAT لهذه التغييرات. لا يُستنتج إغلاق نطاق Platform Core بالكامل.
 
+<a id="saas-paymob-query-hmac-p0a"></a>
+### Paymob signed callback ingress — P0-A 2026-10-25
+`tenant-subscription.controller.ts` forwards a Paymob callback's `?hmac=` value to the existing cryptographic verifier, without accepting unsigned payments. `p0a-cloud-header-paymob-webhook.spec.ts` was authored **but not executed**, and live payment settlement remains unverified. [Evidence](docs/reviews/PLATFORM_CORE_SECURITY_P0A_20261025.md).
+
 ## فهرس الأقسام المنقولة
 
 - [15. إدارة المنصة والساس وتعدد المستأجرين (SaaS Admin & Multi-Tenancy)](#cap-041)
