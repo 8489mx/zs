@@ -15,9 +15,14 @@ export interface ProductArchiveConfirmDialogProps {
     stock?: number;
     costPrice?: number;
     isActive?: boolean;
+    itemKind?: string;
+    styleCode?: string | null;
+    variantsCount?: number;
+    color?: string | null;
+    size?: string | null;
   } | null;
   isBusy?: boolean;
-  onConfirm: (options?: { zeroStock?: boolean }) => void | Promise<void>;
+  onConfirm: (options?: { zeroStock?: boolean; archiveEntireGroup?: boolean }) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -34,11 +39,15 @@ export function ProductArchiveConfirmDialog({
 }: ProductArchiveConfirmDialogProps) {
   const { t } = useTranslation();
   const [selectedOption, setSelectedOption] = useState<'zero' | 'keep'>('zero');
+  const [archiveScope, setArchiveScope] = useState<'all' | 'single'>('all');
+
+  const isFashionModel = Boolean(product?.itemKind === 'fashion' && product?.styleCode);
 
   // Reset selected option when dialog opens or product changes
   useEffect(() => {
     if (open) {
       setSelectedOption('zero');
+      setArchiveScope('all');
     }
   }, [open, product?.id]);
 
@@ -51,6 +60,7 @@ export function ProductArchiveConfirmDialog({
   const totalCost = Number((currentStock * unitCost).toFixed(2));
 
   const handleExecuteArchive = async () => {
+    const archiveEntireGroup = isFashionModel ? archiveScope === 'all' : undefined;
     if (hasRemainingStock && selectedOption === 'zero') {
       // High-Value Safety Gate (for large stock count or high total valuation)
       if (currentStock >= 1000 || totalCost >= 5000) {
@@ -61,7 +71,7 @@ export function ProductArchiveConfirmDialog({
           impactItems: [
             `سيتم إصدار إذن تسوية مخزنية رسمي للصنف #${product.id}`,
             totalCost > 0 ? `سيتم تخفيض حساب المخزون الدفتري بمبلغ ${formatCurrency(totalCost)}` : 'سيتم تصفير رصيد المخزن دفترياً إلى 0',
-            'سيتم حظر الصنف فوراً من الكاشير ونقاط البيع ونقله للمؤرشفة',
+            archiveEntireGroup ? 'سيتم أرشفة كامل الموديل وتفريعاته وحجبها من الكاشير ونقاط البيع' : 'سيتم حظر الصنف فوراً من الكاشير ونقاط البيع ونقله للمؤرشفة',
           ],
           confirmText: `نعم، صفر الـ ${currentStock} قطعة وأرشف`,
           cancelText: 'تراجع',
@@ -70,11 +80,11 @@ export function ProductArchiveConfirmDialog({
         });
         if (!confirmed) return;
       }
-      await onConfirm({ zeroStock: true });
+      await onConfirm({ zeroStock: true, archiveEntireGroup });
     } else if (hasRemainingStock && selectedOption === 'keep') {
-      await onConfirm({ zeroStock: false });
+      await onConfirm({ zeroStock: false, archiveEntireGroup });
     } else {
-      await onConfirm();
+      await onConfirm({ zeroStock: false, archiveEntireGroup });
     }
   };
 
@@ -176,6 +186,16 @@ export function ProductArchiveConfirmDialog({
                   {t('products.product_archive_confirm_dialog.s4', "الباركود:")} <strong>{product.barcode}</strong>
                 </span>
               ) : null}
+              {product.styleCode ? (
+                <span>
+                  كود الموديل: <strong>{product.styleCode}</strong>
+                </span>
+              ) : null}
+              {product.variantsCount && product.variantsCount > 1 ? (
+                <span>
+                  عدد المتغيرات: <strong>{product.variantsCount} تفريعات</strong>
+                </span>
+              ) : null}
               <span>
                 {t('products.product_archive_confirm_dialog.s5', "الرصيد الحالي بالمخزن:")}{' '}
                 <strong style={{ color: hasRemainingStock ? '#b45309' : '#059669', fontSize: '0.82rem' }}>
@@ -189,6 +209,82 @@ export function ProductArchiveConfirmDialog({
               ) : null}
             </div>
           </div>
+
+          {/* 1.5. Fashion Group Scope Selector */}
+          {isFashionModel && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#334155' }}>
+                حدد نطاق تطبيق {isActivating ? 'التنشيط' : 'الأرشفة'}:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {/* Option: Entire Model */}
+                <div
+                  onClick={() => setArchiveScope('all')}
+                  style={{
+                    border: `2px solid ${archiveScope === 'all' ? '#170e5e' : '#e2e8f0'}`,
+                    background: archiveScope === 'all' ? '#eef2ff' : '#ffffff',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="archiveScope"
+                    checked={archiveScope === 'all'}
+                    onChange={() => setArchiveScope('all')}
+                    style={{ cursor: 'pointer', marginTop: '2px' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.84rem' }}>
+                      {isActivating ? 'الموديل بالكامل' : 'الموديل بالكامل بجميع تفريعاته'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', lineHeight: 1.35 }}>
+                      {product.variantsCount && product.variantsCount > 1
+                        ? `تطبيق الإجراء على كافة الـ (${product.variantsCount}) تفريعات التابعة للموديل دفعة واحدة.`
+                        : 'تطبيق الإجراء على كافة الألوان والمقاسات التابعة لنفس كود الموديل دفعة واحدة.'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Option: Single Variant */}
+                <div
+                  onClick={() => setArchiveScope('single')}
+                  style={{
+                    border: `2px solid ${archiveScope === 'single' ? '#170e5e' : '#e2e8f0'}`,
+                    background: archiveScope === 'single' ? '#f8fafc' : '#ffffff',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="archiveScope"
+                    checked={archiveScope === 'single'}
+                    onChange={() => setArchiveScope('single')}
+                    style={{ cursor: 'pointer', marginTop: '2px' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '0.84rem' }}>
+                      {isActivating ? 'هذا المتغير فقط' : 'هذا المتغير/الفرعي فقط'}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', lineHeight: 1.35 }}>
+                      {product.color || product.size
+                        ? `تطبيق الإجراء فقط على (${[product.color, product.size].filter(Boolean).join(' / ')}) وإبقاء باقي الموديل.`
+                        : 'تطبيق الإجراء على هذا الصنف الفردي فقط دون المساس ببقية الموديل.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 2. Stock Options Selector (if archiving and stock > 0) */}
           {!isActivating && hasRemainingStock ? (
@@ -431,8 +527,14 @@ export function ProductArchiveConfirmDialog({
                 ? t('products.product_archive_confirm_dialog.s16', "جارٍ التنفيذ...")
                 : selectedOption === 'zero'
                 ? totalCost > 0
-                  ? `تأكيد تصفير ${currentStock} قطعة (${formatCurrency(totalCost)}) والأرشفة`
+                  ? isFashionModel && archiveScope === 'all'
+                    ? `تأكيد تصفير وشطب رصيد كامل الموديل (${formatCurrency(totalCost)}) والأرشفة`
+                    : `تأكيد تصفير ${currentStock} قطعة (${formatCurrency(totalCost)}) والأرشفة`
+                  : isFashionModel && archiveScope === 'all'
+                  ? `تأكيد تصفير ${currentStock} قطعة وأرشفة الموديل بالكامل`
                   : `تأكيد تصفير ${currentStock} قطعة والأرشفة`
+                : isFashionModel && archiveScope === 'all'
+                ? `تأكيد أرشفة الموديل بالكامل (مع إبقاء ${currentStock} قطعة)`
                 : `تأكيد الأرشفة (مع إبقاء ${currentStock} قطعة)`}
             </Button>
           ) : (
@@ -451,7 +553,11 @@ export function ProductArchiveConfirmDialog({
               {isBusy
                 ? t('products.product_archive_confirm_dialog.s16', "جارٍ التنفيذ...")
                 : isActivating
-                ? t('products.product_archive_confirm_dialog.s17', "تأكيد التنشيط")
+                ? isFashionModel && archiveScope === 'all'
+                  ? 'تأكيد تنشيط الموديل بالكامل'
+                  : t('products.product_archive_confirm_dialog.s17', "تأكيد التنشيط")
+                : isFashionModel && archiveScope === 'all'
+                ? 'تأكيد أرشفة الموديل بالكامل'
                 : t('products.product_archive_confirm_dialog.s18', "تأكيد الأرشفة والتعطيل")}
             </Button>
           )}

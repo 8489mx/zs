@@ -739,7 +739,16 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <Button
                             variant="secondary"
                             type="button"
-                            onClick={() => setActiveCardProduct(group.representative)}
+                            onClick={() => setActiveCardProduct(
+                              group.grouped
+                                ? {
+                                    ...group.representative,
+                                    name: baseName,
+                                    stock: totalStock,
+                                    variantsCount: group.children.length,
+                                  }
+                                : group.representative
+                            )}
                             title={__t('products.products_table_card.card_btn_title', "عرض كارت الصنف وسجل الحركات التاريخية والمخزون")}
                             style={{
                               fontSize: '0.82rem',

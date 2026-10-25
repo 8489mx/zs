@@ -92,7 +92,7 @@ export function EditProductForm({
     setArchiveConfirmOpen(true);
   };
 
-  const handleConfirmArchive = async (options?: { zeroStock?: boolean }) => {
+  const handleConfirmArchive = async (options?: { zeroStock?: boolean; archiveEntireGroup?: boolean }) => {
     if (!product) return;
     try {
       setIsTogglingArchive(true);

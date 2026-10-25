@@ -10,6 +10,7 @@ import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import type { Product, ProductUnit } from '@/types/domain';
 import { useProductsPageQuery } from '@/features/products/hooks/useProductsPageQuery';
 import { resolveBarcodeUnit, type BarcodePrintItem } from '@/lib/barcode-labels';
+import { toast } from '@/shared/components/system-alert';
 
 export function useProductsWorkspaceController(groupFashion = false) {
   const [search, setSearch] = useState('');
@@ -49,18 +50,25 @@ export function useProductsWorkspaceController(groupFashion = false) {
   });
 
   const toggleArchiveMutation = useMutation({
-    mutationFn: (arg: string | { productId: string; options?: { zeroStock?: boolean } }) => {
+    mutationFn: (arg: string | { productId: string; options?: { zeroStock?: boolean; archiveEntireGroup?: boolean } }) => {
       const productId = typeof arg === 'string' ? arg : arg.productId;
       const options = typeof arg === 'string' ? undefined : arg.options;
       return productsApi.toggleArchive(productId, options);
     },
     onSuccess: async (data) => {
       await invalidateCatalogDomain(queryClient, { includeProducts: true });
-      if (selectedProduct && String(selectedProduct.id) === String(productToArchive?.id || '')) {
+      if (selectedProduct && (
+        String(selectedProduct.id) === String(productToArchive?.id || '')
+        || (productToArchive?.itemKind === 'fashion' && productToArchive?.styleCode && selectedProduct.styleCode === productToArchive.styleCode)
+      )) {
         setSelectedProduct((current) => current ? { ...current, isActive: data.isActive, is_active: data.isActive } : null);
       }
       setProductToArchive(null);
-    }
+      toast.success(data.message || (data.isActive ? 'تم تنشيط الصنف بنجاح' : 'تم أرشفة وتعطيل الصنف بنجاح'));
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر تغيير حالة أرشفة الصنف');
+    },
   });
 
   const bulkDeleteMutation = useMutation({

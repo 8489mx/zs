@@ -2484,94 +2484,169 @@ export class CatalogProductService {
     return { ok: true, products: (await this.listProducts({}, actor)).products };
   }
 
-  async toggleProductArchive(id: number, actor: AuthContext, options?: { zeroStock?: boolean }): Promise<Record<string, unknown>> {
+  async toggleProductArchive(
+    id: number,
+    actor: AuthContext,
+    options?: { zeroStock?: boolean; archiveEntireGroup?: boolean },
+  ): Promise<Record<string, unknown>> {
     const result = await this.db.transaction().execute(async (trx) => {
-      const product = await trx.selectFrom('products').selectAll()
-        .where('id', '=', id).where(this.tenantPredicate(actor)).forUpdate().executeTakeFirst();
-      if (!product) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
-      const nextActive = !Boolean(product.is_active);
+      const initialProduct = await trx.selectFrom('products').selectAll()
+        .where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
+      if (!initialProduct) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      const nextActive = !Boolean(initialProduct.is_active);
+
+      let targetProductIds = [id];
+      const isFashionGroupTarget = Boolean(options?.archiveEntireGroup && initialProduct.item_kind === 'fashion' && initialProduct.style_code);
+
+      if (isFashionGroupTarget) {
+        const siblings = await trx.selectFrom('products').select('id')
+          .where('style_code', '=', initialProduct.style_code)
+          .where('item_kind', '=', 'fashion')
+          .where('is_active', '=', initialProduct.is_active)
+          .where(this.tenantPredicate(actor))
+          .execute();
+        targetProductIds = siblings.map((s) => Number(s.id));
+      }
+
+      // Canonical lock order: sort product IDs ascending to prevent deadlocks
+      targetProductIds.sort((a, b) => a - b);
+
+      const targetProducts = await trx.selectFrom('products').selectAll()
+        .where('id', 'in', targetProductIds)
+        .where(this.tenantPredicate(actor))
+        .orderBy('id', 'asc')
+        .forUpdate()
+        .execute();
+
+      if (!targetProducts.length) {
+        throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
+      }
 
       if (!nextActive) {
-        if (Number(product.reserved_qty || 0) > 0) {
-          throw new AppError('لا يمكن أرشفة صنف عليه كميات محجوزة في طلبيات معلقة. أتمم الطلبيات أولاً.', 'PRODUCT_HAS_RESERVATIONS', 409);
+        for (const product of targetProducts) {
+          if (Number(product.reserved_qty || 0) > 0) {
+            throw new AppError(
+              targetProducts.length > 1
+                ? `لا يمكن أرشفة الصنف (${product.name}) لوجود كميات محجوزة في طلبيات معلقة. أتمم الطلبيات أولاً.`
+                : 'لا يمكن أرشفة صنف عليه كميات محجوزة في طلبيات معلقة. أتمم الطلبيات أولاً.',
+              'PRODUCT_HAS_RESERVATIONS',
+              409,
+            );
+          }
+
+          if (options?.zeroStock && Math.abs(Number(product.stock_qty || 0)) > 0.0001) {
+            const locStocks = await trx.selectFrom('product_location_stock')
+              .selectAll().where('product_id', '=', product.id)
+              .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
+
+            for (const ls of locStocks) {
+              const qtyToDeduct = Number(ls.qty || 0);
+              if (qtyToDeduct <= 0) continue;
+
+              await applyStockDelta(trx, {
+                productId: Number(product.id),
+                locationId: Number(ls.location_id),
+                branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
+                delta: -qtyToDeduct,
+                tenantId: this.tenantId(actor),
+                accountId: actor.accountId,
+                disableAutoDrain: true,
+                allowNegative: false,
+              });
+
+              const unitCost = Number(product.cost_price || 0);
+              const insertedMovement = await trx.insertInto('stock_movements').values({
+                product_id: product.id,
+                movement_type: 'deduct',
+                qty: -qtyToDeduct,
+                before_qty: qtyToDeduct,
+                after_qty: 0,
+                unit_cost: unitCost,
+                total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
+                reason: 'archive_stock_zeroing',
+                note: `تسوية وتصفير رصيد الصنف (${product.name}) عند الأرشفة والتعطيل`,
+                reference_type: 'inventory_adjustment',
+                reference_id: product.id,
+                location_id: Number(ls.location_id),
+                branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
+                created_by: actor.userId,
+                ...this.tenantFields(actor),
+              } as any).returning('id').executeTakeFirst();
+
+              if (insertedMovement?.id && this.accountingPosting) {
+                await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+              }
+            }
+          }
         }
+      } else {
+        // Re-activating: check collisions
+        for (const product of targetProducts) {
+          const taken = await trx.selectFrom('products').select('id')
+            .where('id', 'not in', targetProductIds).where('is_active', '=', true)
+            .where(this.tenantPredicate(actor)).where((eb) => eb.or([
+              sql<boolean>`LOWER(name) = ${String(product.name || '').toLowerCase()}`,
+              ...(product.barcode ? [sql<boolean>`LOWER(barcode) = ${String(product.barcode).toLowerCase()}`] : []),
+              ...(product.sku ? [sql<boolean>`LOWER(sku) = ${String(product.sku).toLowerCase()}`] : []),
+            ])).executeTakeFirst();
+          if (taken) {
+            throw new AppError(`لا يمكن إعادة تنشيط الصنف (${product.name}): الاسم أو الباركود أو SKU مستخدم بالفعل`, 'PRODUCT_IDENTITY_CONFLICT', 409);
+          }
 
-        if (options?.zeroStock && Math.abs(Number(product.stock_qty || 0)) > 0.0001) {
-          const locStocks = await trx.selectFrom('product_location_stock')
-            .selectAll().where('product_id', '=', id)
-            .where('qty', '>', 0).where(this.tenantPredicate(actor)).execute();
-
-          for (const ls of locStocks) {
-            const qtyToDeduct = Number(ls.qty || 0);
-            if (qtyToDeduct <= 0) continue;
-
-            await applyStockDelta(trx, {
-              productId: id,
-              locationId: Number(ls.location_id),
-              branchId: ls.branch_id ? Number(ls.branch_id) : undefined,
-              delta: -qtyToDeduct,
-              tenantId: this.tenantId(actor),
-              accountId: actor.accountId,
-              disableAutoDrain: true,
-              allowNegative: false,
-            });
-
-            const unitCost = Number(product.cost_price || 0);
-            const insertedMovement = await trx.insertInto('stock_movements').values({
-              product_id: id,
-              movement_type: 'deduct',
-              qty: -qtyToDeduct,
-              before_qty: qtyToDeduct,
-              after_qty: 0,
-              unit_cost: unitCost,
-              total_cost: Number((qtyToDeduct * unitCost).toFixed(2)),
-              reason: 'archive_stock_zeroing',
-              note: `تسوية وتصفير رصيد الصنف (${product.name}) عند الأرشفة والتعطيل`,
-              reference_type: 'inventory_adjustment',
-              reference_id: id,
-              location_id: Number(ls.location_id),
-              branch_id: ls.branch_id ? Number(ls.branch_id) : undefined,
-              created_by: actor.userId,
-              ...this.tenantFields(actor),
-            } as any).returning('id').executeTakeFirst();
-
-            if (insertedMovement?.id && this.accountingPosting) {
-              await this.accountingPosting.postInventoryAdjustment(trx, Number(insertedMovement.id), actor);
+          if (product.item_kind === 'fashion' && product.style_code) {
+            const duplicate = await trx.selectFrom('products').select('id')
+              .where('id', 'not in', targetProductIds).where('style_code', '=', product.style_code)
+              .where('item_kind', '=', 'fashion').where('is_active', '=', true)
+              .where(this.tenantPredicate(actor))
+              .where(sql`LOWER(COALESCE(color, ''))`, '=', String(product.color || '').toLowerCase())
+              .where(sql`LOWER(COALESCE(size, ''))`, '=', String(product.size || '').toLowerCase()).executeTakeFirst();
+            if (duplicate) {
+              throw new AppError(`اللون والمقاس للصنف (${product.name}) موجودان بالفعل في هذا الموديل النشط`, 'VARIANT_EXISTS', 409);
             }
           }
         }
       }
-      if (nextActive) {
-        // Re-activating a historic variant must not collide with a newer active item.
-        const taken = await trx.selectFrom('products').select('id')
-          .where('id', '!=', id).where('is_active', '=', true)
-          .where(this.tenantPredicate(actor)).where((eb) => eb.or([
-            sql<boolean>`LOWER(name) = ${String(product.name || '').toLowerCase()}`,
-            ...(product.barcode ? [sql<boolean>`LOWER(barcode) = ${String(product.barcode).toLowerCase()}`] : []),
-            ...(product.sku ? [sql<boolean>`LOWER(sku) = ${String(product.sku).toLowerCase()}`] : []),
-          ])).executeTakeFirst();
-        if (taken) throw new AppError('لا يمكن إعادة تنشيط الصنف: الاسم أو الباركود أو SKU مستخدم بالفعل', 'PRODUCT_IDENTITY_CONFLICT', 409);
-        if (product.item_kind === 'fashion' && product.style_code) {
-          const duplicate = await trx.selectFrom('products').select('id')
-            .where('id', '!=', id).where('style_code', '=', product.style_code)
-            .where('item_kind', '=', 'fashion').where('is_active', '=', true)
-            .where(this.tenantPredicate(actor))
-            .where(sql`LOWER(COALESCE(color, ''))`, '=', String(product.color || '').toLowerCase())
-            .where(sql`LOWER(COALESCE(size, ''))`, '=', String(product.size || '').toLowerCase()).executeTakeFirst();
-          if (duplicate) throw new AppError('اللون والمقاس موجودان بالفعل في هذا الموديل', 'VARIANT_EXISTS', 409);
-        }
-      }
+
       await trx.updateTable('products')
         .set({ is_active: nextActive, catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
-        .where('id', '=', id).where(this.tenantPredicate(actor)).execute();
-      return { name: product.name, nextActive };
+        .where('id', 'in', targetProductIds)
+        .where(this.tenantPredicate(actor))
+        .execute();
+
+      return {
+        name: initialProduct.name,
+        styleCode: initialProduct.style_code,
+        nextActive,
+        count: targetProducts.length,
+        isFashionGroup: isFashionGroupTarget && targetProducts.length > 1,
+      };
     });
+
     (await import('../../storefront/storefront.service')).StorefrontService.invalidateGlobalCatalogCache();
-    const actionLabel = result.nextActive ? 'تنشيط صنف' : 'أرشفة صنف';
-    await this.audit.log(actionLabel, `${result.nextActive ? 'تم تنشيط' : 'تم أرشفة'} الصنف ${result.name} (#${id}) بواسطة ${actor.username}`, actor);
+    const actionLabel = result.nextActive
+      ? (result.isFashionGroup ? 'تنشيط موديل كامل' : 'تنشيط صنف')
+      : (result.isFashionGroup ? 'أرشفة موديل كامل' : 'أرشفة صنف');
+
+    const auditLabel = result.isFashionGroup
+      ? `${result.nextActive ? 'تم تنشيط' : 'تم أرشفة'} كامل موديل (${result.name} - كود ${result.styleCode}) بعدد ${result.count} متغيرات بواسطة ${actor.username}`
+      : `${result.nextActive ? 'تم تنشيط' : 'تم أرشفة'} الصنف ${result.name} (#${id}) بواسطة ${actor.username}`;
+
+    await this.audit.log(actionLabel, auditLabel, actor);
+
+    const message = result.isFashionGroup
+      ? (result.nextActive
+          ? `تم تنشيط الموديل بالكامل بنجاح (${result.count} صنف/متغير)`
+          : `تم أرشفة وتعطيل الموديل بالكامل بنجاح (${result.count} صنف/متغير)`)
+      : (result.nextActive
+          ? 'تم تنشيط الصنف بنجاح وإعادته لدليل الأصناف النشطة'
+          : 'تم أرشفة وتعطيل الصنف بنجاح');
+
     return {
-      ok: true, id, isActive: result.nextActive,
-      message: result.nextActive ? 'تم تنشيط الصنف بنجاح وإعادته لدليل الأصناف النشطة' : 'تم أرشفة وتعطيل الصنف بنجاح',
+      ok: true,
+      id,
+      isActive: result.nextActive,
+      count: result.count,
+      message,
     };
   }
 
