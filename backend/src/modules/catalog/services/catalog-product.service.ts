@@ -1924,6 +1924,7 @@ export class CatalogProductService {
 
         if (payload.consolidateStock) {
           for (const removedProduct of removedWithStock) {
+            const removedId = Number(removedProduct.id);
             // Strictly consolidate only into the EXACT SAME color
             const target = drafts.find((d) => d.id && normalizeArabicSearch(d.value.color) === normalizeArabicSearch(removedProduct.color || ''));
             const targetId = Number(target?.id);
@@ -2694,8 +2695,24 @@ export class CatalogProductService {
               }
             }
 
+            if (locStocks.length > 0) {
+              const sumDeducted = locStocks.reduce((sum, ls) => sum + Math.max(0, Number(ls.qty || 0)), 0);
+              const remainingGlobal = Number(product.stock_qty || 0) - sumDeducted;
+              if (Math.abs(remainingGlobal) > 0.0001) {
+                await applyStockDelta(trx, {
+                  productId: Number(product.id),
+                  locationId: fallbackLocationId || null,
+                  delta: -remainingGlobal,
+                  tenantId: this.tenantId(actor),
+                  accountId: actor.accountId,
+                  disableAutoDrain: true,
+                  allowNegative: true,
+                });
+              }
+            }
+
             await trx.updateTable('products')
-              .set({ stock_qty: 0, catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
+              .set({ catalog_updated_at: sql`NOW()`, updated_at: sql`NOW()` })
               .where('id', '=', product.id)
               .where(this.tenantPredicate(actor))
               .execute();
