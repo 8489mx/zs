@@ -155,3 +155,9 @@ The code observations above identify definite missing integration points; **fina
 - GL journal line combination in the `postPurchase` source path uses the same currency precision as the posted journal, instead of the previous hidden two-decimal `addLine` quantization.
 - Migration 257 preserves vendor debt and source precision in `purchases`, `purchase_items`, `suppliers`, `supplier_ledger`, and `stock_movements.unit_cost` without destructive rollback.
 - Real disposable PostgreSQL regression asserts one-fil purchase total, AP, supplier ledger, WAC, inventory movement, GL debit/credit and idempotent retry. New CI not yet verified when this note was committed; **P0-C is NOT closed**. GRN, cash and return matrix remains open.
+
+## 25 October — KWD/OMR pharmacy bonus and purchasing reconciliation
+
+- Removed the previously necessary unconditional three-decimal pharmacy distributor purchase block after the supplier purchase posting and numeric persistence work. Every distributor line now prechecks the minor-unit value produced by bonus dilution against its payable source amount before any stock/AP write.
+- Real PostgreSQL acceptance now exercises KWD 0.002 supplier debt, one posted purchase journal, a 3-unit paid+bonus lot, approximate six-decimal WAC conservation, and idempotent retry.
+- P0C-04 still requires cash settlement variations, historical lot reconciliation, errors across all stock locations, and a cross-module reversal audit. Full CI/new PG result pending at authoring time.
