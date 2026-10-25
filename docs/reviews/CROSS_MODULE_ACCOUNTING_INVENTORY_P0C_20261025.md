@@ -65,3 +65,11 @@ The code observations above identify definite missing integration points; **fina
 - Review-branch workflows: `.github/workflows/ci.yml` and `.github/workflows/accounting-acceptance.yml`.
 - Required follow-ups: run and inspect new CI results, reconcile a disposable restored representative tenant with `check:accounting-integrity`, fix open P0C-01…04, run explicit 3-decimal and sector integration PostgreSQL tests and cross-module retry/failure tests; recheck new main head for conflicting changes.
 - **Verdict: BLOCKED.** No complete 8-cycle and 11-sector closure, and no verified production or packaged Electron smoke test.
+
+## 25 October follow-up — trade-in atomicity and CI de-duplication
+
+- Trade-in creation now obtains a tenant+IMEI transaction advisory lock and rejects duplicate prior intake with `TRADEIN_DUPLICATE_SERIAL`; this prevents two cash/outflow documents when concurrent requests race or the successful response is lost. An independently isolated PostgreSQL concurrent regression was added to the acceptance suite.
+- `deleteTransaction` now refuses deleting any economically significant trade-in (`TRADEIN_REVERSAL_REQUIRED`), even when there is a delete permission; source and cash movement must survive until a documented reversal is implemented. Zero-impact drafts remain deletable.
+- **P0C-03 is still OPEN**: these controls address duplicate intake and destructive deletion; the existing trade-in intake/payout still lacks its required full GL/valuation posting contract.
+- Review-branch workflows now cancel only superseded branch push runs using `concurrency` with `cancel-in-progress` and a non-main predicate. Main, required pull request checks, and Oracle deploy triggers stay unchanged.
+- Previous isolated accounting PostgreSQL acceptance [40198134273](https://github.com/8489mx/zs/actions/runs/40198134273) passed on prior revision. This does **not** certify new trade-in changes until a new run confirms them.
