@@ -204,3 +204,8 @@ The code observations above identify definite missing integration points; **fina
 - Existing partner financial balance and ledger APIs rounded to 0.01 even after the transaction journal retained KWD/OMR fils. The tenant currency precision now flows through both query paths and presentation helpers, retaining 0.001 values in balances, available credit and debit/credit totals; no change to legacy cent-based default callers.
 - Added critical regression cases. The pharmacy PostgreSQL forced-failure check originally set `lock_date_tax`, which does not govern generic service journals; it now locks `lock_date_all` to exercise the actual posting rollback. The initial run failed at this test, not on a corrupted database.
 - A fresh full CI and disposable PostgreSQL run are still required on the new SHA. This patch does not certify all reports or all eight financial cycles/eleven sector integrations.
+
+### Supplier payable report end-to-end precision probe
+
+- Acceptance now reads the real supplier-balances API after booking a 0.002 KWD pharmacy distributor credit purchase, and compares the returned vendor row and aggregate summary to 0.002. This is stronger than pure-helper assertions and confirms the API path once its new CI passes.
+- The previous branch SHA `4368327a` passed disposable PostgreSQL acceptance after the corrected accounting-period-lock failure probe. Full CI and this new reporter scenario must pass on the final SHA before a green-branch claim.
