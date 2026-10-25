@@ -250,13 +250,21 @@ export class MaintenanceService {
     const ticketNo = await this.tx.runInTransaction(this.db, async (trx) => {
       const existing = await trx
         .selectFrom('maintenance_tickets')
-        .select(['id', 'ticket_no'])
+        .selectAll()
         .where('tenant_id', '=', scope.tenantId)
         .where('id', '=', id)
         .executeTakeFirst();
 
       if (!existing) {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
+      }
+
+      // Financial fields cannot be rewritten after an advance, delivery, or stock issue.
+      const issuedPart = await trx.selectFrom('maintenance_ticket_parts')
+        .select('id').where('tenant_id', '=', scope.tenantId)
+        .where('ticket_id', '=', id).executeTakeFirst();
+      if (Number(existing.advance_payment || 0) > 0 || existing.status === 'delivered' || issuedPart) {
+        throw new AppError('لا يمكن تعديل تذكرة ذات حركة مالية أو مخزنية دون مستند تسوية', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
 
       await trx
@@ -391,6 +399,10 @@ export class MaintenanceService {
 
       if (!ticket) {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
+      }
+
+      if (ticket.status === 'delivered' || ticket.status === 'cancelled' || ticket.status === 'canceled') {
+        throw new AppError('لا يمكن صرف قطع غيار بعد تسليم أو إلغاء التذكرة', 'MAINTENANCE_TICKET_CLOSED', 409);
       }
 
       const targetLocationId = payload.locationId ?? (ticket.location_id ? Number(ticket.location_id) : null);
@@ -546,6 +558,19 @@ export class MaintenanceService {
 
       if (!ticket) {
         throw new AppError('تذكرة الصيانة غير موجودة', 'TICKET_NOT_FOUND', 404);
+      }
+
+      // A hard delete would orphan treasury activity or destroy stock movement provenance.
+      const historicalMovement = await trx.selectFrom('stock_movements')
+        .select('id').where('tenant_id', '=', scope.tenantId)
+        .where('reference_type', '=', 'maintenance_ticket')
+        .where('reference_id', '=', id).executeTakeFirst();
+      const cashMovement = await trx.selectFrom('treasury_transactions')
+        .select('id').where('tenant_id', '=', scope.tenantId)
+        .where('reference_type', '=', 'maintenance_ticket')
+        .where('reference_id', '=', id).executeTakeFirst();
+      if (Number(ticket.advance_payment || 0) > 0 || ticket.status === 'delivered' || historicalMovement || cashMovement) {
+        throw new AppError('لا يمكن حذف تذكرة صيانة ذات أثر مالي أو مخزني؛ يلزم مستند عكس', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
 
       // Return all consumed parts back to inventory before deletion
