@@ -138,3 +138,14 @@
   - الصيانة الميدانية وتذاكر الأعطال (`/maintenance`).
   - صالة التصنيع وأوامر الشغل (`/manufacturing`).
   - ساحات الحاويات والشحن البحري بالموانئ (`/maritime-freight`).
+
+---
+
+## Electron Windows customer release gate — 2026-10-26
+
+This is a separate **SELF_CONTAINED desktop** acceptance gate, not proof that the PWA IndexedDB offline workflows above and the bundled Electron PostgreSQL runtime are interchangeable.
+
+- Fixed `frontend/electron/runtime-config.cjs`: standalone/LAN mode changes persist via a temporary file and same-directory atomic rename, leaving the previous `runtime.json` intact on failed writes; a disk error now propagates instead of silently pretending a mode was saved. Implementation: `ca4ed1b2c30212aec3bed8055f91e70107d4b7f4`.
+- Added `scripts/test-electron-customer-config.cjs` (commit `bb44d0285a0ae5e07d9ee23b2b8bf9dd773265af`): actual temporary filesystem tests for persistence across relaunch, simulated failed rename and rejection of malformed/unsafe restored settings.
+- `.github/workflows/ci.yml` now includes a Windows runner on `fix/erp-customer-release-gates` to compile Electron renderer and run both this test and the existing updater/rollback *source contracts*. If the required external PostgreSQL executables are absent, it explicitly warns that **Windows EXE packaging and startup have not been validated**; it does not fabricate a packaged release.
+- Still mandatory before offline delivery: run a complete bundled EXE on a disposable Windows machine with customer-like historical data, go fully offline, create/return/exchange sales and close the cash shift, close/reopen twice, apply a real verified update, force rollback after a failed update, and compare preserved document counts, inventory, cash and GL before/after. Do not test on a production customer database.
