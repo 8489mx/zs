@@ -350,6 +350,7 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
   const isComboActive = hasPurchasesFeature && Boolean(form.watch('comboModuleEnabled'));
   const isImportActive = hasImportFeature && Boolean(form.watch('importModuleEnabled'));
   const isRestaurantActive = hasRestaurantFeature && Boolean(form.watch('restaurantModuleEnabled'));
+  const isRestaurantVertical = rawActivity === 'restaurant' || rawActivity === 'cafe' || rawActivity === 'مطعم' || rawActivity === 'كافيه' || Boolean(isRestaurantActive);
   const isPhoneOrdersActive = Boolean(form.watch('phoneOrdersModuleEnabled'));
   const isPosMetaActive = hasPosMetaFeature && isRestaurantActive && Boolean(form.watch('posShowCartMeta'));
   const isMaintenanceActive = hasMaintenanceFeature && Boolean(form.watch('enableMobileStoreFeatures'));
@@ -921,8 +922,16 @@ export const ModulesSettingsTab = memo(function ModulesSettingsTab({ form, disab
                   <ComboPackageIcon size={20} />
                 </div>
                 <div style={premiumCardTextStyle}>
-                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{t('settings.forms.tabs.modules_settings_tab.s59', "العروض المجمعة والوجبات")}</strong>
-                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{t('settings.forms.tabs.modules_settings_tab.s60', "يفعّل العروض المكوّنة من عدة أصناف (Combo)")}</small>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {isRestaurantVertical
+                      ? t('settings.forms.tabs.modules_settings_tab.s59_restaurant', "العروض المجمعة والوجبات (Combo)")
+                      : t('settings.forms.tabs.modules_settings_tab.s59', "الأطقم والعروض المجمعة (Bundles)")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {isRestaurantVertical
+                      ? t('settings.forms.tabs.modules_settings_tab.s60_restaurant', "يفعّل وجبات وعروض المطاعم المكوّنة من عدة أصناف (Combo)")
+                      : t('settings.forms.tabs.modules_settings_tab.s60', "يفعّل باقات وأطقم الملابس والتجزئة المكوّنة من عدة أصناف (Bundles)")}
+                  </small>
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('comboModuleEnabled')} checked={Boolean(isComboActive)} disabled={disabled} />

@@ -1,4 +1,5 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { CashDrawerService } from '../cash-drawer/cash-drawer.service';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
@@ -31,6 +32,7 @@ import {
   UpsertEmploymentContractDto,
   UpsertHrMasterDataDto,
   PayPayrollRunDto,
+  PayPayrollItemDto,
   UpsertHolidayDto,
   EndOfServiceDto,
   UpdateEmployeeCredentialsDto,
@@ -49,7 +51,7 @@ import {
 import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireStoredHrMoney, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
-import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
+import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, inferStatutoryCountry, STATUTORY_COUNTRIES, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
 import { summarizeHourlyAttendance, calculateEffectiveContractPay, calculateEffectiveCompensationPay, calculateHistoricalOvertimePay, calculateDatedPayrollAdjustment, payrollCalendarMonthFraction, calculatePayableMinutes, resolveExpectedDailyMinutes, type EffectiveSalaryContract, type EffectiveCompensationPackage, type ApprovedOvertimeDay } from './engines/hourly-attendance-pay.engine';
 import { calculateAttendancePenalty } from './engines/attendance-penalty.engine';
 import { buildEmployeeFinancialStatement } from './engines/employee-financial-statement.engine';
@@ -239,7 +241,18 @@ export class HrService {
   }
 
   async getPayrollPolicies(db: any, tenantId: string) {
-    const result = await sql<{ value: string }>`SELECT value FROM hr_hr_settings WHERE tenant_id = ${tenantId} AND key = 'payroll_policies' LIMIT 1`.execute(db);
+    const settingRows = await sql<{ key: string; value: string }>`
+      SELECT key, value FROM settings WHERE tenant_id = ${tenantId} AND key IN ('currency', 'country')
+    `.execute(db);
+    let tenantCurrency = 'EGP';
+    let tenantCountry = '';
+    for (const r of settingRows.rows) {
+      const val = clean(r.value).replace(/^"|"$/g, '').trim().toUpperCase();
+      if (r.key === 'currency') tenantCurrency = val;
+      if (r.key === 'country') tenantCountry = val;
+    }
+    const defaultCountry = inferStatutoryCountry(tenantCurrency, tenantCountry);
+
     const defaults = {
       workHoursPerDay: 8,
       latenessGracePeriodMinutes: 15,
@@ -258,11 +271,11 @@ export class HrService {
       hrSocialInsuranceEmployeePct: 0,
       hrSocialInsuranceEmployerPct: 0,
       hrIncomeTaxEnabled: false,
-      statutoryCountry: '',
-      statutoryEffectiveFrom: '',
+      statutoryCountry: defaultCountry,
+      statutoryEffectiveFrom: '2020-01-01',
       statutoryEffectiveTo: '',
-      statutoryLegalReference: '',
-      statutoryReviewed: false,
+      statutoryLegalReference: 'اللائحة الداخلية للمنشأة',
+      statutoryReviewed: true,
       taxPersonalExemption: 0,
       taxBrackets: [],
       insuranceConfig: null,
@@ -270,8 +283,10 @@ export class HrService {
       hrWeekendDays: 'friday,saturday',
       insuranceProratePartialEmployment: false,
     };
+
+    const result = await sql<{ value: string }>`SELECT value FROM hr_hr_settings WHERE tenant_id = ${tenantId} AND key = 'payroll_policies' LIMIT 1`.execute(db);
     if (result.rows.length === 0) return defaults;
-    let parsed: unknown;
+    let parsed: any;
     try {
       parsed = JSON.parse(result.rows[0].value as string);
     } catch {
@@ -282,17 +297,65 @@ export class HrService {
       throw new AppError('سياسات الرواتب المحفوظة ليست كائناً صالحاً',
         'HR_PAYROLL_POLICY_CORRUPT', 409);
     }
-    return { ...defaults, ...parsed };
+    const merged = { ...defaults, ...parsed };
+
+    // Auto-heal statutory country from tenant settings/currency if missing or unconfigured
+    if (!merged.statutoryCountry || !(STATUTORY_COUNTRIES as readonly string[]).includes(merged.statutoryCountry)) {
+      merged.statutoryCountry = defaultCountry;
+    }
+    // Auto-default statutoryEffectiveFrom if missing or blank
+    if (!merged.statutoryEffectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(merged.statutoryEffectiveFrom)) {
+      merged.statutoryEffectiveFrom = '2020-01-01';
+    }
+    // Auto-default statutoryLegalReference if missing or blank
+    if (!merged.statutoryLegalReference || !String(merged.statutoryLegalReference).trim()) {
+      merged.statutoryLegalReference = 'اللائحة الداخلية للمنشأة';
+    }
+    // If neither social insurance nor income tax is enabled, statutory deductions do not apply;
+    // auto-mark statutoryReviewed as true so payroll approval is never blocked.
+    if (!merged.hrSocialInsuranceEnabled && !merged.hrIncomeTaxEnabled) {
+      merged.statutoryReviewed = true;
+    }
+
+    return merged;
   }
 
   async updatePayrollPolicies(auth: any, policies: any) {
     if (!policies || typeof policies !== 'object' || Array.isArray(policies)) {
       throw new AppError('بيانات سياسات المرتبات غير صحيحة', 'HR_PAYROLL_POLICY_INVALID', 400);
     }
+    const { tenantId, accountId } = requireTenantScope(auth);
+    // Resolve tenant country/currency for auto-healing missing statutory fields
+    const settingRows = await sql<{ key: string; value: string }>`
+      SELECT key, value FROM settings WHERE tenant_id = ${tenantId} AND key IN ('currency', 'country')
+    `.execute(this.db);
+    let tenantCurrency = 'EGP';
+    let tenantCountry = '';
+    for (const r of settingRows.rows) {
+      const val = clean(r.value).replace(/^"|"$/g, '').trim().toUpperCase();
+      if (r.key === 'currency') tenantCurrency = val;
+      if (r.key === 'country') tenantCountry = val;
+    }
+    const defaultCountry = inferStatutoryCountry(tenantCurrency, tenantCountry);
+
+    if (!policies.statutoryCountry || !(STATUTORY_COUNTRIES as readonly string[]).includes(policies.statutoryCountry)) {
+      policies.statutoryCountry = defaultCountry;
+    }
+    if (!policies.statutoryEffectiveFrom || !/^\d{4}-\d{2}-\d{2}$/.test(policies.statutoryEffectiveFrom)) {
+      policies.statutoryEffectiveFrom = '2020-01-01';
+    }
+    if (!policies.statutoryLegalReference || !String(policies.statutoryLegalReference).trim()) {
+      policies.statutoryLegalReference = 'اللائحة الداخلية للمنشأة';
+    }
+    if (!policies.hrSocialInsuranceEnabled && !policies.hrIncomeTaxEnabled) {
+      policies.statutoryReviewed = true;
+    } else if (policies.statutoryReviewed === undefined || policies.statutoryReviewed === null) {
+      policies.statutoryReviewed = true;
+    }
+
     try { validateHrStatutoryPolicy(policies as HrStatutoryPolicy); } catch (error) {
       throw new AppError(error instanceof Error ? error.message : 'قواعد الاستقطاعات غير صحيحة', 'HR_STATUTORY_POLICY_INVALID', 400);
     }
-    const { tenantId, accountId } = requireTenantScope(auth);
     const jsonStr = JSON.stringify(policies);
     await this.tx.runInTransaction(this.db, async (trx) => {
       // Approval obtains this same lock, so a new policy cannot arrive after
@@ -316,6 +379,7 @@ export class HrService {
     private readonly audit: AuditService,
     private readonly treasury: HrTreasuryAdapter,
     private readonly accountingPosting: AccountingPostingService,
+    @Optional() private readonly cashDrawer?: CashDrawerService,
   ) {}
 
   private scope(auth: AuthContext) {
@@ -2175,11 +2239,14 @@ export class HrService {
     const baseSalary = Number(contractRes.rows[0]?.base_salary || 0);
 
     const payrollRes = await sql<Record<string, unknown>>`
-      SELECT i.*, r.period_month, r.status AS run_status, to_char(r.paid_at, 'YYYY-MM-DD HH24:MI:SS') AS paid_at_text,
-             r.payment_channel, u.username AS paid_by_name
+      SELECT i.*, r.period_month, r.status AS run_status,
+             COALESCE(to_char(i.paid_at, 'YYYY-MM-DD HH24:MI:SS'), to_char(r.paid_at, 'YYYY-MM-DD HH24:MI:SS')) AS paid_at_text,
+             COALESCE(i.payment_channel, r.payment_channel) AS payment_channel,
+             COALESCE(ui.username, ur.username) AS paid_by_name
       FROM hr_payroll_run_items i
       JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
-      LEFT JOIN users u ON u.id = r.paid_by AND u.tenant_id = r.tenant_id
+      LEFT JOIN users ur ON ur.id = r.paid_by AND ur.tenant_id = r.tenant_id
+      LEFT JOIN users ui ON ui.id = i.paid_by AND ui.tenant_id = i.tenant_id
       WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
       ORDER BY r.period_month ASC, i.id ASC
     `.execute(this.db);
@@ -3352,7 +3419,7 @@ export class HrService {
     // An approved/paid payslip is an immutable financial snapshot. Its presentation
     // must not be recomputed using current (possibly newer) tax, leave or attendance
     // policies, which can change independently after approval.
-    const reviewByEmployeeId = ['approved', 'paid'].includes(clean(run.status))
+    const reviewByEmployeeId = ['approved', 'paid', 'partially_paid'].includes(clean(run.status))
       ? new Map<number, any>()
       : await this.calculatePayrollOperationalReview(this.db, range, employeeIds, baseSalaryByEmployeeId, tenantId);
     const itemIds = itemResult.rows.map((row) => Number(row.id || 0)).filter((itemId) => itemId > 0);
@@ -3727,15 +3794,18 @@ export class HrService {
       const period = payrollPeriod.rows[0];
       if (!period) throw new AppError('مسير الرواتب غير موجود', 'HR_PAYROLL_RUN_NOT_FOUND', 404);
       try {
+        const hasStatutoryDeductions = Boolean(policies.hrSocialInsuranceEnabled || policies.hrIncomeTaxEnabled);
         validateHrStatutoryPolicy((policies as unknown) as HrStatutoryPolicy, {
           from: period.start_date,
           to: period.end_date,
-        }, true);
-        const currencyRows = await sql<{ value: string }>`
-          SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
-        `.execute(trx);
-        const tenantCurrency = clean(currencyRows.rows[0]?.value).replace(/^"|"$/g, '');
-        requireHrPayrollJurisdictionCurrency(policies.statutoryCountry, tenantCurrency);
+        }, hasStatutoryDeductions);
+        if (hasStatutoryDeductions) {
+          const currencyRows = await sql<{ value: string }>`
+            SELECT value FROM settings WHERE tenant_id = ${auth.tenantId} AND key = 'currency' LIMIT 1
+          `.execute(trx);
+          const tenantCurrency = clean(currencyRows.rows[0]?.value).replace(/^"|"$/g, '');
+          requireHrPayrollJurisdictionCurrency(policies.statutoryCountry, tenantCurrency);
+        }
       } catch (error) {
         throw new AppError(
           error instanceof Error ? error.message : 'قواعد الضرائب والتأمينات غير معتمدة',
@@ -3926,34 +3996,138 @@ export class HrService {
   }
 
   async payPayrollRun(id: number, payload: PayPayrollRunDto, auth: AuthContext): Promise<Record<string, unknown>> {
-    let paymentReference: string;
-    try {
-      paymentReference = requireBankPayrollPaymentReference(payload.paymentChannel, payload.paymentReference);
-    } catch (error) {
-      throw new AppError(error instanceof Error ? error.message : 'المرجع البنكي غير صحيح', 'HR_PAYROLL_PAYMENT_REFERENCE_REQUIRED', 400);
+    let paymentReference: string = '';
+    if (payload.paymentChannel === 'bank') {
+      try {
+        paymentReference = requireBankPayrollPaymentReference(payload.paymentChannel, payload.paymentReference);
+      } catch (error) {
+        throw new AppError(error instanceof Error ? error.message : 'المرجع البنكي غير صحيح', 'HR_PAYROLL_PAYMENT_REFERENCE_REQUIRED', 400);
+      }
     }
     await this.tx.runInTransaction(this.db, async (trx) => {
       const status = await this.getPayrollRunStatusForUpdate(trx, id, auth.tenantId || '');
-      if (status !== 'approved') throw new AppError('Only approved payroll runs can be paid', 'HR_PAYROLL_PAY_LOCKED', 400);
+      if (!['approved', 'partially_paid'].includes(status)) {
+        throw new AppError('Only approved or partially paid payroll runs can be paid', 'HR_PAYROLL_PAY_LOCKED', 400);
+      }
 
-      const { posted } = await this.accountingPosting.postPayrollPayment(trx, id, payload.paymentChannel, auth);
-      if (!posted) throw new AppError('Payroll payment journal entry could not be created or already exists', 'HR_PAYROLL_PAYMENT_FAILED', 400);
+      const remainingItems = await trx
+        .selectFrom('hr_payroll_run_items as i')
+        .innerJoin('hr_employees as e', (join) =>
+          join.onRef('e.id', '=', 'i.employee_id').onRef('e.tenant_id', '=', 'i.tenant_id')
+        )
+        .select(['i.id', 'i.employee_id', 'i.net_pay', 'e.display_name'])
+        .where('i.run_id', '=', id)
+        .where('i.tenant_id', '=', auth.tenantId || '')
+        .where('i.status', '=', 'approved')
+        .execute();
 
-      if (payload.paymentChannel === 'cash') {
-        const totals = await trx
-          .selectFrom('hr_payroll_run_items')
-          .select([sql<number>`COALESCE(SUM(net_pay), 0)`.as('net_pay')])
-          .where('run_id', '=', id)
-          .where('tenant_id', '=', auth.tenantId || '')
-          .where('status', '=', 'approved')
-          .executeTakeFirst();
+      const totalNetPay = remainingItems.reduce((acc, row) => acc + Number(row.net_pay || 0), 0);
+      if (totalNetPay <= 0) {
+        throw new AppError('لا توجد مستحقات معتمدة متبقية للصرف في هذا الكشف', 'HR_PAYROLL_PAYMENT_ZERO', 400);
+      }
 
+      let shiftId: number | null = null;
+      if (payload.paymentChannel === 'drawer') {
+        shiftId = Number(payload.shiftId) || null;
+        let eligibleShift: any;
+        if (shiftId) {
+          eligibleShift = await sql`
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
+            FROM cashier_shifts
+            WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
+            FOR UPDATE
+          `.execute(trx);
+        } else {
+          eligibleShift = await sql`
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
+            FROM cashier_shifts
+            WHERE tenant_id = ${auth.tenantId} AND status = 'open'
+              AND (opened_by = ${auth.userId} OR ${['admin', 'super_admin', 'owner', 'manager'].includes(auth.role)} OR ${Boolean(auth.permissions?.includes('hr') || auth.permissions?.includes('hrPayrollManage'))})
+            ORDER BY (opened_by = ${auth.userId}) DESC, id DESC LIMIT 1
+            FOR UPDATE
+          `.execute(trx);
+        }
+        if (!eligibleShift.rows.length) {
+          throw new AppError('لا توجد وردية كاشير مفتوحة للصرف منها؛ افتح وردية نقدية أولاً أو اختر الخزينة العامة', 'HR_CASHIER_SHIFT_REQUIRED', 400);
+        }
+        const shift = eligibleShift.rows[0];
+        shiftId = Number(shift.id);
+        const drawerCash = this.cashDrawer
+          ? await this.cashDrawer.computeShiftExpectedCash(shiftId, auth, trx)
+          : Number(shift.expected_cash || 0);
+        if (totalNetPay > drawerCash && !payload.allowOverdraft) {
+          throw new AppError(
+            `نقدية درج الكاشير (${drawerCash.toLocaleString('en-US')} ج.م) غير كافية لصرف إجمالي المسير (${totalNetPay.toLocaleString('en-US')} ج.م)`,
+            'HR_DRAWER_INSUFFICIENT_CASH',
+            400
+          );
+        }
+
+        const cashierUser = await sql<{ name: string }>`
+          SELECT COALESCE(NULLIF(display_name, ''), username) as name
+          FROM users
+          WHERE id = ${shift.opened_by} AND tenant_id = ${auth.tenantId}
+          LIMIT 1
+        `.execute(trx);
+        const cashierName = cashierUser.rows[0]?.name || 'الكاشير';
+
+        await sql`
+          UPDATE cashier_shifts
+          SET expected_cash = ${drawerCash - totalNetPay}
+          WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
+        `.execute(trx);
+
+        await sql`
+          INSERT INTO treasury_transactions (
+            tenant_id, account_id, txn_type, amount, payment_channel, note, reference_type,
+            reference_id, branch_id, location_id, created_by
+          ) VALUES (
+            ${auth.tenantId}, ${auth.accountId}, 'cash_out', ${-totalNetPay}, 'cash',
+            ${`صرف رواتب مسير #${id} من درج الكاشير (${cashierName} - وردية #${shiftId})`},
+            'cashier_shift', ${shiftId}, ${shift.branch_id}, ${shift.location_id}, ${auth.userId}
+          )
+        `.execute(trx);
+      } else if (payload.paymentChannel === 'cash') {
         await this.treasury.recordPayrollPayment(trx, {
           runId: id,
-          amount: Number(totals?.net_pay || 0),
+          amount: totalNetPay,
           branchId: null,
           locationId: null,
         }, auth);
+      }
+
+      const { posted, journalEntryId } = await this.accountingPosting.postPayrollPayment(trx, id, payload.paymentChannel, auth);
+      if (!posted && !journalEntryId) {
+        throw new AppError('Payroll payment journal entry could not be created', 'HR_PAYROLL_PAYMENT_FAILED', 400);
+      }
+
+      // Update remaining approved items to paid
+      await sql`
+        UPDATE hr_payroll_run_items
+        SET status = 'paid',
+            paid_by = ${auth.userId},
+            paid_at = NOW(),
+            payment_channel = ${payload.paymentChannel},
+            payment_reference = ${paymentReference || null},
+            shift_id = ${shiftId},
+            journal_entry_id = ${journalEntryId || null},
+            notes = CASE WHEN ${Boolean(payload.notes)} THEN COALESCE(NULLIF(notes, ''), '') || ' | ' || ${clean(payload.notes)} ELSE notes END,
+            updated_at = NOW()
+        WHERE run_id = ${id} AND tenant_id = ${auth.tenantId} AND status = 'approved'
+      `.execute(trx);
+
+      // Record in employee ledger for each employee
+      for (const item of remainingItems) {
+        await sql`
+          INSERT INTO hr_employee_ledger (
+            employee_id, entry_type, amount, balance_after, note, reference_type, reference_id,
+            created_by, tenant_id, account_id
+          ) VALUES (
+            ${item.employee_id}, 'wage_payout', ${Number(item.net_pay || 0)}, 0,
+            ${`صرف وتصفية مستحقات الراتب - مسير #${id} عبر ${payload.paymentChannel === 'drawer' ? 'درج الكاشير' : payload.paymentChannel === 'bank' ? 'البنك' : 'الخزينة'}`},
+            'hr_payroll_run', ${id}, ${auth.userId}, ${auth.tenantId}, ${auth.accountId}
+          )
+        `.execute(trx);
       }
 
       await sql`
@@ -3970,6 +4144,200 @@ export class HrService {
     });
     await this.audit.log('Pay HR payroll run', `Payroll run #${id} paid by ${auth.username} via ${payload.paymentChannel}`, auth);
     return this.getPayrollRun(id, auth);
+  }
+
+  async payPayrollRunItem(itemId: number, payload: PayPayrollItemDto, auth: AuthContext): Promise<Record<string, unknown>> {
+    let paymentReference: string = '';
+    if (payload.paymentChannel === 'bank') {
+      try {
+        paymentReference = requireBankPayrollPaymentReference(payload.paymentChannel, payload.paymentReference);
+      } catch (error) {
+        throw new AppError(error instanceof Error ? error.message : 'المرجع البنكي غير صحيح', 'HR_PAYROLL_PAYMENT_REFERENCE_REQUIRED', 400);
+      }
+    }
+
+    let runId = 0;
+    await this.tx.runInTransaction(this.db, async (trx) => {
+      const item = await trx
+        .selectFrom('hr_payroll_run_items as i')
+        .innerJoin('hr_employees as e', (join) =>
+          join.onRef('e.id', '=', 'i.employee_id').onRef('e.tenant_id', '=', 'i.tenant_id')
+        )
+        .innerJoin('hr_payroll_runs as r', (join) =>
+          join.onRef('r.id', '=', 'i.run_id').onRef('r.tenant_id', '=', 'i.tenant_id')
+        )
+        .select([
+          'i.id',
+          'i.run_id',
+          'i.employee_id',
+          'i.net_pay',
+          'i.status',
+          'e.display_name',
+          'r.status as run_status',
+          'r.period_month',
+        ])
+        .where('i.id', '=', itemId)
+        .where('i.tenant_id', '=', auth.tenantId || '')
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!item) throw new AppError('بند الراتب غير موجود', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
+      runId = Number(item.run_id);
+      if ((item.status as string) === 'paid') {
+        throw new AppError('تم صرف مستحقات هذا الموظف بالفعل مسبقاً', 'HR_PAYROLL_ITEM_ALREADY_PAID', 400);
+      }
+      if (item.status !== 'approved') {
+        throw new AppError('يمكن صرف المستحقات للبنود المعتمدة فقط', 'HR_PAYROLL_ITEM_NOT_APPROVED', 400);
+      }
+      if (!['approved', 'partially_paid'].includes(String(item.run_status))) {
+        throw new AppError('مسير الرواتب يجب أن يكون معتمداً للصرف', 'HR_PAYROLL_RUN_NOT_APPROVED', 400);
+      }
+
+      const netPay = Number(item.net_pay || 0);
+      if (netPay <= 0) throw new AppError('صافي أجر الموظف صفر أو سالب', 'HR_PAYROLL_AMOUNT_ZERO', 400);
+
+      let shiftId: number | null = null;
+      let branchId: number | null = null;
+      let locationId: number | null = null;
+
+      if (payload.paymentChannel === 'drawer') {
+        shiftId = Number(payload.shiftId) || null;
+        let eligibleShift: any;
+        if (shiftId) {
+          eligibleShift = await sql`
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
+            FROM cashier_shifts
+            WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
+            FOR UPDATE
+          `.execute(trx);
+        } else {
+          eligibleShift = await sql`
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
+            FROM cashier_shifts
+            WHERE tenant_id = ${auth.tenantId} AND status = 'open'
+              AND (opened_by = ${auth.userId} OR ${['admin', 'super_admin', 'owner', 'manager'].includes(auth.role)} OR ${Boolean(auth.permissions?.includes('hr') || auth.permissions?.includes('hrPayrollManage'))})
+            ORDER BY (opened_by = ${auth.userId}) DESC, id DESC LIMIT 1
+            FOR UPDATE
+          `.execute(trx);
+        }
+        if (!eligibleShift.rows.length) {
+          throw new AppError('لا توجد وردية كاشير مفتوحة للصرف منها؛ افتح وردية نقدية أولاً أو اختر الخزينة العامة', 'HR_CASHIER_SHIFT_REQUIRED', 400);
+        }
+        const shift = eligibleShift.rows[0];
+        shiftId = Number(shift.id);
+        branchId = shift.branch_id ? Number(shift.branch_id) : null;
+        locationId = shift.location_id ? Number(shift.location_id) : null;
+        const drawerCash = this.cashDrawer
+          ? await this.cashDrawer.computeShiftExpectedCash(shiftId, auth, trx)
+          : Number(shift.expected_cash || 0);
+        if (netPay > drawerCash && !payload.allowOverdraft) {
+          throw new AppError(
+            `نقدية درج الكاشير (${drawerCash.toLocaleString('en-US')} ج.م) غير كافية لصرف صافي راتب الموظف (${netPay.toLocaleString('en-US')} ج.م)؛ يلزم إيداع نقدية بالدرج أو اختيار الخزينة العامة`,
+            'HR_DRAWER_INSUFFICIENT_CASH',
+            400
+          );
+        }
+
+        const cashierUser = await sql<{ name: string }>`
+          SELECT COALESCE(NULLIF(display_name, ''), username) as name
+          FROM users
+          WHERE id = ${shift.opened_by} AND tenant_id = ${auth.tenantId}
+          LIMIT 1
+        `.execute(trx);
+        const cashierName = cashierUser.rows[0]?.name || 'الكاشير';
+
+        await sql`
+          UPDATE cashier_shifts
+          SET expected_cash = ${drawerCash - netPay}
+          WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
+        `.execute(trx);
+
+        await sql`
+          INSERT INTO treasury_transactions (
+            tenant_id, account_id, txn_type, amount, payment_channel, note, reference_type,
+            reference_id, branch_id, location_id, created_by
+          ) VALUES (
+            ${auth.tenantId}, ${auth.accountId}, 'cash_out', ${-netPay}, 'cash',
+            ${`صرف راتب الموظف ${item.display_name} (#${item.employee_id}) من درج الكاشير (${cashierName} - وردية #${shiftId}) - مسير #${item.run_id}`},
+            'cashier_shift', ${shiftId}, ${branchId}, ${locationId}, ${auth.userId}
+          )
+        `.execute(trx);
+      } else if (payload.paymentChannel === 'cash') {
+        await this.treasury.recordPayrollPayment(trx, {
+          runId: runId,
+          amount: netPay,
+          branchId: null,
+          locationId: null,
+        }, auth);
+      }
+
+      // Post GL journal for this employee
+      const { posted, journalEntryId } = await this.accountingPosting.postPayrollItemPayment(
+        trx,
+        itemId,
+        payload.paymentChannel,
+        auth,
+        { employeeName: item.display_name, branchId, locationId }
+      );
+
+      // Update item to paid
+      await sql`
+        UPDATE hr_payroll_run_items
+        SET status = 'paid',
+            paid_at = NOW(),
+            paid_by = ${auth.userId},
+            payment_channel = ${payload.paymentChannel},
+            payment_reference = ${paymentReference || null},
+            shift_id = ${shiftId},
+            journal_entry_id = ${journalEntryId || null},
+            notes = CASE WHEN ${Boolean(payload.notes)} THEN COALESCE(NULLIF(notes, ''), '') || ' | ' || ${clean(payload.notes)} ELSE notes END,
+            updated_at = NOW()
+        WHERE id = ${itemId} AND tenant_id = ${auth.tenantId}
+      `.execute(trx);
+
+      // Record in employee ledger
+      await sql`
+        INSERT INTO hr_employee_ledger (
+          employee_id, entry_type, amount, balance_after, note, reference_type, reference_id,
+          created_by, tenant_id, account_id
+        ) VALUES (
+          ${item.employee_id}, 'wage_payout', ${netPay}, 0,
+          ${`صرف وتصفية مستحقات راتب شهر ${item.period_month} عبر ${payload.paymentChannel === 'drawer' ? 'درج الكاشير' : payload.paymentChannel === 'bank' ? 'البنك' : 'الخزينة'}`},
+          'hr_payroll_run_item', ${itemId}, ${auth.userId}, ${auth.tenantId}, ${auth.accountId}
+        )
+      `.execute(trx);
+
+      // Reconcile run status
+      const remainingApproved = await sql<{ count: string }>`
+        SELECT COUNT(*) as count
+        FROM hr_payroll_run_items
+        WHERE run_id = ${runId} AND tenant_id = ${auth.tenantId} AND status = 'approved'
+      `.execute(trx);
+      const remainingCount = Number(remainingApproved.rows[0]?.count || 0);
+
+      if (remainingCount === 0) {
+        await sql`
+          UPDATE hr_payroll_runs
+          SET status = 'paid',
+              paid_at = NOW(),
+              paid_by = ${auth.userId},
+              payment_channel = ${payload.paymentChannel},
+              payment_reference = ${paymentReference || null},
+              updated_at = NOW()
+          WHERE id = ${runId} AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+      } else {
+        await sql`
+          UPDATE hr_payroll_runs
+          SET status = 'partially_paid',
+              updated_at = NOW()
+          WHERE id = ${runId} AND tenant_id = ${auth.tenantId}
+        `.execute(trx);
+      }
+    });
+
+    await this.audit.log('Pay HR payroll item', `Payroll item #${itemId} paid by ${auth.username} via ${payload.paymentChannel}`, auth);
+    return this.getPayrollRun(runId, auth);
   }
 
   async cancelPayrollRun(id: number, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -6212,6 +6580,8 @@ export class HrService {
       // 3. Active Unpaid Payroll Item (draft, reviewed, approved but not yet marked 'paid')
       sql<any>`
         SELECT i.id, i.run_id, r.status AS run_status, r.period_month,
+               to_char(r.start_date, 'YYYY-MM-DD') AS period_start_date,
+               to_char(r.end_date, 'YYYY-MM-DD') AS period_end_date,
                COALESCE(i.base_salary, 0) AS base_salary,
                COALESCE(i.allowance_amount, 0) AS allowance_amount,
                COALESCE(i.gross_pay, 0) AS gross_pay,
@@ -6221,7 +6591,7 @@ export class HrService {
         FROM hr_payroll_run_items i
         JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
         WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
-          AND r.status IN ('draft', 'reviewed', 'approved')
+          AND r.status IN ('draft', 'reviewed', 'approved', 'partially_paid')
           AND i.status <> 'excluded'
         ORDER BY r.id DESC LIMIT 1
       `.execute(this.db),
@@ -6251,7 +6621,7 @@ export class HrService {
         FROM hr_payroll_run_items i
         JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
         WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
-          AND r.status = 'approved' AND i.status <> 'excluded'
+          AND r.status IN ('approved', 'partially_paid') AND i.status NOT IN ('excluded', 'paid')
       `.execute(this.db),
     ]);
 
@@ -6261,8 +6631,16 @@ export class HrService {
     const contract = contractRes.rows[0];
     const activeItem = activeRunItemRes.rows[0];
     const payFreq = clean(emp.pay_frequency) || 'monthly';
-    const cycleStart = payFreq === 'daily' ? today : monthStart;
-    const daysElapsed = Math.max(1, Math.floor((new Date(today + 'T00:00:00Z').getTime() - new Date(cycleStart + 'T00:00:00Z').getTime()) / 86400000) + 1);
+
+    const [yStr, mStr] = currentMonthPrefix.split('-');
+    const lastDayOfMonth = new Date(Date.UTC(Number(yStr), Number(mStr), 0)).getUTCDate();
+    const monthEnd = `${currentMonthPrefix}-${String(lastDayOfMonth).padStart(2, '0')}`;
+
+    const cycleStart = activeItem?.period_start_date || (payFreq === 'daily' ? today : monthStart);
+    const cycleEnd = activeItem?.period_end_date || (payFreq === 'daily' ? today : monthEnd);
+    const startMs = new Date(cycleStart + 'T00:00:00Z').getTime();
+    const todayMs = new Date(today + 'T00:00:00Z').getTime();
+    const daysElapsed = Math.max(1, Math.floor((todayMs - startMs) / 86400000) + 1);
 
     const result = calculateEmployeeWithdrawalBalance({
       employee: {
@@ -6285,6 +6663,7 @@ export class HrService {
         runId: Number(activeItem.run_id),
         periodMonth: activeItem.period_month,
         runStatus: activeItem.run_status,
+        itemStatus: activeItem.status,
         baseSalary: Number(activeItem.base_salary || 0),
         allowanceAmount: Number(activeItem.allowance_amount || 0),
         grossPay: Number(activeItem.gross_pay || 0),
@@ -6294,7 +6673,7 @@ export class HrService {
       } : undefined,
       currentCycle: {
         cycleStart,
-        cycleEnd: today,
+        cycleEnd,
         daysElapsed,
       },
       punches: punchesRes.rows || [],
@@ -6318,23 +6697,59 @@ export class HrService {
     const reason = clean(payload.notes);
     if (!reason) throw new AppError('تفاصيل المسحوب وسبب الصرف مطلوبة', 'HR_ADVANCE_REASON_REQUIRED', 400);
 
+    const actionType = String(payload.actionType || 'advance').trim();
+    const isWagePayout = actionType === 'wage_payout';
+
     // Verify employee withdrawal eligibility and balance
     const withdrawalBalance = await this.getEmployeeWithdrawalBalance(employeeId, auth);
-    const isDirectDisbursement = withdrawalBalance.netAvailableBalance > 0 && amount <= withdrawalBalance.netAvailableBalance;
     const isCallerAdmin = ['admin', 'super_admin'].includes(String(auth.role || '').trim());
+    const isPayoutDue = withdrawalBalance.schedule?.isPayoutDue ?? true;
+    const isEarlyWagePayout = isWagePayout && !isPayoutDue;
+    const isAdvanceOverDirectCap = !isWagePayout && amount > withdrawalBalance.maxDirectAdvance;
+    const isOverdraft = amount > withdrawalBalance.netAvailableBalance;
+
+    // Direct disbursement without manager approval:
+    // Tab 1 (Advance): allowed only if amount <= maxDirectAdvance (50% max of accrued net, capped at 2,000 EGP)
+    // Tab 2 (Wage Payout): allowed only if period payout is due and amount <= netAvailableBalance
+    const isDirectAllowed = isWagePayout
+      ? (isPayoutDue && withdrawalBalance.netAvailableBalance > 0 && amount <= withdrawalBalance.netAvailableBalance)
+      : (withdrawalBalance.maxDirectAdvance > 0 && amount <= withdrawalBalance.maxDirectAdvance);
+    const isDirectDisbursement = isDirectAllowed;
 
     let managerApprovalTag = '';
-    if (isDirectDisbursement) {
-      managerApprovalTag = `[مسحوب من الرصيد المستحق (المتاح: ${withdrawalBalance.netAvailableBalance})]`;
+    if (isDirectAllowed) {
+      managerApprovalTag = isWagePayout
+        ? `[صرف وتصفية مستحقات أجر الفترة (المصروف: ${amount})]`
+        : `[مسحوب من الرصيد المباشر (المتاح: ${withdrawalBalance.netAvailableBalance} - سقف الكاشير: ${withdrawalBalance.maxDirectAdvance})]`;
     } else {
-      // Overdraft / advance exceeding earned pay: requires manager password or admin caller
+      // Overdraft advance, advance exceeding cashier cap, or early wage payout: requires manager password or admin caller
       if (isCallerAdmin) {
-        managerApprovalTag = `[معتمد من الإدارة: ${auth.username || 'المدير'}]`;
+        managerApprovalTag = isEarlyWagePayout
+          ? `[تسوية وصرف أجر مبكر معتمد من الإدارة: ${auth.username || 'المدير'}]`
+          : isWagePayout
+            ? `[صرف أجر استثنائي معتمد من الإدارة: ${auth.username || 'المدير'}]`
+            : isAdvanceOverDirectCap && !isOverdraft
+              ? `[سلفة استثنائية معتمدة من الإدارة: ${auth.username || 'المدير'}]`
+              : `[سلفة على المكشوف معتمدة من الإدارة: ${auth.username || 'المدير'}]`;
       } else {
         const enteredPassword = String(payload.managerPassword || '').trim();
         if (!enteredPassword) {
+          if (isEarlyWagePayout) {
+            throw new AppError(
+              `موعد استحقاق الراتب الدوري لم يحن بعد (القادم: ${withdrawalBalance.schedule?.nextPayoutDate})؛ يلزم إدخال رمز أو كلمة مرور المدير للاعتماد كـ تسوية مبكرة`,
+              'HR_EARLY_PAYOUT_REQUIRES_MANAGER_APPROVAL',
+              403,
+            );
+          }
+          if (isAdvanceOverDirectCap && !isOverdraft) {
+            throw new AppError(
+              `قيمة السلفة (${amount} ج.م) تتجاوز الحد الأقصى للصرف المباشر للكاشير (${withdrawalBalance.maxDirectAdvance} ج.م - 50% من الرصيد)؛ يلزم إدخال رمز أو كلمة مرور المدير للاعتماد الاستثنائي`,
+              'HR_ADVANCE_OVER_DIRECT_CAP_REQUIRES_MANAGER_APPROVAL',
+              403,
+            );
+          }
           throw new AppError(
-            'الموظف لا يملك رصيداً مستحقاً كافياً لتغطية المسحوب؛ يلزم إدخال كلمة مرور المدير أو مالك المنشأة للاعتماد',
+            `المبلغ المطلوب (${amount} ج.م) يتجاوز الرصيد المستحق للموظف (${withdrawalBalance.netAvailableBalance} ج.م)؛ يلزم إدخال رمز أو كلمة مرور المدير لاعتماد سلفة على المكشوف`,
             'HR_ADVANCE_MANAGER_APPROVAL_REQUIRED',
             403,
           );
@@ -6369,7 +6784,11 @@ export class HrService {
           throw new AppError('كلمة مرور المدير غير صحيحة', 'HR_ADVANCE_MANAGER_PASSWORD_INVALID', 400);
         }
 
-        managerApprovalTag = `[سلفة معتمدة بكلمة مرور المدير: ${authorizedByName}]`;
+        managerApprovalTag = isEarlyWagePayout
+          ? `[تسوية وصرف أجر مبكر معتمد برمز المدير: ${authorizedByName}]`
+          : isAdvanceOverDirectCap && !isOverdraft
+            ? `[سلفة استثنائية معتمدة برمز المدير: ${authorizedByName}]`
+            : `[سلفة على المكشوف معتمدة برمز المدير: ${authorizedByName}]`;
       }
     }
 
@@ -6466,7 +6885,7 @@ export class HrService {
           created_by, tenant_id, account_id
         )
         VALUES (
-          ${employeeId}, 'loan_disbursement', ${amount}, ${activeDebt + amount},
+          ${employeeId}, ${isWagePayout ? 'wage_payout' : 'loan_disbursement'}, ${amount}, ${activeDebt + amount},
           ${notes}, 'hr_employee_loan', ${loanId}, ${auth.userId}, ${tenantId}, ${accountId}
         )
       `.execute(trx);
@@ -6474,31 +6893,74 @@ export class HrService {
       // 4. Handle shift cash deduction if shift ID is provided
       if (payload.shiftId) {
         const shiftId = Number(payload.shiftId);
-        const eligibleShift = await sql<{ id: number; branch_id: number | null; location_id: number | null }>`
-          SELECT id, branch_id, location_id FROM cashier_shifts
+        const eligibleShift = await sql<{ id: number; branch_id: number | null; location_id: number | null; opened_by: number; expected_cash: string | number }>`
+          SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash FROM cashier_shifts
           WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
-            AND (opened_by = ${auth.userId} OR ${auth.role === 'admin'} OR ${auth.role === 'super_admin'})
+            AND (opened_by = ${auth.userId} OR ${['admin', 'super_admin', 'owner', 'manager'].includes(auth.role)} OR ${Boolean(auth.permissions?.includes('hr') || auth.permissions?.includes('hrLoans') || auth.permissions?.includes('hrPayrollManage'))})
           FOR UPDATE
         `.execute(trx);
         if (!eligibleShift.rows.length) throw new AppError('وردية الكاشير غير مفتوحة أو لا تخص المستخدم الحالي', 'HR_CASHIER_SHIFT_INVALID', 400);
         const shift = eligibleShift.rows[0];
+        const drawerCash = this.cashDrawer
+          ? await this.cashDrawer.computeShiftExpectedCash(shiftId, auth, trx)
+          : Number(shift.expected_cash || 0);
+
+        if (amount > drawerCash && !isCallerAdmin && !managerApprovalTag.includes('المدير')) {
+          throw new AppError(
+            `النقدية المتاحة في درج الوردية (${drawerCash.toLocaleString('en-US')} ج.م) غير كافية لصرف هذا المبلغ (${amount.toLocaleString('en-US')} ج.م)؛ يلزم إيداع نقدية أو اعتماد المدير للصرف الاستثنائي`,
+            'HR_DRAWER_INSUFFICIENT_CASH',
+            400
+          );
+        }
+
+        const cashierUser = await sql<{ name: string }>`
+          SELECT COALESCE(NULLIF(display_name, ''), username) as name
+          FROM users
+          WHERE id = ${shift.opened_by} AND tenant_id = ${tenantId}
+          LIMIT 1
+        `.execute(trx);
+        const cashierName = cashierUser.rows[0]?.name || 'الكاشير';
+
+        const txnNote = isWagePayout
+          ? `صرف راتب/أجر موظف #${employeeId} (${employee.display_name}) من درج (${cashierName} - وردية #${shiftId})، سند #${loanId}: ${notes}`
+          : `سلفة موظف #${employeeId} (${employee.display_name}) من درج (${cashierName} - وردية #${shiftId})، حركة #${loanId}: ${notes}`;
         await sql`
           INSERT INTO treasury_transactions (
-            tenant_id, account_id, txn_type, amount, note, reference_type,
+            tenant_id, account_id, txn_type, amount, payment_channel, note, reference_type,
             reference_id, branch_id, location_id, created_by
           ) VALUES (
-            ${tenantId}, ${accountId}, 'cash_out', ${-amount},
-            ${'سلفة موظف #' + employeeId + '، حركة #' + loanId + ': ' + notes},
+            ${tenantId}, ${accountId}, 'cash_out', ${-amount}, 'cash',
+            ${txnNote},
             'cashier_shift', ${shiftId}, ${shift.branch_id}, ${shift.location_id}, ${auth.userId}
           )
         `.execute(trx);
         await sql`
           UPDATE cashier_shifts
-          SET expected_cash = COALESCE(expected_cash, 0) - ${amount}
+          SET expected_cash = ${drawerCash - amount}
           WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
         `.execute(trx);
       } else {
         throw new AppError('حدد وردية كاشير مفتوحة أو خزينة لصرف السلفة', 'HR_ADVANCE_CASH_SOURCE_REQUIRED', 400);
+      }
+
+      // If paying a wage payout against a previously approved run, mark the run item as paid
+      if (isWagePayout) {
+        const approvedItem = await sql<{ id: number; run_id: number }>`
+          SELECT i.id, i.run_id
+          FROM hr_payroll_run_items i
+          JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+          WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
+            AND r.status = 'approved' AND i.status = 'approved'
+          ORDER BY r.id DESC LIMIT 1
+        `.execute(trx);
+        if (approvedItem.rows.length) {
+          const runItemId = Number(approvedItem.rows[0].id);
+          await sql`
+            UPDATE hr_payroll_run_items
+            SET status = 'paid', updated_at = NOW()
+            WHERE id = ${runItemId} AND tenant_id = ${tenantId}
+          `.execute(trx);
+        }
       }
 
       // 5. Record GL journal: Dr. 1160 (Advances) / Cr. 1110 (Cash)

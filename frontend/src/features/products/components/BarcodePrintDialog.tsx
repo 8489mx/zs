@@ -18,6 +18,8 @@ import {
 } from '@/lib/barcode-labels';
 import { useAuthStore } from '@/stores/auth-store';
 import type { Product, ProductUnit } from '@/types/domain';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
 
 export interface BarcodePrintDialogProps {
   open: boolean;
@@ -61,6 +63,8 @@ function getFutureDate(months: number) {
 export function BarcodePrintDialog({ open, product, unit, items, onClose }: BarcodePrintDialogProps) {
   const { t } = useTranslation();
   const currentStoreName = useAuthStore((state) => state.storeName || state.tenant?.businessName || 'متجرنا');
+  const settingsQuery = useSettingsQuery();
+  const showFoodStatementCard = shouldShowExpiryDateField({ settings: settingsQuery.data });
 
   const [family, setFamily] = useState<BarcodePrintFamily>('thermal');
   const [presetId, setPresetId] = useState(DEFAULT_BARCODE_PRINT_PRESET_ID);
@@ -712,6 +716,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
             </div>
 
             {/* 3. بطاقة بيان السلع الغذائية والمعبأة (الاشتراطات التموينية وحماية المستهلك - القرار 330/2017) */}
+            {showFoodStatementCard && (
             <div
               style={{
                 marginTop: '10px',
@@ -935,6 +940,7 @@ export function BarcodePrintDialog({ open, product, unit, items, onClose }: Barc
                 </div>
               )}
             </div>
+            )}
 
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-start', marginTop: '10px' }}>
               <Button type="button" variant="secondary" onClick={handleReset} style={{ fontSize: '0.76rem', padding: '4px 10px' }}>

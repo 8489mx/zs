@@ -23,6 +23,7 @@ import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { extractCreatedEntityId } from '@/lib/api/extract-created-entity-id';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
 import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
+import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
 
 interface ProductFormProps {
   categories: Category[];
@@ -155,6 +156,11 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
   const watchedFashionSizes = form.watch('fashionSizes');
   const watchedVariantStock = Number(form.watch('variantStock') || 0);
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
+  const showExpiryDate = shouldShowExpiryDateField({
+    settings: settingsQuery.data,
+    clothingModuleEnabled,
+    itemKind: watchedItemKind,
+  });
 
   useEffect(() => {
     if (watchedItemKind === 'fashion' && !groupedEntryEnabled) setGroupedEntryEnabled(true);
@@ -396,9 +402,11 @@ export function ProductForm({ categories, suppliers, locations, onCategoryCreate
         {!usesVariantBuilder ? <Field label={t('products.product_form.s27', "المخزون الافتتاحي")}><input type="number" {...form.register('stock')} disabled={mutation.isPending} /></Field> : null}
         <Field label={t('products.product_form.s28', "الحد الأدنى")}><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
 
-        <Field label={t('products.product_form.s29', "تاريخ انتهاء الصلاحية")}>
+        {showExpiryDate && (
+          <Field label={t('products.product_form.s29', "تاريخ انتهاء الصلاحية")}>
           <input type="date" {...form.register('expiryDate')} disabled={mutation.isPending} />
-        </Field>
+          </Field>
+        )}
 
         <div className="field">
           <label>{t('products.product_form.s30', "القسم")}</label>

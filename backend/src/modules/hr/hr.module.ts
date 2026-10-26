@@ -10,13 +10,14 @@ import { MobileAttendanceController } from './mobile-attendance.controller';
 import { EmployeePortalService } from './employee-portal.service';
 import { EmployeePortalController } from './employee-portal.controller';
 import { AccountingModule } from '../accounting/accounting.module';
+import { CashDrawerModule } from '../cash-drawer/cash-drawer.module';
 import { EndOfServiceService } from './services/end-of-service.service';
 import { EndOfServiceController } from './controllers/end-of-service.controller';
 import { RecruitmentAtsController } from './controllers/recruitment-ats.controller';
 import { RecruitmentAtsService } from './services/recruitment-ats.service';
 
 @Module({
-  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule],
+  imports: [DatabaseModule, AuditModule, AuthFoundationModule, AccountingModule, CashDrawerModule],
   controllers: [
     HrController,
     MobileAttendanceController,

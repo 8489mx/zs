@@ -26,6 +26,7 @@ export const productFormSchema = z.object({
   binLocation: z.string().optional(),
   notes: z.string().optional(),
   icon: z.string().optional(),
+  imageUrl: z.string().optional(),
   expiryDate: z.string().optional(),
   trackSerials: z.boolean().default(false),
   isCombo: z.boolean().default(false),
@@ -41,6 +42,7 @@ export const productFormSchema = z.object({
   isVegetarian: z.boolean().default(false),
   isGlutenFree: z.boolean().default(false),
   metadata: z.object({
+    imageUrl: z.string().optional(),
     expiryDate: z.string().optional(),
     oemNumber: z.string().optional(),
     partNumber: z.string().optional(),
@@ -50,7 +52,7 @@ export const productFormSchema = z.object({
     carYearTo: z.string().optional(),
     origin: z.string().optional(),
     condition: z.string().optional(),
-  }).optional()
+  }).passthrough().optional()
 }).superRefine((data, ctx) => {
   const hasName = Boolean(data.name && data.name.trim().length > 0);
   const hasNameEn = Boolean(data.nameEn && data.nameEn.trim().length > 0);

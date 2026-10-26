@@ -371,10 +371,11 @@ export class SettingsImportService {
         const wholesalePrice = rawWholesale != null && String(rawWholesale).trim() !== '' ? toNumber(rawWholesale) : (retailPrice || 0);
         const minStockQty = toNumber((row.minStockQty ?? row.minQty ?? this.pickCell(lookup, ['الحد الأدنى', 'حد الطلب', 'minStockQty', 'minQty', 'min_stock'])) || 0);
         const notes = cleanString((row.notes ?? this.pickCell(lookup, ['ملاحظات', 'الوصف', 'notes', 'description'])));
+        const rawImageUrl = cleanString((row.imageUrl ?? row.image ?? this.pickCell(lookup, ['رابط الصورة', 'الصورة', 'image', 'imageUrl', 'image_url'])));
 
         const existing = barcode
-          ? await trx.selectFrom('products').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('barcode', '=', barcode).where('is_active', '=', true).executeTakeFirst()
-          : await trx.selectFrom('products').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
+          ? await trx.selectFrom('products').select(['id', 'metadata']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('barcode', '=', barcode).where('is_active', '=', true).executeTakeFirst()
+          : await trx.selectFrom('products').select(['id', 'metadata']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', name.toLowerCase()).where('is_active', '=', true).executeTakeFirst();
         
         const payload = {
           name,
@@ -395,12 +396,25 @@ export class SettingsImportService {
           const rawStock = row.stockQty ?? this.pickCell(lookup, ['الكمية', 'stock', 'stockQty', 'qty']);
           const requestedStockQty = toNumber(rawStock);
           if (Math.abs(requestedStockQty) > 0.0001) stockQtyIgnoredOnUpdate += 1;
-          await trx.updateTable('products').set({ ...payload, updated_at: sql`NOW()` }).where('id', '=', productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
+
+          let metaObj: Record<string, any> = {};
+          if (typeof existing.metadata === 'string') {
+            try { metaObj = JSON.parse(existing.metadata); } catch {}
+          } else if (existing.metadata && typeof existing.metadata === 'object') {
+            metaObj = { ...(existing.metadata as Record<string, any>) };
+          }
+          if (rawImageUrl) {
+            metaObj.imageUrl = rawImageUrl;
+          }
+          const metaPayload = rawImageUrl ? { metadata: JSON.stringify(metaObj) } : {};
+
+          await trx.updateTable('products').set({ ...payload, ...metaPayload, updated_at: sql`NOW()` }).where('id', '=', productId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
           updated += 1;
         } else {
           const rawStock = row.stockQty ?? this.pickCell(lookup, ['الكمية', 'stock', 'stockQty', 'qty']);
           const initialStockQty = toNumber(rawStock);
-          const insertedProduct = await trx.insertInto('products').values({ ...payload, stock_qty: initialStockQty, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
+          const metaInsert = rawImageUrl ? JSON.stringify({ imageUrl: rawImageUrl }) : null;
+          const insertedProduct = await trx.insertInto('products').values({ ...payload, metadata: metaInsert, stock_qty: initialStockQty, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
           productId = Number(insertedProduct.id);
           if (initialStockQty > 0) {
             await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: locationId, qty: initialStockQty, ...this.tenantFields(actor) }).execute();

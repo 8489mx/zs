@@ -995,7 +995,21 @@ export class SettingsService {
       modulePatch.enableMobileStoreFeatures = normalizedKey === 'maintenance';
       modulePatch.importModuleEnabled = normalizedKey === 'import_export';
       modulePatch.autoPartsModuleEnabled = normalizedKey === 'auto_parts';
-      modulePatch.clothingModuleEnabled = normalizedKey === 'clothing';
+      modulePatch.clothingModuleEnabled = normalizedKey === 'clothing' || normalizedKey === 'perfumes';
+      modulePatch.comboModuleEnabled = normalizedKey === 'clothing' || normalizedKey === 'perfumes' || normalizedKey === 'restaurant' || normalizedKey === 'retail_general';
+
+      if (normalizedKey === 'perfumes') {
+        modulePatch.posModuleEnabled = true;
+        modulePatch.inventoryModuleEnabled = true;
+        modulePatch.purchasesModuleEnabled = true;
+        modulePatch.comboModuleEnabled = true;
+        modulePatch.clothingModuleEnabled = true;
+        modulePatch.autoPartsModuleEnabled = false;
+        modulePatch.enablePharmacyModule = false;
+        modulePatch.restaurantModuleEnabled = false;
+        modulePatch.enableMobileStoreFeatures = false;
+        modulePatch.importModuleEnabled = false;
+      }
 
       if (normalizedKey === 'wholesale_van') {
         modulePatch.posModuleEnabled = false;

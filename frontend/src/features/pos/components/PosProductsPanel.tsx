@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
-import { StarIcon } from '@/shared/components/icons/AppIcons';
-import { formatCurrency } from '@/lib/format';
+import { StarIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
+import { formatCurrency, formatCurrencyWithCode } from '@/lib/format';
 import { sharedProductsApi } from '@/shared/api/products';
 import {
   buildPosProductGroups,
@@ -23,6 +23,9 @@ import { isInvoiceBarcodeQuery, sanitizeSearchInputLive } from '@/features/pos/l
 import { useScannerBuffer } from '@/features/pos/hooks/useScannerBuffer';
 import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScannerModal';
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { usePosUiCustomization } from '@/features/pos/hooks/usePosUiCustomization';
+import { PosCustomizationDialog } from '@/features/pos/components/pos-workspace/PosCustomizationDialog';
 
 interface PosProductsPanelProps {
   search: string;
@@ -42,16 +45,18 @@ interface PosProductsPanelProps {
 }
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
-const cardDensityStorageKey = 'pos-card-density-preference-v1';
+const cardDensityStorageKey = 'pos-card-density-preference-v2';
 const touchModeVisibleStep = 60;
 
-function readCardDensityPreference(): 'comfortable' | 'compact' {
-  if (typeof window === 'undefined') return 'comfortable';
+export type PosCardDensity = 'comfortable' | 'compact' | 'gallery';
+
+function readCardDensityPreference(fallback: PosCardDensity = 'comfortable'): PosCardDensity {
+  if (typeof window === 'undefined') return fallback;
   try {
-    const val = window.localStorage.getItem(cardDensityStorageKey);
-    if (val === 'compact' || val === 'comfortable') return val;
+    const val = window.localStorage.getItem(cardDensityStorageKey) || window.localStorage.getItem('pos-card-density-preference-v1');
+    if (val === 'compact' || val === 'comfortable' || val === 'gallery') return val as PosCardDensity;
   } catch {}
-  return 'comfortable';
+  return fallback;
 }
 
 function readFavoriteKeys() {
@@ -143,22 +148,22 @@ function InlineGroupPicker({
 
   return (
     <div className="pos-inline-picker-overlay" role="presentation">
-      <button type="button" className="pos-inline-picker-backdrop" aria-label={t('pos.pos_products_panel.s0', "إغلاق الاختيارات")} onClick={() => { onClose(); focusSearchInput(searchInputRef); }} />
+      <button type="button" className="pos-inline-picker-backdrop" aria-label={t('pos.pos_inline_picker.close_picker', "إغلاق الاختيارات")} onClick={() => { onClose(); focusSearchInput(searchInputRef); }} />
       <section className="pos-inline-picker-panel" aria-label={`اختيارات ${group.title}`}>
         <div className="pos-inline-picker-head">
           <div>
-            <div className="pos-inline-picker-kicker">{t('pos.pos_products_panel.s1', "اختيارات الصنف")}</div>
+            <div className="pos-inline-picker-kicker">{t('pos.pos_inline_picker.item_options', "اختيارات الصنف")}</div>
             <h4>{group.title}</h4>
-            <p className="muted small">{t('pos.pos_products_panel.s2', "اختر الفرع المناسب ثم أضفه مباشرة. السلة ستظل ثابتة كما هي.")}</p>
+            <p className="muted small">{t('pos.pos_inline_picker.select_branch_hint', "اختر الفرع المناسب ثم أضفه مباشرة. السلة ستظل ثابتة كما هي.")}</p>
           </div>
           <Button type="button" variant="secondary" onClick={() => { onClose(); focusSearchInput(searchInputRef); }}>
-            {t('pos.pos_products_panel.s3', "إغلاق")}
+            {t('pos.pos_inline_picker.close', "إغلاق")}
           </Button>
         </div>
 
         {group.colors.length ? (
           <div className="pos-inline-picker-filter-block">
-            <span>{t('pos.pos_products_panel.s4', "اللون")}</span>
+            <span>{t('pos.pos_inline_picker.color', "اللون")}</span>
             <div className="pos-chip-row">
               {group.colors.map((color) => (
                 <button
@@ -186,7 +191,7 @@ function InlineGroupPicker({
 
         {group.sizes.length ? (
           <div className="pos-inline-picker-filter-block">
-            <span>{group.colors.length ? t('pos.pos_products_panel.s5', "المقاس / العبوة / الوحدة") : t('pos.pos_products_panel.s6', "الاختيار")}</span>
+            <span>{group.colors.length ? t('pos.pos_inline_picker.size_unit', "المقاس / العبوة / الوحدة") : t('pos.pos_inline_picker.option', "الاختيار")}</span>
             <div className="pos-chip-row">
               {group.sizes.map((size) => (
                 <button
@@ -213,8 +218,8 @@ function InlineGroupPicker({
         ) : null}
 
         <div className="pos-inline-picker-results-head muted small">
-          <span>{filteredProducts.length} {t('pos.pos_products_panel.s7', "فرع مطابق")}</span>
-          <span>{t('pos.pos_products_panel.s8', "اختر من البطاقات التالية للإضافة السريعة")}</span>
+          <span>{filteredProducts.length} {t('pos.pos_inline_picker.matching_branches', "فرع مطابق")}</span>
+          <span>{t('pos.pos_inline_picker.choose_card_hint', "اختر من البطاقات التالية للإضافة السريعة")}</span>
         </div>
 
         <div className="pos-inline-picker-grid">
@@ -238,7 +243,7 @@ function InlineGroupPicker({
                 <div className="muted small pos-inline-variant-card-meta">{product.name}</div>
                 <div className="pos-inline-variant-card-bottom">
                   <span>{formatCurrency(Number(price || 0))}</span>
-                  <span className="muted small">{t('pos.pos_products_panel.s9', "إضافة هذا الفرع")}</span>
+                  <span className="muted small">{t('pos.pos_inline_picker.add_this_branch', "إضافة هذا الفرع")}</span>
                 </div>
               </button>
             );
@@ -265,7 +270,6 @@ function PosProductsPanelComponent({
   onOpenNewProduct,
   restaurantModuleEnabled,
 }: PosProductsPanelProps) {
-  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   // Scanner buffer: detects rapid barcode scanner input and batches it into a single
   // state update instead of triggering re-renders on every character.
@@ -288,25 +292,51 @@ function PosProductsPanelComponent({
     typeFlushMs: 120,
   });
 
+  const settingsQuery = useSettingsQuery();
+  const defaultLayoutFromSettings = settingsQuery.data?.posProductCardLayout;
+  const { customization } = usePosUiCustomization();
+
   const [shelf, setShelf] = useState<PosGroupShelf>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [favoriteKeys, setFavoriteKeys] = useState<string[]>(readFavoriteKeys);
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const [touchVisibleCount, setTouchVisibleCount] = useState(touchModeVisibleStep);
-  const [cardDensity, setCardDensity] = useState<'comfortable' | 'compact'>(readCardDensityPreference);
+  const [cardDensity, setCardDensity] = useState<PosCardDensity>(() => readCardDensityPreference(customization.cardLayout || defaultLayoutFromSettings));
+
+  // Sync with customization setting
+  useEffect(() => {
+    if (customization.cardLayout) {
+      setCardDensity(customization.cardLayout);
+    } else if (defaultLayoutFromSettings) {
+      setCardDensity(defaultLayoutFromSettings);
+    }
+  }, [customization.cardLayout, defaultLayoutFromSettings]);
+
+  // If price tier toggle is hidden, ensure active price type matches defaultPriceType
+  useEffect(() => {
+    if (!customization.showPriceTierToggle && priceType !== customization.defaultPriceType) {
+      onPriceTypeChange(customization.defaultPriceType);
+    }
+  }, [customization.showPriceTierToggle, customization.defaultPriceType, priceType, onPriceTypeChange]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('pos-scroll-hides-nav');
+      }
+    };
+  }, []);
+
   const groupRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   
-  const toggleCardDensity = () => {
-    setCardDensity((prev) => {
-      const next = prev === 'comfortable' ? 'compact' : 'comfortable';
-      if (typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem(cardDensityStorageKey, next);
-        } catch {}
-      }
-      return next;
-    });
+  const setCardDensityMode = (mode: PosCardDensity) => {
+    setCardDensity(mode);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(cardDensityStorageKey, mode);
+      } catch {}
+    }
   };
   
   const categoriesQuery = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });
@@ -315,6 +345,7 @@ function PosProductsPanelComponent({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
 
   const handleCameraBarcodeScan = (scannedCode: string) => {
     if (searchInputRef.current) {
@@ -536,92 +567,115 @@ function PosProductsPanelComponent({
     >
       <div className="pos-products-static" style={{ flexShrink: 0 }}>
 
-        <div className="pos-toolbar-shell pos-toolbar-shell-compact">
-          <div className="pos-products-toolbar-stack" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {(customization.showSearchBar || customization.showPriceTierToggle) && (
+          <div className="pos-toolbar-shell pos-toolbar-shell-compact">
+            <div className="pos-products-toolbar-stack" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-            <div className="pos-products-unified-search-field">
-              <div className="field" style={{ margin: 0, position: 'relative' }}>
-                <input
-                  ref={searchInputRef}
-                  autoFocus
-                  defaultValue={search}
-                  onChange={scannerBuffer.handleChange}
-                  onKeyDown={handleSearchKeyDown}
-                  placeholder={t('pos.search_placeholder', 'امسح باركود أو اكتب الاسم...')}
-                  style={{ borderRadius: '8px', width: '100%', padding: '10px 48px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
-                />
-                <button
-                  type="button"
-                  className="pos-camera-scan-btn"
-                  onClick={() => setIsCameraScannerOpen(true)}
-                  title={t('pos.scan_camera', 'مسح باركود بالكاميرا')}
-                  style={{
-                    position: 'absolute',
-                    left: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: '#eff6ff',
-                    border: '1px solid #bfdbfe',
-                    color: '#2563eb',
-                    borderRadius: '6px',
-                    padding: '6px 8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                  </svg>
-                </button>
-              </div>
+              {customization.showSearchBar && (
+                <div className="pos-products-unified-search-field">
+                  <div className="field" style={{ margin: 0, position: 'relative' }}>
+                    <input
+                      ref={searchInputRef}
+                      autoFocus
+                      defaultValue={search}
+                      onChange={scannerBuffer.handleChange}
+                      onKeyDown={handleSearchKeyDown}
+                      placeholder={t('pos.search_placeholder', 'امسح باركود أو اكتب الاسم...')}
+                      style={{ borderRadius: '8px', width: '100%', padding: '10px 80px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                    />
+                    <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        type="button"
+                        className="pos-customize-trigger-btn"
+                        onClick={() => setIsCustomizationOpen(true)}
+                        title={t('pos.customize_ui_title', 'تخصيص واجهة الكاشير والشاشات المتنقلة')}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          color: '#475569',
+                          borderRadius: '6px',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <SlidersIcon size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="pos-camera-scan-btn"
+                        onClick={() => setIsCameraScannerOpen(true)}
+                        title={t('pos.scan_camera', 'مسح باركود بالكاميرا')}
+                        style={{
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          color: '#2563eb',
+                          borderRadius: '6px',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                          <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {customization.showPriceTierToggle && (
+                <div className="pos-price-toggle-container" style={{ width: '100%' }}>
+                  <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '4px' }}>
+                    <button
+                      type="button"
+                      style={{
+                        flex: 1,
+                        padding: '8px 16px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: priceType === 'retail' ? '#0f172a' : 'transparent',
+                        color: priceType === 'retail' ? '#ffffff' : '#475569',
+                        boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => onPriceTypeChange('retail')}
+                    >
+                      {t('pos.retail_price', 'سعر القطاعي')}
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        flex: 1,
+                        padding: '8px 16px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: priceType === 'wholesale' ? '#dc2626' : 'transparent',
+                        color: priceType === 'wholesale' ? '#ffffff' : '#475569',
+                        boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(220,38,38,0.3)' : 'none',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => onPriceTypeChange('wholesale')}
+                    >
+                      {t('pos.wholesale_price', 'سعر الجملة')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
-
-            <div className="pos-price-toggle-container" style={{ width: '100%' }}>
-              <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '4px' }}>
-                <button
-                  type="button"
-                  style={{
-                    flex: 1,
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: priceType === 'retail' ? '#0f172a' : 'transparent',
-                    color: priceType === 'retail' ? '#ffffff' : '#475569',
-                    boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => onPriceTypeChange('retail')}
-                >
-                  {t('pos.retail_price', 'سعر القطاعي')}
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    flex: 1,
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: priceType === 'wholesale' ? '#dc2626' : 'transparent',
-                    color: priceType === 'wholesale' ? '#ffffff' : '#475569',
-                    boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(220,38,38,0.3)' : 'none',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => onPriceTypeChange('wholesale')}
-                >
-                  {t('pos.wholesale_price', 'سعر الجملة')}
-                </button>
-              </div>
-            </div>
-
           </div>
-        </div>
+        )}
 
         {restaurantModuleEnabled && (
           <div
@@ -636,11 +690,11 @@ function PosProductsPanelComponent({
             }}
           >
             {[
-              { id: 'all', label: __t('pos.pos_products_panel.s10', __t('pos.pos_products_panel.s0', "جميع الوجبات")) },
-              { id: 'breakfast', label: __t('pos.pos_products_panel.s11', __t('pos.pos_products_panel.s1', "الفطور الصباحي")) },
-              { id: 'lunch', label: __t('pos.pos_products_panel.s12', __t('pos.pos_products_panel.s2', "وجبات الغداء")) },
-              { id: 'dinner', label: __t('pos.pos_products_panel.s13', __t('pos.pos_products_panel.s3', "وجبات العشاء")) },
-              { id: 'beverages', label: __t('pos.pos_products_panel.s14', __t('pos.pos_products_panel.s4', "الحلويات والمشروبات")) },
+              { id: 'all', label: t('pos.pos_products_panel.s0', "جميع الوجبات") },
+              { id: 'breakfast', label: t('pos.pos_products_panel.s1', "الفطور الصباحي") },
+              { id: 'lunch', label: t('pos.pos_products_panel.s2', "وجبات الغداء") },
+              { id: 'dinner', label: t('pos.pos_products_panel.s3', "وجبات العشاء") },
+              { id: 'beverages', label: t('pos.pos_products_panel.s4', "الحلويات والمشروبات") },
             ].map((dp) => (
               <button
                 key={dp.id}
@@ -668,7 +722,7 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        {(isTouchMode || isMobile) && categories.length > 0 && (
+        {customization.showCategories && (isTouchMode || isMobile) && categories.length > 0 && (
           <div
             className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
             style={{ gap: '6px', marginTop: '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
@@ -728,7 +782,7 @@ function PosProductsPanelComponent({
           </div>
         )}
 
-        {(isTouchMode || isMobile) && (
+        {customization.showQuickFilters && (isTouchMode || isMobile) && (
           <div
             className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
             style={{ gap: '6px', marginTop: '6px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
@@ -778,7 +832,7 @@ function PosProductsPanelComponent({
                 fontWeight: shelf === 'favorites' ? 'bold' : '500',
               }}
             >
-              {__t('pos.pos_products_panel.s15', __t('pos.pos_products_panel.s5', "المفضلة"))}
+              {t('pos.pos_products_panel.s5', "المفضلة")}
             </button>
             <button
               type="button"
@@ -799,7 +853,7 @@ function PosProductsPanelComponent({
                 fontWeight: productFilter === 'offers' ? 'bold' : '500',
               }}
             >
-              {__t('pos.pos_products_panel.s16', __t('pos.pos_products_panel.s6', "بعروض"))}
+              {t('pos.pos_products_panel.s6', "بعروض")}
             </button>
             <button
               type="button"
@@ -820,7 +874,7 @@ function PosProductsPanelComponent({
                 fontWeight: shelf === 'recent' ? 'bold' : '500',
               }}
             >
-              {__t('pos.pos_products_panel.s17', __t('pos.pos_products_panel.s7', "آخر استخدام"))}
+              {t('pos.pos_products_panel.s7', "آخر استخدام")}
             </button>
             {(productFilter === 'raw_materials' || products.some((p) => p.itemType === 'raw_material')) ? (
               <button
@@ -842,38 +896,84 @@ function PosProductsPanelComponent({
                   fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
                 }}
               >
-                {__t('pos.pos_products_panel.s18', __t('pos.pos_products_panel.s8', "مواد خام"))}
+                {t('pos.pos_products_panel.s8', "مواد خام")}
               </button>
             ) : null}
 
-            {/* Density Toggle Button */}
-            <button
-              type="button"
-              onClick={toggleCardDensity}
-              title={cardDensity === 'comfortable' ? __t('pos.pos_products_panel.s19', __t('pos.pos_products_panel.s9', "التبديل إلى كروت مضغوطة")) : __t('pos.pos_products_panel.s20', __t('pos.pos_products_panel.s10', "التبديل إلى كروت موسعة"))}
+            {/* View Mode Segmented Controls */}
+            <div
               style={{
                 marginInlineStart: 'auto',
-                padding: '4px 10px',
-                fontSize: '11px',
-                borderRadius: '7px',
-                border: '1px solid #cbd5e1',
-                background: cardDensity === 'compact' ? '#0f172a' : '#ffffff',
-                color: cardDensity === 'compact' ? '#ffffff' : '#334155',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
+                background: '#f8fafc',
+                borderRadius: '8px',
+                padding: '2px',
+                border: '1px solid #cbd5e1',
+                gap: '2px',
               }}
             >
-              {cardDensity === 'compact' ? __t('pos.pos_products_panel.s21', __t('pos.pos_products_panel.s11', "كروت مضغوطة")) : __t('pos.pos_products_panel.s22', __t('pos.pos_products_panel.s12', "كروت موسعة"))}
-            </button>
+              <button
+                type="button"
+                onClick={() => setCardDensityMode('gallery')}
+                style={{
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: cardDensity === 'gallery' ? '#170e5e' : 'transparent',
+                  color: cardDensity === 'gallery' ? '#ffffff' : '#475569',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
+                title={t('pos.pos_products_panel.gallery_title', "معرض صور المنتجات (صور فوتوغرافية بارزة)")}
+              >
+                {t('pos.pos_products_panel.gallery_btn', "معرض الصور")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardDensityMode('comfortable')}
+                style={{
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: cardDensity === 'comfortable' ? '#170e5e' : 'transparent',
+                  color: cardDensity === 'comfortable' ? '#ffffff' : '#475569',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
+                title={t('pos.pos_products_panel.comfortable_title', "كروت موسعة اعتيادية")}
+              >
+                {t('pos.pos_products_panel.comfortable_btn', "كروت موسعة")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardDensityMode('compact')}
+                style={{
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: cardDensity === 'compact' ? '#170e5e' : 'transparent',
+                  color: cardDensity === 'compact' ? '#ffffff' : '#475569',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
+                title={t('pos.pos_products_panel.compact_title', "كروت مضغوطة مدمجة")}
+              >
+                {t('pos.pos_products_panel.compact_btn', "كروت مضغوطة")}
+              </button>
+            </div>
 
             {/* Icon Theme Studio Button */}
             <button
               type="button"
               onClick={() => setIsStudioOpen(true)}
-              title={__t('pos.pos_products_panel.s23', __t('pos.pos_products_panel.s13', "تخصيص ألوان ومظهر أيقونات الأصناف"))}
+              title={t('pos.pos_products_panel.s13', "تخصيص ألوان ومظهر أيقونات الأصناف")}
               style={{
                 padding: '4px 9px',
                 fontSize: '11px',
@@ -889,14 +989,14 @@ function PosProductsPanelComponent({
                 gap: '4px',
               }}
             >
-              <span>{__t('pos.pos_products_panel.s24', __t('pos.pos_products_panel.s14', "الأيقونات"))}</span>
+              <span>{t('pos.pos_products_panel.s14', "الأيقونات")}</span>
             </button>
           </div>
         )}
 
         {(isTouchMode || isMobile) && visibleRecentGroups.length ? (
-          <div className="pos-quick-picks-row" aria-label={__t('pos.pos_products_panel.s25', __t('pos.pos_products_panel.s15', "وصول سريع"))}>
-            <span className="muted small">{__t('pos.pos_products_panel.s26', __t('pos.pos_products_panel.s16', "وصول سريع"))}</span>
+          <div className="pos-quick-picks-row" aria-label={t('pos.pos_products_panel.s15', "وصول سريع")}>
+            <span className="muted small">{t('pos.pos_products_panel.s16', "وصول سريع")}</span>
             <div className="pos-quick-picks-buttons">
               {visibleRecentGroups.map((group) => (
                 <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
@@ -919,6 +1019,15 @@ function PosProductsPanelComponent({
       >
         <div
           className="pos-products-scroll"
+          onScroll={(e) => {
+            if (typeof document === 'undefined' || !customization.autoHideBottomNav) return;
+            const top = e.currentTarget.scrollTop;
+            if (top > 30) {
+              document.body.classList.add('pos-scroll-hides-nav');
+            } else {
+              document.body.classList.remove('pos-scroll-hides-nav');
+            }
+          }}
           style={{
             flex: '1 1 0%',
             minHeight: 0,
@@ -931,13 +1040,13 @@ function PosProductsPanelComponent({
         {!canShowScannerResults ? (
           <div className="pos-scanner-ready-panel">
             <div className="pos-scanner-ready-copy">
-              <strong>{__t('pos.pos_products_panel.s27', __t('pos.pos_products_panel.s17', "اضرب الباركود أو اكتب أول حرفين للبحث"))}</strong>
-              <span>{__t('pos.pos_products_panel.s28', __t('pos.pos_products_panel.s18', "تبقى الفاتورة والسلة أمامك، والنتائج ستظهر هنا فقط بعد البحث."))}</span>
+              <strong>{t('pos.pos_products_panel.s17', "اضرب الباركود أو اكتب أول حرفين للبحث")}</strong>
+              <span>{t('pos.pos_products_panel.s18', "تبقى الفاتورة والسلة أمامك، والنتائج ستظهر هنا فقط بعد البحث.")}</span>
             </div>
 
             {visibleRecentGroups.length ? (
               <div className="pos-scanner-ready-section">
-                <span className="muted small">{__t('pos.pos_products_panel.s29', __t('pos.pos_products_panel.s19', "آخر ما تمت إضافته"))}</span>
+                <span className="muted small">{t('pos.pos_products_panel.s19', "آخر ما تمت إضافته")}</span>
                 <div className="pos-scanner-ready-buttons">
                   {visibleRecentGroups.map((group) => (
                     <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
@@ -948,7 +1057,7 @@ function PosProductsPanelComponent({
 
             {visibleFavoriteGroups.length ? (
               <div className="pos-scanner-ready-section">
-                <span className="muted small">{__t('pos.pos_products_panel.s30', __t('pos.pos_products_panel.s20', "المفضلة"))}</span>
+                <span className="muted small">{t('pos.pos_products_panel.s20', "المفضلة")}</span>
                 <div className="pos-scanner-ready-buttons">
                   {visibleFavoriteGroups.map((group) => (
                     <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
@@ -977,7 +1086,7 @@ function PosProductsPanelComponent({
             }}
           >
             <div style={{ fontSize: '0.92rem', color: '#64748b' }}>
-              {__t('pos.pos_products_panel.s31', __t('pos.pos_products_panel.s21', "لم يتم العثور على أي صنف مطابق لـ"))} <strong style={{ color: '#0f172a' }}>"{search}"</strong>
+              {t('pos.pos_products_panel.s21', "لم يتم العثور على أي صنف مطابق لـ")} <strong style={{ color: '#0f172a' }}>"{search}"</strong>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
               {isInvoiceBarcodeQuery(search.trim()) ? (
@@ -993,7 +1102,7 @@ function PosProductsPanelComponent({
                     color: '#0369a1',
                   }}
                 >
-                  {__t('pos.pos_products_panel.s32', __t('pos.pos_products_panel.s22', "استعراض / إعادة طباعة الفاتورة \""))}{search}"
+                  {t('pos.pos_products_panel.s22', "استعراض / إعادة طباعة الفاتورة \"")}{search}"
                 </Button>
               ) : null}
 
@@ -1012,7 +1121,7 @@ function PosProductsPanelComponent({
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   }}
                 >
-                  {__t('pos.pos_products_panel.s33', __t('pos.pos_products_panel.s23', "+ إضافة صنف جديد باسم / باركود \""))}{search}"
+                  {t('pos.pos_products_panel.s23', "+ إضافة صنف جديد باسم / باركود \"")}{search}"
                 </Button>
               ) : null}
             </div>
@@ -1021,16 +1130,248 @@ function PosProductsPanelComponent({
 
         {canShowScannerResults ? (
           <>
-            <div className={`product-pick-grid pos-product-group-grid ${cardDensity === 'compact' ? 'pos-product-group-grid-density-compact' : ''}`}>
+            <div
+              className={`product-pick-grid pos-product-group-grid ${cardDensity === 'compact' ? 'pos-product-group-grid-density-compact' : ''} ${cardDensity === 'gallery' ? 'pos-product-group-grid-gallery' : ''} ${isMobile && customization.mobileGridColumns === '3' ? 'is-cols-3' : ''}`}
+              data-mobile-cols={isMobile ? customization.mobileGridColumns : undefined}
+              style={cardDensity === 'gallery' ? {
+                display: 'grid',
+                gridTemplateColumns: isMobile
+                  ? (customization.mobileGridColumns === '3' ? 'repeat(3, minmax(0, 1fr))' : customization.mobileGridColumns === '2' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(130px, 1fr))')
+                  : 'repeat(auto-fill, minmax(155px, 185px))',
+                gap: isMobile ? (customization.mobileGridColumns === '3' ? '6px' : '8px') : '12px',
+                alignItems: 'stretch',
+              } : (isMobile && customization.mobileGridColumns === '3' ? {
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: '6px',
+              } : undefined)}
+            >
               {displayedGroups.map((group, index) => {
                 const isSelected = index === selectedIndex;
                 const isFavorite = favoriteKeySet.has(group.key);
                 const priceLabel = group.minPrice === group.maxPrice
-                  ? formatCurrency(group.minPrice)
-                  : `${formatCurrency(group.minPrice)} - ${formatCurrency(group.maxPrice)}`;
+                  ? formatCurrencyWithCode(group.minPrice)
+                  : `${formatCurrencyWithCode(group.minPrice)} - ${formatCurrencyWithCode(group.maxPrice)}`;
 
                 const rawIcon = group.products[0]?.icon;
                 const showCardIcon = iconSettings.showIcons;
+
+                if (cardDensity === 'gallery') {
+                  // Ultra-Clean Seamless Visual Card (Balanced 2-Column Mobile Proportions)
+                  return (
+                    <article
+                      key={group.key}
+                      className={`pos-group-card pos-group-card-gallery ${isSelected ? 'is-selected' : ''}`}
+                      style={{
+                        background: '#ffffff',
+                        border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        boxShadow: isSelected ? '0 4px 14px rgba(23, 14, 94, 0.14)' : '0 1px 4px rgba(0,0,0,0.03)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative',
+                        boxSizing: 'border-box',
+                        padding: 0,
+                        height: '100%',
+                        maxWidth: isMobile ? '100%' : '190px',
+                        width: '100%',
+                      }}
+                    >
+                      {/* Top Floating Pill: ONLY if variants exist (e.g. 3 خيارات) */}
+                      {group.hasVariants && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '6px',
+                            right: '6px',
+                            zIndex: 2,
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: '5px',
+                              background: 'rgba(239, 246, 255, 0.95)',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                            }}
+                          >
+                            {group.products.length} {t('pos.options', 'خيارات')}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Favorite Star Button (Discreet Top Left) */}
+                      <button
+                        type="button"
+                        className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFavorite(group.key);
+                        }}
+                        aria-label={isFavorite ? t('pos.pos_products_panel.s25', 'إزالة من المفضلة') : t('pos.pos_products_panel.s26', 'إضافة إلى المفضلة')}
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          left: '6px',
+                          zIndex: 2,
+                          background: isFavorite ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '50%',
+                          width: '22px',
+                          height: '22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                      >
+                        <StarIcon size={11} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#cbd5e1'} />
+                      </button>
+
+                      {/* Card Action Button */}
+                      <button
+                        ref={(node) => { groupRefs.current[index] = node; }}
+                        type="button"
+                        dir="rtl"
+                        className="pos-group-card-action"
+                        onClick={() => {
+                          setSelectedIndex(index);
+                          activateGroup(group);
+                        }}
+                        onFocus={() => setSelectedIndex(index)}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          textAlign: 'center',
+                          direction: 'rtl',
+                          padding: 0,
+                          width: '100%',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          flex: 1,
+                        }}
+                      >
+                        {/* Dominant Hero Image (Natural Square-ish Proportion) */}
+                        <div
+                          style={{
+                            width: '100%',
+                            height: isMobile ? (customization.mobileGridColumns === '3' ? '76px' : '120px') : '140px',
+                            background: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            padding: '4px',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {group.imageUrl ? (
+                            <img
+                              src={group.imageUrl}
+                              alt={group.title}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                              }}
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '44px',
+                                height: '44px',
+                                borderRadius: '10px',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#94a3b8',
+                              }}
+                            >
+                              <ProductIcon name={rawIcon || 'box-package'} size={22} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Clean Bottom Text Bar: Title + Price Directly Underneath */}
+                        <div
+                          style={{
+                            width: '100%',
+                            padding: '6px 6px 8px 6px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '2px',
+                            boxSizing: 'border-box',
+                            borderTop: '1px solid #f8fafc',
+                            background: '#ffffff',
+                          }}
+                        >
+                          <strong
+                            style={{
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              color: '#0f172a',
+                              lineHeight: '1.3',
+                              textAlign: 'center',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              width: '100%',
+                              padding: '0 2px',
+                              boxSizing: 'border-box',
+                            }}
+                            title={group.title}
+                          >
+                            {group.title}
+                          </strong>
+
+                          {/* Price Pill Capsule */}
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                              marginTop: '2px',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                color: '#170e5e',
+                                letterSpacing: '0.2px',
+                                direction: 'ltr',
+                                display: 'inline-block',
+                              }}
+                            >
+                              {priceLabel}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    </article>
+                  );
+                }
 
                 if (cardDensity === 'comfortable') {
                   // Classic Comfortable Card (Default)
@@ -1038,13 +1379,13 @@ function PosProductsPanelComponent({
                     <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
                       <div className="pos-group-card-top">
                         <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
-                          {group.hasVariants ? `${group.products.length} فرع` : __t('pos.pos_products_panel.s34', __t('pos.pos_products_panel.s24', "مباشر"))}
+                          {group.hasVariants ? `${group.products.length} فرع` : t('pos.pos_products_panel.s24', "مباشر")}
                         </span>
                         <button
                           type="button"
                           className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
                           onClick={() => toggleFavorite(group.key)}
-                          aria-label={isFavorite ? __t('pos.pos_products_panel.s35', __t('pos.pos_products_panel.s25', "إزالة من المفضلة")) : __t('pos.pos_products_panel.s36', __t('pos.pos_products_panel.s26', "إضافة إلى المفضلة"))}
+                          aria-label={isFavorite ? t('pos.pos_products_panel.s25', "إزالة من المفضلة") : t('pos.pos_products_panel.s26', "إضافة إلى المفضلة")}
                         >
                           <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#94a3b8'} />
                         </button>
@@ -1063,7 +1404,28 @@ function PosProductsPanelComponent({
                         style={{ direction: 'rtl', textAlign: 'right' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '4px', width: '100%', direction: 'rtl' }}>
-                          {showCardIcon && (
+                          {group.imageUrl ? (
+                            <div className="pos-card-product-img" style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '8px',
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              overflow: 'hidden',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                            }}>
+                              <img
+                                src={group.imageUrl}
+                                alt={group.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : showCardIcon ? (
                             <div className="pos-card-product-icon" style={{
                               width: '28px',
                               height: '28px',
@@ -1078,7 +1440,7 @@ function PosProductsPanelComponent({
                             }}>
                               <ProductIcon name={rawIcon || 'box-package'} size={16} />
                             </div>
-                          )}
+                          ) : null}
                           <strong style={{ flex: 1, textAlign: 'right', minWidth: 0 }}>{group.title}</strong>
                         </div>
                         <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
@@ -1090,7 +1452,7 @@ function PosProductsPanelComponent({
                         ) : null}
                         <div className="pick-meta-row pos-pick-meta-row" style={{ direction: 'rtl', width: '100%' }}>
                           <span>{priceLabel}</span>
-                          <span className="small muted">{group.hasVariants ? __t('pos.pos_products_panel.s37', __t('pos.pos_products_panel.s27', "افتح الاختيارات")) : __t('pos.pos_products_panel.s38', __t('pos.pos_products_panel.s28', "أضف الآن"))}</span>
+                          <span className="small muted">{group.hasVariants ? t('pos.pos_products_panel.s27', "افتح الاختيارات") : t('pos.pos_products_panel.s28', "أضف الآن")}</span>
                         </div>
                       </button>
                     </article>
@@ -1141,7 +1503,28 @@ function PosProductsPanelComponent({
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px', direction: 'rtl' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, direction: 'rtl' }}>
-                          {showCardIcon && (
+                          {group.imageUrl ? (
+                            <div className="pos-card-product-img" style={{
+                              width: '30px',
+                              height: '30px',
+                              borderRadius: '6px',
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              overflow: 'hidden',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                            }}>
+                              <img
+                                src={group.imageUrl}
+                                alt={group.title}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : showCardIcon ? (
                             <div className="pos-card-product-icon" style={{
                               width: '26px',
                               height: '26px',
@@ -1156,7 +1539,7 @@ function PosProductsPanelComponent({
                             }}>
                               <ProductIcon name={rawIcon || 'box-package'} size={15} />
                             </div>
-                          )}
+                          ) : null}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <strong
                               style={{
@@ -1175,7 +1558,7 @@ function PosProductsPanelComponent({
                             {group.hasVariants ? (
                               <div style={{ marginTop: '3px' }}>
                                 <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                                  {group.products.length} {__t('pos.pos_products_panel.s39', __t('pos.pos_products_panel.s29', "مقاسات"))}
+                                  {group.products.length} {t('pos.pos_products_panel.s29', "مقاسات")}
                                 </span>
                               </div>
                             ) : null}
@@ -1189,7 +1572,7 @@ function PosProductsPanelComponent({
                             e.stopPropagation();
                             toggleFavorite(group.key);
                           }}
-                          aria-label={isFavorite ? __t('pos.pos_products_panel.s40', __t('pos.pos_products_panel.s30', "إزالة من المفضلة")) : __t('pos.pos_products_panel.s41', __t('pos.pos_products_panel.s31', "إضافة إلى المفضلة"))}
+                          aria-label={isFavorite ? t('pos.pos_products_panel.s30', "إزالة من المفضلة") : t('pos.pos_products_panel.s31', "إضافة إلى المفضلة")}
                           style={{
                             border: 'none',
                             background: 'transparent',
@@ -1233,7 +1616,7 @@ function PosProductsPanelComponent({
                             alignItems: 'center',
                           }}
                         >
-                          {group.hasVariants ? __t('pos.pos_products_panel.s42', __t('pos.pos_products_panel.s32', "خيارات ▾")) : __t('pos.pos_products_panel.s43', __t('pos.pos_products_panel.s33', "+ أضف"))}
+                          {group.hasVariants ? t('pos.pos_products_panel.s32', "خيارات ▾") : t('pos.pos_products_panel.s33', "+ أضف")}
                         </span>
                       </div>
                     </button>
@@ -1249,9 +1632,9 @@ function PosProductsPanelComponent({
                   variant="secondary"
                   onClick={() => setTouchVisibleCount((current) => current + touchModeVisibleStep)}
                 >
-                  {__t('pos.pos_products_panel.s44', __t('pos.pos_products_panel.s34', "عرض المزيد"))}
+                  {t('pos.pos_products_panel.s34', "عرض المزيد")}
                 </Button>
-                <span className="muted small">{__t('pos.pos_products_panel.s45', __t('pos.pos_products_panel.s35', "المعروض"))} {displayedGroups.length} {__t('pos.pos_products_panel.s46', __t('pos.pos_products_panel.s36', "من"))} {visibleGroups.length}</span>
+                <span className="muted small">{t('pos.pos_products_panel.s35', "المعروض")} {displayedGroups.length} {t('pos.pos_products_panel.s36', "من")} {visibleGroups.length}</span>
               </div>
             ) : null}
           </>
@@ -1277,8 +1660,13 @@ function PosProductsPanelComponent({
           isOpen={isCameraScannerOpen}
           onClose={() => setIsCameraScannerOpen(false)}
           onScan={handleCameraBarcodeScan}
-          title={__t('pos.pos_products_panel.s47', __t('pos.pos_products_panel.s37', "مسح باركود الصنف بكاميرا الهاتف"))}
+          title={t('pos.pos_products_panel.s37', "مسح باركود الصنف بكاميرا الهاتف")}
           continuous={true}
+        />
+
+        <PosCustomizationDialog
+          isOpen={isCustomizationOpen}
+          onClose={() => setIsCustomizationOpen(false)}
         />
       </div>
     </Card>

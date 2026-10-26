@@ -9,6 +9,7 @@ import { http } from '@/lib/http';
 import { useHasAnyPermission } from '@/shared/hooks/use-permission';
 import { useAuthStore } from '@/stores/auth-store';
 import { LockIcon, CheckShieldIcon, AlertCircleIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 
 interface WithdrawalBalanceResponse {
   employee: {
@@ -24,6 +25,16 @@ interface WithdrawalBalanceResponse {
     cycleStart: string;
     cycleEnd: string;
     daysElapsed: number;
+    totalDays?: number;
+  };
+  schedule?: {
+    payFrequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+    cycleStart: string;
+    cycleEnd: string;
+    nextPayoutDate: string;
+    isPayoutDue: boolean;
+    daysUntilPayout: number;
+    dueStatusText: string;
   };
   accrual: {
     workedHours: number;
@@ -33,6 +44,7 @@ interface WithdrawalBalanceResponse {
     accruedEarnings: number;
     calculationText: string;
     source: 'payroll_item' | 'attendance_records' | 'contract_prorated';
+    isProrated?: boolean;
   };
   deductions: {
     currentCycleWithdrawals: number;
@@ -43,6 +55,9 @@ interface WithdrawalBalanceResponse {
   unpaidApprovedPayroll: number;
   netAvailableBalance: number;
   balanceStatus: 'credit' | 'debit' | 'settled';
+  maxDirectAdvance?: number;
+  directAdvanceCeilingPct?: number;
+  directAdvanceCashCap?: number;
   canDisburseDirectly: boolean;
   maxDirectDisbursement: number;
 }
@@ -55,11 +70,12 @@ function money(val: unknown): string {
 export function QuickCashAdvanceModal() {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'advance' | 'payout'>('advance');
   const [employeeId, setEmployeeId] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [managerPassword, setManagerPassword] = useState('');
-  const [_selectedShiftId, setSelectedShiftId] = useState('');
+  const [selectedShiftId, setSelectedShiftId] = useState('');
   const [formError, setFormError] = useState('');
 
   const queryClient = useQueryClient();
@@ -98,7 +114,7 @@ export function QuickCashAdvanceModal() {
   // Fetch open cashier shifts
   const { data: shiftData } = useQuery({
     queryKey: ['pos.shifts.current'],
-    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?status=open&pageSize=100'),
+    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?filter=open&status=open&pageSize=100'),
     enabled: isOpen && canAccess,
     staleTime: 10000,
   });
@@ -121,7 +137,16 @@ export function QuickCashAdvanceModal() {
   });
 
   const employees = employeesData?.employees || [];
-  const shifts = shiftData?.cashierShifts || [];
+  const shifts = useMemo(() => {
+    const raw = (shiftData?.cashierShifts || []).filter(
+      (s: any) => String(s.status || '').toLowerCase() === 'open'
+    );
+    return [...raw].sort((a: any, b: any) => {
+      const cashA = Number(a.expectedCash ?? a.expected_cash ?? 0);
+      const cashB = Number(b.expectedCash ?? b.expected_cash ?? 0);
+      return cashB - cashA;
+    });
+  }, [shiftData?.cashierShifts]);
 
   const selectedEmployee = useMemo(() => {
     return employees.find((e: any) => String(e.id) === String(employeeId)) || null;
@@ -137,7 +162,7 @@ export function QuickCashAdvanceModal() {
     })),
   ], [employees, t]);
 
-  // Lock shift strictly to current user's open shift
+  // Lock shift: cashier is locked to their own shift; admin/owner can choose from open shifts
   const userOpenShift = useMemo(() => {
     return shifts.find(
       (shift: Record<string, unknown>) =>
@@ -146,24 +171,51 @@ export function QuickCashAdvanceModal() {
     );
   }, [shifts, currentUser?.id]);
 
-  const activeShift = userOpenShift || (isAdminOrOwner ? shifts[0] : null);
+  const activeShift = useMemo(() => {
+    if (!shifts.length) return null;
+    if (isAdminOrOwner && selectedShiftId) {
+      const match = shifts.find((s: any) => String(s.id) === String(selectedShiftId));
+      if (match) return match;
+    }
+    return userOpenShift || (isAdminOrOwner ? shifts[0] : null);
+  }, [shifts, selectedShiftId, userOpenShift, isAdminOrOwner]);
 
   useEffect(() => {
-    if (activeShift?.id) {
+    if (activeShift?.id && String(activeShift.id) !== selectedShiftId) {
       setSelectedShiftId(String(activeShift.id));
-    } else {
+    } else if (!shifts.length && selectedShiftId) {
       setSelectedShiftId('');
     }
-  }, [activeShift]);
+  }, [activeShift?.id, shifts.length]);
 
 
   // Derived financial & authorization states
   const parsedAmount = Number(amount) || 0;
   const netAvailable = balanceData?.netAvailableBalance ?? 0;
+  const maxDirectAdvance = balanceData?.maxDirectAdvance ?? 0;
   const hasCredit = netAvailable > 0.009;
-  const isDirectAllowed = hasCredit && parsedAmount > 0 && parsedAmount <= netAvailable;
+  const isPayoutDue = balanceData?.schedule?.isPayoutDue ?? true;
+  const isEarlyWagePayout = activeTab === 'payout' && !isPayoutDue;
+  const isAdvanceOverDirectCap = activeTab === 'advance' && parsedAmount > maxDirectAdvance;
   const isOverdraft = parsedAmount > netAvailable;
-  const requiresManagerAuth = !hasCredit || isOverdraft;
+
+  // Direct allowed logic:
+  // For advance: amount <= maxDirectAdvance
+  // For payout: isPayoutDue && amount <= netAvailable
+  const isDirectAllowed = activeTab === 'payout'
+    ? (isPayoutDue && hasCredit && parsedAmount > 0 && parsedAmount <= netAvailable)
+    : (hasCredit && parsedAmount > 0 && parsedAmount <= maxDirectAdvance);
+
+  const requiresManagerAuth = !isDirectAllowed;
+
+  const currentMonthLabel = useMemo(() => {
+    try {
+      const now = new Date();
+      return now.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+    } catch {
+      return 'الشهر الحالي';
+    }
+  }, []);
 
   const payFrequencyLabel = useMemo(() => {
     const freq = balanceData?.employee.payFrequency;
@@ -172,6 +224,65 @@ export function QuickCashAdvanceModal() {
     if (freq === 'biweekly') return 'نصف شهري';
     return 'شهري';
   }, [balanceData?.employee.payFrequency]);
+
+  const accrualSubtitle = useMemo(() => {
+    if (!employeeId || !balanceData) return 'اختر الموظف لعرض الاستحقاق';
+    const compType = balanceData.employee.compensationType;
+    const freq = balanceData.employee.payFrequency;
+    const hours = balanceData.accrual.workedHours;
+    const days = balanceData.accrual.completedDays;
+    const totalDays = balanceData.cycle?.totalDays || 30;
+
+    if (compType === 'hourly') {
+      return `أجر بالساعة (عن ${hours > 0 ? `${hours} س عمل` : 'ساعات العمل'})`;
+    }
+    if (freq === 'daily') {
+      return `أجر يومي (عن ${days > 0 ? `${days} يوم استحقاق` : 'أيام العمل حتى اليوم'})`;
+    }
+    if (freq === 'weekly') {
+      return `أجر أسبوعي (عن ${days > 0 ? `${days} من ${totalDays} يوم` : 'الأسبوع الحالي'})`;
+    }
+    if (balanceData.accrual.isProrated) {
+      return `أجر نسبي حتى اليوم (${days} من ${totalDays} يوم شهر ${currentMonthLabel})`;
+    }
+    return `راتب شهري (استحقاق شهر ${currentMonthLabel})`;
+  }, [employeeId, balanceData, currentMonthLabel]);
+
+  const deductionsSubtitle = useMemo(() => {
+    if (!employeeId || !balanceData) return 'لا توجد سلف محددة';
+    const debt = balanceData.deductions.totalDebt;
+    const count = balanceData.deductions.activeLoanCount;
+    if (debt > 0) {
+      return `${count || 1} سلفة قائمة بذمته`;
+    }
+    return 'لا توجد مسحوبات سابقة';
+  }, [employeeId, balanceData]);
+
+  const availableSubtitle = useMemo(() => {
+    if (!employeeId || !balanceData) return 'بانتظار اختيار الموظف';
+    if (activeTab === 'payout') {
+      if (!isPayoutDue) {
+        return `متبقي ${balanceData.schedule?.daysUntilPayout ?? 0} يوم على الراتب (اعتماد مدير)`;
+      }
+      return hasCredit ? 'مستحق للصرف والتسوية اليوم' : 'لا يوجد رصيد مستحق للصرف';
+    }
+    // Tab 1: Advance
+    if (maxDirectAdvance > 0) {
+      return `سقف الكاشير المباشر: ${money(maxDirectAdvance)} ج.م (50%)`;
+    }
+    return hasCredit ? 'يتطلب اعتماد المدير (سلفة استثنائية)' : 'سلفة على المكشوف (اعتماد مدير)';
+  }, [employeeId, balanceData, hasCredit, activeTab, isPayoutDue, maxDirectAdvance]);
+
+  useEffect(() => {
+    if (activeTab === 'payout' && balanceData && employeeId) {
+      const avail = balanceData.netAvailableBalance;
+      if (avail > 0) {
+        setAmount(String(avail));
+      }
+      const empName = balanceData.employee.displayName || selectedEmployee?.displayName || 'الموظف';
+      setNotes(`صرف وتصفية مستحقات أجر الفترة (${empName})`);
+    }
+  }, [activeTab, balanceData, employeeId, selectedEmployee?.displayName]);
 
   const mutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -190,6 +301,13 @@ export function QuickCashAdvanceModal() {
         queryClient.invalidateQueries({ queryKey: ['hr.employee.withdrawal-balance', employeeId] });
       }
 
+      const empName = selectedEmployee?.displayName || 'الموظف';
+      if (activeTab === 'payout') {
+        toast.success(`تم صرف راتب ومستحقات ${empName} بقيمة ${money(parsedAmount)} ج.م وتصفير رصيد الفترة بنجاح`);
+      } else {
+        toast.success(`تم صرف سلفة / مسحوب بقيمة ${money(parsedAmount)} ج.م للموظف ${empName} بنجاح`);
+      }
+
       setIsOpen(false);
       setEmployeeId('');
       setAmount('');
@@ -199,7 +317,7 @@ export function QuickCashAdvanceModal() {
       setFormError('');
     },
     onError: (error) => {
-      setFormError(getErrorMessage(error, 'تعذر تسجيل المسحوب / السلفة.'));
+      setFormError(getErrorMessage(error, 'تعذر تسجيل العملية.'));
     },
   });
 
@@ -220,7 +338,7 @@ export function QuickCashAdvanceModal() {
       return;
     }
     if (!notes.trim()) {
-      setFormError('يجب كتابة سبب المسحوب وتفاصيله.');
+      setFormError('يجب كتابة سبب وتفاصيل الصرف.');
       return;
     }
     if (!activeShift) {
@@ -229,7 +347,11 @@ export function QuickCashAdvanceModal() {
     }
 
     if (requiresManagerAuth && !isAdminOrOwner && !managerPassword.trim()) {
-      setFormError('المبلغ يتجاوز الرصيد المستحق؛ يلزم إدخال كلمة مرور المدير أو مالك المنشأة للاعتماد.');
+      if (isEarlyWagePayout) {
+        setFormError(`موعد استحقاق الراتب لم يحن بعد (القادم: ${balanceData?.schedule?.nextPayoutDate || 'نهاية الدورة'})؛ يلزم إدخال كلمة مرور المدير للاعتماد كـ تسوية مبكرة.`);
+      } else {
+        setFormError('المبلغ يتجاوز الرصيد المستحق؛ يلزم إدخال كلمة مرور المدير أو مالك المنشأة للاعتماد.');
+      }
       return;
     }
 
@@ -239,24 +361,32 @@ export function QuickCashAdvanceModal() {
       notes: notes.trim(),
       shiftId: Number(activeShift.id),
       managerPassword: managerPassword.trim() || undefined,
+      actionType: activeTab === 'payout' ? 'wage_payout' : 'advance',
     });
   };
 
   if (!isOpen) return null;
 
   return (
-    <DialogShell open={isOpen} onClose={() => setIsOpen(false)} width="620px">
-      <div style={{ padding: '20px 22px' }} dir="rtl">
+    <DialogShell
+      open={isOpen}
+      onClose={() => setIsOpen(false)}
+      width="min(740px, 96vw)"
+      minHeight="590px"
+    >
+      <div style={{ padding: '16px 22px', minHeight: '590px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }} dir="rtl">
         {/* Header - Clean enterprise without redundant shortcut badge */}
-        <div style={{ marginBottom: 14 }}>
+        <div style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ width: 4, height: 16, backgroundColor: '#170e5e', borderRadius: 2 }} />
-            <h2 style={{ margin: 0, fontSize: '1.12rem', color: '#0f172a', fontWeight: 800 }}>
-              {t('hr.quick_cash_advance_modal.title', 'صرف مسحوب من الراتب / سلفة كاشير')}
+            <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
+              {activeTab === 'payout' ? 'صرف الراتب وتصفية المستحقات' : 'صرف مسحوب من الراتب / سلفة كاشير'}
             </h2>
           </div>
-          <p style={{ margin: '3px 0 0 12px', fontSize: '0.78rem', color: '#64748b' }}>
-            {t('hr.quick_cash_advance_modal.subtitle', 'صرف نقدية من عهدة الكاشير مع بيان المستحق الفعلي والمسحوبات والرصيد اللحظي')}
+          <p style={{ margin: '3px 0 0 12px', fontSize: '0.8rem', color: '#64748b' }}>
+            {activeTab === 'payout'
+              ? 'تسوية وصرف صافي أجر الموظف نقداً من عهدة الكاشير مع تصفير رصيد الفترة'
+              : 'صرف نقدية سلفة من عهدة الكاشير تُخصم تلقائياً من الراتب القادم'}
           </p>
         </div>
 
@@ -265,9 +395,76 @@ export function QuickCashAdvanceModal() {
             {t('hr.quick_cash_advance_modal.no_perm', 'لا تملك صلاحية صرف المسحوبات أو الوصول للوردية.')}
           </div>
         ) : (
-          <form className="form-grid" onSubmit={handleSubmit}>
-            {/* 1. Employee Selection */}
-            <div className="field field-wide" style={{ marginBottom: 10 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* 1. Operational Tabs: Advance vs Wage Payout */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 6,
+                backgroundColor: '#f1f5f9',
+                padding: 4,
+                borderRadius: 8,
+                boxSizing: 'border-box',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('advance');
+                  setAmount('');
+                  setNotes('');
+                  setFormError('');
+                }}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: 6,
+                  border: '1px solid',
+                  borderColor: activeTab === 'advance' ? '#170e5e' : 'transparent',
+                  backgroundColor: activeTab === 'advance' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'advance' ? '#170e5e' : '#64748b',
+                  fontWeight: 600,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: activeTab === 'advance' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                <span>سلفة / مسحوب على الحساب</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('payout');
+                  setAmount(netAvailable > 0 ? String(netAvailable) : '');
+                  setNotes(`صرف وتصفية مستحقات أجر الفترة (${selectedEmployee?.displayName || 'الموظف'})`);
+                  setFormError('');
+                }}
+                style={{
+                  padding: '7px 12px',
+                  borderRadius: 6,
+                  border: '1px solid',
+                  borderColor: activeTab === 'payout' ? '#170e5e' : 'transparent',
+                  backgroundColor: activeTab === 'payout' ? '#ffffff' : 'transparent',
+                  color: activeTab === 'payout' ? '#170e5e' : '#64748b',
+                  fontWeight: 600,
+                  fontSize: '0.84rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: activeTab === 'payout' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                }}
+              >
+                <span>صرف الراتب وتصفية المستحقات</span>
+              </button>
+            </div>
+
+            {/* 2. Employee Selection */}
+            <div>
               <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: 4, display: 'block' }}>
                 {t('hr.quick_cash_advance_modal.employee_select', 'الموظف *')}
               </span>
@@ -284,8 +481,8 @@ export function QuickCashAdvanceModal() {
               />
             </div>
 
-            {/* 2. Permanent Three-Card Executive Financial Strip (Always Rendered) */}
-            <div className="field field-wide" style={{ marginBottom: 12 }}>
+            {/* 3. Three-Card Executive Financial Strip */}
+            <div>
               {isBalanceError && !balanceData ? (
                 <div
                   style={{
@@ -309,7 +506,9 @@ export function QuickCashAdvanceModal() {
                     backgroundColor: '#f8fafc',
                     border: '1px solid #e2e8f0',
                     borderRadius: 10,
-                    padding: '8px 10px 10px',
+                    padding: '10px 12px 12px',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
                   }}
                 >
                   {/* Header line for contract type & employee identification */}
@@ -318,11 +517,11 @@ export function QuickCashAdvanceModal() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '2px 4px 6px',
-                      fontSize: '0.76rem',
+                      padding: '2px 4px 8px',
+                      fontSize: '0.78rem',
                       color: '#64748b',
                       borderBottom: '1px dashed #e2e8f0',
-                      marginBottom: 8,
+                      marginBottom: 10,
                     }}
                   >
                     <span style={{ fontWeight: 700, color: employeeId ? '#0f172a' : '#94a3b8' }}>
@@ -350,27 +549,41 @@ export function QuickCashAdvanceModal() {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr 1.18fr',
-                      gap: 8,
+                      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                      gap: 10,
+                      boxSizing: 'border-box',
+                      width: '100%',
                     }}
                   >
-                    {/* Card 1: ليه كام عندنا طالما لسه مقبض */}
+                    {/* Card 1: الأجر المستحق */}
                     <div
                       style={{
                         backgroundColor: '#f0f9ff',
                         border: '1.5px solid #bae6fd',
                         borderRadius: 8,
-                        padding: '8px 10px',
+                        padding: '10px 12px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        minHeight: 70,
+                        minHeight: 74,
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                       }}
                     >
-                      <span style={{ fontSize: '0.72rem', color: '#0369a1', fontWeight: 700, display: 'block' }}>
-                        المستحق له (طالما مقبضش)
+                      <span style={{ fontSize: '0.74rem', color: '#0369a1', fontWeight: 700, display: 'block' }}>
+                        الأجر المستحق
                       </span>
-                      <strong style={{ fontSize: '1rem', color: '#0284c7', margin: '3px 0', display: 'block' }}>
+                      <strong
+                        style={{
+                          fontSize: '1.05rem',
+                          color: '#0284c7',
+                          margin: '3px 0',
+                          display: 'block',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
                         {employeeId
                           ? balanceData
                             ? `${money(balanceData.accrual.accruedEarnings)} ج.م`
@@ -379,85 +592,102 @@ export function QuickCashAdvanceModal() {
                       </strong>
                       <span
                         style={{
-                          fontSize: '0.67rem',
+                          fontSize: '0.68rem',
                           color: '#64748b',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
+                          display: 'block',
                         }}
-                        title={balanceData?.accrual?.calculationText || ''}
+                        title={accrualSubtitle}
                       >
-                        {employeeId
-                          ? balanceData
-                            ? balanceData.accrual.calculationText
-                            : 'جاري الاحتساب...'
-                          : 'اختر الموظف لحساب الاستحقاق'}
+                        {accrualSubtitle}
                       </span>
                     </div>
 
-                    {/* Card 2: وعليه كام لو أخد سلف */}
+                    {/* Card 2: المسحوبات والسلف */}
                     <div
                       style={{
                         backgroundColor: '#fef2f2',
                         border: '1.5px solid #fecaca',
                         borderRadius: 8,
-                        padding: '8px 10px',
+                        padding: '10px 12px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        minHeight: 70,
+                        minHeight: 74,
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                       }}
                     >
-                      <span style={{ fontSize: '0.72rem', color: '#b91c1c', fontWeight: 700, display: 'block' }}>
-                        السلف والمسحوبات (عليه)
+                      <span style={{ fontSize: '0.74rem', color: '#b91c1c', fontWeight: 700, display: 'block' }}>
+                        المسحوبات والسلف
                       </span>
-                      <strong style={{ fontSize: '1rem', color: '#dc2626', margin: '3px 0', display: 'block' }}>
+                      <strong
+                        style={{
+                          fontSize: '1.05rem',
+                          color: '#dc2626',
+                          margin: '3px 0',
+                          display: 'block',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
                         {employeeId
                           ? balanceData
                             ? `${money(balanceData.deductions.totalDebt)} ج.م`
                             : '...'
                           : '0.00 ج.م'}
                       </strong>
-                      <span style={{ fontSize: '0.67rem', color: '#64748b' }}>
-                        {employeeId
-                          ? balanceData
-                            ? balanceData.deductions.totalDebt > 0
-                              ? `${balanceData.deductions.activeLoanCount || 1} سلفة قائمة بذمته`
-                              : 'لا توجد سلف قائمة'
-                            : '...'
-                          : 'لا توجد سلف محددة'}
+                      <span
+                        style={{
+                          fontSize: '0.68rem',
+                          color: '#64748b',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'block',
+                        }}
+                      >
+                        {deductionsSubtitle}
                       </span>
                     </div>
 
-                    {/* Card 3: صافي رصيده عندنا (يقدر يسحب منه كام) */}
+                    {/* Card 3: المتاح للصرف */}
                     <div
                       style={{
                         backgroundColor: !employeeId ? '#f8fafc' : hasCredit ? '#f0fdf4' : '#fffbeb',
                         border: `1.5px solid ${!employeeId ? '#cbd5e1' : hasCredit ? '#86efac' : '#fcd34d'}`,
                         borderRadius: 8,
-                        padding: '8px 10px',
+                        padding: '10px 12px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        minHeight: 70,
+                        minHeight: 74,
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                       }}
                     >
                       <span
                         style={{
-                          fontSize: '0.72rem',
+                          fontSize: '0.74rem',
                           color: !employeeId ? '#475569' : hasCredit ? '#15803d' : '#b45309',
                           fontWeight: 700,
                           display: 'block',
                         }}
                       >
-                        صافي رصيده المتاح (ليه عندنا)
+                        المتاح للصرف
                       </span>
                       <strong
                         style={{
-                          fontSize: '1.05rem',
+                          fontSize: '1.08rem',
                           color: !employeeId ? '#475569' : hasCredit ? '#16a34a' : '#d97706',
                           margin: '3px 0',
                           display: 'block',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
                         {employeeId
@@ -470,18 +700,16 @@ export function QuickCashAdvanceModal() {
                       </strong>
                       <span
                         style={{
-                          fontSize: '0.67rem',
+                          fontSize: '0.68rem',
                           fontWeight: 700,
                           color: !employeeId ? '#64748b' : hasCredit ? '#15803d' : '#b45309',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'block',
                         }}
                       >
-                        {employeeId
-                          ? balanceData
-                            ? hasCredit
-                              ? 'صرف مباشر متاح للكاشير'
-                              : 'يلزم اعتماد الإدارة'
-                            : '...'
-                          : 'بانتظار اختيار الموظف'}
+                        {availableSubtitle}
                       </span>
                     </div>
                   </div>
@@ -489,46 +717,102 @@ export function QuickCashAdvanceModal() {
               )}
             </div>
 
-            {/* 3. Amount Input & Quick Fill */}
-            <div className="field field-wide" style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            {/* 4. Amount Input & Quick Fill */}
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  marginBottom: 4,
+                }}
+              >
                 <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155' }}>
-                  {t('hr.quick_cash_advance_modal.amount', 'المبلغ المطلوب سحبه / صرفه *')}
+                  {activeTab === 'payout' ? 'صافي المبلغ المراد صرفه وتسويته *' : 'المبلغ المطلوب سحبه / صرفه *'}
                 </span>
                 {hasCredit && (
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => setAmount(String(netAvailable))}
-                      style={{
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        color: '#15803d',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                      }}
-                    >
-                      صرف كامل المتاح ({money(netAvailable)})
-                    </button>
-                    {netAvailable >= 100 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {activeTab === 'advance' ? (
+                      <>
+                        {netAvailable >= 100 && (
+                          <button
+                            type="button"
+                            onClick={() => setAmount(String(Math.floor(netAvailable * 0.25)))}
+                            style={{
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              color: '#334155',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                            }}
+                          >
+                            سلفة 25% ({money(Math.floor(netAvailable * 0.25))})
+                          </button>
+                        )}
+                        {maxDirectAdvance > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setAmount(String(maxDirectAdvance))}
+                            style={{
+                              background: '#f0fdf4',
+                              border: '1px solid #86efac',
+                              color: '#15803d',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                            }}
+                          >
+                            الحد المباشر 50% ({money(maxDirectAdvance)})
+                          </button>
+                        )}
+                        {netAvailable > maxDirectAdvance && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab('payout');
+                              setAmount(String(netAvailable));
+                              const empName = balanceData?.employee?.displayName || selectedEmployee?.displayName || 'الموظف';
+                              setNotes(`صرف وتصفية مستحقات أجر الفترة (${empName})`);
+                            }}
+                            style={{
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              color: '#1d4ed8',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                            }}
+                            title="الانتقال لتبويب صرف الراتب وتصفية كامل المستحقات"
+                          >
+                            صرف وتصفية كامل الأجر ({money(netAvailable)}) ←
+                          </button>
+                        )}
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => setAmount(String(Math.floor(netAvailable / 2)))}
+                        onClick={() => setAmount(String(netAvailable))}
                         style={{
-                          background: '#f1f5f9',
-                          border: '1px solid #e2e8f0',
-                          color: '#475569',
+                          background: isPayoutDue ? '#f0fdf4' : '#fffbeb',
+                          border: `1px solid ${isPayoutDue ? '#86efac' : '#fde68a'}`,
+                          color: isPayoutDue ? '#15803d' : '#b45309',
                           fontSize: '0.72rem',
-                          fontWeight: 600,
+                          fontWeight: 700,
                           cursor: 'pointer',
-                          padding: '2px 8px',
+                          padding: '3px 10px',
                           borderRadius: 4,
                         }}
                       >
-                        النصف ({money(Math.floor(netAvailable / 2))})
+                        {isPayoutDue ? 'كامل صافي الأجر المستحق' : 'كامل الصافي [تسوية مبكرة]'} ({money(netAvailable)})
                       </button>
                     )}
                   </div>
@@ -552,68 +836,116 @@ export function QuickCashAdvanceModal() {
                 }}
               />
 
-              {/* Real-time Status Helper */}
-              {parsedAmount > 0 && balanceData && (
-                <div style={{ marginTop: 4, fontSize: '0.76rem' }}>
-                  {isDirectAllowed ? (
+              {/* Real-time Status Helper with reserved fixed height */}
+              <div style={{ minHeight: '22px', marginTop: 4, fontSize: '0.76rem', display: 'flex', alignItems: 'center' }}>
+                {parsedAmount > 0 && balanceData ? (
+                  isDirectAllowed ? (
                     <span style={{ color: '#15803d', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <CheckShieldIcon size={14} color="#15803d" />
-                      المبلغ ضمن رصيد الموظف المتاح (متبقي له بعد الصرف: {money(netAvailable - parsedAmount)} ج.م) — صـرف مبـاشر مسمـوح للكاشـير.
+                      {activeTab === 'payout'
+                        ? `الدورة مكتملة ومستحقة للصرف اليوم (${money(parsedAmount)} ج.م) — صـرف مبـاشر مسمـوح للكاشـير.`
+                        : `المبلغ ضمن سقف الكاشير المباشر (${money(maxDirectAdvance)} ج.م - 50% من المستحق) — صـرف مبـاشر مسمـوح للكاشـير.`}
                     </span>
                   ) : (
-                    <span style={{ color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                       <AlertCircleIcon size={14} color="#d97706" />
-                      {hasCredit
-                        ? `المبلغ يتجاوز الرصيد المتاح بمقدار ${money(parsedAmount - netAvailable)} ج.م (سلفة على المكشوف)`
-                        : 'الموظف لا يملك رصيداً مستحقاً حالياً'}{' '}
-                      — يتطلب إدخال كلمة مرور المدير للاعتماد.
+                      {activeTab === 'payout' ? (
+                        `الصرف قبل موعد الاستحقاق الدوري (القادم: ${balanceData.schedule?.nextPayoutDate} - متبقي ${balanceData.schedule?.daysUntilPayout} يوم) — يتطلب اعتماد المدير (تسوية مبكرة).`
+                      ) : isAdvanceOverDirectCap && !isOverdraft ? (
+                        <>
+                          <span>السلفة لا تتجاوز 50% من المستحق ({money(maxDirectAdvance)} ج.م). لصرف كامل الرصيد:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab('payout');
+                              setAmount(String(netAvailable));
+                              const empName = balanceData?.employee?.displayName || selectedEmployee?.displayName || 'الموظف';
+                              setNotes(`صرف وتصفية مستحقات أجر الفترة (${empName})`);
+                            }}
+                            style={{
+                              background: '#eff6ff',
+                              border: '1px solid #93c5fd',
+                              color: '#1d4ed8',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              textDecoration: 'underline',
+                            }}
+                          >
+                            انتقل لتبويب صرف الراتب ←
+                          </button>
+                        </>
+                      ) : isOverdraft ? (
+                        `المبلغ يتجاوز كامل رصيد الموظف المستحق بمقدار ${money(parsedAmount - netAvailable)} ج.م (سلفة على المكشوف) — يتطلب اعتماد المدير.`
+                      ) : (
+                        'الموظف لا يملك رصيداً مستحقاً حالياً — يتطلب اعتماد المدير.'
+                      )}
                     </span>
-                  )}
-                </div>
-              )}
+                  )
+                ) : (
+                  <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>
+                    {activeTab === 'payout'
+                      ? (balanceData?.schedule?.dueStatusText || 'تصفية وصرف مستحقات الراتب نقداً من عهدة الكاشير.')
+                      : `سقف الصرف المباشر للكاشير: ${maxDirectAdvance > 0 ? `${money(maxDirectAdvance)} ج.م (50%)` : 'حتى 50% من المستحق (بحد أقصى 2,000 ج.م)'}.`}
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* 4. Notes & Reason */}
-            <label className="field field-wide" style={{ marginBottom: 10 }}>
+            {/* 5. Notes & Reason */}
+            <div>
               <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: 4, display: 'block' }}>
-                {t('hr.quick_cash_advance_modal.notes', 'ملاحظات وسبب الصرف *')}
+                {activeTab === 'payout' ? 'ملاحظات وتفاصيل صرف الراتب *' : 'ملاحظات وسبب الصرف *'}
               </span>
               <input
                 required
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="سبب صرف المسحوب أو السلفة (مطلوب)"
+                placeholder={activeTab === 'payout' ? 'تفاصيل تسوية وصرف الراتب (مطلوب)' : 'سبب صرف المسحوب أو السلفة (مطلوب)'}
                 style={{ width: '100%', boxSizing: 'border-box' }}
               />
-            </label>
+            </div>
 
-            {/* 5. Manager Password (Shows when amount exceeds available balance) */}
+            {/* 6. Manager Password (Shows when amount exceeds available balance OR early wage payout) */}
             {requiresManagerAuth && parsedAmount > 0 && (
               <div
-                className="field field-wide"
                 style={{
-                  marginBottom: 10,
                   padding: 10,
                   backgroundColor: '#fffbeb',
                   border: '1px solid #fde68a',
                   borderRadius: 8,
+                  boxSizing: 'border-box',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <LockIcon size={15} color="#d97706" />
                   <strong style={{ fontSize: '0.8rem', color: '#92400e' }}>
-                    اعتماد المدير أو مالك المنشأة مطلوب (سلفة استثنائية)
+                    {isEarlyWagePayout
+                      ? 'اعتماد المدير مطلوب: الصرف قبل موعد الاستحقاق الرسمي (تسوية مبكرة)'
+                      : isAdvanceOverDirectCap && !isOverdraft
+                        ? `اعتماد المدير مطلوب: السلفة تتجاوز الحد المباشر للكاشير (${money(maxDirectAdvance)} ج.م)`
+                        : 'اعتماد المدير أو مالك المنشأة مطلوب (سلفة استثنائية)'}
                   </strong>
                 </div>
 
                 {isAdminOrOwner ? (
                   <p style={{ margin: 0, fontSize: '0.75rem', color: '#78350f' }}>
-                    أنت مسجل حالياً برتبة مدير/مسؤول نظام ({currentUser?.username})؛ سيتم توثيق الاعتماد باسمك في السجل الرقابي.
+                    {isEarlyWagePayout
+                      ? `أنت مسجل حالياً برتبة مدير/مسؤول نظام (${currentUser?.username})؛ سيتم توثيق العملية كـ "تسوية وصرف أجر مبكر معتمد من الإدارة".`
+                      : isAdvanceOverDirectCap && !isOverdraft
+                        ? `أنت مسجل برتبة مدير/مسؤول نظام (${currentUser?.username})؛ سيتم اعتماد السلفة الاستثنائية باسمك.`
+                        : `أنت مسجل حالياً برتبة مدير/مسؤول نظام (${currentUser?.username})؛ سيتم توثيق الاعتماد باسمك في السجل الرقابي.`}
                   </p>
                 ) : (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#92400e', marginBottom: 4 }}>
-                      كلمة مرور المدير / رمز PIN للموافقة على الصرف *
+                      {isEarlyWagePayout
+                        ? 'كلمة مرور المدير / رمز PIN للموافقة على التسوية المبكرة *'
+                        : isAdvanceOverDirectCap && !isOverdraft
+                          ? 'كلمة مرور المدير / رمز PIN للموافقة على سلفة تتجاوز سقف الكاشير *'
+                          : 'كلمة مرور المدير / رمز PIN للموافقة على سلفة على المكشوف *'}
                     </label>
                     <input
                       type="password"
@@ -633,13 +965,92 @@ export function QuickCashAdvanceModal() {
               </div>
             )}
 
-            {/* 6. Active Shift Info */}
-            <div className="field field-wide" style={{ marginBottom: 10 }}>
+            {/* 7. Active Shift Info / Drawer Selection */}
+            <div>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: 4, display: 'block' }}>
-                {t('hr.quick_cash_advance_modal.shift_header', 'الوردية المنصرف منها المسحوب (مقيدة باسمك) *')}
+                {isAdminOrOwner && shifts.length > 1
+                  ? `اختر درج الكاشير المراد الصرف منه (${shifts.length} أدراج مفتوحة) *`
+                  : t('hr.quick_cash_advance_modal.shift_header', 'الوردية المنصرف منها المسحوب (مقيدة باسمك) *')}
               </span>
 
-              {activeShift ? (
+              {isAdminOrOwner && shifts.length > 1 ? (
+                <div
+                  className="thin-scrollbar"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: shifts.length === 1 ? '1fr' : shifts.length === 2 ? '1fr 1fr' : 'repeat(3, 1fr)',
+                    gap: 6,
+                    maxHeight: shifts.length > 6 ? '150px' : 'none',
+                    overflowY: shifts.length > 6 ? 'auto' : 'visible',
+                    padding: '2px',
+                  }}
+                >
+                  {shifts.map((s: any) => {
+                    const isSelected = String(s.id) === String(activeShift?.id);
+                    const shiftCash = Number(s.expectedCash ?? s.expected_cash ?? 0);
+                    const isShort = shiftCash < parsedAmount;
+                    const cashierName = String(s.openedByName || s.opened_by_name || 'الكاشير');
+                    const isMyShift = String(s.openedById || s.opened_by) === String(currentUser?.id);
+
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedShiftId(String(s.id))}
+                        style={{
+                          background: isSelected ? '#ffffff' : '#f8fafc',
+                          border: isSelected ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                          borderRadius: 8,
+                          padding: '7px 10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          minHeight: '58px',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 4 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                              <strong style={{ fontSize: '0.8rem', color: isSelected ? '#170e5e' : '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                                {cashierName}
+                              </strong>
+                              {isMyShift && (
+                                <span style={{ fontSize: '0.68rem', background: '#e0e7ff', color: '#3730a3', padding: '1px 4px', borderRadius: 3, fontWeight: 700 }}>
+                                  درجك
+                                </span>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: 1, direction: 'ltr', textAlign: 'right' }}>
+                              {s.docNo || `#${s.id}`}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              width: 14,
+                              height: 14,
+                              borderRadius: '50%',
+                              border: isSelected ? '4px solid #170e5e' : '2px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              boxSizing: 'border-box',
+                              flexShrink: 0,
+                              marginTop: 1,
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ marginTop: 5, paddingTop: 4, borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#64748b', flexShrink: 0 }}>الرصيد:</span>
+                          <strong dir="ltr" style={{ fontSize: '0.74rem', fontWeight: 800, whiteSpace: 'nowrap', color: shiftCash < 0 ? '#b45309' : (isShort ? '#dc2626' : '#166534') }}>
+                            {money(shiftCash)}
+                          </strong>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : activeShift ? (
                 <div
                   style={{
                     background: '#f8fafc',
@@ -694,7 +1105,7 @@ export function QuickCashAdvanceModal() {
                     fontSize: '0.78rem',
                   }}
                 >
-                  <strong>تنبيه رقابي:</strong> ليس لديك وردية كاشير مفتوحة حالياً للصرف منها.
+                  <strong>تنبيه رقابي:</strong> لا توجد وردية كاشير مفتوحة حالياً للصرف منها.
                 </div>
               )}
             </div>
@@ -716,7 +1127,7 @@ export function QuickCashAdvanceModal() {
               </div>
             )}
 
-            <div className="actions compact-actions field-wide" style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <div style={{ marginTop: 6, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>
                 {t('hr.quick_cash_advance_modal.cancel', 'إلغاء')}
               </Button>
@@ -736,8 +1147,8 @@ export function QuickCashAdvanceModal() {
                 {mutation.isPending
                   ? 'جاري الصرف والتسجيل...'
                   : requiresManagerAuth
-                    ? 'اعتماد وصرف السلفة'
-                    : 'صرف المسحوب من المستحقات'}
+                    ? (activeTab === 'payout' ? (isEarlyWagePayout ? 'اعتماد وصرف تسوية مبكرة' : 'اعتماد وصرف الراتب') : 'اعتماد وصرف السلفة')
+                    : (activeTab === 'payout' ? 'تأكيد صرف الراتب وتصفية الرصيد' : 'صرف المسحوب من المستحقات')}
               </Button>
             </div>
           </form>

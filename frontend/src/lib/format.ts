@@ -16,6 +16,11 @@ export function formatCurrencyWithSymbol(value: number | string | undefined | nu
   return `${formatCurrency(value, code)} ${symbol}`;
 }
 
+export function formatCurrencyWithCode(value: number | string | undefined | null, currencyCode?: string | null): string {
+  const code = currencyCode || getGlobalSystemCurrency();
+  return `${formatCurrency(value, code)} ${code}`;
+}
+
 export function formatWhatsAppNumber(phone: string) {
   let cleaned = String(phone || '').replace(/\D/g, '');
   if (cleaned.startsWith('00')) cleaned = cleaned.substring(2);

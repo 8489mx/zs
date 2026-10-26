@@ -18,13 +18,26 @@
   - رصد واستقطاع السلف القائمة والمسحوبات غير المسددة من جدول `hr_employee_loans`.
   - حساب صافي الرصيد المتاح (`netAvailableBalance`) وتحديد أهلية الصرف المباشر (`canDisburseDirectly`).
 - **قواعد الصرف والرقابة المالية والدرج النقدية (`hr.service.ts` -> `createQuickCashAdvance`):**
-  - إذا كان المبلغ المطلوب ضمن رصيد الموظف المستحق: يُسمح للكاشير بالصرف المباشر وتوثيق المسحوب على درج الوردية المفتوحة وقيد سند الخزينة وقيد اليومية المحاسبي.
-  - إذا تجاوز المبلغ الرصيد المتاح أو كان الموظف بدون رصيد مستحق: تُطلب كلمة مرور المدير أو رمز PIN للاعتماد الإداري كـ "سلفة على المكشوف".
+  - دعم التبويب المزدوج: `actionType === 'advance'` (سلفة على الحساب مسموحة في أي يوم خلال الدورة) مقابل `actionType === 'wage_payout'` (صرف الراتب وتصفية مستحقات الفترة).
+  - **حوكمة مواعيد القبض الرسمية (Due Date Governance):**
+    - اليومي: مستحق للصرف يومياً.
+    - الأسبوعي: مستحق يوم الخميس/الجمعة، وفي باقي أيام الأسبوع يتطلب الصرف موافقة المدير.
+    - النصف شهري: مستحق يوم 15/16 ونهاية الشهر.
+    - الشهري: مستحق في نهاية دورة الشهر (يوم 28 فما فوق).
+    - الصرف المبكر قبل موعد الاستحقاق (`isEarlyWagePayout`): محظور على الكاشير ويتطلب إدخال كلمة مرور المدير أو رمز PIN لاعتماده كـ "تسوية وصرف مبكر / إخلاء طرف"، بينما للمدير متاح مباشرة مع توثيق السجل.
+  - إذا كان المبلغ المطلوب ضمن رصيد الموظف ومستحق الموعد: يُسمح للكاشير بالصرف المباشر وتوثيق المسحوب على درج الوردية المفتوحة وقيد سند الخزينة (`reference_type: 'cashier_shift'`) وقيد اليومية المحاسبي (Dr 1160 / Cr 1110)، مع إعادة بناء مسير الرواتب النشط لمنع ازدواجية الصرف.
+  - إذا تجاوز المبلغ الرصيد المتاح: تُطلب كلمة مرور المدير أو رمز PIN للاعتماد الإداري كـ "سلفة على المكشوف".
 - **الواجهة والتجربة المؤسسية (`QuickCashAdvanceModal.tsx`):**
   - تفعيل الاختصار العالمي `Ctrl + Alt + X` للوصول الفوري في أي شاشة (نقاط البيع POS، المبيعات، أو لوحات التحكم).
-  - تثبيت الكروت الثلاثة الاستراتيجية بصورة دائمة في صلب النافذة (المستحق له، السلف السابقة، صافي رصيده المتاح).
-  - توفير أزرار سريعة لتعبئة كامل المتاح أو النصف، مع إظهار شارة الصرف المباشر المعتمد.
-  - اختبارات الوحدة: `employee-withdrawal-balance.engine.spec.ts` (4 اختبارات معتمدة 100%).
+  - توفير تبويبين متكاملين: **[سلفة / مسحوب على الحساب]** و **[صرف الراتب وتصفية المستحقات]** مع ملء تلقائي لصافي المستحق والملاحظات.
+  - تثبيت الكروت الثلاثة الاستراتيجية بصورة دائمة (الأجر المستحق، المسحوبات والسلف، المتاح للصرف) مع نصوص فرعية ديناميكية تتكيف مع ساعات العمل، أو أيام الاستحقاق اليومية، أو شهر العقد، وعرض ميعاد القبض القادم والأيام المتبقية.
+  - ثبات الأبعاد ومنع القفز (Anti-Ballooning): اعتماد `minHeight="590px"` ومسار توجيه بارتفاع محجوز موحد يمنع أي تغير في أبعاد النافذة عند التبديل بين التبويبين.
+  - اختبارات الوحدة: `employee-withdrawal-balance.engine.spec.ts` (5 اختبارات معتمدة 100% بنجاح تشمل محرك المواعيد).
+
+### قدرة: التكييف الذكي الديناميكي لمسميات الأجر والراتب الأساسي (Smart Dynamic Wage vs Salary Labeling) — 26 أكتوبر 2026
+- **التكييف السياقي بحسب نظام التعاقد ودورة الصرف (`HrPayrollPage.tsx`, `HrPayrollTopSections.tsx`, `PayrollReviewItemModal.tsx`):**
+  - **كشوف اليومية والساعة والأسبوعي:** التحول التلقائي النظيف من مصطلح "الراتب الأساسي" إلى **"الأجر الأساسي"** في ترويسة الجدول، و**"الأجور الأساسية"** في بطاقات المؤشرات العلوية KPI، مع الحفاظ على التصميم المؤسسي النظيف وتفقيط الساعات أسفل المبلغ `(40 س × 20.00 ج.م/س)` دون أي شارات أو عناصر بصرية دخيلة.
+  - **قسائم واستمارات الصرف المطبوعة (A4 / Thermal Slip):** توليد مستند "قسيمة استلام أجر (Wage Payslip)" وإيصال الأجر الحراري وتوقيع "العامل / الموظف بالاستلام" تلقائياً عند طباعة موظف بالساعة/اليومية، والحفاظ على قسيمة الراتب للموظف الشهري.
 
 ## فهرس الأقسام المنقولة
 
@@ -35,6 +48,8 @@
 - [75. محرك تصفية المستحقات ومكافأة نهاية الخدمة والعهد (HR End of Service Settlement & Gratuity Engine)](#cap-100)
 - [183. منظومة تتبع المتقدمين للوظائف ومجمعات المواهب (Recruitment ATS & Talent Pools)](#cap-217)
 - [HR, Payroll, Loans and End-of-Service Hardening (5 October 2026)](#cap-234)
+- [Automated Statutory Policy Jurisdiction & Non-Blocking Payroll Approvals (26 October 2026)](#cap-236)
+- [Individual Employee Disbursement & POS Cash Drawer Integration (26 October 2026)](#cap-237)
 
 ## السجل المنقول من الفهرس المركزي
 
@@ -230,5 +245,90 @@
   - Total non-statutory deductions are bounded by the 50% gross salary cap. Loan installments only take remaining pool; any shortfall is deferred (`deferredLoanDeduction`) without forgiving uncollected debt. Excess operational penalties are tracked as `carriedForwardDeduction`. Net pay is guaranteed non-negative (`>= 0`).
 - **Critical Tests:** Verified 100% green via `backend/test/critical/payroll-calculation-engine.spec.ts` (all 6 test suites passing) and `backend/test/critical/phase6-hr-eos.spec.ts` (all 14 test suites passing).
 
-
 <!-- migrated:cap-234:end -->
+
+<a id="cap-235"></a>
+<!-- migrated:cap-235:start -->
+## Cashier Quick Cash Advance & Wage Payout Governance (26 October 2026)
+
+- **Dual-Tab Operational Architecture (`Ctrl + Alt + X`):**
+  - **Tab 1: Cash Advance (`سلفة / مسحوب على الحساب`):**
+    - Governs intra-cycle borrowings with strict cashier limits:
+      - Direct Cashier Advance Cap (`maxDirectAdvance`): Capped at conservative **50%** of net accrued earnings AND absolute monetary ceiling of **2,000 EGP** per single POS drawer advance.
+      - Any advance exceeding 50% or 2,000 EGP, or overdraft advance (`isOverdraft`), strictly requires Manager PIN / Admin Password authorization (`HR_ADVANCE_OVER_DIRECT_CAP_REQUIRES_MANAGER_APPROVAL` / `HR_ADVANCE_MANAGER_APPROVAL_REQUIRED`).
+      - Smart non-lethal quick buttons: `[سلفة 25%]`, `[الحد المباشر 50%]`, and `[كامل المستحق (اعتماد مدير)]`.
+  - **Tab 2: Wage Payout & Settlement (`صرف وتسوية الراتب`):**
+    - Formal period wage settlement:
+      - Enforces official pay cycle due date (`resolvePayoutSchedule` across daily, weekly, biweekly, and monthly frequencies).
+      - Early wage payout before the period end strictly locks direct cashier disbursement, requiring Manager PIN/Password (`HR_EARLY_PAYOUT_REQUIRES_MANAGER_APPROVAL`) and tagging records with `[تسوية وصرف أجر مبكر معتمد برمز المدير: ...]`.
+      - Automatic reconciliation with approved payroll runs: marks approved run items as `status = 'paid'` to prevent double payouts.
+- **Accrual Leak Sealing & Strict Proration (`employee-withdrawal-balance.engine.ts`):**
+  - Eliminated the critical vulnerability where active unfinalized draft payroll runs credited 100% of future unworked days.
+  - Ongoing or draft payroll runs (`runStatus !== 'approved'` or `todayDate < cycleEnd`) are strictly prorated by elapsed days (`daysElapsed / totalCycleDays`), recognizing only earned days up to `today`.
+- **Shift Drawer Liquidity Guard (`cashier_shifts`):**
+  - Verifies shift drawer expected cash (`expected_cash >= amount`) before disbursement, blocking cashiers from driving drawer liquidity into the negative without manager approval (`HR_DRAWER_INSUFFICIENT_CASH`).
+- **Verifications:**
+  - `backend/src/modules/hr/engines/employee-withdrawal-balance.engine.spec.ts`: 100% green across hourly, debit, monthly proration, draft vs approved run handling, and 4 payout schedule frequencies.
+<!-- migrated:cap-235:end -->
+
+<a id="cap-236"></a>
+<!-- migrated:cap-236:start -->
+## Automated Statutory Policy Jurisdiction & Non-Blocking Payroll Approvals (26 October 2026)
+
+- **System-Wide Country & Currency Auto-Inference (`inferStatutoryCountry`):**
+  - Seamlessly maps tenant accounting currency to legal jurisdiction (`EGP` -> `EG`, `SAR` -> `SA`, `KWD` -> `KW`, `QAR` -> `QA`, `OMR` -> `OM`) or falls back to system tenant settings (`settings.country`).
+  - Pre-populates clean defaults: `statutoryEffectiveFrom = '2020-01-01'` and `statutoryLegalReference = 'اللائحة الداخلية للمنشأة'`.
+- **Non-Blocking Payroll Approval (`approvePayrollRun`):**
+  - Eliminated the error `حدد الدولة وتاريخ السريان والمرجع القانوني وأكد المراجعة قبل حساب الاستقطاعات` when approving payroll runs.
+  - For standard tenants without statutory deductions (`!hrSocialInsuranceEnabled && !hrIncomeTaxEnabled`), `statutoryReviewed` is automatically verified (`true`), and currency strictness checks are skipped so basic payroll approvals are never blocked.
+  - When statutory deductions are enabled, currency matching and date ranges validate against auto-inferred system settings seamlessly.
+- **Streamlined UI in HR Settings (`HrSettingsStaticSections.tsx`):**
+  - Replaced the intimidating manual statutory input banner with an automatic system badge: `دولة المرتبات: مصر (EGP) (تلقائياً من إعدادات النظام)`.
+  - Removed manual date-of-validity restrictions and manual review checkboxes.
+  - Focused the screen strictly on business-essential toggles: Social Insurance rates and Income Tax brackets.
+- **Verifications:**
+  - `backend/test/critical/hr-statutory-policy.spec.ts`: 100% green.
+  - `backend/test/critical/hr-payroll-run-engine.spec.ts`: 100% green.
+<!-- migrated:cap-236:end -->
+<a id="cap-237"></a>
+<!-- migrated:cap-237:start -->
+## Individual Employee Disbursement & POS Cash Drawer Integration (26 October 2026)
+
+- **Individual Employee Payout Workflow (`payPayrollRunItem`):**
+  - Added dedicated endpoint `POST /api/hr/payroll-run-items/:id/pay` and service method allowing retail and branch managers to pay individual employees on their specific payday without waiting for or forcing full-run bulk disbursements.
+  - Generates atomic double-entry accounting journals (`postPayrollItemPayment` Dr 2140 / Cr 1110 Drawer/Treasury or 1120 Bank) tagged with the specific employee's identity and run metadata.
+  - Logs transaction in `hr_employee_ledger` with `entry_type = 'wage_payout'` and auto-updates run status to `partially_paid` while items remain, or `paid` once all approved employees are cleared.
+- **POS Cash Drawer Disbursement (`channel = 'drawer'`):**
+  - Solved cash disbursement for small retail shops and outlets where neither a central treasury nor a corporate bank account is available.
+  - Multi-Cashier Live Shift Selection: When multiple cashier shifts are open concurrently across POS counters, managers/admins have a complete real-time readout of every open cash drawer, the responsible cashier name, and expected cash balance (`expected_cash`), allowing them to pick whichever cashier's drawer to pay out from.
+  - Automatically queries active open cashier shifts (`/api/cashier-shifts?status=open`), detecting all cashiers, doc numbers, and available drawer balances (`expected_cash`).
+  - Evaluates real-time shift liquidity dynamically via `CashDrawerService.computeShiftExpectedCash(shiftId, auth, trx)`, taking into account opening cash, cash sales, and manual drawer movements instead of stale static column values.
+  - Guards against insufficient cash in the selected drawer with real-time liquidity checking, providing an administrative overdraft exception toggle (`allowOverdraft`).
+  - Automatically deducts the disbursed wage amount from the selected `cashier_shifts.expected_cash` and writes a corresponding `cash_out` record to `treasury_transactions` referencing the cashier and shift ID for audit and shift close reconciliation.
+- **Unified Payout Modal Architecture (`PayPayrollRunModal`):**
+  - Upgraded from legacy native select to modern `StandardDialog` architecture matching Z-Systems visual standards.
+  - Supports both target-item mode (paying a single approved employee) and bulk-run mode (paying all approved items).
+  - Three clean operational channels:
+    1. **درج الكاشير (ورديات النقدية النشطة)**: Live multi-shift drawer selection, expected cash readout per cashier, active shift switching, and shortfall warning.
+    2. **الخزينة العامة (الصندوق الرئيسي)**: Direct cash ledger outflow.
+    3. **تحويل بنكي / محفظة إلكترونية**: Formal bank transaction reference tracking.
+- **Direct Subtable & Employee Detail Screen Triggers:**
+  - Added instant `[صرف الراتب الآن]` button and `[تم الصرف (مدفوع)]` badge inside the employee review modal `PayrollReviewItemModal` (in both the Net Payable banner and footer actions).
+  - Added quick `[صرف]` action button in `HrPayrollPage` items subtable for rows with `status === 'approved'`.
+  - Added `partially_paid` ("صرف جزئي") badge and `[صرف المتبقي]` button to `PayrollRunsTable`.
+- **Database Schema & Constraints:**
+  - Migration `2040000000257_hr_payroll_individual_and_drawer_disbursement.ts` added check constraint support for `partially_paid` and `drawer`, plus item tracking columns (`paid_at`, `paid_by`, `payment_channel`, `payment_reference`, `shift_id`, `journal_entry_id`).
+- **Financial Statement & Ledger Zero-Discrepancy Synchronization:**
+  - Upgraded `buildEmployeeFinancialStatement` (`employee-financial-statement.engine.ts`) to recognize individual item payouts (`itemStatus = 'paid'`) and runs in `partially_paid` state, guaranteeing that an individual payout accurately zeroes the employee's net financial balance to `0.00` (`status = 'settled'`).
+  - Anchored gross entitlement timestamps chronologically before net payout timestamps when salaries are disbursed early to prevent phantom negative dips in running ledger calculations.
+  - Aligned `hr.service.ts` (`getEmployeeFinancialStatement` and `getEmployeeWithdrawalBalance`) to `COALESCE` item-level and run-level payment metadata and prevent double-withdrawal of already disbursed pay cycles.
+- **Verification & Stress Simulations:**
+  - `backend/test/critical/hr-payroll-comprehensive-master-simulation.spec.ts`: 100% green.
+    1. Cash advance lifecycle + payroll deduction + cash drawer disbursement + 100% zeroed statement.
+    2. Individual early disbursement vs pending disbursement (`partially_paid` run state).
+    3. All 4 pay frequency cycles (`monthly`, `biweekly`, `weekly`, `daily`) and due date resolutions.
+    4. Monte Carlo 50,000 synthetic real-world iterations across all salary, advance, and cap combinations (passed in 1.4s).
+    5. Double-entry accounting GL balance reconciliation (total debit = total credit, discrepancy = 0.00).
+<!-- migrated:cap-237:end -->
+
+

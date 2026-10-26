@@ -71,6 +71,7 @@ export interface Product {
   trackSerials?: boolean;
   matchedSerialNumber?: string | null;
   icon?: string | null;
+  imageUrl?: string | null;
   metadata?: Record<string, any>;
 }
 

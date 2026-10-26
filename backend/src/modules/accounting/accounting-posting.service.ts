@@ -3425,6 +3425,87 @@ export class AccountingPostingService {
       throw e;
     }
   }
+
+  async postPayrollItemPayment(
+    queryable: DbOrTx,
+    itemId: number,
+    paymentChannel: string,
+    auth: AuthContext,
+    options?: { branchId?: number | null; locationId?: number | null; employeeName?: string }
+  ): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    const existing = await queryable
+      .selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', '=', 'hr_payroll_item_payment')
+      .where('source_id', '=', itemId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    const item = await queryable
+      .selectFrom('hr_payroll_run_items')
+      .select(['id', 'run_id', 'employee_id', 'net_pay', 'status'])
+      .where('id', '=', itemId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+
+    if (!item) throw new AppError('بند الراتب غير موجود', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
+    const netPay = this.toMoney(item.net_pay || 0);
+    if (netPay <= 0) throw new AppError('صافي الأجر صفر أو سالب', 'HR_PAYROLL_PAYMENT_ZERO', 400);
+
+    const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
+    const paymentAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, paymentChannel === 'bank' ? '1120' : '1110');
+
+    const empLabel = options?.employeeName ? ` - ${options.employeeName}` : '';
+    const lines: JournalLineDraft[] = [];
+    this.addLine(lines, {
+      accountId: payableAccountId,
+      description: `سداد مستحقات أجر الموظف #${item.employee_id}${empLabel} (مسير #${item.run_id})`,
+      debit: netPay,
+      credit: 0,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: options?.branchId ?? null,
+      locationId: options?.locationId ?? null,
+    });
+    this.addLine(lines, {
+      accountId: paymentAccountId,
+      description: `صرف أجر الموظف #${item.employee_id}${empLabel} عبر ${paymentChannel === 'drawer' ? 'درج الكاشير' : paymentChannel === 'bank' ? 'البنك' : 'الخزينة'}`,
+      debit: 0,
+      credit: netPay,
+      partnerType: 'none',
+      partnerId: null,
+      branchId: options?.branchId ?? null,
+      locationId: options?.locationId ?? null,
+    });
+
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'hr_payroll_item_payment',
+        sourceId: itemId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد صرف أجر موظف #${item.employee_id}${empLabel} - مسير #${item.run_id}`,
+        branchId: options?.branchId ?? null,
+        locationId: options?.locationId ?? null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505') {
+        const existingId = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'hr_payroll_item_payment').where('source_id', '=', itemId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existingId?.id || 0) };
+      }
+      throw e;
+    }
+  }
+
   async postEmployeeLoanDisbursement(queryable: DbOrTx, loanId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);

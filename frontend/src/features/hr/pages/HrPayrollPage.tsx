@@ -30,7 +30,7 @@ import { systemConfirm, toast } from '@/shared/components/system-alert';
 import { PrinterIcon, FileTextIcon } from '@/shared/components/icons/AppIcons';
 import { PayrollWpsExportModal } from '@/features/hr/components/payroll/PayrollWpsExportModal';
 import { CreatePayrollRunModal, type PayrollDraft } from '../components/payroll/CreatePayrollRunModal';
-import { PayPayrollRunModal } from '../components/payroll/PayPayrollRunModal';
+import { PayPayrollRunModal, type PayPayrollTargetItem } from '../components/payroll/PayPayrollRunModal';
 import { PayrollReviewItemModal } from '../components/payroll/PayrollReviewItemModal';
 import { PayrollRunsTable, type PayrollRunTab } from '../components/payroll/PayrollRunsTable';
 
@@ -105,8 +105,21 @@ export function HrPayrollPage() {
   const [showCreateRun, setShowCreateRun] = useState(false);
   const [showPayRun, setShowPayRun] = useState(false);
   const [showWpsModal, setShowWpsModal] = useState(false);
-  const [payChannel, setPayChannel] = useState<'cash' | 'bank'>('cash');
-  const [paymentReference, setPaymentReference] = useState('');
+  const [payModalTargetItem, setPayModalTargetItem] = useState<PayPayrollTargetItem | null>(null);
+
+  const handleOpenPayItemModal = (item: HrPayrollRunItem) => {
+    setSelectedReviewItem(null);
+    setPayModalTargetItem({
+      itemId: Number(item.id),
+      runId: Number((item as any).payrollRunId || (item as any).runId || selectedRunId),
+      employeeId: Number(item.employeeId),
+      employeeName: item.employeeName || 'موظف',
+      employeeNo: item.employeeNo ? String(item.employeeNo) : undefined,
+      netPay: Number(item.netPay || 0),
+      periodMonth: selectedRun?.periodMonth,
+    });
+    setShowPayRun(true);
+  };
 
   const workspace = useHrWorkspace({ page, pageSize, month: monthFilter });
   const payrollRunDetails = useHrPayrollRun(selectedRunId || undefined);
@@ -208,6 +221,25 @@ export function HrPayrollPage() {
       return true;
     });
   }, [departmentFilter, employeesMap, reviewStatusFilter, runItems, search, selectedEmployeeId]);
+
+  const isSelectedRunHourlyOrWeekly = useMemo(() => {
+    const freq = normalize(selectedRun?.payFrequency);
+    if (freq === 'weekly' || freq === 'daily') return true;
+    if (!filteredRunItems.length) return false;
+    return filteredRunItems.every(
+      (row) => normalize(row.compensationType) === 'hourly' || (Number(row.hourlyRate || 0) > 0 && normalize(row.compensationType) !== 'monthly')
+    );
+  }, [selectedRun?.payFrequency, filteredRunItems]);
+
+  const baseCompensationHeader = isSelectedRunHourlyOrWeekly
+    ? 'الأجر الأساسي'
+    : (isEg ? 'المرتب الأساسي' : 'الراتب الأساسي');
+
+  const topKpiBaseSalaryLabel = isSelectedRunHourlyOrWeekly
+    ? 'الأجور الأساسية'
+    : (isEg ? 'المرتبات الأساسية' : 'الرواتب الأساسية');
+
+  const topKpiNetPayLabel = isEg ? 'صافي المرتبات' : 'صافي الرواتب';
 
   const runStatusOptions = [
     { value: 'all', label: 'كافة الحالات' },
@@ -368,7 +400,7 @@ export function HrPayrollPage() {
     });
     if (!confirmed) return;
     try {
-      await mutations.cancelPayrollRun?.mutateAsync(runId);
+      await mutations.cancelPayrollRun.mutateAsync(runId);
       toast.success(isEg ? 'تم إلغاء كشف المرتبات بنجاح.' : 'تم إلغاء مسير الرواتب بنجاح.');
       setSelectedRunId('');
     } catch (err) {
@@ -457,29 +489,6 @@ export function HrPayrollPage() {
     }
   };
 
-  const handlePayRun = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!selectedRunId) return;
-    try {
-      setFormError('');
-      const transferRef = paymentReference.trim();
-      if (payChannel === 'bank' && !transferRef) {
-        setFormError('المرجع الفعلي للتحويل البنكي مطلوب قبل تسجيل الصرف.');
-        return;
-      }
-      await mutations.payPayrollRun?.mutateAsync({
-        id: selectedRunId,
-        payload: { paymentChannel: payChannel, paymentReference: payChannel === 'bank' ? transferRef : undefined },
-      });
-      setShowPayRun(false);
-      setPaymentReference('');
-      toast.success('تم تسجيل صرف المرتبات بنجاح.');
-    } catch (err) {
-      setFormError(getErrorMessage(err));
-      toast.error(getErrorMessage(err));
-    }
-  };
-
   const handleAddAdjustment = async (payload: { adjustmentType: 'allowance' | 'deduction'; label: string; amount: number; notes?: string }) => {
     if (!activeReviewItem) return;
     try {
@@ -540,7 +549,7 @@ export function HrPayrollPage() {
               <span style="color: #64748b; font-size: 10.5px;">قطاع الموارد البشرية والمالية</span>
             </div>
             <div class="header-center">
-              <h1>كشف تسليم الرواتب</h1>
+              <h1>${isSelectedRunHourlyOrWeekly ? 'كشف تسليم أجور العاملين' : (isEg ? 'كشف تسليم المرتبات' : 'كشف تسليم الرواتب')}</h1>
               <p>خاص بشهر: ${payrollPrintHtmlText(text(selectedRun?.periodMonth))} | الحالة: ${payrollPrintHtmlText(statusLabel(selectedRun?.status))}</p>
             </div>
             <div class="header-meta" style="text-align: left;">
@@ -554,7 +563,7 @@ export function HrPayrollPage() {
                 <th style="width: 35px; text-align: center; white-space: nowrap;">م</th>
                 <th style="width: 75px; text-align: center; white-space: nowrap;">كود الموظف</th>
                 <th style="width: 1%; white-space: nowrap;">اسم الموظف</th>
-                <th style="width: 140px; text-align: center; white-space: nowrap;">صافي الراتب المستحق</th>
+                <th style="width: 140px; text-align: center; white-space: nowrap;">${isSelectedRunHourlyOrWeekly ? 'صافي الأجر المستحق' : 'صافي الراتب المستحق'}</th>
                 <th style="text-align: center;">التوقيع / ملاحظات</th>
               </tr>
             </thead>
@@ -569,7 +578,7 @@ export function HrPayrollPage() {
                 </tr>
               `).join('')}
               <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 12.5px;">
-                <td colspan="3" style="text-align: left; padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; white-space: nowrap;">إجمالي الرواتب المستحقة:</td>
+                <td colspan="3" style="text-align: left; padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; white-space: nowrap;">${isSelectedRunHourlyOrWeekly ? 'إجمالي الأجور المستحقة:' : 'إجمالي الرواتب المستحقة:'}</td>
                 <td class="amount" style="padding: 8px 10px; border: 1px solid #cbd5e1; color: #0f172a; font-size: 13px; text-align: center;">${payrollPrintHtmlText(money(summary.totalNet))}</td>
                 <td style="border: 1px solid #cbd5e1; background-color: #f8fafc;"></td>
               </tr>
@@ -618,7 +627,7 @@ export function HrPayrollPage() {
     printWindow.document.write(`
       <html dir="rtl" lang="ar">
         <head>
-          <title>${isEg ? 'كشف المرتبات المالي والتفصيلي' : 'مسير الرواتب المالي والتفصيلي'} - ${text(selectedRun?.periodMonth)}</title>
+          <title>${isSelectedRunHourlyOrWeekly ? 'كشف أجور العاملين المالي والتفصيلي' : (isEg ? 'كشف المرتبات المالي والتفصيلي' : 'مسير الرواتب المالي والتفصيلي')} - ${text(selectedRun?.periodMonth)}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
             @page { size: landscape; margin: 8mm 10mm; }
@@ -654,8 +663,8 @@ export function HrPayrollPage() {
               قطاع الموارد البشرية والمالية
             </div>
             <div class="header-center">
-              <h1>${isEg ? 'كشف المرتبات المالي والتفصيلي' : 'مسير الرواتب المالي والتفصيلي'}</h1>
-              <p>كشف استحقاقات واستقطاعات شهر: ${text(selectedRun?.periodMonth)} | الحالة: ${statusLabel(selectedRun?.status)}</p>
+              <h1>${isSelectedRunHourlyOrWeekly ? 'كشف أجور العاملين المالي والتفصيلي' : (isEg ? 'كشف المرتبات المالي والتفصيلي' : 'مسير الرواتب المالي والتفصيلي')}</h1>
+              <p>${isSelectedRunHourlyOrWeekly ? 'كشف استحقاقات واستقطاعات أجور فترة:' : 'كشف استحقاقات واستقطاعات شهر:'} ${text(selectedRun?.periodMonth)} | الحالة: ${statusLabel(selectedRun?.status)}</p>
             </div>
             <div class="header-meta" style="text-align: left;">
               تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}<br>
@@ -671,11 +680,11 @@ export function HrPayrollPage() {
                 <th rowspan="2" style="width: 1%; white-space: nowrap; text-align: right;">اسم الموظف</th>
                 <th colspan="3" class="th-earnings">الاستحقاقات المالية (Earnings)</th>
                 <th colspan="3" class="th-deductions">الاستقطاعات والجزاءات (Deductions)</th>
-                <th rowspan="2" class="th-net" style="width: 110px;">صافي الراتب المستحق</th>
+                <th rowspan="2" class="th-net" style="width: 110px;">${isSelectedRunHourlyOrWeekly ? 'صافي الأجر المستحق' : 'صافي الراتب المستحق'}</th>
                 <th rowspan="2" style="width: 120px;">ملاحظات التدقيق</th>
               </tr>
               <tr>
-                <th class="th-earnings" style="width: 90px;">الأساسي</th>
+                <th class="th-earnings" style="width: 90px;">${isSelectedRunHourlyOrWeekly ? 'أجر الساعات' : 'الأساسي'}</th>
                 <th class="th-earnings" style="width: 80px;">البدلات/الإضافي</th>
                 <th class="th-earnings" style="width: 95px;">إجمالي المستحق</th>
                 <th class="th-deductions" style="width: 85px;">تأخير/غياب</th>
@@ -719,7 +728,7 @@ export function HrPayrollPage() {
                 `;
               }).join('')}
               <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 12px; border-top: 2px solid #94a3b8;">
-                <td colspan="3" style="text-align: left; padding: 8px 10px; color: #0f172a;">${isEg ? 'الإجماليات العامة لكشف المرتبات:' : 'الإجماليات العامة للمسير:'}</td>
+                <td colspan="3" style="text-align: left; padding: 8px 10px; color: #0f172a;">${isSelectedRunHourlyOrWeekly ? 'الإجماليات العامة لكشف الأجور:' : (isEg ? 'الإجماليات العامة لكشف المرتبات:' : 'الإجماليات العامة للمسير:')}</td>
                 <td class="amount">${money(totalBase)}</td>
                 <td class="amount pos">${money(totalAllowances)}</td>
                 <td class="amount pos" style="font-size: 12.5px;">${money(totalGross)}</td>
@@ -814,6 +823,8 @@ export function HrPayrollPage() {
                 hasCreatePayrollRun={hasCreatePayrollRun}
                 isCreatePending={mutations.createPayrollRun.isPending}
                 isEgypt={isEg}
+                baseSalaryLabel={topKpiBaseSalaryLabel}
+                netPayLabel={topKpiNetPayLabel}
                 onMonthFilterChange={(value) => { setMonthFilter(value); setPage(1); }}
                 onSearchChange={setSearch}
                 onDepartmentFilterChange={setDepartmentFilter}
@@ -825,14 +836,14 @@ export function HrPayrollPage() {
 
               {selectedRun && canViewSalaryAmounts && summary.itemCount > 0 && summary.totalBaseSalary <= 0 ? (
                 <div className="error-box" style={{ marginBottom: 12 }}>
-                  <strong>تنبيه: الأجر الأساسي لكل موظفي الكشف صفر.</strong>
+                  <strong>تنبيه: {isSelectedRunHourlyOrWeekly ? 'الأجر الأساسي' : 'الراتب الأساسي'} لكل موظفي الكشف صفر.</strong>
                   <p style={{ margin: '6px 0' }}>راجع نوع الأجر وفترة القبض والعقد النشط للموظف الشهري، أو سعر الساعة وسجلات الحضور المكتملة للموظف بالساعة. لا تعتمد الكشف قبل تصحيح البيانات وإعادة الحساب.</p>
                   <Button type="button" variant="secondary" onClick={() => navigate('/hr/employees')}>مراجعة بيانات الموظفين</Button>
                 </div>
               ) : null}
               {selectedRun && canViewSalaryAmounts && runItems.some(item => Number(item.baseSalary || 0) <= 0) ? (
                 <div style={{ background: '#fff7ed', border: '1px solid #fdba74', borderRadius: 8, padding: 10, marginBottom: 12 }}>
-                  <strong>موظفون يحتاجون مراجعة الراتب:</strong>
+                  <strong>موظفون يحتاجون مراجعة {isSelectedRunHourlyOrWeekly ? 'الأجر' : 'الراتب'}:</strong>
                   <div className="actions compact-actions" style={{ marginTop: 8, flexWrap: 'wrap' }}>
                     {runItems.filter(item => Number(item.baseSalary || 0) <= 0).slice(0, 8).map(item => (
                       <Button key={String(item.id)} type="button" variant="secondary"
@@ -866,7 +877,7 @@ export function HrPayrollPage() {
                 onRecalculate={(id) => void handleRecalculateRun(id)}
                 onReviewClick={(id) => handleRunActionClick(id, 'review')}
                 onApproveClick={(id) => handleRunActionClick(id, 'approve')}
-                onPayClick={(id) => { setSelectedRunId(id); setShowPayRun(true); }}
+                onPayClick={(id) => { setSelectedRunId(id); setPayModalTargetItem(null); setShowPayRun(true); }}
                 onCancel={(id) => void handleCancelRun(id)}
                 isEgypt={isEg}
               />
@@ -936,7 +947,7 @@ export function HrPayrollPage() {
                           { key: 'employeeName', header: t('hr.hr_payroll_page.s15', "اسم الموظف"), cell: (row) => <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{text(row.employeeName)}</span> },
                           {
                             key: 'baseSalary',
-                            header: t('hr.hr_payroll_page.s16', "الراتب الأساسي"),
+                            header: baseCompensationHeader,
                             cell: (row) => {
                               if (!canViewSalaryAmounts) return '—';
                               const isHourly = normalize(row.compensationType) === 'hourly' || (Number(row.hourlyRate || 0) > 0 && normalize(row.compensationType) !== 'monthly');
@@ -958,9 +969,102 @@ export function HrPayrollPage() {
                           { key: 'allowanceAmount', header: t('hr.hr_payroll_page.s17', "البدلات والإضافي"), cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
                           { key: 'deductionAmount', header: t('hr.hr_payroll_page.s18', "الخصومات"), cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
                           { key: 'loanDeductionAmount', header: t('hr.hr_payroll_page.s19', "السلف/الأقساط"), cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },
-                          { key: 'netPay', header: t('hr.hr_payroll_page.s20', "صافي الراتب"), cell: (row) => canViewSalaryAmounts ? money(row.netPay) : '—' },
-                          { key: 'status', header: t('hr.hr_payroll_page.s21', "الحالة"), cell: (row) => statusLabel(row.status) },
-                          { key: 'details', header: t('hr.hr_payroll_page.s22', "التفاصيل"), cell: (row) => <Button variant="secondary" onClick={() => setSelectedReviewItem(row)} style={{ padding: '2px 8px', fontSize: '0.75rem' }}>{t('hr.hr_payroll_page.s23', "تفاصيل")}</Button> },
+                          {
+                            key: 'netPay',
+                            header: t('hr.hr_payroll_page.s20', "صافي الراتب"),
+                            cell: (row) => canViewSalaryAmounts ? (
+                              <span style={{ fontWeight: 700, color: '#15803d' }}>{money(row.netPay)}</span>
+                            ) : '—',
+                          },
+                          {
+                            key: 'status',
+                            header: t('hr.hr_payroll_page.s21', "الحالة"),
+                            cell: (row) => {
+                              const st = normalize(row.status);
+                              if (st === 'paid') {
+                                return (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      padding: '1px 6px',
+                                      borderRadius: '10px',
+                                      fontSize: '0.69rem',
+                                      fontWeight: 700,
+                                      background: '#f0fdf4',
+                                      color: '#166534',
+                                      border: '1px solid #86efac',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                                    تم الصرف
+                                  </span>
+                                );
+                              }
+                              if (st === 'approved') {
+                                return (
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '3px',
+                                      padding: '1px 6px',
+                                      borderRadius: '10px',
+                                      fontSize: '0.69rem',
+                                      fontWeight: 700,
+                                      background: '#ecfdf5',
+                                      color: '#065f46',
+                                      border: '1px solid #a7f3d0',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+                                    معتمد
+                                  </span>
+                                );
+                              }
+                              return statusLabel(row.status);
+                            },
+                          },
+                          {
+                            key: 'actions',
+                            header: t('hr.hr_payroll_page.s22', "الإجراءات"),
+                            cell: (row) => {
+                              const isApproved = normalize(row.status) === 'approved';
+                              const isRunPayable = selectedRun && ['approved', 'partially_paid'].includes(normalize(selectedRun.status));
+                              const canPayThisItem = canApprovePayroll && isApproved && isRunPayable;
+
+                              return (
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <Button
+                                    variant="secondary"
+                                    onClick={() => setSelectedReviewItem(row)}
+                                    style={{ padding: '2px 8px', fontSize: '0.73rem' }}
+                                  >
+                                    {t('hr.hr_payroll_page.s23', "تفاصيل")}
+                                  </Button>
+                                  {canPayThisItem && (
+                                    <Button
+                                      variant="primary"
+                                      onClick={() => handleOpenPayItemModal(row)}
+                                      style={{
+                                        padding: '2px 8px',
+                                        fontSize: '0.73rem',
+                                        fontWeight: 700,
+                                        background: '#170e5e',
+                                        color: '#ffffff',
+                                      }}
+                                      title="صرف مستحقات هذا الموظف فردياً"
+                                    >
+                                      صرف
+                                    </Button>
+                                  )}
+                                </div>
+                              );
+                            },
+                          },
                         ]}
                       />
                     ) : (
@@ -991,16 +1095,16 @@ export function HrPayrollPage() {
 
       <PayPayrollRunModal
         isOpen={showPayRun}
-        onClose={() => setShowPayRun(false)}
+        onClose={() => {
+          setShowPayRun(false);
+          setPayModalTargetItem(null);
+        }}
         selectedRun={selectedRun}
-        payChannel={payChannel}
-        onPayChannelChange={setPayChannel}
-        paymentReference={paymentReference}
-        onPaymentReferenceChange={setPaymentReference}
-        onSubmit={handlePayRun}
-        isPending={mutations.payPayrollRun?.isPending ?? false}
+        targetItem={payModalTargetItem}
         canApprovePayroll={canApprovePayroll}
-        formError={formError}
+        onSuccess={() => {
+          setPayModalTargetItem(null);
+        }}
       />
 
       {showWpsModal && selectedRun && (
@@ -1025,6 +1129,8 @@ export function HrPayrollPage() {
         onNavigateToEmployee={(employeeId) => navigate(`/hr/employees/${employeeId}`)}
         onPrintSummary={(item) => toast.info(t('hr.hr_payroll_page.s25', "طباعة ملخص للموظف ") + item.employeeName)}
         onPrintDetailed={(item) => toast.info(t('hr.hr_payroll_page.s26', "طباعة تفصيلي للموظف ") + item.employeeName)}
+        onPayItem={handleOpenPayItemModal}
+        canApprovePayroll={canApprovePayroll}
       />
 
       {pendingApprovalAction && (

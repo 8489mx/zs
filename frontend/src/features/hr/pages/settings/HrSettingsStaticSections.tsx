@@ -12,9 +12,17 @@ import {
   BanknotesIcon,
   CalendarDaysIcon,
 } from '@/features/hr/components/HrIcons';
-import { SlidersIcon, CheckShieldIcon } from '@/shared/components/icons/AppIcons';
+import { SlidersIcon, CheckShieldIcon, GlobeIcon } from '@/shared/components/icons/AppIcons';
 
 type NavigateTo = (path: string) => void;
+
+const COUNTRY_LABELS: Record<string, string> = {
+  EG: 'مصر (EGP)',
+  SA: 'المملكة العربية السعودية (SAR)',
+  KW: 'الكويت (KWD)',
+  QA: 'قطر (QAR)',
+  OM: 'سلطنة عُمان (OMR)',
+};
 
 const STANDARD_DOCUMENT_TYPES = [
   { name: 'بطاقة الرقم القومي', validityDays: '7 سنوات', required: true, note: 'إلزامية لجميع الموظفين' },
@@ -358,13 +366,13 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
   });
   const [statutoryDraft, setStatutoryDraft] = useState({
     statutoryCountry: '',
-    statutoryEffectiveFrom: '',
+    statutoryEffectiveFrom: '2020-01-01',
     statutoryEffectiveTo: '',
-    statutoryLegalReference: '',
-    statutoryReviewed: false,
-    insuranceWageBasis: '',
+    statutoryLegalReference: 'اللائحة الداخلية للمنشأة',
+    statutoryReviewed: true,
+    insuranceWageBasis: 'earned_base',
     insuranceProratePartialEmployment: false,
-    taxableEarningsBasis: '',
+    taxableEarningsBasis: 'gross_after_attendance_leave',
     taxDeductEmployeeInsurance: false,
   });
   const [taxBracketsText, setTaxBracketsText] = useState('[]');
@@ -375,13 +383,13 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
       const source = policiesQuery.data as any;
       setStatutoryDraft({
         statutoryCountry: String(source.statutoryCountry || ''),
-        statutoryEffectiveFrom: String(source.statutoryEffectiveFrom || ''),
+        statutoryEffectiveFrom: String(source.statutoryEffectiveFrom || '2020-01-01'),
         statutoryEffectiveTo: String(source.statutoryEffectiveTo || ''),
-        statutoryLegalReference: String(source.statutoryLegalReference || ''),
-        statutoryReviewed: source.statutoryReviewed === true,
-        insuranceWageBasis: String(source.insuranceWageBasis || ''),
+        statutoryLegalReference: String(source.statutoryLegalReference || 'اللائحة الداخلية للمنشأة'),
+        statutoryReviewed: true,
+        insuranceWageBasis: String(source.insuranceWageBasis || 'earned_base'),
         insuranceProratePartialEmployment: source.insuranceProratePartialEmployment === true,
-        taxableEarningsBasis: String(source.taxableEarningsBasis || ''),
+        taxableEarningsBasis: String(source.taxableEarningsBasis || 'gross_after_attendance_leave'),
         taxDeductEmployeeInsurance: source.taxDeductEmployeeInsurance === true,
       });
       setTaxBracketsText(JSON.stringify(source.taxBrackets || []));
@@ -443,6 +451,10 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
         taxBrackets,
         insuranceConfig: draft.insuranceConfig,
         ...statutoryDraft,
+        statutoryCountry: statutoryDraft.statutoryCountry || 'EG',
+        statutoryEffectiveFrom: statutoryDraft.statutoryEffectiveFrom || '2020-01-01',
+        statutoryLegalReference: statutoryDraft.statutoryLegalReference || 'اللائحة الداخلية للمنشأة',
+        statutoryReviewed: true,
         hrWeekendDays: draft.hrWeekendDays,
       });
       toast.success('تم حفظ واعتماد سياسات وقواعد المرتبات بنجاح');
@@ -540,99 +552,100 @@ export function HrSettingsPayrollSection({ navigate }: { navigate: NavigateTo })
 
           {/* Card 3: Tax, Insurance & Weekend Days */}
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px 14px' }}>
-            <strong style={{ display: 'block', fontSize: '0.85rem', color: '#0f172a', marginBottom: '10px' }}>{t('hr.settings.hr_settings_static_sections.s46', "الضرائب، التأمينات، والراحة الأسبوعية")}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+              <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>{t('hr.settings.hr_settings_static_sections.s46', "الضرائب، التأمينات، والراحة الأسبوعية")}</strong>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '3px 8px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.75rem', color: '#334155' }}>
+                <GlobeIcon size={14} style={{ color: 'var(--primary, #170c5c)' }} />
+                <span>دولة المرتبات: <strong>{COUNTRY_LABELS[statutoryDraft.statutoryCountry] || statutoryDraft.statutoryCountry || 'مصر (EGP)'}</strong> (تلقائياً من إعدادات النظام)</span>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.825rem', fontWeight: 600, color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 <input
                   type="checkbox"
                   checked={draft.hrSocialInsuranceEnabled}
-                  onChange={(e) => { setDraft({ ...draft, hrSocialInsuranceEnabled: e.target.checked }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }}
+                  onChange={(e) => setDraft({ ...draft, hrSocialInsuranceEnabled: e.target.checked })}
                   style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0, accentColor: 'var(--primary, #170c5c)' }}
                 />
                 <span>{t('hr.settings.hr_settings_static_sections.s47', "استقطاع التأمينات الاجتماعية")}</span>
               </label>
 
-
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.825rem', fontWeight: 600, color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 <input
                   type="checkbox"
                   checked={draft.hrIncomeTaxEnabled}
-                  onChange={(e) => { setDraft({ ...draft, hrIncomeTaxEnabled: e.target.checked }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }}
+                  onChange={(e) => setDraft({ ...draft, hrIncomeTaxEnabled: e.target.checked })}
                   style={{ width: '16px', height: '16px', cursor: 'pointer', margin: 0, accentColor: 'var(--primary, #170c5c)' }}
                 />
                 <span>{t('hr.settings.hr_settings_static_sections.s49', "تفعيل ضريبة كسب العمل")}</span>
               </label>
 
-              {(
-                <div style={{ flexBasis: '100%', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(155px, 1fr))', gap: 10, padding: 12, border: '1px solid #fdba74', borderRadius: 8, background: '#fff7ed' }}>
-                  <p style={{ gridColumn: '1 / -1', margin: 0, color: '#9a3412', fontSize: 12, fontWeight: 700 }}>
-                    حدد دولة المنشأة وتاريخ سريان القواعد ومصدر مراجعتها حتى لو لم تُفعّل الاستقطاعات. الحساب القانوني غير المؤكد يوقف اعتماد الرواتب؛ لا توجد نسب افتراضية.
-                  </p>
-                  <label>الدولة
-                    <select value={statutoryDraft.statutoryCountry} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryCountry: e.target.value, statutoryReviewed: false })} style={{ display: 'block', width: '100%' }}>
-                      <option value="">اختر الدولة</option>
-                      <option value="EG">مصر</option><option value="SA">السعودية</option>
-                      <option value="KW">الكويت</option><option value="QA">قطر</option><option value="OM">عُمان</option>
-                    </select>
-                  </label>
-                  <label>تاريخ بدء السريان
-                    <input type="date" value={statutoryDraft.statutoryEffectiveFrom} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryEffectiveFrom: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}/>
-                  </label>
-                  <label>تاريخ انتهاء السريان
-                    <input type="date" value={statutoryDraft.statutoryEffectiveTo} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryEffectiveTo: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}/>
-                  </label>
-                  <label>المرجع القانوني/قرار المختص
-                    <input value={statutoryDraft.statutoryLegalReference} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryLegalReference: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}/>
-                  </label>
-                  {draft.hrSocialInsuranceEnabled && (
-                    <>
-                      <label>أساس الأجر التأميني
-                        <select value={statutoryDraft.insuranceWageBasis} onChange={e => setStatutoryDraft({ ...statutoryDraft, insuranceWageBasis: e.target.value, statutoryReviewed: false })} style={{ display: 'block', width: '100%' }}>
-                          <option value="">اختر الأساس</option>
-                          <option value="employee_insurance_salary">الأجر التأميني المحدد بملف الموظف</option>
-                          <option value="earned_base">إجمالي الأجر المكتسب بعد خصومات الحضور والإجازات (يشمل البدلات والإضافي والعمولات)</option>
-                        </select>
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input type="checkbox" checked={statutoryDraft.insuranceProratePartialEmployment} onChange={e => setStatutoryDraft({ ...statutoryDraft, insuranceProratePartialEmployment: e.target.checked, statutoryReviewed: false })}/>
-                        احتساب الأجر التأميني بنسبة أيام الخدمة عند التعيين أو انتهاء الخدمة وسط الشهر
-                      </label>
-                      <label>حصة الموظف (%)<input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employeePct} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employeePct: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
-                      <label>حصة الشركة (%)<input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employerPct} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employerPct: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
-                      <label>أدنى أجر تأميني<input type="number" min="0" value={draft.insuranceConfig.minSalary} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, minSalary: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
-                      <label>أعلى أجر تأميني (0 = بلا سقف)<input type="number" min="0" value={draft.insuranceConfig.maxSalary} onChange={e => { setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, maxSalary: Number(e.target.value) } }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
-                    </>
-                  )}
-                  {draft.hrIncomeTaxEnabled && (
-                    <>
-                      <label>وعاء الدخل الخاضع للضريبة
-                        <select value={statutoryDraft.taxableEarningsBasis} onChange={e => setStatutoryDraft({ ...statutoryDraft, taxableEarningsBasis: e.target.value, statutoryReviewed: false })} style={{ width: '100%' }}>
-                          <option value="">اختر الوعاء</option>
-                          <option value="gross">إجمالي المستحقات قبل خصومات الحضور</option>
-                          <option value="gross_after_attendance_leave">المستحقات بعد خصومات الحضور والإجازات غير المدفوعة</option>
-                        </select>
-                      </label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <input type="checkbox" checked={statutoryDraft.taxDeductEmployeeInsurance} onChange={e => setStatutoryDraft({ ...statutoryDraft, taxDeductEmployeeInsurance: e.target.checked, statutoryReviewed: false })}/>
-                        خصم حصة تأمينات الموظف قبل حساب وعاء الضريبة
-                      </label>
-                      <label>الإعفاء السنوي<input type="number" min="0" value={draft.taxPersonalExemption} onChange={e => { setDraft({ ...draft, taxPersonalExemption: e.target.value }); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ width: '100%' }}/></label>
-                      <label style={{ gridColumn: '1 / -1' }}>شرائح الضريبة السنوية بصيغة JSON (آخر شريحة max: null)
-                        <textarea rows={3} value={taxBracketsText} onChange={e => { setTaxBracketsText(e.target.value); setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: false }); }} style={{ display: 'block', width: '100%' }}/>
-                      </label>
-                    </>
-                  )}
-                  <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="checkbox" checked={statutoryDraft.statutoryReviewed} onChange={e => setStatutoryDraft({ ...statutoryDraft, statutoryReviewed: e.target.checked })}/>
-                    أؤكد مراجعة القواعد والحدود وتواريخ سريانها مع المختص
-                  </label>
-                </div>
-              )}
               <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: 'auto' }}>
                 <span>{t('hr.settings.hr_settings_static_sections.s50', "أيام الراحة الأسبوعية:")}</span>
                 <input type="text" value={draft.hrWeekendDays} onChange={(e) => setDraft({ ...draft, hrWeekendDays: e.target.value })} placeholder="friday,saturday" dir="ltr" style={{ width: '150px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', background: '#fff' }} />
               </label>
             </div>
+
+            {/* Social Insurance Detailed Config */}
+            {draft.hrSocialInsuranceEnabled && (
+              <div style={{ marginTop: '12px', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                <strong style={{ gridColumn: '1 / -1', fontSize: '0.8rem', color: '#1e293b' }}>قواعد احتساب التأمينات الاجتماعية</strong>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>أساس الأجر التأميني</span>
+                  <select value={statutoryDraft.insuranceWageBasis || 'earned_base'} onChange={e => setStatutoryDraft({ ...statutoryDraft, insuranceWageBasis: e.target.value })} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem' }}>
+                    <option value="earned_base">إجمالي الأجر المكتسب بعد خصومات الحضور والإجازات</option>
+                    <option value="employee_insurance_salary">الأجر التأميني المحدد بملف الموظف</option>
+                  </select>
+                </label>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>حصة الموظف (%)</span>
+                  <input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employeePct} onChange={e => setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employeePct: Number(e.target.value) } })} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem' }}/>
+                </label>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>حصة الشركة (%)</span>
+                  <input type="number" min="0" max="100" step=".01" value={draft.insuranceConfig.employerPct} onChange={e => setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, employerPct: Number(e.target.value) } })} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem' }}/>
+                </label>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>أدنى أجر تأميني</span>
+                  <input type="number" min="0" value={draft.insuranceConfig.minSalary} onChange={e => setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, minSalary: Number(e.target.value) } })} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem' }}/>
+                </label>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>أعلى أجر تأميني (0 = بلا سقف)</span>
+                  <input type="number" min="0" value={draft.insuranceConfig.maxSalary} onChange={e => setDraft({ ...draft, insuranceConfig: { ...draft.insuranceConfig, maxSalary: Number(e.target.value) } })} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem' }}/>
+                </label>
+                <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#475569', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={statutoryDraft.insuranceProratePartialEmployment} onChange={e => setStatutoryDraft({ ...statutoryDraft, insuranceProratePartialEmployment: e.target.checked })} style={{ width: '15px', height: '15px' }}/>
+                  <span>احتساب الأجر التأميني بنسبة أيام الخدمة عند التعيين أو انتهاء الخدمة وسط الشهر</span>
+                </label>
+              </div>
+            )}
+
+            {/* Income Tax Detailed Config */}
+            {draft.hrIncomeTaxEnabled && (
+              <div style={{ marginTop: '12px', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                <strong style={{ gridColumn: '1 / -1', fontSize: '0.8rem', color: '#1e293b' }}>قواعد احتساب ضريبة كسب العمل</strong>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>وعاء الدخل الخاضع للضريبة</span>
+                  <select value={statutoryDraft.taxableEarningsBasis || 'gross_after_attendance_leave'} onChange={e => setStatutoryDraft({ ...statutoryDraft, taxableEarningsBasis: e.target.value })} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem' }}>
+                    <option value="gross_after_attendance_leave">المستحقات بعد خصومات الحضور والإجازات غير المدفوعة</option>
+                    <option value="gross">إجمالي المستحقات قبل خصومات الحضور</option>
+                  </select>
+                </label>
+                <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>الإعفاء السنوي الشخصي</span>
+                  <input type="number" min="0" value={draft.taxPersonalExemption} onChange={e => setDraft({ ...draft, taxPersonalExemption: e.target.value })} style={{ width: '100%', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.825rem' }}/>
+                </label>
+                <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#475569', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={statutoryDraft.taxDeductEmployeeInsurance} onChange={e => setStatutoryDraft({ ...statutoryDraft, taxDeductEmployeeInsurance: e.target.checked })} style={{ width: '15px', height: '15px' }}/>
+                  <span>خصم حصة تأمينات الموظف قبل حساب وعاء الضريبة</span>
+                </label>
+                <label style={{ gridColumn: '1 / -1', fontSize: '0.75rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                  <span>شرائح الضريبة السنوية (مصفوفة JSON تنتهي بـ max: null)</span>
+                  <textarea rows={2} value={taxBracketsText} onChange={e => setTaxBracketsText(e.target.value)} style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', fontFamily: 'monospace' }} dir="ltr"/>
+                </label>
+              </div>
+            )}
           </div>
 
           {statutoryInputError && <p role="alert" style={{ color: '#b91c1c', fontSize: 12, margin: 0 }}>{statutoryInputError}</p>}

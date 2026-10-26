@@ -446,3 +446,39 @@
   white-space: nowrap;
 }
 
+/* Payroll Runs Table Zero-Scroll & Compact Formatting */
+.payroll-runs-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.payroll-runs-table-wrap .table-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  border-radius: 8px;
+}
+
+.payroll-runs-table-wrap table {
+  width: 100% !important;
+  min-width: 0 !important;
+  border-collapse: collapse;
+}
+
+.payroll-runs-table-wrap th,
+.payroll-runs-table-wrap td {
+  padding: 4px 2px !important;
+  box-sizing: border-box;
+}
+
+.payroll-runs-table-wrap .compact-actions .btn {
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  padding: 1px 5px !important;
+  font-size: 0.67rem !important;
+  line-height: 1 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+

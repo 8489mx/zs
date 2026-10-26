@@ -157,6 +157,30 @@ export function buildSettingsUpdatePayload(
     posShowCartMeta: values.posShowCartMeta !== undefined
       ? values.posShowCartMeta === true
       : current?.posShowCartMeta === true,
+    posProductCardLayout: values.posProductCardLayout !== undefined
+      ? values.posProductCardLayout
+      : (current?.posProductCardLayout || 'comfortable'),
+    posShowSearchBar: values.posShowSearchBar !== undefined
+      ? values.posShowSearchBar === true
+      : (current?.posShowSearchBar !== false),
+    posShowPriceTierToggle: values.posShowPriceTierToggle !== undefined
+      ? values.posShowPriceTierToggle === true
+      : (current?.posShowPriceTierToggle !== false),
+    posDefaultPriceType: values.posDefaultPriceType !== undefined
+      ? (values.posDefaultPriceType === 'wholesale' ? 'wholesale' : 'retail')
+      : (current?.posDefaultPriceType === 'wholesale' ? 'wholesale' : 'retail'),
+    posShowCategories: values.posShowCategories !== undefined
+      ? values.posShowCategories === true
+      : (current?.posShowCategories !== false),
+    posShowQuickFilters: values.posShowQuickFilters !== undefined
+      ? values.posShowQuickFilters === true
+      : (current?.posShowQuickFilters !== false),
+    posMobileGridColumns: values.posMobileGridColumns !== undefined
+      ? values.posMobileGridColumns
+      : (current?.posMobileGridColumns || 'auto'),
+    posAutoHideBottomNav: values.posAutoHideBottomNav !== undefined
+      ? values.posAutoHideBottomNav === true
+      : (current?.posAutoHideBottomNav !== false),
     printDeliveryRepOnReceipt: values.printDeliveryRepOnReceipt !== undefined
       ? values.printDeliveryRepOnReceipt === true
       : current?.printDeliveryRepOnReceipt === true,

@@ -1210,6 +1210,20 @@
     box-shadow: 0 20px 48px -4px rgba(23, 12, 92, 0.32), 0 0 0 1px rgba(23, 12, 92, 0.12) !important;
   }
 
+  body.pos-cart-has-items .pos-mobile-floating-cart-bar,
+  body.pos-scroll-hides-nav .pos-mobile-floating-cart-bar {
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+    transition: bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  body.pos-cart-has-items .mobile-bottom-nav,
+  body.pos-scroll-hides-nav .mobile-bottom-nav {
+    transform: translateY(120%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease !important;
+  }
+
   @keyframes slideUpMobileCart {
     from {
       transform: translateY(24px);
@@ -3411,6 +3425,38 @@ html[dir="ltr"] .two-column-layout {
     padding: 2px !important;
   }
 
+  /* 3-Column Product Cards Grid on Handheld/Compact Mobile */
+  .pos-workspace.pos-sale-mode-touch .pos-product-group-grid.is-cols-3,
+  .pos-workspace.pos-sale-mode-touch .pos-product-group-grid[data-mobile-cols="3"],
+  .pos-product-group-grid.is-cols-3,
+  .pos-product-group-grid[data-mobile-cols="3"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 5px !important;
+    padding: 2px !important;
+  }
+
+  .pos-product-group-grid.is-cols-3 .pos-group-card,
+  .pos-product-group-grid[data-mobile-cols="3"] .pos-group-card {
+    padding: 4px !important;
+    min-height: unset !important;
+  }
+
+  .pos-product-group-grid.is-cols-3 .pos-group-card-gallery .pos-gallery-text-block,
+  .pos-product-group-grid[data-mobile-cols="3"] .pos-group-card-gallery .pos-gallery-text-block {
+    padding: 4px 6px !important;
+  }
+
+  .pos-product-group-grid.is-cols-3 .pos-group-card strong,
+  .pos-product-group-grid[data-mobile-cols="3"] .pos-group-card strong {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  .pos-product-group-grid.is-cols-3 .pos-group-card .pos-card-price,
+  .pos-product-group-grid[data-mobile-cols="3"] .pos-group-card .pos-card-price {
+    font-size: 11px !important;
+  }
+
   .pos-group-card {
     padding: 8px !important;
     border-radius: 10px !important;
@@ -3418,6 +3464,15 @@ html[dir="ltr"] .two-column-layout {
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
     box-sizing: border-box !important;
     direction: rtl !important;
+  }
+
+  .pos-group-card.pos-group-card-gallery {
+    padding: 0 !important;
+    min-height: unset !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
   }
 
   .pos-group-card-action {
@@ -3648,12 +3703,22 @@ html[dir="ltr"] .two-column-layout {
   }
 
   /* Hide desktop keyboard shortcut buttons, screens menu, and window controls from POS mobile header */
-  .pos-page-header .pos-header-actions-row > button:not(.pos-mode-toggle button):not(.pos-close-shift-btn),
+  .pos-page-header .pos-header-actions-row > button:not(.pos-mode-toggle button):not(.pos-close-shift-btn):not(.pos-customize-btn),
   .pos-page-header .pos-header-actions-row > .pos-header-branch-info,
   .pos-page-header .pos-header-table-controls,
   .pos-page-header .pos-screens-menu-container,
   .pos-page-header .pos-window-controls {
     display: none !important;
+  }
+
+  .pos-page-header .pos-customize-btn {
+    display: inline-flex !important;
+    padding: 2px 7px !important;
+    font-size: 10.5px !important;
+    height: 24px !important;
+    border-radius: 6px !important;
+    align-items: center !important;
+    gap: 4px !important;
   }
 
   .pos-page-header .page-header-actions,
@@ -3734,23 +3799,76 @@ html[dir="ltr"] .two-column-layout {
     flex: none !important;
   }
 
+  .pos-workspace .pos-page-header .pos-shift-actions-group,
+  .pos-page-header .pos-shift-actions-group,
   .pos-shift-actions-group {
     display: inline-flex !important;
-    align-items: stretch !important;
-    flex-shrink: 0 !important;
+    align-items: center !important;
+    background: #f1f5f9 !important;
+    padding: 1.5px !important;
+    border-radius: 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    gap: 2px !important;
+    flex: 0 0 auto !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
   }
 
-  .pos-shift-dropdown-trigger {
-    height: 24px !important;
-    min-height: 24px !important;
-    padding: 0 4px !important;
-    border-radius: 5px 0 0 5px !important;
-    border-right: 1px solid #cbd5e1 !important;
+  .pos-workspace .pos-page-header .pos-shift-actions-group a,
+  .pos-page-header .pos-shift-actions-group a,
+  .pos-shift-actions-group a {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 22px !important;
+    text-decoration: none !important;
+    flex: 0 0 auto !important;
   }
 
+  .pos-workspace .pos-page-header .pos-shift-actions-group .pos-close-shift-btn,
+  .pos-page-header .pos-shift-actions-group .pos-close-shift-btn,
   .pos-shift-actions-group .pos-close-shift-btn {
-    border-radius: 0 5px 5px 0 !important;
-    border-left: none !important;
+    padding: 2px 7px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    flex: 0 0 auto !important;
+  }
+
+  .pos-workspace .pos-page-header .pos-shift-actions-group .pos-shift-dropdown-trigger,
+  .pos-page-header .pos-shift-actions-group .pos-shift-dropdown-trigger,
+  .pos-shift-dropdown-trigger {
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+    width: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+    padding: 0 !important;
+    border-radius: 4px !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #475569 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+    flex: 0 0 auto !important;
   }
 
   .pos-shift-dropdown-menu {

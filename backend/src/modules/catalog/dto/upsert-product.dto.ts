@@ -295,6 +295,10 @@ export class UpsertProductDto {
 
   @IsOptional()
   @IsString()
+  imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
   expiryDate?: string;
 
   @IsOptional()
@@ -446,6 +450,7 @@ export type NormalizedUpsertProduct = {
   customerPrices: NormalizedProductCustomerPrice[];
   fashionVariants: NormalizedFashionVariant[];
   icon?: string;
+  imageUrl?: string;
   metadata?: Record<string, any>;
   stock?: number;
   warehouseId?: number;

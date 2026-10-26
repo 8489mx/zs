@@ -26,6 +26,7 @@ import {
   UpsertEmploymentContractDto,
   UpsertHrMasterDataDto,
   PayPayrollRunDto,
+  PayPayrollItemDto,
   UpsertHolidayDto,
   EndOfServiceDto,
   CreateQuickCashAdvanceDto,
@@ -275,6 +276,12 @@ export class HrController {
   @RequirePermissions('hrPayrollApprove')
   payPayrollRun(@Param('id', ParseIntPipe) id: number, @Body() payload: PayPayrollRunDto, @Req() req: RequestWithAuth) {
     return this.hr.payPayrollRun(id, payload, req.authContext!);
+  }
+
+  @Post('payroll-run-items/:id/pay')
+  @RequirePermissions('hrPayrollApprove')
+  payPayrollRunItem(@Param('id', ParseIntPipe) id: number, @Body() payload: PayPayrollItemDto, @Req() req: RequestWithAuth) {
+    return this.hr.payPayrollRunItem(id, payload, req.authContext!);
   }
 
   @Post('payroll-runs/:id/wps')

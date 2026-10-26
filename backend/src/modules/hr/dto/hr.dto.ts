@@ -725,7 +725,7 @@ export class CreateEmployeeAdjustmentDto {
 }
 
 export class PayPayrollRunDto {
-  @IsIn(['cash', 'bank'])
+  @IsIn(['cash', 'bank', 'drawer'])
   paymentChannel!: string;
 
   @IsOptional()
@@ -737,6 +737,33 @@ export class PayPayrollRunDto {
   @IsString()
   @MaxLength(1000)
   notes?: string;
+
+  @IsOptional()
+  shiftId?: number;
+
+  @IsOptional()
+  allowOverdraft?: boolean;
+}
+
+export class PayPayrollItemDto {
+  @IsIn(['cash', 'bank', 'drawer'])
+  paymentChannel!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  paymentReference?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  notes?: string;
+
+  @IsOptional()
+  shiftId?: number;
+
+  @IsOptional()
+  allowOverdraft?: boolean;
 }
 
 

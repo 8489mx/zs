@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Field } from '@/shared/ui/field';
-import { SlidersIcon, SmartphoneIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
+import { SlidersIcon, SmartphoneIcon, ArrowRightIcon, InfoIcon } from '@/shared/components/icons/AppIcons';
 import { ProductUnitsEditor, normalizeProductUnits } from '@/features/products/components/ProductUnitsEditor';
 import { productsApi } from '@/features/products/api/products.api';
 import { productFormSchema, type ProductFormInput, type ProductFormOutput } from '@/features/products/schemas/product.schema';
@@ -21,6 +21,7 @@ import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
 import { bomsApi } from '@/shared/api/boms.api';
 import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
+import { ProductImageUploadField } from '@/features/products/components/ProductImageUploadField';
 import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -29,6 +30,7 @@ import { queryKeys } from '@/app/query-keys';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { toast } from '@/shared/components/system-alert';
 import { getFriendlyApiErrorMessage } from '@/lib/errors';
+import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
 import { ProductArchiveConfirmDialog } from '@/features/products/components/ProductArchiveConfirmDialog';
 
 type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
@@ -112,6 +114,34 @@ export function EditProductForm({
   const manufacturingModuleEnabled = settingsQuery.data?.manufacturingModuleEnabled === true;
   const autoPartsModuleEnabled = settingsQuery.data?.autoPartsModuleEnabled === true || settingsQuery.data?.activityType === 'auto_parts' || settingsQuery.data?.businessIndustry === 'auto_parts';
   const comboModuleEnabled = settingsQuery.data?.comboModuleEnabled === true || manufacturingModuleEnabled;
+  const isFoodOrRestaurant = settingsQuery.data?.restaurantModuleEnabled === true ||
+    ['restaurant', 'cafe', 'مطعم', 'كافيه'].includes(String(settingsQuery.data?.activityType || '').toLowerCase()) ||
+    ['restaurant', 'cafe', 'مطعم', 'كافيه'].includes(String(settingsQuery.data?.businessIndustry || '').toLowerCase());
+  const isPerfumes =
+    ['perfumes', 'cosmetics', 'عطور', 'تجميل'].includes(String(settingsQuery.data?.activityType || '').toLowerCase()) ||
+    ['perfumes', 'cosmetics', 'عطور', 'تجميل'].includes(String(settingsQuery.data?.businessIndustry || '').toLowerCase());
+
+  const comboCardTitle = isFoodOrRestaurant
+    ? t('products.combo_card.title_food', 'العروض المجمعة والوجبات (Combo)')
+    : isPerfumes
+    ? t('products.combo_card.title_perfumes', 'تركيبات العطور ومجموعات الهدايا (BOM & Sets)')
+    : t('products.combo_card.title_retail', 'الأطقم والعروض المجمعة (Bundles / Combo)');
+
+  const comboCheckboxLabel = isFoodOrRestaurant
+    ? t('products.combo_card.label_food', 'هذا الصنف عبارة عن عرض مجمع / وجبة')
+    : isPerfumes
+    ? t('products.combo_card.label_perfumes', 'هذا الصنف عبارة عن تركيبة عطر / طقم هدايا (BOM / Set)')
+    : t('products.combo_card.label_retail', 'هذا الصنف عبارة عن طقم / باقة مجمعة (Bundle)');
+
+  const comboSubtitle = isFoodOrRestaurant
+    ? t('products.combo_card.desc_food', 'تحديد مكونات الوجبة أو العرض ليتم استقطاعها من المخزون عند الطلب.')
+    : isPerfumes
+    ? t('products.combo_card.desc_perfumes', 'تحديد مكونات العطر (مثل: زيت خام + كحول + زجاجة) أو طقم الهدايا ليتم خصمها من المخزون تلقائياً عند بيع هذا الصنف.')
+    : t('products.combo_card.desc_retail', 'تحديد مكونات الطقم أو الباقة (مثل: قميص + بنطلون + حذاء) ليتم خصمها من المخزون تلقائياً عند بيع هذا الطقم.');
+
+  const comboVariantNotice = isPerfumes
+    ? t('products.edit_product_form.combo_perfumes_notice', 'تركيبات العطور ومجموعات الهدايا تُدار للأصناف العادية المستقلة؛ لأن الموديل المتغير مخصص لتوليد روائح وأحجام وسعات لنفس الصنف.')
+    : t('products.edit_product_form.combo_variant_notice', 'الأطقم والعروض المجمعة تُدار للأصناف العادية المستقلة؛ لأن الموديل المتغير مخصص لتوليد مقاسات وألوان لصنف واحد.');
 
   const { data: product, isLoading: isProductLoading, isError: isProductError } = useQuery({
     queryKey: ['product', productId],
@@ -122,7 +152,8 @@ export function EditProductForm({
       const cachedProducts = queryClient.getQueryData<Product[]>(queryKeys.products);
       return cachedProducts?.find((p) => String(p.id) === String(productId));
     },
-    staleTime: 60_000,
+    initialDataUpdatedAt: 0,
+    staleTime: 0,
   });
 
   const { data: boms } = useQuery({
@@ -141,11 +172,17 @@ export function EditProductForm({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: '', nameEn: '', barcode: '', itemKind: 'standard', styleCode: '', color: '', size: '', fashionColors: '', fashionSizes: '', variantStock: 0,
-      costPrice: 0, retailPrice: 0, wholesalePrice: 0, creditPrice: 0, consumerPrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
+      costPrice: 0, retailPrice: 0, wholesalePrice: 0, creditPrice: 0, consumerPrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: '',
+      icon: '', imageUrl: '', expiryDate: '',
     }
   });
 
   const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
+  const showExpiryDate = shouldShowExpiryDateField({
+    settings: settingsQuery.data,
+    clothingModuleEnabled,
+    itemKind: watchedItemKind,
+  });
   const watchedStyleCode = form.watch('styleCode') || '';
   const groupedEntry = Boolean(String(product?.styleCode || '').trim());
 
@@ -615,6 +652,21 @@ export function EditProductForm({
             </div>
           </div>
 
+          {/* Product Image Uploader (Shared across POS & Storefront) */}
+          <div style={{ marginBottom: '0.85rem' }}>
+            <Controller
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <ProductImageUploadField
+                  value={field.value || ''}
+                  onChange={(url) => field.onChange(url)}
+                  disabled={isFormDisabled}
+                />
+              )}
+            />
+          </div>
+
           {/* Row 2: Item Type & Barcode/Model */}
           <div className="product-form-grid-2" style={{ marginBottom: '0.85rem' }}>
             <Field label={t('products.edit_product_form.s33', "نوع الصنف")}>
@@ -771,9 +823,11 @@ export function EditProductForm({
               <Field label={t('products.edit_product_form.s60', "الحد الأدنى للتنبيه (نواقص)")}>
                 <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
               </Field>
-              <Field label={t('products.edit_product_form.s61', "تاريخ الصلاحية")}>
+              {showExpiryDate && (
+                <Field label={t('products.edit_product_form.s61', "تاريخ الصلاحية")}>
                 <input className="purchase-prototype-field-input" type="date" {...form.register('expiryDate')} disabled={isFormDisabled} />
-              </Field>
+                </Field>
+              )}
               <Field label={t('products.edit_product_form.s62', "ملاحظات")}>
                 <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder={t('products.edit_product_form.s63', "ملاحظات حول الصنف...")} />
               </Field>
@@ -852,28 +906,50 @@ export function EditProductForm({
         {/* 4. Combo / BOM */}
         {comboModuleEnabled && (
           <div className="product-compact-card">
-            <div className="product-compact-card-header">
-              <h3 className="product-compact-card-title">{t('products.edit_product_form.s76', "العروض المجمعة والوجبات (Combo)")}</h3>
+            <div className="product-compact-card-header" style={{ flexWrap: 'wrap', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h3 className="product-compact-card-title">{comboCardTitle}</h3>
+                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{comboSubtitle}</span>
+              </div>
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
-                <input type="checkbox" {...form.register('isCombo')} disabled={isFormDisabled} style={{ width: 18, height: 18 }} />
-                {t('products.edit_product_form.s77', "هذا الصنف عبارة عن عرض مجمع / وجبة")}
-              </label>
-            </div>
-            {watchedIsCombo && (
-              <Controller
-                control={form.control}
-                name="comboComponents"
-                render={({ field }) => (
-                  <ComboComponentsEditor
-                    value={field.value || []}
-                    onChange={field.onChange}
-                    products={allProducts}
-                    disabled={isFormDisabled}
+            {groupedEntry || watchedItemKind === 'fashion' ? (
+              <div style={{
+                padding: '12px 14px',
+                background: '#f8fafc',
+                border: '1px dashed #cbd5e1',
+                borderRadius: '8px',
+                fontSize: '0.82rem',
+                color: '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <InfoIcon size={18} style={{ color: '#0284c7', flexShrink: 0 }} />
+                <span>{comboVariantNotice}</span>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                    <input type="checkbox" {...form.register('isCombo')} disabled={isFormDisabled} style={{ width: 18, height: 18 }} />
+                    {comboCheckboxLabel}
+                  </label>
+                </div>
+                {watchedIsCombo && (
+                  <Controller
+                    control={form.control}
+                    name="comboComponents"
+                    render={({ field }) => (
+                      <ComboComponentsEditor
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        products={allProducts}
+                        disabled={isFormDisabled}
+                      />
+                    )}
                   />
                 )}
-              />
+              </>
             )}
           </div>
         )}

@@ -8,6 +8,9 @@ export type WorkPunch = {
   status?: unknown;
   check_in_at?: unknown;
   check_out_at?: unknown;
+  checkIn?: unknown;
+  checkOut?: unknown;
+  workDate?: unknown;
 };
 export function summarizeHourlyAttendance(punches: WorkPunch[], hourlyRate: number) {
   let workedMinutes = 0;

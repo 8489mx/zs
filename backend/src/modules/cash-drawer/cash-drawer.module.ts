@@ -10,5 +10,6 @@ import { CashDrawerService } from './cash-drawer.service';
   imports: [DatabaseModule, AuthFoundationModule, AccountingModule, SettingsModule],
   controllers: [CashDrawerController],
   providers: [CashDrawerService],
+  exports: [CashDrawerService],
 })
 export class CashDrawerModule {}

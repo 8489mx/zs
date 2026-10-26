@@ -1,6 +1,7 @@
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { XIcon } from '@/shared/components/icons/AppIcons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePosUiCustomization } from '@/features/pos/hooks/usePosUiCustomization';
 import { createPortal } from 'react-dom';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { Button } from '@/shared/ui/button';
@@ -77,6 +78,20 @@ export function PosWorkspaceMainContent({
   const { i18n } = useTranslation();
   const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
   const isRtl = !isEn;
+
+  const { customization } = usePosUiCustomization();
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (customization.autoHideBottomNav && cartItemsCount > 0) {
+      document.body.classList.add('pos-cart-has-items');
+    } else {
+      document.body.classList.remove('pos-cart-has-items');
+    }
+    return () => {
+      document.body.classList.remove('pos-cart-has-items');
+    };
+  }, [cartItemsCount, customization.autoHideBottomNav]);
 
   const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
   const [isFloatingCartExpanded, setIsFloatingCartExpanded] = useState(false);

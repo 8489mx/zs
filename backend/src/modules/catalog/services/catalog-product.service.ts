@@ -14,6 +14,7 @@ import { AccountingPostingService } from '../../accounting/accounting-posting.se
 import { AccountingTenantFoundationService } from '../../accounting/accounting-tenant-foundation.service';
 import { applyStockDelta } from '../../../common/utils/location-stock-ledger';
 import { assertFashionExpectedStock, assertFashionRemovedStockSafe, fashionLocationAccessMode } from '../engines/fashion-stock-safety.engine';
+import { StorefrontMediaService } from '../../storefront/storefront-media.service';
 
 type ProductRow = {
   id: number;
@@ -119,7 +120,8 @@ export class CatalogProductService {
   constructor(@Inject(KYSELY_DB) private readonly db: Kysely<Database>, private readonly audit: AuditService,
     private readonly inventoryScope: InventoryScopeService,
     @Optional() private readonly accountingPosting?: AccountingPostingService,
-    @Optional() private readonly accountingFoundation?: AccountingTenantFoundationService) {}
+    @Optional() private readonly accountingFoundation?: AccountingTenantFoundationService,
+    @Optional() private readonly mediaService?: StorefrontMediaService) {}
 
   private async ensureOpeningStockAccounts(actor: AuthContext): Promise<void> {
     if (!this.accountingPosting || !this.accountingFoundation) {
@@ -1042,6 +1044,7 @@ export class CatalogProductService {
       trackSerials: Boolean(product.track_serials),
       matchedSerialNumber: product.matched_serial_number || null,
       icon: (product as any).metadata?.icon || (typeof (product as any).metadata === 'string' ? (() => { try { return JSON.parse((product as any).metadata)?.icon; } catch { return null; } })() : null) || null,
+      imageUrl: (product as any).metadata?.imageUrl || (typeof (product as any).metadata === 'string' ? (() => { try { return JSON.parse((product as any).metadata)?.imageUrl; } catch { return null; } })() : null) || null,
       units,
       offers: context.offersByProduct.get(String(product.id)) || [],
       calories: product.calories != null ? Number(product.calories) : null,
@@ -1371,6 +1374,7 @@ export class CatalogProductService {
         offers: context.offersByProduct.get(String(product.id)) || [],
         customerPrices: context.pricesByProduct.get(String(product.id)) || [],
         icon: (product as any).metadata?.icon || (typeof (product as any).metadata === 'string' ? (() => { try { return JSON.parse((product as any).metadata)?.icon; } catch { return null; } })() : null) || null,
+        imageUrl: (product as any).metadata?.imageUrl || (typeof (product as any).metadata === 'string' ? (() => { try { return JSON.parse((product as any).metadata)?.imageUrl; } catch { return null; } })() : null) || null,
         metadata: (product as any).metadata || null,
       };
       if (!context.canViewCost) delete mapped.costPrice;
@@ -1526,9 +1530,12 @@ export class CatalogProductService {
       offers,
       customerPrices,
       fashionVariants,
+      icon: payload.icon ? String(payload.icon).trim() : undefined,
+      imageUrl: payload.imageUrl !== undefined ? (payload.imageUrl ? String(payload.imageUrl).trim() : '') : undefined,
       metadata: {
         ...(payload.metadata || {}),
         ...(payload.icon ? { icon: String(payload.icon).trim() } : {}),
+        ...(payload.imageUrl !== undefined ? { imageUrl: payload.imageUrl ? String(payload.imageUrl).trim() : '' } : {}),
         ...(payload.expiryDate ? { expiryDate: String(payload.expiryDate).trim() } : {}),
       },
       stock: payload.stock != null ? Number(payload.stock) : undefined,
@@ -2340,6 +2347,13 @@ export class CatalogProductService {
     if (resolvedLocationId) await this.inventoryScope.assertLocationScope(resolvedLocationId, actor, false, 'write');
 
     let firstProductId: number | null = null;
+    let storedImageUrl = payload.imageUrl;
+    if (storedImageUrl && this.mediaService) {
+      try {
+        storedImageUrl = await this.mediaService.normalizeImageRef(this.tenantId(actor), storedImageUrl);
+      } catch {}
+    }
+
     await this.db.transaction().execute(async (trx) => {
       if (normalized.styleCode) {
         await sql`SELECT pg_advisory_xact_lock(hashtext(${this.tenantId(actor)}), hashtext(${normalized.styleCode}))`.execute(trx);
@@ -2347,7 +2361,12 @@ export class CatalogProductService {
       }
       for (const draft of drafts) {
         const initialStockQty = Number(draft.stock || 0);
-        const metaObj = draft.metadata || (draft.icon ? { icon: draft.icon } : null);
+        const metaObj = {
+          ...(draft.metadata || {}),
+          ...(draft.icon ? { icon: draft.icon } : {}),
+          ...(storedImageUrl ? { imageUrl: storedImageUrl } : {}),
+        };
+        const hasMeta = Object.keys(metaObj).length > 0;
         const result = await trx
           .insertInto('products')
           .values({
@@ -2374,7 +2393,7 @@ export class CatalogProductService {
             min_stock_qty: draft.minStock,
             default_location_id: resolvedLocationId,
             notes: draft.notes,
-            metadata: metaObj ? JSON.stringify(metaObj) : null,
+            metadata: hasMeta ? JSON.stringify(metaObj) : null,
             calories: draft.calories ?? null,
             allergens: draft.allergens ? sql`${JSON.stringify(draft.allergens)}::jsonb` : sql`'[]'::jsonb`,
             is_spicy: Boolean(draft.isSpicy),
@@ -2457,7 +2476,25 @@ export class CatalogProductService {
       throw new AppError('Stock cannot be edited from product master data. Use inventory adjustment.', 'STOCK_UPDATE_FORBIDDEN', 400);
     }
 
-    const metaObj = normalized.metadata || (normalized.icon ? { icon: normalized.icon } : null);
+    let storedImageUrl = payload.imageUrl;
+    if (storedImageUrl && this.mediaService) {
+      try {
+        storedImageUrl = await this.mediaService.normalizeImageRef(this.tenantId(actor), storedImageUrl);
+      } catch {}
+    }
+
+    const existingMeta = typeof existing.metadata === 'object' && existing.metadata ? existing.metadata : {};
+    const metaObj = {
+      ...existingMeta,
+      ...(normalized.metadata || {}),
+      ...(normalized.icon ? { icon: normalized.icon } : {}),
+      ...(payload.imageUrl !== undefined ? (storedImageUrl ? { imageUrl: storedImageUrl } : {}) : {}),
+    };
+    if (payload.imageUrl === '') {
+      delete metaObj.imageUrl;
+    }
+    const hasMeta = Object.keys(metaObj).length > 0;
+
     await this.db.transaction().execute(async (trx) => {
 
       await trx.updateTable('products').set({
@@ -2483,7 +2520,7 @@ export class CatalogProductService {
         min_stock_qty: normalized.minStock,
         default_location_id: normalized.warehouseId || existing.default_location_id || null,
         notes: normalized.notes,
-        metadata: metaObj ? JSON.stringify(metaObj) : null,
+        metadata: hasMeta ? JSON.stringify(metaObj) : null,
         calories: normalized.calories ?? null,
         allergens: normalized.allergens ? sql`${JSON.stringify(normalized.allergens)}::jsonb` : sql`'[]'::jsonb`,
         is_spicy: Boolean(normalized.isSpicy),
