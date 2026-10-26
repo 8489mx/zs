@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: electron-offline-windows-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   electron-windows:

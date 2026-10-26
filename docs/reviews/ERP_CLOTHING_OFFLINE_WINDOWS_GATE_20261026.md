@@ -19,3 +19,7 @@ At commit `04d5dd6c`, the Windows runner **successfully generated the complete E
 The `edf2dc92` Windows log proved packaged `initdb`, server startup, authenticated `SELECT 1`, and creation of `zs_offline` worked successfully from a fresh disposable user-writable installation. Its repeat-start smoke failed because the test constructed a manager with a development fallback runtime path before it redirected its data paths; persisted credentials were therefore never loaded. The manager now accepts an optional runtime-path override **before** reading auth, leaving the two-argument production constructor behavior unchanged. The regression initializes both manager instances with the same staged installation path and asserts credential reload before querying the retained test row. This is a regression harness fix, not a claim of a production database password defect.
 
 The builder also explicitly invokes `electron-builder --publish never`, preventing implicit GitHub Releases during CI. Only the opted-in GitHub Actions artifact (after all gates pass) is allowed.
+
+## Concurrent changes
+
+A separate sector-acceptance change at `0428daa1` removed the Windows job from the main CI workflow. A dedicated `.github/workflows/electron-offline-windows.yml` was added instead. Its release job runs on each branch push and manually via workflow dispatch, while shared CI ownership remains intact. Windows jobs do not cancel a running build when another agent updates the branch (`cancel-in-progress: false`), avoiding perpetual loss of package evidence in multi-agent work.
