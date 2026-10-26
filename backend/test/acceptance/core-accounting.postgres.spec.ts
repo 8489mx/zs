@@ -1391,8 +1391,9 @@ async function main() {
       items:[{productId:moving.productId,qty:1}],
     },moving.auth) as any;
     const outboundId=Number(outbound.transferId);
-    const outboundItem=await db.selectFrom('stock_transfer_items').select('id')
+    const outboundItem=await db.selectFrom('stock_transfer_items').select(['id','dispatched_qty','qty'])
       .where('tenant_id','=',moving.auth.tenantId!).where('transfer_id','=',outboundId).executeTakeFirstOrThrow();
+    assert.equal(Number(outboundItem.dispatched_qty),1,'dispatch must persist actual quantity, never zero default');
     assert.equal(await postingAmount(moving,'1140',3),0.002,'transfer in transit does not change global GL asset');
     const received=await Promise.allSettled([
       transfers.receiveStockTransfer(outboundId,moving.auth,{items:[{itemId:Number(outboundItem.id),receivedQty:0}]}),
@@ -1427,6 +1428,32 @@ async function main() {
     assert.equal((await db.selectFrom('journal_entries').select('id')
       .where('tenant_id','=',moving.auth.tenantId!).where('source_type','=','inventory_adjustment')
       .where('source_id','=',loss.id).execute()).length,1);
+
+    // An explicit nonzero receipt used to be refused because numeric "0.000"
+    // in dispatched_qty was treated as zero. Ensure the exact path works.
+    const delivered=await transfers.createStockTransfer({
+      fromLocationId:moving.locationId,toLocationId:Number(destination.id),
+      items:[{productId:moving.productId,qty:1}],
+    },moving.auth) as any;
+    const deliveredId=Number(delivered.transferId);
+    const deliveredItem=await db.selectFrom('stock_transfer_items')
+      .select(['id','dispatched_qty']).where('tenant_id','=',moving.auth.tenantId!)
+      .where('transfer_id','=',deliveredId).executeTakeFirstOrThrow();
+    assert.equal(Number(deliveredItem.dispatched_qty),1);
+    await transfers.receiveStockTransfer(deliveredId,moving.auth,{
+      items:[{itemId:Number(deliveredItem.id),receivedQty:1}],
+    });
+    assert.equal(Number((await db.selectFrom('stock_transfer_items')
+      .select('received_qty').where('tenant_id','=',moving.auth.tenantId!)
+      .where('id','=',deliveredItem.id).executeTakeFirstOrThrow()).received_qty),1);
+    assert.equal((await db.selectFrom('stock_transfers').select('has_transit_variance')
+      .where('id','=',deliveredId).where('tenant_id','=',moving.auth.tenantId!)
+      .executeTakeFirstOrThrow()).has_transit_variance,false);
+    assert.equal(await postingAmount(moving,'1140',3),0.001,'lossless transfer preserves global inventory WAC');
+    assert.equal(Number((await db.selectFrom('product_location_stock').select('qty')
+      .where('tenant_id','=',moving.auth.tenantId!).where('location_id','=',destination.id)
+      .where('product_id','=',moving.productId).executeTakeFirstOrThrow()).qty),1);
+
     // No cross-tenant location may be selected, even for an otherwise valid product.
     const different=await fixture('other_transfer_owner');
     await assert.rejects(transfers.createStockTransfer({

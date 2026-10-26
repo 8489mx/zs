@@ -48,3 +48,8 @@ Found and corrected both `Number(...toFixed(2))` source writes in `InventoryTran
 ## Round-final EGP payroll and staff cash disbursement acceptance
 
 PostgreSQL acceptance uses synthetic same-tenant persisted HR employee, reviewed payroll source, approved payment and cash advance loan to exercise the **shared posting boundary**, including exact expense/payable/cash GL, operational treasury source, unique posting, same-document payment and loan disbursement races, locked-period transaction rollback and cross-tenant authorization denial. It confirms the already-existing guard that rejects KWD/OMR payroll rather than silently truncating three-decimal pay; it does not certify GCC payroll calculations or replace the HR statutory policy and attendance test suites.
+
+
+### Confirmed P1 — phantom receipt of legacy zero-dispatched NUMERIC records
+
+The fresh PostgreSQL test proved that `dispatched_qty` persisted as string `"0.000"`; `Number(item.dispatched_qty || item.qty)` treated that string as truthy, so zero receipts finalized `stock_transfers.status='received'` without moving/writing off inventory or posting GL. New dispatches persist `dispatched_qty=qty`; legacy pending rows use a numeric-aware fallback in both receipt validation and stock mutation. Regression explicitly tests full transit shrinkage, exact KWD source/GL cost, competing receipt once, ordinary complete delivery and correct location balances. This avoids rewriting historical dispatch quantities.

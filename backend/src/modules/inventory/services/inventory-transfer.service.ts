@@ -162,6 +162,10 @@ export class InventoryTransferService {
         const trace = await dispatchTrackedStock(trx, scope, item, from.id, from.branchId, inTransitLocationId, id);
         await trx.insertInto('stock_transfer_items').values({
           transfer_id: id, product_id: item.productId, product_name: product.name || '', qty: item.qty,
+          // PostgreSQL NUMERIC values are returned as strings. A default
+          // "0.000" is truthy, so a later receiver cannot infer dispatch
+          // quantity using ||. Persist the actual dispatch at source.
+          dispatched_qty: Number(item.qty),
           serial_tracking: JSON.stringify(trace.serialTracking), batch_tracking: JSON.stringify(trace.batchTracking),
           ...this.tenantFields(auth),
         } as any).execute();
@@ -249,7 +253,14 @@ export class InventoryTransferService {
       const receiptDetails = new Map<number, TransferReceiptTraceRequest>(
         (receiptPayload?.items || []).map(row => [Number(row.itemId), row]),
       );
-      const dispatchedByItemId = new Map(items.map((item) => [Number(item.id), Number(item.dispatched_qty ?? item.qty ?? 0)]));
+      // Legacy pending transfers were written with default dispatched_qty="0.000".
+      // Convert PostgreSQL numeric TEXT before applying the fallback, otherwise
+      // a valid receipt can be marked received with no physical movement/GL.
+      const dispatchedQty = (item: (typeof items)[number]): number => {
+        const persisted = Number(item.dispatched_qty || 0);
+        return persisted > 0 ? persisted : Number(item.qty || 0);
+      };
+      const dispatchedByItemId = new Map(items.map((item) => [Number(item.id), dispatchedQty(item)]));
       for (const r of receiptPayload?.items || []) {
         const itemId = Number(r?.itemId);
         const receivedQty = Number(r?.receivedQty);
@@ -283,7 +294,7 @@ export class InventoryTransferService {
 
       if (effectiveToLocationId) {
         for (const item of items) {
-          const dispatched = Number(item.dispatched_qty || item.qty || 0);
+          const dispatched = dispatchedQty(item);
           const received = receivedByItemId.has(Number(item.id))
             ? receivedByItemId.get(Number(item.id))!
             : dispatched;
