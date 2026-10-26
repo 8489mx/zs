@@ -816,35 +816,6 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     highlights: ['جدولة الأقساط الشهرية والفوائد', 'طباعة الكمبيالات وعقود البيع بالتقسيط', 'إدارة الضامنين والمخازن والتوصيل'],
   },
 
-  perfumes: {
-    id: 'perfumes',
-    name: 'العطور ومستحضرات التجميل والتركيبات',
-    subtitle: 'محلات ومصانع العطور، الزيوت العطرية ومستحضرات التجميل',
-    description: 'إدارة خلطات وتركيبات العطور، الأحجام والسعات (ML)، وتصنيع الزيوت العطرية.',
-    badge: 'تركيبات وتصنيع وأحجام',
-    recommendedModules: [
-      'posModuleEnabled',
-      'inventoryModuleEnabled',
-      'purchasesModuleEnabled',
-      'clothingModuleEnabled',
-      'manufacturingModuleEnabled',
-      'comboModuleEnabled',
-      'taxDeclarationModuleEnabled',
-    ],
-    disabledModules: [
-      'weightedBarcodeEnabled',
-      'restaurantModuleEnabled',
-      'enablePharmacyModule',
-      'enableMobileStoreFeatures',
-      'contractingModuleEnabled',
-      'maritimeFreightModuleEnabled',
-    ],
-    recommendedPlan: 'plan_ultimate',
-    defaultPosMode: 'scanner',
-    defaultProductKind: 'fashion',
-    highlights: ['تصنيع وتركيب الزيوت العطرية', 'إدارة المقاسات والأحجام والسعات بالمللي', 'عروض الكومبو والخصومات'],
-  },
-
   spices: {
     id: 'spices',
     name: 'العطارة والمحامص والمطاحن والبهارات',

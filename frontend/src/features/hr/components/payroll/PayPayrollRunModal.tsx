@@ -5,7 +5,6 @@ import { http } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth-store';
 import { useHrMutations } from '@/features/hr/hooks/useHr';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
-import { Button } from '@/shared/ui/button';
 import { money, text } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { toast } from '@/shared/components/system-alert';
 import { getErrorMessage } from '@/lib/errors';

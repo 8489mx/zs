@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
 import { StarIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
-import { formatCurrency, formatCurrencyWithCode, formatCurrencyWithSymbol } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithCode } from '@/lib/format';
 import { sharedProductsApi } from '@/shared/api/products';
 import {
   buildPosProductGroups,
@@ -337,18 +337,6 @@ function PosProductsPanelComponent({
         window.localStorage.setItem(cardDensityStorageKey, mode);
       } catch {}
     }
-  };
-
-  const toggleCardDensity = () => {
-    setCardDensity((prev) => {
-      const next: PosCardDensity = prev === 'comfortable' ? 'compact' : prev === 'compact' ? 'gallery' : 'comfortable';
-      if (typeof window !== 'undefined') {
-        try {
-          window.localStorage.setItem(cardDensityStorageKey, next);
-        } catch {}
-      }
-      return next;
-    });
   };
   
   const categoriesQuery = useQuery({ queryKey: ['pos-categories'], queryFn: sharedProductsApi.categories, staleTime: 300000 });

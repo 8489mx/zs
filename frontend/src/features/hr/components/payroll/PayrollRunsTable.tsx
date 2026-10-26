@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { DataTable } from '@/shared/ui/data-table';
 import { Button } from '@/shared/ui/button';
-import { CheckIcon } from '@/shared/components/icons/AppIcons';
-import { text, money, statusLabel, normalize, getPayFrequencyLabel } from '@/features/hr/pages/payroll/hr-payroll.helpers';
+import { text, money, normalize, getPayFrequencyLabel } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import type { HrPayrollRun } from '@/types/domain';
 
 export type PayrollRunTab = 'monthly' | 'biweekly' | 'weekly' | 'daily' | 'all_active' | 'cancelled';

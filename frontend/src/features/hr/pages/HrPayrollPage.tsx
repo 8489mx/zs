@@ -111,7 +111,7 @@ export function HrPayrollPage() {
     setSelectedReviewItem(null);
     setPayModalTargetItem({
       itemId: Number(item.id),
-      runId: Number(item.payrollRunId || selectedRunId),
+      runId: Number((item as any).payrollRunId || (item as any).runId || selectedRunId),
       employeeId: Number(item.employeeId),
       employeeName: item.employeeName || 'موظف',
       employeeNo: item.employeeNo ? String(item.employeeNo) : undefined,
@@ -230,17 +230,6 @@ export function HrPayrollPage() {
       (row) => normalize(row.compensationType) === 'hourly' || (Number(row.hourlyRate || 0) > 0 && normalize(row.compensationType) !== 'monthly')
     );
   }, [selectedRun?.payFrequency, filteredRunItems]);
-
-  const isMixedCompensationRun = useMemo(() => {
-    if (!filteredRunItems.length) return false;
-    const hasHourly = filteredRunItems.some(
-      (row) => normalize(row.compensationType) === 'hourly' || (Number(row.hourlyRate || 0) > 0 && normalize(row.compensationType) !== 'monthly')
-    );
-    const hasMonthly = filteredRunItems.some(
-      (row) => normalize(row.compensationType) === 'monthly' || (!row.compensationType && Number(row.hourlyRate || 0) <= 0)
-    );
-    return hasHourly && hasMonthly;
-  }, [filteredRunItems]);
 
   const baseCompensationHeader = isSelectedRunHourlyOrWeekly
     ? 'الأجر الأساسي'
