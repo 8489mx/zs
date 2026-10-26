@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { settingsApi } from '@/features/settings/api/settings.api';
+import { settingsApi } from '@/features/settings';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/shared/components/system-alert';
 

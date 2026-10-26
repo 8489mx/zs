@@ -7,7 +7,7 @@ import { referenceDataApi } from '@/services/reference-data.api';
 import { goodsReceiptsApi } from '../api/goods-receipts.api';
 import { toast } from '@/shared/components/system-alert';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
-import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
+import { shouldShowExpiryDateField } from '@/features/products';
 
 export interface GoodsReceiptInitialItem {
   purchaseOrderItemId?: number;
