@@ -18,6 +18,7 @@ import { ProductCustomerPricesCard } from './ProductCustomerPricesCard';
 import { FashionGroupEditorCard } from './FashionGroupEditorCard';
 import { buildUpdatePayload, normalizeCustomerPrices, refetchAndSelectProduct, toProductFormValues } from './product-workspace.utils';
 import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
+import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
 
 type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
   stock?: number;
@@ -48,6 +49,11 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
   });
 
   const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
+  const showExpiryDate = shouldShowExpiryDateField({
+    settings: settingsQuery.data,
+    clothingModuleEnabled,
+    itemKind: watchedItemKind,
+  });
   const watchedStyleCode = form.watch('styleCode') || '';
   const groupedEntry = Boolean(String(product?.styleCode || '').trim());
 
@@ -130,9 +136,11 @@ export function ProductEditorCard({ product, categories, suppliers, customers, l
           <Field label={t('products.workspace_sections.product_editor_card.s20', "سعر المستهلك / الجمهور (SRP)")}><input type="number" step="0.01" {...form.register('consumerPrice')} disabled={mutation.isPending} placeholder={t('products.workspace_sections.product_editor_card.s21', "سعر بيع المحل للمستهلك")} /></Field>
           <Field label={t('products.workspace_sections.product_editor_card.s22', "المخزون الحالي")}><input type="number" value={Number(product.stock || 0)} disabled readOnly /></Field>
           <Field label={t('products.workspace_sections.product_editor_card.s23', "الحد الأدنى")}><input type="number" {...form.register('minStock')} disabled={mutation.isPending} /></Field>
-          <Field label={t('products.workspace_sections.product_editor_card.s24', "تاريخ انتهاء الصلاحية")}>
+          {showExpiryDate ? (
+            <Field label={t('products.workspace_sections.product_editor_card.s24', "تاريخ انتهاء الصلاحية")}>
             <input type="date" {...form.register('expiryDate')} disabled={mutation.isPending} />
-          </Field>
+            </Field>
+          ) : null}
           <Field label={t('products.workspace_sections.product_editor_card.s25', "القسم")}>
             <select {...form.register('categoryId')} disabled={mutation.isPending}>
               <option value="">{t('products.workspace_sections.product_editor_card.s26', "بدون قسم")}</option>

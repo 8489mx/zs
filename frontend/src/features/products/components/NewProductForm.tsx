@@ -24,6 +24,7 @@ import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
 import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 import { toast } from '@/shared/components/system-alert';
 import { getFriendlyApiErrorMessage } from '@/lib/errors';
+import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
 
 const normalizeLookupText = (value: unknown) => normalizeArabicSearchKey(value);
 
@@ -218,6 +219,11 @@ export function NewProductForm({
   const watchedRetailPrice = form.watch('retailPrice');
   const watchedWholesalePrice = form.watch('wholesalePrice');
   const usesVariantBuilder = watchedItemKind === 'fashion' || groupedEntryEnabled;
+  const showExpiryDate = shouldShowExpiryDateField({
+    settings: settingsQuery.data,
+    clothingModuleEnabled,
+    itemKind: watchedItemKind,
+  });
 
   const colorTokens = useMemo(() => splitFashionTokens(watchedFashionColors), [watchedFashionColors]);
   const sizeTokens = useMemo(() => splitFashionTokens(watchedFashionSizes), [watchedFashionSizes]);
@@ -675,9 +681,11 @@ export function NewProductForm({
                 <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
               </Field>
 
-              <Field label={t('products.new_product_form.s50', "تاريخ الصلاحية")}>
+              {showExpiryDate && (
+                <Field label={t('products.new_product_form.s50', "تاريخ الصلاحية")}>
                 <input className="purchase-prototype-field-input" type="date" {...form.register('expiryDate')} disabled={isFormDisabled} />
-              </Field>
+                </Field>
+              )}
 
               <Field label={t('products.new_product_form.s51', "ملاحظات")}>
                 <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder={t('products.new_product_form.s52', "ملاحظات الصنف...")} />
@@ -744,9 +752,11 @@ export function NewProductForm({
                   <Field label={t('products.new_product_form.s67', "الحد الأدنى للتنبيه (نواقص)")}>
                     <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
                   </Field>
-                  <Field label={t('products.new_product_form.s68', "تاريخ الصلاحية")}>
+                  {showExpiryDate && (
+                    <Field label={t('products.new_product_form.s68', "تاريخ الصلاحية")}>
                     <input className="purchase-prototype-field-input" type="date" {...form.register('expiryDate')} disabled={isFormDisabled} />
-                  </Field>
+                    </Field>
+                  )}
                   <Field label={t('products.new_product_form.s69', "ملاحظات")}>
                     <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder={t('products.new_product_form.s70', "ملاحظات حول الصنف (اختياري)...")} />
                   </Field>

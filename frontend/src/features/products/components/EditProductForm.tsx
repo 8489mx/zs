@@ -29,6 +29,7 @@ import { queryKeys } from '@/app/query-keys';
 import { invalidateCatalogDomain } from '@/app/query-invalidation';
 import { toast } from '@/shared/components/system-alert';
 import { getFriendlyApiErrorMessage } from '@/lib/errors';
+import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
 import { ProductArchiveConfirmDialog } from '@/features/products/components/ProductArchiveConfirmDialog';
 
 type ProductFormOutputWithoutStock = Omit<ProductFormOutput, 'stock' | 'variantStock' | 'fashionColors' | 'fashionSizes'> & {
@@ -146,6 +147,11 @@ export function EditProductForm({
   });
 
   const watchedItemKind = clothingModuleEnabled && form.watch('itemKind') === 'fashion' ? 'fashion' : 'standard';
+  const showExpiryDate = shouldShowExpiryDateField({
+    settings: settingsQuery.data,
+    clothingModuleEnabled,
+    itemKind: watchedItemKind,
+  });
   const watchedStyleCode = form.watch('styleCode') || '';
   const groupedEntry = Boolean(String(product?.styleCode || '').trim());
 
@@ -771,9 +777,11 @@ export function EditProductForm({
               <Field label={t('products.edit_product_form.s60', "الحد الأدنى للتنبيه (نواقص)")}>
                 <input className="purchase-prototype-field-input" type="number" {...form.register('minStock')} disabled={isFormDisabled} />
               </Field>
-              <Field label={t('products.edit_product_form.s61', "تاريخ الصلاحية")}>
+              {showExpiryDate && (
+                <Field label={t('products.edit_product_form.s61', "تاريخ الصلاحية")}>
                 <input className="purchase-prototype-field-input" type="date" {...form.register('expiryDate')} disabled={isFormDisabled} />
-              </Field>
+                </Field>
+              )}
               <Field label={t('products.edit_product_form.s62', "ملاحظات")}>
                 <input className="purchase-prototype-field-input" {...form.register('notes')} disabled={isFormDisabled} placeholder={t('products.edit_product_form.s63', "ملاحظات حول الصنف...")} />
               </Field>

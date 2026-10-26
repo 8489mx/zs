@@ -6,6 +6,8 @@ import { CustomSelect } from '@/shared/ui/custom-select';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { goodsReceiptsApi } from '../api/goods-receipts.api';
 import { toast } from '@/shared/components/system-alert';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
+import { shouldShowExpiryDateField } from '@/features/products/utils/product-visibility.utils';
 
 export interface GoodsReceiptInitialItem {
   purchaseOrderItemId?: number;
@@ -56,6 +58,8 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
   onSuccess,
 }) => {
   const { t } = useTranslation();
+  const settingsQuery = useSettingsQuery();
+  const showBatchesAndExpiry = shouldShowExpiryDateField({ settings: settingsQuery.data });
   const [deliveryRef, setDeliveryRef] = useState('');
   const [notes, setNotes] = useState('');
   const [autoPost, setAutoPost] = useState(true);
@@ -329,8 +333,10 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
                 <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px', color: '#166534' }}>{t('purchases.goods_receipt_modal.s15', "المقبول")}</th>
                 <th style={{ padding: '8px 10px', textAlign: 'center', width: '80px', color: '#b91c1c' }}>{t('purchases.goods_receipt_modal.s16', "المرفوض")}</th>
                 <th style={{ padding: '8px 10px', width: '140px' }}>{t('purchases.goods_receipt_modal.s17', "سبب الرفض")}</th>
-                <th style={{ padding: '8px 10px', width: '100px' }}>{t('purchases.goods_receipt_modal.s18', "رقم التشغيلة")}</th>
-                <th style={{ padding: '8px 10px', width: '110px' }}>{t('purchases.goods_receipt_modal.s19', "الصلاحية")}</th>
+                {showBatchesAndExpiry && (
+                  <th style={{ padding: '8px 10px', width: '100px' }}>{t('purchases.goods_receipt_modal.s18', "رقم التشغيلة")}</th>
+                  <th style={{ padding: '8px 10px', width: '110px' }}>{t('purchases.goods_receipt_modal.s19', "الصلاحية")}</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -428,7 +434,8 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
                       }}
                     />
                   </td>
-                  <td style={{ padding: '6px 8px' }}>
+                  {showBatchesAndExpiry && (
+                    <td style={{ padding: '6px 8px' }}>
                     <input
                       type="text"
                       placeholder="Batch #"
@@ -458,7 +465,8 @@ export const GoodsReceiptModal: React.FC<GoodsReceiptModalProps> = ({
                         boxSizing: 'border-box',
                       }}
                     />
-                  </td>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

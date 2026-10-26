@@ -292,3 +292,14 @@ emoveDraftRow):**
 - **التوثيق الدستوري وحماية التكرار:** إضافة البند `1-e. Retail Clothing & Variant Stock Invariants` في `AGENTS.md` و`Directive for Next Audit Sessions` في `RETAIL_CLOTHING_AUDIT_20261025.md` لمنع كودكس من نقض هذه الإصلاحات مستقبلاً.
 - **أدلة الاختبار:** نجاح اختبارات `backend/test/critical/fashion-stock-safety.spec.ts` (7/7) واختبارات `frontend/src/features/products/components/workspace-sections/FashionGroupEditorCard.helpers.spec.ts` (3/3) محلياً.
 
+### 2026-10-26 — تكيف نماذج الأصناف السياقي وإخفاء حقول الصلاحية لنشاط الملابس وتثبيت النشاط الفرعي المباشر
+- **المشكلة:** ظهور حقل "تاريخ انتهاء الصلاحية" بشكل ثابت وغير مشروط داخل شاشات إنشاء وتعديل الأصناف حتى عند تفعيل موديول الملابس والمصفوفات (`clothingModuleEnabled`) أو في أنشطة الأزياء والمقاسات. واضطرار المستخدم لتفعيل التجارة العامة ثم الدخول لمتجر التطبيقات لتثبيت الموديول يدوياً بسبب اختفاء تخصص الملابس في القائمة الفرعية المطوية.
+- **الحل والتنفيذ:**
+  1. إنشاء محرك تحديد ظهور الحقول السياقية `shouldShowExpiryDateField` في `frontend/src/features/products/utils/product-visibility.utils.ts`.
+  2. إخفاء حقل تاريخ انتهاء الصلاحية تلقائياً عند: تفعيل موديول الملابس (`clothingModuleEnabled`)، أو اختيار طبيعة الصنف كأزياء بمتغيرات (`itemKind === 'fashion'`)، أو في أنشطة الأزياء والملابس والأحذية (`clothing`/`fashion`) وقطع الغيار والإلكترونيات والخدمات والمقاولات.
+  3. حصر ظهور تاريخ الصلاحية في الأنشطة المعنية (الصيدليات، السوبرماركت، المواد الغذائية، المطاعم) أو عند تفعيل إدارة التشغيلات.
+  4. تطبيق الحماية في كافة شاشات ونماذج الأصناف: `ProductForm.tsx`، `NewProductForm.tsx` (كلا المسارين)، `EditProductForm.tsx`، و `ProductEditorCard.tsx`.
+  5. ترقية تخصص "الملابس والأزياء والأحذية" ليكون ضمن التخصصات الفرعية الرئيسية المباشرة (`PRIMARY_COMMERCE_SUB_VERTICALS`) في `IndustryModeSelectorCard.tsx` لتفعيله بنقرة واحدة مباشرة.
+- **أدلة الاختبار:** نجاح اختبارات `frontend/src/features/products/utils/product-visibility.utils.spec.ts` (5/5 tests) واجتياز حزمة اختبارات الأصناف بالكامل في `frontend/src/features/products/` (10 test files, 37/37 tests passed).
+
+

@@ -137,6 +137,16 @@ const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     icon: PackageIcon,
   },
   {
+    key: 'clothing',
+    labelAr: 'الملابس والأزياء والأحذية',
+    labelEn: 'Fashion, Apparel & Footwear',
+    tag: 'مصفوفة المقاسات والألوان',
+    tagEn: 'Size & Color Matrix',
+    descriptionAr: 'إدارة المقاسات والألوان المتعددة للأصناف، توليد باركود الفاشون، وتصنيفات الموديلات والمواسم.',
+    descriptionEn: 'Multi-variant size and color matrices, fashion barcode generation, seasonal styles and collections.',
+    icon: TagIcon,
+  },
+  {
     key: 'warehousing',
     labelAr: 'إدارة المخازن والمستودعات والتحويلات',
     labelEn: 'Warehouse & Inventory Management',
@@ -209,16 +219,6 @@ const EXTENDED_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     descriptionEn: 'Parts directory, OEM numbers, vehicle make/model/year compatibility and cross-reference.',
     icon: TruckIcon,
   },
-  {
-    key: 'clothing',
-    labelAr: 'الملابس والأزياء والأحذية',
-    labelEn: 'Fashion, Apparel & Footwear',
-    tag: 'مصفوفة المقاسات والألوان',
-    tagEn: 'Size & Color Matrix',
-    descriptionAr: 'إدارة المقاسات والألوان المتعددة للأصناف، توليد باركود الفاشون، وتصنيفات الموديلات والمواسم.',
-    descriptionEn: 'Multi-variant size and color matrices, fashion barcode generation, seasonal styles and collections.',
-    icon: TagIcon,
-  },
 ];
 
 const ALL_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
@@ -243,7 +243,7 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
     tenant?.activityType || settings?.activityType || settings?.businessIndustry || 'retail_general',
   ).trim().toLowerCase();
 
-  const isCurrentSubExtended = ['auto_parts', 'autoparts', 'clothing', 'fashion'].includes(currentActivityType);
+  const isCurrentSubExtended = ['auto_parts', 'autoparts'].includes(currentActivityType);
   const [showAllSubVerticals, setShowAllSubVerticals] = useState(() => isCurrentSubExtended);
 
   const currentPillar: PillarKey =
