@@ -42,3 +42,7 @@
 ### P0-C three-decimal acquisition follow-up (2026-10-25; branch only)
 
 `tradein.service.ts` validates acquisition cost against the tenant base currency before stock/cash writes; `accounting-posting.service.ts` no longer calls a two-decimal quantizer before posting cash used-goods inventory. The PostgreSQL acceptance suite now checks a 0.001 KWD acquisition against source, stock/WAC, treasury and balanced GL, plus rejection of 0.0001. **New CI result is pending**. Bank/deferred exchanges, settlement reversals and other sector pathways are still open.
+
+### P0-C default-bank trade-in acquisition (2026-10-26, review branch)
+
+`backend/src/modules/tradein/tradein.service.ts` permits an immediate `paymentMethod: bank` acquisition with a registered physical stock receipt and a matching `treasury_transactions.payment_channel`. `AccountingPostingService.postTradeInCashPurchase` now selects the tenant-configured/default 1120 bank account (instead of 1110 cash) and verifies channel, exact tenant minor-unit amount, stock value and idempotent source before booking Dr 1140 / Cr bank. `CreateTradeInModal` offers cash/default-bank and uses currency-aware price steps. The PostgreSQL acceptance includes one-fil KWD bank payout/source/stock/GL and rejects unsupported rails; green final-head CI is required. The bank GL is an aggregate/default configured ledger, not confirmation that an external transfer occurred. Exchange, per-bank statement matching and reversal remain blocked.
