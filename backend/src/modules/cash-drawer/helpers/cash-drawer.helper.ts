@@ -132,7 +132,7 @@ function cashDrawerDateKey(value: unknown): string {
 
 export function filterCashDrawerRows(rows: CashDrawerMappedRow[], query: CashDrawerQuery): CashDrawerMappedRow[] {
   const search = String(query.search || '').trim().toLowerCase();
-  const filter = String(query.filter || 'all').trim().toLowerCase();
+  const filter = String(query.filter || (query as any).status || 'all').trim().toLowerCase();
   const today = new Date().toISOString().slice(0, 10);
   return rows.filter((row) => {
     const status = String(row.status || '');

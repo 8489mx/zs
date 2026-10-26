@@ -1,4 +1,5 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { CashDrawerService } from '../cash-drawer/cash-drawer.service';
 import { Kysely, sql } from '../../database/kysely';
 import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
@@ -378,6 +379,7 @@ export class HrService {
     private readonly audit: AuditService,
     private readonly treasury: HrTreasuryAdapter,
     private readonly accountingPosting: AccountingPostingService,
+    @Optional() private readonly cashDrawer?: CashDrawerService,
   ) {}
 
   private scope(auth: AuthContext) {
@@ -4030,17 +4032,17 @@ export class HrService {
         let eligibleShift: any;
         if (shiftId) {
           eligibleShift = await sql`
-            SELECT id, branch_id, location_id, COALESCE(expected_cash, 0) AS expected_cash
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
             FROM cashier_shifts
             WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
             FOR UPDATE
           `.execute(trx);
         } else {
           eligibleShift = await sql`
-            SELECT id, branch_id, location_id, COALESCE(expected_cash, 0) AS expected_cash
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
             FROM cashier_shifts
             WHERE tenant_id = ${auth.tenantId} AND status = 'open'
-              AND (opened_by = ${auth.userId} OR ${auth.role === 'admin'} OR ${auth.role === 'super_admin'})
+              AND (opened_by = ${auth.userId} OR ${['admin', 'super_admin', 'owner', 'manager'].includes(auth.role)} OR ${Boolean(auth.permissions?.includes('hr') || auth.permissions?.includes('hrPayrollManage'))})
             ORDER BY (opened_by = ${auth.userId}) DESC, id DESC LIMIT 1
             FOR UPDATE
           `.execute(trx);
@@ -4050,7 +4052,9 @@ export class HrService {
         }
         const shift = eligibleShift.rows[0];
         shiftId = Number(shift.id);
-        const drawerCash = Number(shift.expected_cash || 0);
+        const drawerCash = this.cashDrawer
+          ? await this.cashDrawer.computeShiftExpectedCash(shiftId, auth, trx)
+          : Number(shift.expected_cash || 0);
         if (totalNetPay > drawerCash && !payload.allowOverdraft) {
           throw new AppError(
             `نقدية درج الكاشير (${drawerCash.toLocaleString('en-US')} ج.م) غير كافية لصرف إجمالي المسير (${totalNetPay.toLocaleString('en-US')} ج.م)`,
@@ -4059,9 +4063,17 @@ export class HrService {
           );
         }
 
+        const cashierUser = await sql<{ name: string }>`
+          SELECT COALESCE(NULLIF(display_name, ''), username) as name
+          FROM users
+          WHERE id = ${shift.opened_by} AND tenant_id = ${auth.tenantId}
+          LIMIT 1
+        `.execute(trx);
+        const cashierName = cashierUser.rows[0]?.name || 'الكاشير';
+
         await sql`
           UPDATE cashier_shifts
-          SET expected_cash = COALESCE(expected_cash, 0) - ${totalNetPay}
+          SET expected_cash = ${drawerCash - totalNetPay}
           WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
         `.execute(trx);
 
@@ -4071,7 +4083,7 @@ export class HrService {
             reference_id, branch_id, location_id, created_by
           ) VALUES (
             ${auth.tenantId}, ${auth.accountId}, 'cash_out', ${-totalNetPay}, 'cash',
-            ${`صرف رواتب مسير #${id} من درج وردية الكاشير #${shiftId}`},
+            ${`صرف رواتب مسير #${id} من درج الكاشير (${cashierName} - وردية #${shiftId})`},
             'cashier_shift', ${shiftId}, ${shift.branch_id}, ${shift.location_id}, ${auth.userId}
           )
         `.execute(trx);
@@ -4171,7 +4183,7 @@ export class HrService {
 
       if (!item) throw new AppError('بند الراتب غير موجود', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
       runId = Number(item.run_id);
-      if (item.status === 'paid') {
+      if ((item.status as string) === 'paid') {
         throw new AppError('تم صرف مستحقات هذا الموظف بالفعل مسبقاً', 'HR_PAYROLL_ITEM_ALREADY_PAID', 400);
       }
       if (item.status !== 'approved') {
@@ -4193,17 +4205,17 @@ export class HrService {
         let eligibleShift: any;
         if (shiftId) {
           eligibleShift = await sql`
-            SELECT id, branch_id, location_id, COALESCE(expected_cash, 0) AS expected_cash
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
             FROM cashier_shifts
             WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
             FOR UPDATE
           `.execute(trx);
         } else {
           eligibleShift = await sql`
-            SELECT id, branch_id, location_id, COALESCE(expected_cash, 0) AS expected_cash
+            SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash
             FROM cashier_shifts
             WHERE tenant_id = ${auth.tenantId} AND status = 'open'
-              AND (opened_by = ${auth.userId} OR ${auth.role === 'admin'} OR ${auth.role === 'super_admin'})
+              AND (opened_by = ${auth.userId} OR ${['admin', 'super_admin', 'owner', 'manager'].includes(auth.role)} OR ${Boolean(auth.permissions?.includes('hr') || auth.permissions?.includes('hrPayrollManage'))})
             ORDER BY (opened_by = ${auth.userId}) DESC, id DESC LIMIT 1
             FOR UPDATE
           `.execute(trx);
@@ -4215,7 +4227,9 @@ export class HrService {
         shiftId = Number(shift.id);
         branchId = shift.branch_id ? Number(shift.branch_id) : null;
         locationId = shift.location_id ? Number(shift.location_id) : null;
-        const drawerCash = Number(shift.expected_cash || 0);
+        const drawerCash = this.cashDrawer
+          ? await this.cashDrawer.computeShiftExpectedCash(shiftId, auth, trx)
+          : Number(shift.expected_cash || 0);
         if (netPay > drawerCash && !payload.allowOverdraft) {
           throw new AppError(
             `نقدية درج الكاشير (${drawerCash.toLocaleString('en-US')} ج.م) غير كافية لصرف صافي راتب الموظف (${netPay.toLocaleString('en-US')} ج.م)؛ يلزم إيداع نقدية بالدرج أو اختيار الخزينة العامة`,
@@ -4224,9 +4238,17 @@ export class HrService {
           );
         }
 
+        const cashierUser = await sql<{ name: string }>`
+          SELECT COALESCE(NULLIF(display_name, ''), username) as name
+          FROM users
+          WHERE id = ${shift.opened_by} AND tenant_id = ${auth.tenantId}
+          LIMIT 1
+        `.execute(trx);
+        const cashierName = cashierUser.rows[0]?.name || 'الكاشير';
+
         await sql`
           UPDATE cashier_shifts
-          SET expected_cash = COALESCE(expected_cash, 0) - ${netPay}
+          SET expected_cash = ${drawerCash - netPay}
           WHERE id = ${shiftId} AND tenant_id = ${auth.tenantId} AND status = 'open'
         `.execute(trx);
 
@@ -4236,7 +4258,7 @@ export class HrService {
             reference_id, branch_id, location_id, created_by
           ) VALUES (
             ${auth.tenantId}, ${auth.accountId}, 'cash_out', ${-netPay}, 'cash',
-            ${`صرف راتب الموظف ${item.display_name} (#${item.employee_id}) من درج الكاشير - مسير #${item.run_id}`},
+            ${`صرف راتب الموظف ${item.display_name} (#${item.employee_id}) من درج الكاشير (${cashierName} - وردية #${shiftId}) - مسير #${item.run_id}`},
             'cashier_shift', ${shiftId}, ${branchId}, ${locationId}, ${auth.userId}
           )
         `.execute(trx);
@@ -6871,15 +6893,17 @@ export class HrService {
       // 4. Handle shift cash deduction if shift ID is provided
       if (payload.shiftId) {
         const shiftId = Number(payload.shiftId);
-        const eligibleShift = await sql<{ id: number; branch_id: number | null; location_id: number | null; expected_cash: string | number }>`
-          SELECT id, branch_id, location_id, COALESCE(expected_cash, 0) AS expected_cash FROM cashier_shifts
+        const eligibleShift = await sql<{ id: number; branch_id: number | null; location_id: number | null; opened_by: number; expected_cash: string | number }>`
+          SELECT id, branch_id, location_id, opened_by, COALESCE(expected_cash, 0) AS expected_cash FROM cashier_shifts
           WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
-            AND (opened_by = ${auth.userId} OR ${auth.role === 'admin'} OR ${auth.role === 'super_admin'})
+            AND (opened_by = ${auth.userId} OR ${['admin', 'super_admin', 'owner', 'manager'].includes(auth.role)} OR ${Boolean(auth.permissions?.includes('hr') || auth.permissions?.includes('hrLoans') || auth.permissions?.includes('hrPayrollManage'))})
           FOR UPDATE
         `.execute(trx);
         if (!eligibleShift.rows.length) throw new AppError('وردية الكاشير غير مفتوحة أو لا تخص المستخدم الحالي', 'HR_CASHIER_SHIFT_INVALID', 400);
         const shift = eligibleShift.rows[0];
-        const drawerCash = Number(shift.expected_cash || 0);
+        const drawerCash = this.cashDrawer
+          ? await this.cashDrawer.computeShiftExpectedCash(shiftId, auth, trx)
+          : Number(shift.expected_cash || 0);
 
         if (amount > drawerCash && !isCallerAdmin && !managerApprovalTag.includes('المدير')) {
           throw new AppError(
@@ -6889,9 +6913,17 @@ export class HrService {
           );
         }
 
+        const cashierUser = await sql<{ name: string }>`
+          SELECT COALESCE(NULLIF(display_name, ''), username) as name
+          FROM users
+          WHERE id = ${shift.opened_by} AND tenant_id = ${tenantId}
+          LIMIT 1
+        `.execute(trx);
+        const cashierName = cashierUser.rows[0]?.name || 'الكاشير';
+
         const txnNote = isWagePayout
-          ? `صرف راتب/أجر موظف #${employeeId} (${employee.display_name})، سند #${loanId}: ${notes}`
-          : `سلفة موظف #${employeeId} (${employee.display_name})، حركة #${loanId}: ${notes}`;
+          ? `صرف راتب/أجر موظف #${employeeId} (${employee.display_name}) من درج (${cashierName} - وردية #${shiftId})، سند #${loanId}: ${notes}`
+          : `سلفة موظف #${employeeId} (${employee.display_name}) من درج (${cashierName} - وردية #${shiftId})، حركة #${loanId}: ${notes}`;
         await sql`
           INSERT INTO treasury_transactions (
             tenant_id, account_id, txn_type, amount, payment_channel, note, reference_type,
@@ -6904,7 +6936,7 @@ export class HrService {
         `.execute(trx);
         await sql`
           UPDATE cashier_shifts
-          SET expected_cash = COALESCE(expected_cash, 0) - ${amount}
+          SET expected_cash = ${drawerCash - amount}
           WHERE id = ${shiftId} AND tenant_id = ${tenantId} AND status = 'open'
         `.execute(trx);
       } else {

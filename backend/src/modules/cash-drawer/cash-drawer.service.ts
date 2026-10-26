@@ -739,22 +739,23 @@ export class CashDrawerService {
     return mapped;
   }
 
-  private async getShift(shiftId: number, auth: AuthContext): Promise<ShiftRow | null> {
+  async getShift(shiftId: number, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftRow | null> {
     const scope = this.scope(auth);
-    const result = await sql<ShiftRow>`select * from cashier_shifts where tenant_id = ${scope.tenantId} and id = ${shiftId} limit 1`.execute(this.db);
+    const db = queryable || this.db;
+    const result = await sql<ShiftRow>`select * from cashier_shifts where tenant_id = ${scope.tenantId} and id = ${shiftId} limit 1`.execute(db);
     return result.rows?.[0] || null;
   }
 
-  private async computeShiftExpectedCash(shiftId: number, auth: AuthContext): Promise<number> {
-    const shift = await this.getShift(shiftId, auth);
-    return shift ? this.computeShiftExpectedCashFromShift(shift, auth) : 0;
+  async computeShiftExpectedCash(shiftId: number, auth: AuthContext, queryable?: Kysely<Database>): Promise<number> {
+    const shift = await this.getShift(shiftId, auth, queryable);
+    return shift ? this.computeShiftExpectedCashFromShift(shift, auth, undefined, undefined, queryable) : 0;
   }
 
   async listCashierShifts(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
-    const filter = String(query.filter || 'all').trim().toLowerCase();
+    const filter = String(query.filter || query.status || 'all').trim().toLowerCase();
     const filterStatus = filter === 'open' || filter === 'closed' || filter === 'pending_review' ? filter : undefined;
     const mapped = await this.rawList(auth, filterStatus);
-    const filtered = filterCashDrawerRows(mapped, query);
+    const filtered = filterCashDrawerRows(mapped, { ...query, filter });
     const paged = paginateCashDrawerRows(filtered, query);
     return { cashierShifts: paged.rows, pagination: paged.pagination, summary: summarizeCashDrawerRows(filtered), viewerRole: auth.role };
   }

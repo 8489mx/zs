@@ -9,6 +9,7 @@ import { Button } from '@/shared/ui/button';
 import { money, text } from '@/features/hr/pages/payroll/hr-payroll.helpers';
 import { toast } from '@/shared/components/system-alert';
 import { getErrorMessage } from '@/lib/errors';
+import { SlidersIcon, BuildingIcon } from '@/shared/components/icons/AppIcons';
 import type { HrPayrollRun, HrPayrollRunItem } from '@/types/domain';
 
 export interface PayPayrollTargetItem {
@@ -91,12 +92,22 @@ export function PayPayrollRunModal({
   // Fetch open cashier shifts
   const { data: shiftData, isLoading: isLoadingShifts } = useQuery({
     queryKey: ['pos.shifts.current'],
-    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?status=open&pageSize=100'),
+    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?filter=open&status=open&pageSize=100'),
     enabled: isOpen,
     staleTime: 5000,
   });
 
-  const openShifts = useMemo(() => shiftData?.cashierShifts || [], [shiftData?.cashierShifts]);
+  const openShifts = useMemo(() => {
+    const raw = (shiftData?.cashierShifts || []).filter(
+      (s: any) => String(s.status || '').toLowerCase() === 'open'
+    );
+    // Sort descending by expected cash (from highest funds to lowest funds, appearing right-to-left in RTL)
+    return [...raw].sort((a: any, b: any) => {
+      const cashA = Number(a.expectedCash ?? a.expected_cash ?? 0);
+      const cashB = Number(b.expectedCash ?? b.expected_cash ?? 0);
+      return cashB - cashA;
+    });
+  }, [shiftData?.cashierShifts]);
 
   // Match shift: prefer current user's open shift, otherwise the first open shift in the branch
   const userOpenShift = useMemo(() => {
@@ -107,15 +118,23 @@ export function PayPayrollRunModal({
     );
   }, [openShifts, currentUser?.id]);
 
-  const activeShift = userOpenShift || (openShifts.length > 0 ? openShifts[0] : null);
+  // Selected shift: either explicitly chosen by ID, or fallback to user's open shift, or first open shift
+  const selectedShift = useMemo(() => {
+    if (!openShifts.length) return null;
+    if (selectedShiftId) {
+      const match = openShifts.find((s: any) => String(s.id) === String(selectedShiftId));
+      if (match) return match;
+    }
+    return userOpenShift || openShifts[0];
+  }, [openShifts, selectedShiftId, userOpenShift]);
 
   useEffect(() => {
-    if (activeShift?.id) {
-      setSelectedShiftId(String(activeShift.id));
-    } else {
+    if (selectedShift?.id && String(selectedShift.id) !== selectedShiftId) {
+      setSelectedShiftId(String(selectedShift.id));
+    } else if (!openShifts.length && selectedShiftId) {
       setSelectedShiftId('');
     }
-  }, [activeShift]);
+  }, [selectedShift?.id, openShifts.length]);
 
   const isSingleItem = Boolean(targetItem);
   const isPending = isSubmitting || (legacyIsPending ?? false) || mutations.payPayrollRun?.isPending || mutations.payPayrollRunItem?.isPending;
@@ -137,12 +156,12 @@ export function PayPayrollRunModal({
     return Number(selectedRun?.totalNetPay || 0);
   }, [isSingleItem, targetItem, approvedItems, selectedRun?.totalNetPay]);
 
-  // Drawer cash balance
-  const drawerExpectedCash = activeShift
-    ? Number((activeShift as any).expected_cash ?? (activeShift as any).expectedCash ?? 0)
+  // Drawer cash balance of the selected cashier's drawer
+  const drawerExpectedCash = selectedShift
+    ? Number((selectedShift as any).expectedCash ?? (selectedShift as any).expected_cash ?? 0)
     : 0;
 
-  const isDrawerShort = paymentChannel === 'drawer' && activeShift && drawerExpectedCash < approvedNetTotal;
+  const isDrawerShort = paymentChannel === 'drawer' && selectedShift && drawerExpectedCash < approvedNetTotal;
 
   const handleChannelSelect = (channel: 'drawer' | 'cash' | 'bank') => {
     setPaymentChannel(channel);
@@ -168,13 +187,13 @@ export function PayPayrollRunModal({
       return;
     }
 
-    if (paymentChannel === 'drawer' && !activeShift) {
-      setInternalError('لا توجد وردية كاشير مفتوحة حالياً بالفرع للصرف منها. اختر الخزينة أو التحويل البنكي.');
+    if (paymentChannel === 'drawer' && !selectedShift) {
+      setInternalError('لا توجد أي وردية كاشير مفتوحة حالياً بالفرع للصرف منها. اختر الخزينة أو التحويل البنكي.');
       return;
     }
 
     if (paymentChannel === 'drawer' && isDrawerShort && !allowOverdraft) {
-      setInternalError('النقدية بالدرج غير كافية. فعّل خيار السماح بكشف الدرج بالسالب أو اختر الصرف من الخزينة.');
+      setInternalError('النقدية بالدرج المحدد غير كافية. اختر درجا آخر به سيولة، أو فعّل خيار السماح بكشف الدرج بالسالب، أو اختر الصرف من الخزينة.');
       return;
     }
 
@@ -190,6 +209,7 @@ export function PayPayrollRunModal({
       if (isSingleItem && targetItem) {
         // Individual employee payout
         await mutations.payPayrollRunItem.mutateAsync({
+          id: String(targetItem.itemId),
           itemId: targetItem.itemId,
           payload: {
             paymentChannel,
@@ -215,6 +235,8 @@ export function PayPayrollRunModal({
 
       await queryClient.invalidateQueries({ queryKey: ['hr'] });
       await queryClient.invalidateQueries({ queryKey: ['pos.shifts.current'] });
+      await queryClient.invalidateQueries({ queryKey: ['pos.shifts'] });
+      await queryClient.invalidateQueries({ queryKey: ['cashier-shifts'] });
       await queryClient.invalidateQueries({ queryKey: ['treasury'] });
 
       onSuccess?.();
@@ -244,7 +266,8 @@ export function PayPayrollRunModal({
       onClose={onClose}
       title={title}
       subtitle={subtitle}
-      width="min(540px, 95vw)"
+      compact
+      width="min(680px, 96vw)"
       footerActions={(
         <StandardDialogFooter
           onCancel={onClose}
@@ -260,24 +283,24 @@ export function PayPayrollRunModal({
           {t('hr.payroll.pay_payroll_run_modal.s9', "لا تملك صلاحية تنفيذ هذا الإجراء.")}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '4px' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '2px' }}>
           {/* 1. Payment Summary Banner */}
           <div
             style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              padding: '12px 16px',
+              borderRadius: '8px',
+              padding: '8px 14px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
             <div>
-              <div style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '1px' }}>
                 {isSingleItem ? 'الموظف المستحق للصرف:' : 'إجمالي المستحقين في الكشف:'}
               </div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
                 {isSingleItem ? (
                   <span>{targetItem?.employeeName} {targetItem?.employeeNo ? `(#${targetItem.employeeNo})` : ''}</span>
                 ) : (
@@ -290,10 +313,10 @@ export function PayPayrollRunModal({
             </div>
 
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, marginBottom: '2px' }}>
+              <div style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600, marginBottom: '1px' }}>
                 المبلغ الصافي للصرف
               </div>
-              <div style={{ fontSize: '17px', fontWeight: 800, color: '#166534' }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#166534', whiteSpace: 'nowrap' }}>
                 {money(approvedNetTotal)}
               </div>
             </div>
@@ -301,18 +324,18 @@ export function PayPayrollRunModal({
 
           {/* 2. Payment Channel Radio Tiles */}
           <div>
-            <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#1e293b', marginBottom: '6px' }}>
               مصدر ومنفذ الصرف *
             </label>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
               {/* Option A: Cashier Shift Drawer */}
               <div
                 onClick={() => handleChannelSelect('drawer')}
                 style={{
                   border: paymentChannel === 'drawer' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-                  borderRadius: '9px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
                   background: paymentChannel === 'drawer' ? '#f5f3ff' : '#ffffff',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
@@ -322,8 +345,8 @@ export function PayPayrollRunModal({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div
                       style={{
-                        width: '16px',
-                        height: '16px',
+                        width: '15px',
+                        height: '15px',
                         borderRadius: '50%',
                         border: paymentChannel === 'drawer' ? '5px solid #170e5e' : '2px solid #cbd5e1',
                         backgroundColor: '#ffffff',
@@ -331,64 +354,42 @@ export function PayPayrollRunModal({
                         flexShrink: 0,
                       }}
                     />
-                    <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                      درج الكاشير (وردية النقدية النشطة)
+                    <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>
+                      درج الكاشير (ورديات النقدية النشطة)
                     </strong>
                   </div>
 
                   <span
                     style={{
-                      fontSize: '11px',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
+                      fontSize: '10.5px',
+                      padding: '2px 7px',
+                      borderRadius: '5px',
                       fontWeight: 600,
-                      background: !activeShift ? '#fef2f2' : (drawerExpectedCash < 0 ? '#fffbeb' : '#ecfdf5'),
-                      color: !activeShift ? '#991b1b' : (drawerExpectedCash < 0 ? '#b45309' : '#065f46'),
-                      border: `1px solid ${!activeShift ? '#fecaca' : (drawerExpectedCash < 0 ? '#fde68a' : '#a7f3d0')}`,
+                      background: !selectedShift ? '#fef2f2' : (openShifts.length > 1 ? '#eef2ff' : (drawerExpectedCash < 0 ? '#fffbeb' : '#ecfdf5')),
+                      color: !selectedShift ? '#991b1b' : (openShifts.length > 1 ? '#3730a3' : (drawerExpectedCash < 0 ? '#b45309' : '#065f46')),
+                      border: `1px solid ${!selectedShift ? '#fecaca' : (openShifts.length > 1 ? '#c7d2fe' : (drawerExpectedCash < 0 ? '#fde68a' : '#a7f3d0'))}`,
                     }}
                   >
-                    {!activeShift ? 'لا توجد وردية' : drawerExpectedCash < 0 ? 'وردية مفتوحة (رصيد مكشوف)' : 'وردية مفتوحة'}
+                    {!selectedShift
+                      ? 'لا توجد وردية مفتوحة'
+                      : openShifts.length > 1
+                        ? `${openShifts.length} أدراج وورديات مفتوحة`
+                        : (drawerExpectedCash < 0 ? 'وردية مفتوحة (رصيد مكشوف)' : 'وردية مفتوحة')}
                   </span>
                 </div>
 
-                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', paddingRight: '24px' }}>
-                  خصم مباشر من درج الكاشير في نقطة البيع وتسجيل حركة منصرف نقدية بالوردية.
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', paddingRight: '23px' }}>
+                  خصم مباشر من درج الكاشير في نقطة البيع وتسجيل حركة منصرف نقدية بالوردية المختارة.
                 </div>
 
-                {/* Open Shift Details */}
+                {/* Open Shift Details & Drawer Selection */}
                 {paymentChannel === 'drawer' && (
-                  <div style={{ marginTop: '8px', paddingRight: '24px' }}>
+                  <div style={{ marginTop: '8px', paddingRight: '23px' }} onClick={(e) => e.stopPropagation()}>
                     {isLoadingShifts ? (
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>جارٍ التحقق من ورديات الكاشير...</div>
-                    ) : activeShift ? (
-                      <div
-                        style={{
-                          background: '#ffffff',
-                          border: '1px solid #ddd6fe',
-                          borderRadius: '8px',
-                          padding: '8px 12px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          fontSize: '12px',
-                        }}
-                      >
-                        <div>
-                          <strong style={{ color: '#170e5e', display: 'block' }}>
-                            {activeShift.docNo ? String(activeShift.docNo) : `وردية كاشير #${activeShift.id}`}
-                          </strong>
-                          <span style={{ color: '#64748b', fontSize: '11px' }}>
-                            المسؤول: {String(activeShift.openedByName || activeShift.opened_by_name || currentUser?.name || 'الكاشير')}
-                          </span>
-                        </div>
-                        <div style={{ textAlign: 'left' }}>
-                          <span style={{ color: '#64748b', fontSize: '10.5px', display: 'block' }}>نقدية الدرج:</span>
-                          <strong dir="ltr" style={{ color: isDrawerShort ? '#dc2626' : '#166534', fontSize: '12.5px', fontWeight: 800 }}>
-                            {money(drawerExpectedCash)}
-                          </strong>
-                        </div>
+                      <div style={{ fontSize: '11.5px', color: '#64748b', padding: '6px 0' }}>
+                        جارٍ التحقق من ورديات وأدراج الكاشير المفتوحة...
                       </div>
-                    ) : (
+                    ) : openShifts.length === 0 ? (
                       <div
                         style={{
                           background: '#fff1f2',
@@ -401,53 +402,211 @@ export function PayPayrollRunModal({
                       >
                         لا توجد أي وردية كاشير مفتوحة حالياً بالفرع. يرجى فتح وردية من نقطة البيع أو اختيار الصرف من الخزينة الرئيسية.
                       </div>
-                    )}
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {openShifts.length > 1 && (
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <SlidersIcon size={14} style={{ color: '#170e5e' }} />
+                              <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#1e293b' }}>
+                                حدد درج الكاشير المراد الصرف منه ({openShifts.length} أدراج نشطة):
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                              اضغط لاختيار الدرج
+                            </span>
+                          </div>
+                        )}
 
-                    {/* Insufficient Cash Warning & Overdraft Checkbox */}
-                    {isDrawerShort && (
-                      <div
-                        style={{
-                          background: '#fffbeb',
-                          border: '1.5px solid #f59e0b',
-                          borderRadius: '8px',
-                          padding: '10px 14px',
-                          marginTop: '8px',
-                        }}
-                      >
-                        <div style={{ color: '#b45309', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                          تنبيه: النقدية المحسوبة في الدرج ({money(drawerExpectedCash)}) أقل من المبلغ المطلوب صرفه ({money(approvedNetTotal)}).
+                        {/* Grid of Drawers (Max 2 rows, sorted descending from highest cash to lowest, RTL) */}
+                        <div
+                          className="thin-scrollbar"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: openShifts.length === 1 ? '1fr' : openShifts.length === 2 ? '1fr 1fr' : 'repeat(3, 1fr)',
+                            gap: '6px',
+                            maxHeight: openShifts.length > 6 ? '150px' : 'none',
+                            overflowY: openShifts.length > 6 ? 'auto' : 'visible',
+                            padding: '2px',
+                          }}
+                        >
+                          {openShifts.map((shift: any) => {
+                            const isSelected = String(shift.id) === String(selectedShift?.id);
+                            const shiftCash = Number(shift.expectedCash ?? shift.expected_cash ?? 0);
+                            const isShort = shiftCash < approvedNetTotal;
+                            const cashierName = String(shift.openedByName || shift.opened_by_name || 'الكاشير');
+                            const isMyShift = String(shift.openedById || shift.opened_by) === String(currentUser?.id);
+                            const docNo = shift.docNo ? String(shift.docNo) : `وردية #${shift.id}`;
+
+                            return (
+                              <div
+                                key={shift.id}
+                                onClick={() => {
+                                  setSelectedShiftId(String(shift.id));
+                                  setInternalError('');
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'space-between',
+                                  padding: '7px 10px',
+                                  borderRadius: '8px',
+                                  border: isSelected ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                                  backgroundColor: isSelected ? '#ffffff' : '#f8fafc',
+                                  boxShadow: isSelected ? '0 2px 6px rgba(23, 14, 94, 0.12)' : '0 1px 2px rgba(0,0,0,0.02)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  boxSizing: 'border-box',
+                                  minHeight: '58px',
+                                  position: 'relative',
+                                }}
+                              >
+                                {/* Top: Cashier Name + Radio Indicator */}
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '4px' }}>
+                                  <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                      <strong
+                                        style={{
+                                          fontSize: '12px',
+                                          fontWeight: 800,
+                                          color: isSelected ? '#170e5e' : '#0f172a',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap',
+                                          display: 'block',
+                                        }}
+                                        title={cashierName}
+                                      >
+                                        {cashierName}
+                                      </strong>
+                                      {isMyShift && (
+                                        <span
+                                          style={{
+                                            fontSize: '9px',
+                                            padding: '1px 4px',
+                                            borderRadius: '3px',
+                                            background: '#e0e7ff',
+                                            color: '#3730a3',
+                                            fontWeight: 700,
+                                          }}
+                                        >
+                                          درجك
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span style={{ fontSize: '9.5px', color: '#64748b', display: 'block', marginTop: '1px', direction: 'ltr', textAlign: 'right' }}>
+                                      {docNo}
+                                    </span>
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      width: '14px',
+                                      height: '14px',
+                                      borderRadius: '50%',
+                                      border: isSelected ? '4px solid #170e5e' : '2px solid #cbd5e1',
+                                      backgroundColor: '#ffffff',
+                                      boxSizing: 'border-box',
+                                      flexShrink: 0,
+                                      marginTop: '1px',
+                                    }}
+                                  />
+                                </div>
+
+                                {/* Bottom: Expected Cash Amount */}
+                                <div style={{ marginTop: '5px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '4px' }}>
+                                  <span style={{ fontSize: '10.5px', color: '#64748b', flexShrink: 0 }}>الرصيد:</span>
+                                  <strong
+                                    dir="ltr"
+                                    style={{
+                                      fontSize: '11.5px',
+                                      fontWeight: 800,
+                                      whiteSpace: 'nowrap',
+                                      color: shiftCash < 0 ? '#b45309' : (isShort ? '#dc2626' : '#166534'),
+                                    }}
+                                  >
+                                    {money(shiftCash)}
+                                  </strong>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: '#92400e', fontWeight: 600 }}>
-                          <input
-                            type="checkbox"
-                            checked={allowOverdraft}
-                            onChange={(e) => {
-                              setAllowOverdraft(e.target.checked);
-                              if (e.target.checked) setInternalError('');
-                            }}
-                            style={{ width: '16px', height: '16px', accentColor: '#170e5e', cursor: 'pointer' }}
-                          />
-                          <span>السماح بكشف الدرج بالسالب (استثناء إداري مصرح به)</span>
-                        </label>
-                        <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #fcd34d', fontSize: '11px', color: '#78350f', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
-                          <span>أو تجنب كشف الدرج والصرف من الصندوق:</span>
-                          <button
-                            type="button"
-                            onClick={() => handleChannelSelect('cash')}
+
+                        {/* Operational Dispatch Notice */}
+                        {selectedShift && (
+                          <div
                             style={{
                               background: '#ffffff',
-                              border: '1px solid #d97706',
-                              borderRadius: '4px',
-                              color: '#92400e',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              padding: '2px 10px',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px',
+                              padding: '6px 10px',
                               fontSize: '11px',
+                              color: '#334155',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
                             }}
                           >
-                            التحويل للخزينة العامة ←
-                          </button>
-                        </div>
+                            <BuildingIcon size={14} style={{ color: '#170e5e', flexShrink: 0 }} />
+                            <div>
+                              <span>سيتم الخصم المباشر من درج الكاشير (</span>
+                              <strong style={{ color: '#170e5e' }}>
+                                {String(selectedShift.openedByName || selectedShift.opened_by_name || 'الكاشير')}
+                              </strong>
+                              <span>) بمبلغ </span>
+                              <strong dir="ltr" style={{ color: '#0f172a' }}>{money(approvedNetTotal)}</strong>
+                              <span>؛ وتخفيض النقدية المتوقعة بعهدته تلقائياً فور التأكيد.</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Insufficient Cash Warning & Overdraft Checkbox */}
+                        {isDrawerShort && (
+                          <div
+                            style={{
+                              background: '#fffbeb',
+                              border: '1.5px solid #f59e0b',
+                              borderRadius: '8px',
+                              padding: '8px 12px',
+                            }}
+                          >
+                            <div style={{ color: '#b45309', fontSize: '11.5px', fontWeight: 700, marginBottom: '4px' }}>
+                              تنبيه: النقدية المحسوبة في درج ({String(selectedShift?.openedByName || selectedShift?.opened_by_name || 'الكاشير')}) ({money(drawerExpectedCash)}) أقل من المبلغ المطلوب صرفه ({money(approvedNetTotal)}).
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11.5px', color: '#92400e', fontWeight: 600 }}>
+                              <input
+                                type="checkbox"
+                                checked={allowOverdraft}
+                                onChange={(e) => {
+                                  setAllowOverdraft(e.target.checked);
+                                  if (e.target.checked) setInternalError('');
+                                }}
+                                style={{ width: '15px', height: '15px', accentColor: '#170e5e', cursor: 'pointer' }}
+                              />
+                              <span>السماح بكشف الدرج بالسالب (استثناء إداري مصرح به)</span>
+                            </label>
+                            <div style={{ marginTop: '6px', paddingTop: '4px', borderTop: '1px dashed #fcd34d', fontSize: '10.5px', color: '#78350f', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4px' }}>
+                              <span>أو اختر درجا آخر به سيولة كافية، أو الصرف من الصندوق الرئيسي:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleChannelSelect('cash')}
+                                style={{
+                                  background: '#ffffff',
+                                  border: '1px solid #d97706',
+                                  borderRadius: '4px',
+                                  color: '#92400e',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  padding: '2px 8px',
+                                  fontSize: '10.5px',
+                                }}
+                              >
+                                التحويل للخزينة العامة ←
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -459,8 +618,8 @@ export function PayPayrollRunModal({
                 onClick={() => handleChannelSelect('cash')}
                 style={{
                   border: paymentChannel === 'cash' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-                  borderRadius: '9px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
                   background: paymentChannel === 'cash' ? '#f5f3ff' : '#ffffff',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
@@ -469,8 +628,8 @@ export function PayPayrollRunModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div
                     style={{
-                      width: '16px',
-                      height: '16px',
+                      width: '15px',
+                      height: '15px',
                       borderRadius: '50%',
                       border: paymentChannel === 'cash' ? '5px solid #170e5e' : '2px solid #cbd5e1',
                       backgroundColor: '#ffffff',
@@ -478,11 +637,11 @@ export function PayPayrollRunModal({
                       flexShrink: 0,
                     }}
                   />
-                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                  <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>
                     الخزينة العامة (الصندوق الرئيسي)
                   </strong>
                 </div>
-                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', paddingRight: '24px' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', paddingRight: '23px' }}>
                   صرف مباشر نقداً من الخزينة الرئيسية للمنشأة وتوليد قيد يومية دائن لحساب الخزينة.
                 </div>
               </div>
@@ -492,8 +651,8 @@ export function PayPayrollRunModal({
                 onClick={() => handleChannelSelect('bank')}
                 style={{
                   border: paymentChannel === 'bank' ? '2px solid #170e5e' : '1px solid #e2e8f0',
-                  borderRadius: '9px',
-                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
                   background: paymentChannel === 'bank' ? '#f5f3ff' : '#ffffff',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
@@ -502,8 +661,8 @@ export function PayPayrollRunModal({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div
                     style={{
-                      width: '16px',
-                      height: '16px',
+                      width: '15px',
+                      height: '15px',
                       borderRadius: '50%',
                       border: paymentChannel === 'bank' ? '5px solid #170e5e' : '2px solid #cbd5e1',
                       backgroundColor: '#ffffff',
@@ -511,11 +670,11 @@ export function PayPayrollRunModal({
                       flexShrink: 0,
                     }}
                   />
-                  <strong style={{ fontSize: '13px', color: '#0f172a' }}>
+                  <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>
                     تحويل بنكي / محفظة إلكترونية
                   </strong>
                 </div>
-                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', paddingRight: '24px' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', paddingRight: '23px' }}>
                   سداد الرواتب عبر الحساب البنكي أو المحافظ الإلكترونية المعتمدة.
                 </div>
 

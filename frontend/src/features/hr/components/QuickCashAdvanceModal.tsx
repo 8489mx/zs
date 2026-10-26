@@ -75,7 +75,7 @@ export function QuickCashAdvanceModal() {
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [managerPassword, setManagerPassword] = useState('');
-  const [_selectedShiftId, setSelectedShiftId] = useState('');
+  const [selectedShiftId, setSelectedShiftId] = useState('');
   const [formError, setFormError] = useState('');
 
   const queryClient = useQueryClient();
@@ -114,7 +114,7 @@ export function QuickCashAdvanceModal() {
   // Fetch open cashier shifts
   const { data: shiftData } = useQuery({
     queryKey: ['pos.shifts.current'],
-    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?status=open&pageSize=100'),
+    queryFn: () => http<{ cashierShifts?: Array<Record<string, unknown>> }>('/api/cashier-shifts?filter=open&status=open&pageSize=100'),
     enabled: isOpen && canAccess,
     staleTime: 10000,
   });
@@ -137,7 +137,16 @@ export function QuickCashAdvanceModal() {
   });
 
   const employees = employeesData?.employees || [];
-  const shifts = shiftData?.cashierShifts || [];
+  const shifts = useMemo(() => {
+    const raw = (shiftData?.cashierShifts || []).filter(
+      (s: any) => String(s.status || '').toLowerCase() === 'open'
+    );
+    return [...raw].sort((a: any, b: any) => {
+      const cashA = Number(a.expectedCash ?? a.expected_cash ?? 0);
+      const cashB = Number(b.expectedCash ?? b.expected_cash ?? 0);
+      return cashB - cashA;
+    });
+  }, [shiftData?.cashierShifts]);
 
   const selectedEmployee = useMemo(() => {
     return employees.find((e: any) => String(e.id) === String(employeeId)) || null;
@@ -153,7 +162,7 @@ export function QuickCashAdvanceModal() {
     })),
   ], [employees, t]);
 
-  // Lock shift strictly to current user's open shift
+  // Lock shift: cashier is locked to their own shift; admin/owner can choose from open shifts
   const userOpenShift = useMemo(() => {
     return shifts.find(
       (shift: Record<string, unknown>) =>
@@ -162,15 +171,22 @@ export function QuickCashAdvanceModal() {
     );
   }, [shifts, currentUser?.id]);
 
-  const activeShift = userOpenShift || (isAdminOrOwner ? shifts[0] : null);
+  const activeShift = useMemo(() => {
+    if (!shifts.length) return null;
+    if (isAdminOrOwner && selectedShiftId) {
+      const match = shifts.find((s: any) => String(s.id) === String(selectedShiftId));
+      if (match) return match;
+    }
+    return userOpenShift || (isAdminOrOwner ? shifts[0] : null);
+  }, [shifts, selectedShiftId, userOpenShift, isAdminOrOwner]);
 
   useEffect(() => {
-    if (activeShift?.id) {
+    if (activeShift?.id && String(activeShift.id) !== selectedShiftId) {
       setSelectedShiftId(String(activeShift.id));
-    } else {
+    } else if (!shifts.length && selectedShiftId) {
       setSelectedShiftId('');
     }
-  }, [activeShift]);
+  }, [activeShift?.id, shifts.length]);
 
 
   // Derived financial & authorization states
@@ -949,13 +965,92 @@ export function QuickCashAdvanceModal() {
               </div>
             )}
 
-            {/* 7. Active Shift Info */}
+            {/* 7. Active Shift Info / Drawer Selection */}
             <div>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: 4, display: 'block' }}>
-                {t('hr.quick_cash_advance_modal.shift_header', 'الوردية المنصرف منها المسحوب (مقيدة باسمك) *')}
+                {isAdminOrOwner && shifts.length > 1
+                  ? `اختر درج الكاشير المراد الصرف منه (${shifts.length} أدراج مفتوحة) *`
+                  : t('hr.quick_cash_advance_modal.shift_header', 'الوردية المنصرف منها المسحوب (مقيدة باسمك) *')}
               </span>
 
-              {activeShift ? (
+              {isAdminOrOwner && shifts.length > 1 ? (
+                <div
+                  className="thin-scrollbar"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: shifts.length === 1 ? '1fr' : shifts.length === 2 ? '1fr 1fr' : 'repeat(3, 1fr)',
+                    gap: 6,
+                    maxHeight: shifts.length > 6 ? '150px' : 'none',
+                    overflowY: shifts.length > 6 ? 'auto' : 'visible',
+                    padding: '2px',
+                  }}
+                >
+                  {shifts.map((s: any) => {
+                    const isSelected = String(s.id) === String(activeShift?.id);
+                    const shiftCash = Number(s.expectedCash ?? s.expected_cash ?? 0);
+                    const isShort = shiftCash < parsedAmount;
+                    const cashierName = String(s.openedByName || s.opened_by_name || 'الكاشير');
+                    const isMyShift = String(s.openedById || s.opened_by) === String(currentUser?.id);
+
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedShiftId(String(s.id))}
+                        style={{
+                          background: isSelected ? '#ffffff' : '#f8fafc',
+                          border: isSelected ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                          borderRadius: 8,
+                          padding: '7px 10px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          minHeight: '58px',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 4 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                              <strong style={{ fontSize: '0.8rem', color: isSelected ? '#170e5e' : '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                                {cashierName}
+                              </strong>
+                              {isMyShift && (
+                                <span style={{ fontSize: '0.68rem', background: '#e0e7ff', color: '#3730a3', padding: '1px 4px', borderRadius: 3, fontWeight: 700 }}>
+                                  درجك
+                                </span>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '0.68rem', color: '#64748b', display: 'block', marginTop: 1, direction: 'ltr', textAlign: 'right' }}>
+                              {s.docNo || `#${s.id}`}
+                            </span>
+                          </div>
+
+                          <div
+                            style={{
+                              width: 14,
+                              height: 14,
+                              borderRadius: '50%',
+                              border: isSelected ? '4px solid #170e5e' : '2px solid #cbd5e1',
+                              backgroundColor: '#ffffff',
+                              boxSizing: 'border-box',
+                              flexShrink: 0,
+                              marginTop: 1,
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ marginTop: 5, paddingTop: 4, borderTop: '1px dashed #e2e8f0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 4 }}>
+                          <span style={{ fontSize: '0.68rem', color: '#64748b', flexShrink: 0 }}>الرصيد:</span>
+                          <strong dir="ltr" style={{ fontSize: '0.74rem', fontWeight: 800, whiteSpace: 'nowrap', color: shiftCash < 0 ? '#b45309' : (isShort ? '#dc2626' : '#166534') }}>
+                            {money(shiftCash)}
+                          </strong>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : activeShift ? (
                 <div
                   style={{
                     background: '#f8fafc',
@@ -1010,7 +1105,7 @@ export function QuickCashAdvanceModal() {
                     fontSize: '0.78rem',
                   }}
                 >
-                  <strong>تنبيه رقابي:</strong> ليس لديك وردية كاشير مفتوحة حالياً للصرف منها.
+                  <strong>تنبيه رقابي:</strong> لا توجد وردية كاشير مفتوحة حالياً للصرف منها.
                 </div>
               )}
             </div>

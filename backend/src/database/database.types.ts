@@ -2068,7 +2068,7 @@ export interface HrPayrollRunItemTable {
   asset_recovery_deduction_amount: number;
   gross_pay: number;
   net_pay: number;
-  status: 'draft' | 'reviewed' | 'approved' | 'excluded';
+  status: 'draft' | 'reviewed' | 'approved' | 'excluded' | 'paid';
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
@@ -2607,7 +2607,7 @@ export interface HrPayrollRunItemTable {
   asset_recovery_deduction_amount: number;
   gross_pay: number;
   net_pay: number;
-  status: 'draft' | 'reviewed' | 'approved' | 'excluded';
+  status: 'draft' | 'reviewed' | 'approved' | 'excluded' | 'paid';
   notes: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;

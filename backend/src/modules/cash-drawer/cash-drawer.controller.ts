@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { RequirePermissions } from '../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions, RequireAnyPermission } from '../../core/auth/decorators/permissions.decorator';
 import { PermissionsGuard } from '../../core/auth/guards/permissions.guard';
 import { SessionAuthGuard } from '../../core/auth/guards/session-auth.guard';
 import { RequestWithAuth } from '../../core/auth/interfaces/request-with-auth.interface';
@@ -15,7 +15,7 @@ export class CashDrawerController {
   constructor(private readonly cashDrawerService: CashDrawerService) {}
 
   @Get('cashier-shifts')
-  @RequirePermissions('cashDrawer')
+  @RequireAnyPermission('cashDrawer', 'hrPayroll', 'hrPayrollManage', 'hr', 'accounting')
   list(@Query() query: Record<string, unknown>, @Req() req: RequestWithAuth): Promise<Record<string, unknown>> {
     return this.cashDrawerService.listCashierShifts(query, req.authContext!);
   }

@@ -300,14 +300,16 @@
   - Logs transaction in `hr_employee_ledger` with `entry_type = 'wage_payout'` and auto-updates run status to `partially_paid` while items remain, or `paid` once all approved employees are cleared.
 - **POS Cash Drawer Disbursement (`channel = 'drawer'`):**
   - Solved cash disbursement for small retail shops and outlets where neither a central treasury nor a corporate bank account is available.
-  - Automatically queries active open cashier shifts (`/api/cashier-shifts?status=open`), detecting the cashier, doc number, and available drawer balance (`expected_cash`).
-  - Guards against insufficient cash in the drawer with real-time liquidity checking, providing an administrative overdraft exception toggle (`allowOverdraft`).
-  - Automatically deducts the disbursed wage amount from `cashier_shifts.expected_cash` and writes a corresponding `cash_out` record to `treasury_transactions` for audit and shift close reconciliation.
+  - Multi-Cashier Live Shift Selection: When multiple cashier shifts are open concurrently across POS counters, managers/admins have a complete real-time readout of every open cash drawer, the responsible cashier name, and expected cash balance (`expected_cash`), allowing them to pick whichever cashier's drawer to pay out from.
+  - Automatically queries active open cashier shifts (`/api/cashier-shifts?status=open`), detecting all cashiers, doc numbers, and available drawer balances (`expected_cash`).
+  - Evaluates real-time shift liquidity dynamically via `CashDrawerService.computeShiftExpectedCash(shiftId, auth, trx)`, taking into account opening cash, cash sales, and manual drawer movements instead of stale static column values.
+  - Guards against insufficient cash in the selected drawer with real-time liquidity checking, providing an administrative overdraft exception toggle (`allowOverdraft`).
+  - Automatically deducts the disbursed wage amount from the selected `cashier_shifts.expected_cash` and writes a corresponding `cash_out` record to `treasury_transactions` referencing the cashier and shift ID for audit and shift close reconciliation.
 - **Unified Payout Modal Architecture (`PayPayrollRunModal`):**
   - Upgraded from legacy native select to modern `StandardDialog` architecture matching Z-Systems visual standards.
   - Supports both target-item mode (paying a single approved employee) and bulk-run mode (paying all approved items).
   - Three clean operational channels:
-    1. **درج الكاشير (وردية النقدية النشطة)**: Live shift selection, expected cash readout, and shortfall warning.
+    1. **درج الكاشير (ورديات النقدية النشطة)**: Live multi-shift drawer selection, expected cash readout per cashier, active shift switching, and shortfall warning.
     2. **الخزينة العامة (الصندوق الرئيسي)**: Direct cash ledger outflow.
     3. **تحويل بنكي / محفظة إلكترونية**: Formal bank transaction reference tracking.
 - **Direct Subtable & Employee Detail Screen Triggers:**
