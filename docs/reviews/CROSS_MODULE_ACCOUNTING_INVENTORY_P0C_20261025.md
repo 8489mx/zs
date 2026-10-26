@@ -230,3 +230,8 @@ The code observations above identify definite missing integration points; **fina
 
 - Repricing hints derived from a posted purchase formerly called a two-decimal private rounder, dropping the last fil in the previous/new purchase WAC and recommended retail/wholesale price/delta shown to buyers. The purchase mutation now threads its validated tenant `moneyDigits` into repricing hints while retaining percentage precision in two decimals.
 - Added a focused critical test for KWD purchase WAC/recommended price with 0.001 increments and the old EGP display behavior. **The change does not prove full purchase/edit/report three-decimal certification.** CI/PostgreSQL results must be checked for the pushed SHA; P0-C remains OPEN.
+
+### POS exchange store-credit precision (26 October 2026)
+
+- `ReturnsService.settleExchangeReturn` previously rounded retained exchange credit to cents even for KWD/OMR, silently losing an amount of 0.001. It now uses validated tenant base-currency digits for the cash-equivalent store-credit allocation.
+- Extracted `exchangeStoreCreditAmount` and added critical regression tests for three-decimal values, cent legacy behavior, and invalid negative/nonfinite amounts. Formal end-to-end exchange/return GL and refund-channel certification remain OPEN.
