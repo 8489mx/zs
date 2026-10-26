@@ -190,6 +190,21 @@ async function main() {
       branchId: refundFixture.branchId, locationId: refundFixture.locationId,
     } as any, refundFixture.auth);
     const refundId = Number(refundTicket.id);
+    // Cancellation must reject outstanding costed parts, including when the
+    // operator explicitly requests a cash refund. Returning the physical part
+    // reverses COGS first; only then may cash and advance liability be reversed.
+    await purchase(refundFixture, 4, 2);
+    const refundPart = await maintenance.addPart(refundId, {
+      productId: refundFixture.productId, productName: 'Temporary part',
+      qty: 1, unitCost: 100, unitPrice: 2, locationId: refundFixture.locationId,
+    }, refundFixture.auth);
+    await assert.rejects(maintenance.updateTicketStatus(refundId,
+      {status:'cancelled', refundAdvance:true}, refundFixture.auth),
+      (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
+    assert.equal(await postingAmount(refundFixture, '1110'), 12, 'part-blocked cancellation does not refund cash');
+    assert.equal(await postingAmount(refundFixture, '2150'), -12, 'part-blocked cancellation preserves liability');
+    await maintenance.removePart(refundId, Number(refundPart.partId), refundFixture.auth);
+    assert.equal(await postingAmount(refundFixture, '5100'), 0, 'part issue cost was reversed');
     await assert.rejects(maintenance.updateTicketStatus(refundId, {status:'cancelled'}, refundFixture.auth),
       (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
     assert.equal(await postingAmount(refundFixture, '1110'), 12);
