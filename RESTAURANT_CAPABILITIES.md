@@ -1343,3 +1343,7 @@ P0-C branch `SalesWriteService.resolveSaleModifierCosts` now resolves stock-bear
 ### P0-C prepared meal refund protection (2026-10-26)
 
 Generic `ReturnsService.createSaleReturn` now refuses an ordinary retail restock/COGS reversal when a sold line's recorded physical stock allocations include different product IDs (e.g., cooked meal and ingredient modifier). Such a refund would otherwise restore only the meal while posting inventory debit for unreplenished ingredient cost. Error: `COMPOSITE_RETURN_RECONCILIATION_REQUIRED` (409) inside the tenant transaction, with no cash/GL/stock change. Scope is fail-closed pending a dedicated prepared-meal waste/void/refund account treatment. Acceptance case in `backend/test/acceptance/priority-sectors.postgres.spec.ts`, CI pending on pushed HEAD.
+
+### 26 October — non-stock modifier option integrity and actual tests
+
+When a `pos_modifier_options` row has no `component_product_id`, a client-provided stock product may **not** be attached as a substituted ingredient. The POS create/edit WAC resolver rejects mismatches against a server option even when its component is null, avoiding fraudulent ingredient stock reduction and fabricated COGS. A disposable PostgreSQL test records an actual non-stock modifier option and attempts this illegal checkout alongside a composite-meal refund attempt. These are fail-closed protections, not a release-complete prepared-meal return service. CI must be green on the final commit.
