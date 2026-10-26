@@ -251,7 +251,7 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     await assert.rejects(returns.createReturn({type:'sale',invoiceId:rId,
       items:[{productId:meal,qty:1}],settlementMode:'refund',refundMethod:'cash'},rest.auth),
-      (e:any)=>e.code==='RETURN_QUANTITY_EXCEEDED');
+      (e:any)=>e.code==='RETURN_QTY_EXCEEDED');
     assert.equal(await posted(rest,'1110'),0,'duplicate prepared dish return does not refund twice');
     console.log('PASS sector-restaurant PostgreSQL prepared meal refund preserves consumed inventory/COGS and reverses cash once');
 
