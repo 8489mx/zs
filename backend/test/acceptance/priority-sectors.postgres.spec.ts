@@ -224,6 +224,46 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL dine-in table, costed modifier ingredients, cash/COGS/WAC/GL');
 
+    // Composite dish returns must fail closed: refunding the parent's COGS
+    // without re-stocking the physically consumed cheese would invent GL stock.
+    const returnsBefore=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
+    await assert.rejects(returns.createReturn({type:'sale',invoiceId:rId,
+      items:[{productId:meal,qty:1}],settlementMode:'refund',refundMethod:'cash'},rest.auth),
+      (e:any)=>e.code==='COMPOSITE_RETURN_RECONCILIATION_REQUIRED');
+    const returnsAfter=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
+    assert.equal(Number(returnsAfter.n),Number(returnsBefore.n));
+    assert.equal(await posted(rest,'5100'),6,'failed composite refund cannot reverse ingredient COGS');
+    assert.equal(await posted(rest,'1110'),60,'failed composite refund cannot issue cash');
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty),1.8);
+    await check(rest,[meal,cheese]);
+    console.log('PASS sector-restaurant PostgreSQL composite refund rollback preserves cash, ingredients and GL');
+
+    // A configured non-stock menu option may not be turned into a physical
+    // ingredient expense by providing an arbitrary productId in the POS body.
+    const group=await db.insertInto('pos_modifier_groups').values({
+      tenant_id:rest.auth.tenantId!,account_id:rest.auth.accountId!,
+      name:'No stock group',name_en:null,selection_type:'single',
+      is_mandatory:false,min_selections:0,max_selections:1,display_order:1,
+      is_active:true,is_splittable_in_half:false,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    const noStockOption=await db.insertInto('pos_modifier_options').values({
+      tenant_id:rest.auth.tenantId!,account_id:rest.auth.accountId!,
+      group_id:Number(group.id),name:'No stock note',name_en:null,
+      price:0,cost_price:0,component_product_id:null,
+      consumption_qty:1,unit_name:null,portion_allowed:'full',
+      is_default:false,is_active:true,display_order:1,preparation_time_minutes:0,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    await assert.rejects(checkout(rest,[{productId:meal,name:'Bistro meal',qty:1,price:60,
+      unitMultiplier:1,modifiers:[{optionId:Number(noStockOption.id),productId:cheese,
+        name:'spoof',qty:1,price:0,costPrice:999}]}]),
+      (e:any)=>e.code==='RESTAURANT_MODIFIER_COMPONENT_MISMATCH');
+    assert.equal(await posted(rest,'5100'),6);
+    await check(rest,[meal,cheese]);
+    console.log('PASS sector-restaurant PostgreSQL non-stock menu option cannot spoof ingredient intake');
+
     // Missing stock must roll back invoice, tender and GL together.
     const salesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))
       .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
