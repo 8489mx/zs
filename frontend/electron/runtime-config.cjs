@@ -55,11 +55,19 @@ class RuntimeConfig {
   }
 
   _saveConfig(newConfig) {
+    // Never truncate the last known-good offline launch configuration.
+    // If a power loss or filesystem error interrupts this write, the old
+    // runtime.json must remain readable and the UI must not claim success.
+    const temporary = this.configPath + '.tmp';
     try {
-      fs.writeFileSync(this.configPath, JSON.stringify(newConfig, null, 2), 'utf8');
+      fs.mkdirSync(path.dirname(this.configPath), { recursive: true });
+      fs.writeFileSync(temporary, JSON.stringify(newConfig, null, 2), 'utf8');
+      fs.renameSync(temporary, this.configPath);
       this.config = newConfig;
     } catch (err) {
-      console.error('[ELECTRON] Failed to write runtime.json.', err);
+      try { fs.rmSync(temporary, { force: true }); } catch {}
+      throw new Error('[ELECTRON] Failed to persist runtime.json: ' +
+        (err instanceof Error ? err.message : String(err)));
     }
   }
 
