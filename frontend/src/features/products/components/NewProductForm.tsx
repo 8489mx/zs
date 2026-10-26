@@ -21,6 +21,7 @@ import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
 import { ComboboxSelect } from '@/shared/ui/ComboboxSelect';
 import { ProductNameField } from '@/features/products/components/ProductNameField';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
+import { ProductImageUploadField } from '@/features/products/components/ProductImageUploadField';
 import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 import { toast } from '@/shared/components/system-alert';
 import { getFriendlyApiErrorMessage } from '@/lib/errors';
@@ -76,6 +77,7 @@ function getDefaultValues(
     warehouseId: '',
     notes: '',
     icon: '',
+    imageUrl: '',
     expiryDate: '',
     trackSerials: false,
     isCombo: false,
@@ -585,6 +587,21 @@ export function NewProductForm({
                 placeholder="e.g. Almarai Milk 1L / Nivea Deo"
               />
             </div>
+          </div>
+
+          {/* Product Image Uploader (Shared across POS & Storefront) */}
+          <div style={{ marginBottom: '0.85rem' }}>
+            <Controller
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <ProductImageUploadField
+                  value={field.value || ''}
+                  onChange={(url) => field.onChange(url)}
+                  disabled={isFormDisabled}
+                />
+              )}
+            />
           </div>
 
           {/* Row 2: Item Type & Barcode/Model */}

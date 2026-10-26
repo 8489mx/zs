@@ -26,6 +26,7 @@ import { PosRestaurantOperationsModal } from './PosRestaurantOperationsModal';
 import { PosDisplaysModal } from './PosDisplaysModal';
 import { PosManagerCompModal } from './PosManagerCompModal';
 import { PosComboMealModal } from './PosComboMealModal';
+import { PosCustomizationDialog } from './PosCustomizationDialog';
 import { restaurantAdvancedFnbApi } from '@/features/pos/api/restaurant-advanced-fnb.api';
 import { playNotificationChime } from '@/lib/audio-chime';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
@@ -145,6 +146,7 @@ function PosWorkspaceHeaderComponent({
   const [isOpsModalOpen, setIsOpsModalOpen] = useState(false);
   const [isManagerCompOpen, setIsManagerCompOpen] = useState(false);
   const [isComboMealModalOpen, setIsComboMealModalOpen] = useState(false);
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
   const [isShiftMenuOpen, setIsShiftMenuOpen] = useState(false);
   const shiftMenuRef = useRef<HTMLDivElement>(null);
 
@@ -320,6 +322,18 @@ function PosWorkspaceHeaderComponent({
               {t('pos.pos_workspace.pos_workspace_header.s14', "استبدال فوري")}
             </Button>
           )}
+
+          {/* Quick UI Customization Button */}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setIsCustomizationOpen(true)}
+            title={t('pos.customize_ui_title', "تخصيص واجهة الكاشير والشاشات المتنقلة")}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+          >
+            <SlidersIcon size={14} color="#170e5e" />
+            <span>{t('pos.customize_short', "تخصيص الواجهة")}</span>
+          </Button>
 
           {/* Phone & Delivery Order Desk (F7) */}
           {isPhoneOrdersActive && onOpenPhoneOrder && (
@@ -761,6 +775,48 @@ function PosWorkspaceHeaderComponent({
                     </div>
                   </button>
 
+                  {/* Option 2.8: Customize Cashier Interface */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsShiftMenuOpen(false);
+                      setIsCustomizationOpen(true);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 10px',
+                      width: '100%',
+                      border: 'none',
+                      background: 'transparent',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      textAlign: isEn ? 'left' : 'right',
+                      color: '#0f172a',
+                      transition: 'background 0.12s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#f1f5f9'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <div style={{
+                      width: '30px',
+                      height: '30px',
+                      borderRadius: '8px',
+                      background: '#f3e8ff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <SlidersIcon size={15} color="#7c3aed" />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.customize_ui', "تخصيص واجهة الكاشير")}</span>
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('pos.customize_ui_desc', "إظهار/إخفاء الأقسام وتنسيق الموبايل المتنقل")}</span>
+                    </div>
+                  </button>
+
                   <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
 
                   {/* Option 3: Close Shift (Z-Report) */}
@@ -1077,6 +1133,10 @@ function PosWorkspaceHeaderComponent({
           toast.success(`تمت إضافة ${combo.productName} إلى السلة بنجاح`);
         }
       }}
+    />
+    <PosCustomizationDialog
+      isOpen={isCustomizationOpen}
+      onClose={() => setIsCustomizationOpen(false)}
     />
     </>
   );

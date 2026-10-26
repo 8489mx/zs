@@ -33,6 +33,7 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     binLocation: product.binLocation || '',
     notes: product.notes || '',
     icon: product.icon || '',
+    imageUrl: product.imageUrl || product.metadata?.imageUrl || '',
     expiryDate: (product as any)?.expiryDate || product?.metadata?.expiryDate || '',
     trackSerials: Boolean(product.trackSerials),
     isCombo: false,
@@ -44,6 +45,7 @@ export function toProductFormValues(product: Product): ProductFormOutput {
     isGlutenFree: Boolean(product.isGlutenFree),
     metadata: {
       ...(product?.metadata || {}),
+      imageUrl: product.imageUrl || product.metadata?.imageUrl || '',
       expiryDate: (product as any)?.expiryDate || product?.metadata?.expiryDate || ''
     }
   };
@@ -96,11 +98,13 @@ export function buildUpdatePayload(
     minStock: Number(values.minStock || 0),
     trackSerials: Boolean(values.trackSerials),
     icon: values.icon || undefined,
+    imageUrl: (values as any).imageUrl !== undefined ? ((values as any).imageUrl || '') : (values.metadata?.imageUrl || undefined),
     expiryDate: expiryDate || undefined,
     metadata: {
       ...(existingProduct.metadata || {}),
       ...(values.metadata || {}),
-      ...(expiryDate ? { expiryDate } : {})
+      ...(expiryDate ? { expiryDate } : {}),
+      ...((values as any).imageUrl !== undefined ? { imageUrl: (values as any).imageUrl || '' } : {})
     },
     ...(categoryId ? { categoryId } : {}),
     ...(supplierId ? { supplierId } : {}),

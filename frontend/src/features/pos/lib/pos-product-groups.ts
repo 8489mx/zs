@@ -13,6 +13,7 @@ export interface PosProductGroup {
   colors: string[];
   sizes: string[];
   itemKind?: Product['itemKind'];
+  imageUrl?: string | null;
 }
 
 export type PosGroupShelf = 'all' | 'choices' | 'direct' | 'favorites' | 'recent';
@@ -76,6 +77,12 @@ export function buildPosProductGroups(products: Product[], priceType: PosPriceTy
         new Set(orderedProducts.map((product) => String(product.size || '').trim()).filter(Boolean)),
       );
       const title = key.startsWith('product:') ? first.name : getNameStem(first.name) || first.name;
+      const targetWithImg = orderedProducts.find((p) => p.imageUrl || (p as any).metadata?.imageUrl);
+      const imageUrl = targetWithImg?.imageUrl 
+        || (targetWithImg as any)?.metadata?.imageUrl 
+        || (first as any)?.metadata?.imageUrl 
+        || first.imageUrl 
+        || null;
       return {
         key,
         title,
@@ -87,6 +94,7 @@ export function buildPosProductGroups(products: Product[], priceType: PosPriceTy
         colors,
         sizes,
         itemKind: first.itemKind,
+        imageUrl,
       } satisfies PosProductGroup;
     })
     .sort((a, b) => a.title.localeCompare(b.title, 'ar'));

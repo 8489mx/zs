@@ -85,6 +85,7 @@ export interface Product {
   trackSerials?: boolean;
   matchedSerialNumber?: string | null;
   icon?: string | null;
+  imageUrl?: string | null;
   expiryDate?: string | null;
   calories?: number | null;
   allergens?: string[] | null;

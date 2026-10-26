@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
+import { SlidersIcon, LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { posApi, HardwareBridgeClient } from '@/features/pos';
 import type { UseFormReturn } from 'react-hook-form';
@@ -1661,14 +1661,206 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
             </label>
           )}
 
+          {/* Card 3c: Default POS Product Card Layout */}
+          {showPosSettings && (
+            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_card_layout_title', "النمط الافتراضي لكروت المنتجات بالكاشير")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.4 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_card_layout_desc', "اختيار شكل عرض كروت الأصناف في نقطة البيع (موسعة / معرض صور / مضغوطة)")}
+                  </small>
+                </div>
+              </div>
+              <div style={{ width: '210px', minWidth: '180px', flexShrink: 0 }}>
+                <CustomSelect
+                  value={form.watch('posProductCardLayout') || 'comfortable'}
+                  onChange={(val) => form.setValue('posProductCardLayout', val as any, { shouldDirty: true, shouldValidate: true })}
+                  options={[
+                    { value: 'comfortable', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_layout_comfortable', "كروت موسعة (افتراضي)") },
+                    { value: 'gallery', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_layout_gallery', "معرض صور فوتوغرافية") },
+                    { value: 'compact', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_layout_compact', "كروت مضغوطة مدمجة") },
+                  ]}
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Card 3d: POS Show Search Bar */}
+          {showPosSettings && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_search_bar_title', "إظهار شريط البحث في شاشة الكاشير")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_search_bar_desc', "يمكن إخفاؤه لتوفير أكبر مساحة لعرض المنتجات في نقاط البيع المعتمدة على اللمس والباركود")}
+                  </small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowSearchBar')} disabled={disabled} />
+            </label>
+          )}
+
+          {/* Card 3e: POS Show Price Tier Toggle */}
+          {showPosSettings && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_price_toggle_title', "إظهار مبدل السعر (قطاعي / جملة)")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_price_toggle_desc', "إتاحة التبديل السريع بين سعر التجزئة والجملة، أو إخفاؤه للالتزام بنوع السعر الافتراضي")}
+                  </small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowPriceTierToggle')} disabled={disabled} />
+            </label>
+          )}
+
+          {/* Card 3f: POS Default Price Type */}
+          {showPosSettings && (
+            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_default_price_type_title', "سعر البيع الافتراضي بنقطة البيع")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.4 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_default_price_type_desc', "تحديد السعر المعتمد تلقائياً (قطاعي أو جملة) حتى في حال إخفاء زر التبديل")}
+                  </small>
+                </div>
+              </div>
+              <div style={{ width: '210px', minWidth: '180px', flexShrink: 0 }}>
+                <CustomSelect
+                  value={form.watch('posDefaultPriceType') || 'retail'}
+                  onChange={(val) => form.setValue('posDefaultPriceType', val as any, { shouldDirty: true, shouldValidate: true })}
+                  options={[
+                    { value: 'retail', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_price_retail', "سعر التجزئة / قطاعي (افتراضي)") },
+                    { value: 'wholesale', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_price_wholesale', "سعر الجملة") },
+                  ]}
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Card 3g: POS Show Categories */}
+          {showPosSettings && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_categories_title', "إظهار شريط الأقسام والتصنيفات")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_categories_desc', "إظهار كبسولات التصنيفات الأفقية أعلى المنتجات أو إخفاؤها لتوسيع مساحة العرض")}
+                  </small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowCategories')} disabled={disabled} />
+            </label>
+          )}
+
+          {/* Card 3h: POS Show Quick Filters */}
+          {showPosSettings && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_quick_filters_title', "إظهار شريط الفلاتر السريعة (المفضلة / العروض)")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_show_quick_filters_desc', "أزرار فلترة الأصناف حسب المفضلة، العروض الخاصة، والخدمات")}
+                  </small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posShowQuickFilters')} disabled={disabled} />
+            </label>
+          )}
+
+          {/* Card 3i: POS Mobile Grid Columns */}
+          {showPosSettings && (
+            <div style={{ ...premiumCardStyle, cursor: 'default' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_mobile_cols_title', "عدد أعمدة الأصناف في شاشات الموبايل والمتنقلة")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.4 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_mobile_cols_desc', "تخصيص شبكة العرض لأجهزة الكاشير المحمولة (iMin / Sunmi): 3 أعمدة لعرض عدد أكبر من الأصناف")}
+                  </small>
+                </div>
+              </div>
+              <div style={{ width: '210px', minWidth: '180px', flexShrink: 0 }}>
+                <CustomSelect
+                  value={form.watch('posMobileGridColumns') || 'auto'}
+                  onChange={(val) => form.setValue('posMobileGridColumns', val as any, { shouldDirty: true, shouldValidate: true })}
+                  options={[
+                    { value: 'auto', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_cols_auto', "تلقائي بحسب الشاشة") },
+                    { value: '2', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_cols_2', "عمودين (افتراضي)") },
+                    { value: '3', label: __t('settings.forms.tabs.sales_inventory_settings_tab.pos_cols_3', "3 أعمدة (أجهزة كاشير محمولة iMin/Sunmi)") },
+                  ]}
+                  disabled={disabled}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Card 3j: POS Auto-Hide Bottom Nav */}
+          {showPosSettings && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                <div style={iconBadgeStyle}>
+                  <SlidersIcon size={20} />
+                </div>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_auto_hide_nav_title', "الإخفاء التلقائي للشريط السفلي في شاشات الموبايل")}
+                  </strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                    {__t('settings.forms.tabs.sales_inventory_settings_tab.pos_auto_hide_nav_desc', "إخفاء شريط التنقل الرئيسي عند التمرير أو عند إضافة أصناف للسلة لمنح أقصى مساحة عرض للمنتجات")}
+                  </small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posAutoHideBottomNav')} disabled={disabled} />
+            </label>
+          )}
+
           {/* Card 4: Low Stock Alert */}
           {showPhysicalInventory && (
             <div style={{ ...premiumCardStyle, cursor: 'default' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
                 <div style={iconBadgeStyle}>
                   <LowStockIndicatorIcon size={20} />
                 </div>
-                <div style={premiumCardTextStyle}>
+                <div style={{ ...premiumCardTextStyle, minWidth: 0, flex: 1 }}>
                   <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s122', "حد التنبيه لنقص المخزون")}</strong>
                   <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.s123', "يظهر تنبيه نواقص عندما يصل الرصيد لهذا الحد أو أقل")}</small>
                 </div>

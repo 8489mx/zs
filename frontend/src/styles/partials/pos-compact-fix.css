@@ -102,47 +102,67 @@
 }
 
 /* POS Split Button for Shift Actions (Close Shift + Dropdown) */
+.pos-workspace .pos-shift-actions-group,
 .pos-shift-actions-group {
   display: inline-flex;
-  align-items: stretch;
+  align-items: center;
   position: relative;
   flex-shrink: 0;
   vertical-align: middle;
+  background: rgba(248, 250, 252, 0.92);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  gap: 3px;
+  box-sizing: border-box;
 }
 
 .pos-shift-actions-group a {
   display: inline-flex;
+  align-items: center;
   text-decoration: none;
 }
 
+.pos-workspace .pos-shift-actions-group .pos-close-shift-btn,
 .pos-shift-actions-group .pos-close-shift-btn {
-  border-start-start-radius: 8px !important;
-  border-end-start-radius: 8px !important;
-  border-start-end-radius: 0 !important;
-  border-end-end-radius: 0 !important;
-  border-inline-end: none !important;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-}
-
-.pos-shift-actions-group .pos-shift-dropdown-trigger {
-  border-start-start-radius: 0 !important;
-  border-end-start-radius: 0 !important;
-  border-start-end-radius: 8px !important;
-  border-end-end-radius: 8px !important;
-  border-inline-start: 1px solid var(--border, #cbd5e1) !important;
-  padding: 0 8px !important;
-  min-width: 30px;
-  cursor: pointer;
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #cbd5e1);
-  box-shadow: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.pos-workspace .pos-shift-actions-group .pos-shift-dropdown-trigger,
+.pos-shift-actions-group .pos-shift-dropdown-trigger {
+  height: 30px !important;
+  min-height: 30px !important;
+  max-height: 30px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  border: none !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  line-height: 1;
 }
 
 .pos-shift-actions-group .pos-shift-dropdown-trigger:hover,
@@ -1661,6 +1681,15 @@
   flex-direction: column;
   gap: 10px;
   direction: rtl;
+}
+
+.pos-workspace .pos-group-card.pos-group-card-gallery {
+  padding: 0 !important;
+  min-height: unset !important;
+  gap: 0 !important;
+  background: #ffffff !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
 }
 
 .pos-workspace .pos-group-card.is-selected {

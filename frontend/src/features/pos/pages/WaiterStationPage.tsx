@@ -794,9 +794,9 @@ export function WaiterStationPage() {
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  height: '115px',
-                  minHeight: '115px',
-                  maxHeight: '115px',
+                  height: '130px',
+                  minHeight: '130px',
+                  maxHeight: '130px',
                   minWidth: 0,
                   width: '100%',
                   boxSizing: 'border-box',
@@ -813,19 +813,41 @@ export function WaiterStationPage() {
                   e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)';
                 }}
               >
+                {(p.imageUrl || p.metadata?.imageUrl) ? (
+                  <div style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '4px',
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <img
+                      src={p.imageUrl || p.metadata?.imageUrl}
+                      alt={p.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
                 <div
                   style={{
                     fontSize: '12px',
                     fontWeight: 800,
                     color: '#0f172a',
-                    lineHeight: '1.35',
+                    lineHeight: '1.3',
                     textAlign: 'center',
                     width: '100%',
                     minWidth: 0,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     display: '-webkit-box',
-                    WebkitLineClamp: 3,
+                    WebkitLineClamp: (p.imageUrl || p.metadata?.imageUrl) ? 2 : 3,
                     WebkitBoxOrient: 'vertical',
                     wordBreak: 'break-word',
                     overflowWrap: 'anywhere',

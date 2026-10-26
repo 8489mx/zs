@@ -21,6 +21,7 @@ import { normalizeNumericStyleCode } from '@/features/products/lib/style-code';
 import { bomsApi } from '@/shared/api/boms.api';
 import { ComboComponentsEditor } from '@/features/products/components/ComboComponentsEditor';
 import { ProductIconPicker } from '@/shared/components/icons/ProductIconPicker';
+import { ProductImageUploadField } from '@/features/products/components/ProductImageUploadField';
 import { guessProductIcon } from '@/features/products/lib/product-smart-matcher';
 
 import { useAppToolbar } from '@/stores/toolbar-store';
@@ -151,7 +152,8 @@ export function EditProductForm({
       const cachedProducts = queryClient.getQueryData<Product[]>(queryKeys.products);
       return cachedProducts?.find((p) => String(p.id) === String(productId));
     },
-    staleTime: 60_000,
+    initialDataUpdatedAt: 0,
+    staleTime: 0,
   });
 
   const { data: boms } = useQuery({
@@ -170,7 +172,8 @@ export function EditProductForm({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: '', nameEn: '', barcode: '', itemKind: 'standard', styleCode: '', color: '', size: '', fashionColors: '', fashionSizes: '', variantStock: 0,
-      costPrice: 0, retailPrice: 0, wholesalePrice: 0, creditPrice: 0, consumerPrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: ''
+      costPrice: 0, retailPrice: 0, wholesalePrice: 0, creditPrice: 0, consumerPrice: 0, stock: 0, minStock: 5, categoryId: '', supplierId: '', notes: '',
+      icon: '', imageUrl: '', expiryDate: '',
     }
   });
 
@@ -647,6 +650,21 @@ export function EditProductForm({
                 placeholder="e.g. Almarai Milk 1L / Nivea Deo"
               />
             </div>
+          </div>
+
+          {/* Product Image Uploader (Shared across POS & Storefront) */}
+          <div style={{ marginBottom: '0.85rem' }}>
+            <Controller
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <ProductImageUploadField
+                  value={field.value || ''}
+                  onChange={(url) => field.onChange(url)}
+                  disabled={isFormDisabled}
+                />
+              )}
+            />
           </div>
 
           {/* Row 2: Item Type & Barcode/Model */}

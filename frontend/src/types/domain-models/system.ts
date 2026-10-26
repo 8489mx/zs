@@ -220,6 +220,14 @@ export interface AppSettings {
   enableGuestPagers?: boolean;
   phoneOrdersModuleEnabled?: boolean;
   posShowCartMeta?: boolean;
+  posProductCardLayout?: 'comfortable' | 'compact' | 'gallery';
+  posShowSearchBar?: boolean;
+  posShowPriceTierToggle?: boolean;
+  posDefaultPriceType?: 'retail' | 'wholesale';
+  posShowCategories?: boolean;
+  posShowQuickFilters?: boolean;
+  posMobileGridColumns?: '2' | '3' | 'auto';
+  posAutoHideBottomNav?: boolean;
   clothingModuleEnabled?: boolean;
   enableMobileStoreFeatures?: boolean;
   posMaxDiscountThresholdEnabled?: boolean;
