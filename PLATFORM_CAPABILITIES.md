@@ -280,3 +280,7 @@ Automated controller inventory: `docs/reviews/PLATFORM_CORE_SECURITY_P0A_ROUTE_I
 
 
 <!-- migrated:cap-200:end -->
+
+### P0-C / main migration 256 coexistence (2026-10-26, review branch)
+
+`backend/src/database/migrations/2040000000256_sync_tenant_subscriptions_plan_and_upgrade_pro_users.ts` is preserved verbatim from `main` alongside the independent P0-C currency migration `2040000000256_currency_minor_unit_precision.ts`. Kysely records **complete filenames** and the existing migration runner permits unordered migration additions. No applied migration identifiers are renamed or deleted. `.github/workflows/accounting-acceptance.yml` now rehearses both branch-first and main-first histories against disposable PostgreSQL databases, with assertions in `backend/test/acceptance/migration-256-compat.postgres.spec.ts`. Tests must pass on this branch's final SHA before declaring migration compatibility verified; restored-customer upgrade remains untested.

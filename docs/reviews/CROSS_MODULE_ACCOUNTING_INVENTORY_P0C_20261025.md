@@ -245,3 +245,9 @@ The code observations above identify definite missing integration points; **fina
 
 - Verified the prior exchange-credit fix alone was insufficient: `settlePosExchange` and its `allocateRefundTenders` caller still used default cents and could reject or truncate a 0.001 KWD sale/return. Settlement now accepts tenant 2/3 money digits and passes these through the exchange and tender allocation, with retained credit booked at identical precision.
 - Added focused regression tests for a 0.003 / 0.001 KWD exchange, opposite direction, cent default, sub-fil rejection and 0.002 store-credit refund. This is not an end-to-end GL exchange sign-off; the full 8-cycle and 11-sector acceptance matrix remains open.
+
+## 26 October — P0-C vs main migration identity compatibility
+
+- `main` introduced `2040000000256_sync_tenant_subscriptions_plan_and_upgrade_pro_users` while P0-C already applied `2040000000256_currency_minor_unit_precision` followed by 257–259. Their full Kysely migration names differ, and the existing runner explicitly allows unordered migrations; **neither original file was renamed, overwritten or removed**.
+- Imported the exact existing main subscription migration into this branch without bringing unrelated concurrent HR/UI changes. An isolated PostgreSQL CI rehearsal now starts from branch-first and main-first histories, appends the other migration(s), reruns idempotently, checks all five exact migration identifiers and verifies currency scales and Pro/Ultimate plan limits where present.
+- **Verification status:** authored on this branch; requires green GitHub Actions evidence on the pushed HEAD, and does not substitute for upgrading a disposable restored customer snapshot. All previously documented P0-C operational blockers remain open.
