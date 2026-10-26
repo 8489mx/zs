@@ -224,22 +224,36 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL dine-in table, costed modifier ingredients, cash/COGS/WAC/GL');
 
-    // Composite dish returns must fail closed: refunding the parent's COGS
-    // without re-stocking the physically consumed cheese would invent GL stock.
+    // RESTAURANT: a refund for a prepared dish is not a restock. Preserve the
+    // consumed meal and ingredient quantities, their historic COGS and WAC,
+    // while reversing the cash and revenue in one atomic transaction.
     const returnsBefore=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
       .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
-    await assert.rejects(returns.createReturn({type:'sale',invoiceId:rId,
-      items:[{productId:meal,qty:1}],settlementMode:'refund',refundMethod:'cash'},rest.auth),
-      (e:any)=>e.code==='COMPOSITE_RETURN_RECONCILIATION_REQUIRED');
+    const mealBefore=await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal).executeTakeFirstOrThrow();
+    const processed=await returns.createReturn({type:'sale',invoiceId:rId,
+      items:[{productId:meal,qty:1}],settlementMode:'refund',refundMethod:'cash'},rest.auth);
+    const refundId=Number(processed.id);
+    const refundLine=await db.selectFrom('return_items')
+      .select(['qty','cost_price']).where('tenant_id','=',rest.auth.tenantId!)
+      .where('return_document_id','=',refundId).executeTakeFirstOrThrow();
+    assert.equal(Number(refundLine.qty),1);
+    assert.equal(Number(refundLine.cost_price),0,'consumed composite ingredients cannot be restocked in GL');
     const returnsAfter=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
       .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
-    assert.equal(Number(returnsAfter.n),Number(returnsBefore.n));
-    assert.equal(await posted(rest,'5100'),6,'failed composite refund cannot reverse ingredient COGS');
-    assert.equal(await posted(rest,'1110'),60,'failed composite refund cannot issue cash');
+    assert.equal(Number(returnsAfter.n),Number(returnsBefore.n)+1);
+    assert.equal(await posted(rest,'5100'),6,'original ingredient and prepared meal COGS remain expensed');
+    assert.equal(await posted(rest,'1110'),0,'cash payment and cash refund net to zero');
     assert.equal(Number((await db.selectFrom('products').select('stock_qty')
       .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty),1.8);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal).executeTakeFirstOrThrow()).stock_qty),Number(mealBefore.stock_qty));
     await check(rest,[meal,cheese]);
-    console.log('PASS sector-restaurant PostgreSQL composite refund rollback preserves cash, ingredients and GL');
+    await assert.rejects(returns.createReturn({type:'sale',invoiceId:rId,
+      items:[{productId:meal,qty:1}],settlementMode:'refund',refundMethod:'cash'},rest.auth),
+      (e:any)=>e.code==='RETURN_QUANTITY_EXCEEDED');
+    assert.equal(await posted(rest,'1110'),0,'duplicate prepared dish return does not refund twice');
+    console.log('PASS sector-restaurant PostgreSQL prepared meal refund preserves consumed inventory/COGS and reverses cash once');
 
     // A configured non-stock menu option may not be turned into a physical
     // ingredient expense by providing an arbitrary productId in the POS body.
