@@ -129,7 +129,7 @@ async function main(): Promise<void> {
     const blue=await product(fashion,'Jacket / BLUE / L','JACKET-BLUE-L');
     await receive(fashion,red,3,20);
     await receive(fashion,blue,2,25);
-    const redSale=await checkout(fashion,[{productId:red,name:'Red M',qty:1,price:60,unitMultiplier:1}]);
+    const redSale=await checkout(fashion,[{productId:red,name:'Red M',qty:2,price:60,unitMultiplier:1}]);
     const redId=Number((redSale.sale as {id:string}).id);
     const line=await db.selectFrom('sale_items').select('id').where('tenant_id','=',fashion.auth.tenantId!)
       .where('sale_id','=',redId).where('product_id','=',red).executeTakeFirstOrThrow();
@@ -137,9 +137,9 @@ async function main(): Promise<void> {
       {productId:red,saleItemId:Number(line.id),qty:1}],settlementMode:'refund',refundMethod:'cash'},fashion.auth);
     const variants=await db.selectFrom('products').select(['id','stock_qty'])
       .where('tenant_id','=',fashion.auth.tenantId!).where('id','in',[red,blue]).execute();
-    assert.equal(Number(variants.find(p=>Number(p.id)===red)!.stock_qty),3);
+    assert.equal(Number(variants.find(p=>Number(p.id)===red)!.stock_qty),2);
     assert.equal(Number(variants.find(p=>Number(p.id)===blue)!.stock_qty),2);
-    assert.equal(await posted(fashion,'5100'),0,'cost reversed on returned color');
+    assert.equal(await posted(fashion,'5100'),20,'partial return reverses only the returned variant COGS');
     await check(fashion,[red,blue]);
     console.log('PASS sector-clothing PostgreSQL SKU color/size isolation, POS cash sale, return, stock/WAC/GL');
 
@@ -164,10 +164,24 @@ async function main(): Promise<void> {
     assert.ok(Number((exchanged.sale as {id:string}).id)>0);
     const afterExchange=await db.selectFrom('products').select(['id','stock_qty'])
       .where('tenant_id','=',fashion.auth.tenantId!).where('id','in',[red,blue]).execute();
-    assert.equal(Number(afterExchange.find(p=>Number(p.id)===red)!.stock_qty),3);
+    assert.equal(Number(afterExchange.find(p=>Number(p.id)===red)!.stock_qty),2);
     assert.equal(Number(afterExchange.find(p=>Number(p.id)===blue)!.stock_qty),1);
     await check(fashion,[red,blue]);
     console.log('PASS sector-clothing PostgreSQL atomic color/size exchange and immutable inventory/GL matching');
+    const clothingShift=await db.selectFrom('cashier_shifts').select('id')
+      .where('tenant_id','=',fashion.auth.tenantId!).where('opened_by','=',fashion.auth.userId)
+      .where('status','=','open').executeTakeFirstOrThrow();
+    await drawer.closeCashierShift(Number(clothingShift.id),
+      {countedCash:120,managerPin:PASSWORD},fashion.auth);
+    const clothingClosed=await db.selectFrom('cashier_shifts').select(['status','expected_cash','variance'])
+      .where('tenant_id','=',fashion.auth.tenantId!).where('id','=',clothingShift.id).executeTakeFirstOrThrow();
+    assert.equal(clothingClosed.status,'closed');
+    assert.equal(cents(clothingClosed.expected_cash),120,'cash sale minus partial cash refund plus exchange source sale');
+    assert.equal(cents(clothingClosed.variance),0,'clothing till must reconcile to zero');
+    assert.equal(await posted(fashion,'1110'),120,'clothing cash balance must match GL');
+    await check(fashion,[red,blue]);
+    console.log('PASS sector-clothing PostgreSQL partial return, size exchange, closed cash shift and GL');
+
 
     // MARKET: barcode selection + weighted fractional stock sale with an open till.
     const market=await shop('market');

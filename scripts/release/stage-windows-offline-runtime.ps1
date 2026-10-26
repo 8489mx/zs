@@ -24,9 +24,18 @@ foreach ($dir in @('bin', 'lib', 'share')) {
 $nodeExe = (& node -p 'process.execPath').Trim()
 $nodeVersion = (& $nodeExe --version).Trim()
 if ($nodeVersion -notmatch '^v22\.') { throw "Node 22 required: $nodeVersion" }
+$nodeHome = Split-Path -Parent $nodeExe
 $npmRoot = (& npm root -g).Trim()
-$npmPackage = Join-Path $npmRoot 'npm'
-if (-not (Test-Path (Join-Path $npmPackage 'bin\npm-cli.js'))) { throw 'npm package missing from first-party setup-node runtime' }
+$npmCandidates = @(
+  (Join-Path $nodeHome 'node_modules\npm'),
+  (Join-Path $npmRoot 'npm'),
+  (Join-Path $nodeHome 'lib\node_modules\npm')
+)
+$npmPackage = @($npmCandidates | Where-Object { Test-Path (Join-Path $_ 'bin\npm-cli.js') } | Select-Object -First 1)
+if ($npmPackage.Count -eq 0) {
+  throw "npm files missing from official setup-node tool cache. Node: $nodeHome, global: $npmRoot"
+}
+$npmPackage = [string]$npmPackage[0]
 $nodeDest = Join-Path $runtime 'node'
 New-Item -ItemType Directory -Path (Join-Path $nodeDest 'node_modules') -Force | Out-Null
 Copy-Item -LiteralPath $nodeExe -Destination (Join-Path $nodeDest 'node.exe') -Force
