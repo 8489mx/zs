@@ -107,7 +107,7 @@ export class SalesWriteService {
           'RESTAURANT_MODIFIER_OPTION_INVALID',422);
         const directId = Number(mod.productId || mod.componentProductId || mod.component_product_id || 0);
         const configuredId = Number(option?.component_product_id || 0);
-        if (directId > 0 && configuredId > 0 && directId !== configuredId) throw new AppError(
+        if (option && directId > 0 && directId !== configuredId) throw new AppError(
           'Restaurant modifier differs from configured stock component',
           'RESTAURANT_MODIFIER_COMPONENT_MISMATCH',422);
         const componentId = configuredId || directId;
