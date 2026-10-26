@@ -12,7 +12,27 @@
 
 ## التحديثات الحالية
 
-عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
+### 259. الاعتماد التلقائي الذكي لاسم الصنف ثنائي اللغة ودعم الإدخال بالإنجليزية فقط (Intelligent Dual-Language Product Name Auto-Fallback - 26 October 2026)
+* **حالة القدرة:** 🟢 مكتملة ومختبرة بنسبة 100% (26 أكتوبر 2026).
+* **المسارات المتأثرة:** شاشات إضافة وتعديل الأصناف (`NewProductForm.tsx`, `EditProductForm.tsx`) ونوافذ الـ POS (`PosNewProductModal`, `PosEditProductModal`) ومسارات API (`/api/products`).
+* **المشكلة المعالجة:** في السوق الكويتي والخليجي ومحلات التجزئة الدولية، تعتمد معظم الأنشطة على مسميات أصناف باللغة الإنجليزية حصرياً. وكان النظام يرفض حفظ الصنف عند إدخال الاسم الإنجليزي فقط في خانة `nameEn` وترك خانة العربي `name` فارغة برسالة `PRODUCT_NAME_REQUIRED`.
+* **الحلول والضوابط المنفذة:**
+  1. **الباك إند (`catalog-product.service.ts` و `upsert-product.dto.ts`):**
+     - جعل حقل `name` اختيارياً في `UpsertProductDto` عند توفر `nameEn`.
+     - في دالة `normalizeProductPayload`: تطبيق الاعتماد التلقائي الذكي `const resolvedName = rawName || rawNameEn || '';`، فإذا ترك المستخدم خانة العربي فارغة وكتب بالإنجليزي فقط، يتم اعتماد الاسم الإنجليزي تلقائياً في عمود `name` التشغيلي مع حفظه في `name_en`، وتمر العملية بنجاح.
+     - تعديل رسالة الخطأ عند خلو الاسمين معاً لتكون واضحة: `اسم الصنف الأساسي مطلوب (بالعربية أو الإنجليزية).`
+  2. **الواجهة الأمامية (`NewProductForm.tsx` و `EditProductForm.tsx`):**
+     - توضيح شارات التلميح للمستخدم: `(يكفي إدخال أحدهما)` لخانة العربي و `(للفواتير أو كاسم أساسي)` لخانة الإنجليزي.
+     - تسوية الاسم تلقائياً في `onSubmit` قبل الإرسال.
+     - تفعيل التخمين التلقائي لأيقونة الصنف (`guessProductIcon`) عند الكتابة بالإنجليزية في حال كانت خانة العربي فارغة.
+* **الاختبارات:**
+  - `src/features/products/schemas/product.schema.spec.ts` (3/3 نجاح).
+* **المراجع البرمجية:**
+  - `backend/src/modules/catalog/services/catalog-product.service.ts`
+  - `backend/src/modules/catalog/dto/upsert-product.dto.ts`
+  - `backend/src/common/errors/error-translations.ts`
+  - `frontend/src/features/products/components/NewProductForm.tsx`
+  - `frontend/src/features/products/components/EditProductForm.tsx`
 
 ## فهرس الأقسام المنقولة
 

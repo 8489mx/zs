@@ -1504,9 +1504,13 @@ export class CatalogProductService {
       seenVariants.add(key);
     }
 
+    const rawName = normalizeArabicInput(payload.name);
+    const rawNameEn = payload.nameEn ? String(payload.nameEn).trim() : null;
+    const resolvedName = rawName || rawNameEn || '';
+
     return {
-      name: normalizeArabicInput(payload.name),
-      nameEn: payload.nameEn ? String(payload.nameEn).trim() : null,
+      name: resolvedName,
+      nameEn: rawNameEn,
       barcode: String(payload.barcode || '').trim(),
       sku: String(payload.sku || '').trim(),
       itemType: payload.itemType === 'raw_material' ? 'raw_material' : payload.itemType === 'service' ? 'service' : 'product',
@@ -2274,7 +2278,7 @@ export class CatalogProductService {
 
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalized = this.normalizeProductPayload(payload);
-    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب.', 'PRODUCT_NAME_REQUIRED', 400);
+    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب (بالعربية أو الإنجليزية).', 'PRODUCT_NAME_REQUIRED', 400);
     normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
     const drafts = shouldExpandVariants
@@ -2445,7 +2449,7 @@ export class CatalogProductService {
     const existing = await this.db.selectFrom('products').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
     const normalized = this.normalizeProductPayload(payload);
-    if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
+    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب (بالعربية أو الإنجليزية).', 'PRODUCT_NAME_REQUIRED', 400);
 
     const existingStyleCode = String(existing.style_code || '').trim();
     const requestedStyleCode = String(normalized.styleCode || '').trim();

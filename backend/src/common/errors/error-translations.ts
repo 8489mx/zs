@@ -26,7 +26,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   CATEGORY_IN_USE: 'لا يمكن حذف القسم لأنه مرتبط بأصناف موجودة.',
   PRODUCT_EXISTS: 'يوجد صنف بنفس الاسم أو الباركود بالفعل.',
   PRODUCT_NOT_FOUND: 'الصنف غير موجود.',
-  PRODUCT_NAME_REQUIRED: 'اسم الصنف مطلوب.',
+  PRODUCT_NAME_REQUIRED: 'اسم الصنف مطلوب (بالعربية أو الإنجليزية).',
   STYLE_CODE_EXISTS: 'هذا الكود مستخدم بالفعل في صنف سابق.',
   STYLE_CODE_INVALID: 'كود المجموعة / الصنف الرئيسي يجب أن يكون أرقامًا فقط.',
   PRODUCT_HAS_STOCK: 'لا يمكن حذف الصنف لأن عليه مخزونًا حاليًا.',
