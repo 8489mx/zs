@@ -1407,7 +1407,18 @@ async function main() {
     const loss=await db.selectFrom('stock_movements').select(['id','unit_cost','total_cost'])
       .where('tenant_id','=',moving.auth.tenantId!).where('reference_type','=','transfer')
       .where('reference_id','=',outboundId).where('movement_type','=','transfer_transit_loss').executeTakeFirst();
-    assert.ok(loss, 'Transit short receipt must record physical shrinkage; movements='+JSON.stringify(outboundMovements));
+    if (!loss) {
+      const row=await db.selectFrom('stock_transfers').select(['id','status','has_transit_variance'])
+        .where('id','=',outboundId).where('tenant_id','=',moving.auth.tenantId!).executeTakeFirst();
+      const parts=await db.selectFrom('stock_transfer_items')
+        .select(['id','qty','dispatched_qty','received_qty','variance_qty'])
+        .where('transfer_id','=',outboundId).where('tenant_id','=',moving.auth.tenantId!).execute();
+      throw new Error('Transit short receipt failed: movements='+JSON.stringify(outboundMovements)
+        +' transfer='+JSON.stringify(row)+' items='+JSON.stringify(parts)
+        +' outcomes='+JSON.stringify(received.map(r=>r.status==='fulfilled'
+          ? {status:r.status,value:r.value}
+          : {status:r.status,reason:{code:(r.reason as any)?.code,message:(r.reason as any)?.message}})));
+    }
     assert.equal(Number(loss.total_cost),0.001,'transit shrinkage immutable source retains fil');
     assert.equal(await postingAmount(moving,'5300',3),0.001,'GL shrinkage expense retains fil');
     assert.equal(await postingAmount(moving,'1140',3),0.001,'GL inventory equals one remaining unit');
