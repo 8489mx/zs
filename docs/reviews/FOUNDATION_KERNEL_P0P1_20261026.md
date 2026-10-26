@@ -33,3 +33,8 @@
 **Regression authored:** Disposable PostgreSQL fixture seeds exact KWD cash GL, persists 0.001 transfer and expense and verifies operational treasury source and accounting accounts; races two 0.004 transfers against 0.005 available balance (one must fail), races two identical keys (one GL source), asserts zero cash after expense, rejects overdraw and out-of-currency precision. Run via the existing mandatory PostgreSQL acceptance workflow.
 
 **Pending evidence:** final SHA Full CI, Typecheck, Build, fresh migrations and dual-history upgrade run results. This checkpoint does not close historic-customer snapshot migration, all employee payroll cycles or full tenant/authorization tracing.
+
+
+## Follow-up PostgreSQL reservation kernel proof (26 October)
+
+Regression added to `core-accounting.postgres.spec.ts` for real concurrent `reserveLocationStock` requests on one three-unit product: simultaneous two-unit reservations must yield exactly one success, leaving global/location reservation at two. An ordinary sale may consume only unreserved stock; a failed oversale cannot move stock, cash or GL. Incremental release and a second sale preserve global/location quantity and WAC inventory-to-GL reconciliation. This is actual PostgreSQL row-lock and atomicity evidence, **not** an exhaustive reservation test for every online/offline sector and location-transfer path. Green final-SHA acceptance still required.

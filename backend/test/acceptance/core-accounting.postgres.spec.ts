@@ -24,6 +24,7 @@ import { PurchasesService } from '../../src/modules/purchases/purchases.service'
 import { SalesService } from '../../src/modules/sales/sales.service';
 import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { TreasuryService } from '../../src/modules/treasury/treasury.service';
+import { reserveLocationStock, releaseLocationStock } from '../../src/common/utils/location-stock-ledger';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
 import { PharmacyService } from '../../src/modules/pharmacy/pharmacy.service';
@@ -1288,6 +1289,54 @@ async function main() {
       amount:0.001,requestKey:'egp-invalid-subcent',
     },egpTenant.auth),(e:any)=>e.code==='INVALID_TRANSFER_PRECISION');
     pass('KWD treasury transfer, expense source, GL and report retain 0.001; concurrent overdraft blocked and identical retry idempotent');
+
+
+    // Real PostgreSQL transactions protect the physical warehouse and global
+    // product reservations across competing connections, not only mocked locks.
+    const held = await fixture('stock_reservation_pg');
+    await purchase(held,2,3);
+    const reserve = (qty:number) => db.transaction().execute(trx=>reserveLocationStock(trx,{
+      tenantId:held.auth.tenantId!,accountId:held.auth.accountId!,
+      branchId:held.branchId,locationId:held.locationId,
+      items:[{productId:held.productId,qty}],
+    }));
+    const release = (qty:number) => db.transaction().execute(trx=>releaseLocationStock(trx,{
+      tenantId:held.auth.tenantId!,accountId:held.auth.accountId!,
+      branchId:held.branchId,locationId:held.locationId,
+      items:[{productId:held.productId,qty}],
+    }));
+    const reservationRace=await Promise.allSettled([reserve(2),reserve(2)]);
+    assert.equal(reservationRace.filter(r=>r.status==='fulfilled').length,1,'only one reservation may consume the same two units');
+    assert.equal(reservationRace.filter(r=>r.status==='rejected' &&
+      ['INSUFFICIENT_LOCATION_STOCK','INSUFFICIENT_STOCK'].includes((r.reason as any).code)).length,1);
+    let reservedProduct=await db.selectFrom('products').select(['stock_qty','reserved_qty'])
+      .where('tenant_id','=',held.auth.tenantId!).where('id','=',held.productId).executeTakeFirstOrThrow();
+    let locationReserved=await db.selectFrom('product_location_stock').select(['qty','reserved_qty'])
+      .where('tenant_id','=',held.auth.tenantId!).where('product_id','=',held.productId)
+      .where('location_id','=',held.locationId).executeTakeFirstOrThrow();
+    assert.equal(Number(reservedProduct.stock_qty),3);
+    assert.equal(Number(reservedProduct.reserved_qty),2);
+    assert.equal(Number(locationReserved.qty),3);
+    assert.equal(Number(locationReserved.reserved_qty),2);
+    await assert.rejects(sale(held,2),'ordinary sale cannot consume reserved stock');
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',held.auth.tenantId!).where('id','=',held.productId).executeTakeFirstOrThrow()).stock_qty),3);
+    await sale(held,1);
+    await release(1);
+    await sale(held,1);
+    reservedProduct=await db.selectFrom('products').select(['stock_qty','reserved_qty'])
+      .where('tenant_id','=',held.auth.tenantId!).where('id','=',held.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(reservedProduct.stock_qty),1);
+    assert.equal(Number(reservedProduct.reserved_qty),1);
+    await release(1);
+    locationReserved=await db.selectFrom('product_location_stock').select(['qty','reserved_qty'])
+      .where('tenant_id','=',held.auth.tenantId!).where('product_id','=',held.productId)
+      .where('location_id','=',held.locationId).executeTakeFirstOrThrow();
+    assert.equal(Number(locationReserved.reserved_qty),0);
+    assert.equal(Number((await db.selectFrom('products').select('reserved_qty')
+      .where('tenant_id','=',held.auth.tenantId!).where('id','=',held.productId).executeTakeFirstOrThrow()).reserved_qty),0);
+    await reconciliation(held);
+    pass('real PostgreSQL competing reservations serialize global/location locks, protect sold stock, and release without GL drift');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
