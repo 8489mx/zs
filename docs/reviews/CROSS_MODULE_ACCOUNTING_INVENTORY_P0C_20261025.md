@@ -263,3 +263,9 @@ The code observations above identify definite missing integration points; **fina
 - Immediate purchases of used goods may now use `paymentMethod: 'bank'` with the tenant's configured/default bank GL account `1120`, not cash `1110`. The same transaction atomically records one tenant-owned physical receipt, WAC valuation, one treasury expense with matching `payment_channel`, and source-deduplicated Dr 1140 / Cr bank. The central posting validates the exact currency minor-unit payout and channel before committing; unsupported exchange/deferred rails still fail closed.
 - The trade-in form exposes cash/default-bank selection and uses the tenant currency's 2/3-digit input step. Disposable PostgreSQL acceptance now checks a bank-paid 0.001 KWD source, stock movement, cash zero, bank/inventory GL, retry and unsupported payment rejection.
 - **Pending final CI evidence.** This does not certify an individual external bank statement/account mapping, an actual payment instruction, exchange credits, deferred acquisitions, audited cancellations, or historical data recovery.
+
+### 26 October — maintenance refund UI and outstanding-part block
+
+- The repair ticket detail now offers `cancelled` and explicitly confirms an advance cash refund before sending `refundAdvance: true`. It blocks confirmation while issued parts remain and disables status reopening for financial terminal states. This new confirmation cannot execute without operator action.
+- Disposable PostgreSQL regression adds a blocked refund with an issued spare part, verifies the untouched customer advance liability/cash, returns the part through historical WAC and reversed COGS, then completes the explicit refund with one treasury and GL entry.
+- Requires fresh frontend/full CI and isolated PostgreSQL green evidence on this final branch head. Only **unsettled cash advances** are supported; delivered-ticket credit adjustments, bank refunds and historical reconciliation remain open.
