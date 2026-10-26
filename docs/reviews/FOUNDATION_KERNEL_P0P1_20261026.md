@@ -38,3 +38,8 @@
 ## Follow-up PostgreSQL reservation kernel proof (26 October)
 
 Regression added to `core-accounting.postgres.spec.ts` for real concurrent `reserveLocationStock` requests on one three-unit product: simultaneous two-unit reservations must yield exactly one success, leaving global/location reservation at two. An ordinary sale may consume only unreserved stock; a failed oversale cannot move stock, cash or GL. Incremental release and a second sale preserve global/location quantity and WAC inventory-to-GL reconciliation. This is actual PostgreSQL row-lock and atomicity evidence, **not** an exhaustive reservation test for every online/offline sector and location-transfer path. Green final-SHA acceptance still required.
+
+
+## Round-final P1 stock transfer cost integrity
+
+Found and corrected both `Number(...toFixed(2))` source writes in `InventoryTransferService`: final warehouse issue (`transfer_final_issue`) and inbound transit shrinkage (`transfer_transit_loss`) now persist the tenant's 2/3-place book value. PostgreSQL acceptance creates a KWD one-fil WAC purchase, forces a locked-period failure and asserts rollback, posts one-fil final issue to account 6900, sends remaining stock to transit, races two competing short-receipts and asserts a single one-fil loss to 5300, global inventory/GL balance and foreign-tenant destination rejection. The guard covers these source-to-GL paths, not every transfer variant.

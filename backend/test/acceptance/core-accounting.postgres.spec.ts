@@ -25,6 +25,7 @@ import { SalesService } from '../../src/modules/sales/sales.service';
 import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { TreasuryService } from '../../src/modules/treasury/treasury.service';
 import { reserveLocationStock, releaseLocationStock } from '../../src/common/utils/location-stock-ledger';
+import { InventoryTransferService } from '../../src/modules/inventory/services/inventory-transfer.service';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
 import { PharmacyService } from '../../src/modules/pharmacy/pharmacy.service';
@@ -1337,6 +1338,86 @@ async function main() {
       .where('tenant_id','=',held.auth.tenantId!).where('id','=',held.productId).executeTakeFirstOrThrow()).reserved_qty),0);
     await reconciliation(held);
     pass('real PostgreSQL competing reservations serialize global/location locks, protect sold stock, and release without GL drift');
+
+
+    // A one-fil final warehouse issue or transit shrinkage MUST preserve the
+    // immutable physical movement money, not round it to cents before GL.
+    const moving = await fixture('kwd_stock_transfers');
+    await db.updateTable('settings').set({value:'"KWD"'})
+      .where('tenant_id','=',moving.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',moving.auth.tenantId!).where('is_base','=',true).execute();
+    await purchases.createPurchase({
+      supplierId:moving.supplierId,paymentType:'credit',branchId:moving.branchId,
+      locationId:moving.locationId,taxRate:0,pricesIncludeTax:false,
+      items:[{productId:moving.productId,name:'Test product',qty:3,cost:0.001,
+        unitMultiplier:1,locationId:moving.locationId}],
+    },moving.auth,randomUUID());
+    const transfers=app.get(InventoryTransferService);
+    const destination=await db.insertInto('stock_locations').values({
+      tenant_id:moving.auth.tenantId!,account_id:moving.auth.accountId!,
+      branch_id:moving.branchId,name:'KWD destination',code:'DEST_KWD',location_type:'internal_warehouse',is_active:true,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    const issuePayload={
+      fromLocationId:moving.locationId,toLocationId:Number(destination.id),
+      issueMode:'final_issue' as const,
+      items:[{productId:moving.productId,qty:1}],
+    };
+    // Force a financial-posting failure, proving no source/stock mutation escapes trx.
+    await db.updateTable('accounting_settings').set({lock_date_all:new Date('2100-12-31')})
+      .where('tenant_id','=',moving.auth.tenantId!).execute();
+    await assert.rejects(transfers.createStockTransfer(issuePayload,moving.auth));
+    assert.equal((await db.selectFrom('stock_transfers').select('id')
+      .where('tenant_id','=',moving.auth.tenantId!).execute()).length,0);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',moving.auth.tenantId!).where('id','=',moving.productId).executeTakeFirstOrThrow()).stock_qty),3);
+    await db.updateTable('accounting_settings').set({lock_date_all:null})
+      .where('tenant_id','=',moving.auth.tenantId!).execute();
+    const issued=await transfers.createStockTransfer(issuePayload,moving.auth) as any;
+    const issueId=Number(issued.transferId);
+    const issueMovement=await db.selectFrom('stock_movements').select(['id','unit_cost','total_cost'])
+      .where('tenant_id','=',moving.auth.tenantId!).where('reference_type','=','transfer')
+      .where('reference_id','=',issueId).where('movement_type','=','transfer_final_issue').executeTakeFirstOrThrow();
+    assert.equal(Number(issueMovement.unit_cost),0.001);
+    assert.equal(Number(issueMovement.total_cost),0.001,'final issue source cost retains fil');
+    assert.equal(await postingAmount(moving,'6900',3),0.001,'final issue debits operating supplies expense');
+    assert.equal(await postingAmount(moving,'1140',3),0.002);
+    await assert.rejects(transfers.createStockTransfer({
+      ...issuePayload,fromLocationId:Number(destination.id),toLocationId:moving.locationId,
+    },moving.auth),(err:any)=>['INSUFFICIENT_LOCATION_STOCK','INSUFFICIENT_STOCK'].includes(err.code));
+    const outbound=await transfers.createStockTransfer({
+      fromLocationId:moving.locationId,toLocationId:Number(destination.id),
+      items:[{productId:moving.productId,qty:1}],
+    },moving.auth) as any;
+    const outboundId=Number(outbound.transferId);
+    const outboundItem=await db.selectFrom('stock_transfer_items').select('id')
+      .where('tenant_id','=',moving.auth.tenantId!).where('transfer_id','=',outboundId).executeTakeFirstOrThrow();
+    assert.equal(await postingAmount(moving,'1140',3),0.002,'transfer in transit does not change global GL asset');
+    const received=await Promise.allSettled([
+      transfers.receiveStockTransfer(outboundId,moving.auth,{items:[{itemId:Number(outboundItem.id),receivedQty:0}]}),
+      transfers.receiveStockTransfer(outboundId,moving.auth,{items:[{itemId:Number(outboundItem.id),receivedQty:0}]}),
+    ]);
+    assert.equal(received.filter(r=>r.status==='fulfilled').length,1,'concurrent transfer receipt posts only once');
+    assert.equal(received.filter(r=>r.status==='rejected').length,1);
+    const loss=await db.selectFrom('stock_movements').select(['id','unit_cost','total_cost'])
+      .where('tenant_id','=',moving.auth.tenantId!).where('reference_type','=','transfer')
+      .where('reference_id','=',outboundId).where('movement_type','=','transfer_transit_loss').executeTakeFirstOrThrow();
+    assert.equal(Number(loss.total_cost),0.001,'transit shrinkage immutable source retains fil');
+    assert.equal(await postingAmount(moving,'5300',3),0.001,'GL shrinkage expense retains fil');
+    assert.equal(await postingAmount(moving,'1140',3),0.001,'GL inventory equals one remaining unit');
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',moving.auth.tenantId!).where('id','=',moving.productId).executeTakeFirstOrThrow()).stock_qty),1);
+    assert.equal((await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id','=',moving.auth.tenantId!).where('source_type','=','inventory_adjustment')
+      .where('source_id','=',loss.id).execute()).length,1);
+    // No cross-tenant location may be selected, even for an otherwise valid product.
+    const different=await fixture('other_transfer_owner');
+    await assert.rejects(transfers.createStockTransfer({
+      ...issuePayload,toLocationId:different.locationId,
+    },moving.auth));
+    assert.equal((await db.selectFrom('stock_transfers').select('id')
+      .where('tenant_id','=',different.auth.tenantId!).execute()).length,0);
+    pass('KWD final warehouse issue and concurrent transit shrinkage persist 0.001 cost in source/GL; rollback, retry and tenant isolation');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not

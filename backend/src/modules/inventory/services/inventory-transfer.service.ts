@@ -16,6 +16,8 @@ import { InventoryScopeService } from './inventory-scope.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 import { assertUntrackedStockMutation } from '../helpers/inventory-tracked-stock.helper';
 import { syncImportLotsOnLocationTransfer, syncImportLotsOnStockDeduction } from '../../import-sales/helpers/import-lot-allocation.helper';
 import { dispatchTrackedStock, receiveTrackedStock, cancelTrackedStock, type TransferReceiptTraceRequest } from '../helpers/stock-transfer-trace.helper';
@@ -122,6 +124,8 @@ export class InventoryTransferService {
 
     const transferId = await this.tx.runInTransaction(this.db, async (trx) => {
       const issueMode = payload.issueMode || 'transfer_to_branch_stock';
+      const moneyDigits = issueMode === 'final_issue'
+        ? currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId)) : 2;
       const initialStatus = issueMode === 'final_issue' ? 'received' : 'sent';
 
       const result = await trx.insertInto('stock_transfers').values({
@@ -179,7 +183,7 @@ export class InventoryTransferService {
           branch_id: from.branchId, location_id: from.id,
           ...(isFinalIssue ? {
             unit_cost: unitCost,
-            total_cost: Number((Number(item.qty || 0) * unitCost).toFixed(2)),
+            total_cost: roundMoney(Number(item.qty || 0) * unitCost, moneyDigits),
           } : {}),
           ...this.tenantFields(auth),
         }).returning('id').executeTakeFirstOrThrow();
@@ -275,6 +279,7 @@ export class InventoryTransferService {
         throw new AppError('فرع وجهة التحويل لا يطابق موقع الاستلام', 'TRANSFER_DESTINATION_BRANCH_MISMATCH', 409);
       }
       let anyVariance = false;
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
 
       if (effectiveToLocationId) {
         for (const item of items) {
@@ -343,7 +348,7 @@ export class InventoryTransferService {
               created_by: auth.userId,
               location_id: inTransitLocationId,
               unit_cost: unitCost,
-              total_cost: Number((shortfall * unitCost).toFixed(2)),
+              total_cost: roundMoney(shortfall * unitCost, moneyDigits),
               ...this.tenantFields(auth),
             }).returning('id').executeTakeFirstOrThrow();
             await syncImportLotsOnStockDeduction(trx, { tenantId: scope.tenantId, productId: Number(item.product_id), locationId: inTransitLocationId, qty: shortfall, reason: 'transit_shrinkage' });
