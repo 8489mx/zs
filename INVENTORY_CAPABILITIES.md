@@ -12,6 +12,10 @@
 
 ## التحديثات الحالية
 
+### Foundation P1 — 26 October 2026 (verification pending)
+Inventory adjustment, physical count and damage source writes now use the tenant base-currency minor-unit scale (KWD/OMR 3, EGP 2) in the same transaction as GL posting. This removes the verified cent-rounding mismatch for a one-fil variance. Regression evidence: `backend/test/acceptance/core-accounting.postgres.spec.ts` exercises the real KWD adjustment, damaged stock and count source, matching inventory/expense GL, period-lock rollback and count retry; **written, not yet certified until new branch CI is green**.
+
+
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
 ## فهرس الأقسام المنقولة

@@ -12,6 +12,10 @@
 
 ## التحديثات الحالية
 
+### Foundation P1 — 26 October 2026 (verification pending)
+The shared accounting posting adapter now books inventory-adjustment, damaged-stock and food-waste values in authenticated tenant base-currency digits rather than hardcoded cents, with damage posting matching its durable physical `total_cost`. The KWD 0.001 source-to-double-entry ledger regression is in `backend/test/acceptance/core-accounting.postgres.spec.ts`; **pending actual PostgreSQL CI on the pushed SHA**. Other 3-decimal payroll and wider domain paths have not been comprehensively certified.
+
+
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
 <a id="accounting-join-boundary-p0a"></a>
