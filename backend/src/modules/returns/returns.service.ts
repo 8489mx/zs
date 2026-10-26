@@ -413,13 +413,14 @@ export class ReturnsService {
 
   async settleExchangeReturn(trx: Kysely<Database>, context: ExchangeReturnContext, saleTotal: number,
     requested: 'cash' | 'card' | 'store_credit', auth: AuthContext): Promise<ReturnType<typeof settlePosExchange>> {
-    const settlement = settlePosExchange(context.total, saleTotal);
+    const exchangeDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, this.scope(auth).tenantId));
+    const settlement = settlePosExchange(context.total, saleTotal, exchangeDigits);
     const remainder = settlement.refundAmount > 0
-      ? allocateRefundTenders({ ...context.refundBase, amount: settlement.refundAmount, requested }) : [];
+      ? allocateRefundTenders({ ...context.refundBase, amount: settlement.refundAmount, requested, digits: exchangeDigits }) : [];
     const allocations: Array<{ tender: RefundTender; amount: number }> = [];
     const retainedCredit = settlement.appliedCredit + remainder.filter((line) => line.tender === 'store_credit')
       .reduce((sum, line) => sum + line.amount, 0);
-    if (retainedCredit > 0) allocations.push({ tender: 'store_credit', amount: Number(retainedCredit.toFixed(2)) });
+    if (retainedCredit > 0) allocations.push({ tender: 'store_credit', amount: exchangeStoreCreditAmount(retainedCredit, exchangeDigits) });
     for (const line of remainder) {
       if (line.tender === 'store_credit') continue;
       if (line.tender === 'receivable') throw new AppError('يجب تسوية مديونية الفاتورة قبل الاستبدال', 'EXCHANGE_UNPAID_SOURCE', 422);
