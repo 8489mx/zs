@@ -17,6 +17,8 @@ import { AccountingPostingService } from '../../accounting/accounting-posting.se
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
 import { idempotencyStorage } from '../../../core/idempotency/idempotency.context';
 import { syncImportLotsOnStockDeduction } from '../../import-sales/helpers/import-lot-allocation.helper';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
 @Injectable()
 export class InventoryAdjustmentService {
@@ -137,7 +139,9 @@ export class InventoryAdjustmentService {
       const signedDelta = Number((stockChange.scopeAfter - stockChange.scopeBefore).toFixed(3));
       movementQty = Math.abs(signedDelta);
       if (movementQty < 0.001) throw new AppError('Adjustment did not change stock', 'STOCK_ADJUSTMENT_NO_CHANGE', 400);
-      const totalCost = Number((movementQty * unitCost).toFixed(2));
+      // Source movement and GL must represent the same tenant-currency minor units.
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
+      const totalCost = roundMoney(movementQty * unitCost, moneyDigits);
 
       const insertedMovement = await trx
         .insertInto('stock_movements')

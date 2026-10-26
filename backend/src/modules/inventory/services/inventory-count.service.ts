@@ -24,6 +24,8 @@ import { reconcileStockCountTrace } from '../helpers/stock-count-trace.helper';
 import { verifyPassword } from '../../../core/auth/utils/password-hasher';
 import { normalizeArabicSearch, matchesArabic } from '../../../common/utils/arabic-search.util';
 import { syncImportLotsOnStockDeduction } from '../../import-sales/helpers/import-lot-allocation.helper';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
 @Injectable()
 export class InventoryCountService {
@@ -323,6 +325,7 @@ export class InventoryCountService {
     const chunkSize = 64;
     while (true) {
       const hasMore = await this.tx.runInTransaction(this.db, async (trx) => {
+        const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, tenantScope.tenantId));
         // The session lock serializes concurrent posting and retries. Each committed chunk carries
         // its own balanced journal, so no committed stock movement can be left without a ledger leg.
         const session = await trx.selectFrom('stock_count_sessions').selectAll()
@@ -387,7 +390,7 @@ export class InventoryCountService {
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
             const rawCost = Number(product.cost_price || 0);
             const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-            const totalCost = Number((Math.abs(variance) * unitCost).toFixed(2));
+            const totalCost = roundMoney(Math.abs(variance) * unitCost, moneyDigits);
             const stockChange = await setScopedStockQty(trx, {
               productId: Number(item.product_id), nextQty: Number(item.counted_qty || 0),
               branchId: session.branch_id, locationId: session.location_id,
@@ -523,6 +526,7 @@ export class InventoryCountService {
     if (effectiveNote.length < 8) throw new AppError('اكتب سبب التالف بوضوح في 8 أحرف على الأقل', 'DAMAGE_NOTE_REQUIRED', 400);
     payload.note = effectiveNote;
     await this.tx.runInTransaction(this.db, async (trx) => {
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, tenantScope.tenantId));
       const product = await trx.selectFrom('products').selectAll()
         .where('id', '=', payload.productId).where('is_active', '=', true)
         .where(this.tenantPredicate(auth)).where('account_id', '=', tenantScope.accountId)
@@ -531,7 +535,7 @@ export class InventoryCountService {
       const rawCost = Number(product.cost_price || 0);
       const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
       const damageQty = Number(payload.qty);
-      const totalCost = Number((damageQty * unitCost).toFixed(2));
+      const totalCost = roundMoney(damageQty * unitCost, moneyDigits);
       if (!Number.isFinite(damageQty) || damageQty <= 0
         || Math.abs(damageQty * 1000 - Math.round(damageQty * 1000)) > 0.000001) {
         throw new AppError('Damage quantity must be positive with at most three decimal places', 'INVALID_QTY', 400);

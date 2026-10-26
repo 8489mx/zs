@@ -2608,8 +2608,9 @@ export class AccountingPostingService {
     // Use the immutable amount recorded at the time of the physical movement.
     // Re-multiplying a rounded per-unit cost can drift by cents for fractional quantities.
     const rawTotal = movement.total_cost == null ? null : Number(movement.total_cost);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const amount = rawTotal != null && Number.isFinite(rawTotal) && rawTotal >= 0
-      ? this.toMoney(rawTotal) : this.toMoney(Math.abs(delta) * unitCost);
+      ? this.toMoney(rawTotal, moneyDigits) : this.toMoney(Math.abs(delta) * unitCost, moneyDigits);
 
     if (amount <= 0) {
       return { posted: false, journalEntryId: null, hasFinancialImpact: false };
@@ -2685,7 +2686,15 @@ export class AccountingPostingService {
 
     const rawCost = Number(record.unit_cost || 0);
     const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-    const amount = this.toMoney(qty * unitCost);
+    // Post the immutable stored cost of the physical write, never independently
+    // round quantity * WAC to cents for a 3-decimal tenant.
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const storedTotal = record.total_cost == null ? null : Number(record.total_cost);
+    const amount = this.toMoney(
+      storedTotal != null && Number.isFinite(storedTotal) && storedTotal >= 0
+        ? storedTotal : qty * unitCost,
+      moneyDigits,
+    );
 
     if (amount <= 0) {
       return { posted: false, journalEntryId: null, hasFinancialImpact: false };
@@ -2745,7 +2754,9 @@ export class AccountingPostingService {
     const totalCost = Number(log.total_cost || 0);
     if (totalCost <= 0) return { posted: false, journalEntryId: null };
 
-    const amount = this.toMoney(totalCost);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = this.toMoney(totalCost, moneyDigits);
+    if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let inventoryAccountId = Number(settings?.inventory_account_id || 0);

@@ -26,6 +26,8 @@ import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
 import { PharmacyService } from '../../src/modules/pharmacy/pharmacy.service';
+import { InventoryAdjustmentService } from '../../src/modules/inventory/services/inventory-adjustment.service';
+import { InventoryCountService } from '../../src/modules/inventory/services/inventory-count.service';
 import { ReportsSummaryService } from '../../src/modules/reports/services/reports-summary.service';
 import { AuditService } from '../../src/core/audit/audit.service';
 import { SettingsDemoDataService } from '../../src/modules/settings/services/settings-demo-data.service';
@@ -1079,6 +1081,75 @@ async function main() {
     const filReport=await app.get(ReportsSummaryService).supplierBalances({} as any,kwdDomainPartnerFixture.auth);
     assert.equal(Number((filReport.summary as {totalBalance:number}).totalBalance),0.001);
     pass('generic cross-sector posting reconciles 0.001 KWD supplier ledger, GL and vendor balance report');
+
+    // Foundation kernel regression: 0.001 KWD must survive every inventory
+    // variance write AND the journal linked to it; a rejected posting must
+    // atomically roll back both the stock source and its cost.
+    const stockFil = await fixture('kwd_stock_variances');
+    await db.updateTable('settings').set({ value: '"KWD"' })
+      .where('tenant_id', '=', stockFil.auth.tenantId!).where('key', '=', 'currency').execute();
+    await db.updateTable('currency_exchange_rates').set({ currency_code:'KWD', exchange_rate:1 })
+      .where('tenant_id', '=', stockFil.auth.tenantId!).where('is_base', '=', true).execute();
+    await db.updateTable('products').set({ cost_price:0.001 })
+      .where('tenant_id','=',stockFil.auth.tenantId!).where('id','=',stockFil.productId).execute();
+    const adjustment = app.get(InventoryAdjustmentService);
+    const counting = app.get(InventoryCountService);
+    const commonAdjust = {
+      productId:stockFil.productId, locationId:stockFil.locationId, branchId:stockFil.branchId,
+      reason:'KWD one-fil inventory acceptance', note:'test monetary integrity',
+    };
+    // Period lock must fail the entire product/movement transaction.
+    await db.updateTable('accounting_settings').set({ lock_date_all:new Date('2100-12-31') })
+      .where('tenant_id','=',stockFil.auth.tenantId!).execute();
+    await assert.rejects(adjustment.createInventoryAdjustment({
+      ...commonAdjust, actionType:'add', qty:3,
+    },stockFil.auth));
+    const rollbackProduct = await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',stockFil.auth.tenantId!).where('id','=',stockFil.productId).executeTakeFirstOrThrow();
+    assert.equal(Number(rollbackProduct.stock_qty),0,'locked period must roll back physical stock changes');
+    assert.equal((await db.selectFrom('stock_movements').select('id')
+      .where('tenant_id','=',stockFil.auth.tenantId!).execute()).length,0,
+      'locked period must roll back source stock movements');
+    await db.updateTable('accounting_settings').set({lock_date_all:null})
+      .where('tenant_id','=',stockFil.auth.tenantId!).execute();
+    await adjustment.createInventoryAdjustment({...commonAdjust, actionType:'add', qty:3},stockFil.auth);
+    const addition = await db.selectFrom('stock_movements').select(['id','total_cost'])
+      .where('tenant_id','=',stockFil.auth.tenantId!)
+      .where('reference_type','=','inventory_adjustment').executeTakeFirstOrThrow();
+    assert.equal(Number(addition.total_cost),0.003,'KWD adjustment keeps 3-fil physical value');
+    assert.equal(await postingAmount(stockFil,'1140',3),0.003,'KWD GL must match adjustment inventory gain');
+    await counting.createDamagedStock({
+      productId:stockFil.productId, locationId:stockFil.locationId, branchId:stockFil.branchId,
+      qty:1, reason:'damaged test', note:'one fil damage acceptance',
+    },stockFil.auth);
+    const damage = await db.selectFrom('damaged_stock_records').select(['id','total_cost'])
+      .where('tenant_id','=',stockFil.auth.tenantId!).executeTakeFirstOrThrow();
+    assert.equal(Number(damage.total_cost),0.001,'damage source retains one fil');
+    assert.equal(await postingAmount(stockFil,'5300',3),0.001,'damage expense GL retains one fil');
+    assert.equal(await postingAmount(stockFil,'1140',3),0.002,'physical WAC after damage matches GL');
+
+    const counted = await counting.createStockCountSession({
+      locationId:stockFil.locationId,branchId:stockFil.branchId,
+      items:[{productId:stockFil.productId,countedQty:1,reason:'KWD one-fil shortage'}],
+    },stockFil.auth);
+    const countedId=Number(counted.sessionId);
+    await counting.postStockCountSession(countedId,stockFil.auth);
+    const countMovement=await db.selectFrom('stock_movements').select(['total_cost'])
+      .where('tenant_id','=',stockFil.auth.tenantId!)
+      .where('reference_type','=','stock_count_session').where('reference_id','=',countedId)
+      .executeTakeFirstOrThrow();
+    assert.equal(Number(countMovement.total_cost),0.001,'stock-count movement stores one fil');
+    assert.equal(await postingAmount(stockFil,'5200',3),0.001,'stock-count shortage GL retains one fil');
+    assert.equal(await postingAmount(stockFil,'1140',3),0.001,'remaining 1 unit × 0.001 WAC matches inventory GL');
+    const countRetryBefore=await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id','=',stockFil.auth.tenantId!)
+      .where('source_type','=','stock_count_chunk').execute();
+    await counting.postStockCountSession(countedId,stockFil.auth);
+    const countRetryAfter=await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id','=',stockFil.auth.tenantId!)
+      .where('source_type','=','stock_count_chunk').execute();
+    assert.equal(countRetryAfter.length,countRetryBefore.length,'stock-count retry never re-posts GL');
+    pass('KWD 0.001 inventory adjustment / damage / stock count persist identical costs in physical source and GL, rollback and retry');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
