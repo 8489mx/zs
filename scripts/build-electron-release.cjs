@@ -30,7 +30,10 @@ async function main() {
     const requiredRuntime = [
       'postgres/bin/postgres.exe', 'postgres/bin/pg_ctl.exe',
       'postgres/bin/initdb.exe', 'postgres/bin/psql.exe',
-      'postgres/bin/pg_dump.exe'
+      'postgres/bin/pg_dump.exe', 'postgres/bin/pg_isready.exe',
+      'postgres/bin/createdb.exe', 'node/node.exe', 'node/npm.cmd',
+      'node/node_modules/npm/bin/npm-cli.js', 'postgres/lib', 'postgres/share',
+      'runtime-manifest.sha256'
     ];
     for (const relative of requiredRuntime) {
       if (!fs.existsSync(path.join(runtimeDir, relative))) {
@@ -73,6 +76,17 @@ async function main() {
       'ZSystems POS.exe',
       'runtime/postgres/bin/postgres.exe',
       'runtime/postgres/bin/pg_ctl.exe',
+      'runtime/postgres/bin/initdb.exe',
+      'runtime/postgres/bin/psql.exe',
+      'runtime/postgres/bin/pg_dump.exe',
+      'runtime/postgres/bin/createdb.exe',
+      'runtime/postgres/bin/pg_isready.exe',
+      'runtime/postgres/lib',
+      'runtime/postgres/share',
+      'runtime/node/node.exe',
+      'runtime/node/npm.cmd',
+      'runtime/node/node_modules/npm/bin/npm-cli.js',
+      'runtime/runtime-manifest.sha256',
       'resources/app.asar.unpacked/electron/backend/dist/main.js',
       'resources/app.asar.unpacked/dist/index.html',
       'tools/launcher/scripts/ApplyAndRestart.ps1',
