@@ -186,6 +186,7 @@ jobs:
       # on a push. The build above is right here, so it costs seconds.
       - name: Frontend bundle budget on the built output (qa:perf:dist)
         run: npm run qa:perf:dist
+        working-directory: frontend
       - name: Electron offline updater and rollback contract smoke (not physical Windows E2E)
         run: npm run qa:electron
         working-directory: frontend
