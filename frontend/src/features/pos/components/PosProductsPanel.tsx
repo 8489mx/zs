@@ -1020,7 +1020,7 @@ function PosProductsPanelComponent({
         <div
           className="pos-products-scroll"
           onScroll={(e) => {
-            if (typeof document === 'undefined' || !customization.autoHideBottomNav) return;
+            if (typeof document === 'undefined') return;
             const top = e.currentTarget.scrollTop;
             if (top > 30) {
               document.body.classList.add('pos-scroll-hides-nav');
