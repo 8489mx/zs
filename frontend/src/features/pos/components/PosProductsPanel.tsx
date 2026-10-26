@@ -1034,6 +1034,7 @@ function PosProductsPanelComponent({
             overflowY: openGroup ? 'hidden' : 'auto',
             overflowX: 'hidden',
             scrollbarWidth: 'none',
+            paddingBottom: isMobile ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : '24px',
             msOverflowStyle: 'none',
           }}
         >
@@ -1140,6 +1141,7 @@ function PosProductsPanelComponent({
                   : 'repeat(auto-fill, minmax(155px, 185px))',
                 gap: isMobile ? (customization.mobileGridColumns === '3' ? '6px' : '8px') : '12px',
                 alignItems: 'stretch',
+                paddingBottom: isMobile ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : '24px',
               } : (isMobile && customization.mobileGridColumns === '3' ? {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -1157,7 +1159,7 @@ function PosProductsPanelComponent({
                 const showCardIcon = iconSettings.showIcons;
 
                 if (cardDensity === 'gallery') {
-                  // Ultra-Clean Seamless Visual Card (Balanced 2-Column Mobile Proportions)
+                  // Ultra-Clean Seamless Visual Card (Balanced Mobile & Touch Ergonomics)
                   return (
                     <article
                       key={group.key}
@@ -1178,17 +1180,20 @@ function PosProductsPanelComponent({
                         width: '100%',
                       }}
                     >
-                      {/* Top Floating Pill: ONLY if variants exist (e.g. 3 خيارات) */}
-                      {group.hasVariants && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '6px',
-                            right: '6px',
-                            zIndex: 2,
-                            pointerEvents: 'none',
-                          }}
-                        >
+                      {/* Top Right Floating Pill: Variants Count OR Available Stock Badge */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          zIndex: 2,
+                          pointerEvents: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                        }}
+                      >
+                        {group.hasVariants ? (
                           <span
                             style={{
                               fontSize: '9.5px',
@@ -1203,14 +1208,65 @@ function PosProductsPanelComponent({
                           >
                             {group.products.length} {t('pos.options', 'خيارات')}
                           </span>
-                        </div>
-                      )}
+                        ) : group.itemKind !== 'service' && typeof group.totalStock === 'number' ? (
+                          group.totalStock <= 0 ? (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                padding: '2px 5px',
+                                borderRadius: '5px',
+                                background: 'rgba(254, 242, 242, 0.95)',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                              }}
+                            >
+                              {t('pos.out_of_stock', 'نفد')}
+                            </span>
+                          ) : group.totalStock <= 5 ? (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                padding: '2px 5px',
+                                borderRadius: '5px',
+                                background: 'rgba(255, 251, 235, 0.95)',
+                                color: '#b45309',
+                                border: '1px solid #fde68a',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                              }}
+                            >
+                              {group.totalStock} {t('pos.left', 'متبقي')}
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                padding: '1px 5px',
+                                borderRadius: '5px',
+                                background: 'rgba(248, 250, 252, 0.92)',
+                                color: '#64748b',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                              }}
+                            >
+                              {group.totalStock}
+                            </span>
+                          )
+                        ) : null}
+                      </div>
 
-                      {/* Favorite Star Button (Discreet Top Left) */}
+                      {/* Favorite Star Button (Ergonomic Touch Separation) */}
                       <button
                         type="button"
                         className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                        }}
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           toggleFavorite(group.key);
                         }}
@@ -1219,20 +1275,22 @@ function PosProductsPanelComponent({
                           position: 'absolute',
                           top: '6px',
                           left: '6px',
-                          zIndex: 2,
-                          background: isFavorite ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
-                          border: '1px solid #e2e8f0',
+                          zIndex: 3,
+                          background: isFavorite ? '#ffffff' : 'rgba(255, 255, 255, 0.92)',
+                          border: isFavorite ? '1px solid #fde68a' : '1px solid #e2e8f0',
                           borderRadius: '50%',
-                          width: '22px',
-                          height: '22px',
+                          width: '26px',
+                          height: '26px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: 'pointer',
                           padding: 0,
+                          boxShadow: isFavorite ? '0 2px 6px rgba(245, 158, 11, 0.22)' : '0 1px 3px rgba(0, 0, 0, 0.08)',
+                          transition: 'transform 0.1s ease, background 0.15s ease',
                         }}
                       >
-                        <StarIcon size={11} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#cbd5e1'} />
+                        <StarIcon size={12.5} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#94a3b8'} />
                       </button>
 
                       {/* Card Action Button */}
@@ -1260,18 +1318,18 @@ function PosProductsPanelComponent({
                           flex: 1,
                         }}
                       >
-                        {/* Dominant Hero Image (Natural Square-ish Proportion) */}
+                        {/* Dominant Hero Image (Natural Square Proportion) */}
                         <div
                           style={{
                             width: '100%',
-                            height: isMobile ? (customization.mobileGridColumns === '3' ? '76px' : '120px') : '140px',
-                            background: '#ffffff',
+                            aspectRatio: '1 / 1',
+                            background: '#f8fafc',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative',
                             overflow: 'hidden',
-                            padding: '4px',
+                            padding: isMobile && customization.mobileGridColumns === '3' ? '6px' : '8px',
                             boxSizing: 'border-box',
                           }}
                         >
@@ -1289,18 +1347,19 @@ function PosProductsPanelComponent({
                           ) : (
                             <div
                               style={{
-                                width: '44px',
-                                height: '44px',
+                                width: isMobile ? '38px' : '48px',
+                                height: isMobile ? '38px' : '48px',
                                 borderRadius: '10px',
-                                background: '#f8fafc',
+                                background: '#ffffff',
                                 border: '1px solid #e2e8f0',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 color: '#94a3b8',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                               }}
                             >
-                              <ProductIcon name={rawIcon || 'box-package'} size={22} />
+                              <ProductIcon name={rawIcon || 'box-package'} size={isMobile ? 20 : 24} />
                             </div>
                           )}
                         </div>
@@ -1309,32 +1368,35 @@ function PosProductsPanelComponent({
                         <div
                           style={{
                             width: '100%',
-                            padding: '6px 6px 8px 6px',
+                            padding: isMobile && customization.mobileGridColumns === '3' ? '6px 4px 6px' : '8px 6px 8px',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '2px',
+                            gap: '3px',
                             boxSizing: 'border-box',
-                            borderTop: '1px solid #f8fafc',
+                            borderTop: '1px solid #f1f5f9',
                             background: '#ffffff',
+                            minHeight: isMobile && customization.mobileGridColumns === '3' ? '60px' : '66px',
                           }}
                         >
                           <strong
                             style={{
-                              fontSize: '11.5px',
+                              fontSize: isMobile && customization.mobileGridColumns === '3' ? '11px' : '12px',
                               fontWeight: 700,
                               color: '#0f172a',
-                              lineHeight: '1.3',
+                              lineHeight: '1.25',
                               textAlign: 'center',
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
+                              wordBreak: 'break-word',
                               width: '100%',
-                              padding: '0 2px',
+                              minHeight: '28px',
                               boxSizing: 'border-box',
+                              padding: '0 2px',
                             }}
                             title={group.title}
                           >
@@ -1347,21 +1409,24 @@ function PosProductsPanelComponent({
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '2px 8px',
+                              padding: isMobile && customization.mobileGridColumns === '3' ? '2px 6px' : '2px 8px',
                               borderRadius: '6px',
                               background: '#f1f5f9',
                               border: '1px solid #e2e8f0',
-                              marginTop: '2px',
+                              maxWidth: '100%',
                             }}
                           >
                             <span
                               style={{
-                                fontSize: '11px',
+                                fontSize: isMobile && customization.mobileGridColumns === '3' ? '10.5px' : '11px',
                                 fontWeight: 800,
                                 color: '#170e5e',
                                 letterSpacing: '0.2px',
                                 direction: 'ltr',
                                 display: 'inline-block',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                               }}
                             >
                               {priceLabel}
