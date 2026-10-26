@@ -162,9 +162,9 @@ export class TradeInService {
         throw new AppError('Trade-in cost exceeds tenant currency minor-unit precision', 'TRADEIN_CURRENCY_PRECISION_INVALID', 422);
       }
       if (agreed > 0 && ((payload.transactionType ?? 'cash_purchase') !== 'cash_purchase' ||
-          (payload.paymentMethod ?? 'cash') !== 'cash' ||
+          !['cash', 'bank'].includes(payload.paymentMethod ?? 'cash') ||
           (!payload.createdProductId && !payload.autoAddToInventory))) {
-        throw new AppError('Paid trade-in must be a cash purchase with a registered stock receipt; exchange or deferred purchase needs its dedicated settlement flow', 'TRADEIN_POSTING_UNSUPPORTED', 422);
+        throw new AppError('Paid trade-in requires a physical receipt and immediate cash or default-bank payout; exchange/deferred settlements require their own flow', 'TRADEIN_POSTING_UNSUPPORTED', 422);
       }
       const conditionState = payload.deviceConditionState || 'used';
       const stateSuffixMap: Record<string, string> = {
@@ -321,15 +321,17 @@ export class TradeInService {
         }
       }
 
-      // Record cash outflow from treasury if paid via cash
-      if (payload.agreedPurchasePrice && Number(payload.agreedPurchasePrice) > 0 && (!payload.paymentMethod || payload.paymentMethod === 'cash')) {
+      // A real immediate payout (cash or configured bank) and its inventory
+      // valuation journal are atomic. Never book an unsupported payment rail.
+      if (agreed > 0) {
         await trx
           .insertInto('treasury_transactions')
           .values({
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
             txn_type: 'expense',
-            amount: -Math.abs(Number(payload.agreedPurchasePrice)),
+            amount: -agreed,
+            payment_channel: payload.paymentMethod === 'bank' ? 'bank' : 'cash',
             note: `سداد شراء جهاز ${payload.deviceBrand ? `${payload.deviceBrand} ` : ''}${payload.deviceModel} (إقرار ${docNo}) - البائع: ${payload.sellerName}`,
             reference_type: 'trade_in',
             reference_id: txnId,

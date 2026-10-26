@@ -485,8 +485,11 @@ export class AccountingPostingService {
     const amount = fromMinorUnits(toMinorUnits(Number(source.agreed_purchase_price), sourceDigits), sourceDigits);
     if (amount < 0) throw new AppError('Invalid trade-in cost', 'TRADEIN_COST_INVALID', 400);
     if (amount === 0) return null;
-    if (source.transaction_type !== 'cash_purchase' || source.payment_method !== 'cash' || !source.created_product_id) {
-      throw new AppError('Trade-in requires a stocked cash purchase before posting', 'TRADEIN_POSTING_UNSUPPORTED', 422);
+    const paymentMethod = source.payment_method || 'cash';
+    if (source.transaction_type !== 'cash_purchase' ||
+        !['cash', 'bank'].includes(paymentMethod) || !source.created_product_id) {
+      throw new AppError('Trade-in requires a stocked immediate cash/bank purchase before posting',
+        'TRADEIN_POSTING_UNSUPPORTED', 422);
     }
     const movements = await queryable.selectFrom('stock_movements')
       .select(['id', 'product_id', 'qty', 'total_cost'])
@@ -498,14 +501,19 @@ export class AccountingPostingService {
       throw new AppError('Trade-in stock receipt and acquisition value do not reconcile', 'TRADEIN_STOCK_LEDGER_MISMATCH', 409);
     }
     const payouts = await queryable.selectFrom('treasury_transactions')
-      .select(['amount']).where('tenant_id', '=', scope.tenantId)
+      .select(['amount', 'payment_channel', 'txn_type']).where('tenant_id', '=', scope.tenantId)
       .where('reference_type', '=', 'trade_in').where('reference_id', '=', tradeInId).execute();
-    if (payouts.length !== 1 || Math.abs(Number(payouts[0].amount) + amount) > 0.000001) {
-      throw new AppError('Trade-in cash payout and acquisition value do not reconcile', 'TRADEIN_CASH_LEDGER_MISMATCH', 409);
+    if (payouts.length !== 1 || payouts[0].txn_type !== 'expense' ||
+        payouts[0].payment_channel !== paymentMethod ||
+        toMinorUnits(Number(payouts[0].amount), sourceDigits) !== -toMinorUnits(amount, sourceDigits)) {
+      throw new AppError('Trade-in payout amount/channel and inventory acquisition do not reconcile',
+        'TRADEIN_PAYOUT_LEDGER_MISMATCH', 409);
     }
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     const inventoryAccount = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings?.inventory_account_id, '1140');
-    const cashAccount = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings?.cash_account_id, '1110');
+    const payoutAccount = paymentMethod === 'bank'
+      ? await this.resolveAccountWithFallback(queryable, scope.tenantId, settings?.bank_account_id, '1120')
+      : await this.resolveAccountWithFallback(queryable, scope.tenantId, settings?.cash_account_id, '1110');
     return this.postDomainJournal(queryable, {
       sourceType: 'trade_in', sourceId: tradeInId, tenantId: scope.tenantId, accountId: scope.accountId,
       entryDate: source.created_at ? new Date(source.created_at) : new Date(),
@@ -515,7 +523,7 @@ export class AccountingPostingService {
       createdBy: auth.userId, postedBy: auth.userId,
       lines: [
         {accountId:inventoryAccount, description:'Trade-in inventory acquisition', debit:amount, credit:0, partnerType:'none', partnerId:null},
-        {accountId:cashAccount, description:'Cash payout for used stock purchase', debit:0, credit:amount, partnerType:'none', partnerId:null},
+        {accountId:payoutAccount, description:paymentMethod === 'bank' ? 'Bank payout for used stock purchase' : 'Cash payout for used stock purchase', debit:0, credit:amount, partnerType:'none', partnerId:null},
       ],
     });
   }
