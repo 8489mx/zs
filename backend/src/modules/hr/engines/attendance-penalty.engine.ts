@@ -55,7 +55,8 @@ export function calculateAttendancePenalty(input: AttendancePenaltyEngineInput):
   const isOvertime = input.exceptionType === 'early_check_in' || input.exceptionType === 'late_check_out' || input.exceptionType === 'extra_hours';
 
   if (isOvertime) {
-    const mult = Number(input.overtimeMultiplier || 1.5) || 1.5;
+    const rawMult = Number(input.overtimeMultiplier ?? 1.5);
+    const mult = Number.isFinite(rawMult) && rawMult >= 1 ? rawMult : 1;
     const amount = Number(((duration / 60) * calculatedHourlyRate * mult).toFixed(2));
     return {
       estimatedAmount: amount,

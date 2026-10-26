@@ -416,14 +416,14 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           <table aria-label={__t('products.products_table_card.s9', "قائمة الأصناف")} style={{ tableLayout: 'fixed', width: '100%', minWidth: '100%' }}>
             <colgroup>
               <col style={{ width: '38px' }} />
-              <col style={{ width: '27%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '7%' }} />
-              <col style={{ width: '17%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '12%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '16%' }} />
               <col style={{ width: '13%' }} />
               <col style={{ width: '7%' }} />
               <col style={{ width: '84px' }} />
-              <col style={{ width: '110px' }} />
+              <col style={{ width: '114px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -507,12 +507,31 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <span style={{ color: '#94a3b8' }}>—</span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word' }}>{variantLabel(product)}</td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        {variantLabel(product) !== '—' ? (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '1px 7px',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            background: '#f1f5f9',
+                            color: '#334155',
+                            border: '1px solid #e2e8f0',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {variantLabel(product)}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>—</span>
+                        )}
+                      </td>
                       <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                         <div style={{ lineHeight: 1.35 }}>
                           <div>{props.categoryNames[product.categoryId] || __t('products.products_table_card.s13', "عام")}</div>
-                          {activeLocationNames ? <div className="muted small">{activeLocationNames}</div> : null}
-                          {props.supplierNames[product.supplierId] ? <div className="muted small">{props.supplierNames[product.supplierId]}</div> : null}
+                          {activeLocationNames ? <div className="muted small" style={{ fontSize: '0.74rem' }}>{activeLocationNames}</div> : null}
+                          {props.supplierNames[product.supplierId] ? <div className="muted small" style={{ fontSize: '0.74rem' }}>{props.supplierNames[product.supplierId]}</div> : null}
                         </div>
                       </td>
                       <td style={{ textAlign: 'start', whiteSpace: 'nowrap' }}>
@@ -559,7 +578,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <span style={{ color: '#cbd5e1' }}>—</span>
                         )}
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                           <Button
                             variant="secondary"
@@ -607,7 +626,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           onChange={(event) => toggleGroupSelection(group, event.target.checked)}
                         />
                       </td>
-                      <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                         <div
                           onClick={() => toggleExpand(group.key)}
                           style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -637,9 +656,11 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           </div>
                         </div>
                       </td>
-                      <td>—</td>
-                      <td style={{ maxWidth: '200px' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxHeight: '52px', overflow: 'hidden' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: '#94a3b8' }}>—</span>
+                      </td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center', alignItems: 'center', maxHeight: '52px', overflow: 'hidden' }}>
                           {group.children.slice(0, 2).map((entry) => (
                             <span
                               key={entry.id}
@@ -683,21 +704,21 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           ) : null}
                         </div>
                       </td>
-                      <td>
-                        <div style={{ lineHeight: 1.4 }}>
+                      <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        <div style={{ lineHeight: 1.35 }}>
                           <div>{props.categoryNames[group.representative.categoryId] || __t('products.products_table_card.s34', "عام")}</div>
-                          {groupActiveLocationNames ? <div className="muted small">{groupActiveLocationNames}</div> : null}
-                          {props.supplierNames[group.representative.supplierId] ? <div className="muted small">{props.supplierNames[group.representative.supplierId]}</div> : null}
+                          {groupActiveLocationNames ? <div className="muted small" style={{ fontSize: '0.74rem' }}>{groupActiveLocationNames}</div> : null}
+                          {props.supplierNames[group.representative.supplierId] ? <div className="muted small" style={{ fontSize: '0.74rem' }}>{props.supplierNames[group.representative.supplierId]}</div> : null}
                         </div>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'start', whiteSpace: 'nowrap' }}>
                         <div style={{ lineHeight: 1.4 }}>
                           <div>{__t('products.products_table_card.s35', "بيع:")} <strong>{formatCurrency(group.representative.retailPrice)}</strong></div>
-                          <div className="muted small">{__t('products.products_table_card.s36', "شراء:")} {formatCurrency(group.representative.costPrice)}</div>
-                          {group.representative.wholesalePrice > 0 ? <div className="muted small">{__t('products.products_table_card.s37', "جملة:")} {formatCurrency(group.representative.wholesalePrice)}</div> : null}
+                          <div className="muted small" style={{ fontSize: '0.75rem' }}>{__t('products.products_table_card.s36', "شراء:")} {formatCurrency(group.representative.costPrice)}</div>
+                          {group.representative.wholesalePrice > 0 ? <div className="muted small" style={{ fontSize: '0.75rem' }}>{__t('products.products_table_card.s37', "جملة:")} {formatCurrency(group.representative.wholesalePrice)}</div> : null}
                         </div>
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <span className={totalStock <= Number(group.representative.minStock || 0) ? 'low-stock-badge' : 'status-badge status-posted'}>
                           {totalStock}
                         </span>
@@ -734,7 +755,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           <span style={{ color: '#cbd5e1' }}>—</span>
                         )}
                       </td>
-                      <td>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                           <Button
                             variant="secondary"
@@ -787,7 +808,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             props.onSelectedIdsChange(Array.from(next));
                           }} />
                         </td>
-                        <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                           <div style={{ paddingInlineStart: 18 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <strong>{variantLabel(product)}</strong>
@@ -795,26 +816,53 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                                 <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px' }}>{__t('products.products_table_card.s57', "مؤرشف")}</span>
                               ) : null}
                             </div>
-                            <div className="muted small" style={{ lineHeight: 1.3 }}>{product.name}</div>
+                            <div className="muted small" style={{ fontSize: '0.74rem', lineHeight: 1.3 }}>{product.name}</div>
                           </div>
                         </td>
-                        <td>{product.barcode || '—'}</td>
-                        <td>{variantLabel(product)}</td>
-                        <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          {product.barcode ? (
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#334155', background: '#f8fafc', padding: '2px 6px', borderRadius: '4px', border: '1px solid #e2e8f0', display: 'inline-block' }}>
+                              {product.barcode}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                          {variantLabel(product) !== '—' ? (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '1px 7px',
+                              borderRadius: '4px',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              background: '#f1f5f9',
+                              color: '#334155',
+                              border: '1px solid #e2e8f0',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {variantLabel(product)}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                           <div style={{ lineHeight: 1.35 }}>
                             <div style={{ fontWeight: 600, color: '#334155', fontSize: '0.8rem' }}>{props.categoryNames[product.categoryId] || __t('products.products_table_card.s58', "عام")}</div>
-                            {getProductLocationDisplayName(product, props.locationNames) ? <div className="muted small" style={{ lineHeight: 1.3 }}>{getProductLocationDisplayName(product, props.locationNames)}</div> : null}
-                            {props.supplierNames[product.supplierId] ? <div className="muted small" style={{ lineHeight: 1.3 }}>{props.supplierNames[product.supplierId]}</div> : null}
+                            {getProductLocationDisplayName(product, props.locationNames) ? <div className="muted small" style={{ fontSize: '0.74rem', lineHeight: 1.3 }}>{getProductLocationDisplayName(product, props.locationNames)}</div> : null}
+                            {props.supplierNames[product.supplierId] ? <div className="muted small" style={{ fontSize: '0.74rem', lineHeight: 1.3 }}>{props.supplierNames[product.supplierId]}</div> : null}
                           </div>
                         </td>
-                        <td>
+                        <td style={{ textAlign: 'start', whiteSpace: 'nowrap' }}>
                           <div style={{ lineHeight: 1.4 }}>
                             <div>{__t('products.products_table_card.s59', "بيع:")} <strong>{formatCurrency(product.retailPrice)}</strong></div>
-                            <div className="muted small">{__t('products.products_table_card.s60', "شراء:")} {formatCurrency(product.costPrice)}</div>
-                            {product.wholesalePrice > 0 ? <div className="muted small">{__t('products.products_table_card.s61', "جملة:")} {formatCurrency(product.wholesalePrice)}</div> : null}
+                            <div className="muted small" style={{ fontSize: '0.75rem' }}>{__t('products.products_table_card.s60', "شراء:")} {formatCurrency(product.costPrice)}</div>
+                            {product.wholesalePrice > 0 ? <div className="muted small" style={{ fontSize: '0.75rem' }}>{__t('products.products_table_card.s61', "جملة:")} {formatCurrency(product.wholesalePrice)}</div> : null}
                           </div>
                         </td>
-                        <td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           <span className={product.stock <= product.minStock ? 'low-stock-badge' : 'status-badge status-posted'}>
                             {product.stock}
                           </span>
@@ -851,7 +899,7 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                             <span style={{ color: '#cbd5e1' }}>—</span>
                           )}
                         </td>
-                        <td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                           <div className="actions compact-actions" onClick={(event) => event.stopPropagation()} style={{ flexWrap: 'nowrap', justifyContent: 'center' }}>
                             <Button
                               variant="secondary"

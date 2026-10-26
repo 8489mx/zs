@@ -57,6 +57,10 @@ export function PayrollReviewItemModal({
   const netPay = Number(item.netPay || (grossPay - totalDeductions));
   const adjustments = (item.adjustments || []) as HrPayrollAdjustment[];
 
+  const isHourly = normalize(item.compensationType) === 'hourly' || (Number(item.hourlyRate || 0) > 0 && normalize(item.compensationType) !== 'monthly');
+  const hourlyRate = Number(item.hourlyRate || 0);
+  const calculatedHours = hourlyRate > 0 ? Number((baseSalary / hourlyRate).toFixed(2)) : 0;
+
   const handleSaveAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!onAddAdjustment) return;
@@ -273,7 +277,7 @@ export function PayrollReviewItemModal({
               </div>
             </div>
 
-            <div class="employee-card">
+            <div class="employee-card" style="grid-template-columns: repeat(${isHourly ? 5 : 4}, 1fr);">
               <div class="card-item">
                 <div class="label">اسم الموظف:</div>
                 <div class="val">${text(item.employeeName)}</div>
@@ -284,12 +288,23 @@ export function PayrollReviewItemModal({
               </div>
               <div class="card-item">
                 <div class="label">نظام العمل:</div>
-                <div class="val">${normalize(item.compensationType) === 'hourly' ? 'أجر بالساعة/اليوم' : 'راتب شهري تعاقدي'}</div>
+                <div class="val">${isHourly ? 'أجر بالساعة/اليوم' : 'راتب شهري تعاقدي'}</div>
               </div>
+              ${isHourly ? `
+              <div class="card-item">
+                <div class="label">أجر الساعة:</div>
+                <div class="val" style="color: #166534;">${canViewSalaryAmounts && hourlyRate > 0 ? money(hourlyRate) + ' / س' : '—'}</div>
+              </div>
+              <div class="card-item">
+                <div class="label">ساعات العمل المحتسبة:</div>
+                <div class="val" style="color: #1e40af;">${calculatedHours > 0 ? calculatedHours + ' ساعة' : '—'}</div>
+              </div>
+              ` : `
               <div class="card-item">
                 <div class="label">حالة المسير:</div>
                 <div class="val">${runIsFinal ? 'معتمد نهائياً' : 'مسودة قيد المراجعة'}</div>
               </div>
+              `}
             </div>
 
             <div class="columns-grid">
@@ -299,7 +314,7 @@ export function PayrollReviewItemModal({
                   <span>المبلغ (ج.م)</span>
                 </div>
                 <div class="row-item">
-                  <span>الراتب الأساسي</span>
+                  <span>الراتب الأساسي ${isHourly && calculatedHours > 0 ? `(${calculatedHours}س × ${money(hourlyRate)}/س)` : ''}</span>
                   <span>${canViewSalaryAmounts ? money(baseSalary) : '—'}</span>
                 </div>
                 <div class="row-item">
@@ -383,6 +398,246 @@ export function PayrollReviewItemModal({
     printWindow.focus();
   };
 
+  const printThermalReceipt = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html dir="rtl" lang="ar">
+        <head>
+          <title>إيصال استلام راتب - ${text(item.employeeName)} - Z-Systems</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+            @page {
+              size: 80mm auto;
+              margin: 3mm 4mm;
+            }
+            body {
+              font-family: 'Tajawal', Tahoma, Arial, sans-serif;
+              margin: 0;
+              padding: 4px;
+              color: #0f172a;
+              background: #ffffff;
+              width: 72mm;
+              font-size: 11px;
+              line-height: 1.35;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .thermal-header {
+              text-align: center;
+              border-bottom: 1.5px dashed #0f172a;
+              padding-bottom: 8px;
+              margin-bottom: 8px;
+            }
+            .brand-title {
+              font-size: 15px;
+              font-weight: 800;
+              margin: 0;
+              color: #170e5e;
+            }
+            .doc-title {
+              font-size: 13px;
+              font-weight: 800;
+              margin: 3px 0 2px;
+            }
+            .meta-text {
+              font-size: 10px;
+              color: #475569;
+            }
+            .info-block {
+              border-bottom: 1px dashed #cbd5e1;
+              padding-bottom: 6px;
+              margin-bottom: 6px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              font-size: 11px;
+              margin-bottom: 3px;
+            }
+            .info-label {
+              color: #475569;
+            }
+            .info-val {
+              font-weight: 700;
+              color: #0f172a;
+            }
+            .section-title {
+              font-size: 11px;
+              font-weight: 800;
+              background: #f1f5f9;
+              padding: 3px 6px;
+              border-radius: 4px;
+              margin: 6px 0 4px;
+              display: flex;
+              justify-content: space-between;
+            }
+            .line-item {
+              display: flex;
+              justify-content: space-between;
+              font-size: 11px;
+              padding: 2px 2px;
+            }
+            .net-box {
+              border: 1.5px solid #0f172a;
+              background: #f8fafc;
+              border-radius: 6px;
+              padding: 8px 6px;
+              margin: 8px 0;
+              text-align: center;
+            }
+            .net-label {
+              font-size: 11px;
+              font-weight: 700;
+              color: #334155;
+            }
+            .net-amount {
+              font-size: 18px;
+              font-weight: 800;
+              color: #0f172a;
+              margin-top: 2px;
+            }
+            .signatures {
+              margin-top: 14px;
+              padding-top: 8px;
+              border-top: 1px dashed #cbd5e1;
+              text-align: center;
+            }
+            .sig-title {
+              font-size: 10.5px;
+              font-weight: 700;
+              margin-bottom: 30px;
+            }
+            .sig-line {
+              border-bottom: 1px solid #475569;
+              width: 70%;
+              margin: 0 auto;
+            }
+            .thermal-footer {
+              margin-top: 10px;
+              text-align: center;
+              font-size: 9px;
+              color: #64748b;
+              border-top: 1px dashed #e2e8f0;
+              padding-top: 4px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="thermal-header">
+            <h1 class="brand-title">Z-Systems ERP</h1>
+            <div class="doc-title">إيصال استلام راتب / أجر</div>
+            <div class="meta-text">مسير: ${text(periodMonth)} • التاريخ: ${new Date().toLocaleDateString('ar-EG')}</div>
+          </div>
+
+          <div class="info-block">
+            <div class="info-row">
+              <span class="info-label">الموظف:</span>
+              <span class="info-val">${text(item.employeeName)}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">الكود:</span>
+              <span class="info-val">${text(item.employeeNo)}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">نظام الأجر:</span>
+              <span class="info-val">${isHourly ? 'أجر بالساعة / اليوم' : 'راتب شهري تعاقدي'}</span>
+            </div>
+            ${isHourly ? `
+            <div class="info-row" style="background: #f0fdf4; padding: 2px 4px; border-radius: 4px;">
+              <span class="info-label" style="color: #166534; font-weight: 600;">أجر الساعة:</span>
+              <span class="info-val" style="color: #166534;">${canViewSalaryAmounts && hourlyRate > 0 ? money(hourlyRate) + ' / س' : '—'}</span>
+            </div>
+            <div class="info-row" style="background: #f0fdf4; padding: 2px 4px; border-radius: 4px;">
+              <span class="info-label" style="color: #166534; font-weight: 600;">ساعات العمل:</span>
+              <span class="info-val" style="color: #166534;">${calculatedHours > 0 ? calculatedHours + ' ساعة' : '—'}</span>
+            </div>
+            ` : ''}
+          </div>
+
+          <div class="section-title">
+            <span>الاستحقاقات</span>
+            <span>المبلغ</span>
+          </div>
+          <div class="line-item">
+            <span>الأساسي ${isHourly && calculatedHours > 0 ? `(${calculatedHours}س × ${money(hourlyRate)})` : ''}</span>
+            <span>${canViewSalaryAmounts ? money(baseSalary) : '—'}</span>
+          </div>
+          ${allowanceAmount > 0 ? `
+          <div class="line-item">
+            <span>البدلات والإضافي والمكافآت</span>
+            <span>+${canViewSalaryAmounts ? money(allowanceAmount) : '—'}</span>
+          </div>` : ''}
+          <div class="line-item" style="font-weight: 700; border-top: 1px dashed #e2e8f0; margin-top: 2px; padding-top: 2px;">
+            <span>إجمالي المستحق (Gross):</span>
+            <span>${canViewSalaryAmounts ? money(grossPay) : '—'}</span>
+          </div>
+
+          <div class="section-title" style="background: #fef2f2; color: #991b1b;">
+            <span>الاستقطاعات والجزاءات</span>
+            <span>المبلغ</span>
+          </div>
+          ${deductionAmount > 0 ? `
+          <div class="line-item">
+            <span>تأخير وغياب وحضور</span>
+            <span style="color: #dc2626;">-${canViewSalaryAmounts ? money(deductionAmount) : '—'}</span>
+          </div>` : ''}
+          ${loanDeduction > 0 ? `
+          <div class="line-item">
+            <span>أقساط سلف ومديونيات</span>
+            <span style="color: #dc2626;">-${canViewSalaryAmounts ? money(loanDeduction) : '—'}</span>
+          </div>` : ''}
+          ${insuranceDeduction > 0 ? `
+          <div class="line-item">
+            <span>تأمينات اجتماعية</span>
+            <span style="color: #dc2626;">-${canViewSalaryAmounts ? money(insuranceDeduction) : '—'}</span>
+          </div>` : ''}
+          ${taxDeduction > 0 ? `
+          <div class="line-item">
+            <span>ضريبة كسب العمل</span>
+            <span style="color: #dc2626;">-${canViewSalaryAmounts ? money(taxDeduction) : '—'}</span>
+          </div>` : ''}
+          ${totalDeductions === 0 ? `
+          <div class="line-item" style="color: #64748b; font-size: 10px;">
+            <span>لا توجد استقطاعات</span>
+            <span>0.00 ج.م</span>
+          </div>` : ''}
+          <div class="line-item" style="font-weight: 700; border-top: 1px dashed #e2e8f0; margin-top: 2px; padding-top: 2px; color: #991b1b;">
+            <span>إجمالي الاستقطاعات:</span>
+            <span>-${canViewSalaryAmounts ? money(totalDeductions) : '—'}</span>
+          </div>
+
+          <div class="net-box">
+            <div class="net-label">صافي الراتب المستحق للصرف</div>
+            <div class="net-amount">${canViewSalaryAmounts ? money(netPay) : '—'}</div>
+          </div>
+
+          ${(item.payrollReviewNotes || item.notes) ? `
+          <div style="font-size: 9.5px; color: #78350f; background: #fffbeb; padding: 4px; border-radius: 4px; margin-bottom: 6px;">
+            ملاحظات: ${text(item.payrollReviewNotes || item.notes)}
+          </div>` : ''}
+
+          <div class="signatures">
+            <div class="sig-title">توقيع الموظف بالاستلام</div>
+            <div class="sig-line"></div>
+          </div>
+
+          <div class="thermal-footer">
+            طُبعت آلياً عبر منظومة Z-Systems ERP<br>
+            www.z-systems.io
+          </div>
+
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 400);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+  };
+
   return (
     <DialogShell open={true} onClose={onClose} width="760px">
       <div style={{ padding: '20px 24px', maxHeight: '85vh', overflowY: 'auto' }}>
@@ -430,10 +685,17 @@ export function PayrollReviewItemModal({
         {/* Quick KPI Strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '18px' }}>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>الأساسي التعاقدي</div>
+            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>
+              {isHourly ? 'أجر ساعات العمل' : 'الأساسي التعاقدي'}
+            </div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
               {canViewSalaryAmounts ? money(baseSalary) : '—'}
             </div>
+            {isHourly && calculatedHours > 0 && hourlyRate > 0 && (
+              <div style={{ fontSize: '10.5px', color: '#166534', fontWeight: 700, marginTop: '2px' }}>
+                {calculatedHours} س × {money(hourlyRate)}
+              </div>
+            )}
           </div>
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px' }}>
             <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>البدلات والإضافي</div>
@@ -466,16 +728,34 @@ export function PayrollReviewItemModal({
             <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f1f5f9', paddingBottom: '4px' }}>
                 <span style={{ color: '#475569' }}>الراتب الأساسي:</span>
-                <span style={{ fontWeight: 600 }}>{canViewSalaryAmounts ? money(baseSalary) : '—'}</span>
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>{canViewSalaryAmounts ? money(baseSalary) : '—'}</span>
               </div>
+              {isHourly && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '6px 8px', fontSize: '11.5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#166534', fontWeight: 600 }}>أجر الساعة التعاقدي:</span>
+                    <strong style={{ color: '#166534' }}>{canViewSalaryAmounts && hourlyRate > 0 ? `${money(hourlyRate)} / ساعة` : '—'}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#166534', fontWeight: 600 }}>ساعات العمل المحتسبة:</span>
+                    <strong style={{ color: '#1e40af' }}>{calculatedHours > 0 ? `${calculatedHours} ساعة` : '—'}</strong>
+                  </div>
+                  {hourlyRate > 0 && calculatedHours > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed #86efac', paddingTop: '3px', marginTop: '2px', color: '#14532d', fontSize: '11px' }}>
+                      <span>معادلة الأجر:</span>
+                      <span dir="ltr" style={{ fontWeight: 700 }}>{calculatedHours} hrs × {money(hourlyRate)} = {money(baseSalary)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f1f5f9', paddingBottom: '4px' }}>
                 <span style={{ color: '#475569' }}>البدلات والمكافآت:</span>
                 <span style={{ fontWeight: 600 }}>{canViewSalaryAmounts ? money(allowanceAmount) : '—'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f1f5f9', paddingBottom: '4px' }}>
                 <span style={{ color: '#475569' }}>نوع الأجر والتعاقد:</span>
-                <span style={{ fontWeight: 500, color: '#64748b' }}>
-                  {normalize(item.compensationType) === 'hourly' ? 'بالساعة/اليوم' : 'راتب شهري'}
+                <span style={{ fontWeight: 600, color: isHourly ? '#166534' : '#64748b' }}>
+                  {isHourly ? 'بالساعة / اليوم' : 'راتب شهري'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '6px', marginTop: '2px', borderTop: '1px solid #e2e8f0', fontWeight: 700 }}>
@@ -736,7 +1016,15 @@ export function PayrollReviewItemModal({
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', fontSize: '12px', marginBottom: (item.payrollReviewNotes || item.notes) ? '10px' : '0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${isHourly ? 4 : 3}, 1fr)`, gap: '10px', fontSize: '12px', marginBottom: (item.payrollReviewNotes || item.notes) ? '10px' : '0' }}>
+            {isHourly && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '6px 10px' }}>
+                <span style={{ color: '#166534', fontWeight: 600 }}>ساعات العمل المعتمدة: </span>
+                <strong style={{ color: '#166534' }}>
+                  {calculatedHours > 0 ? `${calculatedHours} ساعة` : '0'}
+                </strong>
+              </div>
+            )}
             <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 10px' }}>
               <span style={{ color: '#64748b' }}>أيام الغياب: </span>
               <strong style={{ color: Number(item.attendanceAbsentDays || 0) > 0 ? '#dc2626' : '#0f172a' }}>
@@ -764,28 +1052,48 @@ export function PayrollReviewItemModal({
         </div>
 
         {/* Footer Actions */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '14px', flexWrap: 'wrap', gap: '8px' }}>
           <Button variant="secondary" onClick={onClose} style={{ minWidth: '90px' }}>
             {t('common.close', "إغلاق")}
           </Button>
 
-          <Button
-            variant="primary"
-            onClick={printPayslip}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#170e5e',
-              borderColor: '#170e5e',
-              color: '#ffffff',
-              fontWeight: 600,
-              padding: '6px 16px',
-            }}
-          >
-            <PrinterIcon size={16} />
-            <span>طباعة قسيمة الراتب (A4)</span>
-          </Button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <Button
+              variant="secondary"
+              onClick={printThermalReceipt}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: 600,
+                padding: '6px 14px',
+                borderColor: '#cbd5e1',
+                background: '#f8fafc',
+                color: '#0f172a',
+              }}
+            >
+              <PrinterIcon size={16} />
+              <span>طباعة إيصال حراري (80mm)</span>
+            </Button>
+
+            <Button
+              variant="primary"
+              onClick={printPayslip}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: '#170e5e',
+                borderColor: '#170e5e',
+                color: '#ffffff',
+                fontWeight: 600,
+                padding: '6px 16px',
+              }}
+            >
+              <PrinterIcon size={16} />
+              <span>طباعة قسيمة الراتب (A4)</span>
+            </Button>
+          </div>
         </div>
       </div>
     </DialogShell>

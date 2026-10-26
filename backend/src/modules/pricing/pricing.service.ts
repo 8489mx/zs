@@ -234,7 +234,16 @@ export class PricingService {
     return { rows: paginated.rows, paging: paginated.paging, summary };
   }
 
-  private normalizePreviewOptions(payload: PricingPreviewPayload) { return { applyToWholeStyleCode: Boolean(payload.options?.applyToWholeStyleCode), applyToPricingGroup: Boolean(payload.options?.applyToPricingGroup), skipActiveOffers: Boolean(payload.options?.skipActiveOffers), skipCustomerPrices: Boolean(payload.options?.skipCustomerPrices), skipManualExceptions: Boolean(payload.options?.skipManualExceptions) }; }
+  private normalizePreviewOptions(payload: PricingPreviewPayload) {
+    return {
+      applyToWholeStyleCode: Boolean(payload.options?.applyToWholeStyleCode),
+      applyToPricingGroup: Boolean(payload.options?.applyToPricingGroup),
+      skipActiveOffers: Boolean(payload.options?.skipActiveOffers ?? payload.safeguards?.skipActiveOffers),
+      skipCustomerPrices: Boolean(payload.options?.skipCustomerPrices),
+      skipManualExceptions: Boolean(payload.options?.skipManualExceptions ?? payload.safeguards?.skipManualExceptions),
+      preventBelowCost: Boolean(payload.safeguards?.preventBelowCost),
+    };
+  }
   private normalizePreviewTargets(payload: PricingPreviewPayload): Array<'retail' | 'wholesale'> { const targets = Array.from(new Set((payload.targets || []).filter((entry): entry is 'retail' | 'wholesale' => entry === 'retail' || entry === 'wholesale'))); if (!targets.length) throw new AppError('يجب اختيار سعر واحد على الأقل للتعديل.', 'PRICING_TARGET_REQUIRED', 400); return targets; }
 
   private async expandPreviewProducts(baseMatched: ProductSourceRow[], filters: PricingPreviewPayload['filters'], previewOptions: ReturnType<PricingService['normalizePreviewOptions']>, actor: AuthContext): Promise<ProductSourceRow[]> {
@@ -276,14 +285,14 @@ export class PricingService {
     const costPrice = Number(row.cost_price || 0);
     const retailAfter = targets.includes('retail') ? this.computeNextPrice(retailBefore, costPrice, payload) : retailBefore;
     const wholesaleAfter = targets.includes('wholesale') ? this.computeNextPrice(wholesaleBefore, costPrice, payload) : wholesaleBefore;
-    const skipReasons = this.buildPreviewSkipReasons({ previewOptions, hasActiveOffer, hasCustomerPrice, pricingMode });
+    const belowCostAfter = (targets.includes('retail') && retailAfter + 0.0001 < costPrice) || (targets.includes('wholesale') && wholesaleAfter + 0.0001 < costPrice);
+    const skipReasons = this.buildPreviewSkipReasons({ previewOptions, hasActiveOffer, hasCustomerPrice, pricingMode, belowCostAfter });
     const skipped = skipReasons.length > 0;
     const changed = Math.abs(retailAfter - retailBefore) > 0.0001 || Math.abs(wholesaleAfter - wholesaleBefore) > 0.0001;
-    const belowCostAfter = (targets.includes('retail') && retailAfter + 0.0001 < costPrice) || (targets.includes('wholesale') && wholesaleAfter + 0.0001 < costPrice);
     return { productId: Number(row.id), name: String(row.name || ''), barcode: String(row.barcode || ''), itemKind: row.item_kind === 'fashion' ? 'fashion' : 'standard', styleCode: String(row.style_code || ''), pricingMode, pricingGroupKey, stockQty: Number(row.stock_qty || 0), costPrice, retailPriceBefore: retailBefore, retailPriceAfter: retailAfter, wholesalePriceBefore: wholesaleBefore, wholesalePriceAfter: wholesaleAfter, hasActiveOffer, hasCustomerPrice, skipped, skipReasons, changed, belowCostAfter } satisfies PricingPreviewRow;
   }
 
-  private buildPreviewSkipReasons(params: { previewOptions: ReturnType<PricingService['normalizePreviewOptions']>; hasActiveOffer: boolean; hasCustomerPrice: boolean; pricingMode: 'standard' | 'inherit' | 'manual' }): string[] { const reasons: string[] = []; if (params.previewOptions.skipActiveOffers && params.hasActiveOffer) reasons.push('offer'); if (params.previewOptions.skipCustomerPrices && params.hasCustomerPrice) reasons.push('customer_price'); if (params.previewOptions.skipManualExceptions && params.pricingMode === 'manual') reasons.push('manual_exception'); return reasons; }
+  private buildPreviewSkipReasons(params: { previewOptions: ReturnType<PricingService['normalizePreviewOptions']>; hasActiveOffer: boolean; hasCustomerPrice: boolean; pricingMode: 'standard' | 'inherit' | 'manual'; belowCostAfter?: boolean }): string[] { const reasons: string[] = []; if (params.previewOptions.skipActiveOffers && params.hasActiveOffer) reasons.push('offer'); if (params.previewOptions.skipCustomerPrices && params.hasCustomerPrice) reasons.push('customer_price'); if (params.previewOptions.skipManualExceptions && params.pricingMode === 'manual') reasons.push('manual_exception'); if (params.previewOptions.preventBelowCost && params.belowCostAfter) reasons.push('below_cost'); return reasons; }
   private buildPreviewSummary(allRows: PricingPreviewRow[]) { const effectiveRows = allRows.filter((row) => !row.skipped && row.changed); return { matchedCount: allRows.length, affectedCount: effectiveRows.length, skippedOfferCount: allRows.filter((row) => row.skipReasons.includes('offer')).length, skippedCustomerPriceCount: allRows.filter((row) => row.skipReasons.includes('customer_price')).length, skippedManualExceptionCount: allRows.filter((row) => row.skipReasons.includes('manual_exception')).length, inheritedProfileCount: allRows.filter((row) => row.pricingMode === 'inherit').length, belowCostCount: allRows.filter((row) => row.belowCostAfter && !row.skipped).length, inventoryValueBefore: Number(effectiveRows.reduce((sum, row) => sum + (row.stockQty * row.retailPriceBefore), 0).toFixed(2)), inventoryValueAfter: Number(effectiveRows.reduce((sum, row) => sum + (row.stockQty * row.retailPriceAfter), 0).toFixed(2)), stockMarginBefore: Number(effectiveRows.reduce((sum, row) => sum + (row.stockQty * (row.retailPriceBefore - row.costPrice)), 0).toFixed(2)), stockMarginAfter: Number(effectiveRows.reduce((sum, row) => sum + (row.stockQty * (row.retailPriceAfter - row.costPrice)), 0).toFixed(2)) }; }
   private paginatePreviewRows(rows: PricingPreviewRow[], pagingInput: PricingPreviewPayload['paging'] | { page?: number; pageSize?: number } | undefined, summary: Record<string, unknown>) { const paging = this.normalizePaging(pagingInput); const totalItems = rows.length; const totalPages = Math.max(1, Math.ceil(totalItems / paging.pageSize)); const page = Math.min(paging.page, totalPages); const start = (page - 1) * paging.pageSize; return { rows: rows.slice(start, start + paging.pageSize), paging: { page, pageSize: paging.pageSize, totalItems, totalPages }, summary }; }
 

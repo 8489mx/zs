@@ -140,13 +140,13 @@ export class AppModule implements NestModule {
         { path: 'public/freight-tracking/rfq/:id/bid', method: RequestMethod.POST },
         { path: 'api/public/carrier-quote/rfq/:id/bid', method: RequestMethod.POST },
         { path: 'public/carrier-quote/rfq/:id/bid', method: RequestMethod.POST },
-        { path: 'api/developer/*', method: RequestMethod.ALL },
+        { path: 'api/developer/*path', method: RequestMethod.ALL },
       );
 
     // O60: public storefront writes. The middleware itself decides which paths are limited
     // (classifyStorefrontPublicRequest) and lets reads, webhooks and admin routes through untouched.
     consumer
       .apply(StorefrontPublicRateLimitMiddleware)
-      .forRoutes({ path: 'api/storefront/*', method: RequestMethod.ALL });
+      .forRoutes({ path: 'api/storefront/*path', method: RequestMethod.ALL });
   }
 }

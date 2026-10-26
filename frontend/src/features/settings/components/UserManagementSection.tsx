@@ -148,14 +148,17 @@ export function UserManagementSection({ branches, setupMode = false, setupStepKe
     rawPlan.includes('ultimate') ||
     rawPlan.includes('enterprise');
 
-  const maxAllowedUsers = isSuperAdmin || isServerUnlimited
+  const isTenantTierUnlimited =
+    isSuperAdmin ||
+    isServerUnlimited ||
+    isFallbackUnlimited;
+
+  const maxAllowedUsers = isTenantTierUnlimited
     ? Infinity
     : planLimit && typeof planLimit.maxUsers === 'number'
     ? planLimit.maxUsers
-    : isFallbackUnlimited
-    ? Infinity
     : rawPlan.includes('pro')
-    ? 6
+    ? 10
     : authTenant?.isTrial
     ? 5
     : 3;

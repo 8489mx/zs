@@ -43,30 +43,31 @@ export function resolveUserLimit(input: UserLimitInput): UserLimit {
   const rawSubFeature = String(input.subscriptionFeaturePlanId || '').toLowerCase();
   const rawTenantPlan = String(input.tenantPlanId || '').toLowerCase();
 
-  // 1. إذا كان الاشتراك نشطاً: الأولوية لبيانات saas_plans المربوطة بالاشتراك
-  if (input.hasActiveSubscription) {
-    // إذا كانت القيمة مسجلة صراحة في saas_plans
-    if (input.subscriptionMaxUsers === null) {
-      return null; // غير محدود (مثل OMNICHANNEL)
-    }
-    if (typeof input.subscriptionMaxUsers === 'number' && input.subscriptionMaxUsers > 0) {
-      return input.subscriptionMaxUsers;
-    }
-    // احتياط كود الباقة إذا لم يُربط جدول saas_plans
-    if (
-      rawSubCode === 'OMNICHANNEL' ||
-      rawSubCode === 'ULTIMATE' ||
-      rawSubCode === 'ENTERPRISE' ||
-      rawSubFeature.includes('omnichannel') ||
-      rawSubFeature.includes('ultimate') ||
-      rawSubFeature.includes('enterprise') ||
-      rawSubFeature.includes('commerce')
-    ) {
-      return null;
-    }
+  // هل باقة المنشأة الحالية صراحة غير محدودة؟
+  const isTenantPlanUnlimited =
+    rawTenantPlan.includes('omnichannel') ||
+    rawTenantPlan.includes('ultimate') ||
+    rawTenantPlan.includes('enterprise') ||
+    rawTenantPlan.includes('commerce') ||
+    rawTenantPlan.includes('تجارة');
+
+  // هل باقة الاشتراك النشط صراحة غير محدودة؟
+  const isSubscriptionUnlimited =
+    rawSubCode === 'OMNICHANNEL' ||
+    rawSubCode === 'ULTIMATE' ||
+    rawSubCode === 'ENTERPRISE' ||
+    rawSubFeature.includes('omnichannel') ||
+    rawSubFeature.includes('ultimate') ||
+    rawSubFeature.includes('enterprise') ||
+    rawSubFeature.includes('commerce') ||
+    (input.hasActiveSubscription && input.subscriptionMaxUsers === null);
+
+  // 1. إذا كانت باقة المنشأة أو الاشتراك غير محدودة (Ultimate / Omnichannel / Enterprise)
+  if (isTenantPlanUnlimited || isSubscriptionUnlimited) {
+    return null; // غير محدود
   }
 
-  // 2. إذا لم يكن هناك اشتراك نشط، نفحص الباقة المربوطة بالمنشأة مباشرة من saas_plans
+  // 2. إذا كانت الباقة مسجلة للمنشأة وموجودة في saas_plans، فلها الأولوية في حال تعارضها مع اشتراك قديم
   if (input.planFoundInDb) {
     if (input.planFromDbMaxUsers === null) {
       return null; // غير محدود
@@ -76,22 +77,27 @@ export function resolveUserLimit(input: UserLimitInput): UserLimit {
     }
   }
 
-  // 3. مطابقة اسم/معرف الباقة المعلق على المنشأة (tenants.plan_id)
-  if (
-    rawTenantPlan.includes('omnichannel') ||
-    rawTenantPlan.includes('ultimate') ||
-    rawTenantPlan.includes('enterprise') ||
-    rawTenantPlan.includes('commerce') ||
-    rawTenantPlan.includes('تجارة')
-  ) {
-    return null; // غير محدود
+  // 3. مطابقة صريحة لاسم/معرف الباقة المعلق على المنشأة (tenants.plan_id)
+  if (rawTenantPlan.includes('pro')) {
+    const subUsers = typeof input.subscriptionMaxUsers === 'number' && rawSubCode === 'PRO' ? input.subscriptionMaxUsers : 0;
+    return Math.max(subUsers, 6);
   }
 
-  if (rawTenantPlan.includes('pro') || rawSubCode === 'PRO') {
+  // 4. إذا كان الاشتراك نشطاً
+  if (input.hasActiveSubscription) {
+    if (input.subscriptionMaxUsers === null) {
+      return null;
+    }
+    if (typeof input.subscriptionMaxUsers === 'number' && input.subscriptionMaxUsers > 0) {
+      return input.subscriptionMaxUsers;
+    }
+  }
+
+  if (rawSubCode === 'PRO') {
     return 6;
   }
 
-  // 4. لا اشتراك ولا باقة معروفة في saas_plans: نسقط على الافتراضي
+  // 5. لا اشتراك ولا باقة معروفة في saas_plans: نسقط على الافتراضي
   return input.isTrial ? DEFAULT_TRIAL_USER_LIMIT : DEFAULT_USER_LIMIT;
 }
 

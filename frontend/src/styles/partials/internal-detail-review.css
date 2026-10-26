@@ -1026,6 +1026,10 @@
   }
 }
 
+.products-workspace-page table td {
+  vertical-align: middle;
+}
+
 .products-workspace-page .products-group-row {
   background: rgba(15, 23, 42, 0.04);
 }

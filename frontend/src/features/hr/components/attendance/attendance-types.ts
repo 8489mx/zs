@@ -103,3 +103,88 @@ export function filterExceptions(rows: HrAttendanceException[], filter: Exceptio
   if (filter === 'deduction') return rows.filter((row) => isDeductionException(row.exceptionType));
   return rows;
 }
+
+export function calculateAttendancePayableMinutes(row: {
+  compensationType?: string;
+  actualMinutes: number;
+  expectedDailyHours?: number | null;
+  scheduledCheckInTime?: string | null;
+  scheduledCheckOutTime?: string | null;
+  overtimePolicy?: string | null;
+  approvedOvertimeMinutes?: number | null;
+  pendingOvertimeMinutes?: number | null;
+}): {
+  payableMinutes: number;
+  baseMinutes: number;
+  approvedOvertimeMinutes: number;
+  pendingOvertimeMinutes: number;
+  isCapped: boolean;
+} {
+  const actual = Math.max(0, Math.floor(Number(row.actualMinutes || 0)));
+  if (actual === 0 || row.compensationType !== 'hourly') {
+    return { payableMinutes: 0, baseMinutes: 0, approvedOvertimeMinutes: 0, pendingOvertimeMinutes: 0, isCapped: false };
+  }
+
+  let expected = 8 * 60;
+  if (row.expectedDailyHours != null && Number(row.expectedDailyHours) > 0) {
+    expected = Math.round(Number(row.expectedDailyHours) * 60);
+  } else if (row.scheduledCheckInTime && row.scheduledCheckOutTime) {
+    const [ih, im] = row.scheduledCheckInTime.slice(0, 5).split(':').map(Number);
+    const [oh, om] = row.scheduledCheckOutTime.slice(0, 5).split(':').map(Number);
+    if ([ih, im, oh, om].every(Number.isFinite)) {
+      const shift = (oh * 60 + om) <= (ih * 60 + im)
+        ? (oh * 60 + om) + 1440 - (ih * 60 + im)
+        : (oh * 60 + om) - (ih * 60 + im);
+      if (shift > 0 && shift <= 1440) expected = shift;
+    }
+  }
+
+  const policy = String(row.overtimePolicy || 'review_only').toLowerCase();
+  const approved = Math.max(0, Math.floor(Number(row.approvedOvertimeMinutes || 0)));
+
+  if (actual <= expected) {
+    return {
+      payableMinutes: actual,
+      baseMinutes: actual,
+      approvedOvertimeMinutes: 0,
+      pendingOvertimeMinutes: 0,
+      isCapped: false,
+    };
+  }
+
+  const baseMinutes = expected;
+  const extraMinutes = actual - expected;
+
+  if (policy === 'auto_approved') {
+    return {
+      payableMinutes: actual,
+      baseMinutes,
+      approvedOvertimeMinutes: extraMinutes,
+      pendingOvertimeMinutes: 0,
+      isCapped: false,
+    };
+  }
+
+  if (policy === 'disabled') {
+    return {
+      payableMinutes: baseMinutes,
+      baseMinutes,
+      approvedOvertimeMinutes: 0,
+      pendingOvertimeMinutes: 0,
+      isCapped: true,
+    };
+  }
+
+  const validApproved = Math.min(extraMinutes, approved);
+  const unapproved = extraMinutes - validApproved;
+  const pending = Number(row.pendingOvertimeMinutes || 0) || Math.max(0, unapproved);
+
+  return {
+    payableMinutes: baseMinutes + validApproved,
+    baseMinutes,
+    approvedOvertimeMinutes: validApproved,
+    pendingOvertimeMinutes: pending,
+    isCapped: unapproved > 0,
+  };
+}
+

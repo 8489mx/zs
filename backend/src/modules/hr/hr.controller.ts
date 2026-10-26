@@ -211,8 +211,14 @@ export class HrController {
     return this.hr.withdrawals(query, req.authContext!);
   }
 
+  @Get('employees/:id/withdrawal-balance')
+  @RequireAnyPermission('hrLoans', 'cashDrawer', 'sales')
+  getEmployeeWithdrawalBalance(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithAuth) {
+    return this.hr.getEmployeeWithdrawalBalance(id, req.authContext!);
+  }
+
   @Post('advances/quick-cash')
-  @RequirePermissions('hrLoans')
+  @RequireAnyPermission('hrLoans', 'cashDrawer', 'sales')
   quickCashAdvance(@Body() payload: CreateQuickCashAdvanceDto, @Req() req: RequestWithAuth) {
     return this.hr.createQuickCashAdvance(payload, req.authContext!);
   }

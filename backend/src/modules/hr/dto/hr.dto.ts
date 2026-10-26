@@ -787,6 +787,11 @@ export class CreateQuickCashAdvanceDto {
   @Type(() => Number)
   @IsNumber()
   shiftId?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  managerPassword?: string;
 }
 
 export class UpsertHolidayDto {

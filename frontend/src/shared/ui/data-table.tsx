@@ -8,6 +8,8 @@ interface Column<T> {
   header: ReactNode;
   cell: (row: T) => ReactNode;
   className?: string;
+  style?: React.CSSProperties;
+  width?: string | number;
 }
 
 interface DataTablePagination {
@@ -41,6 +43,8 @@ interface DataTableProps<T> {
   maxHeight?: number | string;
   pagination?: DataTablePagination;
   selection?: DataTableSelection<T>;
+  tableStyle?: React.CSSProperties;
+  tableClassName?: string;
 }
 
 function shouldIgnoreKeyboardSelection(target: EventTarget | null) {
@@ -62,6 +66,8 @@ export function DataTable<T>({
   maxHeight,
   pagination,
   selection,
+  tableStyle,
+  tableClassName,
 }: DataTableProps<T>) {
   const { t, i18n } = useTranslation();
   const isEn = i18n.language === 'en';
@@ -94,7 +100,7 @@ export function DataTable<T>({
   return (
     <>
       <div className={tableWrapClassName} style={tableWrapStyle}>
-        <table aria-label={ariaLabel}>
+        <table aria-label={ariaLabel} className={tableClassName} style={tableStyle}>
           {caption ? <caption className="table-caption">{caption}</caption> : null}
           <thead>
             <tr>
@@ -120,7 +126,16 @@ export function DataTable<T>({
                 </th>
               ) : null}
               {columns.map((column) => (
-                <th key={column.key} className={column.className}>{typeof column.header === 'string' && isEn ? (translateUiText(column.header) || column.header) : column.header}</th>
+                <th
+                  key={column.key}
+                  className={column.className}
+                  style={{
+                    ...(column.width != null ? { width: column.width, minWidth: column.width } : {}),
+                    ...column.style,
+                  }}
+                >
+                  {typeof column.header === 'string' && isEn ? (translateUiText(column.header) || column.header) : column.header}
+                </th>
               ))}
             </tr>
           </thead>
@@ -170,7 +185,16 @@ export function DataTable<T>({
                     </td>
                   ) : null}
                   {columns.map((column) => (
-                    <td key={column.key} className={column.className}>{column.cell(row)}</td>
+                    <td
+                      key={column.key}
+                      className={column.className}
+                      style={{
+                        ...(column.width != null ? { width: column.width, minWidth: column.width } : {}),
+                        ...column.style,
+                      }}
+                    >
+                      {column.cell(row)}
+                    </td>
                   ))}
                 </tr>
               );

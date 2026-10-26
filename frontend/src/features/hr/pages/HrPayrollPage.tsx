@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { hrApi } from '@/features/hr/api/hr.api';
@@ -32,7 +32,7 @@ import { PayrollWpsExportModal } from '@/features/hr/components/payroll/PayrollW
 import { CreatePayrollRunModal, type PayrollDraft } from '../components/payroll/CreatePayrollRunModal';
 import { PayPayrollRunModal } from '../components/payroll/PayPayrollRunModal';
 import { PayrollReviewItemModal } from '../components/payroll/PayrollReviewItemModal';
-import { PayrollRunsTable } from '../components/payroll/PayrollRunsTable';
+import { PayrollRunsTable, type PayrollRunTab } from '../components/payroll/PayrollRunsTable';
 
 const initialDraft: PayrollDraft = {
   periodMonth: '',
@@ -41,6 +41,33 @@ const initialDraft: PayrollDraft = {
   endDate: '',
   notes: '',
 };
+
+function filterRunsByTabAndStatus(runs: HrPayrollRun[], tab: PayrollRunTab, statusFilter: string): HrPayrollRun[] {
+  return runs.filter((r) => {
+    const isCancelled = normalize(r.status) === 'cancelled' || normalize(r.status) === 'canceled';
+    const freq = (r.payFrequency || 'monthly').toLowerCase();
+
+    if (tab === 'cancelled') {
+      if (!isCancelled) return false;
+    } else if (tab === 'all_active') {
+      if (isCancelled) return false;
+    } else if (tab === 'monthly') {
+      if (isCancelled || freq !== 'monthly') return false;
+    } else if (tab === 'biweekly') {
+      if (isCancelled || freq !== 'biweekly') return false;
+    } else if (tab === 'weekly') {
+      if (isCancelled || freq !== 'weekly') return false;
+    } else if (tab === 'daily') {
+      if (isCancelled || freq !== 'daily') return false;
+    }
+
+    if (tab !== 'cancelled' && statusFilter !== 'all' && normalize(r.status) !== statusFilter) {
+      return false;
+    }
+
+    return true;
+  });
+}
 
 export function HrPayrollPage() {
   const { t } = useTranslation();
@@ -60,12 +87,16 @@ export function HrPayrollPage() {
   const initialMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(50);
   const [monthFilter, setMonthFilter] = useState(initialMonth);
   const [search, setSearch] = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [reviewStatusFilter, setReviewStatusFilter] = useState<PayrollReviewStatus>('all');
+  const [activeRunTab, setActiveRunTab] = useState<PayrollRunTab>(() => {
+    return (sessionStorage.getItem('hr_payroll_active_tab') as PayrollRunTab) || 'monthly';
+  });
+
   const [draft, setDraft] = useState<PayrollDraft>(initialDraft);
   const [formError, setFormError] = useState('');
   const [selectedRunId, setSelectedRunId] = useState('');
@@ -93,7 +124,6 @@ export function HrPayrollPage() {
   const employees = useMemo(() => (workspace.employees.data?.employees || []) as HrEmployee[], [workspace.employees.data?.employees]);
   const employeesMap = useMemo(() => new Map(employees.map((employee) => [String(employee.id), employee])), [employees]);
 
-  const totalItems = Number(workspace.payrollRuns.data?.summary?.totalItems || runs.length || 0);
   const selectedRunFromList = useMemo(() => runs.find((row) => String(row.id) === String(selectedRunId)), [runs, selectedRunId]);
   const selectedRun = (payrollRunDetails.data?.run || selectedRunFromList) as HrPayrollRun | undefined;
   const runItems = useMemo(() => {
@@ -189,15 +219,74 @@ export function HrPayrollPage() {
   ];
 
   const [runStatusFilter, setRunStatusFilter] = useState('all');
-  const [frequencyFilter, setFrequencyFilter] = useState<PayFrequency>('all');
 
   const filteredRuns = useMemo(() => {
-    return runs.filter((r) => {
-      if (runStatusFilter !== 'all' && normalize(r.status) !== runStatusFilter) return false;
-      if (frequencyFilter !== 'all' && (r.payFrequency || 'monthly') !== frequencyFilter) return false;
-      return true;
-    });
-  }, [runs, runStatusFilter, frequencyFilter]);
+    return filterRunsByTabAndStatus(runs, activeRunTab, runStatusFilter);
+  }, [runs, activeRunTab, runStatusFilter]);
+
+  const handleTabChange = (nextTab: PayrollRunTab) => {
+    setActiveRunTab(nextTab);
+    sessionStorage.setItem('hr_payroll_active_tab', nextTab);
+    const targetRuns = filterRunsByTabAndStatus(runs, nextTab, runStatusFilter);
+    if (targetRuns.length > 0) {
+      const alreadyHasCurrent = targetRuns.some((r) => String(r.id) === String(selectedRunId));
+      if (!alreadyHasCurrent) {
+        setSelectedRunId(String(targetRuns[0].id));
+      }
+    } else {
+      setSelectedRunId('');
+    }
+  };
+
+  const tabCounts = useMemo(() => {
+    let monthly = 0;
+    let biweekly = 0;
+    let weekly = 0;
+    let daily = 0;
+    let allActive = 0;
+    let cancelled = 0;
+
+    for (const r of runs) {
+      const isCancelled = normalize(r.status) === 'cancelled' || normalize(r.status) === 'canceled';
+      if (isCancelled) {
+        cancelled += 1;
+      } else {
+        allActive += 1;
+        const freq = (r.payFrequency || 'monthly').toLowerCase();
+        if (freq === 'biweekly') {
+          biweekly += 1;
+        } else if (freq === 'weekly') {
+          weekly += 1;
+        } else if (freq === 'daily') {
+          daily += 1;
+        } else {
+          monthly += 1;
+        }
+      }
+    }
+
+    return {
+      monthly,
+      biweekly,
+      weekly,
+      daily,
+      all_active: allActive,
+      allActive,
+      cancelled,
+    };
+  }, [runs]);
+
+  // Guard for when runs query finishes loading asynchronously
+  useEffect(() => {
+    if (filteredRuns.length > 0) {
+      const isSelectedInFiltered = filteredRuns.some((r) => String(r.id) === String(selectedRunId));
+      if (!isSelectedInFiltered) {
+        setSelectedRunId(String(filteredRuns[0].id));
+      }
+    } else if (selectedRunId) {
+      setSelectedRunId('');
+    }
+  }, [filteredRuns, selectedRunId]);
 
   const summary = useMemo(() => {
     const totalNet = runItems.reduce((acc, row) => acc + Number(row.netPay || 0), 0);
@@ -233,7 +322,11 @@ export function HrPayrollPage() {
     const year = Number(parts[0]);
     const month = Number(parts[1]);
     const lastDay = new Date(year, month, 0).getDate();
-    const targetFreq = frequencyFilter !== 'all' ? frequencyFilter : 'monthly';
+    let targetFreq: PayFrequency = 'monthly';
+    if (activeRunTab === 'biweekly') targetFreq = 'biweekly';
+    else if (activeRunTab === 'weekly') targetFreq = 'weekly';
+    else if (activeRunTab === 'daily') targetFreq = 'daily';
+
     let sDate = `${targetMonth}-01`;
     let eDate = `${targetMonth}-${String(lastDay).padStart(2, '0')}`;
     if (targetFreq === 'biweekly') {
@@ -601,12 +694,18 @@ export function HrPayrollPage() {
                 const taxDed = Number((row as any).incomeTax || 0);
                 const totDed = attDed + lDed + insDed + taxDed;
                 const net = Number(row.netPay || (gross - totDed));
+                const isHourly = normalize(row.compensationType) === 'hourly' || (Number(row.hourlyRate || 0) > 0 && normalize(row.compensationType) !== 'monthly');
+                const rate = Number(row.hourlyRate || 0);
+                const hours = rate > 0 ? Number((bSalary / rate).toFixed(2)) : 0;
                 return `
                   <tr>
                     <td style="text-align: center; color: #64748b;">${index + 1}</td>
                     <td style="text-align: center; color: #64748b; white-space: nowrap;">${text(row.employeeNo)}</td>
                     <td style="font-weight: 600; white-space: nowrap;">${text(row.employeeName)}</td>
-                    <td class="amount">${money(bSalary)}</td>
+                    <td class="amount" style="text-align: center;">
+                      <div>${money(bSalary)}</div>
+                      ${isHourly && rate > 0 ? `<div style="font-size: 8.5px; color: #166534; font-weight: 700;">${hours > 0 ? `${hours}س × ${money(rate)}/س` : `${money(rate)}/ساعة`}</div>` : ''}
+                    </td>
                     <td class="amount pos">${alw > 0 ? money(alw) : '—'}</td>
                     <td class="amount pos" style="font-weight: 700;">${money(gross)}</td>
                     <td class="amount neg">${attDed > 0 ? money(attDed) : '—'}</td>
@@ -704,7 +803,6 @@ export function HrPayrollPage() {
                 departmentFilter={departmentFilter}
                 reviewStatusFilter={reviewStatusFilter}
                 runStatusFilter={runStatusFilter}
-                frequencyFilter={frequencyFilter}
                 departmentOptions={departmentOptions}
                 runStatusOptions={runStatusOptions}
                 summary={summary}
@@ -721,7 +819,6 @@ export function HrPayrollPage() {
                 onDepartmentFilterChange={setDepartmentFilter}
                 onReviewStatusFilterChange={setReviewStatusFilter}
                 onRunStatusFilterChange={setRunStatusFilter}
-                onFrequencyFilterChange={setFrequencyFilter}
                 onDraftChange={setDraft}
                 onCreateRun={(event) => { void handleCreateRun(event); }}
               />
@@ -754,10 +851,15 @@ export function HrPayrollPage() {
                 error={workspace.payrollRuns.error}
                 page={page}
                 pageSize={pageSize}
-                totalItems={totalItems}
+                totalItems={filteredRuns.length}
                 onPageChange={setPage}
                 onPageSizeChange={(next) => { setPageSize(next); setPage(1); }}
                 onSelectRun={(id) => setSelectedRunId(id)}
+                selectedRunId={selectedRunId}
+                activeTab={activeRunTab}
+                onTabChange={handleTabChange}
+                tabCounts={tabCounts}
+                onCreateRun={hasCreatePayrollRun && canManagePayroll ? openCreateModal : undefined}
                 canViewSalaryAmounts={canViewSalaryAmounts}
                 canManagePayroll={canManagePayroll}
                 canApprovePayroll={canApprovePayroll}
@@ -832,7 +934,27 @@ export function HrPayrollPage() {
                         columns={[
                           { key: 'employeeNo', header: t('hr.hr_payroll_page.s14', "كود الموظف"), cell: (row) => <span style={{ whiteSpace: 'nowrap' }}>{text(row.employeeNo)}</span> },
                           { key: 'employeeName', header: t('hr.hr_payroll_page.s15', "اسم الموظف"), cell: (row) => <span style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>{text(row.employeeName)}</span> },
-                          { key: 'baseSalary', header: t('hr.hr_payroll_page.s16', "الراتب الأساسي"), cell: (row) => canViewSalaryAmounts ? money(row.baseSalary) : '—' },
+                          {
+                            key: 'baseSalary',
+                            header: t('hr.hr_payroll_page.s16', "الراتب الأساسي"),
+                            cell: (row) => {
+                              if (!canViewSalaryAmounts) return '—';
+                              const isHourly = normalize(row.compensationType) === 'hourly' || (Number(row.hourlyRate || 0) > 0 && normalize(row.compensationType) !== 'monthly');
+                              const rate = Number(row.hourlyRate || 0);
+                              const base = Number(row.baseSalary || 0);
+                              const hours = rate > 0 ? Number((base / rate).toFixed(2)) : 0;
+                              return (
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>{money(base)}</div>
+                                  {isHourly && rate > 0 && (
+                                    <div style={{ fontSize: '0.725rem', color: '#166534', fontWeight: 600 }}>
+                                      {hours > 0 ? `${hours} س × ${money(rate)}/س` : `${money(rate)}/ساعة`}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            },
+                          },
                           { key: 'allowanceAmount', header: t('hr.hr_payroll_page.s17', "البدلات والإضافي"), cell: (row) => canViewSalaryAmounts ? money(row.allowanceAmount) : '—' },
                           { key: 'deductionAmount', header: t('hr.hr_payroll_page.s18', "الخصومات"), cell: (row) => canViewSalaryAmounts ? money(row.deductionAmount) : '—' },
                           { key: 'loanDeductionAmount', header: t('hr.hr_payroll_page.s19', "السلف/الأقساط"), cell: (row) => canViewSalaryAmounts ? money(row.loanDeductionAmount) : '—' },

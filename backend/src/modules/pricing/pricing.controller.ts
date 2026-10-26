@@ -25,10 +25,12 @@ export class PricingController {
       options: {
         applyToWholeStyleCode: Boolean(payload.options?.applyToWholeStyleCode),
         applyToPricingGroup: Boolean(payload.options?.applyToPricingGroup),
-        skipActiveOffers: Boolean(payload.options?.skipActiveOffers),
+        skipActiveOffers: Boolean(payload.options?.skipActiveOffers ?? payload.safeguards?.skipActiveOffers),
         skipCustomerPrices: Boolean(payload.options?.skipCustomerPrices),
-        skipManualExceptions: Boolean(payload.options?.skipManualExceptions),
+        skipManualExceptions: Boolean(payload.options?.skipManualExceptions ?? payload.safeguards?.skipManualExceptions),
       },
+      safeguards: payload.safeguards,
+      reason: payload.reason,
     }, req.authContext!);
   }
 
@@ -40,10 +42,12 @@ export class PricingController {
       options: {
         applyToWholeStyleCode: Boolean(payload.options?.applyToWholeStyleCode),
         applyToPricingGroup: Boolean(payload.options?.applyToPricingGroup),
-        skipActiveOffers: Boolean(payload.options?.skipActiveOffers),
+        skipActiveOffers: Boolean(payload.options?.skipActiveOffers ?? payload.safeguards?.skipActiveOffers),
         skipCustomerPrices: Boolean(payload.options?.skipCustomerPrices),
-        skipManualExceptions: Boolean(payload.options?.skipManualExceptions),
+        skipManualExceptions: Boolean(payload.options?.skipManualExceptions ?? payload.safeguards?.skipManualExceptions),
       },
+      safeguards: payload.safeguards,
+      reason: payload.reason,
     }, req.authContext!);
   }
 
