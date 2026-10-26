@@ -53,3 +53,8 @@ PostgreSQL acceptance uses synthetic same-tenant persisted HR employee, reviewed
 ### Confirmed P1 — phantom receipt of legacy zero-dispatched NUMERIC records
 
 The fresh PostgreSQL test proved that `dispatched_qty` persisted as string `"0.000"`; `Number(item.dispatched_qty || item.qty)` treated that string as truthy, so zero receipts finalized `stock_transfers.status='received'` without moving/writing off inventory or posting GL. New dispatches persist `dispatched_qty=qty`; legacy pending rows use a numeric-aware fallback in both receipt validation and stock mutation. Regression explicitly tests full transit shrinkage, exact KWD source/GL cost, competing receipt once, ordinary complete delivery and correct location balances. This avoids rewriting historical dispatch quantities.
+
+
+### Confirmed P1 — transit in-flight quantity minted into unassigned stock
+
+Isolated PostgreSQL diagnostics found that a KWD transfer sent one physical unit to in-transit but silently created a second unit in the unassigned warehouse: source 1 + transit 1 + unassigned 1 while the global product counter and GL both correctly said 2. The shared `applyStockDelta` previously called `ensureUnassignedBalance` even for `skipGlobalUpdate: true, disableAutoDrain: true` paired-location legs; the gap between source decrement and destination increment was misinterpreted as unassigned stock. The engine now suppresses this backfill only for such locked, explicit paired legs, leaving normal adjustments, zero-delta location provisioning and auto-drain unchanged. PostgreSQL acceptance asserts global product qty = sum of all location balances after purchase, after final issue, after transit dispatch, after 0/1 receipt and after loss; the GL must continue matching 0.001 KWD physical WAC.

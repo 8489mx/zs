@@ -385,7 +385,15 @@ export async function applyStockDelta(db: Kysely<Database>, params: StockDeltaPa
     return { globalBefore, globalAfter: params.skipGlobalUpdate ? globalBefore : correctedGlobalAfter, scopeBefore, scopeAfter };
   }
 
-  const unassigned = await ensureUnassignedBalance(db, state);
+  // Paired source/transit/destination stock legs have a temporary gap in
+  // the *location* sum while the product's global balance stays unchanged.
+  // Never mint that in-flight quantity into the unassigned warehouse. Doing
+  // so duplicates inventory and re-bases later GL shrinkage against a phantom
+  // location balance. Ordinary single-leg stock adjustments and zero-delta
+  // location provisioning retain the historical reconciliation behaviour.
+  const unassigned = params.skipGlobalUpdate && params.disableAutoDrain
+    ? state.balances.find(row => row.location_id == null && row.branch_id == null)
+    : await ensureUnassignedBalance(db, state);
   const location = await ensureLocationBalance(db, state, params.locationId, params.branchId ?? null);
   let locationBefore = roundStockQty(location.qty);
 
