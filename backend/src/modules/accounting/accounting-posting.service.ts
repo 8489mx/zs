@@ -2399,6 +2399,8 @@ export class AccountingPostingService {
 
   async postExpense(queryable: DbOrTx, expenseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingExpenseJournal(queryable, expenseId, scope.tenantId);
     if (existing) {
@@ -2432,7 +2434,7 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting expense ${expenseId}`);
 
-    const amount = this.toMoney(expense.amount);
+    const amount = toBookMoney(expense.amount);
     if (!(amount > 0)) {
       this.logger.warn(`Expense ${expenseId} has invalid amount (${amount}); skipping accounting post`);
       return { posted: false, journalEntryId: null };
@@ -2460,7 +2462,7 @@ export class AccountingPostingService {
       branchId,
       locationId,
       costCenterId,
-    });
+    }, bookDigits);
     this.addLine(lines, {
       accountId: cashAccountId,
       description: 'خروج نقدية لمصروف',
@@ -2470,7 +2472,7 @@ export class AccountingPostingService {
       partnerId: null,
       branchId,
       locationId,
-    });
+    }, bookDigits);
 
     const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
     for (const line of lines) {
@@ -2479,9 +2481,9 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting expense ${expenseId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced expense journal for expense ${expenseId}: debit=${totalDebit} credit=${totalCredit}`);
     }

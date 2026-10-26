@@ -7,7 +7,7 @@ export class CreateExpenseDto {
 
   @Type(() => Number)
   @IsNumber()
-  @Min(0.01)
+  @Min(0.001)
   amount!: number;
 
   @IsOptional()

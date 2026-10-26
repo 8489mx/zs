@@ -23,6 +23,7 @@ import { MarketplaceSyncService } from '../../src/modules/storefront/services/ma
 import { PurchasesService } from '../../src/modules/purchases/purchases.service';
 import { SalesService } from '../../src/modules/sales/sales.service';
 import { ReturnsService } from '../../src/modules/returns/returns.service';
+import { TreasuryService } from '../../src/modules/treasury/treasury.service';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
 import { PharmacyService } from '../../src/modules/pharmacy/pharmacy.service';
@@ -1188,6 +1189,105 @@ async function main() {
       .where('source_type','=','stock_count_chunk').execute();
     assert.equal(countRetryAfter.length,countRetryBefore.length,'stock-count retry never re-posts GL');
     pass('KWD 0.001 inventory adjustment / damage / stock count persist identical costs in physical source and GL, rollback and retry');
+
+    // Tenant-book treasury sources were NUMERIC(...,2): a one-fil transfer
+    // or expense used to vanish from the source despite valid three-digit GL.
+    // Exercise exact 0.001, retry under concurrency, and source overdraft.
+    const treasury = app.get(TreasuryService);
+    const moneyTenant = await fixture('kwd_treasury');
+    await db.updateTable('settings').set({value:'"KWD"'})
+      .where('tenant_id','=',moneyTenant.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',moneyTenant.auth.tenantId!).where('is_base','=',true).execute();
+    const cashId=moneyTenant.accounts.get('1110')!;
+    const bankId=moneyTenant.accounts.get('1120')!;
+    await posting.postDomainJournal(db,{
+      tenantId:moneyTenant.auth.tenantId!,accountId:moneyTenant.auth.accountId!,
+      sourceType:'kernel_treasury_seed',sourceId:moneyTenant.productId,
+      entryDate:new Date(),description:'Disposable cash for concurrency',
+      createdBy:moneyTenant.auth.userId,
+      lines:[
+        {accountId:cashId,description:'Seed cash',debit:0.006,credit:0,partnerType:'none',partnerId:null},
+        {accountId:moneyTenant.accounts.get('4100')!,description:'Seed offset',debit:0,credit:0.006,partnerType:'none',partnerId:null},
+      ],
+    });
+    const transferBody=(amount:number,requestKey:string)=>({fromAccountId:cashId,toAccountId:bankId,amount,requestKey});
+    await assert.rejects(treasury.createTransfer(transferBody(0.0005,'fil-invalid-precision'),moneyTenant.auth),
+      (e:any)=>e.code==='INVALID_TRANSFER_PRECISION');
+    const first=await treasury.createTransfer(transferBody(0.001,'one-fil-transfer-001'),moneyTenant.auth) as any;
+    assert.ok(first.transferId>0);
+    assert.equal(await postingAmount(moneyTenant,'1110',3),0.005);
+    assert.equal(await postingAmount(moneyTenant,'1120',3),0.001);
+    const firstSaved=await db.selectFrom('treasury_transfers').select('amount')
+      .where('tenant_id','=',moneyTenant.auth.tenantId!).where('id','=',first.transferId).executeTakeFirstOrThrow();
+    assert.equal(Number(firstSaved.amount),0.001,'transfer source retains a fil');
+
+    // Competing transfers from cash 0.005 must serialize under canonical
+    // account locks; only one request for 0.004 can clear, and the other
+    // must not leak a GL journal or a treasury movement.
+    const competing=await Promise.allSettled([
+      treasury.createTransfer(transferBody(0.004,'concurrent-out-0001'),moneyTenant.auth),
+      treasury.createTransfer(transferBody(0.004,'concurrent-out-0002'),moneyTenant.auth),
+    ]);
+    assert.equal(competing.filter(x=>x.status==='fulfilled').length,1,'two withdrawals cannot spend the same cash');
+    assert.equal(competing.filter(x=>x.status==='rejected' && (x.reason as any).code==='INSUFFICIENT_TREASURY_BALANCE').length,1);
+    assert.equal(await postingAmount(moneyTenant,'1110',3),0.001,'cash may not go below remaining fil');
+    const expense=await treasury.createExpense({
+      title:'KWD utilities',amount:0.001,date:new Date().toISOString(),note:'one-fil utilities',
+    },moneyTenant.auth);
+    assert.equal(expense.ok,true);
+    const expenseSaved=await db.selectFrom('expenses').select(['id','amount'])
+      .where('tenant_id','=',moneyTenant.auth.tenantId!).executeTakeFirstOrThrow();
+    assert.equal(Number(expenseSaved.amount),0.001,'expense source retains fil');
+    const expenseCash=await db.selectFrom('treasury_transactions').select('amount')
+      .where('tenant_id','=',moneyTenant.auth.tenantId!).where('reference_type','=','expense')
+      .where('reference_id','=',expenseSaved.id).executeTakeFirstOrThrow();
+    assert.equal(Number(expenseCash.amount),-0.001,'treasury cash source equals recorded expense');
+    assert.equal(await postingAmount(moneyTenant,'1110',3),0,'expense clears last physical cash fil');
+    assert.equal(await postingAmount(moneyTenant,'1120',3),0.005,'bank ledger receives only successful transfers');
+    assert.equal(Number((expense as any).summary.totalAmount),0.001,'expense report keeps fil');
+    await assert.rejects(treasury.createTransfer(transferBody(0.001,'after-zero-cash-001'),moneyTenant.auth),
+      (e:any)=>e.code==='INSUFFICIENT_TREASURY_BALANCE');
+    assert.equal((await db.selectFrom('treasury_transfers').select('id')
+      .where('tenant_id','=',moneyTenant.auth.tenantId!).execute()).length,2);
+    // Same request arriving before first commit must return the first receipt.
+    const sameKey = await fixture('kwd_idempotent_transfer');
+    await db.updateTable('settings').set({value:'"KWD"'})
+      .where('tenant_id','=',sameKey.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',sameKey.auth.tenantId!).where('is_base','=',true).execute();
+    await posting.postDomainJournal(db,{
+      tenantId:sameKey.auth.tenantId!,accountId:sameKey.auth.accountId!,
+      sourceType:'kernel_treasury_seed',sourceId:sameKey.productId,
+      entryDate:new Date(),description:'Idempotent transfer seed',
+      createdBy:sameKey.auth.userId,
+      lines:[
+        {accountId:sameKey.accounts.get('1110')!,description:'Seed cash',debit:0.002,credit:0,partnerType:'none',partnerId:null},
+        {accountId:sameKey.accounts.get('4100')!,description:'Seed offset',debit:0,credit:0.002,partnerType:'none',partnerId:null},
+      ],
+    });
+    const samePayload={
+      fromAccountId:sameKey.accounts.get('1110')!,toAccountId:sameKey.accounts.get('1120')!,
+      amount:0.001,requestKey:'same-key-concurrent-fil',
+    };
+    const duplicateTransfers=await Promise.all([treasury.createTransfer(samePayload,sameKey.auth),treasury.createTransfer(samePayload,sameKey.auth)]) as any[];
+    assert.equal(new Set(duplicateTransfers.map(x=>x.transferId)).size,1,'same key reuses original transfer');
+    assert.equal(duplicateTransfers.filter(x=>x.idempotent).length,1);
+    assert.equal(await postingAmount(sameKey,'1110',3),0.001);
+    assert.equal(await postingAmount(sameKey,'1120',3),0.001);
+    assert.equal((await db.selectFrom('treasury_transactions').select('id')
+      .where('tenant_id','=',sameKey.auth.tenantId!).where('reference_type','=','treasury_transfer').execute()).length,2);
+    await assert.rejects(treasury.createTransfer({...samePayload,amount:0.002},sameKey.auth),
+      (e:any)=>e.code==='TRANSFER_IDEMPOTENCY_CONFLICT');
+    const egpTenant = await fixture('egp_treasury_precision');
+    await assert.rejects(treasury.createExpense({
+      title:'Invalid subcent',amount:0.001,date:new Date().toISOString(),
+    },egpTenant.auth),(e:any)=>e.code==='INVALID_EXPENSE_PRECISION');
+    await assert.rejects(treasury.createTransfer({
+      fromAccountId:egpTenant.accounts.get('1110')!,toAccountId:egpTenant.accounts.get('1120')!,
+      amount:0.001,requestKey:'egp-invalid-subcent',
+    },egpTenant.auth),(e:any)=>e.code==='INVALID_TRANSFER_PRECISION');
+    pass('KWD treasury transfer, expense source, GL and report retain 0.001; concurrent overdraft blocked and identical retry idempotent');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not

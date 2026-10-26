@@ -13,8 +13,8 @@ export class CreateTreasuryTransferDto {
   toAccountId!: number;
 
   @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0.01)
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0.001)
   amount!: number;
 
   /** Stable client-generated key; retries return the original transfer. */

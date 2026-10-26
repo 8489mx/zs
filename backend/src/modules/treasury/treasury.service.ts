@@ -13,6 +13,8 @@ import { AppError } from '../../common/errors/app-error';
 import { paginateRows } from '../../common/utils/pagination';
 import { canonicalLockIds } from '../../common/utils/canonical-lock-order';
 import { lockAccountingPeriod } from '../accounting/accounting-period-lock';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits, fromMinorUnits, roundMoney, toMinorUnits } from '../accounting/engines/money-minor-units.engine';
 
 @Injectable()
 export class TreasuryService {
@@ -27,6 +29,7 @@ export class TreasuryService {
 
   async listExpenses(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
     const search = String(query.search || '').trim();
     const searchPattern = search ? `%${search}%` : null;
     
@@ -105,7 +108,7 @@ export class TreasuryService {
       pagination: { page, pageSize, totalItems, totalPages, nextCursor },
       summary: {
         totalItems,
-        totalAmount: Number(totalAmount.toFixed(2)),
+        totalAmount: roundMoney(totalAmount, moneyDigits),
       },
       scope,
     };
@@ -113,6 +116,17 @@ export class TreasuryService {
 
   async createExpense(payload: CreateExpenseDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+    const requestedAmount = Number(payload.amount);
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      throw new AppError('Expense amount must be positive', 'INVALID_EXPENSE_AMOUNT', 400);
+    }
+    let amount: number;
+    try {
+      amount = fromMinorUnits(toMinorUnits(requestedAmount, digits), digits);
+    } catch {
+      throw new AppError('Expense amount must match the tenant currency minor units', 'INVALID_EXPENSE_PRECISION', 400);
+    }
     await this.tx.runInTransaction(this.db, async (trx) => {
       await lockAccountingPeriod(trx, scope.tenantId);
       const branchId = payload.branchId ? Number(payload.branchId) : null;
@@ -134,7 +148,7 @@ export class TreasuryService {
         INSERT INTO expenses (title, amount, expense_date, note, branch_id, location_id, cost_center_id, created_by, tenant_id, account_id)
         VALUES (
           ${String(payload.title || '').trim()},
-          ${Number(payload.amount || 0)},
+          ${amount},
           ${new Date(payload.date)},
           ${String(payload.note || '').trim()},
           ${branchId},
@@ -151,7 +165,7 @@ export class TreasuryService {
 
       await trx.insertInto('treasury_transactions').values({
         txn_type: 'expense',
-        amount: -Number(payload.amount || 0),
+        amount: -amount,
         note: 'مصروف: ' + String(payload.title || '').trim(),
         reference_type: 'expense',
         reference_id: expenseId,
@@ -181,13 +195,21 @@ export class TreasuryService {
     const scope = requireTenantScope(auth);
     const fromAccountId = Number(payload.fromAccountId);
     const toAccountId = Number(payload.toAccountId);
-    const amount = Number(Number(payload.amount).toFixed(2));
+    const requestedAmount = Number(payload.amount);
+    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0) {
+      throw new AppError('Transfer amount must be greater than zero', 'INVALID_TRANSFER_AMOUNT', 400);
+    }
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
+    let minorAmount: number;
+    try {
+      minorAmount = toMinorUnits(requestedAmount, moneyDigits);
+    } catch {
+      throw new AppError('Transfer amount must match the tenant currency minor units', 'INVALID_TRANSFER_PRECISION', 400);
+    }
+    const amount = fromMinorUnits(minorAmount, moneyDigits);
     const requestKey = String(payload.requestKey || '').trim();
     if (!Number.isInteger(fromAccountId) || !Number.isInteger(toAccountId) || fromAccountId === toAccountId) {
       throw new AppError('Source and destination accounts must be different valid accounts', 'INVALID_TRANSFER_ACCOUNTS', 400);
-    }
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new AppError('Transfer amount must be greater than zero', 'INVALID_TRANSFER_AMOUNT', 400);
     }
     if (requestKey.length < 8 || requestKey.length > 160) {
       throw new AppError('A stable transfer request key is required', 'TRANSFER_REQUEST_KEY_REQUIRED', 400);
@@ -213,7 +235,7 @@ export class TreasuryService {
       if (prior) {
         if (Number(prior.from_account_id) !== fromAccountId
           || Number(prior.to_account_id) !== toAccountId
-          || Number(prior.amount) !== amount) {
+          || toMinorUnits(Number(prior.amount), moneyDigits) !== minorAmount) {
           throw new AppError('Transfer request key was already used with different data', 'TRANSFER_IDEMPOTENCY_CONFLICT', 409);
         }
         return { transferId: Number(prior.id), journalEntryId: Number(prior.journal_entry_id || 0), idempotent: true };
@@ -238,6 +260,29 @@ export class TreasuryService {
         throw new AppError('Both accounts must be active cash or bank accounts in this tenant', 'TREASURY_ACCOUNT_NOT_FOUND', 400);
       }
 
+      // The initial idempotency lookup may miss another request whose row
+      // was still uncommitted. Re-check AFTER serializing treasury accounts.
+      // This makes same-key simultaneous retries return the committed receipt,
+      // without ever attempting a second insert/GL write.
+      const visibleAfterLock = await sql<{
+        id: number; from_account_id: number; to_account_id: number;
+        amount: number; journal_entry_id: number | null;
+      }>`
+        SELECT id, from_account_id, to_account_id, amount, journal_entry_id
+        FROM treasury_transfers
+        WHERE tenant_id = ${scope.tenantId} AND request_key = ${requestKey}
+        FOR UPDATE
+      `.execute(trx);
+      const completed = visibleAfterLock.rows[0];
+      if (completed) {
+        if (Number(completed.from_account_id) !== fromAccountId
+          || Number(completed.to_account_id) !== toAccountId
+          || toMinorUnits(Number(completed.amount), moneyDigits) !== minorAmount) {
+          throw new AppError('Transfer request key was already used with different data', 'TRANSFER_IDEMPOTENCY_CONFLICT', 409);
+        }
+        return { transferId: Number(completed.id), journalEntryId: Number(completed.journal_entry_id || 0), idempotent: true };
+      }
+
       const balanceResult = await sql<{ balance: string }>`
         SELECT COALESCE(SUM(jel.debit - jel.credit), 0)::numeric AS balance
         FROM journal_entry_lines jel
@@ -248,8 +293,9 @@ export class TreasuryService {
           AND je.status = 'posted'
       `.execute(trx);
       const available = Number(balanceResult.rows[0]?.balance || 0);
-      if (available + 0.001 < amount) {
-        throw new AppError(`Insufficient balance in source treasury (available ${available.toFixed(2)})`, 'INSUFFICIENT_TREASURY_BALANCE', 400);
+      const availableMinor = toMinorUnits(available, moneyDigits);
+      if (availableMinor < minorAmount) {
+        throw new AppError(`Insufficient balance in source treasury (available ${available.toFixed(moneyDigits)})`, 'INSUFFICIENT_TREASURY_BALANCE', 400);
       }
 
       const inserted = await sql<{ id: number }>`
@@ -305,7 +351,7 @@ export class TreasuryService {
     });
 
     if (!result.idempotent) {
-      await this.audit.log('تحويل خزينة', `تم تحويل مبلغ ${amount.toFixed(2)} بين حسابين`, auth);
+      await this.audit.log('تحويل خزينة', `تم تحويل مبلغ ${amount.toFixed(moneyDigits)} بين حسابين`, auth);
     }
     return { ok: true, ...result };
   }
