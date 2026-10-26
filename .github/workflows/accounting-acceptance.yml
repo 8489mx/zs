@@ -62,3 +62,91 @@ jobs:
           npx ts-node test/critical/core-integrity-audit.spec.ts
           npm run test:accounting:postgres
         working-directory: backend
+
+  # Historical P0-C databases already have currency migrations 256-259 applied.
+  # Main has an independent subscription migration with the same numeric prefix.
+  # Retain all original filenames/history and rehearse BOTH upgrade directions.
+  migration-history-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zs_core_audit_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d zs_core_audit_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      NODE_ENV: test
+      APP_MODE: CLOUD_SAAS
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 5433
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_SSL: 'false'
+      SESSION_CSRF_SECRET: disposable-ci-migration-history-only
+      DOTENV_CONFIG_PATH: /dev/null
+      TS_NODE_TRANSPILE_ONLY: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+        working-directory: backend
+      - name: Create isolated branch-first and main-first databases
+        working-directory: backend
+        run: |
+          node - <<'NODE'
+          const { Client } = require('pg');
+          (async () => {
+            const c = new Client({host:'127.0.0.1',port:5433,user:'postgres',password:'postgres',database:'postgres'});
+            await c.connect();
+            try {
+              await c.query('CREATE DATABASE zs_p0c_branch_first_test');
+              await c.query('CREATE DATABASE zs_p0c_main_first_test');
+            } finally { await c.end(); }
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          NODE
+      - name: Rehearse both upgrade orders without rewriting migration history
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          dir=src/database/migrations
+          tmp=$(mktemp -d)
+          restore_migrations() {
+            if compgen -G "$tmp/*.ts" >/dev/null; then
+              mv "$tmp"/*.ts "$dir/"
+            fi
+          }
+          trap restore_migrations EXIT
+          sync=2040000000256_sync_tenant_subscriptions_plan_and_upgrade_pro_users.ts
+          # Database upgraded to P0-C before the subscription change reached it.
+          mv "$dir/$sync" "$tmp/"
+          export DATABASE_NAME=zs_p0c_branch_first_test
+          export ACCEPTANCE_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5433/zs_p0c_branch_first_test
+          npm run migration:run
+          npx ts-node test/acceptance/migration-256-compat.postgres.spec.ts branch-only
+          mv "$tmp/$sync" "$dir/"
+          npm run migration:run
+          npm run migration:run
+          npx ts-node test/acceptance/migration-256-compat.postgres.spec.ts both
+          # Database upgraded to main before P0-C currency migrations reached it.
+          mv "$dir/2040000000256_currency_minor_unit_precision.ts" "$tmp/"
+          mv "$dir/2040000000257_purchase_minor_unit_precision.ts" "$tmp/"
+          mv "$dir/2040000000258_sale_minor_unit_precision.ts" "$tmp/"
+          mv "$dir/2040000000259_return_minor_unit_precision.ts" "$tmp/"
+          export DATABASE_NAME=zs_p0c_main_first_test
+          export ACCEPTANCE_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5433/zs_p0c_main_first_test
+          npm run migration:run
+          npx ts-node test/acceptance/migration-256-compat.postgres.spec.ts main-only
+          restore_migrations
+          npm run migration:run
+          npm run migration:run
+          npx ts-node test/acceptance/migration-256-compat.postgres.spec.ts both
