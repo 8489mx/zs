@@ -333,6 +333,9 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL takeaway invoice, cost and cash posting');
 
+    // Both following negative checks need a saleable meal, otherwise the
+    // generic meal-stock guard masks the modifier spoof / ingredient shortage.
+    await receive(rest,meal,1,4);
     // A configured non-stock menu option may not be turned into a physical
     // ingredient expense by providing an arbitrary productId in the POS body.
     const group=await db.insertInto('pos_modifier_groups').values({
@@ -356,9 +359,6 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL non-stock menu option cannot spoof ingredient intake');
 
-    // Replenish the meal after takeaway: the next rejection must exercise
-    // the missing INGREDIENT path, not a previously sold-out meal SKU.
-    await receive(rest,meal,1,4);
     // Missing stock must roll back invoice, tender and GL together.
     const salesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))
       .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
