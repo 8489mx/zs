@@ -327,6 +327,7 @@ function PosWorkspaceHeaderComponent({
           <Button
             type="button"
             variant="secondary"
+            className="pos-customize-btn"
             onClick={() => setIsCustomizationOpen(true)}
             title={t('pos.customize_ui_title', "تخصيص واجهة الكاشير والشاشات المتنقلة")}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}

@@ -3703,12 +3703,22 @@ html[dir="ltr"] .two-column-layout {
   }
 
   /* Hide desktop keyboard shortcut buttons, screens menu, and window controls from POS mobile header */
-  .pos-page-header .pos-header-actions-row > button:not(.pos-mode-toggle button):not(.pos-close-shift-btn),
+  .pos-page-header .pos-header-actions-row > button:not(.pos-mode-toggle button):not(.pos-close-shift-btn):not(.pos-customize-btn),
   .pos-page-header .pos-header-actions-row > .pos-header-branch-info,
   .pos-page-header .pos-header-table-controls,
   .pos-page-header .pos-screens-menu-container,
   .pos-page-header .pos-window-controls {
     display: none !important;
+  }
+
+  .pos-page-header .pos-customize-btn {
+    display: inline-flex !important;
+    padding: 2px 7px !important;
+    font-size: 10.5px !important;
+    height: 24px !important;
+    border-radius: 6px !important;
+    align-items: center !important;
+    gap: 4px !important;
   }
 
   .pos-page-header .page-header-actions,

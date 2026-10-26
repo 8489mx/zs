@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
-import { StarIcon } from '@/shared/components/icons/AppIcons';
+import { StarIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatCurrencyWithCode, formatCurrencyWithSymbol } from '@/lib/format';
 import { sharedProductsApi } from '@/shared/api/products';
 import {
@@ -25,6 +25,7 @@ import { CameraBarcodeScannerModal } from '@/shared/components/CameraBarcodeScan
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { usePosUiCustomization } from '@/features/pos/hooks/usePosUiCustomization';
+import { PosCustomizationDialog } from '@/features/pos/components/pos-workspace/PosCustomizationDialog';
 
 interface PosProductsPanelProps {
   search: string;
@@ -356,6 +357,7 @@ function PosProductsPanelComponent({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isStudioOpen, setIsStudioOpen] = useState(false);
   const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false);
+  const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
 
   const handleCameraBarcodeScan = (scannedCode: string) => {
     if (searchInputRef.current) {
@@ -591,34 +593,51 @@ function PosProductsPanelComponent({
                       onChange={scannerBuffer.handleChange}
                       onKeyDown={handleSearchKeyDown}
                       placeholder={t('pos.search_placeholder', 'امسح باركود أو اكتب الاسم...')}
-                      style={{ borderRadius: '8px', width: '100%', padding: '10px 48px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                      style={{ borderRadius: '8px', width: '100%', padding: '10px 80px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
                     />
-                    <button
-                      type="button"
-                      className="pos-camera-scan-btn"
-                      onClick={() => setIsCameraScannerOpen(true)}
-                      title={t('pos.scan_camera', 'مسح باركود بالكاميرا')}
-                      style={{
-                        position: 'absolute',
-                        left: '8px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: '#eff6ff',
-                        border: '1px solid #bfdbfe',
-                        color: '#2563eb',
-                        borderRadius: '6px',
-                        padding: '6px 8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                        <circle cx="12" cy="13" r="4"></circle>
-                      </svg>
-                    </button>
+                    <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                        type="button"
+                        className="pos-customize-trigger-btn"
+                        onClick={() => setIsCustomizationOpen(true)}
+                        title={t('pos.customize_ui_title', 'تخصيص واجهة الكاشير والشاشات المتنقلة')}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #cbd5e1',
+                          color: '#475569',
+                          borderRadius: '6px',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <SlidersIcon size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="pos-camera-scan-btn"
+                        onClick={() => setIsCameraScannerOpen(true)}
+                        title={t('pos.scan_camera', 'مسح باركود بالكاميرا')}
+                        style={{
+                          background: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          color: '#2563eb',
+                          borderRadius: '6px',
+                          padding: '6px 8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                          <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1655,6 +1674,11 @@ function PosProductsPanelComponent({
           onScan={handleCameraBarcodeScan}
           title={t('pos.pos_products_panel.s37', "مسح باركود الصنف بكاميرا الهاتف")}
           continuous={true}
+        />
+
+        <PosCustomizationDialog
+          isOpen={isCustomizationOpen}
+          onClose={() => setIsCustomizationOpen(false)}
         />
       </div>
     </Card>
