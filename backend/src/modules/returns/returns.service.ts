@@ -418,7 +418,8 @@ export class ReturnsService {
     const allocations: Array<{ tender: RefundTender; amount: number }> = [];
     const retainedCredit = settlement.appliedCredit + remainder.filter((line) => line.tender === 'store_credit')
       .reduce((sum, line) => sum + line.amount, 0);
-    if (retainedCredit > 0) allocations.push({ tender: 'store_credit', amount: Number(retainedCredit.toFixed(2)) });
+    const exchangeDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, this.scope(auth).tenantId));
+    if (retainedCredit > 0) allocations.push({ tender: 'store_credit', amount: roundBookMoney(retainedCredit, exchangeDigits) });
     for (const line of remainder) {
       if (line.tender === 'store_credit') continue;
       if (line.tender === 'receivable') throw new AppError('يجب تسوية مديونية الفاتورة قبل الاستبدال', 'EXCHANGE_UNPAID_SOURCE', 422);
