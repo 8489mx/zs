@@ -68,6 +68,7 @@ export const maintenanceApi = {
       collectedAmount?: number;
       technicianNotes?: string;
       paymentMethod?: string;
+      refundAdvance?: boolean;
     },
   ) =>
     http<{ ok: boolean }>(`/api/maintenance/tickets/${id}/status`, {

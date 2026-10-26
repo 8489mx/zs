@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getCurrencyDecimals, getGlobalCurrencySymbol } from '@/lib/currencies';
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -43,10 +43,12 @@ export function MaintenanceDetailModal({
   const [partQty, setPartQty] = useState(1);
   const [partPrice, setPartPrice] = useState(0);
   const [editingCost, setEditingCost] = useState<number | null>(null);
+  const [pendingCashRefundStatus, setPendingCashRefundStatus] = useState<MaintenanceStatus | null>(null);
 
   useEffect(() => {
     setCurrentTicket(ticket);
     setEditingCost(null);
+    setPendingCashRefundStatus(null);
   }, [ticket]);
 
   const refreshCurrentTicket = async (ticketId: string) => {
@@ -56,9 +58,10 @@ export function MaintenanceDetailModal({
   };
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status, finalCost, collectedAmount, technicianNotes }: { id: string; status: MaintenanceStatus; finalCost?: number; collectedAmount?: number; technicianNotes?: string }) =>
-      maintenanceApi.updateStatus(id, { status, finalCost, collectedAmount, technicianNotes }),
+    mutationFn: ({ id, status, finalCost, collectedAmount, technicianNotes, refundAdvance }: { id: string; status: MaintenanceStatus; finalCost?: number; collectedAmount?: number; technicianNotes?: string; refundAdvance?: boolean }) =>
+      maintenanceApi.updateStatus(id, { status, finalCost, collectedAmount, technicianNotes, refundAdvance }),
     onSuccess: () => {
+      setPendingCashRefundStatus(null);
       if (currentTicket) void refreshCurrentTicket(currentTicket.id);
     },
   });
@@ -179,17 +182,24 @@ export function MaintenanceDetailModal({
             {t('maintenance.maintenance_detail_modal.s4', "مرحلة عمل وصيانة الجهاز:")}
           </div>
           <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-            {(['received', 'inspecting', 'in_progress', 'repaired', 'delivered', 'unrepairable'] as MaintenanceStatus[]).map((st) => {
+            {(['received', 'inspecting', 'in_progress', 'repaired', 'delivered', 'unrepairable', 'cancelled'] as MaintenanceStatus[]).map((st) => {
               const isCurrent = currentTicket.status === st;
               const cfg = statusConfig[st];
               return (
                 <button
                   key={st}
                   type="button"
-                  disabled={updateStatusMutation.isPending}
+                  disabled={updateStatusMutation.isPending ||
+                    ['delivered', 'cancelled', 'unrepairable'].includes(currentTicket.status) ||
+                    pendingCashRefundStatus !== null}
                   onClick={() => {
                     if (st === 'delivered') {
                       onOpenSettlement(currentTicket);
+                    } else if (['cancelled', 'unrepairable'].includes(st) &&
+                      Number(currentTicket.advancePayment || 0) > 0) {
+                      // Financial cancellation is opt-in. Never silently refund
+                      // cash when the operator merely changes a status.
+                      setPendingCashRefundStatus(st);
                     } else {
                       updateStatusMutation.mutate({ id: currentTicket.id, status: st });
                     }
@@ -218,6 +228,40 @@ export function MaintenanceDetailModal({
               );
             })}
           </div>
+          {pendingCashRefundStatus && (
+            <div role="alert" style={{ marginTop: '10px', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: '#fff' }}>
+              <strong style={{ fontSize: '0.85rem', color: '#9f1239' }}>
+                {t('maintenance.confirm_advance_refund', 'تأكيد إلغاء التذكرة ورد العربون النقدي')}
+              </strong>
+              <p style={{ margin: '8px 0', fontSize: '0.82rem', color: '#334155' }}>
+                {t('maintenance.advance_refund_notice', 'سيتم تسجيل رد نقدي للعميل وعكس التزام العربون في الدفتر العام:')}{' '}
+                {Number(currentTicket.advancePayment || 0).toFixed(getCurrencyDecimals())} {getGlobalCurrencySymbol()}.
+              </p>
+              {(currentTicket.parts || []).length > 0 && (
+                <p style={{ fontSize: '0.82rem', color: '#9f1239' }}>
+                  {t('maintenance.return_parts_before_refund', 'يجب رد جميع قطع الغيار أولاً من قائمة القطع قبل رد العربون.')}
+                </p>
+              )}
+              {updateStatusMutation.isError && (
+                <p style={{ fontSize: '0.8rem', color: '#9f1239' }}>
+                  {t('maintenance.refund_failed', 'لم يتم رد العربون. راجع حالة التذكرة أو القيد ثم حاول مجددًا.')}
+                </p>
+              )}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                <Button type="button" variant="secondary" onClick={() => setPendingCashRefundStatus(null)}
+                  disabled={updateStatusMutation.isPending}>
+                  {t('common.cancel', 'تراجع')}
+                </Button>
+                <Button type="button" variant="secondary"
+                  disabled={updateStatusMutation.isPending || (currentTicket.parts || []).length > 0}
+                  onClick={() => updateStatusMutation.mutate({
+                    id: currentTicket.id, status: pendingCashRefundStatus, refundAdvance: true,
+                  })}>
+                  {t('maintenance.refund_and_cancel', 'تأكيد رد العربون نقدًا وإلغاء الصيانة')}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Customer, Device & Passcode Grid */}
