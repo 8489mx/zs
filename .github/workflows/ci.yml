@@ -189,4 +189,4 @@ jobs:
         working-directory: frontend
       - name: Electron offline updater and rollback contract smoke (not physical Windows E2E)
         run: npm run qa:electron
-        working-directory: frontend
+        working-directory: .
