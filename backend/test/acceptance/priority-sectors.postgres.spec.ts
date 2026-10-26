@@ -356,6 +356,9 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL non-stock menu option cannot spoof ingredient intake');
 
+    // Replenish the meal after takeaway: the next rejection must exercise
+    // the missing INGREDIENT path, not a previously sold-out meal SKU.
+    await receive(rest,meal,1,4);
     // Missing stock must roll back invoice, tender and GL together.
     const salesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))
       .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
