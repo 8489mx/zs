@@ -1,5 +1,5 @@
 import { valueStockReceipt } from '../accounting/inventory-valuation';
-import { exchangeStoreCreditAmount } from './engines/exchange-store-credit.engine';
+import { exchangeStoreCreditAmount, hasUnpaidExchangeBalance } from './engines/exchange-store-credit.engine';
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
 import { currencyMoneyDigits, roundMoney as roundBookMoney } from '../accounting/engines/money-minor-units.engine';
 import { Inject, Injectable, Optional } from '@nestjs/common';
@@ -444,7 +444,7 @@ export class ReturnsService {
     const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
     const sale = await trx.selectFrom('sales').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();
     if (!sale) throw new AppError('Invoice not found', 'INVOICE_NOT_FOUND', 404);
-    if (exchangePrepared && (!sale.customer_id || Number(sale.total) - Number(sale.paid_amount) - Number(sale.store_credit_used || 0) > 0.001)) {
+    if (exchangePrepared && (!sale.customer_id || hasUnpaidExchangeBalance(Number(sale.total), Number(sale.paid_amount), Number(sale.store_credit_used || 0), moneyDigits))) {
       throw new AppError('الاستبدال يتطلب فاتورة مسددة وعميلها مسجلاً؛ سوِّ المديونية أولاً', 'EXCHANGE_UNPAID_SOURCE', 422);
     }
     if (payload.settlementMode === 'store_credit' && !sale.customer_id) {
