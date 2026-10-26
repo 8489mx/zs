@@ -548,7 +548,7 @@ export class AccountingPostingService {
     const unit = 10 ** -bookDigits;
     // The early source lookups can race when recovery workers use different
     // connections. Recheck under the same transaction lock as the insert.
-    const oncePerSource = ['sale', 'purchase', 'sales_return', 'purchase_return', 'customer_payment', 'supplier_payment', 'supplier_payment_schedule_settlement', 'expense', 'trade_in', 'maintenance_advance', 'maintenance_delivery', 'maintenance_part_issue', 'maintenance_part_return', 'pharmacy_clinical_service', 'pharmacy_prescription_cash'].includes(params.sourceType);
+    const oncePerSource = ['sale', 'purchase', 'sales_return', 'purchase_return', 'customer_payment', 'supplier_payment', 'supplier_payment_schedule_settlement', 'expense', 'trade_in', 'maintenance_advance', 'maintenance_advance_refund', 'maintenance_delivery', 'maintenance_part_issue', 'maintenance_part_return', 'pharmacy_clinical_service', 'pharmacy_prescription_cash'].includes(params.sourceType);
     const deduplicate = oncePerSource || ['contracting_ipc', 'contracting_subcontract_ipc', 'contracting_subcontractor_payment', 'marketplace_settlement', 'maritime_carrier_credit_note', 'customer_installment_interest', 'installment_interest_accrual'].includes(params.sourceType);
     let dedupKey = deduplicate ? `${params.sourceType}:${params.sourceId}` : null;
     if (params.sourceType.startsWith('pdc_cheque_')) {

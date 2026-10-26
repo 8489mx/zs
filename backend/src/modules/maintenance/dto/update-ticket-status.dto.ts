@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateTicketStatusDto {
   @IsNotEmpty({ message: 'حالة التذكرة مطلوبة' })
@@ -18,6 +18,12 @@ export class UpdateTicketStatusDto {
   @IsOptional()
   @IsString()
   technicianNotes?: string;
+
+  // Explicit client authorization: refund the original cash advance when
+  // cancelling/unrepairable, after every issued spare part has been returned.
+  @IsOptional()
+  @IsBoolean()
+  refundAdvance?: boolean;
 
   @IsOptional()
   @IsString()

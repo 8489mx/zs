@@ -14,7 +14,7 @@ export async function postMaintenanceJournal(
   foundation: AccountingTenantFoundationService,
   posting: AccountingPostingService,
   auth: AuthContext,
-  sourceType: 'maintenance_advance' | 'maintenance_delivery' | 'maintenance_part_issue' | 'maintenance_part_return',
+  sourceType: 'maintenance_advance' | 'maintenance_advance_refund' | 'maintenance_delivery' | 'maintenance_part_issue' | 'maintenance_part_return',
   sourceId: number,
   branchId: number | null,
   locationId: number | null,
