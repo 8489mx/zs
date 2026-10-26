@@ -370,12 +370,33 @@ export class MaintenanceService {
            (payload.collectedAmount !== undefined && Number(payload.collectedAmount) > 0))) {
         throw new AppError('Delivered maintenance cannot be rebooked without reversal', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
-      if (['cancelled', 'unrepairable'].includes(payload.status) && ticket.status !== payload.status) {
+      const terminal = ['cancelled', 'unrepairable'];
+      if (terminal.includes(ticket.status) && payload.status !== ticket.status) {
+        throw new AppError('Cancelled maintenance cannot be reopened without a new source document',
+          'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      }
+      if (payload.refundAdvance && (!terminal.includes(payload.status) ||
+          payload.finalCost !== undefined || payload.collectedAmount !== undefined ||
+          Number(ticket.advance_payment || 0) <= 0)) {
+        throw new AppError('Explicit cash refund is valid only when cancelling a ticket with an advance',
+          'MAINTENANCE_REFUND_STATE_INVALID', 422);
+      }
+      if (terminal.includes(payload.status) && ticket.status !== payload.status) {
         const part = await trx.selectFrom('maintenance_ticket_parts').select('id')
           .where('tenant_id', '=', scope.tenantId).where('ticket_id', '=', id).executeTakeFirst();
-        if (Number(ticket.advance_payment) > 0 || part) {
-          throw new AppError('Refund advance and reverse issued parts before cancellation', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+        if (part || (Number(ticket.advance_payment || 0) > 0 && !payload.refundAdvance)) {
+          throw new AppError('Return all consumed parts and explicitly refund cash advance before cancellation',
+            'MAINTENANCE_REVERSAL_REQUIRED', 409);
         }
+      }
+      if (payload.refundAdvance && ticket.status === payload.status) {
+        // A repeated cancellation is an idempotent acknowledgement only when
+        // the first refund was actually committed, not merely a status change.
+        const previousRefund = await trx.selectFrom('treasury_transactions').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('reference_type', '=', 'maintenance_advance_refund')
+          .where('reference_id', '=', id).executeTakeFirst();
+        if (!previousRefund) throw new AppError('Historical cancellation has no verified refund',
+          'MAINTENANCE_REFUND_RECONCILIATION_REQUIRED', 409);
       }
       const updates: Record<string, any> = {
         status: payload.status,
@@ -401,6 +422,49 @@ export class MaintenanceService {
         .where('tenant_id', '=', scope.tenantId)
         .where('id', '=', id)
         .execute();
+
+      // The explicit cash-only cancellation returns a cash advance and reverses
+      // its unearned-revenue liability under the same ticket lock and DB transaction.
+      // Tickets with issued parts must first use the existing costed return path.
+      if (payload.refundAdvance && terminal.includes(payload.status) && ticket.status !== payload.status) {
+        const digits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
+        const advance = Number(ticket.advance_payment || 0);
+        const sourceReceipt = await trx.selectFrom('treasury_transactions')
+          .select(['id', 'amount', 'txn_type'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('reference_type', '=', 'maintenance_ticket').where('reference_id', '=', id)
+          .execute();
+        const sourceJournal = await trx.selectFrom('journal_entries').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('source_type', '=', 'maintenance_advance')
+          .where('source_id', '=', id).where('status', '=', 'posted')
+          .where('reversed_by_entry_id', 'is', null).executeTakeFirst();
+        const priorRefund = await trx.selectFrom('treasury_transactions').select('id')
+          .where('tenant_id', '=', scope.tenantId)
+          .where('reference_type', '=', 'maintenance_advance_refund').where('reference_id', '=', id)
+          .executeTakeFirst();
+        if (sourceReceipt.length !== 1 || sourceReceipt[0].txn_type !== 'revenue' ||
+            toMinorUnits(Number(sourceReceipt[0].amount), digits) !== toMinorUnits(advance, digits) ||
+            !sourceJournal || priorRefund) {
+          throw new AppError('Cannot refund an unverified or already-refunded maintenance advance',
+            'MAINTENANCE_REFUND_RECONCILIATION_REQUIRED', 409);
+        }
+        await trx.insertInto('treasury_transactions').values({
+          tenant_id: scope.tenantId, account_id: scope.accountId,
+          txn_type: 'expense', amount: -advance, payment_channel: 'cash',
+          note: `رد عربون صيانة تذكرة ${ticket.ticket_no} بعد الإلغاء`,
+          reference_type: 'maintenance_advance_refund', reference_id: id,
+          branch_id: ticket.branch_id ? Number(ticket.branch_id) : null,
+          location_id: ticket.location_id ? Number(ticket.location_id) : null,
+          created_by: auth.userId ? Number(auth.userId) : null,
+        }).execute();
+        await postMaintenanceJournal(trx, this.accountingFoundation, this.accountingPosting, auth,
+          'maintenance_advance_refund', id,
+          ticket.branch_id ? Number(ticket.branch_id) : null,
+          ticket.location_id ? Number(ticket.location_id) : null, [
+            { code: '2150', debit: advance, description: 'Refund previously unearned maintenance advance' },
+            { code: '1110', credit: advance, description: 'Cash refund of maintenance customer advance' },
+          ]);
+      }
 
       // When status changes to delivered, collect remaining balance into treasury
       if (payload.status === 'delivered' && ticket.status !== 'delivered') {

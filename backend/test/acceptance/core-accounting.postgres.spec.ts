@@ -180,6 +180,47 @@ async function main() {
     await reconciliation(mf);
     pass('maintenance cash advance liability / WAC spare part issue and return / exact service settlement / retry / GL');
 
+    // The cancellation/refund command may ONLY release a real, unreversed
+    // cash advance. A second request cannot refund twice or reopen the ticket.
+    const refundFixture = await fixture('maintref');
+    const refundTicket = await maintenance.createTicket({
+      customerName: 'Cancelled repair', customerPhone: '01090000000',
+      deviceModel: 'Faulty device', problemDescription: 'Customer withdrew',
+      expectedCost: 20, finalCost: 20, advancePayment: 12,
+      branchId: refundFixture.branchId, locationId: refundFixture.locationId,
+    } as any, refundFixture.auth);
+    const refundId = Number(refundTicket.id);
+    await assert.rejects(maintenance.updateTicketStatus(refundId, {status:'cancelled'}, refundFixture.auth),
+      (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
+    assert.equal(await postingAmount(refundFixture, '1110'), 12);
+    assert.equal(await postingAmount(refundFixture, '2150'), -12);
+    await maintenance.updateTicketStatus(refundId,
+      {status:'cancelled', refundAdvance:true}, refundFixture.auth);
+    assert.equal(await postingAmount(refundFixture, '1110'), 0, 'cash returned exactly');
+    assert.equal(await postingAmount(refundFixture, '2150'), 0, 'advance liability extinguished');
+    const refunds = await db.selectFrom('treasury_transactions').select(['id','amount'])
+      .where('tenant_id', '=', refundFixture.auth.tenantId!)
+      .where('reference_type', '=', 'maintenance_advance_refund')
+      .where('reference_id', '=', refundId).execute();
+    assert.equal(refunds.length, 1, 'single cash refund source');
+    assert.equal(Number(refunds[0].amount), -12);
+    await maintenance.updateTicketStatus(refundId,
+      {status:'cancelled', refundAdvance:true}, refundFixture.auth);
+    const twice = await db.selectFrom('treasury_transactions').select('id')
+      .where('tenant_id', '=', refundFixture.auth.tenantId!)
+      .where('reference_type', '=', 'maintenance_advance_refund')
+      .where('reference_id', '=', refundId).execute();
+    assert.equal(twice.length, 1, 'duplicate request does not double refund');
+    const refundJournals = await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id', '=', refundFixture.auth.tenantId!)
+      .where('source_type', '=', 'maintenance_advance_refund')
+      .where('source_id', '=', refundId).where('status', '=', 'posted').execute();
+    assert.equal(refundJournals.length, 1, 'single immutable reverse-liability posting');
+    await assert.rejects(maintenance.updateTicketStatus(refundId, {status:'received'}, refundFixture.auth),
+      (e:any) => e.code === 'MAINTENANCE_REVERSAL_REQUIRED');
+    await reconciliation(refundFixture);
+    pass('maintenance explicit advance cancellation / cash refund / liability reversal / idempotent retry / GL');
+
     const f=await fixture('commercial');
     const p1=await purchase(f,10); await purchase(f,20);
     let product=await db.selectFrom('products').select(['stock_qty','cost_price']).where('id','=',f.productId).executeTakeFirstOrThrow();
