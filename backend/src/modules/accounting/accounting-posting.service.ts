@@ -1116,7 +1116,7 @@ export class AccountingPostingService {
         partnerId: null,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     if (nonCashAmount > 0) {
@@ -1129,7 +1129,7 @@ export class AccountingPostingService {
         partnerId: null,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     if (receivableAmount > 0) {
@@ -1142,7 +1142,7 @@ export class AccountingPostingService {
         partnerId: customerPartnerId,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     if (storeCreditUsed > 0) {
@@ -1155,7 +1155,7 @@ export class AccountingPostingService {
         partnerId: customerPartnerId,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     if (discount > 0) {
@@ -1168,7 +1168,7 @@ export class AccountingPostingService {
         partnerId: null,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     if (revenueCredit > 0) {
@@ -1181,7 +1181,7 @@ export class AccountingPostingService {
         partnerId: null,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     if (taxAmount > 0) {
@@ -1194,7 +1194,7 @@ export class AccountingPostingService {
         partnerId: null,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     const saleItems = await queryable
@@ -1215,7 +1215,7 @@ export class AccountingPostingService {
         partnerId: null,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
       this.addLine(lines, {
         accountId: inventoryAccountId,
         description: 'إخراج مخزون بعد تعديل البيع',
@@ -1225,7 +1225,7 @@ export class AccountingPostingService {
         partnerId: null,
         branchId: sale.branch_id ? Number(sale.branch_id) : null,
         locationId: sale.location_id ? Number(sale.location_id) : null,
-      });
+      }, bookDigits);
     }
 
     const accountMap = await this.getActiveAccountMap(queryable, scope.tenantId, lines.map((line) => line.accountId));
