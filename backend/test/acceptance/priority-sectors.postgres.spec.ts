@@ -168,6 +168,24 @@ async function main(): Promise<void> {
     assert.equal(Number(afterExchange.find(p=>Number(p.id)===blue)!.stock_qty),1);
     await check(fashion,[red,blue]);
     console.log('PASS sector-clothing PostgreSQL atomic color/size exchange and immutable inventory/GL matching');
+    // A separate FULL return must not alter another colour/size or count the refund twice.
+    const fullSale=await checkout(fashion,[{productId:red,name:'Red M full-return case',
+      qty:1,price:60,unitMultiplier:1}]);
+    const fullSaleId=Number((fullSale.sale as {id:string}).id);
+    const fullLine=await db.selectFrom('sale_items').select('id')
+      .where('tenant_id','=',fashion.auth.tenantId!).where('sale_id','=',fullSaleId)
+      .where('product_id','=',red).executeTakeFirstOrThrow();
+    await returns.createReturn({type:'sale',invoiceId:fullSaleId,
+      items:[{productId:red,saleItemId:Number(fullLine.id),qty:1}],
+      settlementMode:'refund',refundMethod:'cash'},fashion.auth);
+    const fullReturnStocks=await db.selectFrom('products').select(['id','stock_qty'])
+      .where('tenant_id','=',fashion.auth.tenantId!).where('id','in',[red,blue]).execute();
+    assert.equal(Number(fullReturnStocks.find(p=>Number(p.id)===red)!.stock_qty),2);
+    assert.equal(Number(fullReturnStocks.find(p=>Number(p.id)===blue)!.stock_qty),1);
+    assert.equal(await posted(fashion,'1110'),120,'full sale + full refund leave no phantom cash');
+    await check(fashion,[red,blue]);
+    console.log('PASS sector-clothing PostgreSQL complete refund leaves variant stock and drawer unchanged');
+
     const clothingShift=await db.selectFrom('cashier_shifts').select('id')
       .where('tenant_id','=',fashion.auth.tenantId!).where('opened_by','=',fashion.auth.userId)
       .where('status','=','open').executeTakeFirstOrThrow();
@@ -200,15 +218,48 @@ async function main(): Promise<void> {
     assert.equal(await posted(market,'1110'),28.5);
     await check(market,[weighted]);
     console.log('PASS sector-market PostgreSQL barcode, weighted POS, shift open, purchase, WAC, COGS, cash/GL');
+    // Fractional return against the exact sold line; supplier settlement must be
+    // counted once as cash-out, never as a second POS discount or stock movement.
+    const marketLine=await db.selectFrom('sale_items').select('id')
+      .where('tenant_id','=',market.auth.tenantId!).where('sale_id','=',marketId)
+      .where('product_id','=',weighted).executeTakeFirstOrThrow();
+    await returns.createReturn({type:'sale',invoiceId:marketId,
+      items:[{productId:weighted,saleItemId:Number(marketLine.id),qty:0.375}],
+      settlementMode:'refund',refundMethod:'cash'},market.auth);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',market.auth.tenantId!).where('id','=',weighted)
+      .executeTakeFirstOrThrow()).stock_qty),8);
+    assert.equal(await posted(market,'5100'),16,'fractional return reverses exact sold WAC');
+    assert.equal(await posted(market,'1110'),24,'fractional return refunds 4.50');
+
+    const supplierPaymentKey=randomUUID();
+    await purchases.createSupplierPayment({supplierId:market.supplierId,amount:15,
+      paymentChannel:'cash',branchId:market.branchId,locationId:market.locationId},
+      market.auth,supplierPaymentKey);
+    const paymentsAfterFirst=await db.selectFrom('supplier_payments')
+      .select(db.fn.countAll().as('n')).where('tenant_id','=',market.auth.tenantId!)
+      .executeTakeFirstOrThrow();
+    await purchases.createSupplierPayment({supplierId:market.supplierId,amount:15,
+      paymentChannel:'cash',branchId:market.branchId,locationId:market.locationId},
+      market.auth,supplierPaymentKey);
+    const paymentsAfterRetry=await db.selectFrom('supplier_payments')
+      .select(db.fn.countAll().as('n')).where('tenant_id','=',market.auth.tenantId!)
+      .executeTakeFirstOrThrow();
+    assert.equal(Number(paymentsAfterFirst.n),1);
+    assert.equal(Number(paymentsAfterRetry.n),1,'repeated supplier settlement must be idempotent');
+    assert.equal(await posted(market,'1110'),9,'market cash 28.50 - 4.50 refund - 15 supplier');
+    await check(market,[weighted]);
+    console.log('PASS sector-market PostgreSQL fractional return, supplier cash settlement and idempotent retry');
+
     const marketShift=await db.selectFrom('cashier_shifts').select('id')
       .where('tenant_id','=',market.auth.tenantId!).where('opened_by','=',market.auth.userId)
       .where('status','=','open').executeTakeFirstOrThrow();
     await drawer.closeCashierShift(Number(marketShift.id),
-      {countedCash:28.5,managerPin:PASSWORD},market.auth);
+      {countedCash:9,managerPin:PASSWORD},market.auth);
     const closed=await db.selectFrom('cashier_shifts').select(['status','expected_cash','variance'])
       .where('tenant_id','=',market.auth.tenantId!).where('id','=',marketShift.id).executeTakeFirstOrThrow();
     assert.equal(closed.status,'closed');
-    assert.equal(cents(closed.expected_cash),28.5);
+    assert.equal(cents(closed.expected_cash),9);
     assert.equal(cents(closed.variance),0);
     console.log('PASS sector-market PostgreSQL exact shift close balances cash POS and zero variance');
 
@@ -269,6 +320,19 @@ async function main(): Promise<void> {
     assert.equal(await posted(rest,'1110'),0,'duplicate prepared dish return does not refund twice');
     console.log('PASS sector-restaurant PostgreSQL prepared meal refund preserves consumed inventory/COGS and reverses cash once');
 
+    // A takeaway order goes through the same costed sale, receipt and GL path.
+    // This is deliberately not a claim that physical KDS stations were exercised.
+    const takeaway=await checkout(rest,[{productId:meal,name:'Bistro takeaway',
+      qty:1,price:60,unitMultiplier:1}],{orderType:'takeaway'});
+    assert.ok(Number((takeaway.sale as {id:string}).id)>0);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal)
+      .executeTakeFirstOrThrow()).stock_qty),0);
+    assert.equal(await posted(rest,'5100'),10,'takeaway meal incurs additional historic COGS');
+    assert.equal(await posted(rest,'1110'),60,'takeaway cash paid and earlier meal refunded');
+    await check(rest,[meal,cheese]);
+    console.log('PASS sector-restaurant PostgreSQL takeaway invoice, cost and cash posting');
+
     // A configured non-stock menu option may not be turned into a physical
     // ingredient expense by providing an arbitrary productId in the POS body.
     const group=await db.insertInto('pos_modifier_groups').values({
@@ -288,7 +352,7 @@ async function main(): Promise<void> {
       unitMultiplier:1,modifiers:[{optionId:Number(noStockOption.id),productId:cheese,
         name:'spoof',qty:1,price:0,costPrice:999}]}]),
       (e:any)=>e.code==='RESTAURANT_MODIFIER_COMPONENT_MISMATCH');
-    assert.equal(await posted(rest,'5100'),6);
+    assert.equal(await posted(rest,'5100'),10);
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL non-stock menu option cannot spoof ingredient intake');
 
