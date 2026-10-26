@@ -5784,6 +5784,10 @@ html[dir="ltr"] .two-column-layout {
     transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease !important;
   }
 
+    body.pos-in-cart-view.pos-cart-empty .pos-workspace-dock {
+    display: none !important;
+  }
+
   body.pos-in-cart-view .pos-workspace-dock {
     bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
   }

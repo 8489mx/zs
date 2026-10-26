@@ -99,13 +99,20 @@ export function PosWorkspaceMainContent({
     if (typeof document === 'undefined') return;
     if (mobileActiveTab === 'cart') {
       document.body.classList.add('pos-in-cart-view');
+      if (cartItemsCount === 0) {
+        document.body.classList.add('pos-cart-empty');
+      } else {
+        document.body.classList.remove('pos-cart-empty');
+      }
     } else {
       document.body.classList.remove('pos-in-cart-view');
+      document.body.classList.remove('pos-cart-empty');
     }
     return () => {
       document.body.classList.remove('pos-in-cart-view');
+      document.body.classList.remove('pos-cart-empty');
     };
-  }, [mobileActiveTab]);
+  }, [mobileActiveTab, cartItemsCount]);
   const [isFloatingCartExpanded, setIsFloatingCartExpanded] = useState(false);
   const defaultLeft = posMode === 'scanner' ? 70 : 38;
   const { leftRatio, rightRatio, handlePositionPct, startDrag } = useSplitter(
@@ -199,6 +206,7 @@ export function PosWorkspaceMainContent({
           <PosCartPanel
             cart={pos.cart}
             products={pos.filteredSaleProducts}
+            onNavigateToProducts={() => setMobileActiveTab('products')}
             customers={pos.customersQuery.data || []}
             branches={pos.branchesQuery.data || []}
             locations={pos.locationsQuery.data || []}

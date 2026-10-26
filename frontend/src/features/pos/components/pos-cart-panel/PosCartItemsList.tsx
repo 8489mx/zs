@@ -357,7 +357,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   );
 });
 
-export function PosCartItemsList({ cart, products, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onItemSeatChange, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'products' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onItemSeatChange' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
+export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onItemSeatChange, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'products' | 'onNavigateToProducts' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onItemSeatChange' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
   const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
@@ -404,7 +404,78 @@ export function PosCartItemsList({ cart, products, lastAddedLineKey, selectedLin
     });
   }, []);
 
-  if (!cart.length) return null;
+  if (!cart.length) {
+    return (
+      <div
+        className="pos-cart-empty-state"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '42px 20px',
+          textAlign: 'center',
+          minHeight: '280px',
+          flex: 1,
+          width: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
+        <div
+          style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '20px',
+            background: '#f1f5f9',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#64748b',
+            marginBottom: '14px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+        </div>
+        <strong style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '5px' }}>
+          {t('pos.cart_empty_title', 'السلة فارغة حالياً')}
+        </strong>
+        <p style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', lineHeight: 1.5, margin: '0 0 18px' }}>
+          {t('pos.cart_empty_subtitle', 'اختر الأصناف من الكتالوج أو امسح الباركود مباشرة لبدء البيع')}
+        </p>
+        {onNavigateToProducts ? (
+          <button
+            type="button"
+            onClick={onNavigateToProducts}
+            style={{
+              background: '#170e5e',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '10px',
+              padding: '10px 22px',
+              fontSize: '13px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 14px rgba(23, 14, 94, 0.22)',
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8" />
+            </svg>
+            <span>{t('pos.cart_browse_products', 'استعراض الأصناف والبدء بالبيع')}</span>
+          </button>
+        ) : null}
+      </div>
+    );
+  }
 
   let responsiveClass = '';
   if (containerWidth > 0) {

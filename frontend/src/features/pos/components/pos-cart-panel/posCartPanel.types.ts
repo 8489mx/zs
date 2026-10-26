@@ -19,6 +19,7 @@ export interface HeldPosDraftSummary {
 
 export interface PosCartPanelProps {
   products?: Product[];
+  onNavigateToProducts?: () => void;
   cart: PosItem[];
   customers: Customer[];
   branches: Branch[];
