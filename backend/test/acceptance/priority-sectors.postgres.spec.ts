@@ -187,6 +187,23 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL dine-in table, costed modifier ingredients, cash/COGS/WAC/GL');
 
+    // Ordinary retail returns must NOT reverse full COGS while returning only
+    // the parent meal (ingredient component stock cannot be fabricated).
+    const restaurantReturnBefore=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
+    await assert.rejects(returns.createReturn({type:'sale',invoiceId:rId,
+      items:[{productId:meal,qty:1}],settlementMode:'refund',refundMethod:'cash'},rest.auth),
+      (e:any)=>e.code==='COMPOSITE_RETURN_RECONCILIATION_REQUIRED');
+    const restaurantReturnAfter=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
+    assert.equal(Number(restaurantReturnAfter.n),Number(restaurantReturnBefore.n));
+    assert.equal(await posted(rest,'5100'),6,'failed composite return cannot credit COGS');
+    assert.equal(await posted(rest,'1110'),60,'failed composite return cannot pay a cash refund');
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty),1.8);
+    await check(rest,[meal,cheese]);
+    console.log('PASS sector-restaurant PostgreSQL composite meal refund fails closed without inventory/GL/cash drift');
+
     // Missing stock must roll back invoice, tender and GL together.
     const salesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))
       .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
