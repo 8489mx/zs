@@ -1336,3 +1336,7 @@
 
 
 <!-- migrated:cap-290:end -->
+
+### P0-C actual restaurant POS ingredient / COGS check (2026-10-26)
+
+P0-C branch `SalesWriteService.resolveSaleModifierCosts` now resolves stock-bearing modifier cost from the **tenant-owned product WAC** after the canonical stock lock. Registered menu options supply the authoritative consumed component and rate; inconsistent source/component mapping, unknown options and invalid fractional quantities fail closed. New and edited sale lines persist the resulting per-unit cost and canonical modifier quantities, and their stock movement paths use these resolved quantities so the ordinary `postSale` COGS journal receives the same ingredient valuation as physical consumption. `backend/test/acceptance/priority-sectors.postgres.spec.ts` is invoked independently by the isolated accounting PostgreSQL workflow; real final-head CI must pass before this implementation is verified. Dine-in table metadata/ingredient modifier/cash/GL tested, not physical KDS device, delivery, full manufactured recipe BOM or refund/void of prepared meals. The older `restaurant-full-commercial-simulation.spec.ts` uses **mock objects only**, not a release certificate.

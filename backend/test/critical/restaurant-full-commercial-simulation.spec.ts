@@ -258,7 +258,7 @@ async function runCommercialReadinessSimulation(): Promise<void> {
   console.log('   ✓ BOM consumption, logged waste, and unexplained variance computed with zero loss.');
 
   console.log('\n================================================================');
-  console.log('   COMMERCIAL CERTIFICATION: RESTAURANT F&B SYSTEM 100% READY!');
+  console.log('   MOCK SIMULATION ONLY: RESTAURANT READINESS NOT CERTIFIED');
   console.log('================================================================\n');
 }
 
