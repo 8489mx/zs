@@ -1355,6 +1355,21 @@ async function main() {
         unitMultiplier:1,locationId:moving.locationId}],
     },moving.auth,randomUUID());
     const transfers=app.get(InventoryTransferService);
+    const assertTransferStock=(phase:string,expected:number)=>{
+      return Promise.all([
+        db.selectFrom('products').select('stock_qty').where('tenant_id','=',moving.auth.tenantId!)
+          .where('id','=',moving.productId).executeTakeFirstOrThrow(),
+        db.selectFrom('product_location_stock').select(['location_id','qty','branch_id'])
+          .where('tenant_id','=',moving.auth.tenantId!).where('product_id','=',moving.productId).execute(),
+      ]).then(([product,locations])=>{
+        const total=Number(locations.reduce((sum,row)=>sum+Number(row.qty),0).toFixed(3));
+        assert.equal(Number(product.stock_qty),expected,
+          phase+' global qty != '+expected+'; locations='+JSON.stringify(locations));
+        assert.equal(total,expected,
+          phase+' location sum != '+expected+'; locations='+JSON.stringify(locations));
+      });
+    };
+    await assertTransferStock('after KWD purchase',3);
     const destination=await db.insertInto('stock_locations').values({
       tenant_id:moving.auth.tenantId!,account_id:moving.auth.accountId!,
       branch_id:moving.branchId,name:'KWD destination',code:'DEST_KWD',location_type:'internal_warehouse',is_active:true,
@@ -1383,6 +1398,7 @@ async function main() {
     assert.equal(Number(issueMovement.total_cost),0.001,'final issue source cost retains fil');
     assert.equal(await postingAmount(moving,'6900',3),0.001,'final issue debits operating supplies expense');
     assert.equal(await postingAmount(moving,'1140',3),0.002);
+    await assertTransferStock('after KWD final issue',2);
     await assert.rejects(transfers.createStockTransfer({
       ...issuePayload,fromLocationId:Number(destination.id),toLocationId:moving.locationId,
     },moving.auth),(err:any)=>['INSUFFICIENT_LOCATION_STOCK','INSUFFICIENT_STOCK'].includes(err.code));
@@ -1395,6 +1411,7 @@ async function main() {
       .where('tenant_id','=',moving.auth.tenantId!).where('transfer_id','=',outboundId).executeTakeFirstOrThrow();
     assert.equal(Number(outboundItem.dispatched_qty),1,'dispatch must persist actual quantity, never zero default');
     assert.equal(await postingAmount(moving,'1140',3),0.002,'transfer in transit does not change global GL asset');
+    await assertTransferStock('after KWD transit dispatch',2);
     const received=await Promise.allSettled([
       transfers.receiveStockTransfer(outboundId,moving.auth,{items:[{itemId:Number(outboundItem.id),receivedQty:0}]}),
       transfers.receiveStockTransfer(outboundId,moving.auth,{items:[{itemId:Number(outboundItem.id),receivedQty:0}]}),
