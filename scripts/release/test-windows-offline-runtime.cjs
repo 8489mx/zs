@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
 const crypto = require('node:crypto');
 const cp = require('node:child_process');
 const http = require('node:http');
@@ -26,7 +27,14 @@ function isLive(port) {
 async function run() {
   assert.equal(process.platform, 'win32', 'Requires actual Windows runner');
   assert.ok(process.argv[2], 'Usage: node test-windows-offline-runtime.cjs <release-dir>');
-  const release = path.resolve(process.argv[2]);
+  const buildOutput = path.resolve(process.argv[2]);
+  // Windows runner D:\\a is a CI checkout mount; PostgreSQL initdb must change the
+  // data directory ACL. Check real portable runtime in a user-owned installation
+  // directory, not in the restricted checkout mount. The original artifact stays clean.
+  const testInstallRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'zs-windows-offline-'));
+  const release = path.join(testInstallRoot, 'Z-ERP-Offline');
+  console.log('Copying complete candidate into disposable user-writable Windows installation path:', release);
+  fs.cpSync(buildOutput, release, { recursive: true });
   const runtime = path.join(release, 'runtime');
   for (const relative of [
     'ZSystems POS.exe',
@@ -121,6 +129,7 @@ async function run() {
     for (const file of ['data', 'logs', '.postgres-auth.json', '.postgres-auth.json.tmp', 'postgres.pw']) {
       fs.rmSync(path.join(runtime, file), { recursive: true, force: true });
     }
+    fs.rmSync(testInstallRoot, { recursive: true, force: true });
   }
 }
 run().catch(err => { console.error(err.stack || err); process.exitCode = 1; });
