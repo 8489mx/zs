@@ -6318,6 +6318,9 @@ export class HrService {
     const reason = clean(payload.notes);
     if (!reason) throw new AppError('تفاصيل المسحوب وسبب الصرف مطلوبة', 'HR_ADVANCE_REASON_REQUIRED', 400);
 
+    const actionType = String(payload.actionType || 'advance').trim();
+    const isWagePayout = actionType === 'wage_payout';
+
     // Verify employee withdrawal eligibility and balance
     const withdrawalBalance = await this.getEmployeeWithdrawalBalance(employeeId, auth);
     const isDirectDisbursement = withdrawalBalance.netAvailableBalance > 0 && amount <= withdrawalBalance.netAvailableBalance;
@@ -6325,11 +6328,15 @@ export class HrService {
 
     let managerApprovalTag = '';
     if (isDirectDisbursement) {
-      managerApprovalTag = `[مسحوب من الرصيد المستحق (المتاح: ${withdrawalBalance.netAvailableBalance})]`;
+      managerApprovalTag = isWagePayout
+        ? `[صرف وتصفية مستحقات أجر الفترة (المصروف: ${amount})]`
+        : `[مسحوب من الرصيد المستحق (المتاح: ${withdrawalBalance.netAvailableBalance})]`;
     } else {
       // Overdraft / advance exceeding earned pay: requires manager password or admin caller
       if (isCallerAdmin) {
-        managerApprovalTag = `[معتمد من الإدارة: ${auth.username || 'المدير'}]`;
+        managerApprovalTag = isWagePayout
+          ? `[صرف أجر استثنائي معتمد من الإدارة: ${auth.username || 'المدير'}]`
+          : `[معتمد من الإدارة: ${auth.username || 'المدير'}]`;
       } else {
         const enteredPassword = String(payload.managerPassword || '').trim();
         if (!enteredPassword) {
@@ -6466,7 +6473,7 @@ export class HrService {
           created_by, tenant_id, account_id
         )
         VALUES (
-          ${employeeId}, 'loan_disbursement', ${amount}, ${activeDebt + amount},
+          ${employeeId}, ${isWagePayout ? 'wage_payout' : 'loan_disbursement'}, ${amount}, ${activeDebt + amount},
           ${notes}, 'hr_employee_loan', ${loanId}, ${auth.userId}, ${tenantId}, ${accountId}
         )
       `.execute(trx);
@@ -6482,13 +6489,16 @@ export class HrService {
         `.execute(trx);
         if (!eligibleShift.rows.length) throw new AppError('وردية الكاشير غير مفتوحة أو لا تخص المستخدم الحالي', 'HR_CASHIER_SHIFT_INVALID', 400);
         const shift = eligibleShift.rows[0];
+        const txnNote = isWagePayout
+          ? `صرف راتب/أجر موظف #${employeeId} (${employee.display_name})، سند #${loanId}: ${notes}`
+          : `سلفة موظف #${employeeId} (${employee.display_name})، حركة #${loanId}: ${notes}`;
         await sql`
           INSERT INTO treasury_transactions (
-            tenant_id, account_id, txn_type, amount, note, reference_type,
+            tenant_id, account_id, txn_type, amount, payment_channel, note, reference_type,
             reference_id, branch_id, location_id, created_by
           ) VALUES (
-            ${tenantId}, ${accountId}, 'cash_out', ${-amount},
-            ${'سلفة موظف #' + employeeId + '، حركة #' + loanId + ': ' + notes},
+            ${tenantId}, ${accountId}, 'cash_out', ${-amount}, 'cash',
+            ${txnNote},
             'cashier_shift', ${shiftId}, ${shift.branch_id}, ${shift.location_id}, ${auth.userId}
           )
         `.execute(trx);
