@@ -319,10 +319,13 @@ function PosProductsPanelComponent({
     }
   }, [customization.showPriceTierToggle, customization.defaultPriceType, priceType, onPriceTypeChange]);
 
+  const lastProductsScrollTopRef = useRef<number>(0);
+
   useEffect(() => {
     return () => {
       if (typeof document !== 'undefined') {
         document.body.classList.remove('pos-scroll-hides-nav');
+        document.body.classList.remove('mobile-nav-hidden');
       }
     };
   }, []);
@@ -1021,12 +1024,23 @@ function PosProductsPanelComponent({
           className="pos-products-scroll"
           onScroll={(e) => {
             if (typeof document === 'undefined') return;
-            const top = e.currentTarget.scrollTop;
-            if (top > 30) {
-              document.body.classList.add('pos-scroll-hides-nav');
-            } else {
+            const currentTop = e.currentTarget.scrollTop;
+            const diff = currentTop - lastProductsScrollTopRef.current;
+
+            if (currentTop <= 25) {
               document.body.classList.remove('pos-scroll-hides-nav');
+              document.body.classList.remove('mobile-nav-hidden');
+            } else if (diff > 10) {
+              // Scrolling down: hide bottom nav & dock floating cart
+              document.body.classList.add('pos-scroll-hides-nav');
+              document.body.classList.add('mobile-nav-hidden');
+            } else if (diff < -6) {
+              // Scrolling up slightly: reveal bottom nav immediately
+              document.body.classList.remove('pos-scroll-hides-nav');
+              document.body.classList.remove('mobile-nav-hidden');
             }
+
+            lastProductsScrollTopRef.current = currentTop;
           }}
           style={{
             flex: '1 1 0%',

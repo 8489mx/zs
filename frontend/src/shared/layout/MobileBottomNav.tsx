@@ -181,8 +181,9 @@ export function MobileBottomNav() {
       const diff = currentScrollY - lastScrollY.current;
 
       // Always show near the top of the page
-      if (currentScrollY < 40) {
+      if (currentScrollY < 35) {
         setIsHidden(false);
+        document.body.classList.remove('pos-scroll-hides-nav');
         lastScrollY.current = currentScrollY;
         return;
       }
@@ -198,12 +199,13 @@ export function MobileBottomNav() {
       }
 
       // Scroll Down -> Hide
-      if (diff > 12) {
+      if (diff > 10) {
         setIsHidden(true);
       } 
       // Scroll Up -> Show
-      else if (diff < -8) {
+      else if (diff < -6) {
         setIsHidden(false);
+        document.body.classList.remove('pos-scroll-hides-nav');
       }
 
       lastScrollY.current = currentScrollY;
@@ -228,10 +230,14 @@ export function MobileBottomNav() {
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.body.classList.toggle('mobile-nav-hidden', isHidden);
+      if (!isHidden) {
+        document.body.classList.remove('pos-scroll-hides-nav');
+      }
     }
     return () => {
       if (typeof document !== 'undefined') {
         document.body.classList.remove('mobile-nav-hidden');
+        document.body.classList.remove('pos-scroll-hides-nav');
       }
     };
   }, [isHidden]);
