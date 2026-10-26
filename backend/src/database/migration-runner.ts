@@ -325,10 +325,17 @@ async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
 
     // Reconcile shifted / resequenced migrations (commit d44a2a648 shifted 236..239 to 237..240; commit 7ce255c0 shifted 252 to 254)
     const shiftedImportMigrations: [string, string][] = [
+      ['2040000000087_contracting_wir_and_handover_workflows', '2040000000092_contracting_wir_and_handover_registers'],
+      ['2040000000230_international_import_operations_core', '2040000000232_international_import_operations_core'],
+      ['2040000000231_international_import_operations_core', '2040000000232_international_import_operations_core'],
       ['2040000000236_international_trade_procurement_and_sourcing', '2040000000237_international_trade_procurement_and_sourcing'],
       ['2040000000237_customs_broker_advances_and_container_deposits', '2040000000238_customs_broker_advances_and_container_deposits'],
       ['2040000000238_container_preorders_and_inventory_traceability', '2040000000239_container_preorders_and_inventory_traceability'],
       ['2040000000239_import_governance_approvals_and_reconciliation', '2040000000240_import_governance_approvals_and_reconciliation'],
+      ['2040000000246_tracked_stock_transfer_details', '2040000000248_tracked_stock_transfer_details'],
+      ['2040000000247_purchase_and_damage_tracked_provenance', '2040000000249_purchase_and_damage_tracked_provenance'],
+      ['2040000000248_stock_count_tracked_provenance', '2040000000250_stock_count_tracked_provenance'],
+      ['2040000000249_payment_channels_cash_drawer_separation', '2040000000251_payment_channels_cash_drawer_separation'],
       ['2040000000252_hr_asset_recovery_money_type', '2040000000254_hr_asset_recovery_money_type'],
     ];
 
@@ -359,6 +366,20 @@ async function reconcileRenamedMigrations(db: Kysely<Database>): Promise<void> {
           `.execute(db);
         }
       }
+    }
+    // Purge obsolete prototype migrations from earlier feature branches that were superseded or merged under official migrations
+    const obsoleteBranchMigrations = [
+      '2040000000233_users_default_branch_tenant_fk',
+      '2040000000194_multi_grn_bill_accrual',
+      '2040000000195_sale_pharmacy_batch_allocations',
+      '2040000000196_pos_atomic_exchange',
+    ];
+
+    for (const obsolete of obsoleteBranchMigrations) {
+      await sql`
+        DELETE FROM ${sql.id(schema, 'kysely_migration')}
+        WHERE name = ${obsolete}
+      `.execute(db);
     }
   } catch (err: any) {
     if (err.message && err.message.includes('Migration reconciliation integrity check failed')) {
