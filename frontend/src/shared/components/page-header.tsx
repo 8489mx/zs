@@ -81,7 +81,7 @@ export function PageHeader({
                 title={typeof title === 'string' ? title : undefined}
                 style={{ 
                   margin: 0, 
-                  lineHeight: 1.25, 
+                  lineHeight: 1.35, 
                   display: 'inline-flex', 
                   alignItems: 'center',
                   minWidth: 0,
@@ -89,6 +89,9 @@ export function PageHeader({
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  paddingBottom: '3px',
+                  paddingTop: '1px',
+                  boxSizing: 'border-box',
                   fontSize: typeof title === 'string' && title.length > 40 
                     ? '1.02rem' 
                     : typeof title === 'string' && title.length > 25 

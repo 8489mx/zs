@@ -1,0 +1,547 @@
+import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/shared/ui/button';
+import { formatCurrency } from '@/lib/format';
+import { CreditCardIcon, SmartphoneIcon, UserIcon, FileTextIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
+import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
+import type { PaymentPreset } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
+
+interface PosCheckoutExpressSectionProps {
+  pos: PosWorkspaceState;
+  isKwdStore: boolean;
+  isKsaStore: boolean;
+  isPaymentActive: (preset: PaymentPreset) => boolean;
+  onSelectPaymentPreset: (preset: PaymentPreset) => void;
+  onConfirmSale: () => void;
+  onSwitchToDetailed: () => void;
+  selectedCustomerName: string;
+  onOpenCustomerPicker: () => void;
+  onOpenNotes: () => void;
+  isNotesOpen: boolean;
+  cartQtySummaries: string[];
+}
+
+export function PosCheckoutExpressSection({
+  pos,
+  isKwdStore,
+  isKsaStore,
+  isPaymentActive,
+  onSelectPaymentPreset,
+  onConfirmSale,
+  onSwitchToDetailed,
+  selectedCustomerName,
+  onOpenCustomerPicker,
+  onOpenNotes,
+  isNotesOpen,
+  cartQtySummaries,
+}: PosCheckoutExpressSectionProps) {
+  const { t } = useTranslation();
+  const total = Number(pos.totals.total || 0);
+  const [receivedCash, setReceivedCash] = useState<number | null>(null);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
+
+  const transferSelected = !pos.paymentType && (pos.paymentChannel === 'wallet' || pos.paymentChannel === 'instapay');
+
+  // Compute smart cash denomination buttons >= total
+  const cashDenominations = useMemo(() => {
+    if (total <= 0) return [];
+    if (isKwdStore) {
+      const bases = [1, 5, 10, 20, 50];
+      const result: number[] = [];
+      for (const b of bases) {
+        if (b >= total && result.length < 4) {
+          result.push(b);
+        }
+      }
+      if (!result.includes(Math.ceil(total))) {
+        result.unshift(Math.ceil(total));
+      }
+      return Array.from(new Set(result)).slice(0, 4);
+    }
+
+    // Egypt / SAR / General currency rounding
+    const step = total > 500 ? 100 : total > 200 ? 50 : total > 50 ? 20 : 10;
+    const roundedCeil = Math.ceil(total / step) * step;
+    const presets = [
+      roundedCeil,
+      roundedCeil + step,
+      roundedCeil + step * 2,
+      total > 500 ? 1000 : total > 200 ? 500 : 200,
+    ];
+    return Array.from(new Set(presets.filter((p) => p >= total))).slice(0, 4);
+  }, [total, isKwdStore]);
+
+  const changeDue = receivedCash !== null && receivedCash >= total ? receivedCash - total : 0;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+      {/* 1. Big Hero Total Display */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          border: '1.5px solid #cbd5e1',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          textAlign: 'center',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+        }}
+      >
+        <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#64748b' }}>
+          {t('pos.total_amount_due', 'المطلوب سداده')}
+        </span>
+        <div
+          style={{
+            fontSize: '28px',
+            fontWeight: 900,
+            color: '#170e5e',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.15,
+            margin: '2px 0 4px',
+          }}
+        >
+          {formatCurrency(total)}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', color: '#64748b' }}>
+          <span style={{ background: '#e2e8f0', padding: '1px 7px', borderRadius: '4px', fontWeight: 700 }}>
+            {pos.cart.length} {t('pos.items', 'أصناف')}
+          </span>
+          <span>•</span>
+          <span style={{ background: '#e2e8f0', padding: '1px 7px', borderRadius: '4px', fontWeight: 700 }}>
+            {cartQtySummaries.length ? cartQtySummaries.join(' + ') : '0'} {t('pos.pieces', 'قطعة')}
+          </span>
+          {selectedCustomerName && (
+            <>
+              <span>•</span>
+              <span style={{ color: '#170e5e', fontWeight: 800 }}>
+                {selectedCustomerName}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Large 1-Tap Touch Payment Tiles */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {/* Tile A: Electronic Card / K-NET */}
+        <button
+          type="button"
+          onClick={() => {
+            onSelectPaymentPreset('card');
+            if (isKwdStore) {
+              pos.setTerminalPaymentDetails?.({
+                ...(pos.terminalPaymentDetails || {}),
+                cardScheme: 'knet',
+                provider: 'knet_pos',
+              });
+            } else if (isKsaStore) {
+              pos.setTerminalPaymentDetails?.({
+                ...(pos.terminalPaymentDetails || {}),
+                cardScheme: 'mada',
+                provider: 'geidea',
+              });
+            }
+            setReceivedCash(null);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: isPaymentActive('card') ? '2px solid #170e5e' : '1px solid #cbd5e1',
+            background: isPaymentActive('card') ? '#170e5e' : '#ffffff',
+            color: isPaymentActive('card') ? '#ffffff' : '#0f172a',
+            cursor: 'pointer',
+            transition: 'all 0.12s ease',
+            boxShadow: isPaymentActive('card') ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: isPaymentActive('card') ? 'rgba(255,255,255,0.18)' : '#eef2ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <CreditCardIcon size={20} color={isPaymentActive('card') ? '#ffffff' : '#170e5e'} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'right' }}>
+              <span style={{ fontSize: '13.5px', fontWeight: 800 }}>
+                {isKwdStore ? 'كي نت K-NET' : isKsaStore ? 'شبكة / مدى mada' : 'فيزا / كارت / Apple Pay'}
+              </span>
+              <span style={{ fontSize: '10.5px', opacity: 0.8, color: isPaymentActive('card') ? '#e2e8f0' : '#64748b' }}>
+                {isKwdStore ? 'بطاقات البنوك الكويتية والدفع الإلكتروني' : isKsaStore ? 'بطاقات مدى والائتمان' : 'دفع إلكتروني معتمد بالماكينة'}
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {isPaymentActive('card') && (
+              <span
+                style={{
+                  background: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <CheckIcon size={12} />
+                <span>{formatCurrency(total)}</span>
+              </span>
+            )}
+          </div>
+        </button>
+
+        {/* Tile B: Cash */}
+        <button
+          type="button"
+          onClick={() => {
+            onSelectPaymentPreset('cash');
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: isPaymentActive('cash') ? '2px solid #170e5e' : '1px solid #cbd5e1',
+            background: isPaymentActive('cash') ? '#170e5e' : '#ffffff',
+            color: isPaymentActive('cash') ? '#ffffff' : '#0f172a',
+            cursor: 'pointer',
+            transition: 'all 0.12s ease',
+            boxShadow: isPaymentActive('cash') ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: isPaymentActive('cash') ? 'rgba(255,255,255,0.18)' : '#f0fdf4',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                color: isPaymentActive('cash') ? '#ffffff' : '#16a34a',
+                fontSize: '18px',
+                fontWeight: 900,
+              }}
+            >
+              $
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'right' }}>
+              <span style={{ fontSize: '13.5px', fontWeight: 800 }}>
+                {t('pos.cash_payment', 'نقدي / كاش Cash')}
+              </span>
+              <span style={{ fontSize: '10.5px', opacity: 0.8, color: isPaymentActive('cash') ? '#e2e8f0' : '#64748b' }}>
+                {t('pos.cash_payment_desc', 'الدفع بالعملة الورقية وحساب المتبقي')}
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {isPaymentActive('cash') && (
+              <span
+                style={{
+                  background: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <CheckIcon size={12} />
+                <span>{formatCurrency(total)}</span>
+              </span>
+            )}
+          </div>
+        </button>
+
+        {/* Quick Cash Denomination & Change Calculator (Shown when Cash is active) */}
+        {isPaymentActive('cash') && (
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#475569', fontWeight: 700 }}>
+              <span>{t('pos.received_cash_hint', 'المبلغ المستلم من العميل (لحساب الباقي):')}</span>
+              {receivedCash !== null && (
+                <button
+                  type="button"
+                  onClick={() => setReceivedCash(null)}
+                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10.5px', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  {t('common.clear', 'مسح')}
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+              {cashDenominations.map((denom) => (
+                <button
+                  key={denom}
+                  type="button"
+                  onClick={() => setReceivedCash(denom)}
+                  style={{
+                    flex: '1 1 0',
+                    minWidth: '55px',
+                    padding: '6px 4px',
+                    borderRadius: '6px',
+                    border: receivedCash === denom ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                    background: receivedCash === denom ? '#170e5e' : '#ffffff',
+                    color: receivedCash === denom ? '#ffffff' : '#0f172a',
+                    fontWeight: 800,
+                    fontSize: '11.5px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {denom}
+                </button>
+              ))}
+            </div>
+            {receivedCash !== null && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  color: '#065f46',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                }}
+              >
+                <span>{t('pos.change_due', 'الباقي للعميل:')}</span>
+                <span style={{ fontSize: '14px', color: '#047857' }}>{formatCurrency(changeDue)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tile C: Wallets / Electronic Links */}
+        <button
+          type="button"
+          onClick={() => {
+            onSelectPaymentPreset(isKwdStore ? 'instapay' : 'wallet');
+            setReceivedCash(null);
+          }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 14px',
+            borderRadius: '10px',
+            border: transferSelected ? '2px solid #170e5e' : '1px solid #cbd5e1',
+            background: transferSelected ? '#170e5e' : '#ffffff',
+            color: transferSelected ? '#ffffff' : '#0f172a',
+            cursor: 'pointer',
+            transition: 'all 0.12s ease',
+            boxShadow: transferSelected ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '8px',
+                background: transferSelected ? 'rgba(255,255,255,0.18)' : '#e0f2fe',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <SmartphoneIcon size={20} color={transferSelected ? '#ffffff' : '#0284c7'} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'right' }}>
+              <span style={{ fontSize: '13.5px', fontWeight: 800 }}>
+                {isKwdStore ? 'روابط دفع KNET / محافظ' : isKsaStore ? 'STC Pay / محافظ' : 'InstaPay / محافظ ذكية'}
+              </span>
+              <span style={{ fontSize: '10.5px', opacity: 0.8, color: transferSelected ? '#e2e8f0' : '#64748b' }}>
+                {isKwdStore ? 'Wafra / روابط دفع سريعة' : isKsaStore ? 'دفع إلكتروني ومحافظ' : 'إنستاباي وفودافون كاش والمحافظ'}
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {transferSelected && (
+              <span
+                style={{
+                  background: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                }}
+              >
+                <CheckIcon size={12} />
+                <span>{formatCurrency(total)}</span>
+              </span>
+            )}
+          </div>
+        </button>
+      </div>
+
+      {/* 3. Collapsible Additional Options (+ خيارات إضافية) */}
+      <div style={{ marginTop: '2px' }}>
+        <button
+          type="button"
+          onClick={() => setShowMoreOptions((prev) => !prev)}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '7px 10px',
+            borderRadius: '8px',
+            background: showMoreOptions ? '#f1f5f9' : '#f8fafc',
+            border: '1px solid #e2e8f0',
+            color: '#475569',
+            fontSize: '11.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          <span>{showMoreOptions ? t('pos.hide_extra_options', 'إخفاء الخيارات الإضافية') : t('pos.show_extra_options', '+ خيارات إضافية (ربط عميل، ملاحظات، بيع آجل)')}</span>
+          {showMoreOptions ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
+        </button>
+
+        {showMoreOptions && (
+          <div
+            style={{
+              marginTop: '6px',
+              padding: '10px',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            {/* Customer Link Button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onOpenCustomerPicker}
+                style={{
+                  flex: 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '11.5px',
+                  minHeight: '32px',
+                }}
+              >
+                <UserIcon size={14} />
+                <span>{selectedCustomerName ? `العميل: ${selectedCustomerName}` : t('pos.link_customer_opt', 'ربط الفاتورة بعميل')}</span>
+              </Button>
+
+              {/* Credit Sale Button */}
+              <Button
+                type="button"
+                variant={pos.paymentType === 'credit' ? 'primary' : 'secondary'}
+                onClick={() => {
+                  onSelectPaymentPreset('credit');
+                  if (!pos.customerId) onOpenCustomerPicker();
+                }}
+                style={{ fontSize: '11.5px', minHeight: '32px' }}
+              >
+                {t('pos.credit_sale', 'بيع آجل')}
+              </Button>
+            </div>
+
+            {/* Note input */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                value={pos.note}
+                onChange={(e) => pos.setNote(e.target.value)}
+                placeholder={t('pos.optional_order_notes', 'ملاحظات اختيارية على الفاتورة...')}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  fontSize: '11.5px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                }}
+              />
+            </div>
+
+            {/* Switch to Full Detailed View link */}
+            <div style={{ textAlign: 'center', marginTop: '2px' }}>
+              <button
+                type="button"
+                onClick={onSwitchToDetailed}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#170e5e',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                }}
+              >
+                {t('pos.switch_to_detailed_view', 'الانتقال إلى شاشة الدفع التفصيلية الكاملة ⚙')}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Action Buttons */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+        <Button
+          type="button"
+          variant="success"
+          onClick={onConfirmSale}
+          disabled={pos.createSale.isPending || !pos.canSubmitSale}
+          style={{
+            height: '46px',
+            fontSize: '14.5px',
+            fontWeight: 800,
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
+          }}
+        >
+          <CheckIcon size={18} />
+          <span>{pos.createSale.isPending ? t('common.saving', 'جاري الحفظ...') : t('pos.confirm_sale_f2', 'تأكيد البيع والطباعة (F2)')}</span>
+        </Button>
+      </div>
+    </div>
+  );
+}

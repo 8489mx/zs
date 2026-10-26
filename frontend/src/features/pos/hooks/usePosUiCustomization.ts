@@ -13,6 +13,8 @@ export interface PosUiCustomization {
   mobileGridColumns: '2' | '3' | 'auto';
   autoHideBottomNav: boolean;
   cardLayout: 'comfortable' | 'compact' | 'gallery';
+  checkoutMode: 'auto' | 'express' | 'detailed';
+  defaultPaymentChannel: 'auto' | 'cash' | 'card' | 'wallet';
 }
 
 export const POS_UI_CUSTOMIZATION_KEY = 'pos_ui_customization_v1';
@@ -27,6 +29,8 @@ export const DEFAULT_POS_UI_CUSTOMIZATION: PosUiCustomization = {
   mobileGridColumns: 'auto',
   autoHideBottomNav: true,
   cardLayout: 'comfortable',
+  checkoutMode: 'auto',
+  defaultPaymentChannel: 'auto',
 };
 
 function readLocalCustomization(): Partial<PosUiCustomization> | null {
@@ -75,6 +79,14 @@ export function resolvePosUiCustomization(settings?: Record<string, any> | null)
     ? local.cardLayout
     : (settings?.posProductCardLayout || 'comfortable');
 
+  const checkoutMode: 'auto' | 'express' | 'detailed' = local?.checkoutMode !== undefined
+    ? local.checkoutMode
+    : (settings?.posCheckoutMode || 'auto');
+
+  const defaultPaymentChannel: 'auto' | 'cash' | 'card' | 'wallet' = local?.defaultPaymentChannel !== undefined
+    ? local.defaultPaymentChannel
+    : (settings?.posDefaultPaymentChannel || 'auto');
+
   return {
     showSearchBar,
     showPriceTierToggle,
@@ -84,6 +96,8 @@ export function resolvePosUiCustomization(settings?: Record<string, any> | null)
     mobileGridColumns,
     autoHideBottomNav,
     cardLayout,
+    checkoutMode,
+    defaultPaymentChannel,
   };
 }
 
@@ -149,6 +163,8 @@ export function usePosUiCustomization() {
           if (patch.mobileGridColumns !== undefined) payload.posMobileGridColumns = patch.mobileGridColumns;
           if (patch.autoHideBottomNav !== undefined) payload.posAutoHideBottomNav = patch.autoHideBottomNav;
           if (patch.cardLayout !== undefined) payload.posProductCardLayout = patch.cardLayout;
+          if (patch.checkoutMode !== undefined) payload.posCheckoutMode = patch.checkoutMode;
+          if (patch.defaultPaymentChannel !== undefined) payload.posDefaultPaymentChannel = patch.defaultPaymentChannel;
 
           if (Object.keys(payload).length > 0) {
             await settingsApi.update(payload);

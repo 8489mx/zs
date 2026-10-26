@@ -28,7 +28,8 @@
 
 .page-header .page-header-title {
   font-size: 22px;
-  line-height: 1;
+  line-height: 1.35;
+  padding-bottom: 2px;
   white-space: nowrap;
 }
 
@@ -95,6 +96,12 @@
 .pos-page-header .page-header-copy {
   margin: 0;
   flex-shrink: 0;
+}
+
+.pos-page-header .page-header-title {
+  line-height: 1.35 !important;
+  overflow: visible !important;
+  padding-bottom: 3px !important;
 }
 
 .pos-page-header .page-header-description {
@@ -173,22 +180,32 @@
 
 /* POS Shift Dropdown Menu Bidirectional Alignment */
 .pos-shift-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
   left: 0;
   right: auto;
   direction: rtl;
+  text-align: right;
+  z-index: 1050;
+  min-width: 270px;
+  max-width: calc(100vw - 20px);
+  box-sizing: border-box;
 }
 
-[dir="ltr"] .pos-shift-dropdown-menu,
-.pos-workspace:not([dir="rtl"]) .pos-shift-dropdown-menu {
-  left: auto !important;
-  right: 0 !important;
-  direction: ltr !important;
-}
-
+html[dir="rtl"] .pos-shift-dropdown-menu,
 [dir="rtl"] .pos-shift-dropdown-menu {
   left: 0 !important;
   right: auto !important;
   direction: rtl !important;
+  text-align: right !important;
+}
+
+html[dir="ltr"] .pos-shift-dropdown-menu,
+[dir="ltr"] .pos-shift-dropdown-menu {
+  left: auto !important;
+  right: 0 !important;
+  direction: ltr !important;
+  text-align: left !important;
 }
 
 

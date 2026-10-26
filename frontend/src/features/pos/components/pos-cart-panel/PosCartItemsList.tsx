@@ -13,6 +13,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   isRecent,
   allowItemNotes,
   allowItemModifiers,
+  isRestaurant,
   onSelectLine,
   onEditProduct,
   _onItemNoteChange: _unusedNoteChange,
@@ -60,14 +61,14 @@ const PosCartItemRow = memo(function PosCartItemRow({
           {allowItemNotes && (
             <button
               type="button"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: item.notes ? '#dc2626' : '#6b7280' }}
-              title={item.notes ? t('pos.edit_item_note', 'تعديل ملاحظة الصنف') : t('pos.add_item_note', 'إضافة ملاحظة على الصنف')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', display: 'flex', alignItems: 'center', color: item.notes ? (isRestaurant ? '#dc2626' : '#170e5e') : '#6b7280' }}
+              title={item.notes ? (isRestaurant ? t('pos.edit_kitchen_note', 'تعديل ملاحظة المطبخ') : t('pos.edit_item_note', 'تعديل ملاحظة الصنف')) : (isRestaurant ? t('pos.add_kitchen_note', 'إضافة ملاحظة وتجهيز للمطبخ') : t('pos.add_item_note', 'إضافة ملاحظة على الصنف'))}
               onClick={(e) => {
                 e.stopPropagation();
                 onOpenItemNotes?.(item);
               }}
             >
-              <FileTextIcon size={14} color={item.notes ? '#dc2626' : '#6b7280'} />
+              <FileTextIcon size={14} color={item.notes ? (isRestaurant ? '#dc2626' : '#170e5e') : '#6b7280'} />
             </button>
           )}
         </div>
@@ -78,7 +79,20 @@ const PosCartItemRow = memo(function PosCartItemRow({
         )}
         {item.notes && allowItemNotes && (
           <div
-            style={{ fontSize: '0.75rem', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '1px 6px', borderRadius: '4px', marginTop: '2px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}
+            style={{
+              fontSize: '0.75rem',
+              color: isRestaurant ? '#dc2626' : '#170e5e',
+              background: isRestaurant ? '#fef2f2' : '#f1f5f9',
+              border: isRestaurant ? '1px solid #fecaca' : '1px solid #cbd5e1',
+              padding: '1px 6px',
+              borderRadius: '4px',
+              marginTop: '2px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              fontWeight: 600,
+            }}
             onClick={(e) => {
               e.stopPropagation();
               onOpenItemNotes?.(item);
@@ -257,13 +271,11 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
   const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
+  const isRestaurant = settingsQuery.data?.restaurantModuleEnabled === true;
   const allowItemNotes =
-    settingsQuery.data?.manufacturingModuleEnabled === true ||
-    settingsQuery.data?.restaurantModuleEnabled === true ||
-    settingsQuery.data?.clothingModuleEnabled === true ||
-    settingsQuery.data?.businessIndustry === 'clothing' ||
-    settingsQuery.data?.businessIndustry === 'fashion';
-  const allowItemModifiers = settingsQuery.data?.restaurantModuleEnabled === true;
+    isRestaurant ||
+    settingsQuery.data?.manufacturingModuleEnabled === true;
+  const allowItemModifiers = isRestaurant;
 
   const [notesDialogItem, setNotesDialogItem] = useState<{ lineKey: string; name: string; nameEn?: string; notes: string } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
@@ -330,6 +342,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
               isRecent={isRecent}
               allowItemNotes={allowItemNotes}
               allowItemModifiers={allowItemModifiers}
+              isRestaurant={isRestaurant}
               onSelectLine={handleSelectLine}
               onEditProduct={handleEditProduct}
               onItemNoteChange={handleItemNoteChange}
@@ -351,6 +364,7 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
           itemName={notesDialogItem.name}
           itemEnName={notesDialogItem.nameEn}
           initialNotes={notesDialogItem.notes}
+          isRestaurant={isRestaurant}
           onSave={(newNotes) => {
             onItemNoteChange(notesDialogItem.lineKey, newNotes);
             setNotesDialogItem(null);

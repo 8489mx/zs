@@ -11,6 +11,7 @@ import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client'
 import { shouldTryAlternateTerminalCharge, canChangePaymentAfterTerminalApproval, terminalAuthorizationLabel } from './pos-terminal-charge-safety';
 import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
+import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { DeliveryRep } from '@/shared/api/delivery-reps.api';
 
@@ -47,6 +48,7 @@ export interface PosCheckoutCustomerSectionProps {
   needsCustomer?: boolean;
   isManualOpen?: boolean;
   onManualOpen?: () => void;
+  isMobile?: boolean;
 }
 
 export function PosCheckoutCustomerSection({
@@ -61,7 +63,10 @@ export function PosCheckoutCustomerSection({
   needsCustomer,
   isManualOpen,
   onManualOpen,
+  isMobile: isMobileProp,
 }: PosCheckoutCustomerSectionProps) {
+  const isMobileHook = useIsMobile(860);
+  const isMobile = isMobileProp ?? isMobileHook;
   const [addressDropdownOpen, setAddressDropdownOpen] = useState(false);
   const addressesQuery = useQuery({
     queryKey: ['customerAddresses', pos.customerId],
@@ -196,14 +201,15 @@ export function PosCheckoutCustomerSection({
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(140px, 1.2fr) minmax(110px, 1fr) minmax(160px, 2fr) auto',
+          gridTemplateColumns: isMobile ? '1fr auto' : 'minmax(140px, 1.2fr) minmax(110px, 1fr) minmax(160px, 2fr) auto',
           gap: '8px',
           alignItems: 'center',
           background: '#fff',
-          padding: '6px 10px',
+          padding: '8px 10px',
           borderRadius: '8px',
           border: '1px solid #e2e8f0',
           width: '100%',
+          boxSizing: 'border-box',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
@@ -212,22 +218,30 @@ export function PosCheckoutCustomerSection({
               {selectedCustomer?.name || pos.quickCustomerName || (selectedCustomerName !== 'عميل نقدي' ? selectedCustomerName : '') || 'عميل نقدي'}
             </strong>
           </div>
-          <div style={{ minWidth: 0 }}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => handleSelectCustomer('', '', '')}
+            style={{ flexShrink: 0, height: '32px', padding: '0 12px', fontSize: '12px', borderRadius: '6px' }}
+          >
+            تغيير
+          </Button>
+          <div style={{ minWidth: 0, gridColumn: isMobile ? '1 / -1' : undefined }}>
             <input
               value={pos.quickCustomerPhone || selectedCustomer?.phone || ''}
               onChange={(event) => pos.setQuickCustomerPhone(event.target.value)}
               placeholder="رقم الهاتف"
-              style={{ width: '100%', padding: '6px 10px', fontSize: '13px', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '6px 10px', fontSize: '13px', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
             />
           </div>
-          <div style={{ minWidth: 0, position: 'relative' }}>
+          <div style={{ minWidth: 0, position: 'relative', gridColumn: isMobile ? '1 / -1' : undefined }}>
             <input
               value={pos.quickCustomerAddress || selectedCustomer?.address || ''}
               onChange={(event) => pos.setQuickCustomerAddress(event.target.value)}
               onFocus={() => setAddressDropdownOpen(true)}
               onBlur={() => setTimeout(() => setAddressDropdownOpen(false), 200)}
               placeholder="العنوان أو المكان"
-              style={{ width: '100%', padding: '6px 10px', fontSize: '13px', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '6px 10px', fontSize: '13px', height: '36px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff' }}
             />
             {addressDropdownOpen && addresses.length > 0 && (
               <div className="pos-checkout-customer-results" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, marginTop: '2px', background: '#fff', borderRadius: '6px', padding: '4px', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
@@ -249,14 +263,6 @@ export function PosCheckoutCustomerSection({
               </div>
             )}
           </div>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => handleSelectCustomer('', '', '')}
-            style={{ flexShrink: 0, height: '36px', padding: '0 14px', fontSize: '12px', borderRadius: '6px' }}
-          >
-            تغيير
-          </Button>
         </div>
       )}
 
@@ -367,6 +373,7 @@ interface PosCheckoutPaymentSectionProps {
   isPaymentActive: (preset: PaymentPreset) => boolean;
   onSelectPaymentPreset: (preset: PaymentPreset) => void;
   onConfirmSale?: () => void;
+  isMobile?: boolean;
 }
 
 export function PosCheckoutPaymentSection({
@@ -386,7 +393,10 @@ export function PosCheckoutPaymentSection({
   isPaymentActive,
   onSelectPaymentPreset,
   onConfirmSale,
+  isMobile: isMobileProp,
 }: PosCheckoutPaymentSectionProps) {
+  const isMobileHook = useIsMobile(860);
+  const isMobile = isMobileProp ?? isMobileHook;
   const balance = getBalancePreview(pos);
   const paidAmount = Number(pos.paidAmount || 0);
   const isCreditSale = pos.paymentType === 'credit';
@@ -689,9 +699,13 @@ export function PosCheckoutPaymentSection({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: isDiscountLocked ? 'repeat(auto-fit, minmax(130px, 1fr))' : 'repeat(4, minmax(0, 1fr))',
+          gridTemplateColumns: isMobile
+            ? 'repeat(2, minmax(0, 1fr))'
+            : (isDiscountLocked ? 'repeat(auto-fit, minmax(130px, 1fr))' : 'repeat(4, minmax(0, 1fr))'),
           gap: '8px',
-          alignItems: 'end'
+          alignItems: 'end',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
         <label className="field" style={{ margin: 0 }}>
@@ -703,7 +717,7 @@ export function PosCheckoutPaymentSection({
             step="0.01"
             value={pos.cashAmount}
             onChange={(event) => pos.setCashAmount(Number(event.target.value || 0))}
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1', textAlign: 'center' }}
+            style={{ boxSizing: 'border-box', width: '100%', height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
@@ -727,7 +741,7 @@ export function PosCheckoutPaymentSection({
               if (transferSelected) pos.setTransferAmount(val);
               else pos.setCardAmount(val);
             }}
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1', textAlign: 'center' }}
+            style={{ boxSizing: 'border-box', width: '100%', height: '38px', borderRadius: '6px', fontSize: '14px', fontWeight: 700, border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
@@ -739,7 +753,7 @@ export function PosCheckoutPaymentSection({
             onChange={(event) => pos.setDiscount(Number(event.target.value || 0))}
             disabled={isDiscountLocked}
             placeholder="0"
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+            style={{ boxSizing: 'border-box', width: '100%', height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         <label className="field" style={{ margin: 0 }}>
@@ -757,7 +771,7 @@ export function PosCheckoutPaymentSection({
             }}
             disabled={isDiscountLocked || pos.totals.subTotal === 0}
             placeholder="0"
-            style={{ height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1', textAlign: 'center' }}
+            style={{ boxSizing: 'border-box', width: '100%', height: '38px', borderRadius: '6px', fontSize: '14px', border: '1px solid #cbd5e1', textAlign: 'center' }}
           />
         </label>
         {isDiscountLocked ? (
@@ -771,7 +785,7 @@ export function PosCheckoutPaymentSection({
               onManagerApprovalOpenChange((current) => !current);
             }}
             disabled={pos.discountAuthorizationMutation.isPending}
-            style={{ height: '38px', alignSelf: 'end', fontSize: '12px' }}
+            style={{ height: '38px', alignSelf: 'end', fontSize: '12px', gridColumn: isMobile ? '1 / -1' : undefined }}
           >
             {pos.discountAuthorizationMutation.isPending ? 'جاري...' : (pos.discountApprovalGranted ? 'معتمد' : 'اعتماد المدير')}
           </Button>
@@ -781,7 +795,7 @@ export function PosCheckoutPaymentSection({
       {/* Row 2: Payment method buttons (Strict Country Isolation) */}
       {isKwdStore ? (
         /* Kuwait Mode: Cash, K-NET, Visa/Master, Credit, Payment Links / Transfers */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
           <Button
             type="button"
             variant={isPaymentActive('cash') ? 'primary' : 'secondary'}
@@ -877,7 +891,7 @@ export function PosCheckoutPaymentSection({
         </div>
       ) : isKsaStore ? (
         /* Saudi Mode: Cash, Mada, Visa/Master, Credit, Bank Transfer / Wallets */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
           <Button
             type="button"
             variant={isPaymentActive('cash') ? 'primary' : 'secondary'}
@@ -973,7 +987,7 @@ export function PosCheckoutPaymentSection({
         </div>
       ) : (
         /* Universal 4 Main Presets: Cash, Card, Transfers/Wallets, Credit */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '6px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: '6px', width: '100%', boxSizing: 'border-box' }}>
           <Button
             type="button"
             variant={isPaymentActive('cash') ? 'primary' : 'secondary'}
@@ -1319,18 +1333,18 @@ export function PosCheckoutPaymentSection({
       )}
 
       {/* Summary 3-Column Chips: Centered and Balanced */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
-        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المطلوب دفعه</span>
-          <strong className="is-primary" style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(pos.totals.total)}</strong>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: isMobile ? '4px' : '8px', width: '100%', boxSizing: 'border-box' }}>
+        <div className="pos-checkout-dialog-chip" style={{ minHeight: isMobile ? '44px' : '48px', padding: isMobile ? '4px 6px' : '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+          <span style={{ fontSize: isMobile ? '10.5px' : '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المطلوب دفعه</span>
+          <strong className="is-primary" style={{ fontSize: isMobile ? '13px' : '15px', textAlign: 'center', whiteSpace: 'nowrap' }}>{formatCurrency(pos.totals.total)}</strong>
         </div>
-        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المدفوع</span>
-          <strong className="is-success" style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(paidAmount)}</strong>
+        <div className="pos-checkout-dialog-chip" style={{ minHeight: isMobile ? '44px' : '48px', padding: isMobile ? '4px 6px' : '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+          <span style={{ fontSize: isMobile ? '10.5px' : '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>المدفوع</span>
+          <strong className="is-success" style={{ fontSize: isMobile ? '13px' : '15px', textAlign: 'center', whiteSpace: 'nowrap' }}>{formatCurrency(paidAmount)}</strong>
         </div>
-        <div className="pos-checkout-dialog-chip" style={{ minHeight: '48px', padding: '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>{balance.label}</span>
-          <strong className={balance.tone === 'danger' ? 'is-danger' : 'is-primary'} style={{ fontSize: '15px', textAlign: 'center' }}>{formatCurrency(balance.value)}</strong>
+        <div className="pos-checkout-dialog-chip" style={{ minHeight: isMobile ? '44px' : '48px', padding: isMobile ? '4px 6px' : '6px 8px', borderRadius: '6px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 0 }}>
+          <span style={{ fontSize: isMobile ? '10.5px' : '11.5px', whiteSpace: 'nowrap', textAlign: 'center' }}>{balance.label}</span>
+          <strong className={balance.tone === 'danger' ? 'is-danger' : 'is-primary'} style={{ fontSize: isMobile ? '13px' : '15px', textAlign: 'center', whiteSpace: 'nowrap' }}>{formatCurrency(balance.value)}</strong>
         </div>
       </div>
 
@@ -1427,7 +1441,34 @@ export function PosCheckoutOrderTypeSection({
   );
 }
 
-export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWorkspaceState, deliveryReps: DeliveryRep[] }) {
+export function PosCheckoutDeliverySection({ pos, deliveryReps, isMobile: isMobileProp }: { pos: PosWorkspaceState, deliveryReps: DeliveryRep[], isMobile?: boolean }) {
+  const isMobileHook = useIsMobile(860);
+  const isMobile = isMobileProp ?? isMobileHook;
+  const currentSettings = pos.settings || pos.settingsQuery?.data;
+  const isKwdStore = isKuwait(currentSettings);
+  const isKsaStore = isSaudi(currentSettings);
+
+  const deliveryChannels = isKwdStore
+    ? [
+        { id: 'direct', label: 'مباشر (المحل)' },
+        { id: 'talabat', label: 'طلبات Talabat' },
+        { id: 'deliveroo', label: 'دليفرو Deliveroo' },
+        { id: 'jahez', label: 'جاهز Jahez' },
+        { id: 'cari', label: 'كاري Cari' },
+      ]
+    : isKsaStore
+    ? [
+        { id: 'direct', label: 'مباشر (المحل)' },
+        { id: 'jahez', label: 'جاهز Jahez' },
+        { id: 'hungerstation', label: 'هنقرستيشن Hungerstation' },
+        { id: 'toyou', label: 'تويو ToYou' },
+        { id: 'mrsool', label: 'مرسول Mrsool' },
+      ]
+    : [
+        { id: 'direct', label: 'مباشر (المحل)' },
+        { id: 'talabat', label: 'طلبات Talabat' },
+      ];
+
   const [repSearchOpen, setRepSearchOpen] = useState(false);
   const [repSearchQuery, setRepSearchQuery] = useState('');
 
@@ -1449,12 +1490,21 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
       borderRadius: '8px',
       border: '1px solid #e2e8f0',
       marginBottom: '6px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+      boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+      boxSizing: 'border-box',
+      width: '100%'
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)', gap: '8px', alignItems: 'end' }}>
-        <div style={{ position: 'relative' }}>
-          <label className="field" style={{ margin: 0 }}>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: isRepMissing ? '#dc2626' : '#64748b', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? 'minmax(0, 1fr) 110px' : 'minmax(0, 2fr) minmax(0, 1fr)',
+        gap: '8px',
+        alignItems: 'end',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ position: 'relative', minWidth: 0 }}>
+          <label className="field" style={{ margin: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: isRepMissing ? '#dc2626' : '#64748b', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', whiteSpace: 'nowrap' }}>
               <span>مندوب التوصيل {isRepRequired ? <span style={{ color: '#dc2626' }}>*</span> : <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: '11px' }}>(اختياري)</span>}</span>
             </span>
             <input
@@ -1464,9 +1514,11 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
               onBlur={() => setTimeout(() => setRepSearchOpen(false), 200)}
               onChange={(e) => setRepSearchQuery(e.target.value)}
               style={{
+                boxSizing: 'border-box',
                 padding: '6px 10px',
                 height: '38px',
                 width: '100%',
+                minWidth: 0,
                 borderRadius: '6px',
                 border: isRepMissing ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
                 background: isRepMissing ? '#fff5f5' : 'white',
@@ -1523,8 +1575,8 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
           )}
         </div>
 
-        <div className="field" style={{ margin: 0 }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center' }}>رسوم التوصيل ({getGlobalCurrencySymbol()})</span>
+        <div className="field" style={{ margin: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '2px', display: 'block', textAlign: 'center', whiteSpace: 'nowrap' }}>رسوم التوصيل ({getGlobalCurrencySymbol()})</span>
           <input
             type="number"
             min="0"
@@ -1532,34 +1584,47 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
             value={pos.deliveryFee === 0 ? '' : pos.deliveryFee}
             onChange={(event) => pos.setDeliveryFee(Number(event.target.value || 0))}
             placeholder="0"
-            style={{ padding: '6px 10px', height: '38px', width: '100%', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '14px', textAlign: 'center' }}
+            style={{ boxSizing: 'border-box', padding: '6px 10px', height: '38px', width: '100%', minWidth: 0, borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '14px', textAlign: 'center' }}
           />
         </div>
       </div>
 
       {/* Aggregator / Channel Source Tag Selector */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', minWidth: 0 }}>
         <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
           مصدر طلب التوصيل (قناة الاستلام):
         </span>
-        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-          {[
-            { id: 'direct', label: 'مباشر (المحل)' },
-            { id: 'talabat', label: 'طلبات Talabat' },
-            { id: 'deliveroo', label: 'دليفرو Deliveroo' },
-            { id: 'jahez', label: 'جاهز Jahez' },
-            { id: 'cari', label: 'كاري Cari' },
-          ].map((channel) => {
+        <div
+          className="pos-checkout-channels-row"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            paddingBottom: '2px',
+            width: '100%',
+            boxSizing: 'border-box',
+          }}
+        >
+          {deliveryChannels.map((channel) => {
             const isSelected = channel.id === 'direct'
-              ? !['طلبات', 'دليفرو', 'جاهز', 'كاري'].some(k => (pos.note || '').includes(k))
+              ? !deliveryChannels.filter(c => c.id !== 'direct').some(c => (pos.note || '').includes(c.label.split(' ')[0]))
               : (pos.note || '').includes(channel.label.split(' ')[0]);
 
             return (
               <button
                 key={channel.id}
                 type="button"
+                className="pos-checkout-channel-btn"
                 onClick={() => {
                   let nextNote = (pos.note || '').replace(/\[(مصدر|منصة|قناة):[^\]]+\]/g, '').trim();
+                  deliveryChannels.filter(c => c.id !== 'direct').forEach(c => {
+                    nextNote = nextNote.replace(new RegExp(`\\[?منصة:?\\s*${c.label.split(' ')[0]}[^\\]]*\\]?`, 'gi'), '').trim();
+                  });
                   if (channel.id !== 'direct') {
                     nextNote = `[منصة: ${channel.label}] ${nextNote}`.trim();
                     // Auto-set collection to prepaid_online because customers pay through the aggregator app
@@ -1572,9 +1637,11 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                   pos.setNote(nextNote);
                 }}
                 style={{
-                  padding: '3px 8px',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                  padding: isMobile ? '3px 8px' : '4px 10px',
                   borderRadius: '6px',
-                  fontSize: '11px',
+                  fontSize: isMobile ? '11px' : '12px',
                   fontWeight: isSelected ? 800 : 600,
                   border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
                   background: isSelected ? '#170e5e' : '#f8fafc',
@@ -1590,7 +1657,7 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: isMobile ? '4px' : '8px', width: '100%', boxSizing: 'border-box' }}>
         {(['cod', 'prepaid_by_rep', 'prepaid_online'] as const).map((status) => (
           <Button
             key={status}
@@ -1615,7 +1682,14 @@ export function PosCheckoutDeliverySection({ pos, deliveryReps }: { pos: PosWork
                 pos.setCardAmount(0);
               }
             }}
-            style={{ flex: 1, fontSize: '13px', padding: '6px 4px', minHeight: '38px', fontWeight: 700 }}
+            style={{
+              fontSize: isMobile ? '11px' : '13px',
+              padding: isMobile ? '6px 2px' : '6px 4px',
+              minHeight: '38px',
+              fontWeight: 700,
+              textAlign: 'center',
+              lineHeight: 1.25,
+            }}
           >
             {status === 'cod' ? 'تحصيل من العميل' : status === 'prepaid_by_rep' ? 'خالص من المندوب' : 'خالص أونلاين'}
           </Button>

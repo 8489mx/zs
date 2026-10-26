@@ -330,10 +330,10 @@ function PosWorkspaceHeaderComponent({
             className="pos-customize-btn"
             onClick={() => setIsCustomizationOpen(true)}
             title={t('pos.customize_ui_title', "تخصيص واجهة الكاشير والشاشات المتنقلة")}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+            aria-label={t('pos.customize_short', "تخصيص الواجهة")}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}
           >
-            <SlidersIcon size={14} color="#170e5e" />
-            <span>{t('pos.customize_short', "تخصيص الواجهة")}</span>
+            <SlidersIcon size={16} color="#170e5e" />
           </Button>
 
           {/* Phone & Delivery Order Desk (F7) */}
@@ -670,18 +670,22 @@ function PosWorkspaceHeaderComponent({
                   style={{
                     position: 'absolute',
                     top: 'calc(100% + 4px)',
-                    left: 0,
+                    left: isEn ? 'auto' : 0,
+                    right: isEn ? 0 : 'auto',
                     zIndex: 1050,
                     background: '#ffffff',
                     border: '1px solid #cbd5e1',
                     borderRadius: '10px',
                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
                     minWidth: '270px',
+                    maxWidth: 'calc(100vw - 20px)',
+                    boxSizing: 'border-box',
                     padding: '6px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '2px',
-                    direction: 'rtl',
+                    direction: isEn ? 'ltr' : 'rtl',
+                    textAlign: isEn ? 'left' : 'right',
                   }}
                 >
                   {/* Option 1: X-Report */}
