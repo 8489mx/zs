@@ -191,3 +191,52 @@ jobs:
       - name: Electron offline updater and rollback contract smoke (not physical Windows E2E)
         run: npm run qa:electron
         working-directory: .
+
+  # Verifies Windows-specific renderer compilation and filesystem/update contracts.
+  # This job is NOT a claim that an Electron EXE has booted with physical devices.
+  electron-windows:
+    if: github.ref == 'refs/heads/fix/erp-customer-release-gates'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Electron / renderer dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Compile Windows Electron renderer with desktop base paths
+        working-directory: frontend
+        run: npm run build:electron-frontend
+      - name: Validate Electron process exit, update SHA256 and rollback contracts
+        run: npm run qa:electron
+      - name: Exercise Windows offline runtime configuration persistence and failed-write rollback
+        run: node --test scripts/test-electron-customer-config.cjs
+      - name: Check whether the external bundled PostgreSQL runtime is available for EXE packaging
+        id: bundle
+        shell: pwsh
+        run: |
+          $required = @(
+            'postgres/bin/postgres.exe',
+            'postgres/bin/pg_ctl.exe',
+            'postgres/bin/initdb.exe',
+            'postgres/bin/psql.exe',
+            'postgres/bin/pg_dump.exe'
+          )
+          $missing = @($required | Where-Object { -not (Test-Path (Join-Path 'portable/runtime' $_)) })
+          if ($missing.Count -gt 0) {
+            Write-Host "::warning::Offline EXE packaging not validated: bundled PostgreSQL runtime is absent from this runner. No download or production data access attempted."
+            "present=false" >> $env:GITHUB_OUTPUT
+          } else {
+            "present=true" >> $env:GITHUB_OUTPUT
+          }
+      - name: Install backend only when a complete offline runtime is staged
+        if: steps.bundle.outputs.present == 'true'
+        working-directory: backend
+        run: npm ci
+      - name: Package complete Windows customer EXE and validate embedded backend and runtime
+        if: steps.bundle.outputs.present == 'true'
+        run: npm run build:exe
