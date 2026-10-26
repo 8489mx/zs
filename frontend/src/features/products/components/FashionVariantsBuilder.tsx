@@ -80,6 +80,7 @@ function summarizeDuplicates(rows: FashionVariantDraft[]) {
 
 interface FashionVariantsBuilderProps {
   mode: 'fashion' | 'standard';
+  initialTemplate?: VariantTemplateType;
   name: string;
   styleCode: string;
   colorsValue: string;
@@ -100,6 +101,7 @@ interface FashionVariantsBuilderProps {
 
 export function FashionVariantsBuilder({
   mode,
+  initialTemplate,
   name: _name,
   styleCode,
   colorsValue,
@@ -118,7 +120,10 @@ export function FashionVariantsBuilder({
   onRowsChange,
 }: FashionVariantsBuilderProps) {
   const { t } = useTranslation();
-  const [activeTemplate, setActiveTemplate] = useState<VariantTemplateType>(mode === 'fashion' ? 'fashion' : 'scents');
+  const [activeTemplate, setActiveTemplate] = useState<VariantTemplateType>(() => {
+    if (initialTemplate) return initialTemplate;
+    return mode === 'fashion' ? 'fashion' : 'scents';
+  });
   const [customPrimaryLabel, setCustomPrimaryLabel] = useState('الخاصية الأولى');
   const [customSecondaryLabel, setCustomSecondaryLabel] = useState('الخاصية الثانية');
 

@@ -16,6 +16,7 @@ import {
   TruckIcon,
   TagIcon,
   SlidersIcon,
+  DropletIcon,
 } from '@/shared/components/icons/AppIcons';
 import { toast, systemConfirm } from '@/shared/components/system-alert';
 import { settingsApi } from '@/features/settings/api/settings.api';
@@ -38,7 +39,8 @@ type CommerceSubVertical =
   | 'auto_parts'
   | 'clothing'
   | 'warehousing'
-  | 'wholesale_van';
+  | 'wholesale_van'
+  | 'perfumes';
 
 interface PillarConfig {
   key: PillarKey;
@@ -206,6 +208,16 @@ const PRIMARY_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
     descriptionEn: 'Device intake, repair cards & warranty, IMEI serial tracking, and device trade-in valuation.',
     icon: ToolIcon,
   },
+  {
+    key: 'perfumes',
+    labelAr: 'العطور ومستحضرات التجميل والتركيبات',
+    labelEn: 'Perfumes, Cosmetics & Fragrances',
+    tag: 'تركيبات وسعات وعطور',
+    tagEn: 'Fragrances & Blending',
+    descriptionAr: 'تركيبات العطور والزيوت الخام، أحجام وسعات الزجاجات (مل)، مجموعات الهدايا، وكاشير التجزئة السريع.',
+    descriptionEn: 'Custom fragrance blending, raw oils, bottle sizes (ml), gift sets, and fast retail barcode POS.',
+    icon: DropletIcon,
+  },
 ];
 
 const EXTENDED_COMMERCE_SUB_VERTICALS: SubVerticalConfig[] = [
@@ -272,6 +284,8 @@ export function IndustryModeSelectorCard({ settings, canManageSettings }: Indust
       ? 'auto_parts'
       : currentActivityType === 'clothing' || currentActivityType === 'fashion'
       ? 'clothing'
+      : currentActivityType === 'perfumes' || currentActivityType === 'cosmetics' || currentActivityType === 'fragrances' || currentActivityType === 'عطور'
+      ? 'perfumes'
       : 'retail_general';
 
   const handleSelectMode = async (targetActivityType: string, labelAr: string) => {

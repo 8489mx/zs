@@ -571,6 +571,38 @@ export const INDUSTRY_PRESETS: Record<IndustryPresetId, IndustryPreset> = {
     highlights: ['مصفوفة الألوان والمقاسات المتعددة', 'مشتريات الموديلات والكولكشن الجديد', 'مخازن الملابس وطباعة الليبل الفرعي'],
   },
 
+  perfumes: {
+    id: 'perfumes',
+    name: 'العطور ومستحضرات التجميل والتركيبات',
+    subtitle: 'محلات العطور، الزيوت الخام، ومستحضرات التجميل',
+    description: 'تركيبات العطور والزيوت الخام، أحجام وسعات الزجاجات (مل)، مجموعات الهدايا، وكاشير التجزئة السريع بالباركود.',
+    badge: 'تركيبات وسعات وعطور',
+    recommendedModules: [
+      'posModuleEnabled',
+      'inventoryModuleEnabled',
+      'purchasesModuleEnabled',
+      'clothingModuleEnabled',
+      'comboModuleEnabled',
+      'deliveryFleetModuleEnabled',
+      'taxDeclarationModuleEnabled',
+    ],
+    disabledModules: [
+      'weightedBarcodeEnabled',
+      'restaurantModuleEnabled',
+      'enablePharmacyModule',
+      'enableMobileStoreFeatures',
+      'manufacturingModuleEnabled',
+      'autoPartsModuleEnabled',
+      'importModuleEnabled',
+      'contractingModuleEnabled',
+      'maritimeFreightModuleEnabled',
+    ],
+    recommendedPlan: 'plan_pro',
+    defaultPosMode: 'scanner',
+    defaultProductKind: 'standard',
+    highlights: ['تركيبات العطور والزيوت الخام BOM', 'أحجام وسعات الزجاجات ومجموعات الهدايا', 'مخازن العطور ومشتريات المواد الخام'],
+  },
+
   electronics: {
     id: 'electronics',
     name: 'الإلكترونيات والموبايل والصيانة',
