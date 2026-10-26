@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { CreditCardIcon, SmartphoneIcon, UserIcon, FileTextIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
+import { CreditCardIcon, SmartphoneIcon, UserIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PaymentPreset } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 
@@ -31,8 +31,8 @@ export function PosCheckoutExpressSection({
   onSwitchToDetailed,
   selectedCustomerName,
   onOpenCustomerPicker,
-  onOpenNotes,
-  isNotesOpen,
+  onOpenNotes: _onOpenNotes,
+  isNotesOpen: _isNotesOpen,
   cartQtySummaries,
 }: PosCheckoutExpressSectionProps) {
   const { t } = useTranslation();

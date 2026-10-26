@@ -1222,7 +1222,7 @@ function PosProductsPanelComponent({
                           >
                             {group.products.length} {t('pos.options', 'خيارات')}
                           </span>
-                        ) : group.itemKind !== 'service' && typeof group.totalStock === 'number' ? (
+                        ) : (group.itemKind as string) !== 'service' && typeof group.totalStock === 'number' ? (
                           group.totalStock <= 0 ? (
                             <span
                               style={{

@@ -286,7 +286,7 @@ export function EditProductForm({
       return;
     }
     const resolvedName = values.name?.trim() || values.nameEn?.trim() || '';
-    const resolvedNameEn = values.nameEn?.trim() || (values.name?.trim() ? undefined : resolvedName);
+    const resolvedNameEn = values.nameEn?.trim() || (values.name?.trim() ? '' : resolvedName);
     mutation.mutate({
       ...omitStock(values as any),
       name: resolvedName,
