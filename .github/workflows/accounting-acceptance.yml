@@ -2,7 +2,7 @@ name: Accounting PostgreSQL acceptance
 
 on:
   push:
-    branches: [fix/accounting-core-commercial-integrity, fix/cross-module-accounting-inventory-20261025, fix/p0c-safe-main-integration, fix/foundation-kernel-p0p1, fix/foundation-final-integration]
+    branches: [fix/accounting-core-commercial-integrity, fix/cross-module-accounting-inventory-20261025, fix/p0c-safe-main-integration, fix/foundation-kernel-p0p1, fix/foundation-final-integration, fix/erp-final-system-validation]
   workflow_dispatch:
 
 permissions:
@@ -64,6 +64,9 @@ jobs:
         working-directory: backend
       - name: Priority customer sectors - real clothing market restaurant PostgreSQL
         run: npm run test:priority-sectors:postgres
+        working-directory: backend
+      - name: Entire Nest application graph startup smoke with disposable PostgreSQL
+        run: npm run test:smoke
         working-directory: backend
 
   # Historical P0-C databases already have currency migrations 256-259 applied.
