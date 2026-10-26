@@ -240,3 +240,8 @@ The code observations above identify definite missing integration points; **fina
 
 - The existing exchange preparation considered an invoice paid when only 0.001 remained outstanding because it used a hardcoded `> 0.001` threshold; this would issue store-credit refunds on an unsettled KWD/OMR sale.
 - Source receivable balance is now assessed after rounding in the authenticated tenant's minor units, so one unpaid fil blocks the exchange while paid invoices remain eligible. Critical regression tests cover KWD and EGP. Full refund/GL end-to-end certification still pending.
+
+### POS exchange entire minor-unit settlement correction (26 October)
+
+- Verified the prior exchange-credit fix alone was insufficient: `settlePosExchange` and its `allocateRefundTenders` caller still used default cents and could reject or truncate a 0.001 KWD sale/return. Settlement now accepts tenant 2/3 money digits and passes these through the exchange and tender allocation, with retained credit booked at identical precision.
+- Added focused regression tests for a 0.003 / 0.001 KWD exchange, opposite direction, cent default, sub-fil rejection and 0.002 store-credit refund. This is not an end-to-end GL exchange sign-off; the full 8-cycle and 11-sector acceptance matrix remains open.
