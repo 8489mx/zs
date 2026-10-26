@@ -73,6 +73,67 @@ export class SalesWriteService {
     @Optional() private readonly fraudRadarService?: CashierFraudRadarService,
   ) {}
 
+
+  /** Cost every restaurant component at the LOCKED tenant product WAC, never
+   * at user-supplied modifier.costPrice or modifier.consumptionQty. */
+  private async resolveSaleModifierCosts(
+    trx: Kysely<Database> | Transaction<Database>, items: any[],
+    tenantId: string, restaurantEnabled: boolean,
+  ): Promise<void> {
+    const optionIds = new Set<number>();
+    const componentIds = new Set<number>();
+    if (restaurantEnabled) for (const item of items) for (const mod of (Array.isArray(item.modifiers) ? item.modifiers : [])) {
+      const optionId = Number(mod.optionId || mod.option_id || mod.id || 0);
+      const componentId = Number(mod.productId || mod.componentProductId || mod.component_product_id || 0);
+      if (optionId > 0) optionIds.add(optionId);
+      if (componentId > 0) componentIds.add(componentId);
+    }
+    const optionRows = optionIds.size ? await trx.selectFrom('pos_modifier_options')
+      .select(['id','component_product_id','consumption_qty'])
+      .where('tenant_id','=',tenantId).where('id','in',[...optionIds]).execute() : [];
+    const options = new Map(optionRows.map(row => [Number(row.id),row]));
+    optionRows.forEach(row => { if (Number(row.component_product_id || 0) > 0) componentIds.add(Number(row.component_product_id)); });
+    const ids = [...new Set([...items.map(item => Number(item.productId)), ...componentIds])];
+    const costRows = await trx.selectFrom('products').select(['id','cost_price'])
+      .where('tenant_id','=',tenantId).where('id','in',ids).execute();
+    const costs = new Map(costRows.map(row => [Number(row.id),Number(row.cost_price)]));
+    for (const item of items) {
+      let modifiersCost = 0;
+      item.modifiers = (Array.isArray(item.modifiers) ? item.modifiers : []).map((mod: any) => {
+        if (!restaurantEnabled) return {...mod,costPrice:0};
+        const optionId = Number(mod.optionId || mod.option_id || mod.id || 0);
+        const option = optionId ? options.get(optionId) : undefined;
+        if (optionId && !option) throw new AppError('Restaurant modifier option missing',
+          'RESTAURANT_MODIFIER_OPTION_INVALID',422);
+        const directId = Number(mod.productId || mod.componentProductId || mod.component_product_id || 0);
+        const configuredId = Number(option?.component_product_id || 0);
+        if (directId > 0 && configuredId > 0 && directId !== configuredId) throw new AppError(
+          'Restaurant modifier differs from configured stock component',
+          'RESTAURANT_MODIFIER_COMPONENT_MISMATCH',422);
+        const componentId = configuredId || directId;
+        const qty = Number(mod.qty ?? 1);
+        const rate = option ? Number(option.consumption_qty ?? 1) : 1;
+        const stockUnits = qty * rate;
+        if (!Number.isFinite(stockUnits) || stockUnits <= 0 ||
+            Math.abs(stockUnits - Number(stockUnits.toFixed(3))) > 0.00000001)
+          throw new AppError('Invalid restaurant modifier stock units','RESTAURANT_MODIFIER_QUANTITY_INVALID',422);
+        if (componentId > 0 && (!costs.has(componentId) || item.isService))
+          throw new AppError('Restaurant modifier component cannot be consumed from this line',
+            'RESTAURANT_MODIFIER_STOCK_INVALID',422);
+        const unitWac = componentId > 0 ? Number(costs.get(componentId)) : 0;
+        if (!Number.isFinite(unitWac) || unitWac < 0)
+          throw new AppError('Invalid modifier inventory WAC','RESTAURANT_MODIFIER_COST_INVALID',422);
+        modifiersCost += stockUnits * unitWac;
+        return {...mod,qty,consumptionQty:rate,costPrice:Number((rate*unitWac).toFixed(6)),
+          ...(componentId > 0 ? {productId:componentId} : {})};
+      });
+      const parentCost = costs.get(Number(item.productId));
+      if (parentCost === undefined || !Number.isFinite(parentCost))
+        throw new AppError('Sale WAC product missing','SALE_COST_PRODUCT_MISSING',409);
+      item.costPrice = Number((parentCost * Number(item.unitMultiplier || 1) + modifiersCost).toFixed(6));
+    }
+  }
+
   private async claimSaleSerials(
     trx: Kysely<Database>, item: { productId: number; requiredQty: number; serials?: unknown },
     saleId: number, saleItemId: number, tenantId: string,
@@ -1549,12 +1610,8 @@ export class SalesWriteService {
 
       await this.lockSaleStockRows(trx, scope, preparedItems);
       await this.autoProduceShortfall(trx, autoProduceItems, id, normalized.branchId, normalized.locationId, scope, auth);
-      const currentCosts = await trx.selectFrom('products').select(['id', 'cost_price']).where('tenant_id', '=', scope.tenantId).where('id', 'in', [...new Set(preparedItems.map(item => Number(item.productId)))]).execute();
-      const currentCostByProduct = new Map(currentCosts.map(product => [Number(product.id), Number(product.cost_price)]));
-      for (const item of preparedItems) {
-        const modifierCost = (Array.isArray(item.modifiers) ? item.modifiers : []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
-        item.costPrice = Number(((currentCostByProduct.get(Number(item.productId)) || 0) * Number(item.unitMultiplier || 1) + modifierCost).toFixed(6));
-      }
+      await this.resolveSaleModifierCosts(trx, preparedItems, scope.tenantId,
+        this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant'));
 
       // Deadlock prevention: stock rows (products + product_location_stock) must always be
       // locked in a deterministic global order. Client-supplied item order is arbitrary, so two
@@ -1718,21 +1775,8 @@ export class SalesWriteService {
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
-            let rawModProductId = Number(mod.productId || mod.componentProductId || mod.component_product_id || 0);
-            let consumptionRate = Number(mod.consumptionQty || mod.consumption_qty || 1);
-
-            if (rawModProductId <= 0 && (mod.optionId || mod.option_id || mod.id)) {
-              const optId = Number(mod.optionId || mod.option_id || mod.id);
-              const optRow = await trx.selectFrom('pos_modifier_options')
-                .select(['component_product_id', 'consumption_qty'])
-                .where('id', '=', optId)
-                .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-                .executeTakeFirst();
-              if (optRow?.component_product_id) {
-                rawModProductId = Number(optRow.component_product_id);
-                consumptionRate = Number(optRow.consumption_qty || 1);
-              }
-            }
+            const rawModProductId = Number(mod.productId || 0);
+            const consumptionRate = Number(mod.consumptionQty || 1);
 
             if (rawModProductId > 0) {
               const modifierQty = Number((Number(mod.qty || 1) * Number(item.qty || 1) * consumptionRate).toFixed(3));
@@ -2661,12 +2705,8 @@ export class SalesWriteService {
 
       await this.lockSaleStockRows(trx, scope, preparedItems);
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
-      const currentCosts = await trx.selectFrom('products').select(['id', 'cost_price']).where('tenant_id', '=', scope.tenantId).where('id', 'in', [...new Set(preparedItems.map(item => Number(item.productId)))]).execute();
-      const currentCostByProduct = new Map(currentCosts.map(product => [Number(product.id), Number(product.cost_price)]));
-      for (const item of preparedItems) {
-        const modifierCost = (Array.isArray(item.modifiers) ? item.modifiers : []).reduce((sum: number, modifier: any) => sum + Number(modifier.costPrice || 0) * Number(modifier.qty || 1), 0);
-        item.costPrice = Number(((currentCostByProduct.get(Number(item.productId)) || 0) * Number(item.unitMultiplier || 1) + modifierCost).toFixed(6));
-      }
+      await this.resolveSaleModifierCosts(trx, preparedItems, scope.tenantId,
+        this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant'));
 
       // Deadlock prevention: identical canonical lock ordering as createSale (see note there).
       const stockOrderedItems = [...preparedItems].sort((a, b) => Number(a.productId || 0) - Number(b.productId || 0));
@@ -2810,7 +2850,7 @@ export class SalesWriteService {
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
           for (const mod of item.modifiers) {
             if (mod.productId) {
-              const modifierQty = Number(mod.qty || 1) * Number(item.qty || 1);
+              const modifierQty = Number((Number(mod.qty || 1) * Number(item.qty || 1) * Number(mod.consumptionQty || 1)).toFixed(3));
               
               let modRemainingQty = modifierQty;
               let modAllocationOrder = 1;
