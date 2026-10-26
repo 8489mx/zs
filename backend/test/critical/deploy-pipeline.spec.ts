@@ -60,12 +60,24 @@ function testMigrationOrderAndRollback(): void {
 
 // DEPLOY-4: the commit that passed CI is the one deployed.
 function testDeploysTestedCommit(): void {
-  assert.ok(/github\.event\.workflow_run\.head_sha/.test(workflow), 'deploy must check out workflow_run.head_sha');
-  assert.ok(/git reset --hard "\$DEPLOY_SHA"/.test(remoteScript()), 'the server must reset to the same DEPLOY_SHA');
-  assert.ok(/cancel-in-progress: false/.test(workflow), 'a running deploy must not be cancelled mid-swap');
-  assert.ok(/workflow_run\.event == 'push'/.test(workflow) && /workflow_run\.head_branch == 'main'/.test(workflow)
-    && /workflow_run\.head_repository\.full_name == github\.repository/.test(workflow),
-    'a successful pull request CI run must never start a privileged production deploy');
+  // A production deploy requires a manual dispatch against a green current main SHA.
+  assert.ok(/^  workflow_dispatch:$/m.test(workflow) && !/^  workflow_run:$/m.test(workflow),
+    'production deployment must be dispatch-only; no automatic CI completion trigger');
+  assert.ok(/confirm_production_deploy:/.test(workflow) && /inputs\.confirm_production_deploy == 'DEPLOY'/.test(workflow),
+    'explicit human confirmation DEPLOY is required');
+  assert.ok(/github\.ref == 'refs\/heads\/main'/.test(workflow),
+    'deployment must be authorized from main');
+  assert.ok(/DEPLOY_SHA: \$\{\{ github\.sha \}\}/.test(workflow),
+    'dispatch must lock an exact main SHA');
+  assert.ok(/actions: read/.test(workflow)
+    && /actions\/workflows\/ci\.yml\/runs\?head_sha=\$DEPLOY_SHA/.test(workflow)
+    && /test "\$PASSED" -ge 1/.test(workflow)
+    && /CURRENT_MAIN/.test(workflow),
+    'current main SHA must already have successful push CI verified before deploy');
+  assert.ok(/git reset --hard "\$DEPLOY_SHA"/.test(remoteScript()),
+    'server must reset to the exact CI-verified SHA');
+  assert.ok(/cancel-in-progress: false/.test(workflow),
+    'an active deployment must not be cancelled mid-swap');
   assert.ok(/secrets\.ORACLE_SSH_KNOWN_HOSTS/.test(workflow) && !/StrictHostKeyChecking=no/.test(workflow)
     && (workflow.match(/StrictHostKeyChecking=yes/g) || []).length === 2,
     'both SSH operations must verify the pinned production host key');

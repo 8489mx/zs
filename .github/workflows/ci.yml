@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - fix/cross-module-accounting-inventory-20261025
+      - fix/p0c-safe-main-integration
   pull_request:
     branches:
       - main
