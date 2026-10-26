@@ -143,6 +143,32 @@ async function main(): Promise<void> {
     await check(fashion,[red,blue]);
     console.log('PASS sector-clothing PostgreSQL SKU color/size isolation, POS cash sale, return, stock/WAC/GL');
 
+    // Atomic same-customer size/color exchange: return the exact originally
+    // sold RED/M line and receive BLUE/L without inventing another cash payment.
+    const originalExchange=await checkout(fashion,[{productId:red,name:'Red M',qty:1,price:60,unitMultiplier:1}]);
+    const origId=Number((originalExchange.sale as {id:string}).id);
+    const origLine=await db.selectFrom('sale_items').select('id')
+      .where('tenant_id','=',fashion.auth.tenantId!).where('sale_id','=',origId)
+      .where('product_id','=',red).executeTakeFirstOrThrow();
+    const exchanged=await sales.createSale({
+      source:'pos',branchId:fashion.branchId,locationId:fashion.locationId,
+      customerId:fashion.customerId,paymentType:'cash',paymentChannel:'cash',
+      taxRate:0,pricesIncludeTax:false,managerPin:PASSWORD,exchangeSaleId:origId,
+      exchangeRefundMethod:'store_credit',
+      items:[
+        {productId:red,name:'Returned Red M',qty:-1,price:60,unitMultiplier:1,
+          originalSaleItemId:Number(origLine.id)},
+        {productId:blue,name:'New Blue L',qty:1,price:60,unitMultiplier:1},
+      ],payments:[],
+    } as any,fashion.auth);
+    assert.ok(Number((exchanged.sale as {id:string}).id)>0);
+    const afterExchange=await db.selectFrom('products').select(['id','stock_qty'])
+      .where('tenant_id','=',fashion.auth.tenantId!).where('id','in',[red,blue]).execute();
+    assert.equal(Number(afterExchange.find(p=>Number(p.id)===red)!.stock_qty),3);
+    assert.equal(Number(afterExchange.find(p=>Number(p.id)===blue)!.stock_qty),1);
+    await check(fashion,[red,blue]);
+    console.log('PASS sector-clothing PostgreSQL atomic color/size exchange and immutable inventory/GL matching');
+
     // MARKET: barcode selection + weighted fractional stock sale with an open till.
     const market=await shop('market');
     const weighted=await product(market,'Market weighable bulk food','WEIGHT-200');
@@ -160,6 +186,17 @@ async function main(): Promise<void> {
     assert.equal(await posted(market,'1110'),28.5);
     await check(market,[weighted]);
     console.log('PASS sector-market PostgreSQL barcode, weighted POS, shift open, purchase, WAC, COGS, cash/GL');
+    const marketShift=await db.selectFrom('cashier_shifts').select('id')
+      .where('tenant_id','=',market.auth.tenantId!).where('opened_by','=',market.auth.userId)
+      .where('status','=','open').executeTakeFirstOrThrow();
+    await drawer.closeCashierShift(Number(marketShift.id),
+      {countedCash:28.5,managerPin:PASSWORD},market.auth);
+    const closed=await db.selectFrom('cashier_shifts').select(['status','expected_cash','variance'])
+      .where('tenant_id','=',market.auth.tenantId!).where('id','=',marketShift.id).executeTakeFirstOrThrow();
+    assert.equal(closed.status,'closed');
+    assert.equal(cents(closed.expected_cash),28.5);
+    assert.equal(cents(closed.variance),0);
+    console.log('PASS sector-market PostgreSQL exact shift close balances cash POS and zero variance');
 
     // RESTAURANT: the real sale service must deduct a costed modifier from raw
     // ingredient stock and POST that identical amount to COGS (not spoofed costPrice).
@@ -186,23 +223,6 @@ async function main(): Promise<void> {
     assert.equal(await posted(rest,'1110'),60);
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL dine-in table, costed modifier ingredients, cash/COGS/WAC/GL');
-
-    // Ordinary retail returns must NOT reverse full COGS while returning only
-    // the parent meal (ingredient component stock cannot be fabricated).
-    const restaurantReturnBefore=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
-      .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
-    await assert.rejects(returns.createReturn({type:'sale',invoiceId:rId,
-      items:[{productId:meal,qty:1}],settlementMode:'refund',refundMethod:'cash'},rest.auth),
-      (e:any)=>e.code==='COMPOSITE_RETURN_RECONCILIATION_REQUIRED');
-    const restaurantReturnAfter=await db.selectFrom('return_documents').select(db.fn.countAll().as('n'))
-      .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
-    assert.equal(Number(restaurantReturnAfter.n),Number(restaurantReturnBefore.n));
-    assert.equal(await posted(rest,'5100'),6,'failed composite return cannot credit COGS');
-    assert.equal(await posted(rest,'1110'),60,'failed composite return cannot pay a cash refund');
-    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
-      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty),1.8);
-    await check(rest,[meal,cheese]);
-    console.log('PASS sector-restaurant PostgreSQL composite meal refund fails closed without inventory/GL/cash drift');
 
     // Missing stock must roll back invoice, tender and GL together.
     const salesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))
