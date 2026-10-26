@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { XIcon, CheckIcon, TrashIcon, FileTextIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
+import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { KITCHEN_TAG_CATEGORIES, resolveItemEnglishName } from '@/features/pos/utils/kitchen-notes.util';
 
 export interface PosItemNotesDialogProps {
@@ -11,6 +12,7 @@ export interface PosItemNotesDialogProps {
   itemName: string;
   itemEnName?: string;
   initialNotes?: string;
+  isRestaurant?: boolean;
   onSave: (notes: string) => void;
 }
 
@@ -20,9 +22,15 @@ export function PosItemNotesDialog({
   itemName,
   itemEnName,
   initialNotes = '',
+  isRestaurant: isRestaurantProp,
   onSave,
 }: PosItemNotesDialogProps) {
   const { t } = useTranslation();
+  const settingsQuery = useSettingsQuery();
+  const isRestaurant = isRestaurantProp !== undefined
+    ? isRestaurantProp
+    : settingsQuery.data?.restaurantModuleEnabled === true;
+
   const [notesText, setNotesText] = useState(initialNotes);
   const [activeTab, setActiveTab] = useState(KITCHEN_TAG_CATEGORIES[0].id);
 
@@ -33,8 +41,11 @@ export function PosItemNotesDialog({
   }, [open, initialNotes]);
 
   const englishName = useMemo(() => {
+    if (!isRestaurant) {
+      return itemEnName || null;
+    }
     return itemEnName || resolveItemEnglishName({ name: itemName });
-  }, [itemName, itemEnName]);
+  }, [itemName, itemEnName, isRestaurant]);
 
   if (!open) return null;
 
@@ -79,8 +90,8 @@ export function PosItemNotesDialog({
     <DialogShell
       open={open}
       onClose={onClose}
-      width="min(680px, 96vw)"
-      ariaLabel="ملاحظات وتجهيز الصنف"
+      width={isRestaurant ? "min(680px, 96vw)" : "min(520px, 94vw)"}
+      ariaLabel={isRestaurant ? t('pos.item_notes_modal_title', 'ملاحظات وتجهيز الصنف للمطبخ') : t('pos.item_notes_modal_title_generic', 'ملاحظات الصنف')}
       shellClassName="pos-item-notes-dialog-shell"
     >
       <div
@@ -138,7 +149,9 @@ export function PosItemNotesDialog({
                   textOverflow: 'ellipsis',
                 }}
               >
-                {t('pos.item_notes_modal_title', 'ملاحظات وتجهيز الصنف للمطبخ:')} {itemName}
+                {isRestaurant
+                  ? `${t('pos.item_notes_modal_title', 'ملاحظات وتجهيز الصنف للمطبخ:')} ${itemName}`
+                  : `${t('pos.item_notes_modal_title_generic', 'ملاحظات الصنف:')} ${itemName}`}
               </h2>
               {englishName && (
                 <div
@@ -187,112 +200,118 @@ export function PosItemNotesDialog({
             gap: '14px',
           }}
         >
-          {/* Quick-Tags Section Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
-              <SlidersIcon size={14} color="#170e5e" />
-              <span>{t('pos.quick_kitchen_tags', 'تعديلات وتوجيهات المطبخ السريعة (Quick Kitchen Tags)')}</span>
-            </div>
-            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-              {t('pos.quick_tags_hint', 'انقر لاختيار التعديل ثنائي اللغة آلياً')}
-            </span>
-          </div>
+          {isRestaurant && (
+            <>
+              {/* Quick-Tags Section Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 700, color: '#334155' }}>
+                  <SlidersIcon size={14} color="#170e5e" />
+                  <span>{t('pos.quick_kitchen_tags', 'تعديلات وتوجيهات المطبخ السريعة (Quick Kitchen Tags)')}</span>
+                </div>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  {t('pos.quick_tags_hint', 'انقر لاختيار التعديل ثنائي اللغة آلياً')}
+                </span>
+              </div>
 
-          {/* Category Tabs */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '6px',
-              overflowX: 'auto',
-              paddingBottom: '4px',
-              borderBottom: '1px solid #f1f5f9',
-            }}
-          >
-            {KITCHEN_TAG_CATEGORIES.map((cat) => {
-              const isActive = cat.id === activeTab;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setActiveTab(cat.id)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
-                    background: isActive ? '#170e5e' : '#f8fafc',
-                    color: isActive ? '#ffffff' : '#475569',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    transition: 'none',
-                  }}
-                >
-                  {cat.labelAr}
-                </button>
-              );
-            })}
-          </div>
+              {/* Category Tabs */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '6px',
+                  overflowX: 'auto',
+                  paddingBottom: '4px',
+                  borderBottom: '1px solid #f1f5f9',
+                }}
+              >
+                {KITCHEN_TAG_CATEGORIES.map((cat) => {
+                  const isActive = cat.id === activeTab;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setActiveTab(cat.id)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: isActive ? '1px solid #170e5e' : '1px solid #e2e8f0',
+                        background: isActive ? '#170e5e' : '#f8fafc',
+                        color: isActive ? '#ffffff' : '#475569',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'none',
+                      }}
+                    >
+                      {cat.labelAr}
+                    </button>
+                  );
+                })}
+              </div>
 
-          {/* Tags Grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
-              gap: '8px',
-              minHeight: '130px',
-              maxHeight: '190px',
-              overflowY: 'auto',
-              padding: '2px',
-            }}
-          >
-            {currentCategory.tags.map((tag) => {
-              const selected = isTagSelected(tag);
-              return (
-                <button
-                  key={tag.en}
-                  type="button"
-                  onClick={() => handleToggleTag(tag)}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    border: selected ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                    background: selected ? '#eef2ff' : '#ffffff',
-                    color: selected ? '#170e5e' : '#1e293b',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    gap: '3px',
-                    transition: 'none',
-                    userSelect: 'none',
-                  }}
-                >
-                  <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>{tag.ar}</span>
-                  <span
-                    dir="ltr"
-                    style={{
-                      fontSize: '0.68rem',
-                      fontWeight: 700,
-                      color: selected ? '#4338ca' : '#64748b',
-                      fontFamily: 'system-ui, sans-serif',
-                      letterSpacing: '0.2px',
-                    }}
-                  >
-                    {tag.en}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+              {/* Tags Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))',
+                  gap: '8px',
+                  minHeight: '130px',
+                  maxHeight: '190px',
+                  overflowY: 'auto',
+                  padding: '2px',
+                }}
+              >
+                {currentCategory.tags.map((tag) => {
+                  const selected = isTagSelected(tag);
+                  return (
+                    <button
+                      key={tag.en}
+                      type="button"
+                      onClick={() => handleToggleTag(tag)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: selected ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                        background: selected ? '#eef2ff' : '#ffffff',
+                        color: selected ? '#170e5e' : '#1e293b',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        gap: '3px',
+                        transition: 'none',
+                        userSelect: 'none',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.82rem', fontWeight: 800 }}>{tag.ar}</span>
+                      <span
+                        dir="ltr"
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          color: selected ? '#4338ca' : '#64748b',
+                          fontFamily: 'system-ui, sans-serif',
+                          letterSpacing: '0.2px',
+                        }}
+                      >
+                        {tag.en}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {/* Notes Input Field */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155' }}>
-                {t('pos.custom_note_label', 'نص الملاحظة النهائي للمطبخ والبون:')}
+                {isRestaurant
+                  ? t('pos.custom_note_label', 'نص الملاحظة النهائي للمطبخ والبون:')
+                  : t('pos.custom_note_label_generic', 'ملاحظات وتوجيهات خاصة على الصنف:')}
               </label>
               {notesText && (
                 <button
@@ -319,8 +338,10 @@ export function PosItemNotesDialog({
             <textarea
               value={notesText}
               onChange={(e) => setNotesText(e.target.value)}
-              placeholder={t('pos.item_notes_placeholder', 'اكتب أي ملاحظات إضافية أو اختر من الأزرار السريعة بالأعلى (مثال: بدون بصل، صوص جانبي، تسوية كاملة)...')}
-              rows={3}
+              placeholder={isRestaurant
+                ? t('pos.item_notes_placeholder', 'اكتب أي ملاحظات إضافية أو اختر من الأزرار السريعة بالأعلى (مثال: بدون بصل، صوص جانبي، تسوية كاملة)...')
+                : t('pos.item_notes_placeholder_generic', 'اكتب أي ملاحظات أو تعليمات خاصة بالصنف هنا (مثل: تغليف هدية، مواصفات خاصة، تفاصيل إضافية)...')}
+              rows={isRestaurant ? 3 : 5}
               style={{
                 width: '100%',
                 padding: '10px 12px',
