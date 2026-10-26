@@ -9,6 +9,7 @@ on:
       - fix/foundation-kernel-p0p1
       - fix/foundation-final-integration
       - fix/erp-final-system-validation
+      - fix/erp-customer-release-gates
   pull_request:
     branches:
       - main
