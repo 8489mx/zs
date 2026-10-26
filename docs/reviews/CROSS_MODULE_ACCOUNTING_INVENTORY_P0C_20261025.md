@@ -225,3 +225,8 @@ The code observations above identify definite missing integration points; **fina
 
 - Trade-in physical acquisition now refuses a serial registered in `product_serials` even when it has no earlier `trade_in_transactions` document. Previously, the service booked another stock receipt, WAC and payout but skipped the serial insert, losing one-to-one device provenance.
 - The rejection occurs inside the stock/treasury/GL transaction; new disposable PostgreSQL acceptance asserts no trade-in source or inventory movement after refusal. Verification is pending for this SHA; full exchange, serial resale, reversal and sector close remain OPEN.
+
+### Purchase repricing insight KWD/OMR rounding follow-up (26 October 2026)
+
+- Repricing hints derived from a posted purchase formerly called a two-decimal private rounder, dropping the last fil in the previous/new purchase WAC and recommended retail/wholesale price/delta shown to buyers. The purchase mutation now threads its validated tenant `moneyDigits` into repricing hints while retaining percentage precision in two decimals.
+- Added a focused critical test for KWD purchase WAC/recommended price with 0.001 increments and the old EGP display behavior. **The change does not prove full purchase/edit/report three-decimal certification.** CI/PostgreSQL results must be checked for the pushed SHA; P0-C remains OPEN.
