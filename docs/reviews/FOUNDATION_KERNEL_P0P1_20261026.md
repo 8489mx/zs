@@ -43,3 +43,8 @@ Regression added to `core-accounting.postgres.spec.ts` for real concurrent `rese
 ## Round-final P1 stock transfer cost integrity
 
 Found and corrected both `Number(...toFixed(2))` source writes in `InventoryTransferService`: final warehouse issue (`transfer_final_issue`) and inbound transit shrinkage (`transfer_transit_loss`) now persist the tenant's 2/3-place book value. PostgreSQL acceptance creates a KWD one-fil WAC purchase, forces a locked-period failure and asserts rollback, posts one-fil final issue to account 6900, sends remaining stock to transit, races two competing short-receipts and asserts a single one-fil loss to 5300, global inventory/GL balance and foreign-tenant destination rejection. The guard covers these source-to-GL paths, not every transfer variant.
+
+
+## Round-final EGP payroll and staff cash disbursement acceptance
+
+PostgreSQL acceptance uses synthetic same-tenant persisted HR employee, reviewed payroll source, approved payment and cash advance loan to exercise the **shared posting boundary**, including exact expense/payable/cash GL, operational treasury source, unique posting, same-document payment and loan disbursement races, locked-period transaction rollback and cross-tenant authorization denial. It confirms the already-existing guard that rejects KWD/OMR payroll rather than silently truncating three-decimal pay; it does not certify GCC payroll calculations or replace the HR statutory policy and attendance test suites.

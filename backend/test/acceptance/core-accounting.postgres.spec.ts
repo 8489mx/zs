@@ -26,6 +26,7 @@ import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { TreasuryService } from '../../src/modules/treasury/treasury.service';
 import { reserveLocationStock, releaseLocationStock } from '../../src/common/utils/location-stock-ledger';
 import { InventoryTransferService } from '../../src/modules/inventory/services/inventory-transfer.service';
+import { HrService } from '../../src/modules/hr/hr.service';
 import { TradeInService } from '../../src/modules/tradein/tradein.service';
 import { MaintenanceService } from '../../src/modules/maintenance/maintenance.service';
 import { PharmacyService } from '../../src/modules/pharmacy/pharmacy.service';
@@ -1418,6 +1419,111 @@ async function main() {
     assert.equal((await db.selectFrom('stock_transfers').select('id')
       .where('tenant_id','=',different.auth.tenantId!).execute()).length,0);
     pass('KWD final warehouse issue and concurrent transit shrinkage persist 0.001 cost in source/GL; rollback, retry and tenant isolation');
+
+
+    // Financial kernel proof for Egypt payroll and employee cash advance:
+    // persisted HR source -> cash treasury movement -> balanced shared GL.
+    // Approval-policy calculation itself has separate HR critical tests; this
+    // probes the immutable approved-document payment/posting boundary.
+    const hrTenant=await fixture('egp_hr_money');
+    const hr=app.get(HrService);
+    const createdEmployee=await sql<{id:number}>`
+      INSERT INTO hr_employees
+        (tenant_id,account_id,employee_no,first_name,last_name,display_name,status,branch_id,created_by)
+      VALUES (${hrTenant.auth.tenantId!},${hrTenant.auth.accountId!},
+        ${'EMP_'+tag+'_KERNEL'},'Foundation','Staff','Foundation Staff',
+        'active',${hrTenant.branchId},${hrTenant.auth.userId})
+      RETURNING id
+    `.execute(db);
+    const empId=Number(createdEmployee.rows[0].id);
+    const payrollRun=await sql<{id:number}>`
+      INSERT INTO hr_payroll_runs
+        (tenant_id,account_id,period_month,status,start_date,end_date,created_by)
+      VALUES (${hrTenant.auth.tenantId!},${hrTenant.auth.accountId!},
+        '2089-07','reviewed','2089-07-01'::date,'2089-07-31'::date,${hrTenant.auth.userId})
+      RETURNING id
+    `.execute(db);
+    const runId=Number(payrollRun.rows[0].id);
+    await sql`
+      INSERT INTO hr_payroll_run_items
+        (tenant_id,account_id,run_id,employee_id,base_salary,gross_pay,net_pay,status)
+      VALUES (${hrTenant.auth.tenantId!},${hrTenant.auth.accountId!},
+        ${runId},${empId},100,100,100,'reviewed')
+    `.execute(db);
+    const accrued=await posting.postPayrollAccrual(db,runId,hrTenant.auth);
+    assert.equal(accrued.posted,true);
+    assert.ok(accrued.journalEntryId);
+    assert.equal(await postingAmount(hrTenant,'6200'),100,'payroll expense matches source');
+    assert.equal(await postingAmount(hrTenant,'2140'),-100,'salary payable matches source');
+    const accrualRetry=await posting.postPayrollAccrual(db,runId,hrTenant.auth);
+    assert.equal(accrualRetry.posted,false,'payroll accrual cannot double-post');
+    await sql`UPDATE hr_payroll_run_items SET status='approved'
+      WHERE tenant_id=${hrTenant.auth.tenantId!} AND run_id=${runId}`.execute(db);
+    await sql`UPDATE hr_payroll_runs SET status='approved'
+      WHERE tenant_id=${hrTenant.auth.tenantId!} AND id=${runId}`.execute(db);
+    // A locked accounting period must roll back paid status, treasury and GL.
+    await db.updateTable('accounting_settings').set({lock_date_all:new Date('2100-12-31')})
+      .where('tenant_id','=',hrTenant.auth.tenantId!).execute();
+    await assert.rejects(hr.payPayrollRun(runId,{paymentChannel:'cash'} as any,hrTenant.auth));
+    assert.equal((await sql<{status:string}>`SELECT status FROM hr_payroll_runs
+      WHERE tenant_id=${hrTenant.auth.tenantId!} AND id=${runId}`.execute(db)).rows[0].status,'approved');
+    assert.equal((await db.selectFrom('treasury_transactions').select('id')
+      .where('tenant_id','=',hrTenant.auth.tenantId!).where('reference_type','=','hr_payroll_payment').execute()).length,0);
+    await db.updateTable('accounting_settings').set({lock_date_all:null})
+      .where('tenant_id','=',hrTenant.auth.tenantId!).execute();
+    const payrollRace=await Promise.allSettled([
+      hr.payPayrollRun(runId,{paymentChannel:'cash'} as any,hrTenant.auth),
+      hr.payPayrollRun(runId,{paymentChannel:'cash'} as any,hrTenant.auth),
+    ]);
+    assert.equal(payrollRace.filter(r=>r.status==='fulfilled').length,1,'a payroll can be paid only once');
+    assert.equal(payrollRace.filter(r=>r.status==='rejected').length,1);
+    assert.equal(await postingAmount(hrTenant,'2140'),0,'payroll liability settles exactly');
+    assert.equal(await postingAmount(hrTenant,'1110'),-100,'cash GL reflects payroll disbursement');
+    const payrollTreasury=await db.selectFrom('treasury_transactions').select('amount')
+      .where('tenant_id','=',hrTenant.auth.tenantId!).where('reference_type','=','hr_payroll_payment')
+      .where('reference_id','=',runId).execute();
+    assert.deepEqual(payrollTreasury.map(r=>Number(r.amount)),[-100],'cash operational record is exactly one');
+    const outsider=await fixture('other_hr_payment');
+    await assert.rejects(hr.payPayrollRun(runId,{paymentChannel:'cash'} as any,outsider.auth),
+      (e:any)=>e.code==='HR_PAYROLL_RUN_NOT_FOUND');
+    const loan=await sql<{id:number}>`
+      INSERT INTO hr_employee_loans
+        (tenant_id,account_id,employee_id,loan_no,loan_type,principal_amount,
+         remaining_amount,installment_count,installment_amount,status,issue_date,
+         branch_id,location_id,created_by)
+      VALUES (${hrTenant.auth.tenantId!},${hrTenant.auth.accountId!},${empId},
+        ${'LOAN_'+tag+'_KERNEL'},'advance',10,10,1,10,'approved',
+        '2089-08-01'::date,${hrTenant.branchId},${hrTenant.locationId},${hrTenant.auth.userId})
+      RETURNING id
+    `.execute(db);
+    const loanId=Number(loan.rows[0].id);
+    await db.updateTable('accounting_settings').set({lock_date_all:new Date('2100-12-31')})
+      .where('tenant_id','=',hrTenant.auth.tenantId!).execute();
+    await assert.rejects(hr.disburseLoan(loanId,hrTenant.auth));
+    assert.equal((await db.selectFrom('hr_employee_loans').select('status')
+      .where('tenant_id','=',hrTenant.auth.tenantId!).where('id','=',loanId).executeTakeFirstOrThrow()).status,'approved');
+    await db.updateTable('accounting_settings').set({lock_date_all:null})
+      .where('tenant_id','=',hrTenant.auth.tenantId!).execute();
+    const loanRace=await Promise.allSettled([hr.disburseLoan(loanId,hrTenant.auth),hr.disburseLoan(loanId,hrTenant.auth)]);
+    assert.equal(loanRace.filter(x=>x.status==='fulfilled').length,1);
+    assert.equal(loanRace.filter(x=>x.status==='rejected').length,1);
+    assert.equal(await postingAmount(hrTenant,'1160'),10,'staff advance asset GL equals outstanding loan');
+    assert.equal(await postingAmount(hrTenant,'1110'),-110,'payroll+advance cash GL exact');
+    const loanTreasury=await db.selectFrom('treasury_transactions').select('amount')
+      .where('tenant_id','=',hrTenant.auth.tenantId!).where('reference_type','=','hr_employee_loan')
+      .where('reference_id','=',loanId).execute();
+    assert.deepEqual(loanTreasury.map(r=>Number(r.amount)),[-10]);
+    assert.equal((await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id','=',hrTenant.auth.tenantId!)
+      .where('source_type','=','hr_employee_loan_disbursement')
+      .where('source_id','=',loanId).execute()).length,1);
+    const badPayrollCurrency=await fixture('blocked_kwd_payroll');
+    await db.updateTable('settings').set({value:'"KWD"'}).where('tenant_id','=',badPayrollCurrency.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',badPayrollCurrency.auth.tenantId!).where('is_base','=',true).execute();
+    const {requirePayrollMonetaryCurrency}=await import('../../src/modules/hr/engines/hr-payroll-run.engine');
+    assert.throws(()=>requirePayrollMonetaryCurrency('KWD','KWD'),/3 منازل/,'unsupported 3-digit payroll must fail closed');
+    pass('EGP payroll and employee advance: source-to-treasury-to-GL, double-entry, locked-period rollback, parallel retries and cross-tenant refusal; KWD payroll fail-closed');
 
     // 255 depends on the composite tenant keys introduced by 253.
     // A fully migrated installation must REFUSE rolling 253 back alone; do not
