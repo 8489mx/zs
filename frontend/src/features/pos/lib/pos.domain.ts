@@ -345,6 +345,8 @@ export function addPosItem(cart: PosItem[], product: Product, options: AddPosIte
     nameEn: (product as any).nameEn || (product as any).name_en || undefined,
     name_en: (product as any).name_en || (product as any).nameEn || undefined,
     itemCode: getProductItemCode(product, unit),
+    imageUrl: product.imageUrl || (product as any)?.metadata?.imageUrl || undefined,
+    icon: product.icon || (product as any)?.metadata?.icon || undefined,
     unitId: unit.id,
     unitName: unit.name,
     unitMultiplier: Number.isFinite(Number(unit.multiplier)) && Number(unit.multiplier) > 0 ? Number(unit.multiplier) : 1,

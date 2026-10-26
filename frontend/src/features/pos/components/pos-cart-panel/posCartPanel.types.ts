@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react';
-import type { Branch, Customer, Location } from '@/types/domain';
+import type { Branch, Customer, Location, Product } from '@/types/domain';
 import type { PosSaleMode } from '@/features/pos/lib/pos-sale-mode';
 import type { PosItem } from '@/features/pos/types/pos.types';
 
@@ -18,6 +18,7 @@ export interface HeldPosDraftSummary {
 }
 
 export interface PosCartPanelProps {
+  products?: Product[];
   cart: PosItem[];
   customers: Customer[];
   branches: Branch[];

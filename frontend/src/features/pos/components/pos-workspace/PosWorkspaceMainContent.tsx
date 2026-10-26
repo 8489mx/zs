@@ -94,6 +94,18 @@ export function PosWorkspaceMainContent({
   }, [cartItemsCount, customization.autoHideBottomNav]);
 
   const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (mobileActiveTab === 'cart') {
+      document.body.classList.add('pos-in-cart-view');
+    } else {
+      document.body.classList.remove('pos-in-cart-view');
+    }
+    return () => {
+      document.body.classList.remove('pos-in-cart-view');
+    };
+  }, [mobileActiveTab]);
   const [isFloatingCartExpanded, setIsFloatingCartExpanded] = useState(false);
   const defaultLeft = posMode === 'scanner' ? 70 : 38;
   const { leftRatio, rightRatio, handlePositionPct, startDrag } = useSplitter(
@@ -186,6 +198,7 @@ export function PosWorkspaceMainContent({
         >
           <PosCartPanel
             cart={pos.cart}
+            products={pos.filteredSaleProducts}
             customers={pos.customersQuery.data || []}
             branches={pos.branchesQuery.data || []}
             locations={pos.locationsQuery.data || []}

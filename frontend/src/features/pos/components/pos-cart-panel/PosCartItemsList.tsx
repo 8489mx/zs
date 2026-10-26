@@ -1,13 +1,16 @@
-import { useRef, useState, useEffect, useCallback, memo } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatCurrencyWithCode } from '@/lib/format';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { PosItemNotesDialog } from './PosItemNotesDialog';
+import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
+import type { Product } from '@/types/domain';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
 const PosCartItemRow = memo(function PosCartItemRow({
   item,
+  product,
   index,
   isSelected,
   isRecent,
@@ -35,6 +38,8 @@ const PosCartItemRow = memo(function PosCartItemRow({
   const inputStep = isWeightedLine ? 0.001 : 1;
   const qtyLength = String(item.qty ?? 1).length;
   const dynamicInputWidth = `${Math.max(30, qtyLength * 11 + 16)}px`;
+  const itemImage = item.imageUrl || product?.imageUrl || (product as any)?.metadata?.imageUrl;
+  const rawIcon = item.icon || product?.icon || 'box-package';
 
   return (
     <div
@@ -46,6 +51,50 @@ const PosCartItemRow = memo(function PosCartItemRow({
         <span className="pos-cart-index-badge">{index + 1}</span>
       </div>
 
+      <div className="pos-cart-col pos-cart-col-thumb">
+        {itemImage ? (
+          <div
+            className="pos-cart-product-thumb"
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '10px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+              flexShrink: 0,
+            }}
+          >
+            <img
+              src={itemImage}
+              alt={item.name}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              loading="lazy"
+            />
+          </div>
+        ) : (
+          <div
+            className="pos-cart-product-thumb pos-cart-product-thumb-placeholder"
+            style={{
+              width: '52px',
+              height: '52px',
+              borderRadius: '10px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              color: '#94a3b8',
+            }}
+          >
+            <ProductIcon name={rawIcon as any} size={22} />
+          </div>
+        )}
+      </div>
       <div
         className="pos-cart-col pos-cart-col-product"
         onDoubleClick={(e) => {
@@ -55,8 +104,20 @@ const PosCartItemRow = memo(function PosCartItemRow({
         style={{ cursor: 'pointer' }}
         title={itemCode ? `${item.name} - #${itemCode} (${t('pos.double_click_edit', 'انقر مرتين للتعديل')})` : `${item.name} (${t('pos.double_click_edit', 'انقر مرتين للتعديل')})`}
       >
-        <div className="pos-cart-product-inline">
-          <strong className="pos-cart-product-name">{item.name}</strong>
+        <div className="pos-cart-product-inline" style={{ minWidth: 0, overflow: 'hidden' }}>
+          <strong
+            className="pos-cart-product-name"
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              minWidth: 0,
+              display: 'inline-block',
+              maxWidth: '100%',
+            }}
+          >
+            {item.name}
+          </strong>
           {itemCode ? <span className="pos-cart-product-code">#{itemCode}</span> : null}
           {allowItemNotes && (
             <button
@@ -241,8 +302,37 @@ const PosCartItemRow = memo(function PosCartItemRow({
         )}
       </div>
 
-      <div className="pos-cart-col pos-cart-col-total" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', textAlign: 'center', width: '100%' }}>
-        <strong className="pos-cart-number pos-cart-number-total" style={{ textAlign: 'center' }}>{formatCurrency(lineTotal)}</strong>
+      <div className="pos-cart-col pos-cart-col-total" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', width: '100%' }}>
+        <strong
+          className="pos-cart-number pos-cart-number-total"
+          dir="ltr"
+          style={{
+            direction: 'ltr',
+            display: 'inline-block',
+            textAlign: 'left',
+            fontVariantNumeric: 'tabular-nums',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatCurrencyWithCode(lineTotal)}
+        </strong>
+        {item.qty > 1 && (
+          <span
+            className="pos-cart-unit-price-mobile-hint"
+            dir="ltr"
+            style={{
+              fontSize: '10.5px',
+              color: '#64748b',
+              fontWeight: 600,
+              direction: 'ltr',
+              display: 'inline-block',
+              marginTop: '1px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ({formatCurrencyWithCode(item.price)} / للوحدة)
+          </span>
+        )}
       </div>
 
       <div className="pos-cart-col pos-cart-col-remove" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
@@ -267,10 +357,17 @@ const PosCartItemRow = memo(function PosCartItemRow({
   );
 });
 
-export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onItemSeatChange, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onItemSeatChange' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
+export function PosCartItemsList({ cart, products, lastAddedLineKey, selectedLineKey, onQtyChange, onItemNoteChange, onItemModifiersClick, onItemSeatChange, onEditProduct, onRemoveItem, onSelectLine, onChangeLineQtyByDelta }: Pick<PosCartPanelProps, 'cart' | 'products' | 'lastAddedLineKey' | 'selectedLineKey' | 'onQtyChange' | 'onItemNoteChange' | 'onItemModifiersClick' | 'onItemSeatChange' | 'onEditProduct' | 'onRemoveItem' | 'onSelectLine' | 'onChangeLineQtyByDelta'>) {
   const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
+  const productMap = useMemo(() => {
+    const map = new Map<string, Product>();
+    (products || []).forEach((p) => {
+      map.set(String(p.id), p);
+    });
+    return map;
+  }, [products]);
   const isRestaurant = settingsQuery.data?.restaurantModuleEnabled === true;
   const allowItemNotes =
     isRestaurant ||
@@ -333,10 +430,12 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
           const isSelected = selectedLineKey === item.lineKey;
           const isRecent = lastAddedLineKey === item.lineKey;
 
+          const matchedProduct = productMap.get(String(item.productId));
           return (
             <PosCartItemRow
               key={item.lineKey}
               item={item}
+              product={matchedProduct}
               index={index}
               isSelected={isSelected}
               isRecent={isRecent}
@@ -355,6 +454,11 @@ export function PosCartItemsList({ cart, lastAddedLineKey, selectedLineKey, onQt
             />
           );
         })}
+        <div
+          className="pos-cart-mobile-bottom-spacer"
+          aria-hidden="true"
+          style={{ width: '100%', flexShrink: 0, pointerEvents: 'none' }}
+        />
       </div>
 
       {notesDialogItem && (
