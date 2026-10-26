@@ -568,21 +568,17 @@ export class ReturnsService {
         : matchingLines[0];
       if (!saleItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       const saleLineId = Number(saleItem.id);
-      // A restaurant menu sale can consume separate stock-bearing ingredients
-      // as modifier allocations. The ordinary retail return below restores
-      // only its parent product, while the generic journal reverses full
-      // sale_items.cost_price (including ingredient cost). That would create
-      // inventory GL without physical ingredient stock. Refuse such a refund
-      // until a dedicated prepared-meal writeoff/refund flow exists.
+      // A prepared restaurant dish consumes both its parent stock and separate
+      // ingredients. A refund is financial only: none of those consumed units
+      // physically return to inventory, and their historical COGS must stay
+      // expensed. The immutable return line records zero *restocked* cost so
+      // postSalesReturn reverses revenue/tender without inventing inventory GL.
       const consumedComponent = await trx.selectFrom('sale_line_stock_allocations')
         .select('id').where('tenant_id', '=', scope.tenantId)
         .where('sale_line_id', '=', saleLineId)
         .where('product_id', '!=', Number(saleItem.product_id))
         .executeTakeFirst();
-      if (consumedComponent) {
-        throw new AppError('Composite meal/item refund requires a costed component adjustment; ordinary restock would corrupt inventory GL',
-          'COMPOSITE_RETURN_RECONCILIATION_REQUIRED', 409);
-      }
+      const isPreparedComposite = Boolean(consumedComponent);
       if (unreconciledReturnLines.has(saleLineId) || (legacyPricedLineIds.has(saleLineId) && (returnedQtyByLine.get(saleLineId) || 0) > 0)) {
         throw new AppError('مرتجع سابق يحتاج تسوية الضريبة والخصم قبل مرتجع جديد', 'RETURN_LEGACY_RECONCILIATION_REQUIRED', 409);
       }
@@ -611,6 +607,12 @@ export class ReturnsService {
         tax: returnedTaxByLine.get(saleLineId) || 0,
       }, moneyDigits);
       const returnedUnitCost = Number(saleItem.cost_price || 0) / Number(saleItem.unit_multiplier || 1);
+      // Serialized goods must always use the traceable retail restock workflow.
+      if (isPreparedComposite && (product.track_serials === true || requestItem.serials?.length)) {
+        throw new AppError('Composite serialized item requires manual stock reconciliation',
+          'COMPOSITE_RETURN_SERIAL_RECONCILIATION_REQUIRED', 409);
+      }
+      if (!isPreparedComposite) {
       const previouslyReturnedBaseQty = Number((
         (returnedQtyByLine.get(saleLineId) || 0) +
         (pendingQtyByLine.get(saleLineId) || 0) - requestItem.qty
@@ -714,7 +716,8 @@ export class ReturnsService {
          await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'sale_return', qty: preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: returnedUnitCost, total_cost: roundBookMoney(returnedUnitCost * preparedLine.stockDelta, moneyDigits), reason: 'sale_return', note: 'sale return S-' + String(sale.id), reference_type: 'sale_return', reference_id: Number(payload.invoiceId), branch_id: sale.branch_id, location_id: sale.location_id, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
       }
 
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: Number(saleItem.cost_price || 0), saleItemId: saleLineId });
+      } // End restock path. Prepared meals remain consumed and must never create stock.
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: isPreparedComposite ? 0 : Number(saleItem.cost_price || 0), saleItemId: saleLineId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines, moneyDigits);
