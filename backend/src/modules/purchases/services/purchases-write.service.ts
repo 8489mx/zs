@@ -80,23 +80,23 @@ export class PurchasesWriteService {
     return auth.role === 'super_admin' || auth.permissions.includes(permission);
   }
 
-  private roundCurrency(value: number): number {
-    return Number(Number(value || 0).toFixed(2));
+  private roundCurrency(value: number, digits: 2 | 3 = 2): number {
+    return Number(Number(value || 0).toFixed(digits));
   }
 
-  private buildRecommendedSellPrice(currentSellPrice: number, previousCost: number, newCost: number): number {
+  private buildRecommendedSellPrice(currentSellPrice: number, previousCost: number, newCost: number, digits: 2 | 3 = 2): number {
     const safeCurrentSell = Number(currentSellPrice || 0);
     const safePreviousCost = Number(previousCost || 0);
     const safeNewCost = Number(newCost || 0);
     if (safeCurrentSell <= 0) return 0;
     if (safePreviousCost > 0 && safeNewCost > 0) {
-      return this.roundCurrency((safeCurrentSell / safePreviousCost) * safeNewCost);
+      return this.roundCurrency((safeCurrentSell / safePreviousCost) * safeNewCost, digits);
     }
     if (safeNewCost > 0) {
       const absoluteMarkup = Math.max(0, safeCurrentSell - Math.max(0, safePreviousCost));
-      return this.roundCurrency(safeNewCost + absoluteMarkup);
+      return this.roundCurrency(safeNewCost + absoluteMarkup, digits);
     }
-    return this.roundCurrency(safeCurrentSell);
+    return this.roundCurrency(safeCurrentSell, digits);
   }
 
   private buildPurchaseRepricingCandidate(product: PurchaseRepricingProduct, newCost: number): PurchaseRepricingCandidate {
@@ -116,6 +116,7 @@ export class PurchasesWriteService {
     purchaseId: number,
     supplier: { id: number; name: string },
     candidates: PurchaseRepricingCandidate[],
+    moneyDigits: 2 | 3 = 2,
   ): PurchaseRepricingInsights | null {
     const rows = candidates
       .filter((candidate) => Math.abs(Number(candidate.newCost || 0) - Number(candidate.previousCost || 0)) > 0.0001)
@@ -124,8 +125,8 @@ export class PurchasesWriteService {
         const newCost = Number(candidate.newCost || 0);
         const retailPrice = Number(candidate.retailPrice || 0);
         const wholesalePrice = Number(candidate.wholesalePrice || 0);
-        const recommendedRetailPrice = this.buildRecommendedSellPrice(retailPrice, previousCost, newCost);
-        const recommendedWholesalePrice = this.buildRecommendedSellPrice(wholesalePrice, previousCost, newCost);
+        const recommendedRetailPrice = this.buildRecommendedSellPrice(retailPrice, previousCost, newCost, moneyDigits);
+        const recommendedWholesalePrice = this.buildRecommendedSellPrice(wholesalePrice, previousCost, newCost, moneyDigits);
         const costChangePercent = previousCost > 0
           ? this.roundCurrency(((newCost - previousCost) / previousCost) * 100)
           : (newCost > 0 ? 100 : 0);
@@ -134,15 +135,15 @@ export class PurchasesWriteService {
           name: candidate.name,
           itemKind: candidate.itemKind,
           styleCode: candidate.styleCode,
-          previousCost: this.roundCurrency(previousCost),
-          newCost: this.roundCurrency(newCost),
+          previousCost: this.roundCurrency(previousCost, moneyDigits),
+          newCost: this.roundCurrency(newCost, moneyDigits),
           costChangePercent,
-          retailPrice: this.roundCurrency(retailPrice),
-          wholesalePrice: this.roundCurrency(wholesalePrice),
+          retailPrice: this.roundCurrency(retailPrice, moneyDigits),
+          wholesalePrice: this.roundCurrency(wholesalePrice, moneyDigits),
           recommendedRetailPrice,
           recommendedWholesalePrice,
-          recommendedRetailDelta: this.roundCurrency(recommendedRetailPrice - retailPrice),
-          recommendedWholesaleDelta: this.roundCurrency(recommendedWholesalePrice - wholesalePrice),
+          recommendedRetailDelta: this.roundCurrency(recommendedRetailPrice - retailPrice, moneyDigits),
+          recommendedWholesaleDelta: this.roundCurrency(recommendedWholesalePrice - wholesalePrice, moneyDigits),
         };
       });
 
@@ -611,7 +612,7 @@ export class PurchasesWriteService {
         await this.accountingPosting.postPurchase(trx, id, auth);
       }
 
-      const repricingInsights = this.buildPurchaseRepricingInsights(id, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates);
+      const repricingInsights = this.buildPurchaseRepricingInsights(id, { id: Number(supplier.id), name: String(supplier.name || '') }, repricingCandidates, moneyDigits);
 
       // Commit idempotency record atomically inside the same business transaction.
       if (idempotencyKey) {
