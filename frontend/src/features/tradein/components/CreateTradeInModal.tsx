@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { getGlobalCurrencySymbol } from '@/lib/currencies';
+import { getCurrencyDecimals, getGlobalCurrencySymbol } from '@/lib/currencies';
 import React from 'react';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { CustomSelect } from '@/shared/ui/custom-select';
@@ -160,12 +160,25 @@ export function CreateTradeInModal({
                 <input
                   type="number"
                   required
-                  min="1"
-                  step="0.01"
+                  min={10 ** -getCurrencyDecimals()}
+                  step={10 ** -getCurrencyDecimals()}
                   value={formData.agreedPurchasePrice || ''}
                   onChange={(e) => onChange({ ...formData, agreedPurchasePrice: Number(e.target.value) })}
                   placeholder="0.00"
                   style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 800, color: '#0f172a', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '11.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                  {t('tradein.payment_method', 'طريقة دفع قيمة الجهاز')}
+                </label>
+                <CustomSelect
+                  value={formData.paymentMethod || 'cash'}
+                  onChange={(value) => onChange({ ...formData, paymentMethod: value })}
+                  options={[
+                    { value: 'cash', label: t('tradein.payment_cash', 'نقدي من الخزينة') },
+                    { value: 'bank', label: t('tradein.payment_bank', 'من الحساب البنكي الافتراضي') },
+                  ]}
                 />
               </div>
             </div>
@@ -187,6 +200,8 @@ export function CreateTradeInModal({
                 <span style={{ fontSize: '11px', color: '#64748b' }}>{t('tradein.create_trade_in_modal.s23', "سعر البيع المقترح:")}</span>
                 <input
                   type="number"
+                  min="0"
+                  step={10 ** -getCurrencyDecimals()}
                   value={formData.resalePrice || ''}
                   onChange={(e) => onChange({ ...formData, resalePrice: Number(e.target.value) })}
                   placeholder="0.00"

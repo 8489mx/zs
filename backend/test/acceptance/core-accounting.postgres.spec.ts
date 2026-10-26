@@ -450,6 +450,46 @@ async function main() {
     assert.equal(occupiedMovements.length,0,'occupied serial must not create a stock receipt');
     pass('pre-registered catalog IMEI rejects duplicate trade-in and rolls back stock and cash');
 
+    // Bank payout is never a cash expense: match physical WAC receipt,
+    // channel-specific treasury expense and the actual 1120 bank GL at 0.001.
+    const bankTradeFixture = await fixture('tradeinbank');
+    await db.updateTable('settings').set({value:'"KWD"'})
+      .where('tenant_id','=',bankTradeFixture.auth.tenantId!).where('key','=','currency').execute();
+    await db.updateTable('currency_exchange_rates').set({currency_code:'KWD',exchange_rate:1})
+      .where('tenant_id','=',bankTradeFixture.auth.tenantId!).where('is_base','=',true).execute();
+    const bankSerial = `BANK-${tag}`;
+    const bankPayload = {...intake,serialNumber:bankSerial,agreedPurchasePrice:0.001,
+      paymentMethod:'bank',branchId:bankTradeFixture.branchId,locationId:bankTradeFixture.locationId};
+    const bankPurchase = await tradein.createTransaction(bankPayload,bankTradeFixture.auth);
+    const bankPayouts = await db.selectFrom('treasury_transactions').select(['amount','payment_channel','txn_type'])
+      .where('tenant_id','=',bankTradeFixture.auth.tenantId!)
+      .where('reference_type','=','trade_in').where('reference_id','=',Number(bankPurchase.id)).execute();
+    assert.equal(bankPayouts.length,1);
+    assert.equal(bankPayouts[0].payment_channel,'bank');
+    assert.equal(bankPayouts[0].txn_type,'expense');
+    assert.equal(Number(bankPayouts[0].amount),-0.001);
+    assert.equal(await postingAmount(bankTradeFixture,'1110',3),0,'bank transfer never credits cash');
+    assert.equal(await postingAmount(bankTradeFixture,'1120',3),-0.001,'bank credits exactly one fil');
+    assert.equal(await postingAmount(bankTradeFixture,'1140',3),0.001,'stock debited exactly one fil');
+    const bankReceipt = await db.selectFrom('stock_movements').select(['qty','total_cost'])
+      .where('tenant_id','=',bankTradeFixture.auth.tenantId!)
+      .where('reference_type','=','trade_in')
+      .where('reference_id','=',Number(bankPurchase.id)).execute();
+    assert.equal(bankReceipt.length,1);
+    assert.equal(Number(bankReceipt[0].qty),1);
+    assert.equal(Number(bankReceipt[0].total_cost),0.001);
+    const bankJournal = await db.selectFrom('journal_entries').select('id')
+      .where('tenant_id','=',bankTradeFixture.auth.tenantId!)
+      .where('source_type','=','trade_in').where('source_id','=',Number(bankPurchase.id)).execute();
+    assert.equal(bankJournal.length,1);
+    await assert.rejects(tradein.createTransaction(bankPayload,bankTradeFixture.auth),
+      (e:any)=>e.code==='TRADEIN_DUPLICATE_SERIAL');
+    await assert.rejects(tradein.createTransaction({...bankPayload,serialNumber:`BADBANK-${tag}`,paymentMethod:'wallet'},bankTradeFixture.auth),
+      (e:any)=>e.code==='TRADEIN_POSTING_UNSUPPORTED');
+    const bankIntegrity = await inspectAccountingIntegrity(db,bankTradeFixture.auth.tenantId!);
+    assert.equal(bankIntegrity.passed,true,JSON.stringify(bankIntegrity));
+    pass('trade-in default-bank payout: KWD 0.001 source/stock/treasury/GL, retry and unsupported channel rollback');
+
     // Real PostgreSQL must preserve the third minor unit from journal source
     // through DB storage and the FX/PDC base-currency snapshot.
     const kwd = await fixture('kwd_precision');
