@@ -53,3 +53,7 @@
 ### P0-C precision follow-up (2026-10-25; branch only)
 
 Maintenance advance, exact delivery settlement, and spare-part issue/return GL now use tenant base-currency minor units (`maintenance-accounting.ts`, `maintenance.service.ts`), rather than hardcoded two-decimal rounding. KWD/OMR 0.001 values and sub-minor-unit rejection are covered by disposable PostgreSQL acceptance scenarios; **CI on the new SHA must complete before declaring test success**. Refunds, cancellations, partial delivery credit, UI and 8-cycle reconciliation remain unverified.
+
+### P0-C opt-in cash-advance refund on maintenance cancellation (2026-10-26)
+
+`PATCH /api/maintenance/tickets/:id/status` accepts `refundAdvance: true` for `cancelled`/`unrepairable` only when a single original cash receipt and its immutable advance journal exist, no spare parts remain issued, and the ticket has not already been cancelled. The same transaction records negative cash in `treasury_transactions` and `maintenance_advance_refund` Dr 2150 / Cr 1110, with deduplicated source journal; a repeated cancellation/refund is read-only for cash/GL. Normal cancellation still rejects unrefunded advances, and returned parts must use the costed return API first. Evidence authored: `backend/test/acceptance/core-accounting.postgres.spec.ts` scenario, pending green branch PostgreSQL job. This is not bank refund, historical recovery, receivable settlement or delivered-job reversal certification.
