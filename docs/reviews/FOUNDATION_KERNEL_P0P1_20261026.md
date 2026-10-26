@@ -23,3 +23,13 @@
 - No production data edits, migrations, deploy, `main` merge or force push.
 
 **Release policy:** `Verified` only for cases actually proven by a green current-SHA PostgreSQL/CI run; broader Core, Accounting and Inventory release sign-off requires the named missing high-risk evidence.
+
+## Follow-up checkpoint — treasury source currency integrity and concurrent transfers (26 October)
+
+**Confirmed P1 root:** A KWD/OMR cash-to-bank transfer silently rounded the requested amount to two decimals while its source column `treasury_transfers.amount` was numeric(...,2). The balance check also allowed an overdraft up to 0.001 due to a fixed float tolerance. Identical requests racing before the first commit could both miss the initial idempotency lookup and the second could hit a database uniqueness violation rather than reuse the posted receipt. Cash expenses had the same two-digit source storage and `postExpense` line-rounding problem.
+
+**Fix committed:** `TreasuryService` uses integer tenant minor units, exact insufficient-funds checks, account-locked recheck of `request_key`, consistent expense/treasury/GL recording and currency-aware expense report; shared `postExpense` preserves money digits; numeric source widening migration **260** retains existing decimals and has a deliberate no-op down. Invalid fractional EGP cents/third-of-fil values are rejected, not silently rounded.
+
+**Regression authored:** Disposable PostgreSQL fixture seeds exact KWD cash GL, persists 0.001 transfer and expense and verifies operational treasury source and accounting accounts; races two 0.004 transfers against 0.005 available balance (one must fail), races two identical keys (one GL source), asserts zero cash after expense, rejects overdraw and out-of-currency precision. Run via the existing mandatory PostgreSQL acceptance workflow.
+
+**Pending evidence:** final SHA Full CI, Typecheck, Build, fresh migrations and dual-history upgrade run results. This checkpoint does not close historic-customer snapshot migration, all employee payroll cycles or full tenant/authorization tracing.

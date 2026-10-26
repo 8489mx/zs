@@ -12,6 +12,13 @@
 
 ## التحديثات الحالية
 
+### Foundation P1 — treasury cash source and concurrency (26 October 2026)
+
+- `TreasuryService.createTransfer` now validates money in the tenant's actual base currency, rather than rounding to cents. Available cash is compared using exact minor-unit integers: a last fil cannot be overdrawn by a formerly hardcoded 0.001 tolerance. The concurrent same-request-key receipt is re-checked *after* canonical account locks, preserving one treasury transfer/GL posting on a lost-response retry.
+- `TreasuryService.createExpense`, `AccountingPostingService.postExpense`, and the expense summary retain 0.001 KWD/OMR in the posted source, operational cash entry, line aggregation and report; sub-cent EGP is rejected. DTOs allow 3 decimals but the service enforces the actual tenant currency.
+- Migration `2040000000260_treasury_expense_minor_units.ts` widens the existing expense and treasury-transfer source columns non-destructively and refuses to narrow posted money on rollback. PostgreSQL regression in `backend/test/acceptance/core-accounting.postgres.spec.ts`: true one-fil writes/GL, cash depletion, simultaneous competing withdrawal, same-key parallel retry, and EGP rejection. **Current-branch CI/PG evidence must be checked at its final SHA before certification.**
+
+
 ### Foundation P1 — 26 October 2026 (verification pending)
 The shared accounting posting adapter now books inventory-adjustment, damaged-stock and food-waste values in authenticated tenant base-currency digits rather than hardcoded cents, with damage posting matching its durable physical `total_cost`. Its line aggregation now accepts the same tenant precision in those paths; edited sales and source-preserving sale/purchase reversal drafts now retain KWD/OMR 0.001 rather than dropping debit/credit lines. The KWD 0.001 source-to-double-entry ledger regression is in `backend/test/acceptance/core-accounting.postgres.spec.ts`; **pending actual PostgreSQL CI on the pushed SHA**. Other 3-decimal payroll and wider domain paths have not been comprehensively certified.
 
