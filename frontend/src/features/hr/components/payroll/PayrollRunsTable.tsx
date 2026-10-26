@@ -46,14 +46,148 @@ interface PayrollRunsTableProps {
   isEgypt?: boolean;
 }
 
-const RUN_TABS: Array<{ key: PayrollRunTab; label: string }> = [
-  { key: 'monthly', label: 'شهري' },
-  { key: 'biweekly', label: 'نصف شهري' },
-  { key: 'weekly', label: 'أسبوعي' },
-  { key: 'daily', label: 'يومي' },
-  { key: 'all_active', label: 'كافة الكشوف النشطة' },
-  { key: 'cancelled', label: 'الكشوفات الملغية' },
-];
+export function renderPayrollStatusBadge(statusRaw: unknown) {
+  const status = normalize(statusRaw);
+  if (status === 'draft') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '1px 5px',
+          borderRadius: '10px',
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          background: '#fef3c7',
+          color: '#92400e',
+          border: '1px solid #fde68a',
+          whiteSpace: 'nowrap',
+        }}
+        title="مسودة — بانتظار المراجعة والتدقيق"
+      >
+        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#d97706', display: 'inline-block' }} />
+        مسودة
+      </span>
+    );
+  }
+  if (status === 'reviewed') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '1px 5px',
+          borderRadius: '10px',
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          background: '#eff6ff',
+          color: '#1e40af',
+          border: '1px solid #bfdbfe',
+          whiteSpace: 'nowrap',
+        }}
+        title="تمت المراجعة — جاهز للاعتماد النهائي"
+      >
+        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
+        جاهز
+      </span>
+    );
+  }
+  if (status === 'approved') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '1px 5px',
+          borderRadius: '10px',
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          background: '#ecfdf5',
+          color: '#065f46',
+          border: '1px solid #a7f3d0',
+          whiteSpace: 'nowrap',
+        }}
+        title="معتمد نهائياً — جاهز للصرف"
+      >
+        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+        معتمد
+      </span>
+    );
+  }
+  if (status === 'partially_paid') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '1px 5px',
+          borderRadius: '10px',
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          background: '#eff6ff',
+          color: '#1d4ed8',
+          border: '1px solid #bfdbfe',
+          whiteSpace: 'nowrap',
+        }}
+        title="صرف جزئي — تم صرف رواتب بعض الموظفين"
+      >
+        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
+        صرف جزئي
+      </span>
+    );
+  }
+  if (status === 'paid') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '1px 5px',
+          borderRadius: '10px',
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          background: '#f0fdf4',
+          color: '#166534',
+          border: '1px solid #86efac',
+          whiteSpace: 'nowrap',
+        }}
+        title="تم الصرف وتوليد القيد المحاسبي"
+      >
+        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+        تم الصرف
+      </span>
+    );
+  }
+  if (status === 'cancelled' || status === 'canceled') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '3px',
+          padding: '1px 5px',
+          borderRadius: '10px',
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          background: '#fee2e2',
+          color: '#991b1b',
+          border: '1px solid #fca5a5',
+          whiteSpace: 'nowrap',
+        }}
+        title="كشف ملغي"
+      >
+        <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+        ملغي
+      </span>
+    );
+  }
+  return <span>{text(statusRaw)}</span>;
+}
 
 export function PayrollRunsTable({
   payrollChecklist,
@@ -83,6 +217,15 @@ export function PayrollRunsTable({
   isEgypt = false,
 }: PayrollRunsTableProps) {
   const { t } = useTranslation();
+
+  const runTabs: Array<{ key: PayrollRunTab; label: string }> = [
+    { key: 'monthly', label: 'شهري' },
+    { key: 'biweekly', label: 'نصف شهري' },
+    { key: 'weekly', label: 'أسبوعي' },
+    { key: 'daily', label: 'يومي' },
+    { key: 'all_active', label: isEgypt ? 'كافة الكشوف النشطة' : 'كافة المسيرات النشطة' },
+    { key: 'cancelled', label: isEgypt ? 'الكشوفات الملغية' : 'المسيرات الملغية' },
+  ];
 
   const getEmptyMessage = () => {
     if (activeTab === 'cancelled') {
@@ -163,7 +306,7 @@ export function PayrollRunsTable({
 
         {/* Executive Tabs for Frequency & Cancelled Runs */}
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px', background: '#f8fafc', padding: '6px 8px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          {RUN_TABS.map((tab) => {
+          {runTabs.map((tab) => {
             const count = tab.key === 'all_active'
               ? (tabCounts.all_active ?? tabCounts.allActive ?? 0)
               : (tabCounts[tab.key] ?? 0);
@@ -216,7 +359,7 @@ export function PayrollRunsTable({
           })}
         </div>
 
-        <div style={{ minHeight: '140px' }}>
+        <div style={{ minHeight: '140px' }} className="payroll-runs-table-wrap">
           <QueryFeedback
             isLoading={isLoading}
             isError={isError}
@@ -231,29 +374,30 @@ export function PayrollRunsTable({
               rowKey={(row) => String(row.id)}
               onRowClick={(row) => onSelectRun(String(row.id))}
               density="compact"
-              tableStyle={{ tableLayout: 'fixed', width: '100%' }}
+              tableStyle={{ tableLayout: 'fixed', width: '100%', fontSize: '0.73rem' }}
               pagination={{ page, pageSize, totalItems, onPageChange, onPageSizeChange, itemLabel: isEgypt ? 'كشف' : 'مسير' }}
               columns={[
                 {
                   key: 'periodMonth',
                   header: t('hr.payroll.payroll_runs_table.s6', "الشهر"),
-                  width: '110px',
+                  width: '64px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
                   cell: (row) => {
                     const isSelected = String(row.id) === String(selectedRunId);
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', justifyContent: 'center' }}>
                         <span
                           style={{
-                            width: '6px',
-                            height: '6px',
+                            width: '5px',
+                            height: '5px',
                             borderRadius: '50%',
                             backgroundColor: isSelected ? '#170e5e' : 'transparent',
                             display: 'inline-block',
                             flexShrink: 0,
                           }}
-                          title={isSelected ? 'الكشف المعروض أدناه' : undefined}
+                          title={isSelected ? (isEgypt ? 'الكشف المعروض أدناه' : 'المسير المعروض أدناه') : undefined}
                         />
-                        <span style={{ fontWeight: 600, color: isSelected ? '#170e5e' : '#0f172a' }}>
+                        <span style={{ fontWeight: 700, color: isSelected ? '#170e5e' : '#0f172a', fontSize: '0.73rem', whiteSpace: 'nowrap' }}>
                           {text(row.periodMonth)}
                         </span>
                       </div>
@@ -262,97 +406,258 @@ export function PayrollRunsTable({
                 },
                 {
                   key: 'payFrequency',
-                  header: t('hr.payroll.payroll_runs_table.s7', "دورة القبض"),
-                  width: '95px',
-                  cell: (row) => getPayFrequencyLabel(row.payFrequency),
+                  header: t('hr.payroll.payroll_runs_table.s7', "الدورة"),
+                  width: '54px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
+                  cell: (row) => (
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '1px 4px',
+                        borderRadius: '4px',
+                        background: '#f1f5f9',
+                        color: '#334155',
+                        fontSize: '0.68rem',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {getPayFrequencyLabel(row.payFrequency)}
+                    </span>
+                  ),
                 },
                 {
                   key: 'startDate',
                   header: t('hr.payroll.payroll_runs_table.s12', "من"),
-                  width: '95px',
-                  cell: (row) => row.startDate ? text(row.startDate) : t('hr.payroll.payroll_runs_table.s13', "أول الشهر"),
+                  width: '62px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
+                  cell: (row) => (
+                    <span style={{ fontSize: '0.69rem', color: '#475569', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+                      {row.startDate ? text(row.startDate) : t('hr.payroll.payroll_runs_table.s13', "أول الشهر")}
+                    </span>
+                  ),
                 },
                 {
                   key: 'endDate',
                   header: t('hr.payroll.payroll_runs_table.s14', "إلى"),
-                  width: '95px',
-                  cell: (row) => row.endDate ? text(row.endDate) : t('hr.payroll.payroll_runs_table.s15', "آخر الشهر"),
+                  width: '62px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
+                  cell: (row) => (
+                    <span style={{ fontSize: '0.69rem', color: '#475569', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+                      {row.endDate ? text(row.endDate) : t('hr.payroll.payroll_runs_table.s15', "آخر الشهر")}
+                    </span>
+                  ),
                 },
                 {
                   key: 'status',
                   header: t('hr.payroll.payroll_runs_table.s16', "الحالة"),
-                  width: '90px',
-                  cell: (row) => statusLabel(row.status),
+                  width: '64px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
+                  cell: (row) => (
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      {renderPayrollStatusBadge(row.status)}
+                    </div>
+                  ),
                 },
                 {
                   key: 'itemCount',
-                  header: t('hr.payroll.payroll_runs_table.s17', "عدد الموظفين"),
-                  width: '85px',
-                  cell: (row) => text(row.itemCount || (row.items?.length ?? 0)),
+                  header: t('hr.payroll.payroll_runs_table.emp_header', "الموظفون"),
+                  width: '50px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
+                  cell: (row) => {
+                    const count = Number(row.itemCount || (row.items?.length ?? 0));
+                    return (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '18px',
+                          padding: '1px 4px',
+                          borderRadius: '6px',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          fontWeight: 700,
+                          fontSize: '0.72rem',
+                          color: '#1e293b',
+                        }}
+                      >
+                        {count}
+                      </span>
+                    );
+                  },
                 },
                 {
                   key: 'totalNetPay',
                   header: t('hr.payroll.payroll_runs_table.s18', "صافي المرتبات"),
-                  width: '110px',
-                  cell: (row) => canViewSalaryAmounts ? money(row.totalNetPay) : '—',
+                  width: '88px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
+                  cell: (row) => (
+                    <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.73rem', whiteSpace: 'nowrap' }}>
+                      {canViewSalaryAmounts ? money(row.totalNetPay) : '—'}
+                    </span>
+                  ),
                 },
                 {
                   key: 'createdAt',
                   header: t('hr.payroll.payroll_runs_table.s19', "تاريخ الإنشاء"),
-                  width: '135px',
-                  cell: (row) => text(row.createdAt),
+                  width: '68px',
+                  style: { padding: '4px 2px', textAlign: 'center' },
+                  cell: (row) => {
+                    const raw = String(row.createdAt || '').trim();
+                    if (!raw) return '—';
+                    let dateStr = raw;
+                    let timeStr = '';
+                    if (raw.includes('T')) {
+                      const [d, tPart] = raw.split('T');
+                      dateStr = d;
+                      timeStr = tPart?.slice(0, 5) || '';
+                    } else if (raw.includes(' ')) {
+                      const parts = raw.split(' ');
+                      if (parts[0].includes(':')) {
+                        timeStr = parts[0];
+                        dateStr = parts[1] || '';
+                      } else {
+                        dateStr = parts[0];
+                        timeStr = parts[1] || '';
+                      }
+                    }
+                    return (
+                      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
+                        <span style={{ fontSize: '0.69rem', fontWeight: 600, color: '#334155', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>{dateStr}</span>
+                        {timeStr ? <span style={{ fontSize: '0.63rem', color: '#94a3b8' }}>{timeStr}</span> : null}
+                      </div>
+                    );
+                  },
                 },
                 {
                   key: 'actions',
                   header: t('hr.payroll.payroll_runs_table.s20', "إجراء"),
-                  width: '265px',
+                  width: '172px',
+                  style: { padding: '3px 2px', textAlign: 'center' },
                   cell: (row) => {
                     const isCancelled = normalize(row.status) === 'cancelled' || normalize(row.status) === 'canceled';
                     if (isCancelled) {
                       return (
-                        <div style={{ display: 'flex', alignItems: 'center', minHeight: '26px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '22px' }}>
                           <span
                             style={{
-                              fontSize: '0.725rem',
+                              fontSize: '0.67rem',
                               color: '#991b1b',
                               fontWeight: 600,
                               background: '#fee2e2',
-                              padding: '2px 8px',
+                              padding: '1px 5px',
                               borderRadius: '4px',
                               border: '1px solid #fca5a5',
                               display: 'inline-block',
                             }}
                           >
-                            كشف ملغي
+                            {isEgypt ? 'كشف ملغي' : 'مسير ملغي'}
                           </span>
                         </div>
                       );
                     }
+                    const btnBaseStyle: React.CSSProperties = {
+                      padding: '1px 5px',
+                      fontSize: '0.67rem',
+                      fontWeight: 600,
+                      minHeight: '22px',
+                      height: '22px',
+                      lineHeight: 1,
+                      borderRadius: '4px',
+                      whiteSpace: 'nowrap',
+                      boxShadow: 'none',
+                      flexShrink: 0,
+                    };
                     return (
-                      <div className="actions compact-actions" style={{ flexWrap: 'nowrap', gap: '4px', minHeight: '26px', alignItems: 'center' }}>
+                      <div
+                        className="actions compact-actions"
+                        style={{
+                          flexWrap: 'nowrap',
+                          gap: '3px',
+                          minHeight: '22px',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
                         {canManagePayroll && normalize(row.status) !== 'approved' && normalize(row.status) !== 'paid' ? (
-                          <Button variant="secondary" onClick={() => onRecalculate(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600 }}>
-                            {t('hr.payroll.payroll_runs_table.recalc', "إعادة احتساب")}
+                          <Button
+                            variant="secondary"
+                            onClick={() => onRecalculate(String(row.id))}
+                            style={btnBaseStyle}
+                            title={t('hr.payroll.payroll_runs_table.recalc_title', "إعادة احتساب الكشف وتحديث الحضور والرواتب")}
+                          >
+                            {t('hr.payroll.payroll_runs_table.recalc_short', "احتساب")}
                           </Button>
                         ) : null}
                         {canManagePayroll && ['draft', 'reviewed'].includes(normalize(row.status)) ? (
-                          <Button variant="secondary" onClick={() => onReviewClick(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#1e40af', borderColor: '#bfdbfe' }}>
-                            {normalize(row.status) === 'reviewed' ? 'إعادة مراجعة' : t('hr.payroll.payroll_runs_table.review_approve', "مراجعة واعتماد")}
+                          <Button
+                            variant="secondary"
+                            onClick={() => onReviewClick(String(row.id))}
+                            style={{
+                              ...btnBaseStyle,
+                              color: '#1e40af',
+                              borderColor: '#bfdbfe',
+                              background: '#eff6ff',
+                            }}
+                            title={
+                              normalize(row.status) === 'reviewed'
+                                ? 'إعادة مراجعة الكشف وتعديل التسويات'
+                                : t('hr.payroll.payroll_runs_table.review_title', "مراجعة وتدقيق بنود الكشف")
+                            }
+                          >
+                            {t('hr.payroll.payroll_runs_table.review_short', "مراجعة")}
                           </Button>
                         ) : null}
                         {canApprovePayroll && normalize(row.status) === 'reviewed' ? (
-                          <Button variant="secondary" onClick={() => onApproveClick(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 600, color: '#166534', borderColor: '#bbf7d0' }}>
-                            {t('hr.payroll.payroll_runs_table.final_approve', "اعتماد نهائي")}
+                          <Button
+                            variant="secondary"
+                            onClick={() => onApproveClick(String(row.id))}
+                            style={{
+                              ...btnBaseStyle,
+                              fontWeight: 700,
+                              color: '#166534',
+                              borderColor: '#86efac',
+                              background: '#f0fdf4',
+                            }}
+                            title={t('hr.payroll.payroll_runs_table.approve_title', "اعتماد كشف المرتبات نهائياً")}
+                          >
+                            {t('hr.payroll.payroll_runs_table.approve_short', "اعتماد")}
                           </Button>
                         ) : null}
-                        {canApprovePayroll && normalize(row.status) === 'approved' ? (
-                          <Button variant="primary" onClick={() => onPayClick(String(row.id))} style={{ padding: '3px 10px', fontSize: '0.75rem', fontWeight: 700 }}>
-                            {t('hr.payroll.payroll_runs_table.pay', "صرف المرتبات")}
+                        {canApprovePayroll && ['approved', 'partially_paid'].includes(normalize(row.status)) ? (
+                          <Button
+                            variant="primary"
+                            onClick={() => onPayClick(String(row.id))}
+                            style={{
+                              ...btnBaseStyle,
+                              fontWeight: 700,
+                              background: '#170e5e',
+                              color: '#ffffff',
+                              padding: '1px 7px',
+                            }}
+                            title={
+                              normalize(row.status) === 'partially_paid'
+                                ? 'صرف باقي مرتبات الموظفين المعتمدين في هذا الكشف'
+                                : t('hr.payroll.payroll_runs_table.pay_title', "تسجيل صرف المرتبات وتوليد السند")
+                            }
+                          >
+                            {normalize(row.status) === 'partially_paid' ? 'صرف المتبقي' : t('hr.payroll.payroll_runs_table.pay_short', "صرف")}
                           </Button>
                         ) : null}
-                        {canManagePayroll && normalize(row.status) !== 'paid' ? (
-                          <Button variant="secondary" onClick={() => onCancel(String(row.id))} style={{ padding: '3px 8px', fontSize: '0.75rem', color: '#991b1b', borderColor: '#fecaca' }}>
-                            {t('hr.payroll.payroll_runs_table.cancel', "إلغاء")}
+                        {canManagePayroll && ['draft', 'reviewed'].includes(normalize(row.status)) ? (
+                          <Button
+                            variant="secondary"
+                            onClick={() => onCancel(String(row.id))}
+                            style={{
+                              ...btnBaseStyle,
+                              color: '#dc2626',
+                              borderColor: '#fecaca',
+                              background: '#fff5f5',
+                            }}
+                            title={t('hr.payroll.payroll_runs_table.cancel_title', "إلغاء هذا الكشف")}
+                          >
+                            {t('hr.payroll.payroll_runs_table.cancel_short', "إلغاء")}
                           </Button>
                         ) : null}
                       </div>

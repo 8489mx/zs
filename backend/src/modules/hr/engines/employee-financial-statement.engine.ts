@@ -220,12 +220,18 @@ export function buildEmployeeFinancialStatement(params: {
   for (const item of payrollItems) {
     if (item.runStatus === 'cancelled' || item.itemStatus === 'excluded') continue;
 
-    const isRunApprovedOrPaid = ['approved', 'paid'].includes(item.runStatus);
+    const isItemPaid = item.itemStatus === 'paid' || item.runStatus === 'paid';
+    const isRunApprovedOrPaid = ['approved', 'partially_paid', 'paid'].includes(item.runStatus) || isItemPaid;
     if (!isRunApprovedOrPaid) continue;
 
     const monthStr = item.periodMonth || '';
-    const date = `${monthStr}-28`;
-    const timestamp = item.paidAt || `${monthStr}-28 12:00`;
+    const defaultDate = `${monthStr}-28`;
+    const payoutDate = (item.paidAt || '').slice(0, 10);
+    const entitlementDate = payoutDate && payoutDate < defaultDate ? payoutDate : defaultDate;
+    const grossTimestamp = payoutDate && payoutDate < defaultDate
+      ? `${payoutDate} 08:00`
+      : `${defaultDate} 10:00`;
+    const netTimestamp = item.paidAt || `${defaultDate} 12:00`;
 
     // 3.A Gross Earnings (Credit - استحقاق الراتب)
     const grossPay = round2(Number(item.grossPay || 0));
@@ -239,8 +245,8 @@ export function buildEmployeeFinancialStatement(params: {
     if (grossPay > 0) {
       rawTxns.push({
         id: `payroll-gross-${item.id}`,
-        date,
-        timestamp: `${monthStr}-28 10:00`,
+        date: entitlementDate,
+        timestamp: grossTimestamp,
         category: 'salary_entitlement',
         typeLabel: `استحقاق راتب شهر ${monthStr}`,
         description: `إجمالي المرتب: ${grossPay} | صافٍ مستحق نقديًا: ${round2(item.netPay)} | سلفة مقاصة: ${round2(item.loanDeductionAmount)}`,
@@ -254,13 +260,13 @@ export function buildEmployeeFinancialStatement(params: {
     }
 
     // 3.B Salary Actual Payout (Debit - قبض المرتب الفعلي)
-    if (item.runStatus === 'paid') {
+    if (isItemPaid) {
       const netPay = round2(Number(item.netPay || 0));
       if (netPay > 0) {
         rawTxns.push({
           id: `payroll-net-${item.id}`,
-          date: (item.paidAt || '').slice(0, 10) || date,
-          timestamp,
+          date: payoutDate || defaultDate,
+          timestamp: netTimestamp,
           category: 'salary_payout',
           typeLabel: `صرف وقبض صافي راتب شهر ${monthStr}`,
           description: `الصافي المقبوض بعد الخصومات والسلف (${netPay}) - قناة الصرف: ${item.paymentChannel || 'نقدية'}`,
@@ -336,13 +342,13 @@ export function buildEmployeeFinancialStatement(params: {
   // Calculate Global Totals
   const totalGrossEarnings = round2(
     payrollItems
-      .filter((i) => ['approved', 'paid'].includes(i.runStatus) && i.itemStatus !== 'excluded')
+      .filter((i) => (['approved', 'partially_paid', 'paid'].includes(i.runStatus) || i.itemStatus === 'paid') && i.itemStatus !== 'excluded')
       .reduce((sum, i) => sum + Number(i.grossPay || 0), 0)
   );
 
   const totalPaidSalaries = round2(
     payrollItems
-      .filter((i) => i.runStatus === 'paid' && i.itemStatus !== 'excluded')
+      .filter((i) => (i.itemStatus === 'paid' || i.runStatus === 'paid') && i.itemStatus !== 'excluded')
       .reduce((sum, i) => sum + Number(i.netPay || 0), 0)
   );
 
@@ -420,9 +426,9 @@ export function buildEmployeeFinancialStatement(params: {
   const sortedMonths = Array.from(monthsSet).sort().reverse();
   const monthlyBreakdown: MonthlyBreakdownItem[] = sortedMonths.map((m) => {
     const mPayrolls = payrollItems.filter((p) => p.periodMonth === m
-      && ['approved', 'paid'].includes(p.runStatus) && p.itemStatus !== 'excluded');
+      && (['approved', 'partially_paid', 'paid'].includes(p.runStatus) || p.itemStatus === 'paid') && p.itemStatus !== 'excluded');
     const gross = round2(mPayrolls.reduce((sum, p) => sum + Number(p.grossPay || 0), 0));
-    const paid = round2(mPayrolls.filter((p) => p.runStatus === 'paid').reduce((sum, p) => sum + Number(p.netPay || 0), 0));
+    const paid = round2(mPayrolls.filter((p) => p.itemStatus === 'paid' || p.runStatus === 'paid').reduce((sum, p) => sum + Number(p.netPay || 0), 0));
 
     const mLoans = loans.filter((l) => {
       const d = (l.disbursedAt || l.createdAt || l.issueDate || '').slice(0, 7);

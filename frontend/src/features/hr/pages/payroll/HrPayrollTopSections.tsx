@@ -37,6 +37,8 @@ export type HrPayrollTopSectionProps = {
   hasCreatePayrollRun: boolean;
   isCreatePending: boolean;
   isEgypt?: boolean;
+  baseSalaryLabel?: string;
+  netPayLabel?: string;
   onMonthFilterChange: (value: string) => void;
   onSearchChange: (value: string) => void;
   onDepartmentFilterChange: (value: string) => void;
@@ -62,6 +64,8 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
     summary,
     canViewSalaryAmounts,
     isEgypt = false,
+    baseSalaryLabel,
+    netPayLabel,
     onMonthFilterChange,
     onSearchChange: _onSearchChange,
     onDepartmentFilterChange,
@@ -85,10 +89,10 @@ export function HrPayrollTopSections(props: HrPayrollTopSectionProps) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: '8px' }}>
           {[
             { label: t('hr.payroll.hr_payroll_top_sections.s2', "إجمالي الموظفين"), value: summary.totalEmployees || 0, isAlert: false },
-            { label: t('hr.payroll.hr_payroll_top_sections.s3', "الرواتب الأساسية"), value: canViewSalaryAmounts ? `${money(summary.totalBaseSalary)}` : '—', isAlert: false },
+            { label: baseSalaryLabel || t('hr.payroll.hr_payroll_top_sections.s3', "الأجور والرواتب الأساسية"), value: canViewSalaryAmounts ? `${money(summary.totalBaseSalary)}` : '—', isAlert: false },
             { label: t('hr.payroll.hr_payroll_top_sections.s4', "إجمالي الخصومات"), value: canViewSalaryAmounts ? `${money(summary.totalDeductions)}` : '—', isAlert: summary.totalDeductions > 0 },
             { label: t('hr.payroll.hr_payroll_top_sections.s5', "السلف والأقساط"), value: canViewSalaryAmounts ? `${money(summary.totalLoanDeduction)}` : '—', isAlert: false },
-            { label: t('hr.payroll.hr_payroll_top_sections.s6', "صافي المرتبات"), value: canViewSalaryAmounts ? `${money(summary.totalNet)}` : '—', isAlert: false, isPrimary: true },
+            { label: netPayLabel || t('hr.payroll.hr_payroll_top_sections.s6', isEgypt ? "صافي المرتبات والأجور" : "صافي الرواتب والأجور"), value: canViewSalaryAmounts ? `${money(summary.totalNet)}` : '—', isAlert: false, isPrimary: true },
             { label: t('hr.payroll.hr_payroll_top_sections.s7', "يحتاج مراجعة"), value: summary.needsReview, isAlert: summary.needsReview > 0 },
           ].map((stat, idx) => (
             <div

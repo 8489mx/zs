@@ -19,6 +19,8 @@ interface PayrollReviewItemModalProps {
   onNavigateToEmployee?: (employeeId: string) => void;
   onPrintSummary?: (item: HrPayrollRunItem) => void;
   onPrintDetailed?: (item: HrPayrollRunItem) => void;
+  onPayItem?: (item: HrPayrollRunItem) => void;
+  canApprovePayroll?: boolean;
 }
 
 export function PayrollReviewItemModal({
@@ -32,6 +34,8 @@ export function PayrollReviewItemModal({
   onDeleteAdjustment,
   onNavigateToAttendance,
   onNavigateToEmployee,
+  onPayItem,
+  canApprovePayroll = true,
 }: PayrollReviewItemModalProps) {
   const { t } = useTranslation();
 
@@ -268,12 +272,12 @@ export function PayrollReviewItemModal({
           <div class="payslip-container">
             <div class="header">
               <div class="header-info">
-                <h1>قسيمة استلام راتب (Payslip)</h1>
+                <h1>${isHourly ? 'قسيمة استلام أجر (Wage Payslip)' : 'قسيمة استلام راتب (Payslip)'}</h1>
                 <p>مسير شهر: ${text(periodMonth)} | تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}</p>
               </div>
               <div class="doc-badge">
                 <span style="display: block; font-size: 14px; font-weight: 800; color: #170e5e; letter-spacing: 0.5px;">Z-Systems ERP</span>
-                <small style="color: #64748b; font-weight: 600; font-size: 10.5px;">إدارة الموارد البشرية والرواتب</small>
+                <small style="color: #64748b; font-weight: 600; font-size: 10.5px;">${isHourly ? 'إدارة الموارد البشرية والأجور' : 'إدارة الموارد البشرية والرواتب'}</small>
               </div>
             </div>
 
@@ -314,7 +318,7 @@ export function PayrollReviewItemModal({
                   <span>المبلغ (ج.م)</span>
                 </div>
                 <div class="row-item">
-                  <span>الراتب الأساسي ${isHourly && calculatedHours > 0 ? `(${calculatedHours}س × ${money(hourlyRate)}/س)` : ''}</span>
+                  <span>${isHourly ? 'أجر ساعات العمل المحتسبة' : 'الراتب الأساسي'} ${isHourly && calculatedHours > 0 ? `(${calculatedHours}س × ${money(hourlyRate)}/س)` : ''}</span>
                   <span>${canViewSalaryAmounts ? money(baseSalary) : '—'}</span>
                 </div>
                 <div class="row-item">
@@ -358,7 +362,7 @@ export function PayrollReviewItemModal({
             </div>
 
             <div class="net-banner">
-              <div class="title">صافي الراتب المستحق للصرف:</div>
+              <div class="title">${isHourly ? 'صافي الأجر المستحق للصرف:' : 'صافي الراتب المستحق للصرف:'}</div>
               <div class="amount">${canViewSalaryAmounts ? money(netPay) : '—'}</div>
             </div>
 
@@ -370,7 +374,7 @@ export function PayrollReviewItemModal({
 
             <div class="signatures">
               <div>
-                <div class="sig-title">توقيع الموظف بالاستلام</div>
+                <div class="sig-title">${isHourly ? 'توقيع العامل / الموظف بالاستلام' : 'توقيع الموظف بالاستلام'}</div>
                 <div class="sig-line"></div>
               </div>
               <div>
@@ -384,7 +388,7 @@ export function PayrollReviewItemModal({
             </div>
 
             <div style="margin-top: 24px; border-top: 1px dashed #cbd5e1; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; color: #64748b; clear: both; page-break-inside: avoid;">
-              <span>تم إصدار واعتماد قسيمة الراتب إلكترونياً عبر منظومة <strong>Z-Systems Cloud ERP</strong> لإدارة المؤسسات والموارد البشرية</span>
+              <span>تم إصدار واعتماد قسيمة ${isHourly ? 'الأجر' : 'الراتب'} إلكترونياً عبر منظومة <strong>Z-Systems Cloud ERP</strong> لإدارة المؤسسات والموارد البشرية</span>
               <span dir="ltr" style="font-weight: 700; color: #170e5e;">Powered by Z-Systems ERP • www.z-systems.io</span>
             </div>
           </div>
@@ -527,7 +531,7 @@ export function PayrollReviewItemModal({
         <body>
           <div class="thermal-header">
             <h1 class="brand-title">Z-Systems ERP</h1>
-            <div class="doc-title">إيصال استلام راتب / أجر</div>
+            <div class="doc-title">${isHourly ? 'إيصال استلام أجر (Wage Receipt)' : 'إيصال استلام راتب / أجر'}</div>
             <div class="meta-text">مسير: ${text(periodMonth)} • التاريخ: ${new Date().toLocaleDateString('ar-EG')}</div>
           </div>
 
@@ -561,7 +565,7 @@ export function PayrollReviewItemModal({
             <span>المبلغ</span>
           </div>
           <div class="line-item">
-            <span>الأساسي ${isHourly && calculatedHours > 0 ? `(${calculatedHours}س × ${money(hourlyRate)})` : ''}</span>
+            <span>${isHourly ? 'أجر الساعات (الأساسي)' : 'الأساسي'} ${isHourly && calculatedHours > 0 ? `(${calculatedHours}س × ${money(hourlyRate)})` : ''}</span>
             <span>${canViewSalaryAmounts ? money(baseSalary) : '—'}</span>
           </div>
           ${allowanceAmount > 0 ? `
@@ -609,7 +613,7 @@ export function PayrollReviewItemModal({
           </div>
 
           <div class="net-box">
-            <div class="net-label">صافي الراتب المستحق للصرف</div>
+            <div class="net-label">${isHourly ? 'صافي الأجر المستحق للصرف' : 'صافي الراتب المستحق للصرف'}</div>
             <div class="net-amount">${canViewSalaryAmounts ? money(netPay) : '—'}</div>
           </div>
 
@@ -619,7 +623,7 @@ export function PayrollReviewItemModal({
           </div>` : ''}
 
           <div class="signatures">
-            <div class="sig-title">توقيع الموظف بالاستلام</div>
+            <div class="sig-title">${isHourly ? 'توقيع العامل / الموظف بالاستلام' : 'توقيع الموظف بالاستلام'}</div>
             <div class="sig-line"></div>
           </div>
 
@@ -648,7 +652,7 @@ export function PayrollReviewItemModal({
               <span style={{ width: '3px', height: '16px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
               <FileTextIcon size={18} color="#170e5e" />
               <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-                {t('hr.payroll.payroll_review_item_modal.s0', "مفردات وتفاصيل الراتب")}
+                {isHourly ? 'مفردات وتفاصيل الأجر المستحق' : t('hr.payroll.payroll_review_item_modal.s0', "مفردات وتفاصيل الراتب")}
               </h2>
             </div>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '12.5px', color: '#64748b' }}>
@@ -710,7 +714,9 @@ export function PayrollReviewItemModal({
             </div>
           </div>
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '10px 12px' }}>
-            <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600, marginBottom: '2px' }}>صافي الراتب المستحق</div>
+            <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600, marginBottom: '2px' }}>
+              {isHourly ? 'صافي الأجر المستحق' : 'صافي الراتب المستحق'}
+            </div>
             <div style={{ fontSize: '15px', fontWeight: 800, color: '#15803d' }}>
               {canViewSalaryAmounts ? money(netPay) : '—'}
             </div>
@@ -722,12 +728,16 @@ export function PayrollReviewItemModal({
           {/* Earnings Column */}
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden', background: '#ffffff' }}>
             <div style={{ background: '#f0fdf4', padding: '8px 12px', borderBottom: '1px solid #dcfce7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#166534' }}>الاستحقاقات المالية (Earnings)</span>
+              <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#166534' }}>
+                {isHourly ? 'استحقاقات الأجر (Earnings)' : 'الاستحقاقات المالية (Earnings)'}
+              </span>
               <span style={{ fontSize: '11px', color: '#15803d', fontWeight: 600 }}>المبلغ (ج.م)</span>
             </div>
             <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12.5px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #f1f5f9', paddingBottom: '4px' }}>
-                <span style={{ color: '#475569' }}>الراتب الأساسي:</span>
+                <span style={{ color: '#475569' }}>
+                  {isHourly ? 'أجر ساعات العمل (الأجر الأساسي):' : 'الراتب الأساسي:'}
+                </span>
                 <span style={{ fontWeight: 700, color: '#0f172a' }}>{canViewSalaryAmounts ? money(baseSalary) : '—'}</span>
               </div>
               {isHourly && (
@@ -815,13 +825,56 @@ export function PayrollReviewItemModal({
           alignItems: 'center',
           marginBottom: '16px',
           boxShadow: '0 2px 4px rgba(23, 14, 94, 0.12)',
+          flexWrap: 'wrap',
+          gap: '12px',
         }}>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, opacity: 0.9 }}>صافي الراتب المستحق للصرف:</div>
+            <div style={{ fontSize: '13px', fontWeight: 700, opacity: 0.9 }}>
+              {isHourly ? 'صافي الأجر المستحق للصرف:' : 'صافي الراتب المستحق للصرف:'}
+            </div>
             <div style={{ fontSize: '11px', opacity: 0.75 }}>بعد احتساب الاستحقاقات وكافة الجزاءات والاستقطاعات</div>
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px' }}>
-            {canViewSalaryAmounts ? money(netPay) : '—'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+              {canViewSalaryAmounts ? money(netPay) : '—'}
+            </div>
+            {normalize(item.status) === 'paid' ? (
+              <span
+                style={{
+                  background: 'rgba(34, 197, 94, 0.25)',
+                  border: '1px solid #4ade80',
+                  color: '#bbf7d0',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
+                تم الصرف (مدفوع)
+              </span>
+            ) : normalize(item.status) === 'approved' && onPayItem && canApprovePayroll ? (
+              <Button
+                variant="primary"
+                onClick={() => onPayItem(item)}
+                style={{
+                  background: '#16a34a',
+                  borderColor: '#15803d',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '12.5px',
+                  padding: '6px 14px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                صرف الراتب الآن
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -830,7 +883,7 @@ export function PayrollReviewItemModal({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: adjustments.length || showAddAdjustment ? '12px' : '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
               <SlidersIcon size={16} color="#170e5e" />
-              <span>التسويات والتعديلات اليدوية على الراتب</span>
+              <span>{isHourly ? 'التسويات والتعديلات اليدوية على الأجر' : 'التسويات والتعديلات اليدوية على الراتب'}</span>
               {adjustments.length > 0 && (
                 <span style={{ background: '#e0e7ff', color: '#3730a3', fontSize: '11px', padding: '1px 7px', borderRadius: '10px', fontWeight: 700 }}>
                   {adjustments.length}
@@ -1058,6 +1111,25 @@ export function PayrollReviewItemModal({
           </Button>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {normalize(item.status) === 'approved' && onPayItem && canApprovePayroll && (
+              <Button
+                variant="primary"
+                onClick={() => onPayItem(item)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#170e5e',
+                  borderColor: '#170e5e',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  padding: '6px 16px',
+                }}
+              >
+                <span>صرف الراتب ({canViewSalaryAmounts ? money(netPay) : ''})</span>
+              </Button>
+            )}
+
             <Button
               variant="secondary"
               onClick={printThermalReceipt}
@@ -1077,21 +1149,21 @@ export function PayrollReviewItemModal({
             </Button>
 
             <Button
-              variant="primary"
+              variant="secondary"
               onClick={printPayslip}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: '#170e5e',
-                borderColor: '#170e5e',
-                color: '#ffffff',
                 fontWeight: 600,
                 padding: '6px 16px',
+                borderColor: '#cbd5e1',
+                background: '#f8fafc',
+                color: '#0f172a',
               }}
             >
               <PrinterIcon size={16} />
-              <span>طباعة قسيمة الراتب (A4)</span>
+              <span>{isHourly ? 'طباعة قسيمة الأجر (A4)' : 'طباعة قسيمة الراتب (A4)'}</span>
             </Button>
           </div>
         </div>

@@ -24,6 +24,34 @@ export interface HrStatutoryPolicy {
   taxBrackets?: { max: number | null; rate: number }[];
 }
 
+export const STATUTORY_COUNTRIES = ['EG', 'SA', 'KW', 'QA', 'OM'] as const;
+export type StatutoryCountryCode = (typeof STATUTORY_COUNTRIES)[number];
+
+export const STATUTORY_COUNTRY_CURRENCY_MAP: Record<StatutoryCountryCode, string> = {
+  EG: 'EGP',
+  SA: 'SAR',
+  KW: 'KWD',
+  QA: 'QAR',
+  OM: 'OMR',
+};
+
+export const CURRENCY_STATUTORY_COUNTRY_MAP: Record<string, StatutoryCountryCode> = {
+  EGP: 'EG',
+  SAR: 'SA',
+  KWD: 'KW',
+  QAR: 'QA',
+  OMR: 'OM',
+};
+
+export function inferStatutoryCountry(currency?: string, countryCode?: string): StatutoryCountryCode {
+  const normCountry = String(countryCode || '').trim().toUpperCase();
+  if ((STATUTORY_COUNTRIES as readonly string[]).includes(normCountry)) {
+    return normCountry as StatutoryCountryCode;
+  }
+  const normCurr = String(currency || '').trim().toUpperCase();
+  return CURRENCY_STATUTORY_COUNTRY_MAP[normCurr] || 'EG';
+}
+
 /** Validate jurisdiction against the tenant's configured payment currency. No legal
  * rates are implied by this mapping, which only protects against mixed-country
  * settings on a single company ledger.
@@ -32,10 +60,7 @@ export function requireHrPayrollJurisdictionCurrency(
   country: HrStatutoryPolicy['statutoryCountry'] | string | undefined,
   tenantCurrency: string,
 ): void {
-  const countries: Record<string, string> = {
-    EG: 'EGP', SA: 'SAR', KW: 'KWD', QA: 'QAR', OM: 'OMR',
-  };
-  const expectedCurrency = countries[String(country || '').trim().toUpperCase()];
+  const expectedCurrency = STATUTORY_COUNTRY_CURRENCY_MAP[String(country || '').trim().toUpperCase() as StatutoryCountryCode];
   if (!expectedCurrency) throw new RangeError('حدد دولة المرتبات المعتمدة للمنشأة');
   if (String(tenantCurrency || '').trim().toUpperCase() !== expectedCurrency) {
     throw new RangeError('دولة سياسة المرتبات لا تطابق عملة المنشأة؛ أوقف الاعتماد وصحح السياسة');

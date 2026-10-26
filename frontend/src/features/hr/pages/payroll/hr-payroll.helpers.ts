@@ -44,7 +44,9 @@ export function getPayFrequencyLabel(freq?: string): string {
 export function money(value: unknown) {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount)) return `0.00 ${getGlobalCurrencySymbol()}`;
-  return `${amount.toFixed(2)} ${getGlobalCurrencySymbol()}`;
+  const isNeg = amount < 0;
+  const formatted = Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return isNeg ? `\u200E-${formatted} ${getGlobalCurrencySymbol()}` : `${formatted} ${getGlobalCurrencySymbol()}`;
 }
 
 export function text(value: unknown) {
@@ -65,9 +67,10 @@ export function normalize(value: unknown) {
 
 export function statusLabel(value: unknown) {
   const status = normalize(value);
-  if (status === 'draft') return 'مسودة / بانتظار المراجعة';
+  if (status === 'draft') return 'مسودة';
   if (status === 'reviewed') return 'جاهز';
   if (status === 'approved') return 'معتمد';
+  if (status === 'partially_paid') return 'مدفوع جزئياً';
   if (status === 'paid') return 'مدفوع';
   if (status === 'cancelled' || status === 'canceled') return 'ملغي';
   return text(value);

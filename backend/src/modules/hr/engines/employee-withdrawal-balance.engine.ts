@@ -20,7 +20,8 @@ export interface EmployeeWithdrawalContext {
     id: number;
     runId: number;
     periodMonth?: string;
-    runStatus: string; // 'draft' | 'reviewed' | 'approved'
+    runStatus: string; // 'draft' | 'reviewed' | 'approved' | 'partially_paid'
+    itemStatus?: string; // 'draft' | 'reviewed' | 'approved' | 'paid'
     baseSalary: number;
     allowanceAmount: number;
     grossPay: number;
@@ -64,6 +65,16 @@ export interface EmployeeWithdrawalBalanceResult {
     cycleStart: string;
     cycleEnd: string;
     daysElapsed: number;
+    totalDays: number;
+  };
+  schedule: {
+    payFrequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+    cycleStart: string;
+    cycleEnd: string;
+    nextPayoutDate: string;
+    isPayoutDue: boolean;
+    daysUntilPayout: number;
+    dueStatusText: string;
   };
   accrual: {
     workedHours: number;
@@ -73,6 +84,7 @@ export interface EmployeeWithdrawalBalanceResult {
     accruedEarnings: number;
     calculationText: string;
     source: 'payroll_item' | 'attendance_records' | 'contract_prorated';
+    isProrated: boolean;
   };
   deductions: {
     currentCycleWithdrawals: number;
@@ -83,6 +95,9 @@ export interface EmployeeWithdrawalBalanceResult {
   unpaidApprovedPayroll: number;
   netAvailableBalance: number;
   balanceStatus: 'credit' | 'debit' | 'settled';
+  maxDirectAdvance: number;
+  directAdvanceCeilingPct: number;
+  directAdvanceCashCap: number;
   canDisburseDirectly: boolean;
   maxDirectDisbursement: number;
 }
@@ -97,51 +112,78 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
   const baseSalary = Number(ctx.contract?.baseSalary || 0);
   const hourlyRate = Number(ctx.employee.hourlyRate || 0);
 
+  const schedule = resolvePayoutSchedule(
+    payFreq,
+    ctx.todayDate || ctx.currentCycle.cycleEnd,
+    ctx.currentCycle.cycleEnd
+  );
+
+  const cycleStart = schedule.cycleStart || ctx.currentCycle.cycleStart;
+  const cycleEnd = schedule.cycleEnd || ctx.currentCycle.cycleEnd;
+  const cycleStartMs = new Date(cycleStart + 'T00:00:00Z').getTime();
+  const cycleEndMs = new Date(cycleEnd + 'T00:00:00Z').getTime();
+  const totalCycleDays = Math.max(1, Math.round((cycleEndMs - cycleStartMs) / 86400000) + 1);
+  const todayMs = new Date((ctx.todayDate || cycleStart) + 'T00:00:00Z').getTime();
+  const daysElapsed = Math.min(totalCycleDays, Math.max(1, Math.round((todayMs - cycleStartMs) / 86400000) + 1));
+
   let workedHours = 0;
   let completedDays = 0;
   let accruedEarnings = 0;
   let calculationText = '';
   let accrualSource: 'payroll_item' | 'attendance_records' | 'contract_prorated' = 'contract_prorated';
+  let isProrated = false;
 
-  // 1. If employee is in an active un-finalized payroll run that hasn't been paid yet:
-  if (ctx.activePayrollItem) {
-    accrualSource = 'payroll_item';
-    const item = ctx.activePayrollItem;
-    // Gross pay minus attendance deductions (before loan deduction)
-    const rawEarned = round2(Number(item.grossPay || item.baseSalary || 0) - Number(item.deductionAmount || 0));
-    accruedEarnings = rawEarned > 0 ? rawEarned : round2(Number(item.netPay || 0) + Number(item.loanDeductionAmount || 0));
-    if (accruedEarnings <= 0) accruedEarnings = round2(Number(item.baseSalary || 0));
-
-    if (isHourly) {
-      const work = summarizeHourlyAttendance(ctx.punches, hourlyRate);
-      workedHours = round2(work.workedMinutes / 60);
-      completedDays = work.completedDays;
-      calculationText = workedHours > 0
-        ? `${workedHours} س عمل مسجلة (${moneyText(accruedEarnings)})`
-        : `استحقاق كشف الرواتب النشط (${item.periodMonth || 'الشهر الحالي'})`;
-    } else {
-      completedDays = Math.max(1, ctx.currentCycle.daysElapsed);
-      calculationText = `استحقاق كشف الرواتب النشط (${item.periodMonth || 'الشهر الحالي'})`;
-    }
-  } else if (isHourly) {
+  // 1. Accrual Calculation
+  if (isHourly) {
     accrualSource = 'attendance_records';
     const work = summarizeHourlyAttendance(ctx.punches, hourlyRate);
     workedHours = round2(work.workedMinutes / 60);
     completedDays = work.completedDays;
     accruedEarnings = round2(work.baseWage);
     calculationText = `${workedHours} س عمل × ${hourlyRate} ج.م/س`;
+    isProrated = false;
   } else if (payFreq === 'daily') {
     accrualSource = 'attendance_records';
     const presentRecords = ctx.punches.filter(p => String(p.status || '').toLowerCase() === 'present');
-    completedDays = presentRecords.length > 0 ? presentRecords.length : Math.max(1, ctx.currentCycle.daysElapsed);
+    completedDays = presentRecords.length > 0 ? presentRecords.length : Math.max(1, daysElapsed);
     const dailyWage = baseSalary > 0 ? round2(baseSalary / 30) : 0;
     accruedEarnings = round2(completedDays * dailyWage);
     calculationText = `${completedDays} يوم استحقاق × ${dailyWage} ج.م/يوم`;
+    isProrated = false;
+  } else if (ctx.activePayrollItem) {
+    accrualSource = 'payroll_item';
+    const item = ctx.activePayrollItem;
+    // Gross pay minus attendance deductions (before loan deduction)
+    const rawEarned = round2(Number(item.grossPay || item.baseSalary || 0) - Number(item.deductionAmount || 0));
+    const fullCyclePay = rawEarned > 0 ? rawEarned : round2(Number(item.netPay || 0) + Number(item.loanDeductionAmount || 0));
+    const normalizedFullPay = fullCyclePay > 0 ? fullCyclePay : round2(Number(item.baseSalary || 0));
+
+    // If employee item was already disbursed/paid, cycle accrual is fully settled
+    if (item.itemStatus === 'paid') {
+      accruedEarnings = 0;
+      completedDays = totalCycleDays;
+      calculationText = `تم صرف وقبض راتب هذه الدورة بالكامل (${item.periodMonth || 'مكتمل'})`;
+      isProrated = false;
+    } else if (['approved', 'partially_paid'].includes(item.runStatus) && (ctx.todayDate || '') >= cycleEnd) {
+      // If payroll run is approved and cycle period has fully ended: full earnings are recognized
+      accruedEarnings = normalizedFullPay;
+      completedDays = totalCycleDays;
+      calculationText = `استحقاق كشف رواتب معتمد (${item.periodMonth || 'مكتمل'})`;
+      isProrated = false;
+    } else {
+      // In-progress cycle or draft/reviewed run: strictly prorate by elapsed days in cycle!
+      const prorationFactor = Math.min(1, Math.max(0, daysElapsed / totalCycleDays));
+      accruedEarnings = round2(normalizedFullPay * prorationFactor);
+      completedDays = daysElapsed;
+      calculationText = `استحقاق نسبي (${daysElapsed} من ${totalCycleDays} يوم) - مسودة كشف الرواتب`;
+      isProrated = true;
+    }
   } else {
     accrualSource = 'contract_prorated';
-    accruedEarnings = round2(prorateMonthlyWage(baseSalary, ctx.currentCycle.cycleStart, ctx.todayDate));
-    completedDays = Math.max(1, ctx.currentCycle.daysElapsed);
+    accruedEarnings = round2(prorateMonthlyWage(baseSalary, cycleStart, ctx.todayDate));
+    completedDays = daysElapsed;
     calculationText = `استحقاق نسبي عن ${completedDays} يوم (من راتب ${baseSalary} ج.م)`;
+    isProrated = true;
   }
 
   // 2. Calculate prior loans & advances
@@ -159,7 +201,7 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
     const issue = String(loan.issueDate || '').slice(0, 10);
     const isAdvance = loan.loanType === 'advance';
 
-    if (isAdvance && issue >= ctx.currentCycle.cycleStart) {
+    if (isAdvance && issue >= cycleStart) {
       currentCycleWithdrawals = round2(currentCycleWithdrawals + remaining);
     } else {
       priorOutstandingDebt = round2(priorOutstandingDebt + remaining);
@@ -186,6 +228,13 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
     balanceStatus = 'debit';
   }
 
+  // 5. Governance Ceilings: Direct Cashier Advance Cap (50% max of net available, capped at 2,000 EGP)
+  const directAdvanceCeilingPct = 50;
+  const directAdvanceCashCap = 2000;
+  const maxDirectAdvance = netAvailableBalance > 0.009
+    ? round2(Math.min(directAdvanceCashCap, netAvailableBalance * (directAdvanceCeilingPct / 100)))
+    : 0;
+
   return {
     employee: {
       id: ctx.employee.id,
@@ -197,10 +246,12 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
       baseSalary,
     },
     cycle: {
-      cycleStart: ctx.currentCycle.cycleStart,
-      cycleEnd: ctx.currentCycle.cycleEnd,
-      daysElapsed: ctx.currentCycle.daysElapsed,
+      cycleStart,
+      cycleEnd,
+      daysElapsed,
+      totalDays: totalCycleDays,
     },
+    schedule,
     accrual: {
       workedHours,
       completedDays,
@@ -209,6 +260,7 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
       accruedEarnings,
       calculationText,
       source: accrualSource,
+      isProrated,
     },
     deductions: {
       currentCycleWithdrawals,
@@ -219,8 +271,135 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
     unpaidApprovedPayroll,
     netAvailableBalance,
     balanceStatus,
-    canDisburseDirectly: netAvailableBalance > 0.009,
-    maxDirectDisbursement: Math.max(0, netAvailableBalance),
+    maxDirectAdvance,
+    directAdvanceCeilingPct,
+    directAdvanceCashCap,
+    canDisburseDirectly: maxDirectAdvance > 0.009,
+    maxDirectDisbursement: maxDirectAdvance,
+  };
+}
+
+export interface PayoutScheduleResult {
+  payFrequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  cycleStart: string;
+  cycleEnd: string;
+  nextPayoutDate: string;
+  isPayoutDue: boolean;
+  daysUntilPayout: number;
+  dueStatusText: string;
+}
+
+export function resolvePayoutSchedule(
+  payFrequency: 'daily' | 'weekly' | 'biweekly' | 'monthly',
+  todayStr: string,
+  payrollPeriodEnd?: string
+): PayoutScheduleResult {
+  const parts = todayStr.split('-').map(Number);
+  const year = parts[0] || new Date().getUTCFullYear();
+  const month = parts[1] || 1;
+  const day = parts[2] || 1;
+
+  const fmt = (y: number, m: number, d: number) =>
+    `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  if (payFrequency === 'daily') {
+    return {
+      payFrequency: 'daily',
+      cycleStart: todayStr,
+      cycleEnd: todayStr,
+      nextPayoutDate: todayStr,
+      isPayoutDue: true,
+      daysUntilPayout: 0,
+      dueStatusText: 'مستحق للصرف اليوم (أجر يومي)',
+    };
+  }
+
+  if (payFrequency === 'biweekly') {
+    if (day <= 15) {
+      const cycleStart = fmt(year, month, 1);
+      const cycleEnd = fmt(year, month, 15);
+      const nextPayoutDate = cycleEnd;
+      const isPayoutDue = day === 15;
+      const daysUntilPayout = 15 - day;
+      return {
+        payFrequency: 'biweekly',
+        cycleStart,
+        cycleEnd,
+        nextPayoutDate,
+        isPayoutDue,
+        daysUntilPayout,
+        dueStatusText: isPayoutDue
+          ? 'مستحق للصرف اليوم (نهاية دورة النصف الأول)'
+          : `موعد القبض القادم: ${nextPayoutDate} (متبقي ${daysUntilPayout} يوم على نهاية الدورة)`,
+      };
+    } else {
+      const cycleStart = fmt(year, month, 16);
+      const cycleEnd = fmt(year, month, lastDayOfMonth);
+      const nextPayoutDate = cycleEnd;
+      const isPayoutDue = day >= lastDayOfMonth - 1;
+      const daysUntilPayout = Math.max(0, lastDayOfMonth - day);
+      return {
+        payFrequency: 'biweekly',
+        cycleStart,
+        cycleEnd,
+        nextPayoutDate,
+        isPayoutDue,
+        daysUntilPayout,
+        dueStatusText: isPayoutDue
+          ? 'مستحق للصرف اليوم (نهاية دورة النصف الثاني)'
+          : `موعد القبض القادم: ${nextPayoutDate} (متبقي ${daysUntilPayout} يوم على نهاية الدورة)`,
+      };
+    }
+  }
+
+  if (payFrequency === 'weekly') {
+    const dateObj = new Date(Date.UTC(year, month - 1, day));
+    const dayOfWeek = dateObj.getUTCDay(); // 4 = Thu, 5 = Fri
+    const isPayoutDue = dayOfWeek === 4 || dayOfWeek === 5;
+    const daysUntilThu = (4 - dayOfWeek + 7) % 7;
+    const daysUntilPayout = isPayoutDue ? 0 : (daysUntilThu === 0 ? 7 : daysUntilThu);
+    const nextDateObj = new Date(dateObj.getTime() + daysUntilPayout * 86400000);
+    const nextPayoutDate = fmt(nextDateObj.getUTCFullYear(), nextDateObj.getUTCMonth() + 1, nextDateObj.getUTCDate());
+
+    const daysSinceSat = (dayOfWeek - 6 + 7) % 7;
+    const startDateObj = new Date(dateObj.getTime() - daysSinceSat * 86400000);
+    const cycleStart = fmt(startDateObj.getUTCFullYear(), startDateObj.getUTCMonth() + 1, startDateObj.getUTCDate());
+    const cycleEnd = nextPayoutDate;
+
+    return {
+      payFrequency: 'weekly',
+      cycleStart,
+      cycleEnd,
+      nextPayoutDate,
+      isPayoutDue,
+      daysUntilPayout,
+      dueStatusText: isPayoutDue
+        ? 'مستحق للصرف اليوم (موعد الصرف الأسبوعي)'
+        : `موعد القبض القادم: يوم الخميس ${nextPayoutDate} (متبقي ${daysUntilPayout} يوم على نهاية الأسبوع)`,
+    };
+  }
+
+  // Monthly
+  const cycleStart = fmt(year, month, 1);
+  const cycleEnd = payrollPeriodEnd && payrollPeriodEnd.slice(0, 7) === todayStr.slice(0, 7)
+    ? payrollPeriodEnd
+    : fmt(year, month, lastDayOfMonth);
+  const nextPayoutDate = cycleEnd;
+  const isPayoutDue = todayStr >= cycleEnd || day >= lastDayOfMonth - 1;
+  const daysUntilPayout = Math.max(0, lastDayOfMonth - day);
+
+  return {
+    payFrequency: 'monthly',
+    cycleStart,
+    cycleEnd,
+    nextPayoutDate,
+    isPayoutDue,
+    daysUntilPayout,
+    dueStatusText: isPayoutDue
+      ? 'مستحق للصرف اليوم (نهاية دورة الشهر)'
+      : `موعد القبض القادم: ${nextPayoutDate} (متبقي ${daysUntilPayout} يوم على نهاية الشهر)`,
   };
 }
 

@@ -25,6 +25,16 @@ interface WithdrawalBalanceResponse {
     cycleStart: string;
     cycleEnd: string;
     daysElapsed: number;
+    totalDays?: number;
+  };
+  schedule?: {
+    payFrequency: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+    cycleStart: string;
+    cycleEnd: string;
+    nextPayoutDate: string;
+    isPayoutDue: boolean;
+    daysUntilPayout: number;
+    dueStatusText: string;
   };
   accrual: {
     workedHours: number;
@@ -34,6 +44,7 @@ interface WithdrawalBalanceResponse {
     accruedEarnings: number;
     calculationText: string;
     source: 'payroll_item' | 'attendance_records' | 'contract_prorated';
+    isProrated?: boolean;
   };
   deductions: {
     currentCycleWithdrawals: number;
@@ -44,6 +55,9 @@ interface WithdrawalBalanceResponse {
   unpaidApprovedPayroll: number;
   netAvailableBalance: number;
   balanceStatus: 'credit' | 'debit' | 'settled';
+  maxDirectAdvance?: number;
+  directAdvanceCeilingPct?: number;
+  directAdvanceCashCap?: number;
   canDisburseDirectly: boolean;
   maxDirectDisbursement: number;
 }
@@ -162,10 +176,21 @@ export function QuickCashAdvanceModal() {
   // Derived financial & authorization states
   const parsedAmount = Number(amount) || 0;
   const netAvailable = balanceData?.netAvailableBalance ?? 0;
+  const maxDirectAdvance = balanceData?.maxDirectAdvance ?? 0;
   const hasCredit = netAvailable > 0.009;
-  const isDirectAllowed = hasCredit && parsedAmount > 0 && parsedAmount <= netAvailable;
+  const isPayoutDue = balanceData?.schedule?.isPayoutDue ?? true;
+  const isEarlyWagePayout = activeTab === 'payout' && !isPayoutDue;
+  const isAdvanceOverDirectCap = activeTab === 'advance' && parsedAmount > maxDirectAdvance;
   const isOverdraft = parsedAmount > netAvailable;
-  const requiresManagerAuth = !hasCredit || isOverdraft;
+
+  // Direct allowed logic:
+  // For advance: amount <= maxDirectAdvance
+  // For payout: isPayoutDue && amount <= netAvailable
+  const isDirectAllowed = activeTab === 'payout'
+    ? (isPayoutDue && hasCredit && parsedAmount > 0 && parsedAmount <= netAvailable)
+    : (hasCredit && parsedAmount > 0 && parsedAmount <= maxDirectAdvance);
+
+  const requiresManagerAuth = !isDirectAllowed;
 
   const currentMonthLabel = useMemo(() => {
     try {
@@ -190,6 +215,7 @@ export function QuickCashAdvanceModal() {
     const freq = balanceData.employee.payFrequency;
     const hours = balanceData.accrual.workedHours;
     const days = balanceData.accrual.completedDays;
+    const totalDays = balanceData.cycle?.totalDays || 30;
 
     if (compType === 'hourly') {
       return `أجر بالساعة (عن ${hours > 0 ? `${hours} س عمل` : 'ساعات العمل'})`;
@@ -198,7 +224,10 @@ export function QuickCashAdvanceModal() {
       return `أجر يومي (عن ${days > 0 ? `${days} يوم استحقاق` : 'أيام العمل حتى اليوم'})`;
     }
     if (freq === 'weekly') {
-      return `أجر أسبوعي (عن ${days > 0 ? `${days} يوم استحقاق` : 'الأسبوع الحالي'})`;
+      return `أجر أسبوعي (عن ${days > 0 ? `${days} من ${totalDays} يوم` : 'الأسبوع الحالي'})`;
+    }
+    if (balanceData.accrual.isProrated) {
+      return `أجر نسبي حتى اليوم (${days} من ${totalDays} يوم شهر ${currentMonthLabel})`;
     }
     return `راتب شهري (استحقاق شهر ${currentMonthLabel})`;
   }, [employeeId, balanceData, currentMonthLabel]);
@@ -215,8 +244,18 @@ export function QuickCashAdvanceModal() {
 
   const availableSubtitle = useMemo(() => {
     if (!employeeId || !balanceData) return 'بانتظار اختيار الموظف';
-    return hasCredit ? 'صرف مباشر متاح للكاشير' : 'يتطلب اعتماد الإدارة';
-  }, [employeeId, balanceData, hasCredit]);
+    if (activeTab === 'payout') {
+      if (!isPayoutDue) {
+        return `متبقي ${balanceData.schedule?.daysUntilPayout ?? 0} يوم على الراتب (اعتماد مدير)`;
+      }
+      return hasCredit ? 'مستحق للصرف والتسوية اليوم' : 'لا يوجد رصيد مستحق للصرف';
+    }
+    // Tab 1: Advance
+    if (maxDirectAdvance > 0) {
+      return `سقف الكاشير المباشر: ${money(maxDirectAdvance)} ج.م (50%)`;
+    }
+    return hasCredit ? 'يتطلب اعتماد المدير (سلفة استثنائية)' : 'سلفة على المكشوف (اعتماد مدير)';
+  }, [employeeId, balanceData, hasCredit, activeTab, isPayoutDue, maxDirectAdvance]);
 
   useEffect(() => {
     if (activeTab === 'payout' && balanceData && employeeId) {
@@ -292,7 +331,11 @@ export function QuickCashAdvanceModal() {
     }
 
     if (requiresManagerAuth && !isAdminOrOwner && !managerPassword.trim()) {
-      setFormError('المبلغ يتجاوز الرصيد المستحق؛ يلزم إدخال كلمة مرور المدير أو مالك المنشأة للاعتماد.');
+      if (isEarlyWagePayout) {
+        setFormError(`موعد استحقاق الراتب لم يحن بعد (القادم: ${balanceData?.schedule?.nextPayoutDate || 'نهاية الدورة'})؛ يلزم إدخال كلمة مرور المدير للاعتماد كـ تسوية مبكرة.`);
+      } else {
+        setFormError('المبلغ يتجاوز الرصيد المستحق؛ يلزم إدخال كلمة مرور المدير أو مالك المنشأة للاعتماد.');
+      }
       return;
     }
 
@@ -675,38 +718,85 @@ export function QuickCashAdvanceModal() {
                 </span>
                 {hasCredit && (
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <button
-                      type="button"
-                      onClick={() => setAmount(String(netAvailable))}
-                      style={{
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        color: '#15803d',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        padding: '3px 10px',
-                        borderRadius: 4,
-                      }}
-                    >
-                      {activeTab === 'payout' ? 'كامل الصافي' : 'صرف كامل المتاح'} ({money(netAvailable)})
-                    </button>
-                    {activeTab === 'advance' && netAvailable >= 100 && (
+                    {activeTab === 'advance' ? (
+                      <>
+                        {netAvailable >= 100 && (
+                          <button
+                            type="button"
+                            onClick={() => setAmount(String(Math.floor(netAvailable * 0.25)))}
+                            style={{
+                              background: '#f8fafc',
+                              border: '1px solid #cbd5e1',
+                              color: '#334155',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                            }}
+                          >
+                            سلفة 25% ({money(Math.floor(netAvailable * 0.25))})
+                          </button>
+                        )}
+                        {maxDirectAdvance > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setAmount(String(maxDirectAdvance))}
+                            style={{
+                              background: '#f0fdf4',
+                              border: '1px solid #86efac',
+                              color: '#15803d',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                            }}
+                          >
+                            الحد المباشر 50% ({money(maxDirectAdvance)})
+                          </button>
+                        )}
+                        {netAvailable > maxDirectAdvance && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab('payout');
+                              setAmount(String(netAvailable));
+                              const empName = balanceData?.employee?.displayName || selectedEmployee?.displayName || 'الموظف';
+                              setNotes(`صرف وتصفية مستحقات أجر الفترة (${empName})`);
+                            }}
+                            style={{
+                              background: '#eff6ff',
+                              border: '1px solid #bfdbfe',
+                              color: '#1d4ed8',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: '3px 8px',
+                              borderRadius: 4,
+                            }}
+                            title="الانتقال لتبويب صرف الراتب وتصفية كامل المستحقات"
+                          >
+                            صرف وتصفية كامل الأجر ({money(netAvailable)}) ←
+                          </button>
+                        )}
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => setAmount(String(Math.floor(netAvailable / 2)))}
+                        onClick={() => setAmount(String(netAvailable))}
                         style={{
-                          background: '#f1f5f9',
-                          border: '1px solid #e2e8f0',
-                          color: '#475569',
+                          background: isPayoutDue ? '#f0fdf4' : '#fffbeb',
+                          border: `1px solid ${isPayoutDue ? '#86efac' : '#fde68a'}`,
+                          color: isPayoutDue ? '#15803d' : '#b45309',
                           fontSize: '0.72rem',
-                          fontWeight: 600,
+                          fontWeight: 700,
                           cursor: 'pointer',
                           padding: '3px 10px',
                           borderRadius: 4,
                         }}
                       >
-                        النصف ({money(Math.floor(netAvailable / 2))})
+                        {isPayoutDue ? 'كامل صافي الأجر المستحق' : 'كامل الصافي [تسوية مبكرة]'} ({money(netAvailable)})
                       </button>
                     )}
                   </div>
@@ -737,23 +827,52 @@ export function QuickCashAdvanceModal() {
                     <span style={{ color: '#15803d', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <CheckShieldIcon size={14} color="#15803d" />
                       {activeTab === 'payout'
-                        ? `صرف كامل صافي الأجر (${money(parsedAmount)} ج.م) نقداً من الدرج وتصفير رصيد الفترة — صـرف مبـاشر مسمـوح.`
-                        : `المبلغ ضمن رصيد الموظف المتاح (متبقي بعد الصرف: ${money(netAvailable - parsedAmount)} ج.م) — صـرف مبـاشر مسمـوح للكاشـير.`}
+                        ? `الدورة مكتملة ومستحقة للصرف اليوم (${money(parsedAmount)} ج.م) — صـرف مبـاشر مسمـوح للكاشـير.`
+                        : `المبلغ ضمن سقف الكاشير المباشر (${money(maxDirectAdvance)} ج.م - 50% من المستحق) — صـرف مبـاشر مسمـوح للكاشـير.`}
                     </span>
                   ) : (
-                    <span style={{ color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ color: '#b45309', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                       <AlertCircleIcon size={14} color="#d97706" />
-                      {hasCredit
-                        ? `المبلغ يتجاوز الرصيد المتاح بمقدار ${money(parsedAmount - netAvailable)} ج.م (سلفة على المكشوف)`
-                        : 'الموظف لا يملك رصيداً مستحقاً حالياً'}{' '}
-                      — يتطلب إدخال كلمة مرور المدير للاعتماد.
+                      {activeTab === 'payout' ? (
+                        `الصرف قبل موعد الاستحقاق الدوري (القادم: ${balanceData.schedule?.nextPayoutDate} - متبقي ${balanceData.schedule?.daysUntilPayout} يوم) — يتطلب اعتماد المدير (تسوية مبكرة).`
+                      ) : isAdvanceOverDirectCap && !isOverdraft ? (
+                        <>
+                          <span>السلفة لا تتجاوز 50% من المستحق ({money(maxDirectAdvance)} ج.م). لصرف كامل الرصيد:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab('payout');
+                              setAmount(String(netAvailable));
+                              const empName = balanceData?.employee?.displayName || selectedEmployee?.displayName || 'الموظف';
+                              setNotes(`صرف وتصفية مستحقات أجر الفترة (${empName})`);
+                            }}
+                            style={{
+                              background: '#eff6ff',
+                              border: '1px solid #93c5fd',
+                              color: '#1d4ed8',
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                              textDecoration: 'underline',
+                            }}
+                          >
+                            انتقل لتبويب صرف الراتب ←
+                          </button>
+                        </>
+                      ) : isOverdraft ? (
+                        `المبلغ يتجاوز كامل رصيد الموظف المستحق بمقدار ${money(parsedAmount - netAvailable)} ج.م (سلفة على المكشوف) — يتطلب اعتماد المدير.`
+                      ) : (
+                        'الموظف لا يملك رصيداً مستحقاً حالياً — يتطلب اعتماد المدير.'
+                      )}
                     </span>
                   )
                 ) : (
                   <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>
                     {activeTab === 'payout'
-                      ? 'سيتم تصفية وصرف صافي المستحق نقداً من عهدة الكاشير وتصفير رصيد الفترة للموظف.'
-                      : 'أدخل المبلغ المطلوب صرفه من عهدة الكاشير كسلفة تُخصم تلقائياً من الراتب القادم.'}
+                      ? (balanceData?.schedule?.dueStatusText || 'تصفية وصرف مستحقات الراتب نقداً من عهدة الكاشير.')
+                      : `سقف الصرف المباشر للكاشير: ${maxDirectAdvance > 0 ? `${money(maxDirectAdvance)} ج.م (50%)` : 'حتى 50% من المستحق (بحد أقصى 2,000 ج.م)'}.`}
                   </span>
                 )}
               </div>
@@ -773,7 +892,7 @@ export function QuickCashAdvanceModal() {
               />
             </div>
 
-            {/* 6. Manager Password (Shows when amount exceeds available balance) */}
+            {/* 6. Manager Password (Shows when amount exceeds available balance OR early wage payout) */}
             {requiresManagerAuth && parsedAmount > 0 && (
               <div
                 style={{
@@ -787,18 +906,30 @@ export function QuickCashAdvanceModal() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <LockIcon size={15} color="#d97706" />
                   <strong style={{ fontSize: '0.8rem', color: '#92400e' }}>
-                    اعتماد المدير أو مالك المنشأة مطلوب (سلفة استثنائية)
+                    {isEarlyWagePayout
+                      ? 'اعتماد المدير مطلوب: الصرف قبل موعد الاستحقاق الرسمي (تسوية مبكرة)'
+                      : isAdvanceOverDirectCap && !isOverdraft
+                        ? `اعتماد المدير مطلوب: السلفة تتجاوز الحد المباشر للكاشير (${money(maxDirectAdvance)} ج.م)`
+                        : 'اعتماد المدير أو مالك المنشأة مطلوب (سلفة استثنائية)'}
                   </strong>
                 </div>
 
                 {isAdminOrOwner ? (
                   <p style={{ margin: 0, fontSize: '0.75rem', color: '#78350f' }}>
-                    أنت مسجل حالياً برتبة مدير/مسؤول نظام ({currentUser?.username})؛ سيتم توثيق الاعتماد باسمك في السجل الرقابي.
+                    {isEarlyWagePayout
+                      ? `أنت مسجل حالياً برتبة مدير/مسؤول نظام (${currentUser?.username})؛ سيتم توثيق العملية كـ "تسوية وصرف أجر مبكر معتمد من الإدارة".`
+                      : isAdvanceOverDirectCap && !isOverdraft
+                        ? `أنت مسجل برتبة مدير/مسؤول نظام (${currentUser?.username})؛ سيتم اعتماد السلفة الاستثنائية باسمك.`
+                        : `أنت مسجل حالياً برتبة مدير/مسؤول نظام (${currentUser?.username})؛ سيتم توثيق الاعتماد باسمك في السجل الرقابي.`}
                   </p>
                 ) : (
                   <div>
                     <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#92400e', marginBottom: 4 }}>
-                      كلمة مرور المدير / رمز PIN للموافقة على الصرف *
+                      {isEarlyWagePayout
+                        ? 'كلمة مرور المدير / رمز PIN للموافقة على التسوية المبكرة *'
+                        : isAdvanceOverDirectCap && !isOverdraft
+                          ? 'كلمة مرور المدير / رمز PIN للموافقة على سلفة تتجاوز سقف الكاشير *'
+                          : 'كلمة مرور المدير / رمز PIN للموافقة على سلفة على المكشوف *'}
                     </label>
                     <input
                       type="password"
@@ -921,7 +1052,7 @@ export function QuickCashAdvanceModal() {
                 {mutation.isPending
                   ? 'جاري الصرف والتسجيل...'
                   : requiresManagerAuth
-                    ? (activeTab === 'payout' ? 'اعتماد وصرف الراتب' : 'اعتماد وصرف السلفة')
+                    ? (activeTab === 'payout' ? (isEarlyWagePayout ? 'اعتماد وصرف تسوية مبكرة' : 'اعتماد وصرف الراتب') : 'اعتماد وصرف السلفة')
                     : (activeTab === 'payout' ? 'تأكيد صرف الراتب وتصفية الرصيد' : 'صرف المسحوب من المستحقات')}
               </Button>
             </div>
