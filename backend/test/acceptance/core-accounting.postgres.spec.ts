@@ -1400,9 +1400,14 @@ async function main() {
     ]);
     assert.equal(received.filter(r=>r.status==='fulfilled').length,1,'concurrent transfer receipt posts only once');
     assert.equal(received.filter(r=>r.status==='rejected').length,1);
+    const outboundMovements=await db.selectFrom('stock_movements')
+      .select(['id','reference_type','reference_id','movement_type','qty','total_cost'])
+      .where('tenant_id','=',moving.auth.tenantId!)
+      .where('reference_id','=',outboundId).execute();
     const loss=await db.selectFrom('stock_movements').select(['id','unit_cost','total_cost'])
       .where('tenant_id','=',moving.auth.tenantId!).where('reference_type','=','transfer')
-      .where('reference_id','=',outboundId).where('movement_type','=','transfer_transit_loss').executeTakeFirstOrThrow();
+      .where('reference_id','=',outboundId).where('movement_type','=','transfer_transit_loss').executeTakeFirst();
+    assert.ok(loss, 'Transit short receipt must record physical shrinkage; movements='+JSON.stringify(outboundMovements));
     assert.equal(Number(loss.total_cost),0.001,'transit shrinkage immutable source retains fil');
     assert.equal(await postingAmount(moving,'5300',3),0.001,'GL shrinkage expense retains fil');
     assert.equal(await postingAmount(moving,'1140',3),0.001,'GL inventory equals one remaining unit');
