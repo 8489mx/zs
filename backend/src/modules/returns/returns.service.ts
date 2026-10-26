@@ -568,6 +568,21 @@ export class ReturnsService {
         : matchingLines[0];
       if (!saleItem) throw new AppError('Return item not found', 'NOT_FOUND', 404);
       const saleLineId = Number(saleItem.id);
+      // A restaurant menu sale can consume separate stock-bearing ingredients
+      // as modifier allocations. The ordinary retail return below restores
+      // only its parent product, while the generic journal reverses full
+      // sale_items.cost_price (including ingredient cost). That would create
+      // inventory GL without physical ingredient stock. Refuse such a refund
+      // until a dedicated prepared-meal writeoff/refund flow exists.
+      const consumedComponent = await trx.selectFrom('sale_line_stock_allocations')
+        .select('id').where('tenant_id', '=', scope.tenantId)
+        .where('sale_line_id', '=', saleLineId)
+        .where('product_id', '!=', Number(saleItem.product_id))
+        .executeTakeFirst();
+      if (consumedComponent) {
+        throw new AppError('Composite meal/item refund requires a costed component adjustment; ordinary restock would corrupt inventory GL',
+          'COMPOSITE_RETURN_RECONCILIATION_REQUIRED', 409);
+      }
       if (unreconciledReturnLines.has(saleLineId) || (legacyPricedLineIds.has(saleLineId) && (returnedQtyByLine.get(saleLineId) || 0) > 0)) {
         throw new AppError('مرتجع سابق يحتاج تسوية الضريبة والخصم قبل مرتجع جديد', 'RETURN_LEGACY_RECONCILIATION_REQUIRED', 409);
       }
