@@ -1048,6 +1048,8 @@ export class AccountingPostingService {
 
   async postSaleEdit(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingSaleEditJournal(queryable, saleId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -1073,22 +1075,22 @@ export class AccountingPostingService {
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
 
-    const cashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
-    const nonCashAmount = this.toMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+    const cashAmount = toBookMoney(payments.filter((row) => String(row.payment_channel || '') === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
+    const nonCashAmount = toBookMoney(payments.filter((row) => String(row.payment_channel || '') !== 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0));
 
-    const subtotal = this.toMoney(sale.subtotal);
-    const discount = this.toMoney(sale.discount);
-    const taxAmount = this.toMoney(sale.tax_amount);
-    const deliveryFee = this.toMoney((sale as any).delivery_fee ?? 0);
-    const serviceCharge = this.toMoney((sale as any).service_charge ?? 0);
-    const tipAmount = this.toMoney((sale as any).tip_amount ?? 0);
-    const paidAmount = this.toMoney(sale.paid_amount);
-    const storeCreditUsed = this.toMoney(sale.store_credit_used);
-    const saleTotal = this.toMoney(sale.total);
-    const receivableAmount = this.toMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
+    const subtotal = toBookMoney(sale.subtotal);
+    const discount = toBookMoney(sale.discount);
+    const taxAmount = toBookMoney(sale.tax_amount);
+    const deliveryFee = toBookMoney((sale as any).delivery_fee ?? 0);
+    const serviceCharge = toBookMoney((sale as any).service_charge ?? 0);
+    const tipAmount = toBookMoney((sale as any).tip_amount ?? 0);
+    const paidAmount = toBookMoney(sale.paid_amount);
+    const storeCreditUsed = toBookMoney(sale.store_credit_used);
+    const saleTotal = toBookMoney(sale.total);
+    const receivableAmount = toBookMoney(Math.max(0, saleTotal - paidAmount - storeCreditUsed));
     const revenueCredit = sale.prices_include_tax
-      ? this.toMoney(subtotal + serviceCharge - taxAmount + deliveryFee + tipAmount)
-      : this.toMoney(subtotal + serviceCharge + deliveryFee + tipAmount);
+      ? toBookMoney(subtotal + serviceCharge - taxAmount + deliveryFee + tipAmount)
+      : toBookMoney(subtotal + serviceCharge + deliveryFee + tipAmount);
 
     const lines: JournalLineDraft[] = [];
     const customerPartnerId = sale.customer_id ? Number(sale.customer_id) : null;
@@ -1201,7 +1203,7 @@ export class AccountingPostingService {
       .where('sale_id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
       .execute();
-    const cogsAmount = this.toMoney(saleItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.cost_price || 0)), 0));
+    const cogsAmount = toBookMoney(saleItems.reduce((sum, item) => sum + (Number(item.qty || 0) * Number(item.cost_price || 0)), 0));
 
     if (cogsAmount > 0) {
       this.addLine(lines, {
@@ -1233,9 +1235,9 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting edited sale ${saleId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced edited sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
@@ -1259,6 +1261,8 @@ export class AccountingPostingService {
 
   async reverseSaleJournal(queryable: DbOrTx, saleId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
 
     // Historical reversals (before reversed_by_entry_id linking) are not linked to their source.
@@ -1315,16 +1319,16 @@ export class AccountingPostingService {
       accountId: Number(line.account_id),
       costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
       description: `عكس: ${line.description || 'قيد بيع'}`,
-      debit: this.toMoney(line.credit),
-      credit: this.toMoney(line.debit),
+      debit: toBookMoney(line.credit),
+      credit: toBookMoney(line.debit),
       partnerType: (line.partner_type as 'none' | 'customer' | 'supplier') || 'none',
       partnerId: line.partner_id ? Number(line.partner_id) : null,
       branchId: line.branch_id ? Number(line.branch_id) : null,
       locationId: line.location_id ? Number(line.location_id) : null,
     })).filter((line) => line.debit > 0 || line.credit > 0);
 
-    const totalDebit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
+    const totalDebit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced sale reversal journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
@@ -2000,6 +2004,8 @@ export class AccountingPostingService {
 
   async reversePurchaseJournal(queryable: DbOrTx, purchaseId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existingReversal = await this.getExistingPurchaseReversalJournal(queryable, purchaseId, scope.tenantId);
     if (existingReversal) {
@@ -2041,16 +2047,16 @@ export class AccountingPostingService {
       accountId: Number(line.account_id),
       costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
       description: `عكس: ${line.description || 'قيد شراء'}`,
-      debit: this.toMoney(line.credit),
-      credit: this.toMoney(line.debit),
+      debit: toBookMoney(line.credit),
+      credit: toBookMoney(line.debit),
       partnerType: (line.partner_type as 'none' | 'customer' | 'supplier') || 'none',
       partnerId: line.partner_id ? Number(line.partner_id) : null,
       branchId: line.branch_id ? Number(line.branch_id) : null,
       locationId: line.location_id ? Number(line.location_id) : null,
     })).filter((line) => line.debit > 0 || line.credit > 0);
 
-    const totalDebit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
+    const totalDebit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > 0.05) {
       throw new Error(`Unbalanced purchase reversal journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
     }

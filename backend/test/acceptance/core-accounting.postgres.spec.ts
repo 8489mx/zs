@@ -635,6 +635,44 @@ async function main() {
       .where('tenant_id','=',kwd.auth.tenantId!).where('id','=',kwd.productId).executeTakeFirstOrThrow();
     assert.equal(Number(afterFilSale.stock_qty),0);
     pass('KWD credit sale 0.001 receivable, unit cost, inventory and balanced revenue/COGS GL');
+    // The source's immutable one-fil journal must be reversible without being
+    // zeroed by cent-rounding; rehearse reversal and edited-sale posting inside
+    // explicit rollback-only PostgreSQL transactions, leaving the real return
+    // journey below unaffected.
+    await assert.rejects(db.transaction().execute(async trx => {
+      const simulatedEdit = await posting.postSaleEdit(trx,oneFilSaleId,kwd.auth);
+      const editedLines = await trx.selectFrom('journal_entry_lines')
+        .select(['debit','credit']).where('tenant_id','=',kwd.auth.tenantId!)
+        .where('journal_entry_id','=',simulatedEdit.journalEntryId).execute();
+      assert.ok(editedLines.some(l=>Number(l.debit)===0.001));
+      assert.ok(editedLines.some(l=>Number(l.credit)===0.001));
+      assert.equal(Number(editedLines.reduce((v,l)=>v+Number(l.debit)-Number(l.credit),0).toFixed(3)),0);
+      throw new Error('ROLLBACK_ONLY_EDIT');
+    }),/ROLLBACK_ONLY_EDIT/);
+    await assert.rejects(db.transaction().execute(async trx => {
+      const reversed = await posting.reverseSaleJournal(trx,oneFilSaleId,'kernel 3-digit probe',kwd.auth);
+      assert.equal(reversed.reversed,true);
+      const lines = await trx.selectFrom('journal_entry_lines').select(['debit','credit'])
+        .where('journal_entry_id','=',reversed.journalEntryId!)
+        .where('tenant_id','=',kwd.auth.tenantId!).execute();
+      assert.ok(lines.some(l=>Number(l.debit)===0.001),'original credit restored as a one-fil debit');
+      assert.ok(lines.some(l=>Number(l.credit)===0.001),'original debit restored as a one-fil credit');
+      assert.equal(Number(lines.reduce((v,l)=>v+Number(l.debit)-Number(l.credit),0).toFixed(3)),0);
+      throw new Error('ROLLBACK_ONLY_SALE_REVERSAL');
+    }),/ROLLBACK_ONLY_SALE_REVERSAL/);
+    await assert.rejects(db.transaction().execute(async trx => {
+      const reversed = await posting.reversePurchaseJournal(trx,filInvoiceId,'kernel 3-digit probe',kwd.auth);
+      assert.equal(reversed.reversed,true);
+      const lines = await trx.selectFrom('journal_entry_lines').select(['debit','credit'])
+        .where('journal_entry_id','=',reversed.journalEntryId!)
+        .where('tenant_id','=',kwd.auth.tenantId!).execute();
+      assert.ok(lines.some(l=>Number(l.debit)===0.001));
+      assert.ok(lines.some(l=>Number(l.credit)===0.001));
+      assert.equal(Number(lines.reduce((v,l)=>v+Number(l.debit)-Number(l.credit),0).toFixed(3)),0);
+      throw new Error('ROLLBACK_ONLY_PURCHASE_REVERSAL');
+    }),/ROLLBACK_ONLY_PURCHASE_REVERSAL/);
+    pass('KWD one-fil sale edit and sale/purchase reversal preserve immutable source amounts and explicit transaction rollback');
+
 
     // Reverse the same one-fil sale and purchase through their public return
     // services: recover stock at source cost and settle both partner subledgers.
