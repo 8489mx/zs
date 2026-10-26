@@ -1373,8 +1373,8 @@ async function main() {
       .where('tenant_id','=',moving.auth.tenantId!).where('id','=',moving.productId).executeTakeFirstOrThrow()).stock_qty),3);
     await db.updateTable('accounting_settings').set({lock_date_all:null})
       .where('tenant_id','=',moving.auth.tenantId!).execute();
-    const issued=await transfers.createStockTransfer(issuePayload,moving.auth) as any;
-    const issueId=Number(issued.transferId);
+    const finalIssueResult=await transfers.createStockTransfer(issuePayload,moving.auth) as any;
+    const issueId=Number(finalIssueResult.transferId);
     const issueMovement=await db.selectFrom('stock_movements').select(['id','unit_cost','total_cost'])
       .where('tenant_id','=',moving.auth.tenantId!).where('reference_type','=','transfer')
       .where('reference_id','=',issueId).where('movement_type','=','transfer_final_issue').executeTakeFirstOrThrow();
