@@ -235,3 +235,8 @@ The code observations above identify definite missing integration points; **fina
 
 - `ReturnsService.settleExchangeReturn` previously rounded retained exchange credit to cents even for KWD/OMR, silently losing an amount of 0.001. It now uses validated tenant base-currency digits for the cash-equivalent store-credit allocation.
 - Extracted `exchangeStoreCreditAmount` and added critical regression tests for three-decimal values, cent legacy behavior, and invalid negative/nonfinite amounts. Formal end-to-end exchange/return GL and refund-channel certification remain OPEN.
+
+### POS exchange outstanding one-fil liability guard (26 October 2026)
+
+- The existing exchange preparation considered an invoice paid when only 0.001 remained outstanding because it used a hardcoded `> 0.001` threshold; this would issue store-credit refunds on an unsettled KWD/OMR sale.
+- Source receivable balance is now assessed after rounding in the authenticated tenant's minor units, so one unpaid fil blocks the exchange while paid invoices remain eligible. Critical regression tests cover KWD and EGP. Full refund/GL end-to-end certification still pending.
