@@ -62,6 +62,9 @@ jobs:
           npx ts-node test/critical/core-integrity-audit.spec.ts
           npm run test:accounting:postgres
         working-directory: backend
+      - name: Priority customer sectors - real clothing market restaurant PostgreSQL
+        run: npm run test:priority-sectors:postgres
+        working-directory: backend
 
   # Historical P0-C databases already have currency migrations 256-259 applied.
   # Main has an independent subscription migration with the same numeric prefix.
