@@ -143,22 +143,22 @@ function InlineGroupPicker({
 
   return (
     <div className="pos-inline-picker-overlay" role="presentation">
-      <button type="button" className="pos-inline-picker-backdrop" aria-label={t('pos.pos_products_panel.s0', "إغلاق الاختيارات")} onClick={() => { onClose(); focusSearchInput(searchInputRef); }} />
+      <button type="button" className="pos-inline-picker-backdrop" aria-label={t('pos.pos_inline_picker.close_picker', "إغلاق الاختيارات")} onClick={() => { onClose(); focusSearchInput(searchInputRef); }} />
       <section className="pos-inline-picker-panel" aria-label={`اختيارات ${group.title}`}>
         <div className="pos-inline-picker-head">
           <div>
-            <div className="pos-inline-picker-kicker">{t('pos.pos_products_panel.s1', "اختيارات الصنف")}</div>
+            <div className="pos-inline-picker-kicker">{t('pos.pos_inline_picker.item_options', "اختيارات الصنف")}</div>
             <h4>{group.title}</h4>
-            <p className="muted small">{t('pos.pos_products_panel.s2', "اختر الفرع المناسب ثم أضفه مباشرة. السلة ستظل ثابتة كما هي.")}</p>
+            <p className="muted small">{t('pos.pos_inline_picker.select_branch_hint', "اختر الفرع المناسب ثم أضفه مباشرة. السلة ستظل ثابتة كما هي.")}</p>
           </div>
           <Button type="button" variant="secondary" onClick={() => { onClose(); focusSearchInput(searchInputRef); }}>
-            {t('pos.pos_products_panel.s3', "إغلاق")}
+            {t('pos.pos_inline_picker.close', "إغلاق")}
           </Button>
         </div>
 
         {group.colors.length ? (
           <div className="pos-inline-picker-filter-block">
-            <span>{t('pos.pos_products_panel.s4', "اللون")}</span>
+            <span>{t('pos.pos_inline_picker.color', "اللون")}</span>
             <div className="pos-chip-row">
               {group.colors.map((color) => (
                 <button
@@ -186,7 +186,7 @@ function InlineGroupPicker({
 
         {group.sizes.length ? (
           <div className="pos-inline-picker-filter-block">
-            <span>{group.colors.length ? t('pos.pos_products_panel.s5', "المقاس / العبوة / الوحدة") : t('pos.pos_products_panel.s6', "الاختيار")}</span>
+            <span>{group.colors.length ? t('pos.pos_inline_picker.size_unit', "المقاس / العبوة / الوحدة") : t('pos.pos_inline_picker.option', "الاختيار")}</span>
             <div className="pos-chip-row">
               {group.sizes.map((size) => (
                 <button
@@ -213,8 +213,8 @@ function InlineGroupPicker({
         ) : null}
 
         <div className="pos-inline-picker-results-head muted small">
-          <span>{filteredProducts.length} {t('pos.pos_products_panel.s7', "فرع مطابق")}</span>
-          <span>{t('pos.pos_products_panel.s8', "اختر من البطاقات التالية للإضافة السريعة")}</span>
+          <span>{filteredProducts.length} {t('pos.pos_inline_picker.matching_branches', "فرع مطابق")}</span>
+          <span>{t('pos.pos_inline_picker.choose_card_hint', "اختر من البطاقات التالية للإضافة السريعة")}</span>
         </div>
 
         <div className="pos-inline-picker-grid">
@@ -238,7 +238,7 @@ function InlineGroupPicker({
                 <div className="muted small pos-inline-variant-card-meta">{product.name}</div>
                 <div className="pos-inline-variant-card-bottom">
                   <span>{formatCurrency(Number(price || 0))}</span>
-                  <span className="muted small">{t('pos.pos_products_panel.s9', "إضافة هذا الفرع")}</span>
+                  <span className="muted small">{t('pos.pos_inline_picker.add_this_branch', "إضافة هذا الفرع")}</span>
                 </div>
               </button>
             );
@@ -265,7 +265,6 @@ function PosProductsPanelComponent({
   onOpenNewProduct,
   restaurantModuleEnabled,
 }: PosProductsPanelProps) {
-  const { t: __t } = useTranslation();
   const { t } = useTranslation();
   // Scanner buffer: detects rapid barcode scanner input and batches it into a single
   // state update instead of triggering re-renders on every character.
@@ -636,11 +635,11 @@ function PosProductsPanelComponent({
             }}
           >
             {[
-              { id: 'all', label: __t('pos.pos_products_panel.s10', __t('pos.pos_products_panel.s0', "جميع الوجبات")) },
-              { id: 'breakfast', label: __t('pos.pos_products_panel.s11', __t('pos.pos_products_panel.s1', "الفطور الصباحي")) },
-              { id: 'lunch', label: __t('pos.pos_products_panel.s12', __t('pos.pos_products_panel.s2', "وجبات الغداء")) },
-              { id: 'dinner', label: __t('pos.pos_products_panel.s13', __t('pos.pos_products_panel.s3', "وجبات العشاء")) },
-              { id: 'beverages', label: __t('pos.pos_products_panel.s14', __t('pos.pos_products_panel.s4', "الحلويات والمشروبات")) },
+              { id: 'all', label: t('pos.pos_products_panel.s0', "جميع الوجبات") },
+              { id: 'breakfast', label: t('pos.pos_products_panel.s1', "الفطور الصباحي") },
+              { id: 'lunch', label: t('pos.pos_products_panel.s2', "وجبات الغداء") },
+              { id: 'dinner', label: t('pos.pos_products_panel.s3', "وجبات العشاء") },
+              { id: 'beverages', label: t('pos.pos_products_panel.s4', "الحلويات والمشروبات") },
             ].map((dp) => (
               <button
                 key={dp.id}
@@ -778,7 +777,7 @@ function PosProductsPanelComponent({
                 fontWeight: shelf === 'favorites' ? 'bold' : '500',
               }}
             >
-              {__t('pos.pos_products_panel.s15', __t('pos.pos_products_panel.s5', "المفضلة"))}
+              {t('pos.pos_products_panel.s5', "المفضلة")}
             </button>
             <button
               type="button"
@@ -799,7 +798,7 @@ function PosProductsPanelComponent({
                 fontWeight: productFilter === 'offers' ? 'bold' : '500',
               }}
             >
-              {__t('pos.pos_products_panel.s16', __t('pos.pos_products_panel.s6', "بعروض"))}
+              {t('pos.pos_products_panel.s6', "بعروض")}
             </button>
             <button
               type="button"
@@ -820,7 +819,7 @@ function PosProductsPanelComponent({
                 fontWeight: shelf === 'recent' ? 'bold' : '500',
               }}
             >
-              {__t('pos.pos_products_panel.s17', __t('pos.pos_products_panel.s7', "آخر استخدام"))}
+              {t('pos.pos_products_panel.s7', "آخر استخدام")}
             </button>
             {(productFilter === 'raw_materials' || products.some((p) => p.itemType === 'raw_material')) ? (
               <button
@@ -842,7 +841,7 @@ function PosProductsPanelComponent({
                   fontWeight: productFilter === 'raw_materials' ? 'bold' : '500',
                 }}
               >
-                {__t('pos.pos_products_panel.s18', __t('pos.pos_products_panel.s8', "مواد خام"))}
+                {t('pos.pos_products_panel.s8', "مواد خام")}
               </button>
             ) : null}
 
@@ -850,7 +849,7 @@ function PosProductsPanelComponent({
             <button
               type="button"
               onClick={toggleCardDensity}
-              title={cardDensity === 'comfortable' ? __t('pos.pos_products_panel.s19', __t('pos.pos_products_panel.s9', "التبديل إلى كروت مضغوطة")) : __t('pos.pos_products_panel.s20', __t('pos.pos_products_panel.s10', "التبديل إلى كروت موسعة"))}
+              title={cardDensity === 'comfortable' ? t('pos.pos_products_panel.s9', "التبديل إلى كروت مضغوطة") : t('pos.pos_products_panel.s10', "التبديل إلى كروت موسعة")}
               style={{
                 marginInlineStart: 'auto',
                 padding: '4px 10px',
@@ -866,14 +865,14 @@ function PosProductsPanelComponent({
                 alignItems: 'center',
               }}
             >
-              {cardDensity === 'compact' ? __t('pos.pos_products_panel.s21', __t('pos.pos_products_panel.s11', "كروت مضغوطة")) : __t('pos.pos_products_panel.s22', __t('pos.pos_products_panel.s12', "كروت موسعة"))}
+              {cardDensity === 'compact' ? t('pos.pos_products_panel.s11', "كروت مضغوطة") : t('pos.pos_products_panel.s12', "كروت موسعة")}
             </button>
 
             {/* Icon Theme Studio Button */}
             <button
               type="button"
               onClick={() => setIsStudioOpen(true)}
-              title={__t('pos.pos_products_panel.s23', __t('pos.pos_products_panel.s13', "تخصيص ألوان ومظهر أيقونات الأصناف"))}
+              title={t('pos.pos_products_panel.s13', "تخصيص ألوان ومظهر أيقونات الأصناف")}
               style={{
                 padding: '4px 9px',
                 fontSize: '11px',
@@ -889,14 +888,14 @@ function PosProductsPanelComponent({
                 gap: '4px',
               }}
             >
-              <span>{__t('pos.pos_products_panel.s24', __t('pos.pos_products_panel.s14', "الأيقونات"))}</span>
+              <span>{t('pos.pos_products_panel.s14', "الأيقونات")}</span>
             </button>
           </div>
         )}
 
         {(isTouchMode || isMobile) && visibleRecentGroups.length ? (
-          <div className="pos-quick-picks-row" aria-label={__t('pos.pos_products_panel.s25', __t('pos.pos_products_panel.s15', "وصول سريع"))}>
-            <span className="muted small">{__t('pos.pos_products_panel.s26', __t('pos.pos_products_panel.s16', "وصول سريع"))}</span>
+          <div className="pos-quick-picks-row" aria-label={t('pos.pos_products_panel.s15', "وصول سريع")}>
+            <span className="muted small">{t('pos.pos_products_panel.s16', "وصول سريع")}</span>
             <div className="pos-quick-picks-buttons">
               {visibleRecentGroups.map((group) => (
                 <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
@@ -931,13 +930,13 @@ function PosProductsPanelComponent({
         {!canShowScannerResults ? (
           <div className="pos-scanner-ready-panel">
             <div className="pos-scanner-ready-copy">
-              <strong>{__t('pos.pos_products_panel.s27', __t('pos.pos_products_panel.s17', "اضرب الباركود أو اكتب أول حرفين للبحث"))}</strong>
-              <span>{__t('pos.pos_products_panel.s28', __t('pos.pos_products_panel.s18', "تبقى الفاتورة والسلة أمامك، والنتائج ستظهر هنا فقط بعد البحث."))}</span>
+              <strong>{t('pos.pos_products_panel.s17', "اضرب الباركود أو اكتب أول حرفين للبحث")}</strong>
+              <span>{t('pos.pos_products_panel.s18', "تبقى الفاتورة والسلة أمامك، والنتائج ستظهر هنا فقط بعد البحث.")}</span>
             </div>
 
             {visibleRecentGroups.length ? (
               <div className="pos-scanner-ready-section">
-                <span className="muted small">{__t('pos.pos_products_panel.s29', __t('pos.pos_products_panel.s19', "آخر ما تمت إضافته"))}</span>
+                <span className="muted small">{t('pos.pos_products_panel.s19', "آخر ما تمت إضافته")}</span>
                 <div className="pos-scanner-ready-buttons">
                   {visibleRecentGroups.map((group) => (
                     <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
@@ -948,7 +947,7 @@ function PosProductsPanelComponent({
 
             {visibleFavoriteGroups.length ? (
               <div className="pos-scanner-ready-section">
-                <span className="muted small">{__t('pos.pos_products_panel.s30', __t('pos.pos_products_panel.s20', "المفضلة"))}</span>
+                <span className="muted small">{t('pos.pos_products_panel.s20', "المفضلة")}</span>
                 <div className="pos-scanner-ready-buttons">
                   {visibleFavoriteGroups.map((group) => (
                     <Button key={group.key} type="button" variant="secondary" onClick={() => activateGroup(group)}>{group.title}</Button>
@@ -977,7 +976,7 @@ function PosProductsPanelComponent({
             }}
           >
             <div style={{ fontSize: '0.92rem', color: '#64748b' }}>
-              {__t('pos.pos_products_panel.s31', __t('pos.pos_products_panel.s21', "لم يتم العثور على أي صنف مطابق لـ"))} <strong style={{ color: '#0f172a' }}>"{search}"</strong>
+              {t('pos.pos_products_panel.s21', "لم يتم العثور على أي صنف مطابق لـ")} <strong style={{ color: '#0f172a' }}>"{search}"</strong>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
               {isInvoiceBarcodeQuery(search.trim()) ? (
@@ -993,7 +992,7 @@ function PosProductsPanelComponent({
                     color: '#0369a1',
                   }}
                 >
-                  {__t('pos.pos_products_panel.s32', __t('pos.pos_products_panel.s22', "استعراض / إعادة طباعة الفاتورة \""))}{search}"
+                  {t('pos.pos_products_panel.s22', "استعراض / إعادة طباعة الفاتورة \"")}{search}"
                 </Button>
               ) : null}
 
@@ -1012,7 +1011,7 @@ function PosProductsPanelComponent({
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   }}
                 >
-                  {__t('pos.pos_products_panel.s33', __t('pos.pos_products_panel.s23', "+ إضافة صنف جديد باسم / باركود \""))}{search}"
+                  {t('pos.pos_products_panel.s23', "+ إضافة صنف جديد باسم / باركود \"")}{search}"
                 </Button>
               ) : null}
             </div>
@@ -1038,13 +1037,13 @@ function PosProductsPanelComponent({
                     <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
                       <div className="pos-group-card-top">
                         <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
-                          {group.hasVariants ? `${group.products.length} فرع` : __t('pos.pos_products_panel.s34', __t('pos.pos_products_panel.s24', "مباشر"))}
+                          {group.hasVariants ? `${group.products.length} فرع` : t('pos.pos_products_panel.s24', "مباشر")}
                         </span>
                         <button
                           type="button"
                           className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
                           onClick={() => toggleFavorite(group.key)}
-                          aria-label={isFavorite ? __t('pos.pos_products_panel.s35', __t('pos.pos_products_panel.s25', "إزالة من المفضلة")) : __t('pos.pos_products_panel.s36', __t('pos.pos_products_panel.s26', "إضافة إلى المفضلة"))}
+                          aria-label={isFavorite ? t('pos.pos_products_panel.s25', "إزالة من المفضلة") : t('pos.pos_products_panel.s26', "إضافة إلى المفضلة")}
                         >
                           <StarIcon size={14} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#94a3b8'} />
                         </button>
@@ -1090,7 +1089,7 @@ function PosProductsPanelComponent({
                         ) : null}
                         <div className="pick-meta-row pos-pick-meta-row" style={{ direction: 'rtl', width: '100%' }}>
                           <span>{priceLabel}</span>
-                          <span className="small muted">{group.hasVariants ? __t('pos.pos_products_panel.s37', __t('pos.pos_products_panel.s27', "افتح الاختيارات")) : __t('pos.pos_products_panel.s38', __t('pos.pos_products_panel.s28', "أضف الآن"))}</span>
+                          <span className="small muted">{group.hasVariants ? t('pos.pos_products_panel.s27', "افتح الاختيارات") : t('pos.pos_products_panel.s28', "أضف الآن")}</span>
                         </div>
                       </button>
                     </article>
@@ -1175,7 +1174,7 @@ function PosProductsPanelComponent({
                             {group.hasVariants ? (
                               <div style={{ marginTop: '3px' }}>
                                 <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                                  {group.products.length} {__t('pos.pos_products_panel.s39', __t('pos.pos_products_panel.s29', "مقاسات"))}
+                                  {group.products.length} {t('pos.pos_products_panel.s29', "مقاسات")}
                                 </span>
                               </div>
                             ) : null}
@@ -1189,7 +1188,7 @@ function PosProductsPanelComponent({
                             e.stopPropagation();
                             toggleFavorite(group.key);
                           }}
-                          aria-label={isFavorite ? __t('pos.pos_products_panel.s40', __t('pos.pos_products_panel.s30', "إزالة من المفضلة")) : __t('pos.pos_products_panel.s41', __t('pos.pos_products_panel.s31', "إضافة إلى المفضلة"))}
+                          aria-label={isFavorite ? t('pos.pos_products_panel.s30', "إزالة من المفضلة") : t('pos.pos_products_panel.s31', "إضافة إلى المفضلة")}
                           style={{
                             border: 'none',
                             background: 'transparent',
@@ -1233,7 +1232,7 @@ function PosProductsPanelComponent({
                             alignItems: 'center',
                           }}
                         >
-                          {group.hasVariants ? __t('pos.pos_products_panel.s42', __t('pos.pos_products_panel.s32', "خيارات ▾")) : __t('pos.pos_products_panel.s43', __t('pos.pos_products_panel.s33', "+ أضف"))}
+                          {group.hasVariants ? t('pos.pos_products_panel.s32', "خيارات ▾") : t('pos.pos_products_panel.s33', "+ أضف")}
                         </span>
                       </div>
                     </button>
@@ -1249,9 +1248,9 @@ function PosProductsPanelComponent({
                   variant="secondary"
                   onClick={() => setTouchVisibleCount((current) => current + touchModeVisibleStep)}
                 >
-                  {__t('pos.pos_products_panel.s44', __t('pos.pos_products_panel.s34', "عرض المزيد"))}
+                  {t('pos.pos_products_panel.s34', "عرض المزيد")}
                 </Button>
-                <span className="muted small">{__t('pos.pos_products_panel.s45', __t('pos.pos_products_panel.s35', "المعروض"))} {displayedGroups.length} {__t('pos.pos_products_panel.s46', __t('pos.pos_products_panel.s36', "من"))} {visibleGroups.length}</span>
+                <span className="muted small">{t('pos.pos_products_panel.s35', "المعروض")} {displayedGroups.length} {t('pos.pos_products_panel.s36', "من")} {visibleGroups.length}</span>
               </div>
             ) : null}
           </>
@@ -1277,7 +1276,7 @@ function PosProductsPanelComponent({
           isOpen={isCameraScannerOpen}
           onClose={() => setIsCameraScannerOpen(false)}
           onScan={handleCameraBarcodeScan}
-          title={__t('pos.pos_products_panel.s47', __t('pos.pos_products_panel.s37', "مسح باركود الصنف بكاميرا الهاتف"))}
+          title={t('pos.pos_products_panel.s37', "مسح باركود الصنف بكاميرا الهاتف")}
           continuous={true}
         />
       </div>

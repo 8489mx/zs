@@ -1735,6 +1735,18 @@
         "s5": "Wholesale price has been approved for this invoice."
       }
     },
+    "pos_inline_picker": {
+      "close_picker": "Close options",
+      "item_options": "Item options",
+      "select_branch_hint": "Choose the appropriate variant then add directly. Cart remains intact.",
+      "close": "Close",
+      "color": "Color",
+      "size_unit": "Size / Packaging / Unit",
+      "option": "Option",
+      "matching_branches": "matching variant",
+      "choose_card_hint": "Choose from the cards below for quick add",
+      "add_this_branch": "Add this variant"
+    },
     "pos_products_panel": {
       "s0": "All Meals",
       "s1": "Breakfast",
