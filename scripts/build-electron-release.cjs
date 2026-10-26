@@ -41,7 +41,7 @@ async function main() {
       }
     }
     // We execute it in the frontend directory where the electron builder config is
-    execSync('npx electron-builder', { 
+    execSync('npx electron-builder --publish never', { 
         cwd: path.join(__dirname, '../frontend'), 
         stdio: 'inherit' 
     });

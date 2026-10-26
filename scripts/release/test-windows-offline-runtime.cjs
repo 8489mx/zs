@@ -57,12 +57,7 @@ async function run() {
   assert.ok(!fs.existsSync(path.join(runtime, '.postgres-auth.json')), 'Release must not ship database credentials');
   const node = path.join(runtime, 'node/node.exe');
   assert.match(exec(node, ['--version']), /^v22\./);
-  const manager = new PostgresManager('', false);
-  manager.runtimeDir = runtime;
-  manager.postgresBinDir = path.join(runtime, 'postgres/bin');
-  manager.postgresDataDir = data;
-  manager.postgresLogsDir = path.join(runtime, 'logs');
-  manager.authPath = path.join(runtime, '.postgres-auth.json');
+  const manager = new PostgresManager('', false, runtime);
   const psql = path.join(manager.postgresBinDir, 'psql.exe');
   const query = sql => exec(psql, [
     '-h', '127.0.0.1', '-p', manager.dbPort, '-U', manager.dbUser,
@@ -78,12 +73,8 @@ async function run() {
     manager.stopServer();
 
     // Same installer data and credentials, fresh process and new manager instance.
-    const restarted = new PostgresManager('', false);
-    restarted.runtimeDir = runtime;
-    restarted.postgresBinDir = manager.postgresBinDir;
-    restarted.postgresDataDir = data;
-    restarted.postgresLogsDir = manager.postgresLogsDir;
-    restarted.authPath = manager.authPath;
+    const restarted = new PostgresManager('', false, runtime);
+    assert.equal(restarted.dbPass, manager.dbPass, 'Restarted manager must reload persisted authentication');
     await restarted.setupAndStart();
     manager.dbPass = restarted.dbPass;
     assert.equal(query('SELECT value FROM offline_ci_probe WHERE id = 1'), 'durable');

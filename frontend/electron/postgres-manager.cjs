@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 
 class PostgresManager {
-  constructor(appPath, isPackaged) {
+  constructor(appPath, isPackaged, runtimeDirOverride = null) {
     this.isPackaged = isPackaged;
     this.dbUser = 'postgres';
     this.dbPass = 'postgres';
@@ -15,11 +15,11 @@ class PostgresManager {
 
     // In production, expect the runtime folder alongside the exe
     // In dev, use the repo's portable/runtime or fallback to C:\zn\portable\runtime
-    this.runtimeDir = isPackaged 
+    this.runtimeDir = runtimeDirOverride || (isPackaged 
       ? path.join(path.dirname(process.execPath), 'runtime')
       : (fs.existsSync(path.resolve(__dirname, '../../portable/runtime'))
           ? path.resolve(__dirname, '../../portable/runtime')
-          : 'C:\\zn\\portable\\runtime');
+          : 'C:\\zn\\portable\\runtime'));
     
     this.postgresBinDir = path.join(this.runtimeDir, 'postgres', 'bin');
     this.postgresDataDir = path.join(this.runtimeDir, 'data');
