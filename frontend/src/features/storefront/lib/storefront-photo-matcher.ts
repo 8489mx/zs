@@ -59,6 +59,33 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
     weight: 95,
   },
   {
+    id: 'perfume_luxury',
+    nameAr: 'عطور راقية وبخور وعود ومسك',
+    keywords: [
+      'عطور', 'عطر', 'perfume', 'perfumes', 'parfum', 'fragrance', 'او دي بارفان', 'عود', 'مسك', 'بخور', 'دخون'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=400&q=70&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'body_spray',
+    nameAr: 'معطرات الجسم وسبراي وبخاخ',
+    keywords: [
+      'all over spray', 'body spray', 'معطر جسم', 'معطرات جسم', 'بخاخ جسم', 'سبراي', 'بودي سبراي', 'mist'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&w=400&q=70&fm=webp',
+    weight: 96,
+  },
+  {
+    id: 'home_spray',
+    nameAr: 'معطرات المنزل والجو والمفارش',
+    keywords: [
+      'home spray', 'معطر جو', 'معطر منزل', 'معطرات جو', 'بخاخ جو', 'معطر غرف', 'معطر مفارش'
+    ],
+    imageUrl: 'https://images.unsplash.com/photo-1616949755610-8c9bbc08f138?auto=format&fit=crop&w=400&q=70&fm=webp',
+    weight: 96,
+  },
+  {
     id: 'bleach_disinfectant',
     nameAr: 'كلور ومطهرات ومنظفات أرضيات',
     keywords: [
@@ -1150,13 +1177,15 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
   const isHerbal = /عطار|توابل|بهار|اعشاب|أعشاب|كمون|فلفل|قرف|قرفة|زنجبيل|كركم|كاري|زعتر|ينسون|كركديه|قرنفل|حبه البركه|حبة البركة|مكسرات|لوز|فستق|كاجو|عسل|زيوت طبيعي/.test(combined);
   const isFood = /وجب|سندوتش|ساندوتش|صاروخ|برجر|شاورما|فرايز|بطاطس|بيتزا|كفتة|كفته|بانيه|بانية|استربس|ستربس|كريب|مشوي|مشويات|طاجن|طواجن|فطير|حواوشي|دجاج|فراخ|لحم|ناجتس/.test(combined);
   const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت|سويت شيرت|عباي|طرح|نظار/.test(combined);
+  const isPerfume = /عطر|عطور|عطورات|مسك|عود|عودة|بخور|دخون|perfume|perfumes|fragrance|parfum|spray|بخاخ|معطر|معطرات|لوشن|تواليت|كولونيا|مبخر|amber|musk|oud|mist/.test(combined);
 
   let theme = {
-    bg: '#f1f5f9',
+    bg: '#f8fafc',
     border: '#e2e8f0',
     icon: `
-      <rect x="87" y="87" width="26" height="26" rx="5" fill="#475569" opacity="0.15" stroke="#475569" stroke-width="2" />
-      <path d="M87 96h26M100 87v26" stroke="#475569" stroke-width="1.5" />
+      <rect x="85" y="87" width="30" height="28" rx="6" fill="#475569" opacity="0.12" stroke="#475569" stroke-width="2" />
+      <path d="M92 87v-3a8 8 0 0 1 16 0v3" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" />
+      <circle cx="100" cy="101" r="3" fill="#475569" />
     `,
   };
 
@@ -1238,6 +1267,17 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
       icon: `
         <path d="M100 87a4 4 0 0 1 4 4c0 3-3 4-4 4" fill="none" stroke="#db2777" stroke-width="2" stroke-linecap="round" />
         <path d="M100 95l-19 12a1.5 1.5 0 0 0 .7 2.8h36.6a1.5 1.5 0 0 0 .7-2.8L100 95z" fill="#db2777" opacity="0.12" stroke="#db2777" stroke-width="2" />
+      `,
+    };
+  } else if (isPerfume) {
+    theme = {
+      bg: '#fdf4ff',
+      border: '#f5d0fe',
+      icon: `
+        <rect x="92" y="80" width="16" height="8" rx="2" fill="#a21caf" />
+        <rect x="95" y="76" width="10" height="4" rx="1" fill="#c026d3" opacity="0.6" />
+        <rect x="85" y="88" width="30" height="36" rx="6" fill="#a21caf" opacity="0.16" stroke="#a21caf" stroke-width="2" />
+        <rect x="91" y="96" width="18" height="18" rx="2" fill="#ffffff" stroke="#c026d3" stroke-width="1.2" opacity="0.9" />
       `,
     };
   }

@@ -198,6 +198,8 @@ export class StorefrontPaymentService {
       .select(['key', 'value'])
       .where(sql<boolean>`tenant_id = ${tenantId}`)
       .where('key', 'in', [
+        'currency',
+        'country',
         'storefront_online_payment_enabled',
         'storefront_online_payment_provider',
         'storefront_paymob_api_key',
@@ -229,7 +231,12 @@ export class StorefrontPaymentService {
     }
 
     const enabled = map.get('storefront_online_payment_enabled') === 'true';
-    const provider = (map.get('storefront_online_payment_provider') || 'paymob') as 'paymob' | 'xpay' | 'tap' | 'stripe' | 'mock';
+    const rawCurrency = (map.get('currency') || '').toUpperCase();
+    const rawCountry = (map.get('country') || '').toUpperCase();
+    const isGcc = ['KW', 'SA', 'AE', 'QA', 'BH', 'OM'].includes(rawCountry) ||
+      ['KWD', 'SAR', 'AED', 'QAR', 'BHD', 'OMR'].includes(rawCurrency);
+    const defaultProvider = isGcc ? 'tap' : 'paymob';
+    const provider = (map.get('storefront_online_payment_provider') || defaultProvider) as 'paymob' | 'xpay' | 'tap' | 'stripe' | 'mock';
     const apiKey = map.get('storefront_paymob_api_key') || '';
     const integrationId = map.get('storefront_paymob_integration_id') || '';
     const iframeId = map.get('storefront_paymob_iframe_id') || '';

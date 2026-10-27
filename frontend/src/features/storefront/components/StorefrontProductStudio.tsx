@@ -369,8 +369,12 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
                           style={{
                             width: '100%',
                             height: '100%',
-                            objectFit: 'cover',
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
                             display: 'block',
+                            padding: '4px',
+                            boxSizing: 'border-box',
                           }}
                         />
 

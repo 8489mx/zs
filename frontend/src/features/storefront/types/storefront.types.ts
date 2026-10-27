@@ -22,6 +22,7 @@ export interface StorefrontInfo {
   minOrder: number;
   whatsappPhone: string;
   currency: string;
+  countryCode?: string;
   onlinePaymentEnabled?: boolean;
   onlinePaymentTestMode?: boolean;
   onlinePaymentProvider?: string;

@@ -22,10 +22,28 @@ export function StorefrontPaymentGatewaysManager() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState('');
 
+  const [showAllGateways, setShowAllGateways] = useState(false);
+
   const settingsQuery = useQuery({
     queryKey: ['storefront-admin-settings'],
     queryFn: storefrontApi.getSettings,
   });
+
+  const storeCurrency = (settingsQuery.data?.currency || 'EGP').toUpperCase();
+  const storeCountryCode = (settingsQuery.data?.countryCode || (
+    storeCurrency === 'KWD' ? 'KW' :
+    storeCurrency === 'SAR' ? 'SA' :
+    storeCurrency === 'AED' ? 'AE' :
+    storeCurrency === 'QAR' ? 'QA' :
+    storeCurrency === 'BHD' ? 'BH' :
+    storeCurrency === 'OMR' ? 'OM' :
+    storeCurrency === 'EGP' ? 'EG' : 'OTHER'
+  )).toUpperCase();
+
+  const isKuwait = storeCountryCode === 'KW' || storeCurrency === 'KWD';
+  const isGcc = ['KW', 'SA', 'AE', 'QA', 'BH', 'OM'].includes(storeCountryCode) ||
+    ['KWD', 'SAR', 'AED', 'QAR', 'BHD', 'OMR'].includes(storeCurrency);
+  const isEgypt = storeCountryCode === 'EG' || storeCurrency === 'EGP';
 
   const [formState, setFormState] = useState({
     onlinePaymentEnabled: false,
@@ -50,9 +68,17 @@ export function StorefrontPaymentGatewaysManager() {
   useEffect(() => {
     if (settingsQuery.data) {
       const data = settingsQuery.data as any;
+      let activeProvider = data.onlinePaymentProvider;
+      if (!activeProvider) {
+        activeProvider = isGcc ? 'tap' : 'paymob';
+      } else if (isGcc && (activeProvider === 'paymob' || activeProvider === 'xpay')) {
+        // Auto-heal legacy unisolated default for Kuwait / GCC
+        activeProvider = 'tap';
+      }
+
       setFormState({
         onlinePaymentEnabled: Boolean(data.onlinePaymentEnabled),
-        onlinePaymentProvider: data.onlinePaymentProvider || 'tap',
+        onlinePaymentProvider: activeProvider,
         paymobApiKey: data.paymobApiKey || '',
         paymobIntegrationId: data.paymobIntegrationId || '',
         paymobIframeId: data.paymobIframeId || '',
@@ -70,7 +96,7 @@ export function StorefrontPaymentGatewaysManager() {
         stripeTestMode: data.stripeTestMode !== false,
       });
     }
-  }, [settingsQuery.data]);
+  }, [settingsQuery.data, isGcc]);
 
   const updateMutation = useMutation({
     mutationFn: storefrontApi.updateSettings,
@@ -188,7 +214,11 @@ export function StorefrontPaymentGatewaysManager() {
               {t('storefront.storefront_payment_gateways_manager.s0', "بوابات الدفع الإلكتروني التلقائية للمتجر (Payment Gateways)")}
             </h3>
             <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-              {t('storefront.storefront_payment_gateways_manager.s1', "ربط مباشر لخصم البطاقات البنكية (Visa / MasterCard / Meeza) وتأكيد سداد الفواتير تلقائياً عبر الـ Webhooks")}
+              {isKuwait
+                ? t('storefront.storefront_payment_gateways_manager.s1_kw', "ربط مباشر لخصم البطاقات البنكية والكي نت (K-NET / Apple Pay / Visa) وتأكيد سداد الفواتير تلقائياً")
+                : isGcc
+                ? t('storefront.storefront_payment_gateways_manager.s1_gcc', "ربط مباشر لخصم البطاقات البنكية ومدى (Mada / Apple Pay / Visa) وتأكيد سداد الفواتير تلقائياً")
+                : t('storefront.storefront_payment_gateways_manager.s1', "ربط مباشر لخصم البطاقات البنكية (Visa / MasterCard / Meeza) وتأكيد سداد الفواتير تلقائياً عبر الـ Webhooks")}
             </p>
           </div>
         </div>
@@ -298,10 +328,29 @@ export function StorefrontPaymentGatewaysManager() {
           }}
         >
           <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-            <h4 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
-              {t('storefront.storefront_payment_gateways_manager.s7', "اختيار مزود الخدمة ووضع التشغيل")}
-            </h4>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                {t('storefront.storefront_payment_gateways_manager.s7', "اختيار مزود الخدمة ووضع التشغيل")}
+              </h4>
+              {isKuwait ? (
+                <span style={{ fontSize: '11px', fontWeight: 800, background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '3px 8px', borderRadius: '6px' }}>
+                  بوابات الكويت المعتمدة (K-NET & Apple Pay) • {storeCurrency}
+                </span>
+              ) : isGcc ? (
+                <span style={{ fontSize: '11px', fontWeight: 800, background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '3px 8px', borderRadius: '6px' }}>
+                  بوابات الخليج المعتمدة (مدى & Apple Pay) • {storeCurrency}
+                </span>
+              ) : isEgypt ? (
+                <span style={{ fontSize: '11px', fontWeight: 800, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px' }}>
+                  بوابات مصر المعتمدة (Visa / MasterCard / ميزة) • {storeCurrency}
+                </span>
+              ) : (
+                <span style={{ fontSize: '11px', fontWeight: 800, background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: '6px' }}>
+                  بوابات الدفع الدولية • {storeCurrency}
+                </span>
+              )}
+            </div>
+            <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginTop: '4px' }}>
               {t('storefront.storefront_payment_gateways_manager.s8', "حدد بوابة الدفع المعتمدة وطور التشغيل (تجريبي أو إنتاجي مباشر)")}
             </span>
           </div>
@@ -311,29 +360,33 @@ export function StorefrontPaymentGatewaysManager() {
               {t('storefront.storefront_payment_gateways_manager.s9', "مزود بوابة الدفع المعتمد")}
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px' }}>
-              {/* Tap Payments (GCC) */}
-              <div
-                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'tap' })}
-                style={{
-                  border: formState.onlinePaymentProvider === 'tap' ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                  background: formState.onlinePaymentProvider === 'tap' ? '#f0fdf4' : '#ffffff',
-                  borderRadius: '12px',
-                  padding: '12px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'tap' ? '#15803d' : '#64748b'} />
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s10', "تاب (Tap GCC)")}</div>
-                  <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>{t('storefront.storefront_payment_gateways_manager.s11', "مدى / KNET / Apple Pay")}</div>
+              {/* Tap Payments (GCC - Kuwait, Saudi, UAE, etc.) */}
+              {(isGcc || showAllGateways) && (
+                <div
+                  onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'tap' })}
+                  style={{
+                    border: formState.onlinePaymentProvider === 'tap' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                    background: formState.onlinePaymentProvider === 'tap' ? '#f0fdf4' : '#ffffff',
+                    borderRadius: '12px',
+                    padding: '12px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'tap' ? '#15803d' : '#64748b'} />
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s10', "تاب (Tap GCC)")}</div>
+                    <div style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>
+                      {isKuwait ? 'KNET / Apple Pay' : 'مدى / Apple Pay'}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Stripe (International) */}
               <div
@@ -359,77 +412,104 @@ export function StorefrontPaymentGatewaysManager() {
                 </div>
               </div>
 
-              {/* Paymob */}
-              <div
-                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'paymob' })}
-                style={{
-                  border: formState.onlinePaymentProvider === 'paymob' ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                  background: formState.onlinePaymentProvider === 'paymob' ? '#f8fafc' : '#ffffff',
-                  borderRadius: '12px',
-                  padding: '12px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <BuildingIcon size={22} color={formState.onlinePaymentProvider === 'paymob' ? '#170e5e' : '#64748b'} />
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Paymob</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s14', "فيزا / ماستركارد")}</div>
+              {/* Paymob (Egypt) */}
+              {(isEgypt || showAllGateways) && (
+                <div
+                  onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'paymob' })}
+                  style={{
+                    border: formState.onlinePaymentProvider === 'paymob' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                    background: formState.onlinePaymentProvider === 'paymob' ? '#f8fafc' : '#ffffff',
+                    borderRadius: '12px',
+                    padding: '12px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <BuildingIcon size={22} color={formState.onlinePaymentProvider === 'paymob' ? '#170e5e' : '#64748b'} />
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Paymob</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s14', "فيزا / ماستركارد / ميزة")}</div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* XPay */}
-              <div
-                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'xpay' })}
-                style={{
-                  border: formState.onlinePaymentProvider === 'xpay' ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                  background: formState.onlinePaymentProvider === 'xpay' ? '#f8fafc' : '#ffffff',
-                  borderRadius: '12px',
-                  padding: '12px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'xpay' ? '#170e5e' : '#64748b'} />
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s15', "إكس باي (XPay)")}</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s16', "بطاقات وفوري")}</div>
+              {/* XPay (Egypt) */}
+              {(isEgypt || showAllGateways) && (
+                <div
+                  onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'xpay' })}
+                  style={{
+                    border: formState.onlinePaymentProvider === 'xpay' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                    background: formState.onlinePaymentProvider === 'xpay' ? '#f8fafc' : '#ffffff',
+                    borderRadius: '12px',
+                    padding: '12px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'xpay' ? '#170e5e' : '#64748b'} />
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{t('storefront.storefront_payment_gateways_manager.s15', "إكس باي (XPay)")}</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s16', "بطاقات وفوري")}</div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Mock Simulator */}
-              <div
-                onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'mock' })}
+              {showAllGateways && (
+                <div
+                  onClick={() => setFormState({ ...formState, onlinePaymentProvider: 'mock' })}
+                  style={{
+                    border: formState.onlinePaymentProvider === 'mock' ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                    background: formState.onlinePaymentProvider === 'mock' ? '#f8fafc' : '#ffffff',
+                    borderRadius: '12px',
+                    padding: '12px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '6px',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'mock' ? '#170e5e' : '#64748b'} />
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s17', "محاكي تجريبي")}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowAllGateways((prev) => !prev)}
                 style={{
-                  border: formState.onlinePaymentProvider === 'mock' ? '2px solid #170e5e' : '1px solid #cbd5e1',
-                  background: formState.onlinePaymentProvider === 'mock' ? '#f8fafc' : '#ffffff',
-                  borderRadius: '12px',
-                  padding: '12px 8px',
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s ease',
+                  textDecoration: 'underline',
+                  padding: '4px',
                 }}
               >
-                <CreditCardIcon size={22} color={formState.onlinePaymentProvider === 'mock' ? '#170e5e' : '#64748b'} />
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>Sandbox Mock</div>
-                  <div style={{ fontSize: '10px', color: '#64748b' }}>{t('storefront.storefront_payment_gateways_manager.s17', "محاكي تجريبي")}</div>
-                </div>
-              </div>
+                {showAllGateways
+                  ? t('storefront.storefront_payment_gateways_manager.hide_all', "إخفاء البوابات غير الإقليمية")
+                  : t('storefront.storefront_payment_gateways_manager.show_all', "عرض كافة بوابات الدفع الدولية الأخرى (+)")}
+              </button>
             </div>
           </div>
 

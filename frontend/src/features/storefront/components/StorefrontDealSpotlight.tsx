@@ -262,6 +262,8 @@ export function StorefrontDealSpotlight({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          padding: '8px',
+          boxSizing: 'border-box',
         }}
       >
         <img
@@ -274,7 +276,9 @@ export function StorefrontDealSpotlight({
           style={{
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain',
             cursor: onQuickView ? 'pointer' : 'default',
             transition: 'transform 0.3s ease',
           }}

@@ -3358,7 +3358,7 @@ export class StorefrontService {
     const { tenantId } = requireTenantScope(actor);
     const tenant = await this.db
       .selectFrom('tenants')
-      .select(['slug', 'business_name', 'owner_phone', 'custom_domain'])
+      .select(['slug', 'business_name', 'owner_phone', 'custom_domain', 'country_code'])
       .where('id', '=', tenantId)
       .executeTakeFirst();
 
@@ -3386,6 +3386,21 @@ export class StorefrontService {
       }
     } catch {}
 
+    const rawCurrency = (settings.get('currency') || 'EGP').toUpperCase();
+    let countryCode = ((tenant as any)?.country_code || settings.get('country') || '').toUpperCase();
+    if (!countryCode) {
+      if (rawCurrency === 'KWD') countryCode = 'KW';
+      else if (rawCurrency === 'SAR') countryCode = 'SA';
+      else if (rawCurrency === 'AED') countryCode = 'AE';
+      else if (rawCurrency === 'QAR') countryCode = 'QA';
+      else if (rawCurrency === 'BHD') countryCode = 'BH';
+      else if (rawCurrency === 'OMR') countryCode = 'OM';
+      else countryCode = 'EG';
+    }
+    const isGcc = ['KW', 'SA', 'AE', 'QA', 'BH', 'OM'].includes(countryCode) ||
+      ['KWD', 'SAR', 'AED', 'QAR', 'BHD', 'OMR'].includes(rawCurrency);
+    const defaultProvider = isGcc ? 'tap' : 'paymob';
+
     return {
       slug: settings.get('storefront_slug') || tenant?.slug || '',
       customDomain: tenant?.custom_domain || null,
@@ -3408,9 +3423,10 @@ export class StorefrontService {
       freeShippingEnabled: settings.get('storefront_free_shipping_enabled') === 'true',
       freeShippingMinOrder: Number(settings.get('storefront_free_shipping_min_order') || 0),
       whatsappPhone: settings.get('storefront_whatsapp') || settings.get('phone') || tenant?.owner_phone || '',
-      currency: settings.get('currency') || 'EGP',
+      countryCode,
+      currency: rawCurrency,
       onlinePaymentEnabled: settings.get('storefront_online_payment_enabled') === 'true',
-      onlinePaymentProvider: settings.get('storefront_online_payment_provider') || 'paymob',
+      onlinePaymentProvider: settings.get('storefront_online_payment_provider') || defaultProvider,
       paymobApiKey: maskGatewaySecret(settings.get('storefront_paymob_api_key')),
       paymobIntegrationId: settings.get('storefront_paymob_integration_id') || '',
       paymobIframeId: settings.get('storefront_paymob_iframe_id') || '',

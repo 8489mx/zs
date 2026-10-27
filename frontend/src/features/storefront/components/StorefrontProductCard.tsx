@@ -144,6 +144,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           .storefront-product-photo-box {
             border-radius: 9px !important;
             margin-bottom: 6px !important;
+            padding: 5px !important;
           }
           .storefront-product-badge {
             font-size: 9px !important;
@@ -253,7 +254,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             width: '100%',
             aspectRatio: '1 / 1',
             borderRadius: '12px',
-            background: '#f8fafc',
+            background: '#ffffff',
             position: 'relative',
             overflow: 'hidden',
             marginBottom: '10px',
@@ -261,6 +262,8 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             alignItems: 'center',
             justifyContent: 'center',
             border: '1px solid #f1f5f9',
+            padding: '8px',
+            boxSizing: 'border-box',
           }}
         >
           {/* Main Photo */}
@@ -276,7 +279,9 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
+              maxWidth: '100%',
+              maxHeight: '100%',
+              objectFit: 'contain',
               display: 'block',
               transition: 'transform 0.4s ease, opacity 0.3s ease',
               opacity: imageLoaded ? 1 : 0.8,
@@ -285,7 +290,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             onLoad={() => setImageLoaded(true)}
             data-illustrative={isIllustrativePhoto ? 'true' : undefined}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.08)';
+              e.currentTarget.style.transform = 'scale(1.04)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'scale(1)';

@@ -112,6 +112,11 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                     background: '#ffffff',
                     position: 'relative',
                     marginBottom: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <img
@@ -125,7 +130,9 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                     style={{
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
                       display: 'block',
                     }}
                   />
