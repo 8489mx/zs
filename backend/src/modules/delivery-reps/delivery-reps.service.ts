@@ -416,7 +416,7 @@ export class DeliveryRepsService {
     await this.db.transaction().execute(async (trx) => {
       const sale = await trx
         .selectFrom('sales')
-        .select(['id', 'total', 'delivery_fee', 'delivery_fee_mode', 'delivery_status', 'delivery_rep_id', 'collection_status', 'customer_id'])
+        .select(['id', 'total', 'delivery_fee', 'delivery_fee_mode', 'delivery_status', 'delivery_rep_id', 'collection_status', 'customer_id', 'paid_amount', 'status', 'order_type'])
         .where('id', '=', saleId)
         .where(this.tenantPredicate(actor))
         .forUpdate()
@@ -425,12 +425,21 @@ export class DeliveryRepsService {
       if (!sale) throw new AppError('Order not found', 'ORDER_NOT_FOUND', 404);
       if (!sale.delivery_rep_id) throw new AppError('Order is not assigned to a delivery rep', 'NOT_ASSIGNED', 400);
       if (sale.delivery_status === 'settled') throw new AppError('Order is already settled', 'ALREADY_SETTLED', 400);
+      if (sale.status === 'cancelled' || sale.order_type !== 'delivery') {
+        throw new AppError('Only active delivery orders may be settled', 'DELIVERY_SETTLEMENT_INVALID_ORDER', 409);
+      }
+      const isCourierCash = sale.collection_status === 'cod' || sale.collection_status === 'pending';
+      if (isCourierCash && Number(sale.paid_amount || 0) > 0.009) {
+        // The current GL posting contract expects the entire invoice as an
+        // outstanding receivable. Refuse partially paid orders until reconciled.
+        throw new AppError('طلب الدليفري محصل جزئياً ويتطلب تسوية منفصلة قبل إقفال عهدة المندوب', 'DELIVERY_PARTIAL_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
 
       let shiftId: number | null = null;
       let branchId: number | null = null;
       let locationId: number | null = null;
 
-      if (sale.collection_status === 'cod') {
+      if (isCourierCash) {
         const openShift = await this.findOwnOpenShift(trx, actor);
         if (!openShift) throw new AppError('لا بد من فتح وردية أولاً لاستلام الفلوس من المندوب', 'NO_OPEN_SHIFT', 400);
         shiftId = openShift.id;
@@ -526,9 +535,11 @@ export class DeliveryRepsService {
 
       const unsettledOrders = await trx
         .selectFrom('sales')
-        .select(['id', 'total', 'customer_id', 'delivery_fee', 'delivery_fee_mode'])
+        .select(['id', 'total', 'customer_id', 'delivery_fee', 'delivery_fee_mode', 'paid_amount'])
         .where('delivery_rep_id', '=', repId)
-        .where('collection_status', '=', 'cod')
+        .where('collection_status', 'in', ['cod', 'pending'])
+        .where('order_type', '=', 'delivery')
+        .where('status', '!=', 'cancelled')
         .where((eb) => eb.or([
           eb('delivery_status', '!=', 'settled'),
           eb('delivery_status', 'is', null)
@@ -547,6 +558,9 @@ export class DeliveryRepsService {
         throw new AppError('No unsettled orders found for this representative', 'NO_ORDERS', 400);
       }
 
+      if (unsettledOrders.some((order) => Number(order.paid_amount || 0) > 0.009)) {
+        throw new AppError('بعض طلبات المندوب مدفوعة جزئياً وتتطلب تسوية منفصلة', 'DELIVERY_PARTIAL_PAYMENT_RECONCILIATION_REQUIRED', 409);
+      }
       const defaultMode = await this.getDeliveryFeeMode(trx, actor);
       const cashDue = (order: typeof unsettledOrders[number]) => (order.delivery_fee_mode || defaultMode) === 'store_fleet' ? Number(order.total) : Math.max(0, Number(order.total) - Number(order.delivery_fee || 0));
       const actualTotal = Number(unsettledOrders.reduce((sum, order) => sum + cashDue(order), 0).toFixed(2));
@@ -863,9 +877,12 @@ export class DeliveryRepsService {
         throw new AppError('تمت تسوية هذا الطلب مسبقاً', 'ALREADY_SETTLED', 400);
       }
 
+      // Proof of delivery is not a cash settlement. The authorized cashier must
+      // still post the courier's COD custody/treasury/GL atomically via settleOrder.
+      if (sale.delivery_status === 'delivered') return;
+
       const updateData: Record<string, any> = {
-        delivery_status: 'settled',
-        settled_at: sql`NOW()`,
+        delivery_status: 'delivered',
         updated_at: sql`NOW()`,
       };
       if (payload?.signatureDataUrl) updateData.delivery_signature = payload.signatureDataUrl;
@@ -882,7 +899,7 @@ export class DeliveryRepsService {
         .execute();
     });
 
-    return { ok: true, message: 'تم تأكيد تسليم الشحنة بنجاح' };
+    return { ok: true, message: 'تم إثبات تسليم الشحنة؛ عهدة التحصيل قيد التسوية' };
   }
 
   /**
