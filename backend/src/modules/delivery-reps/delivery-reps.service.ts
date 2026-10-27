@@ -942,7 +942,7 @@ export class DeliveryRepsService {
           .orderBy('id', 'asc').forUpdate().execute();
         if (sales.length !== saleIds.length ||
             sales.some(s => s.order_type !== 'delivery' || s.status === 'cancelled' ||
-              s.delivery_status === 'settled' ||
+              ['delivered', 'settled'].includes(String(s.delivery_status)) ||
               (s.delivery_rep_id && Number(s.delivery_rep_id) !== Number(rep.id) &&
                 !['pending', null].includes(s.delivery_status)))) {
           throw new AppError('لا يمكن إسناد طلب غير دليفري أو ملغي أو مسلم أو بعهدة مندوب آخر', 'DELIVERY_DISPATCH_FORBIDDEN', 409);
