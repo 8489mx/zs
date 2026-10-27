@@ -268,16 +268,6 @@ export class TradeInService {
           throw new AppError('الجهاز مسجل بالفعل وموجود بالمخزن حالياً؛ لا يمكن إعادة شرائه قبل خروجه من المخزن أو بيعه', 'TRADEIN_SERIAL_ALREADY_IN_STOCK', 409);
         }
 
-        const pendingDraft = await trx.selectFrom('trade_in_transactions')
-          .select(['id', 'doc_no'])
-          .where('tenant_id', '=', scope.tenantId)
-          .where('serial_number', '=', payload.serialNumber.trim())
-          .where('status', '=', 'pending')
-          .where('id', '!=', txnId)
-          .executeTakeFirst();
-        if (pendingDraft) {
-          throw new AppError(`يوجد إيصال استبدال معلق برقم ${pendingDraft.doc_no} لنفس هذا الجهاز`, 'TRADEIN_SERIAL_PENDING_EXISTS', 409);
-        }
 
         // Also receive explicit existing product links: a recorded IMEI without
         // an actual stock movement previously created invisible inventory.

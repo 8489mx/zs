@@ -685,11 +685,12 @@ body.dialog-shell-open .pos-body {
   align-items: center !important;
   justify-content: space-between !important;
   gap: 6px !important;
-  padding-top: 12px !important;
-  margin-top: 12px !important;
+  padding-top: 10px !important;
+  margin-top: 10px !important;
   border-top: 1px solid #f1f5f9 !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  flex-shrink: 0 !important;
 }
 
 .pos-customization-footer .btn {
@@ -700,6 +701,25 @@ body.dialog-shell-open .pos-body {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
 }
+
+.pos-customization-dialog-container {
+  display: flex !important;
+  flex-direction: column !important;
+  height: min(86vh, 660px) !important;
+  max-height: 86vh !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.pos-customization-dialog-body {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain !important;
+}
+
 
 
 

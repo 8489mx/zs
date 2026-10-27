@@ -140,13 +140,16 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
     >
       <div
         dir="rtl"
+        className="pos-customization-dialog-container"
         style={{
-          padding: '16px',
+          padding: '14px 16px',
           background: '#ffffff',
           borderRadius: '16px',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '88vh',
+          height: 'min(86vh, 660px)',
+          maxHeight: '86vh',
+          boxSizing: 'border-box',
           overflow: 'hidden',
         }}
       >
@@ -156,10 +159,11 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingBottom: '12px',
+            paddingBottom: '10px',
             borderBottom: '1px solid #f1f5f9',
-            marginBottom: '12px',
+            marginBottom: '10px',
             gap: '8px',
+            flexShrink: 0,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
@@ -210,15 +214,19 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
         {/* Body Scrollable */}
         <div
           style={{
-            flex: 1,
+            flex: '1 1 0%',
+            minHeight: 0,
             overflowY: 'auto',
             overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
             paddingRight: '2px',
+            paddingLeft: '2px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '14px',
+            gap: '12px',
           }}
-          className="thin-scrollbar"
+          className="pos-customization-dialog-body thin-scrollbar"
         >
           {/* Section 1: Main Screen Toggles */}
           <div>
@@ -577,7 +585,14 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
         </div>
 
         {/* Footer */}
-        <div className="pos-customization-footer">
+        <div
+          className="pos-customization-footer"
+          style={{
+            flexShrink: 0,
+            marginTop: '10px',
+            paddingTop: '10px',
+          }}
+        >
           <Button
             type="button"
             variant="secondary"

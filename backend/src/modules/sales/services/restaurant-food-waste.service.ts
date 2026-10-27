@@ -66,7 +66,7 @@ export class RestaurantFoodWasteService {
 
       // Lock the costed product in the same transaction as the stock and GL.
       const product = await trx.selectFrom('products')
-        .select(['id', 'name', 'cost_price']).where('id', '=', dto.productId)
+        .select(['id', 'name', 'cost_price', 'stock_qty']).where('id', '=', dto.productId)
         .where('tenant_id', '=', scope.tenantId)
         .where('account_id', '=', scope.accountId).forUpdate().executeTakeFirst();
       if (!product) throw new NotFoundException('الصنف غير موجود');
@@ -90,7 +90,7 @@ export class RestaurantFoodWasteService {
         .select(['value']).where('tenant_id', '=', scope.tenantId)
         .where('key', 'in', ['allowNegativeStockSales', 'allowSellingBelowStock'])
         .execute();
-      const allowsNegative = negativeSetting.some(s => s.value === true || s.value === 'true');
+      const allowsNegative = negativeSetting.some(s => String(s.value).toLowerCase() === 'true');
 
       let stockChange: { scopeBefore: number; scopeAfter: number } | null = null;
       let isPendingReconciliation = false;

@@ -669,21 +669,21 @@ function PosWorkspaceHeaderComponent({
                   className="pos-shift-dropdown-menu"
                   style={{
                     position: 'absolute',
-                    top: 'calc(100% + 4px)',
+                    top: 'calc(100% + 6px)',
                     left: isEn ? 'auto' : 0,
                     right: isEn ? 0 : 'auto',
                     zIndex: 1050,
                     background: '#ffffff',
                     border: '1px solid #cbd5e1',
-                    borderRadius: '10px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                    minWidth: '240px',
+                    borderRadius: '12px',
+                    boxShadow: '0 12px 28px -4px rgba(15, 23, 42, 0.15), 0 4px 8px -2px rgba(15, 23, 42, 0.06)',
+                    minWidth: '245px',
                     maxWidth: 'calc(100vw - 20px)',
                     boxSizing: 'border-box',
-                    padding: '6px',
+                    padding: '8px 8px 12px 8px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '2px',
+                    gap: '4px',
                     direction: isEn ? 'ltr' : 'rtl',
                     textAlign: isEn ? 'left' : 'right',
                   }}
@@ -706,11 +706,11 @@ function PosWorkspaceHeaderComponent({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      padding: '8px 10px',
+                      padding: '9px 10px',
                       width: '100%',
                       border: 'none',
                       background: 'transparent',
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       textAlign: isEn ? 'left' : 'right',
                       color: '#0f172a',
@@ -720,8 +720,8 @@ function PosWorkspaceHeaderComponent({
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                   >
                     <div style={{
-                      width: '30px',
-                      height: '30px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '8px',
                       background: '#eef2ff',
                       display: 'flex',
@@ -729,9 +729,9 @@ function PosWorkspaceHeaderComponent({
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <PrinterIcon size={15} color="#170e5e" />
+                      <PrinterIcon size={16} color="#170e5e" />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.pos_workspace.pos_workspace_header.s43', "تقرير الوردية اللحظي (X)")}</span>
                       <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('pos.pos_workspace.pos_workspace_header.s44', "طباعة مبيعات ونقدية الدرج الحالية دون إغلاق")}</span>
                     </div>
@@ -749,11 +749,11 @@ function PosWorkspaceHeaderComponent({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      padding: '8px 10px',
+                      padding: '9px 10px',
                       width: '100%',
                       border: 'none',
                       background: 'transparent',
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       textAlign: isEn ? 'left' : 'right',
                       color: '#0f172a',
@@ -763,8 +763,8 @@ function PosWorkspaceHeaderComponent({
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                   >
                     <div style={{
-                      width: '30px',
-                      height: '30px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '8px',
                       background: '#f8fafc',
                       border: '1px solid #e2e8f0',
@@ -775,7 +775,7 @@ function PosWorkspaceHeaderComponent({
                     }}>
                       <SlidersIcon size={15} color="#334155" />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.pos_workspace.pos_workspace_header.s45', "فتح الدرج يدوياً (No-Sale)")}</span>
                       <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('pos.pos_workspace.pos_workspace_header.s46', "فتح الدرج للجرد أو الصرف بعد اعتماد المشرف")}</span>
                     </div>
@@ -793,11 +793,11 @@ function PosWorkspaceHeaderComponent({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '10px',
-                      padding: '8px 10px',
+                      padding: '9px 10px',
                       width: '100%',
                       border: 'none',
                       background: 'transparent',
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       cursor: 'pointer',
                       textAlign: isEn ? 'left' : 'right',
                       color: '#0f172a',
@@ -807,8 +807,8 @@ function PosWorkspaceHeaderComponent({
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                   >
                     <div style={{
-                      width: '30px',
-                      height: '30px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '8px',
                       background: '#f3e8ff',
                       display: 'flex',
@@ -818,13 +818,13 @@ function PosWorkspaceHeaderComponent({
                     }}>
                       <SlidersIcon size={15} color="#7c3aed" />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a' }}>{t('pos.customize_ui', "تخصيص واجهة الكاشير")}</span>
                       <span style={{ fontSize: '10.5px', color: '#64748b' }}>{t('pos.customize_ui_desc', "إظهار/إخفاء الأقسام وتنسيق الموبايل المتنقل")}</span>
                     </div>
                   </button>
 
-                  <div className="pos-shift-desktop-divider" style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
+                  <div style={{ height: '1px', background: '#f1f5f9', margin: '2px 0' }} />
 
                   {/* Option 3: Close Shift (Z-Report) */}
                   <Link
@@ -837,9 +837,9 @@ function PosWorkspaceHeaderComponent({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '10px',
-                        padding: '8px 10px',
+                        padding: '9px 10px',
                         width: '100%',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         cursor: 'pointer',
                         textAlign: isEn ? 'left' : 'right',
                         color: '#b91c1c',
@@ -851,8 +851,8 @@ function PosWorkspaceHeaderComponent({
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                     >
                       <div style={{
-                        width: '30px',
-                        height: '30px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '8px',
                         background: '#fee2e2',
                         display: 'flex',
@@ -862,7 +862,7 @@ function PosWorkspaceHeaderComponent({
                       }}>
                         <LockIcon size={15} color="#dc2626" />
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#991b1b' }}>{t('pos.pos_workspace.pos_workspace_header.s47', "إغلاق وتصفير الوردية (Z)")}</span>
                         <span style={{ fontSize: '10.5px', color: '#b91c1c' }}>{t('pos.pos_workspace.pos_workspace_header.s48', "جرد العهدة النقدية وإقفال الجلسة")}</span>
                       </div>

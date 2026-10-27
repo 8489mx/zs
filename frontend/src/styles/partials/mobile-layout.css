@@ -1175,6 +1175,15 @@
     border-radius: 8px !important;
   }
 
+  /* Expand search text area on mobile since duplicate customize button is hidden */
+  .pos-workspace .pos-products-unified-search-field input {
+    padding-left: 38px !important;
+  }
+  [dir="ltr"] .pos-workspace .pos-products-unified-search-field input {
+    padding-left: 12px !important;
+    padding-right: 38px !important;
+  }
+
   .pos-workspace .pos-products-card {
     min-height: 280px !important;
     height: auto !important;
@@ -1956,15 +1965,29 @@ html[dir="ltr"] .two-column-layout {
   }
 
   /* When any modal dialog is open, freeze page root and lock background completely */
-  html.dialog-shell-open,
-  body.dialog-shell-open,
   html.dialog-shell-open #root,
   body.dialog-shell-open #root,
   html.dialog-shell-open .app-root,
-  body.dialog-shell-open .app-root {
+  body.dialog-shell-open .app-root,
+  body.dialog-shell-open .content-wrap,
+  body.dialog-shell-open .pos-workspace,
+  body.dialog-shell-open .pos-products-scroll,
+  body.dialog-shell-open .pos-body {
     overflow: hidden !important;
     overflow-y: hidden !important;
     touch-action: none !important;
+    pointer-events: none !important;
+  }
+
+  html.dialog-shell-open,
+  body.dialog-shell-open {
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+  }
+
+  .dialog-overlay,
+  .dialog-shell {
+    touch-action: pan-y !important;
   }
 
   /* Prevent ghost drag & mouse drag-lock on mobile */
@@ -3905,14 +3928,6 @@ html[dir="ltr"] .two-column-layout {
     .pos-page-header .pos-header-brand-mark svg {
       width: 17px !important;
       height: 17px !important;
-    }
-
-    .pos-workspace .pos-page-header .pos-mode-toggle button,
-    .pos-page-header .pos-mode-toggle button {
-      padding: 2px 5px !important;
-      font-size: 9.5px !important;
-      height: 20px !important;
-      min-height: 20px !important;
     }
 
     .pos-workspace .pos-page-header .pos-shift-actions-group .pos-close-shift-btn,
