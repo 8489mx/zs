@@ -274,11 +274,16 @@ export class KdsService {
     // Fetch sale items
     const itemRows = saleIds.length > 0
       ? await this.db
-          .selectFrom('sale_items')
-          .select(['id', 'sale_id', 'product_id', 'product_name', 'qty', 'unit_name', 'modifiers', 'notes'])
-          .where('sale_id', 'in', saleIds)
-          .where(this.tenantPredicate(auth))
-          .orderBy('id', 'asc')
+          .selectFrom('sale_items as si')
+          .leftJoin('products as p', (join) => join
+            .onRef('p.id', '=', 'si.product_id')
+            .onRef('p.tenant_id', '=', 'si.tenant_id'))
+          .select(['si.id', 'si.sale_id', 'si.product_id', 'si.product_name',
+            'si.qty', 'si.unit_name', 'si.modifiers', 'si.notes',
+            'p.kitchen_station as configured_station'])
+          .where('si.sale_id', 'in', saleIds)
+          .where('si.tenant_id', '=', tenantId)
+          .orderBy('si.id', 'asc')
           .execute()
       : [];
 
@@ -346,7 +351,10 @@ export class KdsService {
           modifiers: mods,
           notes: item.notes || undefined,
           status: itemStatus,
-          station: this.inferItemStation(item.product_name),
+          station: ['kitchen', 'grill', 'beverages', 'bakery', 'general'].includes(
+            String(item.configured_station || '').toLowerCase())
+            ? String(item.configured_station).toLowerCase() as KdsStation
+            : this.inferItemStation(item.product_name),
         };
       });
 
