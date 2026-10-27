@@ -471,7 +471,7 @@ async function main(): Promise<void> {
       .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal).executeTakeFirstOrThrow()).stock_qty),cookedMealStock);
     assert.equal(Number((await db.selectFrom('products').select('stock_qty')
       .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty),cookedCheeseStock);
-    await receive(rest,meal,1,4);
+    await receive(rest,meal,1,7);
     const prePrep=await checkout(rest,[{productId:meal,name:'Pre-prep meal',qty:1,price:60,
       unitMultiplier:1,modifiers:[{productId:cheese,name:'Cheese',qty:0.1,price:0}]}],
       {orderType:'dine_in'});
@@ -513,7 +513,7 @@ async function main(): Promise<void> {
 
     // COD delivery: driver's proof-of-delivery must not silently settle cash;
     // authorized cashier settles courier cash/fee/GL exactly once.
-    await receive(rest,meal,1,4);
+    await receive(rest,meal,1,9);
     const createdRep=await couriers.create({name:'Acceptance Courier',isActive:true,repType:'delivery'} as any,rest.auth) as any;
     const courier=createdRep.deliveryReps.find((x:any)=>x.name==='Acceptance Courier');
     assert.ok(courier?.id);
