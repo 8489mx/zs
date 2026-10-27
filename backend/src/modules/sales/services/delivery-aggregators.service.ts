@@ -229,6 +229,10 @@ export class DeliveryAggregatorsService {
    */
   async ingestOrder(auth: AuthContext, dto: IngestOrderDto) {
     const scope = requireTenantScope(auth);
+    const externalOrderId = String(dto.externalOrderId || '').trim();
+    if (!externalOrderId || externalOrderId.length > 200) {
+      throw new BadRequestException('معرف طلب منصة التوصيل مطلوب');
+    }
     const aggregator = await this.db
       .selectFrom('pos_delivery_aggregators')
       .selectAll()
@@ -248,13 +252,33 @@ export class DeliveryAggregatorsService {
 
     const initialStatus = aggregator.auto_accept_orders ? 'preparing' : 'received';
 
-    const inserted = await this.db
+    return this.db.transaction().execute(async (trx) => {
+      // Serialize provider retries across backend instances without a new migration.
+      await trx.selectFrom('tenants').select('id').where('id','=',scope.tenantId)
+        .forUpdate().executeTakeFirstOrThrow();
+      const existing = await trx.selectFrom('pos_aggregator_orders')
+        .select(['id','status','display_number','subtotal','delivery_fee','aggregator_commission','net_payout'])
+        .where('tenant_id','=',scope.tenantId)
+        .where('aggregator_id','=',Number(aggregator.id))
+        .where('external_order_id','=',externalOrderId).executeTakeFirst();
+      if (existing) {
+        if (Math.abs(Number(existing.subtotal)-subtotal)>0.01 ||
+            Math.abs(Number(existing.delivery_fee)-deliveryFee)>0.01) {
+          throw new BadRequestException('معرف طلب التوصيل موجود بمبالغ مختلفة؛ يحتاج مراجعة');
+        }
+        return {
+          orderId:Number(existing.id),status:existing.status,
+          displayNumber:existing.display_number,netPayout:Number(existing.net_payout),
+          commissionAmount:Number(existing.aggregator_commission),
+        };
+      }
+      const inserted = await trx
       .insertInto('pos_aggregator_orders')
       .values({
         tenant_id: scope.tenantId,
         account_id: scope.accountId,
         aggregator_id: Number(aggregator.id),
-        external_order_id: dto.externalOrderId,
+        external_order_id: externalOrderId,
         display_number: dto.displayNumber || `${dto.aggregatorCode.toUpperCase()}-${dto.externalOrderId.slice(-4)}`,
         branch_id: dto.branchId ? Number(dto.branchId) : null,
         status: initialStatus,
@@ -279,6 +303,7 @@ export class DeliveryAggregatorsService {
       netPayout,
       commissionAmount,
     };
+    });
   }
 
   /**
