@@ -119,6 +119,48 @@ function hasExactCodeMatch(products: Product[], query: string) {
   );
 }
 
+function getArabicColorHex(colorName?: string): string | null {
+  if (!colorName) return null;
+  const name = colorName.trim().toLowerCase();
+  const map: Record<string, string> = {
+    'ابيض': '#ffffff',
+    'أبيض': '#ffffff',
+    'اسود': '#0f172a',
+    'أسود': '#0f172a',
+    'كحلي': '#1e3a8a',
+    'احمر': '#dc2626',
+    'أحمر': '#dc2626',
+    'ازرق': '#2563eb',
+    'أزرق': '#2563eb',
+    'اخضر': '#16a34a',
+    'أخضر': '#16a34a',
+    'رمادي': '#64748b',
+    'رصاصي': '#64748b',
+    'بيج': '#d4b996',
+    'بني': '#78350f',
+    'بنى': '#78350f',
+    'اصفر': '#eab308',
+    'أصفر': '#eab308',
+    'وردي': '#ec4899',
+    'بينك': '#ec4899',
+    'برتقالي': '#ea580c',
+    'زيتي': '#556b2f',
+    'زيتوني': '#556b2f',
+    'نبيتي': '#800020',
+    'عنابي': '#701a75',
+    'سماوي': '#0ea5e9',
+    'موف': '#8b5cf6',
+    'بنفسجي': '#8b5cf6',
+    'فضي': '#cbd5e1',
+    'ذهبي': '#eab308',
+    'خردلي': '#d97706',
+    'هافان': '#c2410c',
+    'ليموني': '#a3e635',
+    'تركواز': '#06b6d4',
+  };
+  return map[name] || null;
+}
+
 function InlineGroupPicker({
   group,
   onClose,
@@ -171,8 +213,13 @@ function InlineGroupPicker({
     });
   }, [deferredColor, deferredSize, group.products]);
 
+  // Only show filter chips when there are multi-dimensional options (colors AND sizes)
+  // or a very long list of single options (>6). If items only have 3 colors, the rows themselves are the colors!
+  const showColorFilter = (group.colors.length > 1 && group.sizes.length > 0) || group.colors.length > 6;
+  const showSizeFilter = (group.sizes.length > 1 && group.colors.length > 0) || group.sizes.length > 6;
+
   const pickerContent = (
-    <div className="pos-inline-picker-overlay" role="presentation">
+    <div className="pos-workspace pos-inline-picker-overlay" role="presentation">
       <button
         type="button"
         className="pos-inline-picker-backdrop"
@@ -188,7 +235,7 @@ function InlineGroupPicker({
           <div
             className="pos-sheet-drag-handle"
             style={{
-              width: '38px',
+              width: '36px',
               height: '4px',
               borderRadius: '2px',
               backgroundColor: '#cbd5e1',
@@ -228,13 +275,31 @@ function InlineGroupPicker({
               onClose();
               if (!isMobile) focusSearchInput(searchInputRef);
             }}
+            style={{
+              width: '28px',
+              height: '28px',
+              minHeight: '28px',
+              maxHeight: '28px',
+              borderRadius: '50%',
+              background: '#f1f5f9',
+              border: '1px solid #e2e8f0',
+              color: '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              lineHeight: 1,
+              flexShrink: 0,
+              boxSizing: 'border-box',
+            }}
           >
-            <XIcon size={16} />
+            <XIcon size={14} strokeWidth={2.4} color="#64748b" style={{ display: 'block', margin: 'auto' }} />
           </button>
         </div>
 
-        {/* Color Filter Chips (shown only if more than 1 color) */}
-        {group.colors.length > 1 ? (
+        {/* Color Filter Chips (shown only when relevant) */}
+        {showColorFilter ? (
           <div className="pos-inline-picker-filter-block">
             <span>{t('pos.pos_inline_picker.color', "اللون")}:</span>
             <div className="pos-chip-row">
@@ -272,8 +337,8 @@ function InlineGroupPicker({
           </div>
         ) : null}
 
-        {/* Size Filter Chips (shown only if more than 1 size) */}
-        {group.sizes.length > 1 ? (
+        {/* Size Filter Chips (shown only when relevant) */}
+        {showSizeFilter ? (
           <div className="pos-inline-picker-filter-block">
             <span>{group.colors.length ? t('pos.pos_inline_picker.size_unit', "المقاس") : t('pos.pos_inline_picker.option', "الاختيار")}:</span>
             <div className="pos-chip-row">
@@ -316,7 +381,7 @@ function InlineGroupPicker({
           {filteredProducts.length === 0 ? (
             <div
               style={{
-                padding: '24px 12px',
+                padding: '20px 12px',
                 textAlign: 'center',
                 color: '#64748b',
                 fontSize: '12px',
@@ -337,24 +402,18 @@ function InlineGroupPicker({
               </button>
             </div>
           ) : (
-            <div className="pos-inline-picker-grid">
+            <div className="pos-variant-row-list">
               {filteredProducts.map((product) => {
                 const price = priceType === 'wholesale' ? (product.wholesalePrice || product.retailPrice) : product.retailPrice;
                 const isOutOfStock = !allowNegativeStockSales && (product.itemType !== 'service') && !product.hasBom && (Number(product.stock) || 0) <= 0;
                 const variantLabel = [product.color, product.size].filter(Boolean).join(' / ') || product.name;
+                const colorHex = getArabicColorHex(product.color);
 
                 return (
                   <button
                     key={product.id}
                     type="button"
-                    className={`pos-inline-variant-card ${isOutOfStock ? 'is-out-of-stock' : ''}`}
-                    style={isOutOfStock ? {
-                      opacity: 0.55,
-                      filter: 'grayscale(0.65)',
-                      cursor: 'not-allowed',
-                      background: '#f8fafc',
-                      border: '1px dashed #cbd5e1',
-                    } : undefined}
+                    className={`pos-variant-row ${isOutOfStock ? 'is-out-of-stock' : ''}`}
                     onClick={() => {
                       if (isOutOfStock) {
                         toast.warning(t('pos.variant_out_of_stock_warning', 'هذا الاختيار نافذ من المخزون ولا يمكن بيعه حالياً'));
@@ -368,43 +427,87 @@ function InlineGroupPicker({
                       if (!isMobile) focusSearchInput(searchInputRef);
                     }}
                   >
-                    <div className="pos-inline-variant-card-top">
-                      <strong title={variantLabel}>{variantLabel}</strong>
-                      <span
-                        className={`status-badge ${isOutOfStock ? 'status-draft' : 'status-posted'}`}
-                        style={{
-                          fontSize: isMobile ? '9.5px' : '10px',
-                          fontWeight: 700,
-                          padding: '1px 5px',
-                          borderRadius: '4px',
-                          background: isOutOfStock ? '#fee2e2' : '#ecfdf5',
-                          color: isOutOfStock ? '#b91c1c' : '#047857',
-                          border: isOutOfStock ? '1px solid #fecaca' : '1px solid #a7f3d0',
-                          lineHeight: 1.2,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {isOutOfStock ? t('pos.out_of_stock', 'نفد') : product.stock}
-                      </span>
+                    {/* Right side: Color Dot + Variant Title + Stock */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1, textAlign: 'right' }}>
+                      {colorHex ? (
+                        <span
+                          style={{
+                            width: '14px',
+                            height: '14px',
+                            borderRadius: '50%',
+                            backgroundColor: colorHex,
+                            border: colorHex === '#ffffff' ? '1.5px solid #cbd5e1' : '1px solid rgba(0,0,0,0.18)',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : null}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 0 }}>
+                        <strong
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: 800,
+                            color: isOutOfStock ? '#64748b' : '#0f172a',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '100%',
+                            lineHeight: 1.3,
+                          }}
+                          title={variantLabel}
+                        >
+                          {variantLabel}
+                        </strong>
+                        <span
+                          style={{
+                            fontSize: '10.5px',
+                            fontWeight: 600,
+                            color: isOutOfStock ? '#dc2626' : '#16a34a',
+                            marginTop: '1px',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {isOutOfStock ? t('pos.out_of_stock', 'نفد من المخزون') : `${t('pos.available_stock', 'متوفر')}: ${product.stock}`}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="pos-inline-variant-card-bottom">
-                      <span className="pos-inline-variant-card-price">
+                    {/* Left side: Price + Add Button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                      <span
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 800,
+                          color: isOutOfStock ? '#94a3b8' : '#170e5e',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {formatCurrency(Number(price || 0))}
                       </span>
+
                       <span
-                        className="pos-inline-variant-add-badge"
-                        style={isOutOfStock ? {
-                          background: '#f1f5f9',
-                          color: '#94a3b8',
-                          border: '1px solid #e2e8f0',
-                        } : undefined}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          borderRadius: '7px',
+                          background: isOutOfStock ? '#f1f5f9' : '#170e5e',
+                          color: isOutOfStock ? '#94a3b8' : '#ffffff',
+                          border: isOutOfStock ? '1px solid #e2e8f0' : 'none',
+                          lineHeight: 1,
+                          flexShrink: 0,
+                          boxShadow: isOutOfStock ? 'none' : '0 1px 3px rgba(23, 14, 94, 0.25)',
+                        }}
                       >
                         {isOutOfStock ? (
                           t('pos.out_of_stock', 'نفد')
                         ) : (
                           <>
-                            <PlusIcon size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                            <PlusIcon size={11} strokeWidth={2.5} style={{ flexShrink: 0 }} />
                             <span>{t('pos.add_short', 'أضف')}</span>
                           </>
                         )}
