@@ -1,13 +1,13 @@
 import { Controller, Get, Post, Body, Query, Req, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
-import { AllowAuthenticated } from '../../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import { RestaurantFoodWasteService, CreateFoodWasteLogDto } from '../services/restaurant-food-waste.service';
 
 @Controller(['sales/food-waste', 'api/sales/food-waste'])
 @UseGuards(SessionAuthGuard, PermissionsGuard)
-@AllowAuthenticated()
+@RequirePermissions('sales')
 export class RestaurantFoodWasteController {
   constructor(private readonly service: RestaurantFoodWasteService) {}
 
