@@ -29,99 +29,96 @@ export class RestaurantFoodWasteService {
    */
   async logWaste(auth: AuthContext, dto: CreateFoodWasteLogDto) {
     const scope = requireTenantScope(auth);
-    if (!dto.quantity || dto.quantity <= 0) {
-      throw new BadRequestException('الكمية يجب أن تكون أكبر من الصفر');
+    if (!Number.isFinite(dto.quantity) || dto.quantity <= 0) {
+      throw new BadRequestException('الكمية يجب أن تكون أكبر من الصفر وصالحة');
+    }
+    if (!Number.isSafeInteger(dto.branchId) || dto.branchId <= 0 ||
+        !Number.isSafeInteger(dto.productId) || dto.productId <= 0) {
+      throw new BadRequestException('الفرع والصنف مطلوبان');
     }
 
-    const product = await this.db
-      .selectFrom('products')
-      .select(['id', 'name', 'cost_price'])
-      .where('id', '=', dto.productId)
-      .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
-
-    if (!product) {
-      throw new NotFoundException('الصنف غير موجود');
-    }
-
-    const costPrice = Number(product.cost_price || 0);
-    const totalCost = Number((costPrice * dto.quantity).toFixed(2));
-
-    return await this.db.transaction().execute(async (trx) => {
-      // 1. Get primary stock location for branch
-      const branch = await trx
-        .selectFrom('branches')
+    return this.db.transaction().execute(async (trx) => {
+      // Never record a fictitious expense without an actual warehouse deduction.
+      const branch = await trx.selectFrom('branches')
         .select(['default_stock_location_id'])
         .where('id', '=', dto.branchId)
         .where('tenant_id', '=', scope.tenantId)
         .executeTakeFirst();
+      if (!branch) throw new BadRequestException('الفرع غير موجود في المنشأة');
 
-      let locationId = branch?.default_stock_location_id ? Number(branch.default_stock_location_id) : null;
-      if (!locationId) {
-        const fallbackLocation = await trx
-          .selectFrom('stock_locations')
-          .select(['id'])
-          .where('branch_id', '=', dto.branchId)
-          .where('is_active', '=', true)
+      let locationId = branch.default_stock_location_id ? Number(branch.default_stock_location_id) : null;
+      if (locationId) {
+        const selectedLocation = await trx.selectFrom('stock_locations')
+          .select('id').where('id', '=', locationId)
           .where('tenant_id', '=', scope.tenantId)
-          .executeTakeFirst();
+          .where('branch_id', '=', dto.branchId)
+          .where('is_active', '=', true).executeTakeFirst();
+        if (!selectedLocation) locationId = null;
+      }
+      if (!locationId) {
+        const fallbackLocation = await trx.selectFrom('stock_locations')
+          .select('id').where('branch_id', '=', dto.branchId)
+          .where('is_active', '=', true).where('tenant_id', '=', scope.tenantId)
+          .orderBy('id', 'asc').executeTakeFirst();
         locationId = fallbackLocation ? Number(fallbackLocation.id) : null;
       }
+      if (!locationId) throw new BadRequestException('لا يوجد مخزن نشط للفرع؛ لا يمكن تسجيل تالف دون خصم مخزون');
 
-      // 2. Insert waste log
-      const log = await trx
-        .insertInto('restaurant_food_waste_logs')
-        .values({
-          tenant_id: scope.tenantId,
-          account_id: scope.accountId,
-          branch_id: dto.branchId,
-          product_id: dto.productId,
-          quantity: dto.quantity,
-          cost_price: costPrice,
-          total_cost: totalCost,
-          reason: dto.reason,
-          notes: dto.notes || null,
-          logged_by: auth.userId ? Number(auth.userId) : null,
-        })
-        .returning('id')
-        .executeTakeFirstOrThrow();
-
-      // 3. Deduct stock if location exists
-      if (locationId) {
-        const stockChange = await applyStockDelta(trx, {
-          productId: dto.productId,
-          delta: -dto.quantity,
-          branchId: dto.branchId,
-          locationId: locationId,
-          tenantId: scope.tenantId,
-          accountId: scope.accountId,
-          allowNegative: true,
-        });
-
-        await trx
-          .insertInto('stock_movements')
-          .values({
-            product_id: dto.productId,
-            movement_type: 'damaged',
-            qty: -dto.quantity,
-            before_qty: stockChange.scopeBefore,
-            after_qty: stockChange.scopeAfter,
-            reason: `food_waste_${dto.reason}`,
-            note: `هدر مطبخ #${log.id}: ${dto.notes || dto.reason}`,
-            reference_type: 'food_waste',
-            reference_id: Number(log.id),
-            branch_id: dto.branchId,
-            location_id: locationId,
-            created_by: auth.userId ? Number(auth.userId) : 0,
-            tenant_id: scope.tenantId,
-            account_id: scope.accountId,
-          } as any)
-          .execute();
+      // Lock the costed product in the same transaction as the stock and GL.
+      const product = await trx.selectFrom('products')
+        .select(['id', 'name', 'cost_price']).where('id', '=', dto.productId)
+        .where('tenant_id', '=', scope.tenantId)
+        .where('account_id', '=', scope.accountId).forUpdate().executeTakeFirst();
+      if (!product) throw new NotFoundException('الصنف غير موجود');
+      const costPrice = Number(product.cost_price);
+      if (!Number.isFinite(costPrice) || costPrice < 0) {
+        throw new BadRequestException('تكلفة الصنف غير صالحة؛ لا يمكن تسجيل تالف بتكلفة وهمية');
       }
+      const totalCost = Number((costPrice * dto.quantity).toFixed(2));
+      if (!Number.isFinite(totalCost)) throw new BadRequestException('قيمة التالف غير صالحة');
 
-      // Post double-entry journal entry in General Ledger (Debit: Food Waste Expense 5300, Credit: Inventory 1140)
+      // A shortage must abort ALL changes, including the waste log and journal.
+      const stockChange = await applyStockDelta(trx, {
+        productId: dto.productId,
+        delta: -dto.quantity,
+        branchId: dto.branchId,
+        locationId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        allowNegative: false,
+      });
+
+      const log = await trx.insertInto('restaurant_food_waste_logs').values({
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+        branch_id: dto.branchId,
+        product_id: dto.productId,
+        quantity: dto.quantity,
+        cost_price: costPrice,
+        total_cost: totalCost,
+        reason: dto.reason,
+        notes: dto.notes || null,
+        logged_by: auth.userId ? Number(auth.userId) : null,
+      }).returning('id').executeTakeFirstOrThrow();
+
+      await trx.insertInto('stock_movements').values({
+        product_id: dto.productId,
+        movement_type: 'damaged',
+        qty: -dto.quantity,
+        before_qty: stockChange.scopeBefore,
+        after_qty: stockChange.scopeAfter,
+        reason: `food_waste_${dto.reason}`,
+        note: `هدر مطبخ #${log.id}: ${dto.notes || dto.reason}`,
+        reference_type: 'food_waste',
+        reference_id: Number(log.id),
+        branch_id: dto.branchId,
+        location_id: locationId,
+        created_by: auth.userId ? Number(auth.userId) : 0,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      } as any).execute();
+
       const journalResult = await this.accountingPosting.postFoodWaste(trx, Number(log.id), auth);
-
       return {
         id: Number(log.id),
         productName: product.name,
