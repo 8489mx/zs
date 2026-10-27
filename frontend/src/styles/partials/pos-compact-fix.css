@@ -2312,15 +2312,12 @@ html[dir="ltr"] .pos-shift-dropdown-menu,
 
 @media (max-width: 640px) {
   .pos-workspace .pos-cart-row-upgraded {
-    padding: 12px;
-  }
-
-  .pos-workspace .pos-cart-title-block strong {
-    font-size: 15px;
+    padding: 7px 10px !important;
   }
 
   .pos-workspace .pos-cart-qty-shell {
-    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    display: inline-flex !important;
+    gap: 3px !important;
   }
 }
 

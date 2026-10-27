@@ -49,6 +49,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
       className={`list-row stacked-row pos-cart-row pos-cart-row-upgraded pos-cart-grid-row ${index % 2 === 0 ? 'pos-cart-row-odd' : 'pos-cart-row-even'} ${isSelected ? 'pos-cart-row-selected' : ''} ${isRecent ? 'pos-cart-row-highlight' : ''}`.trim()}
       key={item.lineKey}
       onClick={() => onSelectLine(item.lineKey)}
+      style={{ transition: 'none', animation: 'none' }}
     >
       <div className="pos-cart-col pos-cart-col-index" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <span className="pos-cart-index-badge">{index + 1}</span>
@@ -381,18 +382,21 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
   const [notesDialogItem, setNotesDialogItem] = useState<{ lineKey: string; name: string; nameEn?: string; notes: string } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => {
-    if (typeof window === 'undefined') return 0;
-    return window.innerWidth <= 900 ? Math.min(420, window.innerWidth - 24) : 0;
+    if (typeof window === 'undefined') return 380;
+    return window.innerWidth <= 900 ? 380 : 0;
   });
 
   useEffect(() => {
-    if (!containerRef.current || typeof ResizeObserver === 'undefined') return;
+    if (isMobile || !containerRef.current || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver((entries) => {
-      setContainerWidth(entries[0].contentRect.width);
+      const w = entries[0]?.contentRect?.width;
+      if (w && w > 0) {
+        setContainerWidth(w);
+      }
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [cart.length]); // Re-attach if cart toggles between empty/list
+  }, [isMobile, cart.length]); // Re-attach if cart toggles between empty/list
 
   const handleSelectLine = useCallback((lineKey: string) => onSelectLine(lineKey), [onSelectLine]);
   const handleEditProduct = useCallback((productId: string) => onEditProduct?.(productId), [onEditProduct]);
@@ -494,7 +498,9 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
   }
 
   let responsiveClass = '';
-  if (containerWidth > 0) {
+  if (isMobile) {
+    responsiveClass = 'pos-cart-w440 pos-cart-mobile';
+  } else if (containerWidth > 0) {
     if (containerWidth < 440) responsiveClass = 'pos-cart-w440';
     else if (containerWidth < 490) responsiveClass = 'pos-cart-w490';
     else if (containerWidth < 530) responsiveClass = 'pos-cart-w530';
