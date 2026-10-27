@@ -404,3 +404,12 @@
 - Introduced `posHideOutOfStockItems` setting in tenant settings (`SalesInventorySettingsTab`) and per-workstation customization (`PosCustomizationDialog`) to completely filter out-of-stock products from browsing shelves when negative selling is blocked, while maintaining searchable discovery upon explicit name/barcode lookup.
 - Implementation: `PosProductsPanel.tsx`, `usePosUiCustomization.ts`, `PosCustomizationDialog.tsx`, `SalesInventorySettingsTab.tsx`, `settings.schema.ts`, `contracts.ts`, `settings.ts`, `system.ts`.
 - Verification evidence: `frontend/src/features/pos/components/PosProductsPanel.spec.tsx` (4/4 tests passing on 27 October 2026).
+
+## POS Mobile & Handheld Terminal Virtual Keyboard Suppression (27 October 2026)
+
+- On mobile devices and smart POS handheld terminals (Sunmi, Pax, iMin, etc.), on-screen soft keyboard auto-popup is completely suppressed on mount by setting `autoFocus={!isMobile}` and defaulting the search input to `inputMode="none"`.
+- Keystrokes from hardware laser scanners, camera scanners, and Bluetooth scanners continue to be received without popping up the virtual keyboard over the catalog grid and cart.
+- Added a dedicated keyboard toggle button (`KeyboardIcon`) in the search bar on mobile screens allowing the cashier to explicitly activate the virtual keyboard (`inputMode="text"`) on demand for manual text search by name, and auto-dismisses on Enter or blur.
+- Updated Android application configuration (`AndroidManifest.xml`) with `android:windowSoftInputMode="stateAlwaysHidden|adjustPan"`.
+- Implementation: `PosProductsPanel.tsx`, `AppIcons.tsx`, `frontend/android/app/src/main/AndroidManifest.xml`.
+- Verification evidence: `frontend/src/features/pos/components/PosProductsPanel.spec.tsx` (5/5 tests passing on 27 October 2026, commit `c152d95d`).
