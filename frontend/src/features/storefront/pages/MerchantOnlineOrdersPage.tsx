@@ -20,7 +20,7 @@ import { PageHeader } from '@/shared/components/page-header';
 import { StandardDialog } from '@/shared/components/StandardDialog';
 import { toast } from '@/shared/components/system-alert';
 import { getGlobalCurrencySymbol, getGlobalSystemCurrency, isThreeDecimalCurrency } from '@/lib/currencies';
-import { TrendingUpIcon, MessageSquareIcon, Trash2Icon, CopyIcon, CheckIcon, AlertTriangleIcon, SlidersIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
+import { TrendingUpIcon, MessageSquareIcon, Trash2Icon, CopyIcon, CheckIcon, AlertTriangleIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
 
 export function MerchantOnlineOrdersPage() {
   const { t } = useTranslation();

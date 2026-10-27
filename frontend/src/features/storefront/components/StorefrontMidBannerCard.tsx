@@ -1,4 +1,3 @@
-import React from 'react';
 import type { StorefrontMidBanner, StorefrontCategory } from '../types/storefront.types';
 import { ArrowLeftIcon } from '@/shared/components/icons/AppIcons';
 

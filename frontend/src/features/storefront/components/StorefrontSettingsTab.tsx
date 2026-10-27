@@ -24,9 +24,7 @@ import {
   CopyIcon,
   PlusCircleIcon,
   LayersIcon,
-  FolderIcon,
   TrendingUpIcon,
-  TagIcon,
   UploadIcon,
 } from '@/shared/components/icons/AppIcons';
 import { TableQrPrintDialog } from '@/features/pos';
