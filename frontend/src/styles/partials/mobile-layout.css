@@ -3526,6 +3526,19 @@ html[dir="ltr"] .two-column-layout {
     direction: rtl !important;
   }
 
+  .pos-product-group-grid-density-compact .pos-group-card {
+    height: 112px !important;
+    min-height: 112px !important;
+    max-height: 112px !important;
+  }
+
+  .pos-product-group-grid-density-compact.is-cols-3 .pos-group-card,
+  .pos-product-group-grid-density-compact[data-mobile-cols="3"] .pos-group-card {
+    height: 106px !important;
+    min-height: 106px !important;
+    max-height: 106px !important;
+  }
+
   .pos-group-card.pos-group-card-gallery {
     padding: 0 !important;
     min-height: unset !important;
