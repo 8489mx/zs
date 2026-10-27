@@ -746,8 +746,8 @@ export class MaintenanceService {
       const cashMovement = await trx.selectFrom('treasury_transactions')
         .select('id').where('tenant_id', '=', scope.tenantId)
         .where('reference_type', '=', 'maintenance_ticket').where('reference_id', '=', id).executeTakeFirst();
-      if (Number(ticket.advance_payment) > 0 || ticket.status === 'delivered' || historicalMovement || cashMovement) {
-        throw new AppError('Financial maintenance ticket cannot be deleted', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
+      if (Number(ticket.advance_payment) > 0 || ticket.status === 'delivered' || cashMovement) {
+        throw new AppError('لا يمكن حذف تذكرة صيانة مسلّمة أو تم تحصيل مبالغ مالية لها؛ يجب عمل تسوية أو إلغاء مالي', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
       }
       const parts = await trx
         .selectFrom('maintenance_ticket_parts')
@@ -755,9 +755,6 @@ export class MaintenanceService {
         .where('tenant_id', '=', scope.tenantId)
         .where('ticket_id', '=', id)
         .execute();
-      if (parts.length > 0) {
-        throw new AppError('Reverse issued parts before deleting ticket', 'MAINTENANCE_REVERSAL_REQUIRED', 409);
-      }
 
       for (const part of parts) {
         const returnQty = Number(part.qty);
@@ -774,6 +771,11 @@ export class MaintenanceService {
           allowNegative: true,
         });
 
+        const stockValue = roundMoney(Number(part.unit_cost || 0) * returnQty, currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId)));
+        if (stockValue > 0) {
+          await valueStockReceipt(trx, scope.tenantId, Number(part.product_id), stockChange.globalAfter, returnQty, stockValue);
+        }
+
         await trx
           .insertInto('stock_movements')
           .values({
@@ -782,6 +784,8 @@ export class MaintenanceService {
             qty: returnQty,
             before_qty: stockChange.scopeBefore,
             after_qty: stockChange.scopeAfter,
+            unit_cost: Number(part.unit_cost || 0),
+            total_cost: stockValue,
             reason: 'إلغاء تذكرة صيانة - إرجاع قطع الغيار للمخزون',
             note: `حذف تذكرة صيانة #${id} - قطعة: ${part.product_name}`,
             reference_type: 'maintenance_ticket',

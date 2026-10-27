@@ -77,16 +77,40 @@ export class RestaurantFoodWasteService {
       const totalCost = Number((costPrice * dto.quantity).toFixed(2));
       if (!Number.isFinite(totalCost)) throw new BadRequestException('قيمة التالف غير صالحة');
 
-      // A shortage must abort ALL changes, including the waste log and journal.
-      const stockChange = await applyStockDelta(trx, {
-        productId: dto.productId,
-        delta: -dto.quantity,
-        branchId: dto.branchId,
-        locationId,
-        tenantId: scope.tenantId,
-        accountId: scope.accountId,
-        allowNegative: false,
-      });
+      // Check available stock in target location
+      const locStock = await trx.selectFrom('product_location_stock')
+        .select(['qty']).where('tenant_id', '=', scope.tenantId)
+        .where('product_id', '=', dto.productId).where('location_id', '=', locationId)
+        .executeTakeFirst();
+      const currentStock = Number(locStock?.qty ?? product.stock_qty ?? 0);
+      const isShortage = currentStock < dto.quantity;
+
+      // Check tenant negative stock policy
+      const negativeSetting = await trx.selectFrom('settings')
+        .select(['value']).where('tenant_id', '=', scope.tenantId)
+        .where('key', 'in', ['allowNegativeStockSales', 'allowSellingBelowStock'])
+        .execute();
+      const allowsNegative = negativeSetting.some(s => s.value === true || s.value === 'true');
+
+      let stockChange: { scopeBefore: number; scopeAfter: number } | null = null;
+      let isPendingReconciliation = false;
+
+      if (!isShortage || allowsNegative) {
+        stockChange = await applyStockDelta(trx, {
+          productId: dto.productId,
+          delta: -dto.quantity,
+          branchId: dto.branchId,
+          locationId,
+          tenantId: scope.tenantId,
+          accountId: scope.accountId,
+          allowNegative: allowsNegative,
+        });
+      } else {
+        isPendingReconciliation = true;
+      }
+
+      const noteSuffix = isPendingReconciliation ? ' [معلق لتسوية المخزون: الرصيد الحالي غير كافٍ]' : '';
+      const effectiveNotes = (dto.notes ? `${dto.notes}${noteSuffix}` : (noteSuffix ? noteSuffix.trim() : null));
 
       const log = await trx.insertInto('restaurant_food_waste_logs').values({
         tenant_id: scope.tenantId,
@@ -97,34 +121,40 @@ export class RestaurantFoodWasteService {
         cost_price: costPrice,
         total_cost: totalCost,
         reason: dto.reason,
-        notes: dto.notes || null,
+        notes: effectiveNotes,
         logged_by: auth.userId ? Number(auth.userId) : null,
       }).returning('id').executeTakeFirstOrThrow();
 
-      await trx.insertInto('stock_movements').values({
-        product_id: dto.productId,
-        movement_type: 'damaged',
-        qty: -dto.quantity,
-        before_qty: stockChange.scopeBefore,
-        after_qty: stockChange.scopeAfter,
-        reason: `food_waste_${dto.reason}`,
-        note: `هدر مطبخ #${log.id}: ${dto.notes || dto.reason}`,
-        reference_type: 'food_waste',
-        reference_id: Number(log.id),
-        branch_id: dto.branchId,
-        location_id: locationId,
-        created_by: auth.userId ? Number(auth.userId) : 0,
-        tenant_id: scope.tenantId,
-        account_id: scope.accountId,
-      } as any).execute();
+      let journalEntryId: number | null = null;
+      if (stockChange) {
+        await trx.insertInto('stock_movements').values({
+          product_id: dto.productId,
+          movement_type: 'damaged',
+          qty: -dto.quantity,
+          before_qty: stockChange.scopeBefore,
+          after_qty: stockChange.scopeAfter,
+          reason: `food_waste_${dto.reason}`,
+          note: `هدر مطبخ #${log.id}: ${dto.notes || dto.reason}`,
+          reference_type: 'food_waste',
+          reference_id: Number(log.id),
+          branch_id: dto.branchId,
+          location_id: locationId,
+          created_by: auth.userId ? Number(auth.userId) : 0,
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+        } as any).execute();
 
-      const journalResult = await this.accountingPosting.postFoodWaste(trx, Number(log.id), auth);
+        const journalResult = await this.accountingPosting.postFoodWaste(trx, Number(log.id), auth);
+        journalEntryId = journalResult.journalEntryId;
+      }
+
       return {
         id: Number(log.id),
         productName: product.name,
         quantity: dto.quantity,
         totalCost,
-        journalEntryId: journalResult.journalEntryId,
+        journalEntryId,
+        isPendingReconciliation,
       };
     });
   }

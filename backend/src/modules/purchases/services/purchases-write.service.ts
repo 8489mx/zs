@@ -521,10 +521,6 @@ export class PurchasesWriteService {
           const drug = await trx.selectFrom('pharmacy_drugs').select('id')
             .where('tenant_id', '=', scope.tenantId).where('product_id', '=', item.productId)
             .executeTakeFirst();
-          if (payload.note?.startsWith('Imported pharmacy distributor invoice ') && !drug) {
-            throw new AppError('Pharmacy import must reference a tenant-linked drug catalog product',
-              'PHARMACY_PRODUCT_NOT_LINKED', 422);
-          }
           if (drug && (!batchNo || !expiryDate)) {
             throw new AppError('الصنف الدوائي يتطلب رقم تشغيلة وتاريخ صلاحية عند الاستلام', 'PHARMACY_BATCH_REQUIRED', 422);
           }

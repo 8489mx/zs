@@ -941,13 +941,14 @@ export class DeliveryRepsService {
           .where('id', 'in', saleIds).where(this.tenantPredicate(actor))
           .orderBy('id', 'asc').forUpdate().execute();
         if (sales.length !== saleIds.length ||
-            sales.some(s => s.order_type !== 'delivery' || s.status === 'cancelled' ||
+            sales.some(s => s.status === 'cancelled' ||
               ['delivered', 'settled'].includes(String(s.delivery_status)) ||
               (s.delivery_rep_id && Number(s.delivery_rep_id) !== Number(rep.id) &&
                 !['pending', null].includes(s.delivery_status)))) {
-          throw new AppError('لا يمكن إسناد طلب غير دليفري أو ملغي أو مسلم أو بعهدة مندوب آخر', 'DELIVERY_DISPATCH_FORBIDDEN', 409);
+          throw new AppError('لا يمكن إسناد طلب ملغي أو مسلّم بالفعل أو في عهدة مندوب آخر', 'DELIVERY_DISPATCH_FORBIDDEN', 409);
         }
         await trx.updateTable('sales').set({
+          order_type: 'delivery',
           delivery_rep_id: rep.id,
           delivery_status: 'out_for_delivery',
           dispatched_at: now,

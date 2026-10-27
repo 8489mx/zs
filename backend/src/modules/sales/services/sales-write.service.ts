@@ -3027,6 +3027,7 @@ export class SalesWriteService {
       if (sale.delivery_status === 'settled') {
         throw new AppError('لا يمكن إلغاء طلب دليفري تمت تسوية عهدته؛ استخدم مرتجعاً مالياً', 'DELIVERY_SETTLED_CANCEL_USE_RETURN', 409);
       }
+      let isPreparedWaste = false;
       if (['dine_in', 'takeaway', 'delivery'].includes(String(sale.order_type || ''))) {
         const consumedIngredient = await trx.selectFrom('sale_line_stock_allocations as a')
           .innerJoin('sale_items as i', (join) => join
@@ -3055,13 +3056,13 @@ export class SalesWriteService {
             const parsed = kitchenRecord?.value ? JSON.parse(String(kitchenRecord.value)) : null;
             stage = parsed?.tickets?.[String(saleId)]?.status;
           } catch {
-            throw new AppError('حالة المطبخ غير قابلة للتحقق؛ استخدم المرتجع المالي', 'RESTAURANT_KDS_STATE_UNVERIFIED', 409);
+            stage = 'pending';
           }
           const createdMs = sale.created_at ? new Date(sale.created_at).getTime() : NaN;
           if (stage === 'cooking' || stage === 'ready' || stage === 'served' ||
               (stage !== 'pending' && (!Number.isFinite(createdMs) ||
                 Date.now() - createdMs > 14 * 60 * 60 * 1000))) {
-            throw new AppError('تم بدء تحضير الوجبة؛ لا يجوز إرجاع الخامات للمخزون بإلغاء البيع، استخدم المرتجع المالي', 'RESTAURANT_PREPARED_CANCEL_USE_RETURN', 409);
+            isPreparedWaste = true;
           }
         }
       }
@@ -3083,6 +3084,10 @@ export class SalesWriteService {
 
         if (allocations.length > 0) {
            for (const alloc of allocations) {
+             // If meal was already prepared in kitchen, consumed raw ingredients must not be falsely restored to physical inventory
+             if (isPreparedWaste && Number(alloc.product_id) !== Number(item.product_id)) {
+               continue;
+             }
              const qtyToRestore = Number(alloc.quantity || 0);
 
              // Find branch for this location

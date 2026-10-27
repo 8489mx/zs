@@ -256,16 +256,29 @@ export class TradeInService {
         }
       }
       if (targetProductId) {
-        // A serial already owned by any catalog product must never be silently
-        // reused while acquiring a second physical device and paying again.
+        // A serial currently active in inventory cannot be acquired again while in stock.
+        // If it was previously sold, re-purchasing the used device is permitted.
         const occupiedSerial = await trx.selectFrom('product_serials')
           .select(['id', 'product_id', 'status'])
           .where('tenant_id', '=', scope.tenantId)
           .where('serial_number', '=', payload.serialNumber.trim())
+          .where('status', '=', 'in_stock')
           .executeTakeFirst();
         if (occupiedSerial) {
-          throw new AppError('Serial is already registered in inventory; reconcile the original receipt', 'TRADEIN_SERIAL_ALREADY_REGISTERED', 409);
+          throw new AppError('الجهاز مسجل بالفعل وموجود بالمخزن حالياً؛ لا يمكن إعادة شرائه قبل خروجه من المخزن أو بيعه', 'TRADEIN_SERIAL_ALREADY_IN_STOCK', 409);
         }
+
+        const pendingDraft = await trx.selectFrom('trade_in_transactions')
+          .select(['id', 'doc_no'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('serial_number', '=', payload.serialNumber.trim())
+          .where('status', '=', 'pending')
+          .where('id', '!=', txnId)
+          .executeTakeFirst();
+        if (pendingDraft) {
+          throw new AppError(`يوجد إيصال استبدال معلق برقم ${pendingDraft.doc_no} لنفس هذا الجهاز`, 'TRADEIN_SERIAL_PENDING_EXISTS', 409);
+        }
+
         // Also receive explicit existing product links: a recorded IMEI without
         // an actual stock movement previously created invisible inventory.
         await trx.updateTable('products').set({track_serials:true})
@@ -292,16 +305,6 @@ export class TradeInService {
 
       // If a product ID was linked or auto-created, automatically register the IMEI in product_serials
       if (targetProductId) {
-        const existingSerial = await trx
-          .selectFrom('product_serials')
-          .select(['id'])
-          .where('tenant_id', '=', scope.tenantId)
-          .where('serial_number', '=', payload.serialNumber.trim())
-          .executeTakeFirst();
-
-        if (existingSerial) {
-          throw new AppError('Serial was registered during trade-in intake; roll back duplicate receipt', 'TRADEIN_SERIAL_ALREADY_REGISTERED', 409);
-        }
         {
           await trx
             .insertInto('product_serials')

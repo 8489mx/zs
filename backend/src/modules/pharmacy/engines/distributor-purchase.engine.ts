@@ -4,18 +4,22 @@ import { MoneyDigits, toMinorUnits, fromMinorUnits } from '../../accounting/engi
 export function buildDistributorPurchaseItem(
   line: {
     productName: string; quantity: number; bonusQuantity?: number;
-    costPrice: number; batchNumber?: string; expiryDate: string;
+    costPrice: number; batchNumber?: string; expiryDate?: string;
   },
   productId: number,
   locationId: number,
   digits: MoneyDigits,
+  isDrug = false,
 ) {
   if (!Number.isSafeInteger(productId) || productId <= 0 ||
       !Number.isSafeInteger(locationId) || locationId <= 0) {
     throw new Error('Distributor invoice requires tenant-owned product and location');
   }
-  if (!line.batchNumber?.trim() || !/^\d{4}-\d{2}(?:-\d{2})?$/.test(line.expiryDate || '')) {
-    throw new Error('Distributor invoice requires batch number and valid expiry');
+  const hasBatchOrExpiry = Boolean(line.batchNumber?.trim() || line.expiryDate?.trim());
+  if (isDrug || hasBatchOrExpiry) {
+    if (!line.batchNumber?.trim() || !/^\d{4}-\d{2}(?:-\d{2})?$/.test(line.expiryDate || '')) {
+      throw new Error('Distributor invoice requires batch number and valid expiry');
+    }
   }
   const purchased = Number(line.quantity);
   const bonus = Number(line.bonusQuantity || 0);
@@ -30,6 +34,6 @@ export function buildDistributorPurchaseItem(
   return {
     productId, name: line.productName.trim(), qty: quantity, cost: unitCost,
     unitMultiplier: 1, locationId,
-    batchNumber: line.batchNumber.trim(), expiryDate: line.expiryDate,
+    batchNumber: line.batchNumber?.trim() || undefined, expiryDate: line.expiryDate || undefined,
   };
 }

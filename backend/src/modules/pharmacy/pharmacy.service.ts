@@ -300,12 +300,30 @@ export class PharmacyService {
       } else {
         query = query.where('trade_name', '=', line.productName.trim());
       }
+      let productId: number;
+      let isDrug = false;
       const matches = await query.limit(2).execute();
-      if (matches.length !== 1 || !matches[0].product_id) {
-        throw new AppError('Link the imported drug to exactly one inventory product before purchasing',
-          'PHARMACY_PRODUCT_NOT_LINKED', 422);
+      if (matches.length === 1 && matches[0].product_id) {
+        productId = Number(matches[0].product_id);
+        isDrug = true;
+      } else {
+        let prodQuery = this.db.selectFrom('products').select('id')
+          .where('tenant_id', '=', scope.tenantId).where('is_active', '=', true);
+        if (line.barcode?.trim()) {
+          const barcode = line.barcode.trim();
+          prodQuery = prodQuery.where((eb) => eb.or([
+            eb('barcode', '=', barcode), eb('name', '=', line.productName.trim()),
+          ]));
+        } else {
+          prodQuery = prodQuery.where('name', '=', line.productName.trim());
+        }
+        const prodMatches = await prodQuery.limit(2).execute();
+        if (prodMatches.length !== 1) {
+          throw new AppError('Link the imported drug to exactly one inventory product before purchasing',
+            'PHARMACY_PRODUCT_NOT_LINKED', 422);
+        }
+        productId = Number(prodMatches[0].id);
       }
-      const productId = Number(matches[0].product_id);
       const product = await this.db.selectFrom('products').select('id')
         .where('tenant_id', '=', scope.tenantId).where('id', '=', productId)
         .where('is_active', '=', true).executeTakeFirst();
@@ -315,7 +333,7 @@ export class PharmacyService {
       }
       let item: ReturnType<typeof buildDistributorPurchaseItem>;
       try {
-        item = buildDistributorPurchaseItem(line, productId, locationId, moneyDigits);
+        item = buildDistributorPurchaseItem(line, productId, locationId, moneyDigits, isDrug);
         const payableMinor = toMinorUnits(Number(line.quantity) * Number(line.costPrice), moneyDigits);
         const roundedPurchaseMinor = toMinorUnits(roundMoney(item.qty * item.cost, moneyDigits), moneyDigits);
         if (payableMinor !== roundedPurchaseMinor) {
