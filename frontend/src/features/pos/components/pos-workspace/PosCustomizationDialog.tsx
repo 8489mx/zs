@@ -82,30 +82,53 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
     lineHeight: '1.4',
   };
 
-  const toggleButtonStyle = (isActive: boolean) => ({
-    width: '38px',
-    height: '20px',
-    borderRadius: '999px',
-    background: isActive ? '#170e5e' : '#cbd5e1',
-    border: 'none',
-    cursor: 'pointer',
-    position: 'relative' as const,
-    padding: '2px',
-    transition: 'background-color 0.2s ease',
-    flexShrink: 0,
-  });
-
-  const toggleThumbStyle = (isActive: boolean) => ({
-    width: '16px',
-    height: '16px',
-    borderRadius: '50%',
-    background: '#ffffff',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-    position: 'absolute' as const,
-    top: '2px',
-    right: isActive ? '2px' : '20px',
-    transition: 'right 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-  });
+  const renderSwitch = (checked: boolean, onChange: () => void, ariaLabel?: string) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      className="pos-custom-toggle"
+      onClick={onChange}
+      style={{
+        width: '42px',
+        minWidth: '42px',
+        maxWidth: '42px',
+        height: '24px',
+        minHeight: '24px',
+        maxHeight: '24px',
+        borderRadius: '999px',
+        background: checked ? '#170e5e' : '#cbd5e1',
+        border: 'none',
+        cursor: 'pointer',
+        position: 'relative',
+        padding: 0,
+        margin: 0,
+        boxSizing: 'border-box',
+        transition: 'background-color 0.2s ease',
+        flexShrink: 0,
+        outline: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: '18px',
+          height: '18px',
+          minWidth: '18px',
+          minHeight: '18px',
+          borderRadius: '50%',
+          background: '#ffffff',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+          position: 'absolute',
+          top: '3px',
+          right: checked ? '3px' : '21px',
+          transition: 'right 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      />
+    </button>
+  );
 
   return (
     <DialogShell
@@ -158,8 +181,8 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
               <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {t('pos.customization_modal_title', 'تخصيص واجهة الكاشير')}
               </h3>
-              <p style={{ margin: '1px 0 0', fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {t('pos.customization_modal_desc', 'إظهار وإخفاء الأقسام وتنسيق الشاشات المتنقلة لتوفير أقصى مساحة')}
+              <p style={{ margin: '1px 0 0', fontSize: '11px', color: '#64748b', lineHeight: '1.35' }}>
+                {t('pos.customization_modal_desc', 'تنسيق شاشات الموبايل وإظهار الأقسام لتوفير أقصى مساحة')}
               </p>
             </div>
           </div>
@@ -189,10 +212,11 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
           style={{
             flex: 1,
             overflowY: 'auto',
+            overscrollBehavior: 'contain',
             paddingRight: '2px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px',
+            gap: '14px',
           }}
           className="thin-scrollbar"
         >
@@ -212,14 +236,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <span style={titleStyle}>{t('pos.toggle_search_bar', 'مربع البحث السريع ومسح الكاميرا')}</span>
                   <span style={descStyle}>{t('pos.toggle_search_bar_desc', 'إخفاء حقل البحث يوفر مساحة رأسية كبيرة (الباركود يعمل بالماسح الخارجي)')}</span>
                 </div>
-                <button
-                  type="button"
-                  style={toggleButtonStyle(draft.showSearchBar)}
-                  onClick={() => handleToggle('showSearchBar')}
-                  aria-pressed={draft.showSearchBar}
-                >
-                  <div style={toggleThumbStyle(draft.showSearchBar)} />
-                </button>
+                {renderSwitch(draft.showSearchBar, () => handleToggle('showSearchBar'), t('pos.toggle_search_bar', 'مربع البحث ومسح الكاميرا'))}
               </div>
 
               {/* 2. Price Tier Toggle */}
@@ -228,14 +245,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <span style={titleStyle}>{t('pos.toggle_price_tier', 'شريط اختيار السعر (سعر القطاعي / سعر الجملة)')}</span>
                   <span style={descStyle}>{t('pos.toggle_price_tier_desc', 'عند إخفاء الشريط، سيُعتمد السعر الافتراضي المحدد أدناه تلقائياً')}</span>
                 </div>
-                <button
-                  type="button"
-                  style={toggleButtonStyle(draft.showPriceTierToggle)}
-                  onClick={() => handleToggle('showPriceTierToggle')}
-                  aria-pressed={draft.showPriceTierToggle}
-                >
-                  <div style={toggleThumbStyle(draft.showPriceTierToggle)} />
-                </button>
+                {renderSwitch(draft.showPriceTierToggle, () => handleToggle('showPriceTierToggle'), t('pos.toggle_price_tier', 'شريط اختيار السعر'))}
               </div>
 
               {/* 2.5 Default Price Selection */}
@@ -254,6 +264,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                 <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
                   <button
                     type="button"
+                    className="pos-segmented-btn"
                     onClick={() => setDraft((p) => ({ ...p, defaultPriceType: 'retail' }))}
                     style={{
                       flex: 1,
@@ -262,6 +273,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                       fontWeight: 700,
                       borderRadius: '6px',
                       border: 'none',
+                      minHeight: '28px',
+                      height: '28px',
+                      boxSizing: 'border-box',
                       background: draft.defaultPriceType === 'retail' ? '#0f172a' : 'transparent',
                       color: draft.defaultPriceType === 'retail' ? '#ffffff' : '#475569',
                       cursor: 'pointer',
@@ -272,6 +286,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   </button>
                   <button
                     type="button"
+                    className="pos-segmented-btn"
                     onClick={() => setDraft((p) => ({ ...p, defaultPriceType: 'wholesale' }))}
                     style={{
                       flex: 1,
@@ -280,6 +295,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                       fontWeight: 700,
                       borderRadius: '6px',
                       border: 'none',
+                      minHeight: '28px',
+                      height: '28px',
+                      boxSizing: 'border-box',
                       background: draft.defaultPriceType === 'wholesale' ? '#dc2626' : 'transparent',
                       color: draft.defaultPriceType === 'wholesale' ? '#ffffff' : '#475569',
                       cursor: 'pointer',
@@ -297,14 +315,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <span style={titleStyle}>{t('pos.toggle_categories', 'شريط الأقسام والتصنيفات')}</span>
                   <span style={descStyle}>{t('pos.toggle_categories_desc', 'شريط التصنيفات (كل الأقسام، المأكولات، ...). إخفاؤه يعرض شبكة الأصناف مباشرة')}</span>
                 </div>
-                <button
-                  type="button"
-                  style={toggleButtonStyle(draft.showCategories)}
-                  onClick={() => handleToggle('showCategories')}
-                  aria-pressed={draft.showCategories}
-                >
-                  <div style={toggleThumbStyle(draft.showCategories)} />
-                </button>
+                {renderSwitch(draft.showCategories, () => handleToggle('showCategories'), t('pos.toggle_categories', 'شريط الأقسام والتصنيفات'))}
               </div>
 
               {/* 4. Quick Filters Bar */}
@@ -313,14 +324,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <span style={titleStyle}>{t('pos.toggle_quick_filters', 'شريط الفلاتر السريعة (الكل، المفضلة، بعروض، آخر استخدام)')}</span>
                   <span style={descStyle}>{t('pos.toggle_quick_filters_desc', 'أزرار التصفية السريعة للأصناف. إخفاؤها يرفع المنتجات للأعلى')}</span>
                 </div>
-                <button
-                  type="button"
-                  style={toggleButtonStyle(draft.showQuickFilters)}
-                  onClick={() => handleToggle('showQuickFilters')}
-                  aria-pressed={draft.showQuickFilters}
-                >
-                  <div style={toggleThumbStyle(draft.showQuickFilters)} />
-                </button>
+                {renderSwitch(draft.showQuickFilters, () => handleToggle('showQuickFilters'), t('pos.toggle_quick_filters', 'شريط الفلاتر السريعة'))}
               </div>
 
               {/* 5. Desktop Card Layout Density */}
@@ -338,6 +342,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                     <button
                       key={opt.key}
                       type="button"
+                      className="pos-segmented-btn"
                       onClick={() => setDraft((p) => ({ ...p, cardLayout: opt.key as any }))}
                       style={{
                         flex: 1,
@@ -346,6 +351,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                         fontWeight: 700,
                         borderRadius: '6px',
                         border: 'none',
+                        minHeight: '28px',
+                        height: '28px',
+                        boxSizing: 'border-box',
                         background: draft.cardLayout === opt.key ? '#170e5e' : 'transparent',
                         color: draft.cardLayout === opt.key ? '#ffffff' : '#475569',
                         cursor: 'pointer',
@@ -365,15 +373,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <span style={titleStyle}>{t('pos.hide_out_of_stock_title', 'إخفاء الأصناف النافذة من العرض')}</span>
                   <span style={descStyle}>{t('pos.hide_out_of_stock_desc', 'إخفاء الأصناف التي انتهى رصيدها تلقائياً من شبكة الكاشير عند حظر البيع بالسالب')}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggle('hideOutOfStockItems')}
-                  style={toggleButtonStyle(draft.hideOutOfStockItems)}
-                  aria-label={t('pos.hide_out_of_stock_title', 'إخفاء الأصناف النافذة من العرض')}
-                  aria-pressed={draft.hideOutOfStockItems}
-                >
-                  <div style={toggleThumbStyle(draft.hideOutOfStockItems)} />
-                </button>
+                {renderSwitch(draft.hideOutOfStockItems, () => handleToggle('hideOutOfStockItems'), t('pos.hide_out_of_stock_title', 'إخفاء الأصناف النافذة من العرض'))}
               </div>
             </div>
           </div>
@@ -392,7 +392,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
               <div style={selectorContainerStyle}>
                 <div style={switchLabelStyle}>
                   <span style={titleStyle}>{t('pos.mobile_grid_cols', 'أعمدة عرض الأصناف على الموبايل')}</span>
-                  <span style={descStyle}>{t('pos.mobile_grid_cols_desc', '3 أعمدة مدمجة تتيح رؤية 9 إلى 12 صنفاً معاً على أجهزة iMin / Sunmi')}</span>
+                  <span style={descStyle}>
+                    {t('pos.mobile_grid_cols_desc', '3 أعمدة مدمجة تتيح رؤية 9 إلى 12 صنفاً معاً على أجهزة')} <bdi dir="ltr">iMin / Sunmi</bdi>
+                  </span>
                 </div>
                 <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
                   {[
@@ -403,6 +405,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                     <button
                       key={opt.key}
                       type="button"
+                      className="pos-segmented-btn"
                       onClick={() => setDraft((p) => ({ ...p, mobileGridColumns: opt.key as any }))}
                       style={{
                         flex: 1,
@@ -411,6 +414,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                         fontWeight: 700,
                         borderRadius: '6px',
                         border: 'none',
+                        minHeight: '28px',
+                        height: '28px',
+                        boxSizing: 'border-box',
                         background: draft.mobileGridColumns === opt.key ? '#170e5e' : 'transparent',
                         color: draft.mobileGridColumns === opt.key ? '#ffffff' : '#475569',
                         cursor: 'pointer',
@@ -428,7 +434,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
               <div style={selectorContainerStyle}>
                 <div style={switchLabelStyle}>
                   <span style={titleStyle}>{t('pos.mobile_card_layout_density', 'نمط كروت الأصناف على الموبايل')}</span>
-                  <span style={descStyle}>{t('pos.mobile_card_layout_density_desc', 'الوضع المضغوط يجمع الأصناف لشاشات الهواتف وSunmi، ومعرض الصور يبرز المنتجات ذات الصور')}</span>
+                  <span style={descStyle}>
+                    {t('pos.mobile_card_layout_density_desc', 'الوضع المضغوط يجمع الأصناف لشاشات الهواتف وأجهزة')} <bdi dir="ltr">Sunmi</bdi>، {t('pos.mobile_card_layout_density_desc_tail', 'بينما معرض الصور يبرز صور المنتجات')}
+                  </span>
                 </div>
                 <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
                   {[
@@ -439,6 +447,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                     <button
                       key={opt.key}
                       type="button"
+                      className="pos-segmented-btn"
                       onClick={() => setDraft((p) => ({ ...p, mobileCardLayout: opt.key as any }))}
                       style={{
                         flex: 1,
@@ -447,6 +456,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                         fontWeight: 700,
                         borderRadius: '6px',
                         border: 'none',
+                        minHeight: '28px',
+                        height: '28px',
+                        boxSizing: 'border-box',
                         background: draft.mobileCardLayout === opt.key ? '#170e5e' : 'transparent',
                         color: draft.mobileCardLayout === opt.key ? '#ffffff' : '#475569',
                         cursor: 'pointer',
@@ -466,14 +478,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <span style={titleStyle}>{t('pos.toggle_auto_hide_nav', 'إخفاء شريط التنقل السفلي وتثبيت السلة')}</span>
                   <span style={descStyle}>{t('pos.toggle_auto_hide_nav_desc', 'إخفاء شريط التنقل الرئيسي ليحل زر السلة مكانه بالأسفل لتوفير أقصى مساحة')}</span>
                 </div>
-                <button
-                  type="button"
-                  style={toggleButtonStyle(draft.autoHideBottomNav)}
-                  onClick={() => handleToggle('autoHideBottomNav')}
-                  aria-pressed={draft.autoHideBottomNav}
-                >
-                  <div style={toggleThumbStyle(draft.autoHideBottomNav)} />
-                </button>
+                {renderSwitch(draft.autoHideBottomNav, () => handleToggle('autoHideBottomNav'), t('pos.toggle_auto_hide_nav', 'إخفاء شريط التنقل السفلي'))}
               </div>
             </div>
           </div>
@@ -483,7 +488,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
               <strong style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
-                {t('pos.checkout_experience_title', 'تجربة شاشة الدفع والأجهزة المحمولة (Sunmi / iMin)')}
+                {t('pos.checkout_experience_title', 'تجربة شاشة الدفع والأجهزة المحمولة')} (<bdi dir="ltr">iMin / Sunmi</bdi>)
               </strong>
             </div>
 
@@ -503,6 +508,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                     <button
                       key={opt.key}
                       type="button"
+                      className="pos-segmented-btn"
                       onClick={() => setDraft((p) => ({ ...p, checkoutMode: opt.key as any }))}
                       style={{
                         flex: 1,
@@ -511,6 +517,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                         fontWeight: 700,
                         borderRadius: '6px',
                         border: 'none',
+                        minHeight: '28px',
+                        height: '28px',
+                        boxSizing: 'border-box',
                         background: draft.checkoutMode === opt.key ? '#170e5e' : 'transparent',
                         color: draft.checkoutMode === opt.key ? '#ffffff' : '#475569',
                         cursor: 'pointer',
@@ -539,6 +548,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                     <button
                       key={opt.key}
                       type="button"
+                      className="pos-segmented-btn"
                       onClick={() => setDraft((p) => ({ ...p, defaultPaymentChannel: opt.key as any }))}
                       style={{
                         flex: 1,
@@ -547,6 +557,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                         fontWeight: 700,
                         borderRadius: '6px',
                         border: 'none',
+                        minHeight: '28px',
+                        height: '28px',
+                        boxSizing: 'border-box',
                         background: draft.defaultPaymentChannel === opt.key ? '#170e5e' : 'transparent',
                         color: draft.defaultPaymentChannel === opt.key ? '#ffffff' : '#475569',
                         cursor: 'pointer',
@@ -564,33 +577,45 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingTop: '16px',
-            borderTop: '1px solid #f1f5f9',
-            marginTop: '16px',
-            gap: '10px',
-          }}
-        >
+        <div className="pos-customization-footer">
           <Button
             type="button"
             variant="secondary"
             onClick={handleReset}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+            style={{
+              height: '32px',
+              minHeight: '32px',
+              maxHeight: '32px',
+              padding: '0 8px',
+              fontSize: '11px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
           >
-            <RotateCcwIcon size={14} />
+            <RotateCcwIcon size={12} />
             <span>{t('pos.reset_defaults', 'استعادة الافتراضي')}</span>
           </Button>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
             <Button
               type="button"
               variant="secondary"
               onClick={onClose}
-              style={{ fontSize: '12px' }}
+              style={{
+                height: '32px',
+                minHeight: '32px',
+                maxHeight: '32px',
+                padding: '0 10px',
+                fontSize: '11.5px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
             >
               {t('common.cancel', 'إلغاء')}
             </Button>
@@ -599,16 +624,23 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
               variant="primary"
               onClick={handleApply}
               style={{
+                height: '32px',
+                minHeight: '32px',
+                maxHeight: '32px',
                 background: '#170e5e',
+                color: '#ffffff',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '12.5px',
+                justifyContent: 'center',
+                gap: '5px',
+                fontSize: '12px',
                 fontWeight: 700,
-                padding: '8px 20px',
+                padding: '0 12px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
-              <CheckCircleIcon size={15} />
+              <CheckCircleIcon size={14} />
               <span>{t('common.save_and_apply', 'حفظ وتطبيق')}</span>
             </Button>
           </div>

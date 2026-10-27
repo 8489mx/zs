@@ -677,7 +677,7 @@ function PosWorkspaceHeaderComponent({
                     border: '1px solid #cbd5e1',
                     borderRadius: '10px',
                     boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                    minWidth: '270px',
+                    minWidth: '240px',
                     maxWidth: 'calc(100vw - 20px)',
                     boxSizing: 'border-box',
                     padding: '6px',
@@ -737,9 +737,10 @@ function PosWorkspaceHeaderComponent({
                     </div>
                   </button>
 
-                  {/* Option 2: Emergency / Audit No-Sale Drawer Kick */}
+                  {/* Option 2: Emergency / Audit No-Sale Drawer Kick (Desktop only - hidden on mobile) */}
                   <button
                     type="button"
+                    className="pos-shift-drawer-item"
                     onClick={() => {
                       setIsShiftMenuOpen(false);
                       setIsNoSaleOpen(true);
@@ -780,9 +781,10 @@ function PosWorkspaceHeaderComponent({
                     </div>
                   </button>
 
-                  {/* Option 2.8: Customize Cashier Interface */}
+                  {/* Option 2.8: Customize Cashier Interface (Desktop only - mobile already has dedicated header button) */}
                   <button
                     type="button"
+                    className="pos-shift-customize-item"
                     onClick={() => {
                       setIsShiftMenuOpen(false);
                       setIsCustomizationOpen(true);
@@ -822,7 +824,7 @@ function PosWorkspaceHeaderComponent({
                     </div>
                   </button>
 
-                  <div style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
+                  <div className="pos-shift-desktop-divider" style={{ height: '1px', background: '#e2e8f0', margin: '4px 0' }} />
 
                   {/* Option 3: Close Shift (Z-Report) */}
                   <Link

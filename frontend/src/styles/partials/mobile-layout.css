@@ -3400,15 +3400,9 @@ html[dir="ltr"] .two-column-layout {
     flex-shrink: 0 !important;
   }
 
+  /* Mode toggle is desktop-only; mobile is strictly touch */
   .pos-mode-toggle {
-    display: inline-flex !important;
-    flex-shrink: 0 !important;
-  }
-
-  .pos-mode-toggle button {
-    padding: 2px 6px !important;
-    font-size: 10px !important;
-    min-height: 22px !important;
+    display: none !important;
   }
 
   /* POS Filter Chips & Categories: Hide ugly scrollbars */
@@ -3743,11 +3737,26 @@ html[dir="ltr"] .two-column-layout {
   }
 
   /* Hide desktop keyboard shortcut buttons, screens menu, and window controls from POS mobile header */
-  .pos-page-header .pos-header-actions-row > button:not(.pos-mode-toggle button):not(.pos-close-shift-btn):not(.pos-customize-btn),
+  /* Hide desktop-only controls: keyboard shortcuts, screens menu, window controls, and mode toggle */
+  .pos-page-header .pos-header-actions-row > button:not(.pos-close-shift-btn):not(.pos-customize-btn),
   .pos-page-header .pos-header-actions-row > .pos-header-branch-info,
   .pos-page-header .pos-header-table-controls,
   .pos-page-header .pos-screens-menu-container,
-  .pos-page-header .pos-window-controls {
+  .pos-page-header .pos-window-controls,
+  .pos-workspace .pos-page-header .pos-mode-toggle,
+  .pos-page-header .pos-mode-toggle {
+    display: none !important;
+  }
+
+  /* Mobile POS cleanup: hide cash drawer kick (no physical drawer on handhelds) and duplicate customize */
+  .pos-shift-drawer-item,
+  .pos-shift-customize-item,
+  .pos-shift-desktop-divider {
+    display: none !important;
+  }
+
+  /* Hide duplicate customization button inside search input (already in header) */
+  .pos-customize-trigger-btn {
     display: none !important;
   }
 
@@ -3771,46 +3780,6 @@ html[dir="ltr"] .two-column-layout {
     gap: 4px !important;
     overflow: visible !important;
     flex-shrink: 0 !important;
-  }
-
-  .pos-workspace .pos-page-header .pos-mode-toggle,
-  .pos-page-header .pos-mode-toggle {
-    display: inline-flex !important;
-    grid-template-columns: none !important;
-    align-items: center !important;
-    background: #f1f5f9 !important;
-    padding: 1.5px !important;
-    border-radius: 6px !important;
-    border: 1px solid #cbd5e1 !important;
-    gap: 2px !important;
-    flex: 0 0 auto !important;
-    width: auto !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    margin: 0 !important;
-  }
-
-  .pos-workspace .pos-page-header .pos-mode-toggle button,
-  .pos-workspace .pos-page-header .pos-mode-toggle .btn,
-  .pos-workspace .pos-page-header .pos-mode-toggle .button,
-  .pos-page-header .pos-mode-toggle button,
-  .pos-page-header .pos-mode-toggle .btn {
-    padding: 2px 6px !important;
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    height: 22px !important;
-    min-height: 22px !important;
-    max-height: 22px !important;
-    width: auto !important;
-    min-width: 0 !important;
-    border-radius: 4px !important;
-    border: none !important;
-    box-shadow: none !important;
-    flex: 0 0 auto !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    line-height: 1 !important;
   }
 
   .pos-close-shift-text-full {
