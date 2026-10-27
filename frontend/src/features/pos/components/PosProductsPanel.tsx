@@ -83,9 +83,19 @@ function groupMetaLabel(group: PosProductGroup) {
     return directProduct?.barcode ? `باركود: ${directProduct.barcode}` : 'إضافة مباشرة';
   }
   const parts: string[] = [];
-  if (group.colors.length) parts.push(`${group.colors.length} لون`);
-  if (group.sizes.length) parts.push(`${group.sizes.length} اختيار`);
-  if (!parts.length) parts.push(`${group.products.length} فرع`);
+  if (group.colors.length) {
+    const sample = group.colors.slice(0, 3).join('، ');
+    const more = group.colors.length > 3 ? '...' : '';
+    parts.push(`${group.colors.length} ألوان: ${sample}${more}`);
+  }
+  if (group.sizes.length) {
+    const sample = group.sizes.slice(0, 3).join('، ');
+    const more = group.sizes.length > 3 ? '...' : '';
+    parts.push(`${group.sizes.length} مقاسات: ${sample}${more}`);
+  }
+  if (!parts.length) {
+    parts.push(`${group.products.length} خيارات`);
+  }
   return parts.join(' • ');
 }
 
@@ -1572,7 +1582,7 @@ function PosProductsPanelComponent({
                         onFocus={() => setSelectedIndex(index)}
                         style={{ direction: 'rtl', textAlign: 'right', cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '4px', width: '100%', direction: 'rtl' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '4px', width: '100%', direction: 'rtl', minHeight: '36px' }}>
                           {group.imageUrl ? (
                             <div className="pos-card-product-img" style={{
                               width: '36px',
@@ -1610,15 +1620,44 @@ function PosProductsPanelComponent({
                               <ProductIcon name={rawIcon || 'box-package'} size={16} />
                             </div>
                           ) : null}
-                          <strong style={{ flex: 1, textAlign: 'right', minWidth: 0 }}>{group.title}</strong>
+                          <strong
+                            style={{
+                              flex: 1,
+                              textAlign: 'right',
+                              minWidth: 0,
+                              fontSize: '13px',
+                              lineHeight: '1.38',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              minHeight: '36px',
+                            }}
+                          >
+                            {group.title}
+                          </strong>
                         </div>
-                        <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
-                        {group.hasVariants ? (
-                          <div className="pos-group-tags">
-                            {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
-                            {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
-                          </div>
-                        ) : null}
+                        <div
+                          className="muted small pos-group-card-meta"
+                          style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '100%',
+                            direction: 'rtl',
+                            textAlign: 'right',
+                            fontSize: '11px',
+                            color: '#64748b',
+                            height: '18px',
+                            minHeight: '18px',
+                            maxHeight: '18px',
+                            lineHeight: '18px',
+                            margin: '2px 0 6px',
+                          }}
+                          title={groupMetaLabel(group)}
+                        >
+                          {groupMetaLabel(group)}
+                        </div>
                         <div className="pick-meta-row pos-pick-meta-row" style={{ direction: 'rtl', width: '100%' }}>
                           <span>{priceLabel}</span>
                           <span className="small muted">

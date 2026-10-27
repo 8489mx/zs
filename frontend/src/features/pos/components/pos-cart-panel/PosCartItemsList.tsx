@@ -5,6 +5,7 @@ import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { FileTextIcon, TagIcon, SmartphoneIcon } from '@/shared/components/icons/AppIcons';
 import { PosItemNotesDialog } from './PosItemNotesDialog';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
+import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 import type { Product } from '@/types/domain';
 import type { PosCartPanelProps } from './posCartPanel.types';
 
@@ -361,6 +362,7 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
   const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const settingsQuery = useSettingsQuery();
+  const isMobile = useIsMobile(900);
   const productMap = useMemo(() => {
     const map = new Map<string, Product>();
     (products || []).forEach((p) => {
@@ -442,13 +444,22 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
           </svg>
         </div>
-        <strong style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '5px' }}>
-          {t('pos.cart_empty_title', 'السلة فارغة حالياً')}
+        <strong style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
+          {t('pos.cart_empty_title', 'السلة جاهزة لأول صنف')}
         </strong>
-        <p style={{ fontSize: '12px', color: '#64748b', maxWidth: '280px', lineHeight: 1.5, margin: '0 0 18px' }}>
-          {t('pos.cart_empty_subtitle', 'اختر الأصناف من الكتالوج أو امسح الباركود مباشرة لبدء البيع')}
+        <p
+          style={{
+            fontSize: '12.5px',
+            color: '#64748b',
+            maxWidth: '100%',
+            lineHeight: 1.5,
+            margin: isMobile && onNavigateToProducts ? '0 0 18px' : '0',
+            whiteSpace: isMobile ? 'normal' : 'nowrap',
+          }}
+        >
+          {t('pos.cart_empty_subtitle', 'اختر صنفاً من الكتالوج أو امسح الباركود لبدء الفاتورة')}
         </p>
-        {onNavigateToProducts ? (
+        {isMobile && onNavigateToProducts ? (
           <button
             type="button"
             onClick={onNavigateToProducts}
@@ -468,7 +479,7 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
             }}
           >
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8" />
+              <path d="M21 8l-9-5-9 5 9 5 9-5V8M12 13v8" />
             </svg>
             <span>{t('pos.cart_browse_products', 'استعراض الأصناف والبدء بالبيع')}</span>
           </button>
