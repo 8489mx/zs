@@ -1075,11 +1075,7 @@
   }
 
   .pos-workspace .pos-cart-product-code {
-    font-size: 11px !important;
-    color: #64748b !important;
-    background: #f1f5f9 !important;
-    padding: 1px 6px !important;
-    border-radius: 4px !important;
+    display: none !important;
   }
 
   .pos-workspace .pos-cart-col-remove {
