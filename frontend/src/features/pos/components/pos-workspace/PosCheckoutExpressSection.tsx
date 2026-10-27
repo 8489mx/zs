@@ -4,7 +4,6 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, UserIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
-import { MobileTerminalBridge } from '@/features/pos/lib/mobile-terminal-bridge';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PaymentPreset } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 
@@ -57,6 +56,7 @@ export function PosCheckoutExpressSection({
       provider: defaultProvider,
     });
 
+    const { MobileTerminalBridge } = await import('@/features/pos/lib/mobile-terminal-bridge');
     const caps = await MobileTerminalBridge.getCapabilities();
     const isTerminalEnabled = Boolean(pos.settings?.posTerminalEnabled || (pos.settingsQuery?.data as any)?.posTerminalEnabled);
 
@@ -275,7 +275,7 @@ export function PosCheckoutExpressSection({
               <button
                 type="button"
                 onClick={() => {
-                  MobileTerminalBridge.cancelPayment();
+                  import('@/features/pos/lib/mobile-terminal-bridge').then(m => m.MobileTerminalBridge.cancelPayment()).catch(() => {});
                   setTerminalDispatchStatus('idle');
                   setTerminalMsg('');
                 }}

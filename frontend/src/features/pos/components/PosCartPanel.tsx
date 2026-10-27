@@ -27,9 +27,35 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
         ) : null}
 
         {alertMessages.length ? (
-          <div className="pos-inline-alert-bar" role="status" aria-live="polite">
-            <strong>{t('pos.pos_cart_panel.s0', "راجع قبل الإتمام:")}</strong>
-            <span>{alertMessages.join(' · ')}</span>
+          <div
+            className="pos-inline-alert-bar"
+            role="status"
+            aria-live="polite"
+            title={`${t('pos.pos_cart_panel.s0', "راجع قبل الإتمام:")} ${alertMessages.join(' · ')}`}
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <strong style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+              {t('pos.pos_cart_panel.s0', "راجع قبل الإتمام:")}
+            </strong>
+            <span
+              style={{
+                flex: '1 1 auto',
+                minWidth: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'block',
+              }}
+            >
+              {alertMessages.join(' · ')}
+            </span>
           </div>
         ) : null}
       </div>

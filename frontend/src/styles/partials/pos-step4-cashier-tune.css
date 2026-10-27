@@ -1563,12 +1563,19 @@
   }
 
   .pos-workspace .pos-inline-alert-bar {
-    align-items: flex-start;
-    padding-block: 8px;
+    align-items: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    padding: 0 10px !important;
   }
 
   .pos-workspace .pos-inline-alert-bar span {
-    white-space: normal;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
   }
 }
 

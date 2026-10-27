@@ -3062,7 +3062,7 @@ export class SalesWriteService {
           if (stage === 'cooking' || stage === 'ready' || stage === 'served' ||
               (stage !== 'pending' && (!Number.isFinite(createdMs) ||
                 Date.now() - createdMs > 14 * 60 * 60 * 1000))) {
-            isPreparedWaste = true;
+            throw new AppError('تم بدء تحضير الوجبة؛ لا يجوز إرجاع الخامات للمخزون بإلغاء البيع، استخدم المرتجع المالي', 'RESTAURANT_PREPARED_CANCEL_USE_RETURN', 409);
           }
         }
       }
