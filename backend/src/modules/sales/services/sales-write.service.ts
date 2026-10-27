@@ -3001,6 +3001,41 @@ export class SalesWriteService {
         throw new AppError('الفاتورة تحتوي على تحصيلات لاحقة غير مرتبطة؛ يجب تسويتها قبل الإلغاء', 'SALE_CANCEL_PAYMENT_RECONCILIATION_REQUIRED', 409);
       }
 
+      // Kitchen consumption is irreversible once preparation starts. Reversing the
+      // original sale journal would re-credit consumed ingredient inventory and
+      // reverse historical COGS. After prep, require the financial-only return path.
+      if (sale.delivery_status === 'settled') {
+        throw new AppError('لا يمكن إلغاء طلب دليفري تمت تسوية عهدته؛ استخدم مرتجعاً مالياً', 'DELIVERY_SETTLED_CANCEL_USE_RETURN', 409);
+      }
+      if (['dine_in', 'takeaway', 'delivery'].includes(String(sale.order_type || ''))) {
+        const consumedIngredient = await trx.selectFrom('sale_line_stock_allocations as a')
+          .innerJoin('sale_items as i', (join) => join
+            .onRef('i.id', '=', 'a.sale_line_id')
+            .onRef('i.tenant_id', '=', 'a.tenant_id'))
+          .select('a.id')
+          .where('a.tenant_id', '=', scope.tenantId)
+          .where('i.sale_id', '=', saleId)
+          .whereRef('a.product_id', '!=', 'i.product_id')
+          .limit(1).executeTakeFirst();
+        if (consumedIngredient) {
+          const kitchenRecord = await trx.selectFrom('settings').select('value')
+            .where('tenant_id', '=', scope.tenantId)
+            .where('key', '=', 'kds_tickets_runtime_state').executeTakeFirst();
+          let stage: string | undefined;
+          try {
+            const parsed = kitchenRecord?.value ? JSON.parse(String(kitchenRecord.value)) : null;
+            stage = parsed?.tickets?.[String(saleId)]?.status;
+          } catch {
+            throw new AppError('حالة المطبخ غير قابلة للتحقق؛ استخدم المرتجع المالي', 'RESTAURANT_KDS_STATE_UNVERIFIED', 409);
+          }
+          const createdMs = sale.created_at ? new Date(sale.created_at).getTime() : NaN;
+          if (stage === 'cooking' || stage === 'ready' || stage === 'served' ||
+              (stage !== 'pending' && (!Number.isFinite(createdMs) ||
+                Date.now() - createdMs > 14 * 60 * 60 * 1000))) {
+            throw new AppError('تم بدء تحضير الوجبة؛ لا يجوز إرجاع الخامات للمخزون بإلغاء البيع، استخدم المرتجع المالي', 'RESTAURANT_PREPARED_CANCEL_USE_RETURN', 409);
+          }
+        }
+      }
       const items = await trx.selectFrom('sale_items').selectAll().where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.lockSaleStockRows(trx, scope, items);
       await this.restoreSalePharmacyBatches(trx, saleId, items, scope, false);
