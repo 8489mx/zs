@@ -107,7 +107,7 @@ export function StorefrontMultiRowHome({
           <React.Fragment key={section.categoryId}>
             <StorefrontShelfSection
               badge={section.categoryName}
-              subtitle={`أفضل منتجات ${section.categoryName} بأسعار الجملة`}
+              subtitle={t('storefront.multi_row.category_subtitle', 'تشكيلة مختارة من أرقى منتجات {{category}}', { category: section.categoryName })}
               viewAllLabel={`عرض كل أصناف القسم (${section.totalCount})`}
               products={section.products.slice(0, 12)}
               cartMap={cartMap}

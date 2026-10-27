@@ -133,6 +133,69 @@ export function getCustomerAddressValidation(address: string): { isValid: boolea
   return { isValid: true, message: 'العنوان مكتمل' };
 }
 
+export const KUWAIT_POPULAR_AREAS = [
+  // العاصمة
+  'مدينة الكويت', 'الشرق', 'المرقاب', 'القبلة', 'الصالحية', 'بنيد القار', 'الدسمة', 'الدعية', 'المنصورية', 'ضاحية عبد الله السالم', 'النزهة', 'الفيحاء', 'الشامية', 'الروضة', 'العديلية', 'الخالدية', 'كيفان', 'القادسية', 'قرطبة', 'السرة', 'اليرموك', 'الشويخ', 'غرناطة', 'الصليبيخات', 'الدوحة', 'مدينة جابر الأحمد',
+  // حولي
+  'حولي', 'السالمية', 'الرميثية', 'الجابرية', 'مشرف', 'بيان', 'سلوى', 'البدع', 'الشعب', 'ميدان حولي', 'السلام', 'حطين', 'الصديق', 'الزهراء', 'الشهداء',
+  // الفروانية
+  'الفروانية', 'خيطان', 'الأندلس', 'إشبيلية', 'جليب الشيوخ', 'العمرية', 'الرابية', 'الرحاب', 'صباح الناصر', 'الفردوس', 'العارضية', 'الرقعي', 'عبد الله المبارك', 'غرب عبد الله المبارك',
+  // الأحمدي
+  'الأحمدي', 'الفحيحيل', 'المنقف', 'الصباحية', 'الرقة', 'هدية', 'أبو حليفة', 'المهبولة', 'العقيلة', 'الظهر', 'جابر العلي', 'مدينة صباح الأحمد', 'الوفرة', 'الخيران', 'بنيدر', 'الجليعة',
+  // مبارك الكبير
+  'العدان', 'القصور', 'القرين', 'مبارك الكبير', 'صباح السالم', 'المسيلة', 'أبو فطيرة', 'الفنيطيس', 'صبحان',
+  // الجهراء
+  'الجهراء', 'الواحة', 'العيون', 'القصر', 'النسيم', 'تيماء', 'النعيم', 'مدينة سعد العبد الله', 'الصليبية', 'كبد', 'المطلاع',
+];
+
+export function assembleKuwaitAddress(parts: {
+  area?: string;
+  block?: string;
+  street?: string;
+  avenue?: string;
+  house?: string;
+  apartment?: string;
+  extra?: string;
+}): string {
+  const chunks: string[] = [];
+  if (parts.area?.trim()) chunks.push(`المنطقة: ${parts.area.trim()}`);
+  if (parts.block?.trim()) chunks.push(`قطعة: ${parts.block.trim()}`);
+  if (parts.street?.trim()) chunks.push(`شارع: ${parts.street.trim()}`);
+  if (parts.avenue?.trim()) chunks.push(`جادة: ${parts.avenue.trim()}`);
+  if (parts.house?.trim()) chunks.push(`منزل/مبنى: ${parts.house.trim()}`);
+  if (parts.apartment?.trim()) chunks.push(`دور/شقة: ${parts.apartment.trim()}`);
+  if (parts.extra?.trim()) chunks.push(`علامة مميزة: ${parts.extra.trim()}`);
+  return chunks.join('، ');
+}
+
+export function parseKuwaitAddress(addr: string): {
+  area: string;
+  block: string;
+  street: string;
+  avenue: string;
+  house: string;
+  apartment: string;
+  extra: string;
+} {
+  const res = { area: '', block: '', street: '', avenue: '', house: '', apartment: '', extra: '' };
+  if (!addr) return res;
+  const matchArea = addr.match(/المنطقة:\s*([^،,]+)/);
+  if (matchArea) res.area = matchArea[1].trim();
+  const matchBlock = addr.match(/قطعة:\s*([^،,]+)/);
+  if (matchBlock) res.block = matchBlock[1].trim();
+  const matchStreet = addr.match(/شارع:\s*([^،,]+)/);
+  if (matchStreet) res.street = matchStreet[1].trim();
+  const matchAvenue = addr.match(/جادة:\s*([^،,]+)/);
+  if (matchAvenue) res.avenue = matchAvenue[1].trim();
+  const matchHouse = addr.match(/منزل\/مبنى:\s*([^،,]+)/);
+  if (matchHouse) res.house = matchHouse[1].trim();
+  const matchApt = addr.match(/دور\/شقة:\s*([^،,]+)/);
+  if (matchApt) res.apartment = matchApt[1].trim();
+  const matchExtra = addr.match(/علامة مميزة:\s*([^،,]+)/);
+  if (matchExtra) res.extra = matchExtra[1].trim();
+  return res;
+}
+
 export function StorefrontCheckoutModal({
   isOpen,
   onClose,
@@ -151,6 +214,7 @@ export function StorefrontCheckoutModal({
   const isDineIn = Boolean(tableNumber) || orderType === 'dine_in';
   const [fulfillmentType, setFulfillmentType] = useState<'delivery' | 'pickup'>('delivery');
   const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+    if (info?.countryCode) return info.countryCode;
     if (info?.currency === 'SAR') return 'SA';
     if (info?.currency === 'AED') return 'AE';
     if (info?.currency === 'KWD') return 'KW';
@@ -159,6 +223,47 @@ export function StorefrontCheckoutModal({
     if (info?.currency === 'BHD') return 'BH';
     return 'EG';
   });
+  const isKuwait = selectedCountry === 'KW';
+  const [useKwStructured, setUseKwStructured] = useState(true);
+  const [kwArea, setKwArea] = useState('');
+  const [kwBlock, setKwBlock] = useState('');
+  const [kwStreet, setKwStreet] = useState('');
+  const [kwAvenue, setKwAvenue] = useState('');
+  const [kwHouse, setKwHouse] = useState('');
+  const [kwApartment, setKwApartment] = useState('');
+  const [kwExtra, setKwExtra] = useState('');
+
+  const handleKwFieldChange = (
+    field: 'area' | 'block' | 'street' | 'avenue' | 'house' | 'apartment' | 'extra',
+    value: string
+  ) => {
+    const nextArea = field === 'area' ? value : kwArea;
+    const nextBlock = field === 'block' ? value : kwBlock;
+    const nextStreet = field === 'street' ? value : kwStreet;
+    const nextAvenue = field === 'avenue' ? value : kwAvenue;
+    const nextHouse = field === 'house' ? value : kwHouse;
+    const nextApt = field === 'apartment' ? value : kwApartment;
+    const nextExtra = field === 'extra' ? value : kwExtra;
+
+    if (field === 'area') setKwArea(value);
+    if (field === 'block') setKwBlock(value);
+    if (field === 'street') setKwStreet(value);
+    if (field === 'avenue') setKwAvenue(value);
+    if (field === 'house') setKwHouse(value);
+    if (field === 'apartment') setKwApartment(value);
+    if (field === 'extra') setKwExtra(value);
+
+    const fullAddr = assembleKuwaitAddress({
+      area: nextArea,
+      block: nextBlock,
+      street: nextStreet,
+      avenue: nextAvenue,
+      house: nextHouse,
+      apartment: nextApt,
+      extra: nextExtra,
+    });
+    setCustomerAddress(fullAddr);
+  };
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -318,7 +423,19 @@ export function StorefrontCheckoutModal({
         if (parsed?.phone) {
           setCustomerPhone(parsed.phone);
           if (parsed?.name) setCustomerName(parsed.name);
-          if (parsed?.address) setCustomerAddress(parsed.address);
+          if (parsed?.address) {
+            setCustomerAddress(parsed.address);
+            const parsedKw = parseKuwaitAddress(parsed.address);
+            if (parsedKw.area || parsedKw.block || parsedKw.street || parsedKw.house) {
+              setKwArea(parsedKw.area);
+              setKwBlock(parsedKw.block);
+              setKwStreet(parsedKw.street);
+              setKwAvenue(parsedKw.avenue);
+              setKwHouse(parsedKw.house);
+              setKwApartment(parsedKw.apartment);
+              setKwExtra(parsedKw.extra);
+            }
+          }
           setIsDeviceMatched(true);
           setExpressMode(!editingOrderNumber);
         }
@@ -340,7 +457,19 @@ export function StorefrontCheckoutModal({
           const savedClean = (parsed?.phone || '').replace(/\D/g, '');
           if (savedClean === val) {
             if (parsed?.name) setCustomerName(parsed.name);
-            if (parsed?.address) setCustomerAddress(parsed.address);
+            if (parsed?.address) {
+              setCustomerAddress(parsed.address);
+              const parsedKw = parseKuwaitAddress(parsed.address);
+              if (parsedKw.area || parsedKw.block || parsedKw.street || parsedKw.house) {
+                setKwArea(parsedKw.area);
+                setKwBlock(parsedKw.block);
+                setKwStreet(parsedKw.street);
+                setKwAvenue(parsedKw.avenue);
+                setKwHouse(parsedKw.house);
+                setKwApartment(parsedKw.apartment);
+                setKwExtra(parsedKw.extra);
+              }
+            }
             setIsDeviceMatched(true);
             return;
           }
@@ -480,6 +609,12 @@ export function StorefrontCheckoutModal({
       : customerAddress.trim();
 
     if (!isDineIn && !isPickup) {
+      if (isKuwait && useKwStructured) {
+        if (!kwArea.trim() || !kwBlock.trim() || !kwStreet.trim() || !kwHouse.trim()) {
+          showError('يرجى استكمال بيانات العنوان الكويتي: المنطقة، القطعة، الشارع، ورقم المنزل');
+          return;
+        }
+      }
       const addressLetters = (trimmedAddress.match(/[\p{L}\p{M}]/gu) || []).length;
       if (trimmedAddress.length < 5 || addressLetters < 3) {
         showError('يرجى إدخال عنوان توصيل واضح ومفصل لا يقل عن 5 أحرف (المنطقة، الشارع، رقم العقار)');
@@ -1209,11 +1344,222 @@ export function StorefrontCheckoutModal({
                       </div>
                     </div>
                   </div>
-                ) : canExpress ? null : (
+                ) : canExpress ? null : isKuwait && useKwStructured ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
+                        {t('storefront.storefront_checkout_modal.kw_address_title', "عنوان التوصيل في الكويت")} <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setUseKwStructured(false)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#64748b',
+                          fontSize: '10.5px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          padding: 0,
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        {t('storefront.storefront_checkout_modal.switch_to_freeform', "كتابة عنوان حر")}
+                      </button>
+                    </div>
+
+                    <datalist id="kuwait-popular-areas">
+                      {KUWAIT_POPULAR_AREAS.map((area) => (
+                        <option key={area} value={area} />
+                      ))}
+                    </datalist>
+
+                    {/* Row 1: Area (المنطقة / المحافظة) */}
+                    <div>
+                      <input
+                        list="kuwait-popular-areas"
+                        type="text"
+                        required
+                        value={kwArea}
+                        onChange={(e) => handleKwFieldChange('area', e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder={t('storefront.storefront_checkout_modal.kw_area_placeholder', "المنطقة (اختر أو اكتب: الفروانية، حولي، السالمية...) *")}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: kwArea.trim().length >= 2 ? '1.5px solid #22c55e' : '1.5px solid #cbd5e1',
+                          fontSize: '11.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box',
+                          height: '32px',
+                          lineHeight: '1.4',
+                        }}
+                      />
+                    </div>
+
+                    {/* Row 2: Block & Street (القطعة والشارع) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <input
+                        type="text"
+                        required
+                        value={kwBlock}
+                        onChange={(e) => handleKwFieldChange('block', e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder={t('storefront.storefront_checkout_modal.kw_block_placeholder', "القطعة (مثال: قطعة 4) *")}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: kwBlock.trim() ? '1.5px solid #22c55e' : '1.5px solid #cbd5e1',
+                          fontSize: '11.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box',
+                          height: '32px',
+                          lineHeight: '1.4',
+                        }}
+                      />
+                      <input
+                        type="text"
+                        required
+                        value={kwStreet}
+                        onChange={(e) => handleKwFieldChange('street', e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder={t('storefront.storefront_checkout_modal.kw_street_placeholder', "الشارع (مثال: شارع 12) *")}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: kwStreet.trim() ? '1.5px solid #22c55e' : '1.5px solid #cbd5e1',
+                          fontSize: '11.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box',
+                          height: '32px',
+                          lineHeight: '1.4',
+                        }}
+                      />
+                    </div>
+
+                    {/* Row 3: Avenue & House (الجادة ورقم المنزل/المبنى) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <input
+                        type="text"
+                        value={kwAvenue}
+                        onChange={(e) => handleKwFieldChange('avenue', e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder={t('storefront.storefront_checkout_modal.kw_avenue_placeholder', "الجادة (اختياري)")}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '11.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box',
+                          height: '32px',
+                          lineHeight: '1.4',
+                        }}
+                      />
+                      <input
+                        type="text"
+                        required
+                        value={kwHouse}
+                        onChange={(e) => handleKwFieldChange('house', e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder={t('storefront.storefront_checkout_modal.kw_house_placeholder', "المنزل/العمارة (رقم 15) *")}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: kwHouse.trim() ? '1.5px solid #22c55e' : '1.5px solid #cbd5e1',
+                          fontSize: '11.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box',
+                          height: '32px',
+                          lineHeight: '1.4',
+                        }}
+                      />
+                    </div>
+
+                    {/* Row 4: Floor/Flat & Extra Details (الدور/الشقة وعلامة مميزة) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      <input
+                        type="text"
+                        value={kwApartment}
+                        onChange={(e) => handleKwFieldChange('apartment', e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder={t('storefront.storefront_checkout_modal.kw_apt_placeholder', "الدور / الشقة (اختياري)")}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '11.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box',
+                          height: '32px',
+                          lineHeight: '1.4',
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={kwExtra}
+                        onChange={(e) => handleKwFieldChange('extra', e.target.value)}
+                        onBlur={recordAbandonedCartSilent}
+                        placeholder={t('storefront.storefront_checkout_modal.kw_extra_placeholder', "علامة مميزة (اختياري)")}
+                        style={{
+                          width: '100%',
+                          padding: '6px 10px',
+                          borderRadius: '8px',
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: '11.5px',
+                          outline: 'none',
+                          background: '#f8fafc',
+                          fontFamily: 'inherit',
+                          boxSizing: 'border-box',
+                          height: '32px',
+                          lineHeight: '1.4',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b', marginBottom: '2px' }}>
-                      {t('storefront.storefront_checkout_modal.s26', "عنوان التوصيل بالتفصيل")} <span style={{ color: '#ef4444' }}>*</span>
-                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#1e293b' }}>
+                        {t('storefront.storefront_checkout_modal.s26', "عنوان التوصيل بالتفصيل")} <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      {isKuwait && !useKwStructured && (
+                        <button
+                          type="button"
+                          onClick={() => setUseKwStructured(true)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#2563eb',
+                            fontSize: '10.5px',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            padding: 0,
+                            fontFamily: 'inherit',
+                          }}
+                        >
+                          {t('storefront.storefront_checkout_modal.switch_to_kw_structured', "العودة للعنوان الكويتي المقسم")}
+                        </button>
+                      )}
+                    </div>
                     <textarea
                       required
                       rows={1}

@@ -385,7 +385,15 @@ export function StorefrontHeader({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {t('storefront.storefront_header.s3', "تسوق أونلاين والدفع عند الاستلام")}
+                {info.onlinePaymentEnabled ? (
+                  info.currency === 'KWD' || info.countryCode === 'KW' ? (
+                    t('storefront.storefront_header.s3_kw_online', "تسوق أونلاين • دفع إلكتروني آمن وتوصيل سريع")
+                  ) : (
+                    t('storefront.storefront_header.s3_online', "تسوق أونلاين • دفع إلكتروني وتوصيل سريع")
+                  )
+                ) : (
+                  t('storefront.storefront_header.s3_general', "تسوق أونلاين وتوصيل سريع لكافة المناطق")
+                )}
               </span>
             )}
           </div>

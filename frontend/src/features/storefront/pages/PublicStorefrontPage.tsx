@@ -23,6 +23,7 @@ import { saveCustomerOrderRef } from '../lib/customer-order-refs';
 import { getStoreHostSlug } from '@/lib/store-public-url';
 import { applyStorefrontThemeVariables } from '../lib/storefront-theme-contrast';
 import { TableBillModal } from '../components/TableBillModal';
+import { StorefrontFloatingWhatsApp } from '../components/StorefrontFloatingWhatsApp';
 import { setGlobalSystemCurrency } from '@/lib/currencies';
 
 export function PublicStorefrontPage() {
@@ -635,6 +636,17 @@ export function PublicStorefrontPage() {
           onClose={() => setIsTableBillOpen(false)}
           slug={cleanSlug}
           tableNumber={tableParam}
+        />
+      )}
+
+      {/* Floating WhatsApp Quick Contact */}
+      {info && (
+        <StorefrontFloatingWhatsApp
+          phone={info.whatsappPhone}
+          countryCode={info.countryCode}
+          currency={info.currency}
+          storeName={info.storeName}
+          hasFloatingCart={cartItems.length > 0}
         />
       )}
     </div>
