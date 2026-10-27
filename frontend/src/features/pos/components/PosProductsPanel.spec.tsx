@@ -161,4 +161,59 @@ describe('PosProductsPanel', () => {
     expect(screen.getByText('Product 001')).toBeInTheDocument();
     expect(screen.queryByText('Product 002')).not.toBeInTheDocument();
   });
+
+  it('suppresses on-screen keyboard by default on mobile screens and allows toggling it', async () => {
+    const originalInnerWidth = window.innerWidth;
+    const originalMatchMedia = window.matchMedia;
+    window.innerWidth = 400;
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: true,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    const user = userEvent.setup();
+
+    try {
+      renderWithClient(
+        <PosProductsPanel
+          search=""
+          onSearchChange={vi.fn()}
+          onSearchSubmitFirstResult={() => false}
+          priceType="retail"
+          onPriceTypeChange={vi.fn()}
+          products={[]}
+          recentProducts={[]}
+          onAddProduct={vi.fn()}
+          productFilter="all"
+          onProductFilterChange={vi.fn()}
+          searchInputRef={createRef<HTMLInputElement>()}
+          posMode="touch"
+        />,
+      );
+
+      const searchInput = screen.getByPlaceholderText('امسح باركود أو اكتب الاسم...');
+      // By default on mobile, inputMode is none so soft keyboard does not pop up
+      expect(searchInput).toHaveAttribute('inputmode', 'none');
+
+      // Find mobile keyboard toggle button
+      const keyboardBtn = document.querySelector('.pos-keyboard-toggle-btn') as HTMLElement;
+      expect(keyboardBtn).toBeTruthy();
+
+      // Click to enable keyboard
+      await user.click(keyboardBtn);
+      expect(searchInput).toHaveAttribute('inputmode', 'text');
+
+      // Click again to suppress
+      await user.click(keyboardBtn);
+      expect(searchInput).toHaveAttribute('inputmode', 'none');
+    } finally {
+      window.innerWidth = originalInnerWidth;
+      window.matchMedia = originalMatchMedia;
+    }
+  });
 });

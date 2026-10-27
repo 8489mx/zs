@@ -551,6 +551,23 @@ export function BarcodeIcon({ size = 18, color = 'currentColor', strokeWidth = 2
   );
 }
 
+export function KeyboardIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <rect width="20" height="16" x="2" y="4" rx="2" />
+      <path d="M6 8h.001" />
+      <path d="M10 8h.001" />
+      <path d="M14 8h.001" />
+      <path d="M18 8h.001" />
+      <path d="M6 12h.001" />
+      <path d="M10 12h.001" />
+      <path d="M14 12h.001" />
+      <path d="M18 12h.001" />
+      <path d="M7 16h10" />
+    </svg>
+  );
+}
+
 export function LayersIcon({ size = 18, color = 'currentColor', strokeWidth = 2, className, style }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -1174,6 +1191,7 @@ export const AppIcons = {
   RotateCcw: RotateCcwIcon,
   HelpCircle: HelpCircleIcon,
   BarChart: BarChartIcon,
+  Keyboard: KeyboardIcon,
 };
 
 export default AppIcons;

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
-import { StarIcon, SlidersIcon, PlusIcon, ChevronDownIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { StarIcon, SlidersIcon, PlusIcon, ChevronDownIcon, XIcon, KeyboardIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatCurrencyWithCode } from '@/lib/format';
 import { sharedProductsApi } from '@/shared/api/products';
 import {
@@ -599,7 +599,21 @@ function PosProductsPanelComponent({
     readCardDensityPreference(activeLayoutTarget, isMobile)
   );
 
-  // Sync with customization setting per device type
+  const [isMobileKeyboardActive, setIsMobileKeyboardActive] = useState(false);
+
+  const toggleMobileKeyboard = useCallback(() => {
+    setIsMobileKeyboardActive((prev) => {
+      const next = !prev;
+      if (next) {
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+        }, 50);
+      } else {
+        searchInputRef.current?.blur();
+      }
+      return next;
+    });
+  }, [searchInputRef]);
   useEffect(() => {
     const target = isMobile
       ? (customization.mobileCardLayout || 'compact')
@@ -872,6 +886,10 @@ function PosProductsPanelComponent({
     }
     if (event.key === 'Enter') {
       event.preventDefault();
+      if (isMobile) {
+        setIsMobileKeyboardActive(false);
+        searchInputRef.current?.blur();
+      }
       // Flush scanner buffer immediately so parent state is up-to-date
       scannerBuffer.flushNow(currentQuery);
       if (currentQuery.trim()) {
@@ -903,10 +921,16 @@ function PosProductsPanelComponent({
                   <div className="field" style={{ margin: 0, position: 'relative' }}>
                     <input
                       ref={searchInputRef}
-                      autoFocus
+                      autoFocus={!isMobile}
+                      inputMode={isMobile ? (isMobileKeyboardActive ? 'text' : 'none') : undefined}
                       defaultValue={search}
                       onChange={scannerBuffer.handleChange}
                       onKeyDown={handleSearchKeyDown}
+                      onBlur={() => {
+                        if (isMobile) {
+                          setIsMobileKeyboardActive(false);
+                        }
+                      }}
                       placeholder={t('pos.search_placeholder', 'امسح باركود أو اكتب الاسم...')}
                       style={{
                         borderRadius: '8px',
@@ -914,8 +938,8 @@ function PosProductsPanelComponent({
                         height: '36px',
                         paddingTop: '6px',
                         paddingBottom: '6px',
-                        paddingRight: isRtl ? '12px' : '72px',
-                        paddingLeft: isRtl ? '72px' : '12px',
+                        paddingRight: isRtl ? '12px' : (isMobile ? '104px' : '72px'),
+                        paddingLeft: isRtl ? (isMobile ? '104px' : '72px') : '12px',
                         textAlign: isRtl ? 'right' : 'left',
                         direction: isRtl ? 'rtl' : 'ltr',
                         fontSize: '13px',
@@ -937,6 +961,28 @@ function PosProductsPanelComponent({
                         gap: '4px',
                       }}
                     >
+                      {isMobile && (
+                        <button
+                          type="button"
+                          className="pos-keyboard-toggle-btn"
+                          onClick={toggleMobileKeyboard}
+                          title={isMobileKeyboardActive ? t('pos.hide_keyboard', 'كتم لوحة المفاتيح الافتراضية') : t('pos.show_keyboard', 'فتح لوحة المفاتيح للكتابة بالاسم')}
+                          style={{
+                            background: isMobileKeyboardActive ? '#170e5e' : '#f8fafc',
+                            border: isMobileKeyboardActive ? '1px solid #170e5e' : '1px solid #cbd5e1',
+                            color: isMobileKeyboardActive ? '#ffffff' : '#475569',
+                            borderRadius: '6px',
+                            height: '26px',
+                            padding: '0 6px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <KeyboardIcon size={14} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="pos-customize-trigger-btn"
