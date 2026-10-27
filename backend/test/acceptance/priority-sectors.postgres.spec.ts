@@ -409,16 +409,19 @@ async function main(): Promise<void> {
     assert.equal(Number(bomLine.cost_price),40,'sale line records resulting BOM WAC');
 
     await kds.setTicketStatus(recipe.auth,bomSaleId,'cooking');
-    const cookedCancelBom = await sales.cancelSale(bomSaleId, 'Already cooked', PASSWORD, recipe.auth);
-    assert.equal(cookedCancelBom.ok, true);
-    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
-      .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish)
-      .executeTakeFirstOrThrow()).stock_qty),0,'cooked BOM dish cannot be restocked on cancellation');
     const grillTicket=(await kds.getActiveTickets(recipe.auth,{station:'grill'})).tickets
       .find(t=>t.id===bomSaleId);
     assert.equal(grillTicket?.items[0]?.station,'grill','configured kitchen station is authoritative');
     assert.equal((await kds.getActiveTickets(recipe.auth,{station:'kitchen'})).tickets
       .some(t=>t.id===bomSaleId),false,'do not deliver the same item to the wrong station');
+
+    const cookedCancelBom = await sales.cancelSale(bomSaleId, 'Already cooked', PASSWORD, recipe.auth);
+    assert.equal(cookedCancelBom.ok, true);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish)
+      .executeTakeFirstOrThrow()).stock_qty),0,'cooked BOM dish cannot be restocked on cancellation');
+    assert.equal((await kds.getActiveTickets(recipe.auth,{station:'grill'})).tickets
+      .some(t=>t.id===bomSaleId),false,'cancelled cooked dish removed from active kitchen tickets');
     assert.equal(await posted(recipe,'5100'),40,'actual BOM cost posted as COGS');
     await check(recipe,[recipeDish,recipeMeat]);
     const recipeSalesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))

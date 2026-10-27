@@ -253,8 +253,6 @@ export class RestaurantFoodWasteService {
         account_id: scope.accountId,
       } as any).execute();
 
-      const journalResult = await this.accountingPosting.postFoodWaste(trx, logId, auth);
-
       const cleanNotes = (log.notes || '').replace('[بانتظار تسوية المخزون]', '[تمت تسوية الهدر]').trim();
       await trx.updateTable('restaurant_food_waste_logs')
         .set({
@@ -265,6 +263,8 @@ export class RestaurantFoodWasteService {
         .where('id', '=', logId)
         .where('tenant_id', '=', scope.tenantId)
         .execute();
+
+      const journalResult = await this.accountingPosting.postFoodWaste(trx, logId, auth);
 
       return {
         ok: true,
