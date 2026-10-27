@@ -63,6 +63,8 @@ function testDeploysTestedCommit(): void {
   // A production deploy requires a manual dispatch against a green current main SHA.
   assert.ok(/^  workflow_dispatch:$/m.test(workflow) && !/^  workflow_run:$/m.test(workflow),
     'production deployment must be dispatch-only; no automatic CI completion trigger');
+  assert.ok(/confirm_production_deploy:/.test(workflow) && /inputs\.confirm_production_deploy == 'DEPLOY'/.test(workflow),
+    'explicit human confirmation DEPLOY is required');
   assert.ok(/github\.ref == 'refs\/heads\/main'/.test(workflow),
     'deployment must be authorized from main');
   assert.ok(/DEPLOY_SHA: \$\{\{ github\.sha \}\}/.test(workflow),
