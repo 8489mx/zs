@@ -503,7 +503,7 @@ async function main(): Promise<void> {
 
     // Register pending waste incident when shortage exists with allowPending: true
     const pendingWaste = await waste.logWaste(rest.auth, {
-      branchId: rest.branchId, productId: cheese, quantity: 0.5, reason: 'spoilage', allowPending: true,
+      branchId: rest.branchId, productId: cheese, quantity: 5, reason: 'spoilage', allowPending: true,
     });
     assert.equal(pendingWaste.status, 'pending_reconciliation');
     assert.equal(pendingWaste.journalEntryId, null);
@@ -527,11 +527,12 @@ async function main(): Promise<void> {
     assert.equal(await posted(rest,'5300'),2);
 
     // Reconcile pending waste after receiving new cheese stock
-    await receive(rest, cheese, 1, 10);
+    await receive(rest, cheese, 5, 10);
     const reconciled = await waste.reconcilePendingWaste(rest.auth, pendingWaste.id);
     assert.equal(reconciled.ok, true);
     assert.equal(reconciled.status, 'reconciled');
     assert.ok(reconciled.journalEntryId);
+    assert.equal(await posted(rest,'5300'),52);
 
     await check(rest,[meal,cheese]);
     console.log('PASS restaurant PostgreSQL real food waste WAC/stock/GL, pending incident on shortage, and clean reconciliation');
