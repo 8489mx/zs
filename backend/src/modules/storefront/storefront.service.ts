@@ -513,6 +513,17 @@ export class StorefrontService {
     const onlinePaymentTestMode = settings.get('storefront_paymob_test_mode') !== 'false';
     const onlinePaymentProvider = settings.get('storefront_online_payment_provider') || 'paymob';
 
+    const midBannersEnabled = settings.get('storefront_mid_banners_enabled') !== 'false';
+    const heroBannerFullBleed = settings.get('storefront_hero_full_bleed') !== 'false';
+    let midBanners: any[] = [];
+    try {
+      const rawMid = settings.get('storefront_mid_banners');
+      if (rawMid) {
+        const parsed = JSON.parse(rawMid);
+        if (Array.isArray(parsed)) midBanners = parsed.filter(Boolean);
+      }
+    } catch {}
+
     return {
       tenantId: tenant.id,
       slug: tenant.slug,
@@ -552,6 +563,9 @@ export class StorefrontService {
       pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
       allowOutOfStockOrders: isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type),
       showOutOfStockProducts: settings.get('storefront_show_out_of_stock') !== 'false',
+      midBannersEnabled,
+      midBanners,
+      heroBannerFullBleed,
     };
   }
 
@@ -3419,8 +3433,19 @@ export class StorefrontService {
       metaPixelId: settings.get('storefront_meta_pixel_id') || '',
       ga4Id: settings.get('storefront_ga4_id') || '',
       tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
-      snapchatPixelId: settings.get('storefront_snapchat_pixel_id') || '',
       pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
+      midBannersEnabled: settings.get('storefront_mid_banners_enabled') !== 'false',
+      heroBannerFullBleed: settings.get('storefront_hero_full_bleed') !== 'false',
+      midBanners: (() => {
+        try {
+          const raw = settings.get('storefront_mid_banners');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed.filter(Boolean);
+          }
+        } catch {}
+        return [];
+      })(),
     };
   }
 
@@ -3571,6 +3596,22 @@ export class StorefrontService {
     if (payload.allowOutOfStockOrders !== undefined) entries.push({ key: 'storefront_allow_out_of_stock', value: payload.allowOutOfStockOrders });
     if (payload.showOutOfStockProducts !== undefined) entries.push({ key: 'storefront_show_out_of_stock', value: payload.showOutOfStockProducts });
     if (payload.stockMode !== undefined) entries.push({ key: 'storefront_stock_mode', value: normalizeStorefrontStockMode(payload.stockMode) });
+    if (payload.midBannersEnabled !== undefined) entries.push({ key: 'storefront_mid_banners_enabled', value: payload.midBannersEnabled });
+    if (payload.heroBannerFullBleed !== undefined) entries.push({ key: 'storefront_hero_full_bleed', value: payload.heroBannerFullBleed });
+    if (payload.midBanners !== undefined) {
+      const normalizedBanners: any[] = [];
+      if (Array.isArray(payload.midBanners)) {
+        for (const b of payload.midBanners) {
+          if (!b) continue;
+          const normalizedImg = b.imageUrl ? await this.media.normalizeImageRef(tenantId, b.imageUrl) : '';
+          normalizedBanners.push({
+            ...b,
+            imageUrl: normalizedImg,
+          });
+        }
+      }
+      entries.push({ key: 'storefront_mid_banners', value: normalizedBanners });
+    }
     await this.db.transaction().execute(async (trx) => {
       for (const e of entries) {
         await sql`

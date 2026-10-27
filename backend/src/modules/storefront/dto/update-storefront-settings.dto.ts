@@ -222,4 +222,18 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsIn(['follow_branch', 'branch_only', 'all_operational'])
   stockMode?: 'follow_branch' | 'branch_only' | 'all_operational';
+
+  // Mid-Page Interstitial Banners & Full-Bleed Layout
+  @IsOptional()
+  @IsBoolean()
+  midBannersEnabled?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  midBanners?: any[];
+
+  @IsOptional()
+  @IsBoolean()
+  heroBannerFullBleed?: boolean;
 }
+

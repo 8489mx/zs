@@ -53,6 +53,22 @@ export interface StorefrontInfo {
   pickupEnabled?: boolean;
   allowOutOfStockOrders?: boolean;
   showOutOfStockProducts?: boolean;
+  midBannersEnabled?: boolean;
+  midBanners?: StorefrontMidBanner[];
+  heroBannerFullBleed?: boolean;
+}
+
+export interface StorefrontMidBanner {
+  id: string;
+  imageUrl: string;
+  title?: string;
+  subtitle?: string;
+  badge?: string;
+  linkType?: 'category' | 'deals' | 'url' | 'none';
+  categoryId?: number;
+  customUrl?: string;
+  slot?: 'after_deals' | 'after_row_1' | 'after_row_2' | 'bottom';
+  isEnabled?: boolean;
 }
 
 export interface StorefrontCategory {
@@ -338,6 +354,9 @@ export interface StorefrontSettingsPayload {
   themePreset?: string;
   allowOutOfStockOrders?: boolean;
   showOutOfStockProducts?: boolean;
+  midBannersEnabled?: boolean;
+  midBanners?: StorefrontMidBanner[];
+  heroBannerFullBleed?: boolean;
 }
 
 export interface StorefrontPaymentSessionResponse {

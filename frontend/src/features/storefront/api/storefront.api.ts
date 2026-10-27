@@ -33,6 +33,12 @@ function withResolvedInfoMedia<T extends StorefrontInfo>(info: T): T {
     bannerUrls: info.bannerUrls ? resolveStorefrontMediaList(info.bannerUrls) : info.bannerUrls,
     logoUrl: resolveStorefrontMediaUrl(info.logoUrl),
     logo_url: resolveStorefrontMediaUrl(info.logo_url),
+    midBanners: Array.isArray(info.midBanners)
+      ? info.midBanners.map((b) => ({
+          ...b,
+          imageUrl: resolveStorefrontMediaUrl(b.imageUrl) || b.imageUrl,
+        }))
+      : info.midBanners,
   };
 }
 
