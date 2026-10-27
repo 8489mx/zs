@@ -476,7 +476,7 @@ async function main(): Promise<void> {
       .where('tenant_id','=',rest.auth.tenantId!).where('id','=',codId)
       .executeTakeFirstOrThrow()).delivery_status,'delivered');
     assert.equal(await posted(rest,'1110'),cashBefore,'driver proof cannot book cashier cash');
-    const forbidden=await assert.rejects(couriers.dispatchOrders(rest.auth,{
+    await assert.rejects(couriers.dispatchOrders(rest.auth,{
       repId:Number(courier.id),saleIds:[codId,prePrepId],
     }), (e:any)=>e.code==='DELIVERY_DISPATCH_FORBIDDEN');
     await couriers.settleOrder(codId,rest.auth);
