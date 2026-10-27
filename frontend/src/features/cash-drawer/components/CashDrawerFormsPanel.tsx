@@ -14,7 +14,7 @@ import { SINGLE_STORE_MODE } from '@/config/product-scope';
 import type { Branch, CashierShift, Location } from '@/types/domain';
 import type { CloseShiftValues, MovementValues, OpenShiftValues } from '@/features/cash-drawer/hooks/useCashDrawerPageController';
 import { getOfflineSalesQueue } from '@/features/pos/lib/pos-offline-sync';
-import { PrinterIcon } from '@/shared/components/icons/AppIcons';
+import { PrinterIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { printZReport } from '@/features/cash-drawer/utils/cash-drawer-receipt';
 
 interface MutationLike {

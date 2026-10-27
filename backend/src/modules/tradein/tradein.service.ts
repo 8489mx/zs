@@ -265,7 +265,7 @@ export class TradeInService {
           .where('status', '=', 'in_stock')
           .executeTakeFirst();
         if (occupiedSerial) {
-          throw new AppError('الجهاز مسجل بالفعل وموجود بالمخزن حالياً؛ لا يمكن إعادة شرائه قبل خروجه من المخزن أو بيعه', 'TRADEIN_SERIAL_ALREADY_IN_STOCK', 409);
+          throw new AppError('الجهاز مسجل بالفعل وموجود بالمخزن حالياً؛ لا يمكن إعادة شرائه قبل خروجه من المخزن أو بيعه', 'TRADEIN_SERIAL_ALREADY_REGISTERED', 409);
         }
 
 

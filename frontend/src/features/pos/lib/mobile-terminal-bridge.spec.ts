@@ -6,7 +6,6 @@ import {
 } from './mobile-terminal-bridge';
 
 describe('MobileTerminalBridge', () => {
-  const originalWindow = global.window;
 
   beforeEach(() => {
     vi.clearAllMocks();

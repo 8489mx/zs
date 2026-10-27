@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { CreditCardIcon, SmartphoneIcon, UserIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
+import { CreditCardIcon, UserIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { MobileTerminalBridge } from '@/features/pos/lib/mobile-terminal-bridge';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
@@ -110,7 +110,6 @@ export function PosCheckoutExpressSection({
     }
   };
 
-  const transferSelected = !pos.paymentType && (pos.paymentChannel === 'wallet' || pos.paymentChannel === 'instapay');
 
   // Compute smart cash denomination buttons >= total
   const cashDenominations = useMemo(() => {
