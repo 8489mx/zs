@@ -6,10 +6,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PosProductsPanel } from './PosProductsPanel';
 import type { Product } from '@/types/domain';
 
-function renderWithClient(ui: React.ReactElement) {
+function renderWithClient(ui: React.ReactElement, settings?: Record<string, any>) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  if (settings) {
+    client.setQueryData(['settings'], settings);
+  }
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
@@ -95,5 +98,67 @@ describe('PosProductsPanel', () => {
 
     expect(onSearchSubmitFirstResult).toHaveBeenCalledWith('barcode-002');
     expect(onAddProduct).not.toHaveBeenCalled();
+  });
+
+  it('dims out-of-stock items and prevents adding them to cart when negative sales are disabled', async () => {
+    const user = userEvent.setup();
+    const onAddProduct = vi.fn();
+    const inStock = { ...createProduct(1), stock: 10 };
+    const outOfStock = { ...createProduct(2), stock: 0 };
+
+    renderWithClient(
+      <PosProductsPanel
+        search=""
+        onSearchChange={vi.fn()}
+        onSearchSubmitFirstResult={() => false}
+        priceType="retail"
+        onPriceTypeChange={vi.fn()}
+        products={[inStock, outOfStock]}
+        recentProducts={[]}
+        onAddProduct={onAddProduct}
+        productFilter="all"
+        onProductFilterChange={vi.fn()}
+        searchInputRef={createRef<HTMLInputElement>()}
+        posMode="touch"
+      />,
+      { allowNegativeStockSales: false, posHideOutOfStockItems: false }
+    );
+
+    expect(screen.getByText('Product 001')).toBeInTheDocument();
+    expect(screen.getByText('Product 002')).toBeInTheDocument();
+    expect(screen.getAllByText('نفد').length).toBeGreaterThan(0);
+
+    const outOfStockButton = screen.getByText('Product 002').closest('button');
+    expect(outOfStockButton).toBeTruthy();
+    if (outOfStockButton) {
+      await user.click(outOfStockButton);
+      expect(onAddProduct).not.toHaveBeenCalled();
+    }
+  });
+
+  it('hides out-of-stock items when posHideOutOfStockItems is enabled in settings', () => {
+    const inStock = { ...createProduct(1), stock: 10 };
+    const outOfStock = { ...createProduct(2), stock: 0 };
+
+    renderWithClient(
+      <PosProductsPanel
+        search=""
+        onSearchChange={vi.fn()}
+        onSearchSubmitFirstResult={() => false}
+        priceType="retail"
+        onPriceTypeChange={vi.fn()}
+        products={[inStock, outOfStock]}
+        recentProducts={[]}
+        onAddProduct={vi.fn()}
+        productFilter="all"
+        onProductFilterChange={vi.fn()}
+        searchInputRef={createRef<HTMLInputElement>()}
+        posMode="touch"
+      />,
+      { allowNegativeStockSales: false, posHideOutOfStockItems: true }
+    );
+
+    expect(screen.getByText('Product 001')).toBeInTheDocument();
+    expect(screen.queryByText('Product 002')).not.toBeInTheDocument();
   });
 });

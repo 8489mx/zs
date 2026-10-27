@@ -52,6 +52,7 @@ export const SETTINGS_FIELD_METADATA: Record<
   taxRate: { tab: 'sales_inventory', label: 'نسبة الضريبة' },
   taxMode: { tab: 'sales_inventory', label: 'طريقة احتساب الضريبة' },
   allowNegativeStockSales: { tab: 'sales_inventory', label: 'البيع بالسالب عند نفاد المخزون' },
+  posHideOutOfStockItems: { tab: 'sales_inventory', label: 'إخفاء الأصناف النافذة من شاشة الكاشير' },
   allowZeroPurchaseCost: { tab: 'sales_inventory', label: 'السماح بتكلفة شراء صفرية' },
   requireCashierShiftForSales: { tab: 'sales_inventory', label: 'إلزام فتح وردية كاشير' },
   requirePasswordOnShiftOpen: { tab: 'sales_inventory', label: 'طلب كلمة المرور عند فتح الوردية' },
@@ -260,6 +261,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
       storeFleetCommissionRate: 0,
       defaultDeliveryFee: 0,
       allowNegativeStockSales: false,
+      posHideOutOfStockItems: false,
       allowZeroPurchaseCost: false,
       requireCashierShiftForSales: true,
       requirePasswordOnShiftOpen: false,
@@ -536,6 +538,7 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           ? settings.vanSalesModuleEnabled === true
           : (isWholesaleVertical && settings.deliveryFleetModuleEnabled === true)),
       allowNegativeStockSales: settings.allowNegativeStockSales === true || settings.allowSellingBelowStock === true,
+      posHideOutOfStockItems: settings.posHideOutOfStockItems === true,
       allowZeroPurchaseCost: settings.allowZeroPurchaseCost === true,
       requireCashierShiftForSales: isWholesaleVertical || isWarehousingVertical || isContractingVertical || isMaritimeVertical ? false : (settings.requireCashierShiftForSales !== false),
       requirePasswordOnShiftOpen: settings.requirePasswordOnShiftOpen === true,

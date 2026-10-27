@@ -246,6 +246,9 @@ export function buildSettingsUpdatePayload(
     allowSellingBelowStock: values.allowNegativeStockSales !== undefined
       ? values.allowNegativeStockSales === true
       : current?.allowNegativeStockSales === true,
+    posHideOutOfStockItems: values.posHideOutOfStockItems !== undefined
+      ? values.posHideOutOfStockItems === true
+      : current?.posHideOutOfStockItems === true,
     allowZeroPurchaseCost: values.allowZeroPurchaseCost !== undefined
       ? values.allowZeroPurchaseCost === true
       : current?.allowZeroPurchaseCost === true,

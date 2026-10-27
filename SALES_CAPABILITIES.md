@@ -390,3 +390,11 @@
 
 
 <!-- migrated:cap-233:end -->
+
+## POS Out-of-Stock Handling & Display Control (27 October 2026)
+
+- Out-of-stock items in POS catalog grid (`stock <= 0`, non-services and non-BOM) are visually dimmed (`opacity: 0.55`, grayscale) with a distinct red badge (`نفد`) and disabled when negative stock sales are prohibited (`allowNegativeStockSales = false`).
+- Clicking or selecting out-of-stock items via keyboard Enter triggers non-blocking toast feedback (`الصنف نافذ من المخزون ولا يمكن بيعه حالياً`) and blocks cart addition. Variant options in `InlineGroupPicker` mirror this isolation per variant.
+- Introduced `posHideOutOfStockItems` setting in tenant settings (`SalesInventorySettingsTab`) and per-workstation customization (`PosCustomizationDialog`) to completely filter out-of-stock products from browsing shelves when negative selling is blocked, while maintaining searchable discovery upon explicit name/barcode lookup.
+- Implementation: `PosProductsPanel.tsx`, `usePosUiCustomization.ts`, `PosCustomizationDialog.tsx`, `SalesInventorySettingsTab.tsx`, `settings.schema.ts`, `contracts.ts`, `settings.ts`, `system.ts`.
+- Verification evidence: `frontend/src/features/pos/components/PosProductsPanel.spec.tsx` (4/4 tests passing on 27 October 2026).

@@ -13,8 +13,10 @@ export interface PosUiCustomization {
   mobileGridColumns: '2' | '3' | 'auto';
   autoHideBottomNav: boolean;
   cardLayout: 'comfortable' | 'compact' | 'gallery';
+  mobileCardLayout: 'comfortable' | 'compact' | 'gallery';
   checkoutMode: 'auto' | 'express' | 'detailed';
   defaultPaymentChannel: 'auto' | 'cash' | 'card' | 'wallet';
+  hideOutOfStockItems: boolean;
 }
 
 export const POS_UI_CUSTOMIZATION_KEY = 'pos_ui_customization_v1';
@@ -29,8 +31,10 @@ export const DEFAULT_POS_UI_CUSTOMIZATION: PosUiCustomization = {
   mobileGridColumns: 'auto',
   autoHideBottomNav: true,
   cardLayout: 'comfortable',
+  mobileCardLayout: 'compact',
   checkoutMode: 'auto',
   defaultPaymentChannel: 'auto',
+  hideOutOfStockItems: false,
 };
 
 function readLocalCustomization(): Partial<PosUiCustomization> | null {
@@ -79,6 +83,10 @@ export function resolvePosUiCustomization(settings?: Record<string, any> | null)
     ? local.cardLayout
     : (settings?.posProductCardLayout || 'comfortable');
 
+  const mobileCardLayout: 'comfortable' | 'compact' | 'gallery' = local?.mobileCardLayout !== undefined
+    ? local.mobileCardLayout
+    : (settings?.posMobileCardLayout || 'compact');
+
   const checkoutMode: 'auto' | 'express' | 'detailed' = local?.checkoutMode !== undefined
     ? local.checkoutMode
     : (settings?.posCheckoutMode || 'auto');
@@ -86,6 +94,10 @@ export function resolvePosUiCustomization(settings?: Record<string, any> | null)
   const defaultPaymentChannel: 'auto' | 'cash' | 'card' | 'wallet' = local?.defaultPaymentChannel !== undefined
     ? local.defaultPaymentChannel
     : (settings?.posDefaultPaymentChannel || 'auto');
+
+  const hideOutOfStockItems = local?.hideOutOfStockItems !== undefined
+    ? Boolean(local.hideOutOfStockItems)
+    : settings?.posHideOutOfStockItems === true;
 
   return {
     showSearchBar,
@@ -96,8 +108,10 @@ export function resolvePosUiCustomization(settings?: Record<string, any> | null)
     mobileGridColumns,
     autoHideBottomNav,
     cardLayout,
+    mobileCardLayout,
     checkoutMode,
     defaultPaymentChannel,
+    hideOutOfStockItems,
   };
 }
 
@@ -146,6 +160,12 @@ export function usePosUiCustomization() {
             POS_UI_CUSTOMIZATION_KEY,
             JSON.stringify({ ...currentLocal, ...patch })
           );
+          if (patch.cardLayout) {
+            window.localStorage.setItem('pos-card-density-desktop-v1', patch.cardLayout);
+          }
+          if (patch.mobileCardLayout) {
+            window.localStorage.setItem('pos-card-density-mobile-v1', patch.mobileCardLayout);
+          }
           window.dispatchEvent(
             new CustomEvent(POS_UI_CUSTOMIZATION_EVENT, { detail: next })
           );
@@ -163,8 +183,10 @@ export function usePosUiCustomization() {
           if (patch.mobileGridColumns !== undefined) payload.posMobileGridColumns = patch.mobileGridColumns;
           if (patch.autoHideBottomNav !== undefined) payload.posAutoHideBottomNav = patch.autoHideBottomNav;
           if (patch.cardLayout !== undefined) payload.posProductCardLayout = patch.cardLayout;
+          if (patch.mobileCardLayout !== undefined) payload.posMobileCardLayout = patch.mobileCardLayout;
           if (patch.checkoutMode !== undefined) payload.posCheckoutMode = patch.checkoutMode;
           if (patch.defaultPaymentChannel !== undefined) payload.posDefaultPaymentChannel = patch.defaultPaymentChannel;
+          if (patch.hideOutOfStockItems !== undefined) payload.posHideOutOfStockItems = patch.hideOutOfStockItems;
 
           if (Object.keys(payload).length > 0) {
             await settingsApi.update(payload);
@@ -182,6 +204,10 @@ export function usePosUiCustomization() {
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.removeItem(POS_UI_CUSTOMIZATION_KEY);
+        window.localStorage.removeItem('pos-card-density-preference-v2');
+        window.localStorage.removeItem('pos-card-density-preference-v1');
+        window.localStorage.removeItem('pos-card-density-desktop-v1');
+        window.localStorage.removeItem('pos-card-density-mobile-v1');
         window.dispatchEvent(
           new CustomEvent(POS_UI_CUSTOMIZATION_EVENT, { detail: DEFAULT_POS_UI_CUSTOMIZATION })
         );

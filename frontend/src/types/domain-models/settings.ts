@@ -104,6 +104,7 @@ export interface AppSettings {
   vanSettlementBlindMode?: boolean;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
+  posHideOutOfStockItems?: boolean;
   allowZeroPurchaseCost?: boolean;
   requireCashierShiftForSales?: boolean;
   requirePasswordOnShiftOpen?: boolean;

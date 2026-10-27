@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { SlidersIcon, LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon, ClockIcon } from '@/shared/components/icons/AppIcons';
+import { SlidersIcon, LightbulbIcon, RotateCcwIcon, CheckIcon, ShieldAlertIcon, InfoIcon, PlusCircleIcon, Trash2Icon, CheckCircleIcon, CheckShieldIcon, LockIcon, ClockIcon, EyeOffIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 import { posApi, HardwareBridgeClient } from '@/features/pos';
 import type { UseFormReturn } from 'react-hook-form';
@@ -1612,6 +1612,22 @@ export const SalesInventorySettingsTab = memo(function SalesInventorySettingsTab
                 </div>
               </div>
               <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('allowNegativeStockSales')} disabled={disabled} />
+            </label>
+          )}
+
+          {/* Card: Hide Out of Stock Items */}
+          {showPhysicalInventory && (
+            <label style={premiumCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={iconBadgeStyle}>
+                  <EyeOffIcon size={20} />
+                </div>
+                <div style={premiumCardTextStyle}>
+                  <strong style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 800 }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.pos_hide_out_of_stock', "إخفاء الأصناف النافذة بالكاشير")}</strong>
+                  <small className="muted" style={{ fontSize: '0.76rem', color: '#64748b' }}>{__t('settings.forms.tabs.sales_inventory_settings_tab.pos_hide_out_of_stock_desc', "إخفاء المنتجات المنتهية من المخزون تلقائياً من شبكة الكاشير عند حظر البيع بالسالب")}</small>
+                </div>
+              </div>
+              <input type="checkbox" style={premiumCheckboxInputStyle} {...form.register('posHideOutOfStockItems')} disabled={disabled} />
             </label>
           )}
 
