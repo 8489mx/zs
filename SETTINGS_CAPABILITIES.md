@@ -14,6 +14,24 @@
 
 عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
 
+### 258. حوكمة استيراد الأصناف وتصدير القالب ديناميكياً وعزل تكرار المخازن (Smart Dynamic Location Template & Anti-Duplication Import Engine — 27 أكتوبر 2026)
+- **المشكلة المعالجة:** كان قالب المنتجات ورصيد أول المدة ينزل بمسمى ثابت «المخزن الرئيسي»، وعندما يقوم المشترك الجديد برفعه يبحث الباك إند عن «المخزن الرئيسي» فلا يجده (لأن مخزن الفرع التلقائي اسمه «رصيد الفرع الرئيسي») فينشئ مخزناً ثانياً مكرراً يشتت رصيد الكاشير ونقطة البيع.
+- **التصدير الديناميكي للقالب (Dynamic Template Export):**
+  - تم تحويل تصدير قوالب الإكسيل (`products-template.xlsx` و `opening-stock-template.xlsx`) في `settings-page.helpers.tsx` ليقرأ اسم المخزن الافتراضي الفعلي للعميل (`resolveTenantPrimaryLocationName`)، فينزل القالب مطابقاً للمنشأة (مثل «رصيد الفرع الرئيسي»).
+- **محرك الاستيراد الذكي ومنع التكرار (Resilient Import Engine):**
+  - في `SettingsImportService.ensureLocation`:
+    1. في حال ترك خانة المخزن فارغة، تنزل البضاعة تلقائياً في المخزن/الرصيد الافتراضي للمنشأة.
+    2. في حال وجود مخزن وحيد للمنشأة، أي اسم يُكتب أو مرادفات عامة («المخزن الرئيسي»، «الرئيسي»، «مخزن الفرع»، «رصيد الفرع») تُوجّه تلقائياً إلى المخزن القائم دون إنشاء مخزن مكرر بصمت.
+    3. إضافة كاش محلي `locationsCache` لتسريع معالجة الأسطر (0ms) ومنع الاستعلام المتكرر في الحلقات.
+- **هجرة الدمج التلقائي (Migration 258):**
+  - تم إنشاء الهجرة `2040000000258_consolidate_duplicate_default_stock_locations.ts` لدمج أي مخازن مكررة سابقة («المخزن الرئيسي») داخل «رصيد الفرع الرئيسي» وإعادة توجيه كافة الحركات والأرصدة مع التحقق الصارم من الحفاظ على كميات المخزون الإجمالية (Zero Stock Discrepancy Invariant).
+- **مراجع التنفيذ:**
+  - `backend/src/modules/settings/services/settings-import.service.ts`
+  - `backend/src/database/migrations/2040000000258_consolidate_duplicate_default_stock_locations.ts`
+  - `frontend/src/features/settings/pages/settings-page.helpers.tsx`
+  - `backend/test/infra/settings-import.service.spec.ts`
+- **أدلة التحقق:** نجاح اختبار `backend/test/infra/settings-import.service.spec.ts` بالكامل بتاريخ 27 أكتوبر 2026.
+
 ## فهرس الأقسام المنقولة
 
 - [قدرة: دستور الفصل والعزل التام بين الأنماط المؤسسية (Universal Vertical Isolation) — ✅ مفعّلة ومحروسة (أكتوبر 2026)](#cap-016)

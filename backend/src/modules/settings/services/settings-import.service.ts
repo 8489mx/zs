@@ -525,8 +525,8 @@ export class SettingsImportService {
           const metaInsert = rawImageUrl ? JSON.stringify({ imageUrl: rawImageUrl }) : null;
           const insertedProduct = await trx.insertInto('products').values({ ...payload, metadata: metaInsert, stock_qty: initialStockQty, is_active: true, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
           productId = Number(insertedProduct.id);
-          if (initialStockQty > 0) {
-            await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: null, location_id: locationId, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
+          if (initialStockQty > 0 && locationId != null) {
+            await trx.insertInto('product_location_stock').values({ product_id: productId, branch_id: locationBranchId, location_id: locationId, qty: initialStockQty, ...this.tenantFields(actor) }).execute();
           }
           inserted += 1;
         }
@@ -907,6 +907,7 @@ export class SettingsImportService {
     const scope = this.scope(actor);
     const result = await this.db.transaction().execute(async (trx) => {
       let updated = 0;
+      const locationsCache = new Map<string, { locationId: number; branchId: number | null }>();
 
       for (const rawRow of rows) {
         const row = rawRow as Record<string, unknown>;
@@ -932,8 +933,9 @@ export class SettingsImportService {
         const product = await productQuery.executeTakeFirst();
         if (!product) continue;
 
-        const branchId = toNumber(row.branchId || row.branch || 0) || null;
-        const locationId = await this.ensureLocation(trx, cleanString(row.warehouseName || row.warehouse || row.store || ''), actor) || (toNumber(row.locationId || row.location || 0) || null);
+        const locInfo = await this.ensureLocation(trx, cleanString(row.warehouseName || row.warehouse || row.store || ''), actor, locationsCache);
+        const branchId = toNumber(row.branchId || row.branch || 0) || locInfo?.branchId || null;
+        const locationId = locInfo?.locationId || (toNumber(row.locationId || row.location || 0) || null);
         
         const stockChange = await setScopedStockQty(trx, { productId: Number(product.id), nextQty: qty, branchId, locationId, tenantId: scope.tenantId, accountId: scope.accountId });
         

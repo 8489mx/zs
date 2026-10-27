@@ -45,7 +45,15 @@ class FakeSelectBuilder {
   private conditions: Array<{ column: unknown; value: unknown }> = [];
   constructor(private readonly table: string, private readonly state: DbState) {}
   select(): this { return this; }
+  selectAll(): this { return this; }
+  orderBy(): this { return this; }
   where(column: unknown, _op?: string, value?: unknown): this { this.conditions.push({ column, value }); return this; }
+  async execute() {
+    if (this.table === 'stock_locations') {
+      return this.state.stock_locations.filter((row) => row.tenant_id === tenantId && row.is_active !== false);
+    }
+    return [];
+  }
   async executeTakeFirst() {
     if (this.table === 'customers') {
       const phone = this.conditions.find((entry) => entry.column === 'phone')?.value;
@@ -69,7 +77,7 @@ class FakeSelectBuilder {
       });
     }
     if (this.table === 'branches') {
-      return { id: 1 };
+      return { id: 1, name: 'الفرع الرئيسي', default_stock_location_id: 1 };
     }
     return undefined;
   }
@@ -129,7 +137,9 @@ class FakeInsertBuilder {
     }
     if (this.table === 'stock_locations') {
       const id = this.state.nextLocationId++;
-      return { id };
+      const row = { id, tenant_id: tenantId, is_active: true, ...this.payload };
+      this.state.stock_locations.push(row);
+      return { id, branch_id: (row as any).branch_id ?? null };
     }
     throw new Error(`Unsupported insert table: ${this.table}`);
   }
@@ -319,6 +329,31 @@ async function run(): Promise<void> {
     assert.ok(updatedExtraUnit);
     assert.equal(updatedExtraUnit.multiplier, 24);
     assert.equal(updatedExtraUnit.is_purchase_unit_default, true);
+
+    // Test location alias: When tenant has "رصيد الفرع الرئيسي", importing with "المخزن الرئيسي" maps to it without duplicate location
+    db.state.stock_locations = [
+      { id: 1, name: 'رصيد الفرع الرئيسي', branch_id: 1, tenant_id: tenantId, location_type: 'branch_stock', is_active: true }
+    ];
+    db.state.nextLocationId = 2;
+
+    const locImportResult = await service.importProducts([
+      {
+        'اسم الصنف': 'ماوس لاسلكي',
+        'الباركود': '622999001',
+        'الكمية': 15,
+        'المخزن': 'المخزن الرئيسي',
+      },
+    ], actor);
+
+    assert.equal(locImportResult.ok, true);
+    assert.equal(locImportResult.inserted, 1);
+    // Assert no second location was created!
+    assert.equal(db.state.stock_locations.length, 1, 'Must NOT create duplicate location when alias or single location matches');
+    assert.equal(db.state.stock_locations[0]?.name, 'رصيد الفرع الرئيسي');
+
+    // Verify product_location_stock is mapped to location 1
+    const locStock = db.state.product_location_stock.find((s) => s.location_id === 1 && s.qty === 15);
+    assert.ok(locStock, 'Stock must be placed in primary location 1');
   }
 
   console.log('settings-import.service.spec: ok');

@@ -105,9 +105,26 @@ export function buildSettingsGuidanceCards(input: SettingsGuidanceInput, vertica
   ];
 }
 
+async function resolveTenantPrimaryLocationName(): Promise<string> {
+  try {
+    const { http } = await import('@/lib/http');
+    const locRes = await http<any>('/api/locations');
+    const locations = locRes.locations || [];
+    const branchStockLoc = locations.find((l: any) => l.isActive && (l.locationType === 'branch_stock' || (l.name && String(l.name).startsWith('رصيد'))));
+    const activeLoc = branchStockLoc || locations.find((l: any) => l.isActive) || locations[0];
+    if (activeLoc?.name) {
+      return String(activeLoc.name).trim();
+    }
+  } catch (err) {
+    console.warn('Could not fetch locations for template', err);
+  }
+  return 'رصيد الفرع الرئيسي';
+}
+
 export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 'customers-retail' | 'customers-van' | 'suppliers' | 'opening-stock') {
   if (kind === 'products') {
-    downloadExcelFile('products-template.xlsx', ['اسم الصنف (إجباري)', 'الباركود', 'القسم', 'المورد', 'سعر التكلفة', 'سعر البيع', 'سعر الجملة', 'الحد الأدنى', 'الكمية', 'المخزن', 'وحدة القياس الأساسية', 'وحدة البيع', 'وحدة الشراء', 'اسم وحدة إضافية', 'معامل الوحدة الإضافية', 'باركود الوحدة الإضافية', 'ملاحظات'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, 'المخزن الرئيسي', 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
+    const defaultLocationName = await resolveTenantPrimaryLocationName();
+    downloadExcelFile('products-template.xlsx', ['اسم الصنف (إجباري)', 'الباركود', 'القسم', 'المورد', 'سعر التكلفة', 'سعر البيع', 'سعر الجملة', 'الحد الأدنى', 'الكمية', 'المخزن', 'وحدة القياس الأساسية', 'وحدة البيع', 'وحدة الشراء', 'اسم وحدة إضافية', 'معامل الوحدة الإضافية', 'باركود الوحدة الإضافية', 'ملاحظات'], [['منتج جديد', '123456789012', 'عام', 'مورد تجريبي', 50, 70, 60, 5, 24, defaultLocationName, 'قطعة', 'قطعة', 'كرتونة', 'كرتونة', 12, '123456789013', 'ملاحظات']]);
     return;
   }
   if (kind === 'customers' || kind === 'customers-retail') {
@@ -197,7 +214,8 @@ export async function downloadSettingsTemplate(kind: 'products' | 'customers' | 
     return;
   }
   if (kind === 'opening-stock') {
-    downloadExcelFile('opening-stock-template.xlsx', ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'], [['123456789012', 'منتج جديد', 24, 'المخزن الرئيسي']]);
+    const defaultLocationName = await resolveTenantPrimaryLocationName();
+    downloadExcelFile('opening-stock-template.xlsx', ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'], [['123456789012', 'منتج جديد', 24, defaultLocationName]]);
     return;
   }
 }
@@ -207,6 +225,7 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
   const dateStr = new Date().toISOString().split('T')[0];
 
   if (kind === 'products') {
+    const defaultLocationName = await resolveTenantPrimaryLocationName();
     let page = 1;
     const allRows: any[][] = [];
     while (true) {
@@ -229,7 +248,7 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
           p.wholesalePrice ?? '',
           p.minStock ?? p.minStockQty ?? 0,
           p.stock ?? p.stockQty ?? 0,
-          'المخزن الرئيسي',
+          p.locationName || defaultLocationName,
           baseUnit?.name || p.unit?.name || p.unitName || 'قطعة',
           saleUnit?.name || p.saleUnit?.name || 'قطعة',
           purchaseUnit?.name || p.purchaseUnit?.name || 'قطعة',
@@ -343,6 +362,7 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
   }
 
   if (kind === 'opening-stock') {
+    const defaultLocationName = await resolveTenantPrimaryLocationName();
     let locationsRes: any = { locations: [] };
     let stocksRes: any = { stocks: [] };
     try {
@@ -374,11 +394,11 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
         
         if (pStocks && pStocks.length > 0) {
           for (const st of pStocks) {
-            const locName = locationMap.get(String(st.locationId)) || 'المخزن الرئيسي';
+            const locName = locationMap.get(String(st.locationId)) || defaultLocationName;
             allRows.push([p.barcode || '', p.name || '', st.qty || 0, locName]);
           }
         } else {
-          allRows.push([p.barcode || '', p.name || '', p.stock || 0, 'المخزن الرئيسي']);
+          allRows.push([p.barcode || '', p.name || '', p.stock || 0, defaultLocationName]);
         }
       }
       if (items.length < 1000) break;
@@ -388,7 +408,7 @@ export async function exportSettingsData(kind: 'products' | 'customers' | 'suppl
     downloadExcelFile(
       `opening-stock-export-${dateStr}.xlsx`,
       ['الباركود', 'اسم الصنف', 'الكمية', 'المخزن'],
-      allRows.length ? allRows : [['', 'لا توجد بيانات مخزون', 0, 'المخزن الرئيسي']],
+      allRows.length ? allRows : [['', 'لا توجد بيانات مخزون', 0, defaultLocationName]],
     );
   }
 }
