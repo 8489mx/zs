@@ -522,7 +522,16 @@ export class KdsService {
     await this.assertTicketOwned(trx, tenantId, ticketId);
     const runtimeState = await this.getKdsStoreState(tenantId, trx);
     const existing = runtimeState.tickets[String(ticketId)];
-    const currentStatus: KdsTicketStatus = existing?.status || 'pending';
+    let currentStatus: KdsTicketStatus = existing?.status || 'pending';
+    // Provider orders may already have been auto-accepted before any manual KDS
+    // state is saved. Advance from the visible database status, not a ghost pending.
+    if (!existing && ticketId >= 10_000_000) {
+      const aggregator = await trx.selectFrom('pos_aggregator_orders')
+        .select('status').where('id', '=', ticketId - 10_000_000)
+        .where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
+      currentStatus = aggregator.status === 'preparing' ? 'cooking'
+        : aggregator.status === 'ready' ? 'ready' : 'pending';
+    }
 
     let nextStatus: KdsTicketStatus = 'cooking';
     if (currentStatus === 'pending') nextStatus = 'cooking';
