@@ -299,7 +299,7 @@ export class SaasDiagnosticsService {
           `📅 *فترة التقرير:* \`${payload.logPeriod}\`\n` +
           `⚠️ *عدد أخطاء 500:* *${payload.errorCount500}*\n` +
           `⏰ *التوقيت:* ${new Date().toLocaleString('ar-EG')}${sampleText}\n\n` +
-          `🔗 [فتح لوحة الساس للمعاينة](https://92-5-178-54.sslip.io/saas-admin/diagnostics)`;
+          `🔗 [فتح لوحة الساس للمعاينة](https://app.zsystemai.com/saas-admin/diagnostics)`;
 
         fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
           method: 'POST',

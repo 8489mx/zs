@@ -474,11 +474,29 @@ export interface StorefrontAnalytics {
   deliveredOrders: number;
   cancelledOrders: number;
   pendingOrders: number;
+  confirmedOrders?: number;
+  processingOrders?: number;
+  shippedOrders?: number;
   averageOrderValue: number;
   unrecoveredAbandoned: number;
   recoveredAbandoned: number;
   abandonedCartsCount?: number;
   conversionRate: number;
+  todayOrders?: number;
+  todayRevenue?: number;
+  topSellingProducts?: Array<{
+    productId: number;
+    productName: string;
+    quantity: number;
+    revenue: number;
+  }>;
+  lowStockStorefrontProducts?: Array<{
+    id: number;
+    name: string;
+    stock: number;
+    price: number;
+  }>;
+  statusBreakdown?: Record<string, number>;
 }
 
 

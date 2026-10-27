@@ -34,12 +34,19 @@ export function isReservedStoreSlug(slug: unknown): boolean {
 
 /** The configured root domain, lower-cased, or '' when subdomain stores are off. */
 export function storefrontRootDomain(env: NodeJS.ProcessEnv = process.env): string {
-  return String(env.STOREFRONT_ROOT_DOMAIN || '')
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, '')
-    .replace(/\/.*$/, '')
-    .replace(/^\.+|\.+$/g, '');
+  const explicit = String(env.STOREFRONT_ROOT_DOMAIN || '').trim();
+  if (explicit) {
+    return explicit
+      .toLowerCase()
+      .replace(/^https?:\/\//, '')
+      .replace(/\/.*$/, '')
+      .replace(/^\.+|\.+$/g, '');
+  }
+  const appUrl = String(env.APP_LOGIN_URL || env.APP_PUBLIC_URL || env.CORS_ORIGINS || '');
+  if (appUrl.includes('zsystemai.com')) {
+    return 'zsystemai.com';
+  }
+  return '';
 }
 
 /** True when this slug can be served as `<slug>.<root>`. */

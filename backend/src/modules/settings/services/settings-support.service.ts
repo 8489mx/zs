@@ -178,7 +178,7 @@ export class SettingsSupportService {
 
     const centralUrl =
       process.env.CENTRAL_DIAGNOSTICS_URL ||
-      'https://92-5-178-54.sslip.io/api/v1/saas-admin/diagnostics/upload';
+      'https://app.zsystemai.com/api/v1/saas-admin/diagnostics/upload';
 
     const formData = new FormData();
     formData.append(

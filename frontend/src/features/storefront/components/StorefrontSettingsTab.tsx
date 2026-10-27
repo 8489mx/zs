@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { buildStorePublicUrl, storePublicUrlParts } from '@/lib/store-public-url';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
@@ -23,6 +24,7 @@ import {
   PlusCircleIcon,
   LayersIcon,
   FolderIcon,
+  TrendingUpIcon,
   TagIcon,
   UploadIcon,
 } from '@/shared/components/icons/AppIcons';
@@ -47,6 +49,7 @@ function parsePosition(posStr?: string): { x: number; y: number } {
 
 export function StorefrontSettingsTab() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images' | 'bosta' | 'gcc-shipping'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
@@ -56,15 +59,21 @@ export function StorefrontSettingsTab() {
   const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
   const [copiedPromptKey, setCopiedPromptKey] = useState<'ar' | 'en' | null>(null);
 
+  const analyticsQuery = useQuery({
+    queryKey: ['storefront-admin-analytics'],
+    queryFn: storefrontApi.getAnalytics,
+    refetchInterval: 30 * 1000,
+  });
+
   const aiPromptTemplateAr =
-    'صمم بنر إعلاني سينمائي شريطي فائق العرض (Ultra-Wide Panoramic Banner) بنسبة 4:1 وأبعاد دقيقة 1600x400 بكسل لمتجر [اكتب اسم ونشاط متجرك هنا].\n' +
-    'شروط توزيع العناصر لملء المتجر بالكامل دون أي قص:\n' +
-    '1. أبعاد التصميم: نسبة العرض إلى الارتفاع 4:1 (العرض أربعة أضعاف الارتفاع تماماً، مقاس 1600x400 بكسل).\n' +
-    '2. منطقة الأمان المركزية (60%): ضع اسم المتجر والشعار والمنتجات الرئيسية والنصوص في الـ 60% الوسطى فقط من الكادر.\n' +
-    '3. امتداد الأطراف (20% يميناً و 20% يساراً): اجعل الحواف مجرد خلفية ممتدة متجانسة بتدرج لوني وإضاءة أنيقة بدون نصوص أو أجهزة مقطوعة لتملأ الشاشة بسلاسة بدون قص.';
+    'صمم بنر إعلاني سينمائي فائق العرض (Ultra-Wide Panoramic Store Banner) بنسبة 4:1 وأبعاد دقيقة 1920x480 بكسل (أو 1600x400 بكسل) لمتجر إلكتروني فاخر [اكتب اسم ونشاط متجرك هنا].\n' +
+    'شروط توزيع العناصر والتكوين البصري لملء المتجر دون أي قص:\n' +
+    '1. أبعاد التصميم: نسبة العرض إلى الارتفاع 4:1 شريطي بانورامي (مقاس 1920×480 بكسل للبنر كامل الشاشة، أو 1400×350 بكسل للبانرات الفاصلة بين الأقسام).\n' +
+    '2. منطقة الأمان المركزية (60%): ضع اسم المتجر، الشعار، عبارات العرض الترويجي، والمنتجات الرئيسية حصرياً في الـ 60% الوسطى من الكادر.\n' +
+    '3. امتداد الأطراف (20% يميناً و 20% يساراً): اجعل الحواف الجانبية مجرد خلفية ممتدة متجانسة بتدرج لوني وإضاءة استوديو ناعمة بدون أي نصوص أو منتجات مقطوعة لتملأ الشاشة بسلاسة وتتوافق تماماً مع الهواتف والشاشات العريضة دون أي قص.';
 
   const aiPromptTemplateEn =
-    'Ultra-wide commercial e-commerce panoramic header banner, exact aspect ratio 4:1, 1600x400 resolution, for [Your Store Name / Business Type]. Luxury modern commercial design, clean studio lighting, 8k render. CRITICAL COMPOSITION RULES: Place all hero products, branding text, and logo strictly inside the central 60% horizontal safe zone. The left 20% and right 20% edges must be smooth, seamless ambient background gradient with extended atmospheric lighting and zero cut-off objects or text at borders. --ar 4:1';
+    'Ultra-wide cinematic commercial e-commerce panoramic header banner, exact aspect ratio 4:1, 1920x480 resolution, for [Your Store Name / Business Type]. Luxury modern commercial branding, clean studio lighting, hyper-realistic, 8k render. CRITICAL COMPOSITION RULES: Place all hero products, promotional copy, branding, and logos strictly inside the central 60% horizontal safe zone. The left 20% and right 20% edges must be seamless ambient extending background gradient with atmospheric lighting and zero cut-off text or cropped objects at the borders. Works perfectly for full-bleed screens and responsive mobile viewports. --ar 4:1';
 
   const handleCopyPrompt = (type: 'ar' | 'en') => {
     const textToCopy = type === 'ar' ? aiPromptTemplateAr : aiPromptTemplateEn;
@@ -608,6 +617,90 @@ export function StorefrontSettingsTab() {
           >
             <span>{t('storefront.storefront_settings_tab.s8', "معاينة المتجر ↗")}</span>
           </a>
+        </div>
+      </div>
+
+      {/* Executive E-Commerce Operations & Hub Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #170e5e 0%, #2e1065 100%)',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          marginBottom: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          color: '#ffffff',
+          boxShadow: '0 2px 8px rgba(23, 14, 94, 0.15)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <TrendingUpIcon size={20} color="#ffffff" />
+          </div>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span>مركز عمليات وطلبات المتجر الإلكتروني (E-Commerce Operations)</span>
+              <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#10b981', color: '#ffffff', padding: '1px 7px', borderRadius: '4px' }}>
+                مباشر ومربوط بالمخزن
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.82)', marginTop: '2px' }}>
+              متابعة وتجهيز الطلبات، بوالص بوسطة وسمسا، رادار السلات المتروكة، ومؤشرات الأداء اللحظية
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {(analyticsQuery.data?.pendingOrders ?? 0) > 0 && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                background: '#ef4444',
+                color: '#ffffff',
+                padding: '3px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              {analyticsQuery.data?.pendingOrders} طلبات جديدة بحاجة للمراجعة
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={() => navigate('/online-orders')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#ffffff',
+              color: '#170e5e',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '7px 14px',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            }}
+          >
+            <span>فتح لوحة القيادة ومتابعة الطلبات</span>
+            <span style={{ fontSize: '13px' }}>←</span>
+          </button>
         </div>
       </div>
 
@@ -1475,11 +1568,16 @@ export function StorefrontSettingsTab() {
                     marginBottom: '8px',
                   }}
                 />
-                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
-                  {t('storefront.storefront_settings_tab.s75', "لربط دومينك الخاص، أضف سجل")} <strong>CNAME</strong> {t('storefront.storefront_settings_tab.s76', "في لوحة تحكم نطاقك يوجه إلى:")}
-                  <code style={{ background: '#e2e8f0', padding: '2px 5px', borderRadius: '4px', margin: '0 4px', color: '#0f172a' }}>
-                    92-5-178-54.sslip.io
-                  </code>
+                <div style={{ fontSize: '11.5px', color: '#64748b', lineHeight: 1.6, marginTop: '4px' }}>
+                  <span>{t('storefront.storefront_settings_tab.s75', "لربط دومينك الخاص (مثل store.mybrand.com)، أضف سجل")} <strong>CNAME</strong> {t('storefront.storefront_settings_tab.s76', "في لوحة تحكم نطاقك يوجه إلى:")}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '4px 0', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '5px' }}>
+                    <code style={{ color: '#170e5e', fontWeight: 800, fontFamily: 'monospace', direction: 'ltr' }}>
+                      {formState.slug ? `${formState.slug.trim().toLowerCase()}.zsystemai.com` : 'cname.zsystemai.com'}
+                    </code>
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 600 }}>
+                    يعمل متجرك افتراضياً ومباشرة على السب دومين: https://{formState.slug ? formState.slug.trim().toLowerCase() : (storeSlug || 'yourstore')}.zsystemai.com
+                  </div>
                 </div>
               </div>
             </div>
@@ -2398,15 +2496,18 @@ export function StorefrontSettingsTab() {
                     <span>{t('storefront.storefront_settings_tab.s128', "دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / Midjourney / DALL-E):")}</span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
                     <div>
-                      • <strong>{t('storefront.storefront_settings_tab.s129', "المقاس الذهبي المعتمد:")}</strong> <strong>1600 × 400</strong> {t('storefront.storefront_settings_tab.s130', "بكسل (أو")} <strong>1920 × 480</strong> {t('storefront.storefront_settings_tab.s131', "فائقة الجودة أو")} <strong>1280 × 320</strong>{t('storefront.storefront_settings_tab.s132', "). النسبة الهندسية الثابتة هي")} <strong>4:1</strong> {t('storefront.storefront_settings_tab.s133', "شريطي بانورامي (العرض أربعة أضعاف الارتفاع تماماً).")}
+                      • <strong>بنر الهيرو كامل الشاشة (Full-Bleed):</strong> المقاس الذهبي هو <strong>1920 × 480</strong> بكسل (أو <strong>1920 × 400</strong>) بنسبة <strong>4:1</strong>. هذا المقاس يملأ نافذة المتصفح بنقاء استثنائي وفخامة تضاهي كبرى المتاجر العالمية دون أي بكسلة على الشاشات الكبيرة.
                     </div>
                     <div>
-                      • <strong>{t('storefront.storefront_settings_tab.s134', "قاعدة منطقة الأمان (60% بالمنتصف):")}</strong> {t('storefront.storefront_settings_tab.s135', "اطلب دائماً حصر اسم المتجر والشعار والمنتجات والنصوص في الـ")} <strong>{t('storefront.storefront_settings_tab.s136', "60% الوسطى فقط")}</strong> {t('storefront.storefront_settings_tab.s137', "من الكادر، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة ناعمة بدون عناصر مقطوعة حتى يملأ البنر الشاشة 100% بدون أي قص للحروف.")}
+                      • <strong>بنر الهيرو المدمج (Contained):</strong> المقاس المعتمد <strong>1600 × 400</strong> أو <strong>1440 × 360</strong> بكسل بنسبة <strong>4:1</strong> ليطابق عرض كادر المتجر بدقة دون أي زوائد.
                     </div>
                     <div>
-                      • <strong>{t('storefront.storefront_settings_tab.s138', "ملء الشاشة مع نمط الاحتواء الكامل (Contain):")}</strong> {t('storefront.storefront_settings_tab.s139', "عند استخدام مقاس 1600×400 ونمط \"احتواء كامل\"، سيملأ البنر كامل عرض الحاوية دون أي فراغات ودون قطع أي طرف من التصميم.")}
+                      • <strong>البانرات الفاصلة بين الأقسام (Mid-Page Promos):</strong> المقاس الموصى به <strong>1400 × 350</strong> بكسل (أو <strong>1200 × 300</strong>) بنسبة <strong>4:1</strong> لملء الفواصل الإعلانية بين صفوف المنتجات بوضوح وسرعة تحميل فائقة.
+                    </div>
+                    <div>
+                      • <strong>قاعدة منطقة الأمان (Safe Zone 60% بالمنتصف):</strong> احرص دائماً على حصر اسم المتجر، الشعار، عبارات العرض، والمنتجات في <strong>الـ 60% الوسطى فقط</strong>، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة وإضاءة ناعمة، لضمان ظهور البنر متجاوباً ومتكاملاً على شاشات الموبايل والحواسيب دون أي قص للحروف أو المنتجات.
                     </div>
                   </div>
 
@@ -2584,9 +2685,12 @@ export function StorefrontSettingsTab() {
                 }}
               >
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                     <LayersIcon size={16} color="#170e5e" />
                     <span>بانرات التصفح الإعلانية الفاصلة بين الأقسام (Mid-Page Promos)</span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '1px 7px' }}>
+                      المقاس الموصى به: 1400 × 350 بكسل (4:1)
+                    </span>
                   </h3>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>
                     فواصل إعلانية جذابة تفصل بين صفوف وأقسام المنتجات لكسر الملل وتوجيه الزبائن لأقسام وعروض محددة

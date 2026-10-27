@@ -4205,11 +4205,23 @@ export class StorefrontService {
       .select([
         sql<number>`COUNT(*)::int`.as('total_orders'),
         sql<number>`COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0)::float`.as('total_revenue'),
+        sql<number>`COUNT(CASE WHEN status = 'pending' THEN 1 END)::int`.as('pending_orders'),
+        sql<number>`COUNT(CASE WHEN status = 'confirmed' THEN 1 END)::int`.as('confirmed_orders'),
+        sql<number>`COUNT(CASE WHEN status = 'processing' THEN 1 END)::int`.as('processing_orders'),
+        sql<number>`COUNT(CASE WHEN status = 'shipped' THEN 1 END)::int`.as('shipped_orders'),
         sql<number>`COUNT(CASE WHEN status = 'delivered' THEN 1 END)::int`.as('delivered_orders'),
         sql<number>`COUNT(CASE WHEN status = 'cancelled' THEN 1 END)::int`.as('cancelled_orders'),
-        sql<number>`COUNT(CASE WHEN status = 'pending' THEN 1 END)::int`.as('pending_orders'),
       ])
       .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .executeTakeFirst();
+
+    const todayStats = await this.db
+      .selectFrom('online_orders')
+      .select([
+        sql<number>`COUNT(*)::int`.as('today_orders'),
+        sql<number>`COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total_amount ELSE 0 END), 0)::float`.as('today_revenue'),
+      ])
+      .where(sql<boolean>`tenant_id = ${tenantId} AND created_at >= CURRENT_DATE`)
       .executeTakeFirst();
 
     const cartStats = await (this.db as any)
@@ -4227,6 +4239,10 @@ export class StorefrontService {
     const deliveredOrders = Number(stats?.delivered_orders || 0);
     const cancelledOrders = Number(stats?.cancelled_orders || 0);
     const pendingOrders = Number(stats?.pending_orders || 0);
+    const confirmedOrders = Number(stats?.confirmed_orders || 0);
+    const processingOrders = Number(stats?.processing_orders || 0);
+    const shippedOrders = Number(stats?.shipped_orders || 0);
+
     const validOrders = Math.max(0, totalOrders - cancelledOrders);
     const averageOrderValue = validOrders > 0 ? Math.round(totalRevenue / validOrders) : 0;
 
@@ -4235,17 +4251,83 @@ export class StorefrontService {
     const totalSessions = totalOrders + unrecoveredAbandoned;
     const conversionRate = totalSessions > 0 ? Math.round((totalOrders / totalSessions) * 100) : 0;
 
+    // Aggregate Top-Selling Products from recent orders
+    const recentOrders = await this.db
+      .selectFrom('online_orders')
+      .select(['items_json', 'status', 'created_at'])
+      .where(sql<boolean>`tenant_id = ${tenantId} AND status != 'cancelled'`)
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .execute();
+
+    const productSalesMap = new Map<number, { productId: number; productName: string; quantity: number; revenue: number }>();
+    for (const o of recentOrders) {
+      try {
+        const items = typeof o.items_json === 'string' ? JSON.parse(o.items_json) : (o.items_json || []);
+        for (const it of items) {
+          const pId = Number(it.productId || it.id);
+          if (!pId) continue;
+          const existing = productSalesMap.get(pId) || {
+            productId: pId,
+            productName: String(it.productName || it.name || 'صنف'),
+            quantity: 0,
+            revenue: 0,
+          };
+          existing.quantity += Number(it.quantity || 1);
+          existing.revenue += Number(it.total || (Number(it.unitPrice || 0) * Number(it.quantity || 1)));
+          productSalesMap.set(pId, existing);
+        }
+      } catch {}
+    }
+    const topSellingProducts = Array.from(productSalesMap.values())
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
+
+    // Low stock warnings for products visible in store
+    const lowStockRows = await this.db
+      .selectFrom('products')
+      .select(['id', 'name', 'stock_qty', 'retail_price'])
+      .where(sql<boolean>`tenant_id = ${tenantId}`)
+      .where('is_active', '=', true)
+      .where(sql<boolean>`(item_type = 'product' OR item_type IS NULL)`)
+      .where(sql<boolean>`stock_qty <= 5`)
+      .orderBy('stock_qty', 'asc')
+      .limit(6)
+      .execute();
+
+    const lowStockStorefrontProducts = lowStockRows.map((r: any) => ({
+      id: Number(r.id),
+      name: String(r.name),
+      stock: Number(r.stock_qty || 0),
+      price: Number(r.retail_price || 0),
+    }));
+
     return {
       totalOrders,
       totalRevenue,
       deliveredOrders,
       cancelledOrders,
       pendingOrders,
+      confirmedOrders,
+      processingOrders,
+      shippedOrders,
       averageOrderValue,
       unrecoveredAbandoned,
       recoveredAbandoned,
       abandonedCartsCount: unrecoveredAbandoned,
       conversionRate,
+      todayOrders: Number(todayStats?.today_orders || 0),
+      todayRevenue: Number(todayStats?.today_revenue || 0),
+      topSellingProducts,
+      lowStockStorefrontProducts,
+      statusBreakdown: {
+        pending: pendingOrders,
+        confirmed: confirmedOrders,
+        processing: processingOrders,
+        shipped: shippedOrders,
+        delivered: deliveredOrders,
+        cancelled: cancelledOrders,
+      },
     };
   }
 
