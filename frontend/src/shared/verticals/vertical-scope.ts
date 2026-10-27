@@ -308,9 +308,6 @@ export function isRouteAllowedInVertical(vertical: BusinessVertical, target: str
       return false;
     }
     if (key.includes('storefront') || key.includes('marketplaces')) {
-      if (vertical === 'maritime' || vertical === 'contracting') {
-        return false;
-      }
       return settings?.storefrontModuleEnabled !== false;
     }
   }
