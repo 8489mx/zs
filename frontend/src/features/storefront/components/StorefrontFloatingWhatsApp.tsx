@@ -1,4 +1,3 @@
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface StorefrontFloatingWhatsAppProps {
@@ -6,6 +5,7 @@ interface StorefrontFloatingWhatsAppProps {
   countryCode?: string;
   currency?: string;
   storeName?: string;
+  businessName?: string;
   hasFloatingCart?: boolean;
 }
 
@@ -14,6 +14,7 @@ export function StorefrontFloatingWhatsApp({
   countryCode,
   currency,
   storeName,
+  businessName,
   hasFloatingCart = false,
 }: StorefrontFloatingWhatsAppProps) {
   const { t } = useTranslation();
@@ -43,8 +44,9 @@ export function StorefrontFloatingWhatsApp({
 
   if (!waNumber || waNumber.length < 8) return null;
 
-  const welcomeMsg = storeName
-    ? t('storefront.floating_whatsapp.welcome_store', 'مرحباً، أود الاستفسار عن منتجات {{name}}', { name: storeName })
+  const displayName = businessName || storeName;
+  const welcomeMsg = displayName
+    ? t('storefront.floating_whatsapp.welcome_store', 'مرحباً، أود الاستفسار عن منتجات {{name}}', { name: displayName })
     : t('storefront.floating_whatsapp.welcome_generic', 'مرحباً، أود الاستفسار عن منتجات المتجر');
 
   const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(welcomeMsg)}`;

@@ -223,7 +223,7 @@ export function StorefrontCheckoutModal({
     if (info?.currency === 'BHD') return 'BH';
     return 'EG';
   });
-  const isKuwait = selectedCountry === 'KW';
+  const isKuwait = selectedCountry === 'KW' || info?.currency === 'KWD';
   const [useKwStructured, setUseKwStructured] = useState(true);
   const [kwArea, setKwArea] = useState('');
   const [kwBlock, setKwBlock] = useState('');
@@ -560,7 +560,6 @@ export function StorefrontCheckoutModal({
   const storeCurrency = info?.currency || getGlobalCurrencySymbol();
   const isThreeDec = isThreeDecimalCurrency(storeCurrency);
   const activeCurrencySymbol = getCurrencySymbol(storeCurrency);
-  const isKuwait = selectedCountry === 'KW' || storeCurrency === 'KWD';
 
   const formatMoney = (val: number | string | undefined | null): string => {
     const num = Number(val || 0);

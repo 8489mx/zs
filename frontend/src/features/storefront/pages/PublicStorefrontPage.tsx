@@ -645,7 +645,7 @@ export function PublicStorefrontPage() {
           phone={info.whatsappPhone}
           countryCode={info.countryCode}
           currency={info.currency}
-          storeName={info.storeName}
+          businessName={info.businessName || info.title}
           hasFloatingCart={cartItems.length > 0}
         />
       )}
