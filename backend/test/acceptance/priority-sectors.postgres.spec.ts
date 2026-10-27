@@ -16,6 +16,9 @@ import { PurchasesService } from '../../src/modules/purchases/purchases.service'
 import { SalesService } from '../../src/modules/sales/sales.service';
 import { ReturnsService } from '../../src/modules/returns/returns.service';
 import { CashDrawerService } from '../../src/modules/cash-drawer/cash-drawer.service';
+import { KdsService } from '../../src/modules/sales/services/kds.service';
+import { RestaurantFoodWasteService } from '../../src/modules/sales/services/restaurant-food-waste.service';
+import { DeliveryRepsService } from '../../src/modules/delivery-reps/delivery-reps.service';
 
 const PASSWORD = 'DisposableAcceptance!2026#Only';
 const cents = (n: unknown) => Number(Number(n).toFixed(2));
@@ -42,6 +45,9 @@ async function main(): Promise<void> {
   const sales = app.get(SalesService);
   const returns = app.get(ReturnsService);
   const drawer = app.get(CashDrawerService);
+  const kds = app.get(KdsService);
+  const waste = app.get(RestaurantFoodWasteService);
+  const couriers = app.get(DeliveryRepsService);
   const tag = randomUUID().replaceAll('-','').slice(0,9);
   const creds = await createPasswordRecord(PASSWORD);
 
@@ -369,6 +375,114 @@ async function main(): Promise<void> {
     assert.equal(Number(salesAfter.n),Number(salesBefore.n),'rejected recipe ingredient allocation is atomic');
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL shortage rolls back POS source, tender, stock and GL');
+
+    // KDS: real PostgreSQL queue, tenant isolation, item/station routing and
+    // simultaneous status advances. The second transition must not be lost.
+    const restaurantTicket = (await kds.getActiveTickets(rest.auth,{station:'kitchen'}))
+      .tickets.find(t => t.id === rId);
+    assert.ok(restaurantTicket?.items.length, 'restaurant ticket reaches kitchen station');
+    await assert.rejects(kds.setTicketStatus(market.auth,rId,'cooking'));
+    await assert.rejects(kds.setTicketStatus(rest.auth,999999999,'ready'));
+    await kds.setTicketStatus(rest.auth,rId,'pending');
+    const transitions=await Promise.all([
+      kds.advanceTicketStatus(rest.auth,rId),
+      kds.advanceTicketStatus(rest.auth,rId),
+    ]);
+    assert.deepEqual(transitions.map(x=>x.newStatus).sort(),['cooking','ready']);
+    assert.equal((await kds.getActiveTickets(rest.auth)).tickets.find(t=>t.id===rId)?.status,'ready');
+    const itemId=Number((await db.selectFrom('sale_items').select('id')
+      .where('tenant_id','=',rest.auth.tenantId!).where('sale_id','=',rId)
+      .executeTakeFirstOrThrow()).id);
+    await assert.rejects(kds.setItemStatus(rest.auth,rId,itemId+987654,'cooking'));
+    await kds.setItemStatus(rest.auth,rId,itemId,'ready');
+    console.log('PASS restaurant PostgreSQL KDS item/station, tenant ownership, no ghost tickets and concurrent state advances');
+
+    // Prepared composite sale must never restore consumed components through the
+    // generic cancellation journal. Before cooking, normal cancel still restores.
+    const cookedSale=await checkout(rest,[{productId:meal,name:'Bistro meal',qty:1,price:60,
+      unitMultiplier:1,modifiers:[{productId:cheese,name:'Cheese',qty:0.2,price:0}]}],
+      {orderType:'dine_in'});
+    const cookedId=Number((cookedSale.sale as {id:string}).id);
+    await kds.setTicketStatus(rest.auth,cookedId,'cooking');
+    const cookedMealStock=Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal).executeTakeFirstOrThrow()).stock_qty);
+    const cookedCheeseStock=Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty);
+    await assert.rejects(sales.cancelSale(cookedId,'Prepared',PASSWORD,rest.auth),
+      (e:any)=>e.code==='RESTAURANT_PREPARED_CANCEL_USE_RETURN');
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal).executeTakeFirstOrThrow()).stock_qty),cookedMealStock);
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty),cookedCheeseStock);
+    await receive(rest,meal,1,4);
+    const prePrep=await checkout(rest,[{productId:meal,name:'Pre-prep meal',qty:1,price:60,
+      unitMultiplier:1,modifiers:[{productId:cheese,name:'Cheese',qty:0.1,price:0}]}],
+      {orderType:'dine_in'});
+    const prePrepId=Number((prePrep.sale as {id:string}).id);
+    await sales.cancelSale(prePrepId,'Before preparation',PASSWORD,rest.auth);
+    const cancelled=await db.selectFrom('sales').select('status').where('tenant_id','=',rest.auth.tenantId!)
+      .where('id','=',prePrepId).executeTakeFirstOrThrow();
+    assert.equal(cancelled.status,'cancelled');
+    await check(rest,[meal,cheese]);
+    console.log('PASS restaurant PostgreSQL pre-prep cancellation restores, cooked meal cancellation fails without phantom stock/COGS');
+
+    // Waste uses existing branch stock and live WAC; a shortage or missing
+    // warehouse must rollback the log, inventory and expense as one transaction.
+    const wasteBefore=await db.selectFrom('restaurant_food_waste_logs').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
+    await assert.rejects(waste.logWaste(rest.auth,{
+      branchId:rest.branchId,productId:cheese,quantity:999,reason:'spoilage',
+    }));
+    assert.equal(Number((await db.selectFrom('restaurant_food_waste_logs')
+      .select(db.fn.countAll().as('n')).where('tenant_id','=',rest.auth.tenantId!)
+      .executeTakeFirstOrThrow()).n),Number(wasteBefore.n));
+    const noWarehouse=await db.insertInto('branches').values({
+      tenant_id:rest.auth.tenantId!,account_id:rest.auth.accountId!,
+      name:'No kitchen stock',code:`NOWH_${tag}`,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    await assert.rejects(waste.logWaste(rest.auth,{
+      branchId:Number(noWarehouse.id),productId:cheese,quantity:0.1,reason:'expired',
+    }));
+    const wasteResult=await waste.logWaste(rest.auth,{
+      branchId:rest.branchId,productId:cheese,quantity:0.2,reason:'spoilage',
+    });
+    assert.equal(wasteResult.totalCost,2);
+    assert.equal(await posted(rest,'5300'),2);
+    assert.equal(Number((await db.selectFrom('restaurant_food_waste_logs')
+      .select(db.fn.countAll().as('n')).where('tenant_id','=',rest.auth.tenantId!)
+      .executeTakeFirstOrThrow()).n),Number(wasteBefore.n)+1);
+    await check(rest,[meal,cheese]);
+    console.log('PASS restaurant PostgreSQL real food waste WAC/stock/GL, no negative or phantom branch waste');
+
+    // COD delivery: driver's proof-of-delivery must not silently settle cash;
+    // authorized cashier settles courier cash/fee/GL exactly once.
+    await receive(rest,meal,1,4);
+    const createdRep=await couriers.create({name:'Acceptance Courier',isActive:true,repType:'delivery'} as any,rest.auth) as any;
+    const courier=createdRep.deliveryReps.find((x:any)=>x.name==='Acceptance Courier');
+    assert.ok(courier?.id);
+    const codSale=await sales.createSale({
+      source:'pos',branchId:rest.branchId,locationId:rest.locationId,customerId:rest.customerId,
+      paymentType:'credit',paymentChannel:'credit',orderType:'delivery',deliveryRepId:Number(courier.id),
+      collectionStatus:'cod',deliveryFee:10,taxRate:0,pricesIncludeTax:false,
+      items:[{productId:meal,name:'Courier meal',qty:1,price:60,unitMultiplier:1}],
+      payments:[],
+    } as any,rest.auth);
+    const codId=Number((codSale.sale as {id:string}).id);
+    const cashBefore=await posted(rest,'1110');
+    await couriers.driverSettleOrder(codId,Number(courier.id),rest.auth.tenantId!);
+    assert.equal((await db.selectFrom('sales').select('delivery_status')
+      .where('tenant_id','=',rest.auth.tenantId!).where('id','=',codId)
+      .executeTakeFirstOrThrow()).delivery_status,'delivered');
+    assert.equal(await posted(rest,'1110'),cashBefore,'driver proof cannot book cashier cash');
+    const forbidden=await assert.rejects(couriers.dispatchOrders(rest.auth,{
+      repId:Number(courier.id),saleIds:[codId,prePrepId],
+    }), (e:any)=>e.code==='DELIVERY_DISPATCH_FORBIDDEN');
+    await couriers.settleOrder(codId,rest.auth);
+    assert.equal(await posted(rest,'1110'),cashBefore+60,'COD 70 minus freelance courier fee 10');
+    await assert.rejects(couriers.settleOrder(codId,rest.auth),
+      (e:any)=>e.code==='ALREADY_SETTLED');
+    await check(rest,[meal,cheese]);
+    console.log('PASS restaurant PostgreSQL COD courier POD, dispatch rollback, settlement fee/cash/GL once');
   } finally {
     await app.close();
   }
