@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req, UseGuards
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 import { RequireFeature } from '../../../core/auth/decorators/feature.decorator';
-import { AllowAuthenticated } from '../../../core/auth/decorators/permissions.decorator';
+import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
 import { RequestWithAuth } from '../../../core/auth/interfaces/request-with-auth.interface';
 import {
   KdsService,
@@ -14,7 +14,7 @@ import {
 @Controller('api/sales/kds')
 @UseGuards(SessionAuthGuard, PermissionsGuard)
 @RequireFeature('restaurant')
-@AllowAuthenticated()
+@RequirePermissions('sales')
 export class KdsController {
   constructor(private readonly kdsService: KdsService) {}
 
