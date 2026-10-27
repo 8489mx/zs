@@ -964,6 +964,21 @@ export class SaasAdminService {
       const normalized = normalizeIndustryProfileKey(dto.activityType);
       updateData.activity_type = normalized;
       const patch = this.provisioning.getIndustrySettingsPatch(normalized);
+      const targetPlan = dto.planId !== undefined ? dto.planId : (tenant as any).plan_id;
+      const targetExtra = dto.extraFeatures !== undefined ? dto.extraFeatures : (tenant as any).extra_features;
+      const isOmni = targetPlan === 'plan_omnichannel' || targetPlan === 'omnichannel' || (Array.isArray(targetExtra) && targetExtra.includes('storefront'));
+      const isEnterprise = isOmni || targetPlan === 'plan_ultimate' || targetPlan === 'ultimate' || (Array.isArray(targetExtra) && targetExtra.includes('accounting'));
+      if (isOmni) {
+        delete patch.storefrontModuleEnabled;
+      }
+      if (isEnterprise) {
+        delete patch.enableEnterpriseFeatures;
+        delete patch.installmentsModuleEnabled;
+        delete patch.taxDeclarationModuleEnabled;
+        delete patch.fixedAssetsModuleEnabled;
+        delete patch.deliveryRepsModuleEnabled;
+        delete patch.hrModuleEnabled;
+      }
       const userRow = await this.db
         .selectFrom('users')
         .select('account_id')
@@ -1282,6 +1297,9 @@ export class SaasAdminService {
         baseFeatures = rows.map(r => r.feature_code);
         if (baseFeatures.length === 0 && FALLBACK_PLAN_FEATURES[planId]) {
           baseFeatures = FALLBACK_PLAN_FEATURES[planId];
+        }
+        if (['plan_omnichannel', 'omnichannel', 'OMNICHANNEL', '4'].includes(String(planId)) && !baseFeatures.includes('storefront')) {
+          baseFeatures.push('storefront');
         }
       }
 

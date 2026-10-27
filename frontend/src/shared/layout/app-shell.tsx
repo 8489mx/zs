@@ -921,7 +921,7 @@ export function AppShell({ children }: PropsWithChildren) {
       labelOverrides['inventory-issue-orders'] = t('sidebar.van-issue', 'تحويل وصرف سيارات الفان');
     }
     const isPlatformAdminUser = isPlatformAdmin(user);
-    const isEnterpriseCommerceActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || isImportVertical || settings?.enableEnterpriseFeatures === true;
+    const isEnterpriseCommerceActive = isContractingVertical || isMaritimeVertical || isManufacturingVertical || isImportVertical || settings?.enableEnterpriseFeatures === true || Boolean(tenant?.features?.includes('accounting'));
 
     const hasFeature = (feat: string) => {
       if (isPlatformAdminUser) return true;
@@ -1064,13 +1064,13 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key?.startsWith('pharmacy-') && (settings?.enablePharmacyModule !== true || !hasFeature('pharmacy'))) return false;
         if (item.key?.startsWith('manufacturing-') && (settings?.manufacturingModuleEnabled !== true || !hasFeature('manufacturing'))) return false;
         if (item.key === 'services' && (settings?.servicesModuleEnabled !== true || (!hasFeature('purchases') && !hasFeature('services')))) return false;
-        if (item.key === 'online-orders' && (settings?.storefrontModuleEnabled !== true || !hasFeature('storefront'))) return false;
-        if (item.key === 'installments' && (settings?.installmentsModuleEnabled !== true || !hasFeature('installments'))) return false;
-        if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && (settings?.taxDeclarationModuleEnabled !== true || !hasFeature('vat_declaration') || !isEnterpriseCommerceActive)) return false;
+        if (item.key === 'online-orders' && (!hasFeature('storefront') || settings?.storefrontModuleEnabled === false)) return false;
+        if (item.key === 'installments' && (!hasFeature('installments') || settings?.installmentsModuleEnabled === false)) return false;
+        if (item.key === 'vat-declaration' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && (!hasFeature('vat_declaration') || settings?.taxDeclarationModuleEnabled === false)) return false;
         // Delivery Reps (Retail / Stores / Last-Mile Courier):
         const isDeliveryRepsEnabled = Boolean(
-          settings?.deliveryRepsModuleEnabled === true ||
-          (settings?.deliveryFleetModuleEnabled === true && !isWholesaleVanVertical && !isWarehousingVertical)
+          settings?.deliveryRepsModuleEnabled !== false &&
+          (settings?.deliveryRepsModuleEnabled === true || settings?.deliveryFleetModuleEnabled === true || hasFeature('deliveryReps'))
         );
         if (item.key === 'delivery-reps' && (!isDeliveryRepsEnabled || !hasFeature('deliveryReps'))) return false;
 
@@ -1090,7 +1090,7 @@ export function AppShell({ children }: PropsWithChildren) {
         // POS & Retail Sales gating:
         if ((item.key === 'pos' || item.key === 'cash-drawer') && (settings?.posModuleEnabled === false || isWholesaleVanVertical || isWarehousingVertical)) return false;
         if ((item.key === 'sales' || item.key === 'returns') && settings?.posModuleEnabled === false && !isWholesaleVanVertical && !isWarehousingVertical && !isImportVertical && !isEnterpriseCommerceActive) return false;
-        if (item.key === 'customers' && settings?.posModuleEnabled === false && !isEnterpriseCommerceActive && settings?.installmentsModuleEnabled !== true && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && !isWholesaleVanVertical && !isWarehousingVertical) return false;
+        if (item.key === 'customers' && settings?.posModuleEnabled === false && !isEnterpriseCommerceActive && settings?.installmentsModuleEnabled === false && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && !isWholesaleVanVertical && !isWarehousingVertical) return false;
 
         // Enterprise Sales gating (CRM, Sales Orders, Price Lists, Quotations):
         if (item.key === 'crm' && !isMaritimeVertical && !isContractingVertical && !isImportVertical && !isManufacturingVertical && !isServicesVertical && (!isEnterpriseCommerceActive || settings?.crmModuleEnabled !== true)) return false;
@@ -1112,7 +1112,7 @@ export function AppShell({ children }: PropsWithChildren) {
         if (item.key === 'reports-balances' && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && !isEnterpriseCommerceActive) return false;
 
         // HR gating:
-        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && (settings?.hrModuleEnabled !== true || !hasFeature('hr'))) return false;
+        if ((item.key === 'hr' || item.key === 'hr-settlements' || item.key === 'reports-employees') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && (!hasFeature('hr') || settings?.hrModuleEnabled === false)) return false;
 
         // Accounting tree & journal gating:
         if ((item.key?.startsWith('accounting-') || item.key === 'accounts') && !isContractingVertical && !isMaritimeVertical && !isManufacturingVertical && !isImportVertical && (!isEnterpriseCommerceActive || !hasFeature('accounting'))) return false;
@@ -1137,7 +1137,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const primaryNavigationKeys = useMemo(() => {
     const isPlatformAdminUser = isPlatformAdmin(user);
     const hasStorefront = isPlatformAdminUser || Boolean(tenant?.features?.includes('storefront'));
-    const storefrontActive = hasStorefront && settings?.storefrontModuleEnabled === true;
+    const storefrontActive = hasStorefront && settings?.storefrontModuleEnabled !== false;
     const hasReports = isPlatformAdminUser || Boolean(tenant?.features?.includes('reports'));
     const dashKeys = hasReports ? ['dashboard'] : [];
 
@@ -1205,7 +1205,7 @@ export function AppShell({ children }: PropsWithChildren) {
     const isMaritimeVertical = isDedicatedMaritimeOnly;
     const isManufacturingVertical = isDedicatedManufacturingOnly;
 
-    const isEnterpriseCommerceActive = isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || isDedicatedImportOnly || settings?.enableEnterpriseFeatures === true;
+    const isEnterpriseCommerceActive = isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || isDedicatedImportOnly || settings?.enableEnterpriseFeatures === true || Boolean(tenant?.features?.includes('accounting'));
     const hasAccounting = isPlatformAdminUser || isDedicatedContractingOnly || isDedicatedMaritimeOnly || isDedicatedManufacturingOnly || isDedicatedImportOnly || (isEnterpriseCommerceActive && Boolean(tenant?.features?.includes('accounting')));
     const hasRestaurant = isPlatformAdminUser || Boolean(tenant?.features?.includes('restaurant'));
     const hasMaritimeFreight = isPlatformAdminUser || isDedicatedMaritimeOnly || Boolean(tenant?.features?.includes('maritime_freight'));

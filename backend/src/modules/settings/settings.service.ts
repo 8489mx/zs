@@ -339,8 +339,12 @@ export class SettingsService {
         settings.clothingModuleEnabled = (settings.industryProfile as any)?.subVertical === 'clothing';
       }
 
-      // Delivery reps (retail / standard): if profile includes deliveryReps, ensure it's enabled (self-heal)
-      if (profileDefaults.includes('deliveryReps')) {
+      const isOmnichannelPlan = tenant?.plan_id === 'plan_omnichannel' || (tenant as any)?.plan_id === 'OMNICHANNEL';
+      const isUltimatePlan = tenant?.plan_id === 'plan_ultimate' || (tenant as any)?.plan_id === 'ULTIMATE';
+      const isEnterprisePlan = isOmnichannelPlan || isUltimatePlan;
+
+      // Delivery reps (retail / standard): if profile or plan includes deliveryReps, ensure it's enabled (self-heal)
+      if (profileDefaults.includes('deliveryReps') || isEnterprisePlan || planFeatures.includes('deliveryReps')) {
         if (settings.deliveryRepsModuleEnabled === undefined) {
           settings.deliveryRepsModuleEnabled = true;
         }
@@ -359,9 +363,32 @@ export class SettingsService {
         }
       }
 
-      // Enterprise features: if the profile includes accounting, ensure enterprise mode (self-heal)
-      if (profileDefaults.includes('accounting') && settings.enableEnterpriseFeatures !== true) {
+      // Enterprise features & accounting: if the profile or plan includes accounting, ensure enterprise mode (self-heal)
+      if ((isEnterprisePlan || profileDefaults.includes('accounting') || planFeatures.includes('accounting')) && settings.enableEnterpriseFeatures !== true) {
         settings.enableEnterpriseFeatures = true;
+      }
+      if ((isEnterprisePlan || planFeatures.includes('fixed_assets')) && settings.fixedAssetsModuleEnabled !== true) {
+        settings.fixedAssetsModuleEnabled = true;
+      }
+
+      // Installments: if plan includes installments or is an enterprise tier
+      if ((isEnterprisePlan || planFeatures.includes('installments')) && settings.installmentsModuleEnabled !== true) {
+        settings.installmentsModuleEnabled = true;
+      }
+
+      // Tax declaration & integration: if plan includes vat_declaration or taxIntegration
+      if ((isEnterprisePlan || planFeatures.includes('vat_declaration') || planFeatures.includes('taxIntegration')) && settings.taxDeclarationModuleEnabled !== true) {
+        settings.taxDeclarationModuleEnabled = true;
+      }
+
+      // HR & Payroll: if plan includes hr
+      if ((isEnterprisePlan || planFeatures.includes('hr')) && settings.hrModuleEnabled !== true) {
+        settings.hrModuleEnabled = true;
+      }
+
+      // Omnichannel storefront feature: if the plan includes storefront or is plan_omnichannel, ensure storefront is active (self-heal)
+      if ((isOmnichannelPlan || planFeatures.includes('storefront')) && settings.storefrontModuleEnabled !== true) {
+        settings.storefrontModuleEnabled = true;
       }
     }
 

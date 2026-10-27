@@ -592,6 +592,18 @@ export class TrialTenantProvisioningService {
       ];
 
       const industryPatch = this.getIndustrySettingsPatch(businessIndustry);
+      const isOmni = featurePlanId === 'plan_omnichannel' || featurePlanId === 'omnichannel' || featurePlanId === 'OMNICHANNEL';
+      const isEnterprise = isOmni || featurePlanId === 'plan_ultimate' || featurePlanId === 'ultimate' || featurePlanId === 'ULTIMATE';
+      if (isOmni) {
+        industryPatch.storefrontModuleEnabled = true;
+      }
+      if (isEnterprise) {
+        industryPatch.enableEnterpriseFeatures = true;
+        industryPatch.installmentsModuleEnabled = true;
+        industryPatch.taxDeclarationModuleEnabled = true;
+        industryPatch.fixedAssetsModuleEnabled = true;
+        industryPatch.hrModuleEnabled = true;
+      }
       for (const [k, v] of Object.entries(industryPatch)) {
         defaultSettings.push({ key: k, value: v });
       }
