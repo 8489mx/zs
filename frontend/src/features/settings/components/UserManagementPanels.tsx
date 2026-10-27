@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
+import { SubmitButton } from '@/shared/components/submit-button';
 import { DataTable } from '@/shared/ui/data-table';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
 import type { Branch } from '@/types/domain';
@@ -295,9 +296,17 @@ export function UserManagementEditorPanel({
           {canUnlockSelected ? <Button type="button" variant="secondary" onClick={onUnlock} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>{t('settings.user_management_panels.s24', "فتح القفل")}</Button> : null}
           {canDeleteSelected ? <Button type="button" variant="danger" onClick={onDelete} disabled={isPending} style={{ height: '32px', padding: '0 12px', fontSize: '0.82rem' }}>{t('settings.user_management_panels.s25', "حذف المستخدم")}</Button> : null}
         </div>
-        <Button type="button" onClick={onSave} disabled={isPending} style={{ height: '32px', padding: '0 18px', fontSize: '0.84rem', fontWeight: 700, backgroundColor: '#170e5e', color: '#fff' }}>
-          {isPending ? t('settings.user_management_panels.s26', "جاري الحفظ...") : t('settings.user_management_panels.s27', "حفظ المستخدم")}
-        </Button>
+        <SubmitButton
+          type="button"
+          onClick={onSave}
+          isPending={isPending}
+          isSuccess={isSuccess}
+          disabled={isPending}
+          idleText={t('settings.user_management_panels.s27', "حفظ المستخدم")}
+          pendingText={t('settings.user_management_panels.s26', "جاري الحفظ...")}
+          successText={statusMessage || t('settings.user_management_panels.s22', "تم تحديث بيانات المستخدم.")}
+          style={{ height: '32px', padding: '0 18px', fontSize: '0.84rem', fontWeight: 700, backgroundColor: '#170e5e', color: '#fff' }}
+        />
       </div>
     </div>
   );

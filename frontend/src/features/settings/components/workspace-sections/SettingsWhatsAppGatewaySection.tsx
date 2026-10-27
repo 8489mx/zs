@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
+import { SubmitButton } from '@/shared/components/submit-button';
 import { CustomSelect } from '@/shared/ui/custom-select';
-import { MessageSquareIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { MessageSquareIcon, RefreshCwIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
 import { resolveCurrentVertical } from '@/shared/verticals/vertical-scope';
 
@@ -86,10 +88,12 @@ export function SettingsWhatsAppGatewaySection() {
       http<{ ok: boolean }>('/api/settings/whatsapp', { method: 'POST', body: JSON.stringify(payload) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings-whatsapp-config'] });
+      toast.success('تم حفظ وتطبيق إعدادات الواتساب وبوت الذكاء الاصطناعي بنجاح!');
       setFeedback({ kind: 'success', message: 'تم حفظ إعدادات الواتساب وبوت الذكاء الاصطناعي بنجاح!' });
       setTimeout(() => setFeedback(null), 3500);
     },
     onError: (err: any) => {
+      toast.error(err?.message || 'فشل حفظ الإعدادات');
       setFeedback({ kind: 'error', message: err?.message || 'فشل حفظ الإعدادات' });
     },
   });
@@ -1214,16 +1218,40 @@ export function SettingsWhatsAppGatewaySection() {
             </Button>
           </div>
 
-          <Button
+          <SubmitButton
             type="button"
-            variant="primary"
-            disabled={saveMutation.isPending}
+            isPending={saveMutation.isPending}
+            isSuccess={saveMutation.isSuccess}
+            idleText={t('settings.workspace_sections.settings_whats_app_gateway_section.s101', "حفظ الإعدادات بالكامل")}
+            pendingText={t('settings.workspace_sections.settings_whats_app_gateway_section.s100', "جاري الحفظ...")}
+            successText="تم حفظ إعدادات الواتساب بنجاح!"
             onClick={handleSaveAll}
-            style={{ background: '#170e5e', fontSize: '13px', padding: '8px 20px', fontWeight: 800 }}
-          >
-            {saveMutation.isPending ? t('settings.workspace_sections.settings_whats_app_gateway_section.s100', "جاري الحفظ...") : t('settings.workspace_sections.settings_whats_app_gateway_section.s101', "حفظ الإعدادات بالكامل")}
-          </Button>
+            style={{ background: '#170e5e', color: '#ffffff', fontSize: '13px', padding: '8px 20px', fontWeight: 800 }}
+          />
         </div>
+
+        {saveMutation.isSuccess && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              background: '#f0fdf4',
+              border: '1.5px solid #86efac',
+              borderRadius: '8px',
+              color: '#15803d',
+              fontSize: '12.5px',
+              fontWeight: 800,
+              marginTop: '12px',
+              boxShadow: '0 1px 4px rgba(22, 163, 74, 0.12)',
+            }}
+          >
+            <CheckIcon size={16} color="#16a34a" />
+            <span>تم حفظ وتحديث إعدادات الواتساب والرد الآلي بنجاح! التغييرات مفعلة مباشرة.</span>
+          </div>
+        )}
       </div>
     </div>
   );

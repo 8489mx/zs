@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { compressImage } from '@/shared/utils/image-compressor';
+import { toast } from '@/shared/components/system-alert';
 import { StorefrontProductStudio } from './StorefrontProductStudio';
 import { StorefrontCouponsManager } from './StorefrontCouponsManager';
 import { StorefrontDeliveryZonesManager } from './StorefrontDeliveryZonesManager';
@@ -289,7 +290,11 @@ export function StorefrontSettingsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-settings'] });
       setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
+      toast.success(t('storefront.storefront_settings_tab.save_success', 'تم حفظ وتطبيق كافة إعدادات المتجر بنجاح!'));
+      setTimeout(() => setSavedSuccess(false), 3500);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر حفظ إعدادات المتجر، يرجى المحاولة مرة أخرى.');
     },
   });
 
@@ -3205,29 +3210,72 @@ export function StorefrontSettingsTab() {
             </div>
           </div>
 
-          {/* Save Action Button matching Image 1 exact height & proportions */}
-          <div style={{ width: '100%', marginTop: '6px' }}>
+          {/* Save Action Button with Direct Visual Feedback & Animations */}
+          <div style={{ width: '100%', marginTop: '8px' }}>
             <button
               type="submit"
               disabled={updateMutation.isPending}
               style={{
                 width: '100%',
-                padding: '9px 16px',
-                borderRadius: '6px',
-                background: '#170e5e',
+                padding: '11px 16px',
+                borderRadius: '8px',
+                background: savedSuccess ? '#16a34a' : updateMutation.isPending ? '#334155' : '#170e5e',
                 color: '#ffffff',
-                fontSize: '13px',
-                fontWeight: 700,
+                fontSize: '13.5px',
+                fontWeight: 800,
                 border: 'none',
                 cursor: updateMutation.isPending ? 'wait' : 'pointer',
-                boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
-                transition: 'background 0.15s ease',
+                boxShadow: savedSuccess
+                  ? '0 2px 10px rgba(22, 163, 74, 0.35)'
+                  : '0 2px 6px rgba(23, 14, 94, 0.25)',
+                transition: 'all 0.25s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transform: savedSuccess ? 'scale(1.008)' : 'none',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
+              onMouseEnter={(e) => {
+                if (!savedSuccess && !updateMutation.isPending) e.currentTarget.style.background = '#110a47';
+              }}
+              onMouseLeave={(e) => {
+                if (!savedSuccess && !updateMutation.isPending) e.currentTarget.style.background = '#170e5e';
+              }}
             >
-              {updateMutation.isPending ? t('storefront.storefront_settings_tab.s163', "جاري الحفظ...") : t('storefront.storefront_settings_tab.s164', "حفظ إعدادات المتجر")}
+              {updateMutation.isPending ? (
+                <span>{t('storefront.storefront_settings_tab.s163', "جاري الحفظ والمعالجة...")}</span>
+              ) : savedSuccess ? (
+                <>
+                  <CheckIcon size={18} color="#ffffff" />
+                  <span>تم حفظ وتطبيق كافة إعدادات المتجر بنجاح!</span>
+                </>
+              ) : (
+                <span>{t('storefront.storefront_settings_tab.s164', "حفظ إعدادات المتجر")}</span>
+              )}
             </button>
+
+            {savedSuccess && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '8px',
+                  color: '#15803d',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  marginTop: '8px',
+                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.12)',
+                }}
+              >
+                <CheckIcon size={16} color="#16a34a" />
+                <span>تم تحديث وحفظ بيانات وهوية المتجر بنجاح! التغييرات مفعلة مباشرة الآن.</span>
+              </div>
+            )}
           </div>
         </form>
       )}

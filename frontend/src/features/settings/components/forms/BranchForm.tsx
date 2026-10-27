@@ -113,7 +113,9 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
       <SubmitButton
         type="button"
         variant="secondary"
-        isPending={mutation.isPending} disabled={!canManageSettings}
+        isPending={mutation.isPending}
+        isSuccess={mutation.isSuccess}
+        disabled={!canManageSettings}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -121,6 +123,7 @@ export function BranchForm({ canManageSettings, setupMode = false, onSetupAdvanc
         }}
         idleText={idleText}
         pendingText={t('settings.forms.branch_form.s8', "جارٍ الحفظ...")}
+        successText={successText}
       />
     </div>
   );

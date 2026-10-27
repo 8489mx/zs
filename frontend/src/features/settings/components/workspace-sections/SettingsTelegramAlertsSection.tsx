@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
-import { BellIcon, LightbulbIcon } from '@/shared/components/icons/AppIcons';
+import { SubmitButton } from '@/shared/components/submit-button';
+import { BellIcon, LightbulbIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
 
 interface TelegramSettings {
@@ -79,6 +80,23 @@ export function SettingsTelegramAlertsSection() {
       setTestResult({ ok: false, message: err.message || 'تعذر إرسال التنبيه الاختباري' });
     },
   });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await http('/api/settings/whatsapp', { method: 'POST', body: JSON.stringify(form) });
+      setIsSaved(true);
+      toast.success(t('settings.workspace_sections.settings_telegram_alerts_section.s22', "تم حفظ إعدادات تنبيهات التيليجرام بنجاح!"));
+      setTimeout(() => setIsSaved(false), 3500);
+    } catch (err: any) {
+      toast.error(err?.message || 'تعذر حفظ إعدادات التيليجرام');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const formatUptime = (seconds: number) => {
     const d = Math.floor(seconds / (3600 * 24));
@@ -287,11 +305,14 @@ export function SettingsTelegramAlertsSection() {
             >
               {testMutation.isPending ? t('settings.workspace_sections.settings_telegram_alerts_section.s20', "جاري الإرسال...") : t('settings.workspace_sections.settings_telegram_alerts_section.s21', "إرسال تنبيه اختباري")}
             </Button>
-            <Button
-              onClick={async () => {
-                await http('/api/settings/whatsapp', { method: 'POST', body: JSON.stringify(form) }).catch(() => {});
-                toast.success(t('settings.workspace_sections.settings_telegram_alerts_section.s22', "تم حفظ إعدادات تنبيهات التيليجرام بنجاح!"));
-              }}
+            <SubmitButton
+              type="button"
+              onClick={handleSave}
+              isPending={isSaving}
+              isSuccess={isSaved}
+              idleText={t('settings.workspace_sections.settings_telegram_alerts_section.s23', "حفظ إعدادات الرصد")}
+              pendingText={t('settings.workspace_sections.settings_telegram_alerts_section.s20', "جاري الحفظ...")}
+              successText="تم حفظ إعدادات التيليجرام بنجاح!"
               style={{
                 background: '#170e5e',
                 color: '#ffffff',
@@ -299,10 +320,30 @@ export function SettingsTelegramAlertsSection() {
                 padding: '9px 22px',
                 borderRadius: '8px',
               }}
-            >
-              {t('settings.workspace_sections.settings_telegram_alerts_section.s23', "حفظ إعدادات الرصد")}
-            </Button>
+            />
           </div>
+
+          {isSaved && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                background: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '8px',
+                color: '#15803d',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                marginTop: '10px',
+                boxShadow: '0 1px 4px rgba(22, 163, 74, 0.12)',
+              }}
+            >
+              <CheckIcon size={16} color="#16a34a" />
+              <span>تم حفظ وتفعيل إعدادات تنبيهات التيليجرام بنجاح! الرصد يعمل مباشرة الآن.</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

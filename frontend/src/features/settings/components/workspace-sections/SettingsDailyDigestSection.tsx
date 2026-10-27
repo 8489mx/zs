@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
+import { SubmitButton } from '@/shared/components/submit-button';
+import { toast } from '@/shared/components/system-alert';
 import { dailyDigestApi, DailyDigestConfig } from '@/features/settings/api/daily-digest.api';
 import {
   ClockIcon,
@@ -50,7 +52,11 @@ export const SettingsDailyDigestSection: React.FC = () => {
     mutationFn: dailyDigestApi.saveConfig,
     onSuccess: () => {
       setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      toast.success('تم حفظ وتفعيل إعدادات الملخص اليومي الذكي بنجاح!');
+      setTimeout(() => setSaveSuccess(false), 3500);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'فشل حفظ إعدادات الملخص اليومي');
     },
   });
 
@@ -190,10 +196,14 @@ export const SettingsDailyDigestSection: React.FC = () => {
               <span>{testMutation.isPending ? t('settings.workspace_sections.settings_daily_digest_section.s5', "جاري الإرسال...") : t('settings.workspace_sections.settings_daily_digest_section.s6', "إرسال ملخص تجريبي الآن")}</span>
             </Button>
 
-            <Button
-              variant="primary"
+            <SubmitButton
+              type="button"
               onClick={handleSave}
-              disabled={saveMutation.isPending}
+              isPending={saveMutation.isPending}
+              isSuccess={saveSuccess}
+              idleText={t('settings.workspace_sections.settings_daily_digest_section.s9', "حفظ الإعدادات")}
+              pendingText={t('settings.workspace_sections.settings_daily_digest_section.s7', "جاري الحفظ...")}
+              successText={t('settings.workspace_sections.settings_daily_digest_section.s8', "تم الحفظ بنجاح")}
               style={{
                 background: '#170e5e',
                 color: '#ffffff',
@@ -204,15 +214,31 @@ export const SettingsDailyDigestSection: React.FC = () => {
                 fontWeight: 700,
                 fontSize: '12.5px',
                 cursor: 'pointer',
+              }}
+            />
+          </div>
+
+          {saveSuccess && (
+            <div
+              style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                padding: '10px 14px',
+                background: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '8px',
+                color: '#15803d',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                marginTop: '10px',
+                boxShadow: '0 1px 4px rgba(22, 163, 74, 0.12)',
               }}
             >
-              {saveSuccess ? <CheckCircleIcon size={15} color="#ffffff" /> : null}
-              <span>{saveMutation.isPending ? t('settings.workspace_sections.settings_daily_digest_section.s7', "جاري الحفظ...") : saveSuccess ? t('settings.workspace_sections.settings_daily_digest_section.s8', "تم الحفظ بنجاح") : t('settings.workspace_sections.settings_daily_digest_section.s9', "حفظ الإعدادات")}</span>
-            </Button>
-          </div>
+              <CheckCircleIcon size={16} color="#16a34a" />
+              <span>تم حفظ إعدادات الملخص اليومي بنجاح! سيتم إرسال التقارير في الموعد المحدد.</span>
+            </div>
+          )}
         </div>
 
         {/* Test Result Alert Banner */}

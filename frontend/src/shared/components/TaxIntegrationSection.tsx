@@ -4,8 +4,10 @@ import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { http } from '@/lib/http';
 import { useAuthStore } from '@/stores/auth-store';
-import { systemAlert } from '@/shared/components/system-alert';
+import { toast } from '@/shared/components/system-alert';
 import { Button } from '@/shared/ui/button';
+import { SubmitButton } from '@/shared/components/submit-button';
+import { CheckIcon } from '@/shared/components/icons/AppIcons';
 import { QueryCard } from '@/shared/components/query-card';
 
 interface TaxSettingsFormData {
@@ -65,10 +67,10 @@ export function TaxIntegrationSection() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['tax-settings'] });
       useAuthStore.getState().updateSessionMeta({ isEtaActive: data.settings?.is_active ?? true });
-      systemAlert('تم حفظ إعدادات الفاتورة والربط الضريبي بنجاح!');
+      toast.success('تم حفظ وتطبيق إعدادات الفاتورة والربط الضريبي بنجاح!');
     },
     onError: (error: any) => {
-      systemAlert('حدث خطأ أثناء الحفظ: ' + (error?.message || ''));
+      toast.error('حدث خطأ أثناء الحفظ: ' + (error?.message || ''));
     },
   });
 
@@ -257,14 +259,15 @@ export function TaxIntegrationSection() {
 
             {/* Action Buttons */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '10px', borderTop: '1px solid #f1f5f9' }}>
-              <Button
+              <SubmitButton
                 type="submit"
-                variant="primary"
-                disabled={mutation.isPending}
-                style={{ padding: '6px 18px', background: '#0f172a', fontWeight: 800, fontSize: '0.82rem' }}
-              >
-                {mutation.isPending ? t('shared.tax_integration_section.s19', "جاري الحفظ...") : t('shared.tax_integration_section.s20', "حفظ إعدادات الربط")}
-              </Button>
+                isPending={mutation.isPending}
+                isSuccess={mutation.isSuccess}
+                idleText={t('shared.tax_integration_section.s20', "حفظ إعدادات الربط")}
+                pendingText={t('shared.tax_integration_section.s19', "جاري الحفظ...")}
+                successText="تم حفظ إعدادات الربط بنجاح!"
+                style={{ padding: '6px 18px', background: '#170e5e', fontWeight: 800, fontSize: '0.82rem', color: '#ffffff' }}
+              />
               <Button
                 type="button"
                 variant="secondary"
@@ -274,6 +277,28 @@ export function TaxIntegrationSection() {
                 {t('shared.tax_integration_section.s21', "فحص البيانات")}
               </Button>
             </div>
+
+            {mutation.isSuccess && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '8px',
+                  color: '#15803d',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  marginTop: '10px',
+                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.12)',
+                }}
+              >
+                <CheckIcon size={15} color="#16a34a" />
+                <span>تم حفظ إعدادات الربط الضريبي بنجاح! التغييرات مفعلة مباشرة.</span>
+              </div>
+            )}
           </form>
         </QueryCard>
 

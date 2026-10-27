@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { SubmitButton } from '@/shared/components/submit-button';
 import { MutationFeedback } from '@/shared/components/mutation-feedback';
-import { AlertTriangleIcon, LightbulbIcon, CompassIcon } from '@/shared/components/icons/AppIcons';
+import { AlertTriangleIcon, LightbulbIcon, CompassIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -348,6 +348,16 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
 
   const tenant = useAuthStore((s) => s.tenant);
   const mutation = useSettingsUpdateMutation(settings, setupMode ? onSetupAdvance : undefined);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    if (mutation.isSuccess) {
+      setShowSaveSuccess(true);
+      const timer = window.setTimeout(() => setShowSaveSuccess(false), 3500);
+      return () => window.clearTimeout(timer);
+    }
+  }, [mutation.isSuccess, mutation.data]);
+
   const [showBranchQuickAdd, setShowBranchQuickAdd] = useState(false);
   const [branchQuery, setBranchQuery] = useState('');
   const [branchMenuOpen, setBranchMenuOpen] = useState(false);
@@ -1299,9 +1309,11 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
         <SubmitButton
           type="submit"
           isPending={mutation.isPending}
+          isSuccess={mutation.isSuccess}
           disabled={!canManageSettings}
           idleText={setupMode ? __t('settings.forms.settings_main_form.s24', "حفظ والانتقال للخطوة التالية") : __t('settings.forms.settings_main_form.s25', "حفظ الإعدادات")}
           pendingText={__t('settings.forms.settings_main_form.s26', "جارٍ الحفظ...")}
+          successText={__t('settings.forms.settings_main_form.s23', "تم حفظ الإعدادات بنجاح.")}
           style={{ minWidth: '160px', background: '#170e5e', color: '#ffffff' }}
         />
         <button
@@ -1314,6 +1326,29 @@ export function SettingsMainForm({ settings, branches, locations, canManageSetti
           {__t('settings.forms.settings_main_form.s27', "تفريغ التغييرات")}
         </button>
       </div>
+
+      {showSaveSuccess && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            background: '#f0fdf4',
+            border: '1.5px solid #86efac',
+            borderRadius: '8px',
+            color: '#15803d',
+            fontSize: '12.5px',
+            fontWeight: 800,
+            marginTop: '10px',
+            boxShadow: '0 1px 4px rgba(22, 163, 74, 0.12)',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <CheckIcon size={16} color="#16a34a" />
+          <span>{__t('settings.forms.settings_main_form.s23', "تم حفظ الإعدادات بنجاح.")} كافة التعديلات مطبقة ومفعلة مباشرة الآن.</span>
+        </div>
+      )}
 
       {/* مودال إضافة فرع سريع */}
       <DialogShell open={!SINGLE_STORE_MODE && showBranchQuickAdd} onClose={() => setShowBranchQuickAdd(false)} width="min(560px, 100%)" ariaLabel={__t('settings.forms.settings_main_form.s28', "إضافة فرع جديد")}>
