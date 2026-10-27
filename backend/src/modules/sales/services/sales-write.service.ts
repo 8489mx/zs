@@ -3037,7 +3037,16 @@ export class SalesWriteService {
           .where('i.sale_id', '=', saleId)
           .whereRef('a.product_id', '!=', 'i.product_id')
           .limit(1).executeTakeFirst();
-        if (consumedIngredient) {
+        const recipeMeal = await trx.selectFrom('sale_items as i')
+          .innerJoin('products as p', (join) => join
+            .onRef('p.id', '=', 'i.product_id')
+            .onRef('p.tenant_id', '=', 'i.tenant_id'))
+          .select('i.id')
+          .where('i.tenant_id', '=', scope.tenantId)
+          .where('i.sale_id', '=', saleId)
+          .where('p.bom_id', 'is not', null)
+          .limit(1).executeTakeFirst();
+        if (consumedIngredient || recipeMeal) {
           const kitchenRecord = await trx.selectFrom('settings').select('value')
             .where('tenant_id', '=', scope.tenantId)
             .where('key', '=', 'kds_tickets_runtime_state').executeTakeFirst();
