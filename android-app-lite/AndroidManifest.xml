@@ -44,31 +44,5 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Fullscreen Interactive Payment Activity on Card Charge -->
-        <activity
-            android:name=".PaymentActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:exported="true"
-            android:label="Z-POS Smart EDC"
-            android:theme="@android:style/Theme.NoTitleBar"
-            android:windowSoftInputMode="stateAlwaysHidden" />
-
-        <!-- Persistent ECR Background Service for Port 8080 & 10009 -->
-        <service
-            android:name=".EcrServerService"
-            android:enabled="true"
-            android:exported="true" />
-
-        <!-- Auto-start ECR Service on Device Boot -->
-        <receiver
-            android:name=".BootReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-            </intent-filter>
-        </receiver>
     </application>
 </manifest>

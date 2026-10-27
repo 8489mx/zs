@@ -23,6 +23,8 @@ import android.content.IntentFilter;
 import android.webkit.PermissionRequest;
 import android.view.MotionEvent;
 import android.view.inputmethod.InputMethodManager;
+import org.json.JSONObject;
+import org.json.JSONException;
 
 public class MainActivity extends Activity {
     private BroadcastReceiver scannerReceiver = new BroadcastReceiver() {
@@ -68,16 +70,6 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 19) {
             WebView.setWebContentsDebuggingEnabled(true);
         }
-
-        // Start Persistent ECR Server Service on Ports 8080 & 10009
-        try {
-            android.content.Intent serviceIntent = new android.content.Intent(this, EcrServerService.class);
-            if (Build.VERSION.SDK_INT >= 26) {
-                startForegroundService(serviceIntent);
-            } else {
-                startService(serviceIntent);
-            }
-        } catch (Exception ignored) {}
 
         requestWindowFeature(Window.FEATURE_NO_TITLE);
 
@@ -156,7 +148,7 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {}
 
         // 7. Inject JavascriptInterface for Direct Sunmi Thermal Hardware Printing
-        webView.addJavascriptInterface(new Object() {
+        Object bridge = new Object() {
             @android.webkit.JavascriptInterface
             public boolean isSunmiPrinter() {
                 return true;
@@ -224,7 +216,71 @@ public class MainActivity extends Activity {
                     }
                 });
             }
-        }, "SunmiPrinter");
+
+            @android.webkit.JavascriptInterface
+            public void requestPayment(final String jsonPayload) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            JSONObject obj = new JSONObject(jsonPayload != null ? jsonPayload : "{}");
+                            double amount = obj.optDouble("amount", 0.0);
+                            String currency = obj.optString("currency", "KWD");
+                            String referenceId = obj.optString("referenceId", "POS-" + System.currentTimeMillis());
+                            String packageName = obj.optString("packageName", "");
+                            String intentAction = obj.optString("intentAction", "");
+
+                            Intent intent = null;
+                            if (!intentAction.isEmpty()) {
+                                intent = new Intent(intentAction);
+                            } else if (!packageName.isEmpty()) {
+                                intent = getPackageManager().getLaunchIntentForPackage(packageName);
+                            }
+
+                            if (intent != null && !packageName.isEmpty()) {
+                                intent.setPackage(packageName);
+                            }
+
+                            if (intent != null) {
+                                intent.putExtra("amount", amount);
+                                intent.putExtra("currency", currency);
+                                intent.putExtra("referenceId", referenceId);
+                                intent.putExtra("transactionId", referenceId);
+                                intent.putExtra("trans_amount", (long)(amount * 1000));
+                            }
+
+                            if (intent != null && intent.resolveActivity(getPackageManager()) != null) {
+                                startActivityForResult(intent, 2001);
+                            } else {
+                                JSONObject res = new JSONObject();
+                                res.put("success", false);
+                                res.put("status", "manual");
+                                res.put("referenceId", referenceId);
+                                res.put("message", "لا يوجد تطبيق بنكي مثبت على الماكينة، يرجى اعتماد الإيصال يدوياً");
+                                sendPaymentResultToWeb(res.toString());
+                            }
+                        } catch (Exception e) {
+                            try {
+                                JSONObject res = new JSONObject();
+                                res.put("success", false);
+                                res.put("status", "error");
+                                res.put("message", "خطأ في استدعاء الدفع: " + e.getMessage());
+                                sendPaymentResultToWeb(res.toString());
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                });
+            }
+
+            @android.webkit.JavascriptInterface
+            public void cancelPayment(String targetRef) {
+                // Cancellation placeholder
+            }
+        };
+
+        webView.addJavascriptInterface(bridge, "SunmiPrinter");
+        webView.addJavascriptInterface(bridge, "AndroidBridge");
+        webView.addJavascriptInterface(bridge, "SmartPos");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -466,6 +522,23 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void sendPaymentResultToWeb(final String json) {
+        if (webView != null) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    final String safeJson = json.replace("\\", "\\\\").replace("'", "\\'");
+                    String js = "if (typeof window.__onPosPaymentResult === 'function') { window.__onPosPaymentResult(JSON.parse('" + safeJson + "')); }";
+                    if (Build.VERSION.SDK_INT >= 19) {
+                        webView.evaluateJavascript(js, null);
+                    } else {
+                        webView.loadUrl("javascript:" + js);
+                    }
+                }
+            });
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -489,6 +562,56 @@ public class MainActivity extends Activity {
                         });
                     }
                 }
+            }
+        } else if (requestCode == 2001) {
+            if (resultCode == RESULT_OK && data != null) {
+                Bundle extras = data.getExtras();
+                String authCode = "APPROVED";
+                String rrn = "";
+                String cardScheme = "K-NET";
+                String last4 = "";
+                if (extras != null) {
+                    if (extras.containsKey("authCode")) authCode = String.valueOf(extras.get("authCode"));
+                    else if (extras.containsKey("approvalCode")) authCode = String.valueOf(extras.get("approvalCode"));
+                    else if (extras.containsKey("AuthCode")) authCode = String.valueOf(extras.get("AuthCode"));
+
+                    if (extras.containsKey("rrn")) rrn = String.valueOf(extras.get("rrn"));
+                    else if (extras.containsKey("RRN")) rrn = String.valueOf(extras.get("RRN"));
+                    else if (extras.containsKey("referenceNumber")) rrn = String.valueOf(extras.get("referenceNumber"));
+
+                    if (extras.containsKey("cardScheme")) cardScheme = String.valueOf(extras.get("cardScheme"));
+                    else if (extras.containsKey("scheme")) cardScheme = String.valueOf(extras.get("scheme"));
+
+                    if (extras.containsKey("last4")) last4 = String.valueOf(extras.get("last4"));
+                    else if (extras.containsKey("cardLastFour")) last4 = String.valueOf(extras.get("cardLastFour"));
+                }
+                try {
+                    JSONObject res = new JSONObject();
+                    res.put("success", true);
+                    res.put("status", "approved");
+                    res.put("authCode", authCode);
+                    res.put("rrn", rrn);
+                    res.put("cardScheme", cardScheme);
+                    res.put("cardLastFour", last4);
+                    res.put("message", "تم الدفع بنجاح");
+                    sendPaymentResultToWeb(res.toString());
+                } catch (Exception ignored) {}
+            } else if (resultCode == RESULT_CANCELED) {
+                try {
+                    JSONObject res = new JSONObject();
+                    res.put("success", false);
+                    res.put("status", "cancelled");
+                    res.put("message", "تم إلغاء عملية الدفع");
+                    sendPaymentResultToWeb(res.toString());
+                } catch (Exception ignored) {}
+            } else {
+                try {
+                    JSONObject res = new JSONObject();
+                    res.put("success", false);
+                    res.put("status", "declined");
+                    res.put("message", "تم رفض العملية من البنك");
+                    sendPaymentResultToWeb(res.toString());
+                } catch (Exception ignored) {}
             }
         }
     }
