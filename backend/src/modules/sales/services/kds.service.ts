@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
@@ -77,9 +77,9 @@ export class KdsService {
       : sql<boolean>`tenant_id = ${tenantId}`;
   }
 
-  private async getKdsStoreState(tenantId: string): Promise<StoredKdsState> {
+  private async getKdsStoreState(tenantId: string, db: Kysely<Database> = this.db): Promise<StoredKdsState> {
     try {
-      const record = await this.db
+      const record = await db
         .selectFrom('settings')
         .select(['value'])
         .where('key', '=', 'kds_tickets_runtime_state')
@@ -103,9 +103,9 @@ export class KdsService {
     return { tickets: {} };
   }
 
-  private async saveKdsStoreState(tenantId: string, state: StoredKdsState): Promise<void> {
+  private async saveKdsStoreState(tenantId: string, state: StoredKdsState, db: Kysely<Database> = this.db): Promise<void> {
     const jsonStr = JSON.stringify(state);
-    const existing = await this.db
+    const existing = await db
       .selectFrom('settings')
       .select(['key'])
       .where('key', '=', 'kds_tickets_runtime_state')
@@ -113,14 +113,14 @@ export class KdsService {
       .executeTakeFirst();
 
     if (existing) {
-      await this.db
+      await db
         .updateTable('settings')
         .set({ value: jsonStr })
         .where('key', '=', 'kds_tickets_runtime_state')
         .where(sql<boolean>`tenant_id = ${tenantId}`)
         .execute();
     } else {
-      await this.db
+      await db
         .insertInto('settings')
         .values({
           tenant_id: tenantId,
@@ -129,6 +129,56 @@ export class KdsService {
           value: jsonStr,
         })
         .execute();
+    }
+  }
+
+  /** All state writes are serialized on the tenant row and committed with the order update. */
+  private async withKdsWrite<T>(tenantId: string, mutate: (trx: Kysely<Database>) => Promise<T>): Promise<T> {
+    return this.db.transaction().execute(async (trx) => {
+      const tenant = await trx.selectFrom('tenants').select('id')
+        .where('id', '=', tenantId).forUpdate().executeTakeFirst();
+      if (!tenant) throw new NotFoundException('المنشأة غير موجودة');
+      return mutate(trx);
+    });
+  }
+
+  private async assertTicketOwned(
+    db: Kysely<Database>, tenantId: string, ticketId: number, itemId?: number,
+  ): Promise<void> {
+    if (!Number.isSafeInteger(ticketId) || ticketId <= 0) {
+      throw new BadRequestException('رقم تذكرة المطبخ غير صالح');
+    }
+    if (ticketId >= 10_000_000) {
+      const agg = await db.selectFrom('pos_aggregator_orders')
+        .select(['id', 'status', 'order_payload'])
+        .where('id', '=', ticketId - 10_000_000).where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (!agg || !['received', 'preparing', 'ready', 'picked_up'].includes(String(agg.status))) {
+        throw new NotFoundException('تذكرة التوصيل غير موجودة أو ألغيت');
+      }
+      if (itemId !== undefined) {
+        let payload: any;
+        try { payload = typeof agg.order_payload === 'string' ? JSON.parse(agg.order_payload) : agg.order_payload; }
+        catch { throw new BadRequestException('بيانات أصناف الطلب غير صالحة'); }
+        if (!Array.isArray(payload?.items) || itemId < 1000 ||
+            !Number.isSafeInteger(itemId) || itemId >= 1000 + payload.items.length) {
+          throw new NotFoundException('صنف تذكرة التوصيل غير موجود');
+        }
+      }
+      return;
+    }
+    const sale = await db.selectFrom('sales').select(['id', 'status', 'order_type'])
+      .where('id', '=', ticketId).where('tenant_id', '=', tenantId)
+      .executeTakeFirst();
+    if (!sale || sale.status === 'cancelled' ||
+        !['dine_in', 'takeaway', 'delivery'].includes(String(sale.order_type || 'dine_in'))) {
+      throw new NotFoundException('تذكرة المطعم غير موجودة أو ألغيت');
+    }
+    if (itemId !== undefined) {
+      const item = await db.selectFrom('sale_items').select('id')
+        .where('tenant_id', '=', tenantId).where('sale_id', '=', ticketId)
+        .where('id', '=', itemId).executeTakeFirst();
+      if (!item) throw new NotFoundException('صنف التذكرة غير موجود');
     }
   }
 
@@ -141,7 +191,8 @@ export class KdsService {
    * status carries over.
    */
   async transferTicketState(tenantId: string, fromSaleId: number, toSaleId: number | null): Promise<void> {
-    const state = await this.getKdsStoreState(tenantId);
+    return this.withKdsWrite(tenantId, async (trx) => {
+    const state = await this.getKdsStoreState(tenantId, trx);
     const fromKey = String(fromSaleId);
     const stored = state.tickets?.[fromKey];
     if (!stored) return;
@@ -154,9 +205,10 @@ export class KdsService {
         updatedAt: new Date().toISOString(),
       };
     }
-    await this.saveKdsStoreState(tenantId, state);
-  }
+    await this.saveKdsStoreState(tenantId, state, trx);
 
+    });
+  }
   private inferItemStation(name: string, categoryName?: string): KdsStation {
     const lower = `${name} ${categoryName || ''}`.toLowerCase();
     if (lower.includes('مشوي') || lower.includes('كباب') || lower.includes('كفتة') || lower.includes('ستيك') || lower.includes('grill')) {
@@ -208,7 +260,8 @@ export class KdsService {
       ])
       .where(this.tenantPredicate(auth, 's'))
       .where('s.created_at', '>=', fourteenHoursAgo)
-      .where('s.status', '!=', 'cancelled');
+      .where('s.status', '!=', 'cancelled')
+      .where('s.order_type', 'in', ['dine_in', 'takeaway', 'delivery']);
     if (servedIds.length) salesQuery = salesQuery.where(sql<boolean>`s.id <> ALL(${servedIds}::bigint[])`);
     // Oldest outstanding tickets retain priority when the bounded kitchen queue overflows.
     const candidateRows = await salesQuery.orderBy('s.created_at', 'asc').orderBy('s.id', 'asc').limit(201).execute();
@@ -456,7 +509,9 @@ export class KdsService {
     ticketId: number
   ): Promise<{ ticketId: number; newStatus: KdsTicketStatus }> {
     const { tenantId } = requireTenantScope(auth);
-    const runtimeState = await this.getKdsStoreState(tenantId);
+    return this.withKdsWrite(tenantId, async (trx) => {
+    await this.assertTicketOwned(trx, tenantId, ticketId);
+    const runtimeState = await this.getKdsStoreState(tenantId, trx);
     const existing = runtimeState.tickets[String(ticketId)];
     const currentStatus: KdsTicketStatus = existing?.status || 'pending';
 
@@ -488,7 +543,7 @@ export class KdsService {
     if (ticketId >= 10_000_000) {
       const realAggId = ticketId - 10_000_000;
       const dbAggStatus = nextStatus === 'cooking' ? 'preparing' : nextStatus === 'ready' ? 'ready' : 'picked_up';
-      await this.db
+      await trx
         .updateTable('pos_aggregator_orders')
         .set({ status: dbAggStatus, updated_at: new Date() })
         .where('id', '=', realAggId)
@@ -496,10 +551,11 @@ export class KdsService {
         .execute();
     }
 
-    await this.saveKdsStoreState(tenantId, runtimeState);
+    await this.saveKdsStoreState(tenantId, runtimeState, trx);
     return { ticketId, newStatus: nextStatus };
-  }
 
+    });
+  }
   /**
    * Set ticket status explicitly
    */
@@ -509,7 +565,9 @@ export class KdsService {
     status: KdsTicketStatus
   ): Promise<{ ticketId: number; status: KdsTicketStatus }> {
     const { tenantId } = requireTenantScope(auth);
-    const runtimeState = await this.getKdsStoreState(tenantId);
+    return this.withKdsWrite(tenantId, async (trx) => {
+    await this.assertTicketOwned(trx, tenantId, ticketId);
+    const runtimeState = await this.getKdsStoreState(tenantId, trx);
     const existing = runtimeState.tickets[String(ticketId)];
     const nowIso = new Date().toISOString();
 
@@ -526,7 +584,7 @@ export class KdsService {
     if (ticketId >= 10_000_000) {
       const realAggId = ticketId - 10_000_000;
       const dbAggStatus = status === 'cooking' ? 'preparing' : status === 'ready' ? 'ready' : status === 'served' ? 'picked_up' : 'received';
-      await this.db
+      await trx
         .updateTable('pos_aggregator_orders')
         .set({ status: dbAggStatus, updated_at: new Date() })
         .where('id', '=', realAggId)
@@ -534,10 +592,11 @@ export class KdsService {
         .execute();
     }
 
-    await this.saveKdsStoreState(tenantId, runtimeState);
+    await this.saveKdsStoreState(tenantId, runtimeState, trx);
     return { ticketId, status };
-  }
 
+    });
+  }
   /**
    * Toggle or set status of an individual item within a ticket
    */
@@ -548,7 +607,9 @@ export class KdsService {
     status: KdsItemStatus
   ): Promise<{ ticketId: number; itemId: number; itemStatus: KdsItemStatus }> {
     const { tenantId } = requireTenantScope(auth);
-    const runtimeState = await this.getKdsStoreState(tenantId);
+    return this.withKdsWrite(tenantId, async (trx) => {
+    await this.assertTicketOwned(trx, tenantId, ticketId, itemId);
+    const runtimeState = await this.getKdsStoreState(tenantId, trx);
     const existing = runtimeState.tickets[String(ticketId)] || {
       status: 'pending',
       itemsStatus: {},
@@ -559,10 +620,11 @@ export class KdsService {
     existing.updatedAt = new Date().toISOString();
     runtimeState.tickets[String(ticketId)] = existing;
 
-    await this.saveKdsStoreState(tenantId, runtimeState);
+    await this.saveKdsStoreState(tenantId, runtimeState, trx);
     return { ticketId, itemId, itemStatus: status };
-  }
 
+    });
+  }
   /**
    * Recall the last served ticket back to "ready"
    */
@@ -570,7 +632,8 @@ export class KdsService {
     auth: AuthContext
   ): Promise<{ recalled: boolean; ticketId?: number; status?: KdsTicketStatus }> {
     const { tenantId } = requireTenantScope(auth);
-    const runtimeState = await this.getKdsStoreState(tenantId);
+    return this.withKdsWrite(tenantId, async (trx) => {
+    const runtimeState = await this.getKdsStoreState(tenantId, trx);
 
     const lastId = runtimeState.lastServedId;
     if (!lastId || !runtimeState.tickets[String(lastId)]) {
@@ -581,10 +644,11 @@ export class KdsService {
     runtimeState.tickets[String(lastId)].updatedAt = new Date().toISOString();
     runtimeState.lastServedId = undefined;
 
-    await this.saveKdsStoreState(tenantId, runtimeState);
+    await this.saveKdsStoreState(tenantId, runtimeState, trx);
     return { recalled: true, ticketId: lastId, status: 'ready' };
-  }
 
+    });
+  }
   /**
    * Fire or advance the dining course for a ticket (Course Firing)
    * e.g. 'appetizer' -> 'main' -> 'dessert'
@@ -595,9 +659,11 @@ export class KdsService {
     course?: 'appetizer' | 'main' | 'dessert' | 'beverage'
   ): Promise<{ ticketId: number; course: string }> {
     const { tenantId } = requireTenantScope(auth);
+    return this.withKdsWrite(tenantId, async (trx) => {
+    await this.assertTicketOwned(trx, tenantId, ticketId);
     let targetCourse = course;
     if (!targetCourse) {
-      const sale = await this.db
+      const sale = await trx
         .selectFrom('sales')
         .select(['dining_course'])
         .where('id', '=', ticketId)
@@ -609,22 +675,23 @@ export class KdsService {
       else targetCourse = 'dessert';
     }
 
-    await this.db
+    await trx
       .updateTable('sales')
       .set({ dining_course: targetCourse } as any)
       .where('id', '=', ticketId)
       .where('tenant_id', '=', tenantId)
       .execute();
 
-    const runtimeState = await this.getKdsStoreState(tenantId);
+    const runtimeState = await this.getKdsStoreState(tenantId, trx);
     const existing = runtimeState.tickets[String(ticketId)];
     runtimeState.tickets[String(ticketId)] = {
       status: 'cooking',
       itemsStatus: existing?.itemsStatus || {},
       updatedAt: new Date().toISOString(),
     };
-    await this.saveKdsStoreState(tenantId, runtimeState);
+    await this.saveKdsStoreState(tenantId, runtimeState, trx);
 
     return { ticketId, course: targetCourse };
-  }
-}
+
+    });
+  }}
