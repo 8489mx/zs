@@ -99,6 +99,7 @@ export class KdsService {
       }
     } catch (e: any) {
       this.logger.warn(`Failed reading kds runtime state: ${e.message}`);
+      throw e; // never overwrite persisted progress with a fabricated empty state
     }
     return { tickets: {} };
   }
@@ -567,6 +568,9 @@ export class KdsService {
     const { tenantId } = requireTenantScope(auth);
     return this.withKdsWrite(tenantId, async (trx) => {
     await this.assertTicketOwned(trx, tenantId, ticketId);
+    if (!['pending', 'cooking', 'ready', 'served'].includes(status)) {
+      throw new BadRequestException('حالة تذكرة المطبخ غير صالحة');
+    }
     const runtimeState = await this.getKdsStoreState(tenantId, trx);
     const existing = runtimeState.tickets[String(ticketId)];
     const nowIso = new Date().toISOString();
@@ -609,6 +613,9 @@ export class KdsService {
     const { tenantId } = requireTenantScope(auth);
     return this.withKdsWrite(tenantId, async (trx) => {
     await this.assertTicketOwned(trx, tenantId, ticketId, itemId);
+    if (!['pending', 'cooking', 'ready'].includes(status)) {
+      throw new BadRequestException('حالة صنف المطبخ غير صالحة');
+    }
     const runtimeState = await this.getKdsStoreState(tenantId, trx);
     const existing = runtimeState.tickets[String(ticketId)] || {
       status: 'pending',
@@ -660,7 +667,11 @@ export class KdsService {
   ): Promise<{ ticketId: number; course: string }> {
     const { tenantId } = requireTenantScope(auth);
     return this.withKdsWrite(tenantId, async (trx) => {
+    if (ticketId >= 10_000_000) throw new BadRequestException('إطلاق دورة التحضير يخص فواتير المطعم فقط');
     await this.assertTicketOwned(trx, tenantId, ticketId);
+    if (course && !['appetizer', 'main', 'dessert', 'beverage'].includes(course)) {
+      throw new BadRequestException('مرحلة التحضير غير صالحة');
+    }
     let targetCourse = course;
     if (!targetCourse) {
       const sale = await trx
