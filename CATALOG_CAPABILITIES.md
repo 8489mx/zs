@@ -12,6 +12,41 @@
 
 ## التحديثات الحالية
 
+### 261. توحيد منهجية الترتيب المؤسسي للأصناف والفرز التفاعلي للأعمدة (Catalog Unified Enterprise Sorting & Interactive Column Sort - 27 October 2026)
+* **حالة القدرة:** 🟢 مكتملة ومحمية بنسبة 100% (27 أكتوبر 2026).
+* **المسارات المتأثرة:** 
+  - `backend/src/modules/catalog/services/catalog-product.service.ts`
+  - `frontend/src/features/products/api/products.api.ts`
+  - `frontend/src/features/products/hooks/useProductsPageQuery.ts`
+  - `frontend/src/features/products/hooks/useProductsWorkspaceController.ts`
+  - `frontend/src/features/products/components/ProductsTableCard.tsx`
+  - `frontend/src/features/products/components/ProductsWorkspace.tsx`
+* **المشكلة المعالجة:**
+  1. في تبويب "الكل" بدليل الأصناف، كان يتم إعادة فرز الأصناف قسرياً على الواجهة تصاعدياً بحسب رصيد المخزون (`Stock ASC`) على مستوى الصفحة الواحدة (20 صنفاً فقط)، مما كان يخفي الصنف المضاف حديثاً بـ 50 قطعة في أسفل الصفحة بدلاً من تصدره أعلى الجدول، وكان يعطي انطباعاً مضللاً بفرز جزئي غير شامل لكامل قاعدة البيانات.
+  2. غياب إمكانية الترتيب التفاعلي بالنقر على رؤوس أعمدة جدول الأصناف لمقارنة الأسعار أو المخزون أو الفرز الأبجدي.
+* **الحلول والضوابط المنفذة:**
+  1. **الترتيب المؤسسي الافتراضي الشامل:**
+     - في تبويب «الكل» (All) وكافة التبويبات القياسية: اعتماد ترتيب **الأحدث إضافة أولاً (`id DESC`)** كما يصدر من قاعدة البيانات مباشرة، ليتصدر أي صنف مضاف حديثاً أو معدل أول سطر في الصفحة الأولى فوراً.
+     - في تبويب «منخفضة المخزون» (Low Stock): الفرز الافتراضي التلقائي من السيرفر لكامل المخزن هو **الأقل رصيداً أولاً (`stock ASC`)** لإبراز العجز والأنقص فوراً.
+     - في تبويب «نافدة المخزون» (Out of Stock): الفرز الافتراضي التلقائي من السيرفر لكامل المخزن هو **أبجدياً بحسب القسم ثم اسم الصنف (`category ASC, name ASC`)** لتسهيل الجرد والتسوية الميدانية.
+  2. **الفرز الشامل على مستوى قاعدة البيانات (Full Dataset Server-Side Sorting):**
+     - دعم باراميترات `sortBy` و `sortDir` في الباك إند (`catalog-product.service.ts`) ليتم الفرز الشامل على مستوى كافة أصناف المنشأة قبل تقطيع الصفحات (Pagination).
+  3. **الفرز التفاعلي لرؤوس الأعمدة (Interactive Table Header Sorting):**
+     - تمكين النقر المباشر على رؤوس أعمدة جدول الأصناف: (الصنف `name`، الباركود `barcode`، القسم `category`، الأسعار `price`، المخزون `stock`).
+     - مؤشرات بصرية رسمية بالأسهم المعتمدة (`ChevronUpIcon` / `ChevronDownIcon`) دون أي إيموجيز.
+     - كبسولة تفاعلية أنيقة في شريط الأدوات توضح الفرز النشط مع زر للإلغاء والعودة للترتيب الافتراضي بضغطة واحدة.
+* **المراجع البرمجية:**
+  - `backend/src/modules/catalog/services/catalog-product.service.ts`
+  - `frontend/src/features/products/hooks/useProductsWorkspaceController.ts`
+  - `frontend/src/features/products/components/ProductsTableCard.tsx`
+
+### 260. العرض البصري المصغر لصور الأصناف ومعاينة التكبير في جدول دليل الأصناف (Product Visual Thumbnail & Zoom Preview in Catalog - 27 October 2026)
+* **حالة القدرة:** 🟢 مكتملة ومحمية بنسبة 100% (27 أكتوبر 2026).
+* **المسارات المتأثرة:** `frontend/src/features/products/components/ProductsTableCard.tsx`.
+* **الوصف:** استبدال الأيقونة المربعة الثابتة بصورة الصنف الحقيقية بحجم مطابق ومحكم (`28×28px`) مع حواف ناعمة (`border-radius: 6px`) وتطبيق `objectFit: 'cover'` وحفظ التنسيق من أي انكسار أو تمدد. دعم التحميل الكسول `loading="lazy"` و `decoding="async"` والرجوع التلقائي للأيقونة الافتراضية (Graceful Fallback) عند عدم توفر صورة أو عند فشل تحميل الرابط، مع ميزة النقر للمعاينة المكبرة في نافذة منبثقة خفيفة (`StandardDialog`).
+* **المراجع البرمجية:**
+  - `frontend/src/features/products/components/ProductsTableCard.tsx`
+
 ### 259. الاعتماد التلقائي الذكي لاسم الصنف ثنائي اللغة ودعم الإدخال بالإنجليزية فقط (Intelligent Dual-Language Product Name Auto-Fallback - 26 October 2026)
 * **حالة القدرة:** 🟢 مكتملة ومختبرة بنسبة 100% (26 أكتوبر 2026).
 * **المسارات المتأثرة:** شاشات إضافة وتعديل الأصناف (`NewProductForm.tsx`, `EditProductForm.tsx`) ونوافذ الـ POS (`PosNewProductModal`, `PosEditProductModal`) ومسارات API (`/api/products`).

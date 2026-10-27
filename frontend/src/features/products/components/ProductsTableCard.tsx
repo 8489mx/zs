@@ -2,7 +2,7 @@ import { Fragment, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
-import { FileTextIcon, LayersIcon, PrinterIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
+import { ChevronDownIcon, ChevronUpIcon, FileTextIcon, LayersIcon, PrinterIcon, SearchIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { StandardDialog, StandardDialogFooter } from '@/shared/components/StandardDialog';
 import { QueryFeedback } from '@/shared/components/query-feedback';
 import { PaginationControls } from '@/shared/components/pagination-controls';
@@ -56,6 +56,9 @@ export interface ProductsTableCardProps {
   onPageSizeChange: (value: number) => void;
   clothingEnabled: boolean;
   mobileStoreEnabled?: boolean;
+  sortField?: string;
+  sortDirection?: 'asc' | 'desc';
+  onSortChange?: (field: string) => void;
 }
 
 type ProductGroup = {
@@ -95,11 +98,69 @@ function groupProducts(products: Product[]): ProductGroup[] {
   });
 }
 
+function ProductThumbnail({
+  imageUrl,
+  icon,
+  name,
+  size = 28,
+  onClick,
+}: {
+  imageUrl?: string | null;
+  icon?: string | null;
+  name: string;
+  size?: number;
+  onClick?: (e: React.MouseEvent) => void;
+}) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const hasImage = Boolean(imageUrl && !imgFailed);
+
+  return (
+    <div
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: '6px',
+        background: hasImage ? '#ffffff' : '#f8fafc',
+        color: 'var(--product-icon-color, #2563eb)',
+        border: '1px solid #e2e8f0',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        cursor: hasImage && onClick ? 'zoom-in' : 'inherit',
+      }}
+      onClick={hasImage && onClick ? onClick : undefined}
+      title={hasImage ? `معاينة صورة ${name}` : undefined}
+    >
+      {hasImage ? (
+        <img
+          src={imageUrl!}
+          alt={name}
+          loading="lazy"
+          decoding="async"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+          onError={() => setImgFailed(true)}
+        />
+      ) : (
+        <ProductIcon name={icon || 'box-package'} size={size >= 28 ? 16 : 14} />
+      )}
+    </div>
+  );
+}
+
 export function ProductsTableCard(props: ProductsTableCardProps) {
   const { t: __t } = useTranslation();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const iconSettings = useProductIconSettings();
+  const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [activeNoteModal, setActiveNoteModal] = useState<{ productName: string; note: string } | null>(null);
@@ -208,6 +269,42 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
     } finally {
       setIsAutoAssigning(false);
     }
+  }
+
+  function renderSortableTh(field: string, label: string, align: 'start' | 'center' = 'start') {
+    const isSorted = props.sortField === field;
+    const isAsc = props.sortDirection === 'asc';
+    return (
+      <th
+        style={{
+          textAlign: align,
+          cursor: props.onSortChange ? 'pointer' : 'default',
+          userSelect: 'none',
+        }}
+        onClick={() => props.onSortChange?.(field)}
+        title={props.onSortChange ? `انقر للفرز حسب ${label}` : undefined}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: align === 'center' ? 'center' : 'flex-start',
+            gap: '4px',
+            color: isSorted ? '#170e5e' : 'inherit',
+            fontWeight: isSorted ? 700 : 'inherit',
+          }}
+        >
+          {label}
+          {isSorted ? (
+            isAsc ? <ChevronUpIcon size={13} color="#170e5e" /> : <ChevronDownIcon size={13} color="#170e5e" />
+          ) : (
+            <span style={{ opacity: 0.35, display: 'inline-flex' }}>
+              <ChevronDownIcon size={11} />
+            </span>
+          )}
+        </span>
+      </th>
+    );
   }
 
   return (
@@ -377,6 +474,57 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
           <Button variant={props.viewFilter === 'offers' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('offers')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.with_offers', 'بعروض')}</Button>
           <Button variant={props.viewFilter === 'special' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('special')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.special_prices', 'أسعار خاصة')}</Button>
           <Button variant={props.viewFilter === 'archived' ? 'primary' : 'secondary'} onClick={() => props.onViewFilterChange('archived')} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>{t('products.archived', 'المؤرشفة')}</Button>
+          {props.sortField ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '11.5px',
+                background: '#eef2ff',
+                color: '#170e5e',
+                border: '1px solid #c7d2fe',
+                padding: '2px 10px',
+                borderRadius: '16px',
+                fontWeight: 600,
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
+                marginInlineStart: 'auto',
+              }}
+            >
+              <span>
+                {__t('products.sorted_by', 'مرتب حسب:')}{' '}
+                {props.sortField === 'name'
+                  ? t('products.product_col', 'الصنف')
+                  : props.sortField === 'stock'
+                  ? t('products.stock_col', 'المخزون')
+                  : props.sortField === 'price'
+                  ? t('products.prices_col', 'الأسعار')
+                  : props.sortField === 'barcode'
+                  ? t('products.barcode_col', 'الباركود')
+                  : props.sortField === 'category'
+                  ? t('products.category_supplier_store_col', 'القسم')
+                  : props.sortField}{' '}
+                ({props.sortDirection === 'desc' ? 'تنازلي' : 'تصاعدي'})
+              </span>
+              <button
+                type="button"
+                onClick={() => props.onSortChange?.('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#170e5e',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                title={__t('products.reset_sort_hint', 'إلغاء الفرز والعودة للترتيب الافتراضي')}
+              >
+                <XIcon size={12} />
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
       {props.selectedIds.length ? (
@@ -441,12 +589,12 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                     }}
                   />
                 </th>
-                <th style={{ textAlign: 'start' }}>{t('products.product_col', 'الصنف')}</th>
-                <th style={{ textAlign: 'center' }}>{t('products.barcode_col', 'الباركود')}</th>
+                {renderSortableTh('name', t('products.product_col', 'الصنف'), 'start')}
+                {renderSortableTh('barcode', t('products.barcode_col', 'الباركود'), 'center')}
                 <th style={{ textAlign: 'center' }}>{t('products.variants_col', 'المتغيرات')}</th>
-                <th style={{ textAlign: 'start' }}>{t('products.category_supplier_store_col', 'القسم / المورد / المخزن')}</th>
-                <th style={{ textAlign: 'start' }}>{t('products.prices_col', 'الأسعار')}</th>
-                <th style={{ textAlign: 'center' }}>{t('products.stock_col', 'المخزون')}</th>
+                {renderSortableTh('category', t('products.category_supplier_store_col', 'القسم / المورد / المخزن'), 'start')}
+                {renderSortableTh('price', t('products.prices_col', 'الأسعار'), 'start')}
+                {renderSortableTh('stock', t('products.stock_col', 'المخزون'), 'center')}
                 <th style={{ textAlign: 'center' }}>{t('products.notes_col', 'ملاحظات')}</th>
                 <th style={{ textAlign: 'center' }}>{t('products.actions_col', 'إجراءات')}</th>
               </tr>
@@ -472,20 +620,15 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                       <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                           {iconSettings.showIcons ? (
-                            <div style={{
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '6px',
-                              background: '#f8fafc',
-                              color: 'var(--product-icon-color, #2563eb)',
-                              border: '1px solid #e2e8f0',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              <ProductIcon name={product.icon || 'box-package'} size={16} />
-                            </div>
+                            <ProductThumbnail
+                              imageUrl={product.imageUrl}
+                              icon={product.icon}
+                              name={product.name}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewImage({ url: product.imageUrl!, title: product.name });
+                              }}
+                            />
                           ) : null}
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
@@ -633,20 +776,18 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           title={isExpanded ? __t('products.products_table_card.s28', "طي الأصناف الفرعية") : __t('products.products_table_card.s29', "توسيع الأصناف الفرعية")}
                         >
                           {iconSettings.showIcons ? (
-                            <div style={{
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '6px',
-                              background: '#f8fafc',
-                              color: 'var(--product-icon-color, #2563eb)',
-                              border: '1px solid #e2e8f0',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0
-                            }}>
-                              <ProductIcon name={group.representative.icon || 'box-package'} size={16} />
-                            </div>
+                            <ProductThumbnail
+                              imageUrl={group.representative.imageUrl || group.children.find((c) => c.imageUrl)?.imageUrl}
+                              icon={group.representative.icon}
+                              name={baseName}
+                              onClick={(e) => {
+                                const imgUrl = group.representative.imageUrl || group.children.find((c) => c.imageUrl)?.imageUrl;
+                                if (imgUrl) {
+                                  e.stopPropagation();
+                                  setPreviewImage({ url: imgUrl, title: baseName });
+                                }
+                              }}
+                            />
                           ) : null}
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <strong style={{ color: '#0f172a', fontSize: '0.88rem', lineHeight: 1.35 }}>{baseName}</strong>
@@ -809,14 +950,28 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
                           }} />
                         </td>
                         <td style={{ textAlign: 'start', whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                          <div style={{ paddingInlineStart: 18 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <strong>{variantLabel(product)}</strong>
-                              {product.isActive === false ? (
-                                <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px' }}>{__t('products.products_table_card.s57', "مؤرشف")}</span>
-                              ) : null}
+                          <div style={{ paddingInlineStart: 18, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {product.imageUrl ? (
+                              <ProductThumbnail
+                                imageUrl={product.imageUrl}
+                                icon={product.icon}
+                                name={product.name}
+                                size={22}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPreviewImage({ url: product.imageUrl!, title: `${product.name} (${variantLabel(product)})` });
+                                }}
+                              />
+                            ) : null}
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <strong>{variantLabel(product)}</strong>
+                                {product.isActive === false ? (
+                                  <span className="status-badge" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '0.68rem', padding: '1px 5px' }}>{__t('products.products_table_card.s57', "مؤرشف")}</span>
+                                ) : null}
+                              </div>
+                              <div className="muted small" style={{ fontSize: '0.74rem', lineHeight: 1.3 }}>{product.name}</div>
                             </div>
-                            <div className="muted small" style={{ fontSize: '0.74rem', lineHeight: 1.3 }}>{product.name}</div>
                           </div>
                         </td>
                         <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
@@ -989,6 +1144,36 @@ export function ProductsTableCard(props: ProductsTableCardProps) {
             onDeleteProduct={props.onDeleteProduct}
             mobileStoreEnabled={props.mobileStoreEnabled}
           />
+        ) : null}
+        {previewImage ? (
+          <StandardDialog
+            open={Boolean(previewImage)}
+            onClose={() => setPreviewImage(null)}
+            title={previewImage.title}
+            subtitle={__t('products.products_table_card.preview_image', "معاينة صورة الصنف")}
+            size="sm"
+            compact
+            footerActions={
+              <StandardDialogFooter
+                cancelLabel={__t('products.products_table_card.s73', "إغلاق")}
+                onCancel={() => setPreviewImage(null)}
+              />
+            }
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', background: '#f8fafc', borderRadius: '10px', minHeight: '220px' }}>
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '400px',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                }}
+              />
+            </div>
+          </StandardDialog>
         ) : null}
       </QueryFeedback>
     </section>

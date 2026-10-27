@@ -22,6 +22,8 @@ export function useProductsWorkspaceController(groupFashion = false) {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [offerDialogProduct, setOfferDialogProduct] = useState<Product | null>(null);
   const [barcodeDialogProduct, setBarcodeDialogProduct] = useState<Product | null>(null);
   const [barcodeDialogMode, setBarcodeDialogMode] = useState<'scan' | 'generate'>('scan');
@@ -31,7 +33,15 @@ export function useProductsWorkspaceController(groupFashion = false) {
     items?: BarcodePrintItem[];
   } | null>(null);
 
-  const productsQuery = useProductsPageQuery({ page, pageSize, q: search, view: viewFilter, groupFashion });
+  const productsQuery = useProductsPageQuery({
+    page,
+    pageSize,
+    q: search,
+    view: viewFilter,
+    groupFashion,
+    sortBy: sortField || undefined,
+    sortDir: sortField ? sortDirection : undefined,
+  });
   const categoriesQuery = useQuery({ queryKey: queryKeys.productsCategories, queryFn: productsApi.categories, staleTime: 60_000 });
   const suppliersQuery = useQuery({ queryKey: queryKeys.productsSuppliers, queryFn: productsApi.suppliers, staleTime: 60_000 });
   const customersQuery = useQuery({ queryKey: queryKeys.productsCustomers, queryFn: catalogApi.listCustomers, staleTime: 60_000 });
@@ -96,18 +106,8 @@ export function useProductsWorkspaceController(groupFashion = false) {
   const categoryNames = useMemo(() => Object.fromEntries((categoriesQuery.data || []).map((category) => [category.id, category.name])), [categoriesQuery.data]);
   const supplierNames = useMemo(() => Object.fromEntries((suppliersQuery.data || []).map((supplier) => [supplier.id, supplier.name])), [suppliersQuery.data]);
   const visibleProducts = useMemo(() => {
-    const list = [...(productsQuery.data?.products || [])];
-    if (viewFilter === 'out') {
-      return list.sort((a, b) => {
-        const catA = categoryNames[a.categoryId] || '';
-        const catB = categoryNames[b.categoryId] || '';
-        const catComp = catA.localeCompare(catB, 'ar');
-        if (catComp !== 0) return catComp;
-        return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
-      });
-    }
-    return list.sort((a, b) => Number(a.stock || 0) - Number(b.stock || 0));
-  }, [productsQuery.data?.products, viewFilter, categoryNames]);
+    return productsQuery.data?.products || [];
+  }, [productsQuery.data?.products]);
   const summary = productsQuery.data?.summary;
   const selectedIdsSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const metrics = useMemo(() => ({
@@ -123,6 +123,31 @@ export function useProductsWorkspaceController(groupFashion = false) {
     () => visibleProducts.filter((product) => selectedIdsSet.has(String(product.id))),
     [selectedIdsSet, visibleProducts],
   );
+
+  const handleSortChange = useCallback((field: string) => {
+    setSortField((currentField) => {
+      if (currentField === field) {
+        if (sortDirection === 'asc') {
+          setSortDirection('desc');
+          return field;
+        } else {
+          setSortDirection('asc');
+          return '';
+        }
+      } else {
+        setSortDirection('asc');
+        return field;
+      }
+    });
+    setPage(1);
+  }, [sortDirection]);
+
+  const handleViewFilterChange = useCallback((nextFilter: 'all' | 'low' | 'out' | 'offers' | 'special' | 'archived') => {
+    setViewFilter(nextFilter);
+    setSortField('');
+    setSortDirection('asc');
+    setPage(1);
+  }, []);
 
   useEffect(() => {
     if (selectedProduct) {
@@ -140,6 +165,8 @@ export function useProductsWorkspaceController(groupFashion = false) {
     setViewFilter('all');
     setSelectedProduct(null);
     setSelectedIds([]);
+    setSortField('');
+    setSortDirection('asc');
     setPage(1);
   }, []);
 
@@ -313,12 +340,15 @@ export function useProductsWorkspaceController(groupFashion = false) {
     activeOffersCount,
     customerPriceCount,
     selectedProducts,
+    sortField,
+    sortDirection,
+    handleSortChange,
     offerDialogProduct,
     barcodeDialogProduct,
     barcodeDialogMode,
     printDialogState,
     setSearch,
-    setViewFilter,
+    setViewFilter: handleViewFilterChange,
     setSelectedProduct,
     setProductToDelete,
     setProductToArchive,
