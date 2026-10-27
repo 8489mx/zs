@@ -61,6 +61,9 @@ export function PosWorkspaceDock({
         padding: isCompact ? '6px 8px' : '4px 10px',
         margin: '0',
         boxSizing: 'border-box',
+        background: 'transparent',
+        border: 'none',
+        boxShadow: 'none',
       }}
     >
       <div

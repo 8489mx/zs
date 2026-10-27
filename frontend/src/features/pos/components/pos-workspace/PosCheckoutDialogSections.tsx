@@ -8,7 +8,6 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, StarIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
-import { MobileTerminalBridge } from '@/features/pos/lib/mobile-terminal-bridge';
 import { shouldTryAlternateTerminalCharge, canChangePaymentAfterTerminalApproval, terminalAuthorizationLabel } from './pos-terminal-charge-safety';
 import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
@@ -568,6 +567,7 @@ export function PosCheckoutPaymentSection({
 
     // 0. Direct Handheld Smart POS Bridge (window.AndroidBridge / Sunmi / Pax / Localhost Daemon)
     try {
+      const { MobileTerminalBridge } = await import('@/features/pos/lib/mobile-terminal-bridge');
       const caps = await MobileTerminalBridge.getCapabilities();
       if (caps.hasNativeBridge || caps.hasLocalDaemon) {
         setTerminalSession({

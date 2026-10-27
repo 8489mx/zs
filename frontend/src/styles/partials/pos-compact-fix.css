@@ -2451,11 +2451,9 @@ html[dir="ltr"] .pos-shift-dropdown-menu,
   margin-inline: 0 !important;
   padding: 0 !important;
   box-shadow: none !important;
-  border-bottom: none !important;
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
+  border: none !important;
   border-radius: 0 !important;
-  background: #ffffff !important;
+  background: transparent !important;
 }
 
 .pos-workspace .pos-workspace-dock-ribbon-track {

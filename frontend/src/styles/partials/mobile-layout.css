@@ -1017,6 +1017,8 @@
     box-sizing: border-box !important;
     width: 100% !important;
     margin-bottom: 6px !important;
+    transition: none !important;
+    animation: none !important;
   }
 
   /* Force all mobile cart rows to crisp white background - zero alternating yellow/odd colors */
@@ -1144,7 +1146,7 @@
     padding: 0 !important;
     font-weight: 700 !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
-    transition: all 0.15s ease !important;
+    transition: none !important;
   }
 
   .pos-workspace .pos-cart-qty-shell input,
@@ -1577,6 +1579,9 @@
     max-width: 100% !important;
     margin: 0 !important;
     padding: 8px 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     box-sizing: border-box !important;
   }
 

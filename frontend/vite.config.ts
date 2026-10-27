@@ -185,6 +185,8 @@ export default defineConfig(({ mode }) => {
             'react-router-dom': 'vendor-router',
             '@tanstack/react-query': 'vendor-query',
             '@tanstack/query-core': 'vendor-query',
+            '@tanstack/react-table': 'vendor-table',
+            '@tanstack/table-core': 'vendor-table',
             'react-hook-form': 'vendor-forms',
             '@hookform/resolvers': 'vendor-forms',
             zod: 'vendor-forms',

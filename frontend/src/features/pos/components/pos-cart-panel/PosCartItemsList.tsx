@@ -18,6 +18,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   allowItemNotes,
   allowItemModifiers,
   isRestaurant,
+  isMobile,
   onSelectLine,
   onEditProduct,
   _onItemNoteChange: _unusedNoteChange,
@@ -41,6 +42,7 @@ const PosCartItemRow = memo(function PosCartItemRow({
   const dynamicInputWidth = `${Math.max(30, qtyLength * 11 + 16)}px`;
   const itemImage = item.imageUrl || product?.imageUrl || (product as any)?.metadata?.imageUrl;
   const rawIcon = item.icon || product?.icon || 'box-package';
+  const thumbSize = isMobile ? '44px' : '52px';
 
   return (
     <div
@@ -57,8 +59,8 @@ const PosCartItemRow = memo(function PosCartItemRow({
           <div
             className="pos-cart-product-thumb"
             style={{
-              width: '52px',
-              height: '52px',
+              width: thumbSize,
+              height: thumbSize,
               borderRadius: '10px',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -80,8 +82,8 @@ const PosCartItemRow = memo(function PosCartItemRow({
           <div
             className="pos-cart-product-thumb pos-cart-product-thumb-placeholder"
             style={{
-              width: '52px',
-              height: '52px',
+              width: thumbSize,
+              height: thumbSize,
               borderRadius: '10px',
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
@@ -378,7 +380,10 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
 
   const [notesDialogItem, setNotesDialogItem] = useState<{ lineKey: string; name: string; nameEn?: string; notes: string } | null>(null);
   const containerRef = useRef<HTMLElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerWidth, setContainerWidth] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    return window.innerWidth <= 900 ? Math.min(420, window.innerWidth - 24) : 0;
+  });
 
   useEffect(() => {
     if (!containerRef.current || typeof ResizeObserver === 'undefined') return;
@@ -524,6 +529,7 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
               allowItemNotes={allowItemNotes}
               allowItemModifiers={allowItemModifiers}
               isRestaurant={isRestaurant}
+              isMobile={isMobile}
               onSelectLine={handleSelectLine}
               onEditProduct={handleEditProduct}
               onItemNoteChange={handleItemNoteChange}

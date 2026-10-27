@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
-import { StarIcon, SlidersIcon } from '@/shared/components/icons/AppIcons';
+import { StarIcon, SlidersIcon, PlusIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatCurrencyWithCode } from '@/lib/format';
 import { sharedProductsApi } from '@/shared/api/products';
 import {
@@ -1264,6 +1264,15 @@ function PosProductsPanelComponent({
                 gap: isMobile ? (customization.mobileGridColumns === '3' ? '6px' : '8px') : '12px',
                 alignItems: 'stretch',
                 paddingBottom: isMobile ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : '24px',
+              } : cardDensity === 'compact' ? {
+                display: 'grid',
+                gridTemplateColumns: isMobile
+                  ? (customization.mobileGridColumns === '3' ? 'repeat(3, minmax(0, 1fr))' : customization.mobileGridColumns === '2' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fill, minmax(130px, 1fr))')
+                  : 'repeat(auto-fill, minmax(155px, 185px))',
+                gridAutoRows: isMobile ? (customization.mobileGridColumns === '3' ? '106px' : '112px') : '114px',
+                gap: isMobile ? (customization.mobileGridColumns === '3' ? '6px' : '8px') : '12px',
+                alignItems: 'stretch',
+                paddingBottom: isMobile ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : '24px',
               } : (isMobile && customization.mobileGridColumns === '3' ? {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -1716,12 +1725,16 @@ function PosProductsPanelComponent({
                         ? '1px dashed #cbd5e1'
                         : '1px solid rgba(148, 163, 184, 0.28)',
                       borderRadius: '8px',
-                      padding: '8px 10px',
+                      padding: isMobile ? (customization.mobileGridColumns === '3' ? '5px 5px' : '6px 8px') : '8px 10px',
                       boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.12)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
-                      minHeight: '94px',
+                      height: isMobile ? (customization.mobileGridColumns === '3' ? '106px' : '112px') : '114px',
+                      minHeight: isMobile ? (customization.mobileGridColumns === '3' ? '106px' : '112px') : '114px',
+                      maxHeight: isMobile ? (customization.mobileGridColumns === '3' ? '106px' : '112px') : '114px',
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
                       position: 'relative',
                       opacity: isOutOfStock ? 0.55 : 1,
                       filter: isOutOfStock ? 'grayscale(0.65)' : undefined,
@@ -1748,6 +1761,7 @@ function PosProductsPanelComponent({
                         display: 'flex',
                         flexDirection: 'column',
                         flex: 1,
+                        height: '100%',
                         justifyContent: 'space-between',
                       }}
                     >
@@ -1843,34 +1857,61 @@ function PosProductsPanelComponent({
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
+                          gap: '4px',
                           borderTop: '1px solid rgba(148, 163, 184, 0.16)',
-                          paddingTop: '5px',
+                          paddingTop: '4px',
                           marginTop: 'auto',
                           width: '100%',
+                          minWidth: 0,
                         }}
                       >
-                        <strong style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>
+                        <span
+                          style={{
+                            fontSize: isMobile ? '0.82rem' : '0.92rem',
+                            fontWeight: 800,
+                            color: '#0f172a',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            minWidth: 0,
+                            flexShrink: 1,
+                          }}
+                          title={priceLabel}
+                        >
                           {priceLabel}
-                        </strong>
+                        </span>
 
                         <span
                           style={{
-                            fontSize: '0.7rem',
+                            fontSize: isMobile ? '0.66rem' : '0.7rem',
                             fontWeight: 700,
-                            padding: '2px 7px',
+                            padding: isMobile ? '2px 5px' : '2px 7px',
                             borderRadius: '5px',
                             background: isOutOfStock ? '#fee2e2' : group.hasVariants ? '#eff6ff' : '#ecfdf5',
                             color: isOutOfStock ? '#b91c1c' : group.hasVariants ? '#1d4ed8' : '#047857',
                             border: isOutOfStock ? '1px solid #fecaca' : group.hasVariants ? '1px solid #dbeafe' : '1px solid #a7f3d0',
                             display: 'inline-flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '3px',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            lineHeight: 1,
                           }}
                         >
-                          {isOutOfStock
-                            ? t('pos.out_of_stock', 'نفد')
-                            : group.hasVariants
-                            ? t('pos.pos_products_panel.s32', "خيارات ▾")
-                            : t('pos.pos_products_panel.s33', "+ أضف")}
+                          {isOutOfStock ? (
+                            t('pos.out_of_stock', 'نفد')
+                          ) : group.hasVariants ? (
+                            <>
+                              <span>{t('pos.options_short', 'خيارات')}</span>
+                              <ChevronDownIcon size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                            </>
+                          ) : (
+                            <>
+                              <PlusIcon size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                              <span>{t('pos.add_short', 'أضف')}</span>
+                            </>
+                          )}
                         </span>
                       </div>
                     </button>
