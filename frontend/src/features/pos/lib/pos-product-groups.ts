@@ -39,6 +39,8 @@ function getGroupKey(product: Product, repeatedStems: Set<string>) {
   return `product:${product.id}`;
 }
 
+const arCollator = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });
+
 export function buildPosProductGroups(products: Product[], priceType: PosPriceType) {
   const stemCounts = new Map<string, number>();
   products.forEach((product) => {
@@ -64,10 +66,10 @@ export function buildPosProductGroups(products: Product[], priceType: PosPriceTy
       const orderedProducts = [...groupProducts].sort((a, b) => {
         const aColor = String(a.color || '');
         const bColor = String(b.color || '');
-        if (aColor !== bColor) return aColor.localeCompare(bColor, 'ar');
+        if (aColor !== bColor) return arCollator.compare(aColor, bColor);
         const aSize = String(a.size || '');
         const bSize = String(b.size || '');
-        return aSize.localeCompare(bSize, 'ar', { numeric: true });
+        return arCollator.compare(aSize, bSize);
       });
       const first = orderedProducts[0];
       const prices = orderedProducts.map((product) => getProductPrice(product, priceType));
@@ -100,7 +102,7 @@ export function buildPosProductGroups(products: Product[], priceType: PosPriceTy
         totalStock,
       } satisfies PosProductGroup;
     })
-    .sort((a, b) => a.title.localeCompare(b.title, 'ar'));
+    .sort((a, b) => arCollator.compare(a.title, b.title));
 }
 
 export function getGroupShelfGroups(params: {

@@ -18,6 +18,7 @@ function getSaleKey(sale: Sale | null) {
 interface SubmitOptions {
   fastCash?: boolean;
   managerPin?: string;
+  tenderedAmount?: number;
 }
 
 function getSubmitSaleErrorMessage(error: unknown) {
@@ -260,7 +261,9 @@ export function createPosWorkspaceAsyncActions(
         deliveryFee: params.totals.deliveryFee,
         note: params.note,
         paidAmount: effectivePaidAmount,
-        tenderedAmount: effectiveCashAmount,
+        tenderedAmount: (options.tenderedAmount && options.tenderedAmount > 0)
+          ? options.tenderedAmount
+          : (params.tenderedAmount && params.tenderedAmount > 0 ? params.tenderedAmount : effectiveCashAmount),
         payments: [
           ...(effectiveCashAmount > 0 ? [{ paymentChannel: 'cash' as const, amount: effectiveCashAmount }] : []),
           ...(effectiveCardAmount > 0 ? [{ paymentChannel: 'card' as const, amount: effectiveCardAmount }] : []),
@@ -294,9 +297,16 @@ export function createPosWorkspaceAsyncActions(
         cardLastFour: params.terminalPaymentDetails?.cardLastFour || undefined,
       });
       const rawOnlineNumber = localStorage.getItem('zs_pos_online_order_number');
+      const resolvedTendered = (createdSale as any)?.sale?.tenderedAmount
+        ?? (createdSale as any)?.tenderedAmount
+        ?? ((options.tenderedAmount && options.tenderedAmount > 0) ? options.tenderedAmount : params.tenderedAmount || effectiveCashAmount);
       const hydratedSale: Sale = {
         ...(createdSale as Sale),
         cart: params.cart,
+        tenderedAmount: resolvedTendered,
+        changeAmount: (createdSale as any)?.sale?.changeAmount
+          ?? (createdSale as any)?.changeAmount
+          ?? (resolvedTendered > total ? Number((resolvedTendered - total).toFixed(2)) : 0),
         onlineOrderNumber: rawOnlineNumber || (createdSale as any)?.onlineOrderNumber,
         terminalId: params.terminalPaymentDetails?.terminalId || (createdSale as any)?.terminalId,
         terminalAuthCode: params.terminalPaymentDetails?.authCode || (createdSale as any)?.terminalAuthCode,

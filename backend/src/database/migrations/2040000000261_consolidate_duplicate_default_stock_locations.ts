@@ -2,9 +2,14 @@ import { Kysely, sql } from 'kysely';
 import { Database } from '../database.types';
 
 /**
- * Migration 2040000000258:
+ * Migration 2040000000261:
  * Consolidates duplicate 'المخزن الرئيسي' locations created by legacy Excel imports
  * into the primary branch stock location ('رصيد الفرع الرئيسي').
+ *
+ * Compatibility Invariant:
+ * Idempotent follower for 2040000000258_consolidate_duplicate_default_stock_locations.
+ * Preserves database upgrade compatibility across environments that already executed
+ * 258 or upgraded via linear sequences reaching 261.
  *
  * Invariant (Rule 13 AGENTS.md):
  * Preserves exact stock quantities across product_location_stock before and after consolidation.

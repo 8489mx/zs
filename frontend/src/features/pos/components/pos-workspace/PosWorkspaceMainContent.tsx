@@ -10,6 +10,7 @@ import { PosProductsPanel } from '@/features/pos/components/PosProductsPanel';
 import { PosWorkspaceDock } from '@/features/pos/components/pos-workspace/PosWorkspaceDock';
 import { PosWorkspaceStartupIssues } from '@/features/pos/components/pos-workspace/PosWorkspaceStatusCards';
 import { useSplitter } from '@/shared/hooks/useSplitter';
+import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/format';
@@ -94,6 +95,8 @@ export function PosWorkspaceMainContent({
   }, [cartItemsCount, customization.autoHideBottomNav]);
 
   const [mobileActiveTab, setMobileActiveTab] = useState<'products' | 'cart'>('products');
+  const isMobile = useIsMobile(900);
+  const isCartVisible = !isMobile || mobileActiveTab === 'cart';
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -182,9 +185,7 @@ export function PosWorkspaceMainContent({
             recentProducts={pos.recentProducts}
             productFilter={pos.productFilter}
             onProductFilterChange={pos.setProductFilter}
-            onAddProduct={(prod) => {
-              pos.handleAddProduct(prod);
-            }}
+            onAddProduct={pos.handleAddProduct}
             searchInputRef={searchInputRef}
             posMode={posMode}
             onOpenNewProduct={onOpenNewProduct}
@@ -203,115 +204,119 @@ export function PosWorkspaceMainContent({
             paddingBottom: mobileActiveTab === 'cart' ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : undefined,
           }}
         >
-          <PosCartPanel
-            cart={pos.cart}
-            products={pos.filteredSaleProducts}
-            onNavigateToProducts={() => setMobileActiveTab('products')}
-            customers={pos.customersQuery.data || []}
-            branches={pos.branchesQuery.data || []}
-            locations={pos.locationsQuery.data || []}
-            customerId={pos.customerId}
-            branchId={pos.branchId}
-            locationId={pos.locationId}
-            paymentType={pos.paymentType}
-            paymentChannel={pos.paymentChannel}
-            paidAmount={pos.paidAmount}
-            cashAmount={pos.cashAmount}
-            cardAmount={pos.cardAmount}
-            transferAmount={pos.transferAmount}
-            discount={pos.discount}
-            deliveryFee={pos.deliveryFee}
-            note={pos.note}
-            tableNumber={pos.tableNumber}
-            orderType={pos.orderType}
-            submitMessage={pos.submitMessage}
-            lastSaleDocNo={pos.lastSale?.docNo || pos.lastSale?.id || ''}
-            canShowLastSaleActions={pos.canShowLastSaleActions}
-            quickCustomerName={pos.quickCustomerName}
-            quickCustomerPhone={pos.quickCustomerPhone}
-            quickCustomerAddress={pos.quickCustomerAddress}
-            isQuickCustomerPending={pos.quickCustomerMutation.isPending}
-            heldDrafts={pos.heldDraftSummaries}
-            isError={pos.createSale.isError}
-            isPending={pos.createSale.isPending}
-            totals={pos.totals}
-            changeAmount={pos.changeAmount}
-            amountDue={pos.amountDue}
-            hasOpenShift={Boolean(pos.ownOpenShift)}
-            canApplyDiscount={pos.canApplyDiscount}
-            discountApprovalGranted={pos.discountApprovalGranted}
-            isDiscountAuthorizationPending={pos.discountAuthorizationMutation.isPending}
-            hasDiscountPermissionViolation={pos.hasDiscountPermissionViolation}
-            hasPricePermissionViolation={pos.hasPricePermissionViolation}
-            allowNegativeStockSales={allowNegativeStockSales}
-            canSubmitSale={pos.canSubmitSale}
-            canSubmitHint={pos.canSubmitHint}
-            lastAddedLineKey={pos.lastAddedLineKey}
-            selectedLineKey={pos.selectedLineKey}
-            posMode={posMode}
-            preferredPrintPageSize={pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4'}
-            settings={pos.settingsQuery.data}
-            onCustomerChange={pos.setCustomerId}
-            onTableNumberChange={pos.setTableNumber}
-            onOrderTypeChange={pos.setOrderType}
-            onQuickCustomerNameChange={pos.setQuickCustomerName}
-            onQuickCustomerPhoneChange={pos.setQuickCustomerPhone}
-            onQuickCustomerAddressChange={pos.setQuickCustomerAddress}
-            onQuickCustomerSubmit={pos.handleQuickCustomerSubmit}
-            onPaymentTypeChange={pos.setPaymentType}
-            onPaymentPresetChange={pos.setPaymentPreset}
-            onCashAmountChange={pos.setCashAmount}
-            onCardAmountChange={pos.setCardAmount}
-            onTransferAmountChange={pos.setTransferAmount}
-            onDiscountChange={pos.setDiscount}
-            onDeliveryFeeChange={pos.setDeliveryFee}
-            onRequestDiscountAuthorization={onRequestDiscountAuthorization}
-            onNoteChange={pos.setNote}
-            onQtyChange={pos.setQty}
-            onItemNoteChange={pos.setItemNote}
-            onItemModifiersClick={onItemModifiersClick}
-            onItemSeatChange={pos.setItemSeat}
-            onEditProduct={onEditProduct}
-            onRemoveItem={onRequestLineDelete}
-            onSelectLine={pos.selectCartLine}
-            onFillPaidAmount={pos.fillPaidAmount}
-            onChangeSelectedQty={pos.changeSelectedQty}
-            onChangeLineQtyByDelta={pos.changeLineQtyByDelta}
-            onEditSelectedQty={pos.editSelectedQty}
-            onRemoveSelectedItem={onRequestSelectedLineDelete}
-            onHoldDraft={pos.holdDraft}
-            onRecallDraft={pos.recallDraft}
-            onDeleteDraft={onRequestHeldDelete}
-            onClearHeldDrafts={onRequestClearHeldDrafts}
-            onResetDraft={onRequestClearCart}
-            onPrintPreview={onPrintCurrentDraft}
-            onReprintLastSale={pos.reprintLastSale}
-            onPrintReceiptNow={pos.printReceiptNow}
-            onPrintA4Now={pos.printA4Now}
-            onExportPdfNow={pos.exportPdfNow}
-            onExportHeldDrafts={pos.exportHeldDrafts}
-            showPaymentSection={false}
-            showMetaSection={Boolean(pos.settingsQuery.data?.restaurantModuleEnabled && pos.settingsQuery.data?.posShowCartMeta)}
-            showHeldDraftsInline={false}
-            onSubmit={onRequestCheckout}
-          />
+          {isCartVisible ? (
+            <>
+              <PosCartPanel
+                cart={pos.cart}
+                products={pos.filteredSaleProducts}
+                onNavigateToProducts={() => setMobileActiveTab('products')}
+                customers={pos.customersQuery.data || []}
+                branches={pos.branchesQuery.data || []}
+                locations={pos.locationsQuery.data || []}
+                customerId={pos.customerId}
+                branchId={pos.branchId}
+                locationId={pos.locationId}
+                paymentType={pos.paymentType}
+                paymentChannel={pos.paymentChannel}
+                paidAmount={pos.paidAmount}
+                cashAmount={pos.cashAmount}
+                cardAmount={pos.cardAmount}
+                transferAmount={pos.transferAmount}
+                discount={pos.discount}
+                deliveryFee={pos.deliveryFee}
+                note={pos.note}
+                tableNumber={pos.tableNumber}
+                orderType={pos.orderType}
+                submitMessage={pos.submitMessage}
+                lastSaleDocNo={pos.lastSale?.docNo || pos.lastSale?.id || ''}
+                canShowLastSaleActions={pos.canShowLastSaleActions}
+                quickCustomerName={pos.quickCustomerName}
+                quickCustomerPhone={pos.quickCustomerPhone}
+                quickCustomerAddress={pos.quickCustomerAddress}
+                isQuickCustomerPending={pos.quickCustomerMutation.isPending}
+                heldDrafts={pos.heldDraftSummaries}
+                isError={pos.createSale.isError}
+                isPending={pos.createSale.isPending}
+                totals={pos.totals}
+                changeAmount={pos.changeAmount}
+                amountDue={pos.amountDue}
+                hasOpenShift={Boolean(pos.ownOpenShift)}
+                canApplyDiscount={pos.canApplyDiscount}
+                discountApprovalGranted={pos.discountApprovalGranted}
+                isDiscountAuthorizationPending={pos.discountAuthorizationMutation.isPending}
+                hasDiscountPermissionViolation={pos.hasDiscountPermissionViolation}
+                hasPricePermissionViolation={pos.hasPricePermissionViolation}
+                allowNegativeStockSales={allowNegativeStockSales}
+                canSubmitSale={pos.canSubmitSale}
+                canSubmitHint={pos.canSubmitHint}
+                lastAddedLineKey={pos.lastAddedLineKey}
+                selectedLineKey={pos.selectedLineKey}
+                posMode={posMode}
+                preferredPrintPageSize={pos.settingsQuery.data?.paperSize === 'receipt' ? 'receipt' : 'a4'}
+                settings={pos.settingsQuery.data}
+                onCustomerChange={pos.setCustomerId}
+                onTableNumberChange={pos.setTableNumber}
+                onOrderTypeChange={pos.setOrderType}
+                onQuickCustomerNameChange={pos.setQuickCustomerName}
+                onQuickCustomerPhoneChange={pos.setQuickCustomerPhone}
+                onQuickCustomerAddressChange={pos.setQuickCustomerAddress}
+                onQuickCustomerSubmit={pos.handleQuickCustomerSubmit}
+                onPaymentTypeChange={pos.setPaymentType}
+                onPaymentPresetChange={pos.setPaymentPreset}
+                onCashAmountChange={pos.setCashAmount}
+                onCardAmountChange={pos.setCardAmount}
+                onTransferAmountChange={pos.setTransferAmount}
+                onDiscountChange={pos.setDiscount}
+                onDeliveryFeeChange={pos.setDeliveryFee}
+                onRequestDiscountAuthorization={onRequestDiscountAuthorization}
+                onNoteChange={pos.setNote}
+                onQtyChange={pos.setQty}
+                onItemNoteChange={pos.setItemNote}
+                onItemModifiersClick={onItemModifiersClick}
+                onItemSeatChange={pos.setItemSeat}
+                onEditProduct={onEditProduct}
+                onRemoveItem={onRequestLineDelete}
+                onSelectLine={pos.selectCartLine}
+                onFillPaidAmount={pos.fillPaidAmount}
+                onChangeSelectedQty={pos.changeSelectedQty}
+                onChangeLineQtyByDelta={pos.changeLineQtyByDelta}
+                onEditSelectedQty={pos.editSelectedQty}
+                onRemoveSelectedItem={onRequestSelectedLineDelete}
+                onHoldDraft={pos.holdDraft}
+                onRecallDraft={pos.recallDraft}
+                onDeleteDraft={onRequestHeldDelete}
+                onClearHeldDrafts={onRequestClearHeldDrafts}
+                onResetDraft={onRequestClearCart}
+                onPrintPreview={onPrintCurrentDraft}
+                onReprintLastSale={pos.reprintLastSale}
+                onPrintReceiptNow={pos.printReceiptNow}
+                onPrintA4Now={pos.printA4Now}
+                onExportPdfNow={pos.exportPdfNow}
+                onExportHeldDrafts={pos.exportHeldDrafts}
+                showPaymentSection={false}
+                showMetaSection={Boolean(pos.settingsQuery.data?.restaurantModuleEnabled && pos.settingsQuery.data?.posShowCartMeta)}
+                showHeldDraftsInline={false}
+                onSubmit={onRequestCheckout}
+              />
 
-          <PosWorkspaceDock
-            qtySummaries={cartQtySummaries}
-            itemsCount={cartItemsCount}
-            total={pos.totals.total}
-            canOpenCheckout={pos.canOpenCheckout}
-            checkoutDisabledReason={pos.createSale.isPending ? __t('pos.pos_workspace.pos_workspace_main_content.s6', __t('pos.pos_workspace.pos_workspace_main_content.s6', "جاري تنفيذ البيع")) : pos.checkoutDisabledReason}
-            isPending={pos.createSale.isPending}
-            heldDraftsCount={heldDraftsCount}
-            onFocusSearch={onFocusBarcodeEntry}
-            onPrintPreview={onPrintCurrentDraft}
-            onResetDraft={onRequestClearCart}
-            onHoldDraft={() => { void pos.holdDraft(); }}
-            onOpenHeldDrafts={onOpenHeldDrafts}
-            onSubmit={() => onRequestCheckout()}
-            settings={pos.settingsQuery.data}
-          />
+              <PosWorkspaceDock
+                qtySummaries={cartQtySummaries}
+                itemsCount={cartItemsCount}
+                total={pos.totals.total}
+                canOpenCheckout={pos.canOpenCheckout}
+                checkoutDisabledReason={pos.createSale.isPending ? __t('pos.pos_workspace.pos_workspace_main_content.s6', __t('pos.pos_workspace.pos_workspace_main_content.s6', "جاري تنفيذ البيع")) : pos.checkoutDisabledReason}
+                isPending={pos.createSale.isPending}
+                heldDraftsCount={heldDraftsCount}
+                onFocusSearch={onFocusBarcodeEntry}
+                onPrintPreview={onPrintCurrentDraft}
+                onResetDraft={onRequestClearCart}
+                onHoldDraft={() => { void pos.holdDraft(); }}
+                onOpenHeldDrafts={onOpenHeldDrafts}
+                onSubmit={() => onRequestCheckout()}
+                settings={pos.settingsQuery.data}
+              />
+            </>
+          ) : null}
         </div>
         </div>
 

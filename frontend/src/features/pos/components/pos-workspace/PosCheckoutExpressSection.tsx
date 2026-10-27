@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
@@ -13,7 +13,7 @@ interface PosCheckoutExpressSectionProps {
   isKsaStore: boolean;
   isPaymentActive: (preset: PaymentPreset) => boolean;
   onSelectPaymentPreset: (preset: PaymentPreset) => void;
-  onConfirmSale: () => void;
+  onConfirmSale: (tenderedAmount?: number) => void;
   onSwitchToDetailed: () => void;
   selectedCustomerName: string;
   onOpenCustomerPicker: () => void;
@@ -38,14 +38,28 @@ export function PosCheckoutExpressSection({
 }: PosCheckoutExpressSectionProps) {
   const { t } = useTranslation();
   const total = Number(pos.totals.total || 0);
-  const [receivedCash, setReceivedCash] = useState<number | null>(null);
+  const [customCashInput, setCustomCashInput] = useState<string>('');
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [terminalDispatchStatus, setTerminalDispatchStatus] = useState<'idle' | 'waiting' | 'approved' | 'declined'>('idle');
   const [terminalMsg, setTerminalMsg] = useState<string>('');
 
+  const parsedCash = Number(customCashInput.trim());
+  const hasCustomCash = customCashInput.trim() !== '' && !isNaN(parsedCash) && parsedCash >= 0;
+  const effectiveReceivedCash = hasCustomCash ? parsedCash : total;
+  const changeDue = effectiveReceivedCash >= total ? Number((effectiveReceivedCash - total).toFixed(2)) : 0;
+  const underpaidAmount = effectiveReceivedCash < total ? Number((total - effectiveReceivedCash).toFixed(2)) : 0;
+
+  useEffect(() => {
+    if (isPaymentActive('cash')) {
+      pos.setTenderedAmount?.(effectiveReceivedCash);
+    } else {
+      pos.setTenderedAmount?.(0);
+    }
+  }, [effectiveReceivedCash, isPaymentActive, pos]);
+
   const handleSelectCard = async () => {
     onSelectPaymentPreset('card');
-    setReceivedCash(null);
+    setCustomCashInput('');
 
     const currency = isKwdStore ? 'KWD' : isKsaStore ? 'SAR' : (pos.settings?.currency || (pos.settingsQuery?.data as any)?.currency || 'EGP');
     const defaultProvider = isKwdStore ? 'knet' : isKsaStore ? 'geidea' : 'fawry';
@@ -111,36 +125,39 @@ export function PosCheckoutExpressSection({
   };
 
 
-  // Compute smart cash denomination buttons >= total
+  // Compute smart cash banknote denomination shortcuts >= total
   const cashDenominations = useMemo(() => {
     if (total <= 0) return [];
     if (isKwdStore) {
-      const bases = [1, 5, 10, 20, 50];
-      const result: number[] = [];
-      for (const b of bases) {
-        if (b >= total && result.length < 4) {
-          result.push(b);
-        }
-      }
-      if (!result.includes(Math.ceil(total))) {
-        result.unshift(Math.ceil(total));
-      }
-      return Array.from(new Set(result)).slice(0, 4);
+      const bases = [1, 5, 10, 20];
+      const valid = bases.filter((b) => b >= total);
+      if (valid.length === 0) valid.push(Math.ceil(total));
+      return Array.from(new Set(valid)).slice(0, 4);
     }
 
-    // Egypt / SAR / General currency rounding
-    const step = total > 500 ? 100 : total > 200 ? 50 : total > 50 ? 20 : 10;
-    const roundedCeil = Math.ceil(total / step) * step;
-    const presets = [
-      roundedCeil,
-      roundedCeil + step,
-      roundedCeil + step * 2,
-      total > 500 ? 1000 : total > 200 ? 500 : 200,
-    ];
-    return Array.from(new Set(presets.filter((p) => p >= total))).slice(0, 4);
-  }, [total, isKwdStore]);
+    if (isKsaStore) {
+      const saBanknotes = [5, 10, 20, 50, 100, 200, 500];
+      const valid = saBanknotes.filter((b) => b >= total);
+      if (valid.length === 0) {
+        valid.push(Math.ceil(total / 100) * 100, Math.ceil(total / 500) * 500);
+      }
+      return Array.from(new Set(valid)).slice(0, 4);
+    }
 
-  const changeDue = receivedCash !== null && receivedCash >= total ? receivedCash - total : 0;
+    // Egypt & General currency real banknotes: 20, 50, 100, 200 (and 500 / 1000 for large totals)
+    const egBanknotes = [20, 50, 100, 200];
+    let presets = egBanknotes.filter((b) => b >= total);
+    if (presets.length < 4) {
+      if (total > 200) {
+        const nextFifty = Math.ceil(total / 50) * 50;
+        const nextHundred = Math.ceil(total / 100) * 100;
+        presets = [nextFifty, nextHundred, nextHundred + 100, nextHundred + 200];
+      } else {
+        presets = Array.from(new Set([Math.ceil(total), ...presets, 200, 500]));
+      }
+    }
+    return Array.from(new Set(presets.filter((p) => p >= total))).slice(0, 4);
+  }, [total, isKwdStore, isKsaStore]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
@@ -446,66 +463,187 @@ export function PosCheckoutExpressSection({
           <div
             style={{
               background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              padding: '8px 10px',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: '10px',
+              padding: '10px 12px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '6px',
+              gap: '8px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: '#475569', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: '#334155', fontWeight: 800 }}>
               <span>{t('pos.received_cash_hint', 'المبلغ المستلم من العميل (لحساب الباقي):')}</span>
-              {receivedCash !== null && (
+              {hasCustomCash && (
                 <button
                   type="button"
-                  onClick={() => setReceivedCash(null)}
-                  style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '10.5px', cursor: 'pointer', fontWeight: 700 }}
+                  onClick={() => setCustomCashInput('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ef4444',
+                    fontSize: '11px',
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    padding: '2px 4px',
+                  }}
                 >
-                  {t('common.clear', 'مسح')}
+                  {t('common.clear_reset_default', 'مسح (استعادة التلقائي)')}
                 </button>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
-              {cashDenominations.map((denom) => (
-                <button
-                  key={denom}
-                  type="button"
-                  onClick={() => setReceivedCash(denom)}
+
+            {/* Input Row: Custom Cash Amount Input + Exact Cash Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder={String(total)}
+                  value={customCashInput}
+                  onChange={(e) => setCustomCashInput(e.target.value)}
                   style={{
-                    flex: '1 1 0',
-                    minWidth: '55px',
-                    padding: '6px 4px',
-                    borderRadius: '6px',
-                    border: receivedCash === denom ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                    background: receivedCash === denom ? '#170e5e' : '#ffffff',
-                    color: receivedCash === denom ? '#ffffff' : '#0f172a',
+                    boxSizing: 'border-box',
+                    width: '100%',
+                    height: '40px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: hasCustomCash ? '2px solid #170e5e' : '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    fontSize: '16px',
                     fontWeight: 800,
-                    fontSize: '11.5px',
-                    cursor: 'pointer',
+                    color: '#0f172a',
+                    textAlign: 'center',
+                    outline: 'none',
+                    boxShadow: hasCustomCash ? '0 0 0 2px rgba(23, 14, 94, 0.1)' : 'none',
                   }}
-                >
-                  {denom}
-                </button>
-              ))}
+                />
+              </div>
+
+              {/* Exact cash shortcut / indicator */}
+              <button
+                type="button"
+                onClick={() => setCustomCashInput('')}
+                title={t('pos.exact_amount_hint', 'العميل دفع المبلغ المطلوب بالضبط')}
+                style={{
+                  height: '40px',
+                  padding: '0 12px',
+                  borderRadius: '8px',
+                  border: !hasCustomCash ? '1.5px solid #10b981' : '1px solid #cbd5e1',
+                  background: !hasCustomCash ? '#ecfdf5' : '#ffffff',
+                  color: !hasCustomCash ? '#065f46' : '#64748b',
+                  fontSize: '11.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.12s ease',
+                  flexShrink: 0,
+                }}
+              >
+                {!hasCustomCash && <CheckIcon size={13} color="#10b981" />}
+                <span>{t('pos.exact_cash', 'المبلغ بالضبط')}</span>
+              </button>
             </div>
-            {receivedCash !== null && (
+
+            {/* Quick Banknote Shortcuts */}
+            {cashDenominations.length > 0 && (
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {cashDenominations.map((denom) => {
+                  const isSelected = hasCustomCash ? parsedCash === denom : denom === total;
+                  return (
+                    <button
+                      key={denom}
+                      type="button"
+                      onClick={() => setCustomCashInput(String(denom))}
+                      style={{
+                        flex: '1 1 0',
+                        minWidth: '52px',
+                        padding: '6px 4px',
+                        borderRadius: '6px',
+                        border: isSelected ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                        background: isSelected ? '#170e5e' : '#ffffff',
+                        color: isSelected ? '#ffffff' : '#0f172a',
+                        fontWeight: 800,
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.1s ease',
+                      }}
+                    >
+                      {denom}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Real-time Calculation Banner */}
+            {changeDue > 0 ? (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   background: '#ecfdf5',
-                  border: '1px solid #a7f3d0',
+                  border: '1.5px solid #10b981',
                   color: '#065f46',
-                  borderRadius: '6px',
-                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{t('pos.change_due', 'الباقي للعميل:')}</span>
+                  <span style={{ fontSize: '11px', color: '#047857', fontWeight: 600 }}>
+                    ({t('pos.received', 'المستلم')}: {formatCurrency(effectiveReceivedCash)})
+                  </span>
+                </div>
+                <span style={{ fontSize: '16px', color: '#047857', fontWeight: 900 }}>
+                  {formatCurrency(changeDue)}
+                </span>
+              </div>
+            ) : underpaidAmount > 0 ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  color: '#b45309',
+                  borderRadius: '8px',
+                  padding: '7px 12px',
                   fontSize: '12px',
                   fontWeight: 800,
                 }}
               >
+                <span>{t('pos.underpaid_warning', 'المبلغ أقل من المطلوب بمقدار:')}</span>
+                <span style={{ fontSize: '14px', color: '#dc2626', fontWeight: 900 }}>
+                  {formatCurrency(underpaidAmount)}
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  color: '#64748b',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                }}
+              >
                 <span>{t('pos.change_due', 'الباقي للعميل:')}</span>
-                <span style={{ fontSize: '14px', color: '#047857' }}>{formatCurrency(changeDue)}</span>
+                <span style={{ fontSize: '12.5px', color: '#10b981', fontWeight: 800 }}>
+                  {formatCurrency(0)} ({t('pos.exact_paid', 'مسدد بالكامل')})
+                </span>
               </div>
             )}
           </div>
@@ -629,7 +767,13 @@ export function PosCheckoutExpressSection({
         <Button
           type="button"
           variant="success"
-          onClick={onConfirmSale}
+          onClick={() => {
+            if (isPaymentActive('cash')) {
+              onConfirmSale(effectiveReceivedCash);
+            } else {
+              onConfirmSale();
+            }
+          }}
           disabled={pos.createSale.isPending || !pos.canSubmitSale}
           style={{
             height: '46px',

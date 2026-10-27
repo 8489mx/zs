@@ -28,7 +28,7 @@ interface PosCheckoutDialogProps {
   pos: PosWorkspaceState;
   selectedCustomerName: string;
   onClose: () => void;
-  onConfirmSale: (managerPin?: string) => void;
+  onConfirmSale: (managerPin?: string, tenderedAmount?: number) => void;
   onOpenSplitBill?: () => void;
 }
 
@@ -135,14 +135,17 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
     clearInlineManagerApproval();
     stableOnClose();
   }, [clearInlineManagerApproval, pos, stableOnClose]);
-  const handleConfirmSale = useCallback(() => {
+  const handleConfirmSale = useCallback((tenderedAmountOverride?: number) => {
     const isCod = pos.collectionStatus === 'cod';
     if (pos.orderType === 'delivery' && isCod && (!pos.deliveryRepId || Number(pos.deliveryRepId) <= 0)) {
       pos.setSubmitMessage('يرجى اختيار مندوب التوصيل لتسجيل عهدة التحصيل عليه (في حالة تحصيل من العميل).');
       return;
     }
     const managerPin = approvedManagerPinRef.current || undefined;
-    onConfirmSale(managerPin);
+    const finalTendered = tenderedAmountOverride !== undefined && tenderedAmountOverride > 0
+      ? tenderedAmountOverride
+      : (pos.tenderedAmount && pos.tenderedAmount > 0 ? pos.tenderedAmount : undefined);
+    onConfirmSale(managerPin, finalTendered);
   }, [onConfirmSale, pos]);
 
   const handleInlineManagerApproval = useCallback(async (event?: FormEvent<HTMLFormElement>) => {
@@ -493,7 +496,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                   {t('pos.split_bill', 'تجزئة / تقسيم الشيك')}
                 </Button>
               )}
-              <Button type="button" variant="success" onClick={handleConfirmSale} disabled={pos.createSale.isPending || !pos.canSubmitSale}>
+              <Button type="button" variant="success" onClick={() => handleConfirmSale()} disabled={pos.createSale.isPending || !pos.canSubmitSale}>
                 {pos.createSale.isPending ? t('common.saving', 'جاري الحفظ...') : t('pos.confirm_sale_f2', 'تأكيد البيع (F2)')}
               </Button>
             </div>

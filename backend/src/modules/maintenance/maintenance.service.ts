@@ -776,7 +776,7 @@ export class MaintenanceService {
           await valueStockReceipt(trx, scope.tenantId, Number(part.product_id), stockChange.globalAfter, returnQty, stockValue);
         }
 
-        await trx
+        const movement = await trx
           .insertInto('stock_movements')
           .values({
             product_id: Number(part.product_id),
@@ -796,7 +796,16 @@ export class MaintenanceService {
             tenant_id: scope.tenantId,
             account_id: scope.accountId,
           } as any)
-          .execute();
+          .returning('id')
+          .executeTakeFirstOrThrow();
+
+        if (stockValue > 0) {
+          await postMaintenanceJournal(trx, this.accountingFoundation, this.accountingPosting, auth,
+            'maintenance_part_return', Number(movement.id), targetBranchId, targetLocationId, [
+              { code: '1140', debit: stockValue, description: 'Returned maintenance spare part inventory on ticket deletion' },
+              { code: '5100', credit: stockValue, description: 'Reverse maintenance part cost on ticket deletion' },
+            ]);
+        }
       }
 
       await trx

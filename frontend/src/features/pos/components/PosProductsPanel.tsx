@@ -1,9 +1,10 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
 import { Card } from '@/shared/ui/card';
-import { StarIcon, SlidersIcon, PlusIcon, ChevronDownIcon } from '@/shared/components/icons/AppIcons';
+import { StarIcon, SlidersIcon, PlusIcon, ChevronDownIcon, XIcon } from '@/shared/components/icons/AppIcons';
 import { formatCurrency, formatCurrencyWithCode } from '@/lib/format';
 import { sharedProductsApi } from '@/shared/api/products';
 import {
@@ -101,6 +102,7 @@ function groupMetaLabel(group: PosProductGroup) {
 
 function focusSearchInput(searchInputRef: RefObject<HTMLInputElement | null>) {
   if (typeof window === 'undefined') return;
+  if (window.matchMedia('(pointer: coarse)').matches) return;
   window.requestAnimationFrame(() => {
     searchInputRef.current?.focus();
     searchInputRef.current?.select();
@@ -124,6 +126,7 @@ function InlineGroupPicker({
   priceType,
   searchInputRef,
   allowNegativeStockSales = false,
+  isMobile: isMobileProp,
 }: {
   group: PosProductGroup;
   onClose: () => void;
@@ -131,29 +134,31 @@ function InlineGroupPicker({
   priceType: PosPriceType;
   searchInputRef: RefObject<HTMLInputElement | null>;
   allowNegativeStockSales?: boolean;
+  isMobile?: boolean;
 }) {
   const { t } = useTranslation();
+  const isMobileHook = useIsMobile(900);
+  const isMobile = isMobileProp !== undefined ? isMobileProp : isMobileHook;
   const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState('');
 
+  // Start with all options visible so cashier can pick immediately
   useEffect(() => {
-    const firstColor = group.colors[0] || '';
-    const firstMatchingSize = group.products.find((p) => !firstColor || String(p.color || '') === firstColor)?.size || group.sizes[0] || '';
-    setSelectedColor(firstColor);
-    setSelectedSize(firstMatchingSize);
-  }, [group]);
+    setSelectedColor('');
+    setSelectedSize('');
+  }, [group.key]);
 
   useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key === 'Escape' || event.key === 'Esc') {
         event.preventDefault();
         onClose();
-        focusSearchInput(searchInputRef);
+        if (!isMobile) focusSearchInput(searchInputRef);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, searchInputRef]);
+  }, [onClose, searchInputRef, isMobile]);
 
   const deferredColor = useDeferredValue(selectedColor);
   const deferredSize = useDeferredValue(selectedSize);
@@ -166,131 +171,258 @@ function InlineGroupPicker({
     });
   }, [deferredColor, deferredSize, group.products]);
 
-  return (
+  const pickerContent = (
     <div className="pos-inline-picker-overlay" role="presentation">
-      <button type="button" className="pos-inline-picker-backdrop" aria-label={t('pos.pos_inline_picker.close_picker', "إغلاق الاختيارات")} onClick={() => { onClose(); focusSearchInput(searchInputRef); }} />
-      <section className="pos-inline-picker-panel" aria-label={`اختيارات ${group.title}`}>
+      <button
+        type="button"
+        className="pos-inline-picker-backdrop"
+        aria-label={t('pos.pos_inline_picker.close_picker', "إغلاق الاختيارات")}
+        onClick={() => {
+          onClose();
+          if (!isMobile) focusSearchInput(searchInputRef);
+        }}
+      />
+      <section className="pos-inline-picker-panel" aria-label={`اختيارات ${group.title}`} dir="rtl">
+        {/* Mobile top drag handle */}
+        {isMobile && (
+          <div
+            className="pos-sheet-drag-handle"
+            style={{
+              width: '38px',
+              height: '4px',
+              borderRadius: '2px',
+              backgroundColor: '#cbd5e1',
+              margin: '0 auto 6px auto',
+              flexShrink: 0,
+            }}
+          />
+        )}
+
+        {/* Compact Header */}
         <div className="pos-inline-picker-head">
-          <div>
-            <div className="pos-inline-picker-kicker">{t('pos.pos_inline_picker.item_options', "اختيارات الصنف")}</div>
-            <h4>{group.title}</h4>
-            <p className="muted small">{t('pos.pos_inline_picker.select_branch_hint', "اختر الفرع المناسب ثم أضفه مباشرة. السلة ستظل ثابتة كما هي.")}</p>
+          <div className="pos-inline-picker-head-info">
+            <span style={{ width: '3.5px', height: '16px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block', flexShrink: 0 }} />
+            <h4 title={group.title}>{group.title}</h4>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '1px 6px',
+                borderRadius: '6px',
+                background: '#eff6ff',
+                color: '#1d4ed8',
+                border: '1px solid #dbeafe',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              {filteredProducts.length} {t('pos.pos_inline_picker.options_count', 'خيار')}
+            </span>
           </div>
-          <Button type="button" variant="secondary" onClick={() => { onClose(); focusSearchInput(searchInputRef); }}>
-            {t('pos.pos_inline_picker.close', "إغلاق")}
-          </Button>
+
+          <button
+            type="button"
+            className="pos-inline-picker-close-btn"
+            aria-label={t('pos.pos_inline_picker.close', 'إغلاق')}
+            onClick={() => {
+              onClose();
+              if (!isMobile) focusSearchInput(searchInputRef);
+            }}
+          >
+            <XIcon size={16} />
+          </button>
         </div>
 
-        {group.colors.length ? (
+        {/* Color Filter Chips (shown only if more than 1 color) */}
+        {group.colors.length > 1 ? (
           <div className="pos-inline-picker-filter-block">
-            <span>{t('pos.pos_inline_picker.color', "اللون")}</span>
+            <span>{t('pos.pos_inline_picker.color', "اللون")}:</span>
             <div className="pos-chip-row">
-              {group.colors.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`pos-option-chip ${selectedColor === color ? 'is-active' : ''}`}
-                  onClick={() => {
-                    const nextColor = selectedColor === color ? '' : color;
-                    setSelectedColor(nextColor);
-                    if (nextColor && selectedSize) {
-                      const hasCombo = group.products.some((p) => String(p.color || '') === nextColor && String(p.size || '') === selectedSize);
-                      if (!hasCombo) {
-                        const availableSize = group.products.find((p) => String(p.color || '') === nextColor)?.size || '';
-                        setSelectedSize(availableSize);
-                      }
-                    }
-                  }}
-                >
-                  {color}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {group.sizes.length ? (
-          <div className="pos-inline-picker-filter-block">
-            <span>{group.colors.length ? t('pos.pos_inline_picker.size_unit', "المقاس / العبوة / الوحدة") : t('pos.pos_inline_picker.option', "الاختيار")}</span>
-            <div className="pos-chip-row">
-              {group.sizes.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  className={`pos-option-chip ${selectedSize === size ? 'is-active' : ''}`}
-                  onClick={() => {
-                    const nextSize = selectedSize === size ? '' : size;
-                    setSelectedSize(nextSize);
-                    if (nextSize && selectedColor) {
-                      const hasCombo = group.products.some((p) => String(p.color || '') === selectedColor && String(p.size || '') === nextSize);
-                      if (!hasCombo) {
-                        const availableColor = group.products.find((p) => String(p.size || '') === nextSize)?.color || '';
-                        setSelectedColor(availableColor);
-                      }
-                    }
-                  }}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="pos-inline-picker-results-head muted small">
-          <span>{filteredProducts.length} {t('pos.pos_inline_picker.matching_branches', "فرع مطابق")}</span>
-          <span>{t('pos.pos_inline_picker.choose_card_hint', "اختر من البطاقات التالية للإضافة السريعة")}</span>
-        </div>
-
-        <div className="pos-inline-picker-grid">
-          {filteredProducts.map((product) => {
-            const price = priceType === 'wholesale' ? (product.wholesalePrice || product.retailPrice) : product.retailPrice;
-            const isOutOfStock = !allowNegativeStockSales && (product.itemType !== 'service') && !product.hasBom && (Number(product.stock) || 0) <= 0;
-            return (
               <button
-                key={product.id}
                 type="button"
-                className={`pos-inline-variant-card ${isOutOfStock ? 'is-out-of-stock' : ''}`}
-                style={isOutOfStock ? {
-                  opacity: 0.55,
-                  filter: 'grayscale(0.65)',
-                  cursor: 'not-allowed',
-                  background: '#f8fafc',
-                  border: '1px dashed #cbd5e1',
-                } : undefined}
-                onClick={() => {
-                  if (isOutOfStock) {
-                    toast.warning(t('pos.variant_out_of_stock_warning', 'هذا الاختيار نافذ من المخزون ولا يمكن بيعه حالياً'));
-                    return;
-                  }
-                  onAddProduct(product);
-                  onClose();
-                  focusSearchInput(searchInputRef);
-                }}
+                className={`pos-option-chip ${!selectedColor ? 'is-active' : ''}`}
+                onClick={() => setSelectedColor('')}
               >
-                <div className="pos-inline-variant-card-top">
-                  <span
-                    className={`status-badge ${isOutOfStock ? 'status-draft' : 'status-posted'}`}
-                    style={isOutOfStock ? { background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' } : undefined}
-                  >
-                    {isOutOfStock ? t('pos.out_of_stock', 'نفد') : product.stock}
-                  </span>
-                  <strong>{[product.color, product.size].filter(Boolean).join(' / ') || product.name}</strong>
-                </div>
-                <div className="muted small pos-inline-variant-card-meta">{product.name}</div>
-                <div className="pos-inline-variant-card-bottom">
-                  <span>{formatCurrency(Number(price || 0))}</span>
-                  <span className="muted small">
-                    {isOutOfStock ? t('pos.out_of_stock', 'نفد') : t('pos.pos_inline_picker.add_this_branch', 'إضافة هذا الفرع')}
-                  </span>
-                </div>
+                {t('common.all', 'الكل')}
               </button>
-            );
-          })}
+              {group.colors.map((color) => {
+                const isActive = selectedColor === color;
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`pos-option-chip ${isActive ? 'is-active' : ''}`}
+                    onClick={() => {
+                      const nextColor = isActive ? '' : color;
+                      setSelectedColor(nextColor);
+                      if (nextColor && selectedSize) {
+                        const hasCombo = group.products.some((p) => String(p.color || '') === nextColor && String(p.size || '') === selectedSize);
+                        if (!hasCombo) {
+                          const availableSize = group.products.find((p) => String(p.color || '') === nextColor)?.size || '';
+                          setSelectedSize(availableSize);
+                        }
+                      }
+                    }}
+                  >
+                    {color}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Size Filter Chips (shown only if more than 1 size) */}
+        {group.sizes.length > 1 ? (
+          <div className="pos-inline-picker-filter-block">
+            <span>{group.colors.length ? t('pos.pos_inline_picker.size_unit', "المقاس") : t('pos.pos_inline_picker.option', "الاختيار")}:</span>
+            <div className="pos-chip-row">
+              <button
+                type="button"
+                className={`pos-option-chip ${!selectedSize ? 'is-active' : ''}`}
+                onClick={() => setSelectedSize('')}
+              >
+                {t('common.all', 'الكل')}
+              </button>
+              {group.sizes.map((size) => {
+                const isActive = selectedSize === size;
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    className={`pos-option-chip ${isActive ? 'is-active' : ''}`}
+                    onClick={() => {
+                      const nextSize = isActive ? '' : size;
+                      setSelectedSize(nextSize);
+                      if (nextSize && selectedColor) {
+                        const hasCombo = group.products.some((p) => String(p.color || '') === selectedColor && String(p.size || '') === nextSize);
+                        if (!hasCombo) {
+                          const availableColor = group.products.find((p) => String(p.size || '') === nextSize)?.color || '';
+                          setSelectedColor(availableColor);
+                        }
+                      }
+                    }}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Scrollable Variants Container */}
+        <div className="pos-inline-picker-body">
+          {filteredProducts.length === 0 ? (
+            <div
+              style={{
+                padding: '24px 12px',
+                textAlign: 'center',
+                color: '#64748b',
+                fontSize: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>{t('pos.pos_inline_picker.no_matches', 'لا توجد خيارات مطابقة لهذا التحديد')}</span>
+              <button
+                type="button"
+                className="pos-option-chip is-active"
+                onClick={() => { setSelectedColor(''); setSelectedSize(''); }}
+              >
+                {t('pos.pos_inline_picker.reset_filters', 'عرض كافة الخيارات')}
+              </button>
+            </div>
+          ) : (
+            <div className="pos-inline-picker-grid">
+              {filteredProducts.map((product) => {
+                const price = priceType === 'wholesale' ? (product.wholesalePrice || product.retailPrice) : product.retailPrice;
+                const isOutOfStock = !allowNegativeStockSales && (product.itemType !== 'service') && !product.hasBom && (Number(product.stock) || 0) <= 0;
+                const variantLabel = [product.color, product.size].filter(Boolean).join(' / ') || product.name;
+
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    className={`pos-inline-variant-card ${isOutOfStock ? 'is-out-of-stock' : ''}`}
+                    style={isOutOfStock ? {
+                      opacity: 0.55,
+                      filter: 'grayscale(0.65)',
+                      cursor: 'not-allowed',
+                      background: '#f8fafc',
+                      border: '1px dashed #cbd5e1',
+                    } : undefined}
+                    onClick={() => {
+                      if (isOutOfStock) {
+                        toast.warning(t('pos.variant_out_of_stock_warning', 'هذا الاختيار نافذ من المخزون ولا يمكن بيعه حالياً'));
+                        return;
+                      }
+                      if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                        try { navigator.vibrate(15); } catch { /* ignore */ }
+                      }
+                      onAddProduct(product);
+                      onClose();
+                      if (!isMobile) focusSearchInput(searchInputRef);
+                    }}
+                  >
+                    <div className="pos-inline-variant-card-top">
+                      <strong title={variantLabel}>{variantLabel}</strong>
+                      <span
+                        className={`status-badge ${isOutOfStock ? 'status-draft' : 'status-posted'}`}
+                        style={{
+                          fontSize: isMobile ? '9.5px' : '10px',
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: '4px',
+                          background: isOutOfStock ? '#fee2e2' : '#ecfdf5',
+                          color: isOutOfStock ? '#b91c1c' : '#047857',
+                          border: isOutOfStock ? '1px solid #fecaca' : '1px solid #a7f3d0',
+                          lineHeight: 1.2,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isOutOfStock ? t('pos.out_of_stock', 'نفد') : product.stock}
+                      </span>
+                    </div>
+
+                    <div className="pos-inline-variant-card-bottom">
+                      <span className="pos-inline-variant-card-price">
+                        {formatCurrency(Number(price || 0))}
+                      </span>
+                      <span
+                        className="pos-inline-variant-add-badge"
+                        style={isOutOfStock ? {
+                          background: '#f1f5f9',
+                          color: '#94a3b8',
+                          border: '1px solid #e2e8f0',
+                        } : undefined}
+                      >
+                        {isOutOfStock ? (
+                          t('pos.out_of_stock', 'نفد')
+                        ) : (
+                          <>
+                            <PlusIcon size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                            <span>{t('pos.add_short', 'أضف')}</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
     </div>
   );
+
+  return isMobile && typeof document !== 'undefined'
+    ? createPortal(pickerContent, document.body)
+    : pickerContent;
 }
 
 function PosProductsPanelComponent({
@@ -462,18 +594,19 @@ function PosProductsPanelComponent({
   const isTouchMode = posMode === 'touch';
   const hasBrowseFilter = productFilter !== 'all' || shelf !== 'all';
   const canShowScannerResults = !isScannerMode || isMobile || scannerSearchQuery.length >= 2 || hasBrowseFilter;
+  const activeRecentKeys = shelf === 'recent' ? recentGroupKeys : undefined;
   const visibleGroups = useMemo(() => {
     const rawGroups = getGroupShelfGroups({
       groups: groupedProducts,
       shelf,
       favoriteKeys: favoriteKeySet,
-      recentKeys: recentGroupKeys,
+      recentKeys: activeRecentKeys || [],
     });
     if (!shouldHideOutOfStock || scannerSearchQuery.length > 0) {
       return rawGroups;
     }
     return rawGroups.filter((group) => !isOutOfStockGroup(group));
-  }, [favoriteKeySet, groupedProducts, recentGroupKeys, shelf, shouldHideOutOfStock, scannerSearchQuery, isOutOfStockGroup]);
+  }, [favoriteKeySet, groupedProducts, activeRecentKeys, shelf, shouldHideOutOfStock, scannerSearchQuery, isOutOfStockGroup]);
   const visibleTouchGroupCount = Math.min(touchVisibleCount, visibleGroups.length);
   const displayedGroups = useMemo(
     () => (canShowScannerResults ? visibleGroups.slice(0, visibleTouchGroupCount) : []),
@@ -1822,7 +1955,7 @@ function PosProductsPanelComponent({
                             {group.hasVariants ? (
                               <div style={{ marginTop: '3px' }}>
                                 <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>
-                                  {group.products.length} {t('pos.pos_products_panel.s29', "مقاسات")}
+                                  {group.products.length} {t('pos.options', 'خيارات')}
                                 </span>
                               </div>
                             ) : null}
@@ -1944,6 +2077,7 @@ function PosProductsPanelComponent({
             priceType={priceType}
             searchInputRef={searchInputRef}
             allowNegativeStockSales={allowNegativeStockSales}
+            isMobile={isMobile}
           />
         ) : null}
 

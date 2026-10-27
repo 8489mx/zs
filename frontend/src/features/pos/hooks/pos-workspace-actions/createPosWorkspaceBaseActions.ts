@@ -35,7 +35,10 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
   }
 
   function registerRecentProduct(productId: string) {
-    params.setRecentProductIds((current) => [productId, ...current.filter((id) => id !== productId)].slice(0, 8));
+    params.setRecentProductIds((current) => {
+      if (current[0] === productId) return current;
+      return [productId, ...current.filter((id) => id !== productId)].slice(0, 8);
+    });
   }
 
   function selectCartLine(lineKey: string) {

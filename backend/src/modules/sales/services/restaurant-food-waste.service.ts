@@ -13,6 +13,7 @@ export interface CreateFoodWasteLogDto {
   quantity: number;
   reason: 'spoilage' | 'prep_error' | 'expired' | 'customer_complaint' | 'other';
   notes?: string;
+  allowPending?: boolean;
 }
 
 @Injectable()
@@ -77,7 +78,46 @@ export class RestaurantFoodWasteService {
       const totalCost = Number((costPrice * dto.quantity).toFixed(2));
       if (!Number.isFinite(totalCost)) throw new BadRequestException('قيمة التالف غير صالحة');
 
-      // A shortage must abort ALL changes, including the waste log and journal.
+      // Check available stock at this location/branch
+      const locationStock = await trx.selectFrom('product_location_stock')
+        .select('qty')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('product_id', '=', dto.productId)
+        .where('location_id', '=', locationId)
+        .executeTakeFirst();
+      const currentQty = Number(locationStock?.qty || 0);
+
+      if (currentQty < dto.quantity) {
+        if (!dto.allowPending) {
+          throw new BadRequestException(`الرصيد غير كافٍ لتسجيل الهدر؛ المتاح حالياً ${currentQty}`);
+        }
+
+        // Register pending waste incident awaiting inventory replenishment (no negative stock, no phantom GL)
+        const log = await trx.insertInto('restaurant_food_waste_logs').values({
+          tenant_id: scope.tenantId,
+          account_id: scope.accountId,
+          branch_id: dto.branchId,
+          product_id: dto.productId,
+          quantity: dto.quantity,
+          cost_price: costPrice,
+          total_cost: totalCost,
+          reason: dto.reason,
+          notes: `[بانتظار تسوية المخزون] ${dto.notes || ''}`.trim(),
+          logged_by: auth.userId ? Number(auth.userId) : null,
+        }).returning('id').executeTakeFirstOrThrow();
+
+        return {
+          id: Number(log.id),
+          productName: product.name,
+          quantity: dto.quantity,
+          totalCost: 0,
+          status: 'pending_reconciliation',
+          journalEntryId: null,
+          message: 'تم تسجيل واقعة الهدر بنجاح بحالة (بانتظار تسوية المخزون) دون خصم مخزني أو قيد مالي وهمي',
+        };
+      }
+
+      // Stock is available: deduct stock with strict non-negative invariant and post GL
       const stockChange = await applyStockDelta(trx, {
         productId: dto.productId,
         delta: -dto.quantity,
@@ -125,6 +165,114 @@ export class RestaurantFoodWasteService {
         productName: product.name,
         quantity: dto.quantity,
         totalCost,
+        status: 'posted',
+        journalEntryId: journalResult.journalEntryId,
+      };
+    });
+  }
+
+  /**
+   * Reconcile a pending food waste incident once inventory has been received
+   */
+  async reconcilePendingWaste(auth: AuthContext, logId: number) {
+    const scope = requireTenantScope(auth);
+    return this.db.transaction().execute(async (trx) => {
+      const log = await trx.selectFrom('restaurant_food_waste_logs')
+        .selectAll()
+        .where('id', '=', logId)
+        .where('tenant_id', '=', scope.tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+
+      if (!log) throw new NotFoundException('سجل الهدر غير موجود');
+
+      // Check if already reconciled via existing stock movement
+      const existingMovement = await trx.selectFrom('stock_movements')
+        .select('id')
+        .where('reference_type', '=', 'food_waste')
+        .where('reference_id', '=', logId)
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+
+      if (existingMovement) {
+        return { ok: true, id: logId, alreadyReconciled: true, message: 'واقعة الهدر تمت تسويتها مسبقاً' };
+      }
+
+      const branch = await trx.selectFrom('branches')
+        .select(['default_stock_location_id'])
+        .where('id', '=', Number(log.branch_id))
+        .where('tenant_id', '=', scope.tenantId)
+        .executeTakeFirst();
+      if (!branch) throw new BadRequestException('الفرع غير موجود');
+
+      let locationId = branch.default_stock_location_id ? Number(branch.default_stock_location_id) : null;
+      if (!locationId) {
+        const fallback = await trx.selectFrom('stock_locations')
+          .select('id').where('branch_id', '=', Number(log.branch_id))
+          .where('is_active', '=', true).where('tenant_id', '=', scope.tenantId)
+          .orderBy('id', 'asc').executeTakeFirst();
+        locationId = fallback ? Number(fallback.id) : null;
+      }
+      if (!locationId) throw new BadRequestException('لا يوجد مخزن نشط للفرع لإتمام التسوية');
+
+      const product = await trx.selectFrom('products')
+        .select(['id', 'name', 'cost_price', 'stock_qty'])
+        .where('id', '=', Number(log.product_id))
+        .where('tenant_id', '=', scope.tenantId)
+        .forUpdate().executeTakeFirst();
+      if (!product) throw new NotFoundException('الصنف غير موجود');
+
+      const wasteQty = Number(log.quantity);
+      const stockChange = await applyStockDelta(trx, {
+        productId: Number(log.product_id),
+        delta: -wasteQty,
+        branchId: Number(log.branch_id),
+        locationId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        allowNegative: false,
+      });
+
+      const costPrice = Number(product.cost_price);
+      const totalCost = Number((costPrice * wasteQty).toFixed(2));
+
+      await trx.insertInto('stock_movements').values({
+        product_id: Number(log.product_id),
+        movement_type: 'damaged',
+        qty: -wasteQty,
+        before_qty: stockChange.scopeBefore,
+        after_qty: stockChange.scopeAfter,
+        reason: `food_waste_${log.reason}`,
+        note: `تسوية هدر مطبخ معلق #${logId}`,
+        reference_type: 'food_waste',
+        reference_id: logId,
+        branch_id: Number(log.branch_id),
+        location_id: locationId,
+        created_by: auth.userId ? Number(auth.userId) : 0,
+        tenant_id: scope.tenantId,
+        account_id: scope.accountId,
+      } as any).execute();
+
+      const journalResult = await this.accountingPosting.postFoodWaste(trx, logId, auth);
+
+      const cleanNotes = (log.notes || '').replace('[بانتظار تسوية المخزون]', '[تمت تسوية الهدر]').trim();
+      await trx.updateTable('restaurant_food_waste_logs')
+        .set({
+          notes: cleanNotes,
+          cost_price: costPrice,
+          total_cost: totalCost,
+        })
+        .where('id', '=', logId)
+        .where('tenant_id', '=', scope.tenantId)
+        .execute();
+
+      return {
+        ok: true,
+        id: logId,
+        productName: product.name,
+        quantity: wasteQty,
+        totalCost,
+        status: 'reconciled',
         journalEntryId: journalResult.journalEntryId,
       };
     });

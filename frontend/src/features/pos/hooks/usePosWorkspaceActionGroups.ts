@@ -33,6 +33,8 @@ export interface PosWorkspaceActionParams {
   setWholesaleApprovalSecret: Dispatch<SetStateAction<string>>;
   cashAmount: number;
   setCashAmount: Dispatch<SetStateAction<number>>;
+  tenderedAmount?: number;
+  setTenderedAmount?: Dispatch<SetStateAction<number>>;
   cardAmount: number;
   setCardAmount: Dispatch<SetStateAction<number>>;
   transferAmount: number;

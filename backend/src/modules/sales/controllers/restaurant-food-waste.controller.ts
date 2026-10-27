@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Req, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { SessionAuthGuard } from '../../../core/auth/guards/session-auth.guard';
 import { PermissionsGuard } from '../../../core/auth/guards/permissions.guard';
 import { RequirePermissions } from '../../../core/auth/decorators/permissions.decorator';
@@ -14,6 +14,11 @@ export class RestaurantFoodWasteController {
   @Post()
   async logWaste(@Req() req: RequestWithAuth, @Body() dto: CreateFoodWasteLogDto) {
     return this.service.logWaste(req.authContext!, dto);
+  }
+
+  @Post(':id/reconcile')
+  async reconcilePendingWaste(@Req() req: RequestWithAuth, @Param('id', ParseIntPipe) id: number) {
+    return this.service.reconcilePendingWaste(req.authContext!, id);
   }
 
   @Get()

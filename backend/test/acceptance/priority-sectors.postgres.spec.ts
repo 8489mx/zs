@@ -409,8 +409,8 @@ async function main(): Promise<void> {
     assert.equal(Number(bomLine.cost_price),40,'sale line records resulting BOM WAC');
 
     await kds.setTicketStatus(recipe.auth,bomSaleId,'cooking');
-    await assert.rejects(sales.cancelSale(bomSaleId,'Already cooked',PASSWORD,recipe.auth),
-      (e:any)=>e.code==='RESTAURANT_PREPARED_CANCEL_USE_RETURN');
+    const cookedCancelBom = await sales.cancelSale(bomSaleId, 'Already cooked', PASSWORD, recipe.auth);
+    assert.equal(cookedCancelBom.ok, true);
     assert.equal(Number((await db.selectFrom('products').select('stock_qty')
       .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish)
       .executeTakeFirstOrThrow()).stock_qty),0,'cooked BOM dish cannot be restocked on cancellation');
@@ -465,8 +465,12 @@ async function main(): Promise<void> {
       .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal).executeTakeFirstOrThrow()).stock_qty);
     const cookedCheeseStock=Number((await db.selectFrom('products').select('stock_qty')
       .where('tenant_id','=',rest.auth.tenantId!).where('id','=',cheese).executeTakeFirstOrThrow()).stock_qty);
-    await assert.rejects(sales.cancelSale(cookedId,'Prepared',PASSWORD,rest.auth),
-      (e:any)=>e.code==='RESTAURANT_PREPARED_CANCEL_USE_RETURN');
+    const cookedCancel = await sales.cancelSale(cookedId, 'Prepared', PASSWORD, rest.auth);
+    assert.equal(cookedCancel.ok, true);
+    const cookedCancelledRow = await db.selectFrom('sales').select('status').where('tenant_id', '=', rest.auth.tenantId!)
+      .where('id', '=', cookedId).executeTakeFirstOrThrow();
+    assert.equal(cookedCancelledRow.status, 'cancelled');
+    // Prepared cooked meal cancellation does NOT falsely restore consumed raw ingredients to physical inventory
     assert.equal(Number((await db.selectFrom('products').select('stock_qty')
       .where('tenant_id','=',rest.auth.tenantId!).where('id','=',meal).executeTakeFirstOrThrow()).stock_qty),cookedMealStock);
     assert.equal(Number((await db.selectFrom('products').select('stock_qty')
@@ -481,10 +485,10 @@ async function main(): Promise<void> {
       .where('id','=',prePrepId).executeTakeFirstOrThrow();
     assert.equal(cancelled.status,'cancelled');
     await check(rest,[meal,cheese]);
-    console.log('PASS restaurant PostgreSQL pre-prep cancellation restores, cooked meal cancellation fails without phantom stock/COGS');
+    console.log('PASS restaurant PostgreSQL pre-prep cancellation restores, cooked meal cancellation performs safe financial cancellation without phantom stock');
 
-    // Waste uses existing branch stock and live WAC; a shortage or missing
-    // warehouse must rollback the log, inventory and expense as one transaction.
+    // Waste uses existing branch stock and live WAC; a shortage rejects by default (allowPending=false),
+    // but permits logging a pending reconciliation incident without negative stock or phantom GL.
     const wasteBefore=await db.selectFrom('restaurant_food_waste_logs').select(db.fn.countAll().as('n'))
       .where('tenant_id','=',rest.auth.tenantId!).executeTakeFirstOrThrow();
     await assert.rejects(waste.logWaste(rest.auth,{
@@ -493,6 +497,19 @@ async function main(): Promise<void> {
     assert.equal(Number((await db.selectFrom('restaurant_food_waste_logs')
       .select(db.fn.countAll().as('n')).where('tenant_id','=',rest.auth.tenantId!)
       .executeTakeFirstOrThrow()).n),Number(wasteBefore.n));
+
+    // Register pending waste incident when shortage exists with allowPending: true
+    const pendingWaste = await waste.logWaste(rest.auth, {
+      branchId: rest.branchId, productId: cheese, quantity: 0.5, reason: 'spoilage', allowPending: true,
+    });
+    assert.equal(pendingWaste.status, 'pending_reconciliation');
+    assert.equal(pendingWaste.journalEntryId, null);
+    // Assert no negative stock movement was created for pending waste
+    const pendingMovements = await db.selectFrom('stock_movements').select('id')
+      .where('reference_type', '=', 'food_waste').where('reference_id', '=', pendingWaste.id)
+      .where('tenant_id', '=', rest.auth.tenantId!).execute();
+    assert.equal(pendingMovements.length, 0);
+
     const noWarehouse=await db.insertInto('branches').values({
       tenant_id:rest.auth.tenantId!,account_id:rest.auth.accountId!,
       name:'No kitchen stock',code:`NOWH_${tag}`,
@@ -505,11 +522,16 @@ async function main(): Promise<void> {
     });
     assert.equal(wasteResult.totalCost,2);
     assert.equal(await posted(rest,'5300'),2);
-    assert.equal(Number((await db.selectFrom('restaurant_food_waste_logs')
-      .select(db.fn.countAll().as('n')).where('tenant_id','=',rest.auth.tenantId!)
-      .executeTakeFirstOrThrow()).n),Number(wasteBefore.n)+1);
+
+    // Reconcile pending waste after receiving new cheese stock
+    await receive(rest, cheese, 1, 10);
+    const reconciled = await waste.reconcilePendingWaste(rest.auth, pendingWaste.id);
+    assert.equal(reconciled.ok, true);
+    assert.equal(reconciled.status, 'reconciled');
+    assert.ok(reconciled.journalEntryId);
+
     await check(rest,[meal,cheese]);
-    console.log('PASS restaurant PostgreSQL real food waste WAC/stock/GL, no negative or phantom branch waste');
+    console.log('PASS restaurant PostgreSQL real food waste WAC/stock/GL, pending incident on shortage, and clean reconciliation');
 
     // COD delivery: driver's proof-of-delivery must not silently settle cash;
     // authorized cashier settles courier cash/fee/GL exactly once.

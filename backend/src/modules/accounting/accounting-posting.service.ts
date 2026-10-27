@@ -1259,7 +1259,7 @@ export class AccountingPostingService {
     return { posted: true, journalEntryId: entryId };
   }
 
-  async reverseSaleJournal(queryable: DbOrTx, saleId: number, reason: string, auth: AuthContext): Promise<{ reversed: boolean; journalEntryId: number | null }> {
+  async reverseSaleJournal(queryable: DbOrTx, saleId: number, reason: string, auth: AuthContext, options?: { isPreparedWaste?: boolean }): Promise<{ reversed: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
@@ -1315,7 +1315,17 @@ export class AccountingPostingService {
       .orderBy('id', 'asc')
       .execute();
 
-    const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
+    let linesToReverse = sourceLines;
+    if (options?.isPreparedWaste) {
+      const invAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, null, '1140');
+      const cogsAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, null, '5100');
+      const excludedIds = new Set<number>();
+      if (invAccountId > 0) excludedIds.add(invAccountId);
+      if (cogsAccountId > 0) excludedIds.add(cogsAccountId);
+      linesToReverse = sourceLines.filter(line => !excludedIds.has(Number(line.account_id)));
+    }
+
+    const reversalLines: JournalLineDraft[] = linesToReverse.map((line) => ({
       accountId: Number(line.account_id),
       costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
       description: `عكس: ${line.description || 'قيد بيع'}`,

@@ -450,6 +450,58 @@ async function main() {
     assert.ok(retained,'financially relevant trade-in source must remain immutable');
     pass('concurrent trade-in purchase posts exact cash/inventory GL and WAC once; history is immutable');
 
+    // Trade-in repeat cycle: sell the traded-in device, then verify re-purchasing it
+    // is allowed while preventing duplicate purchase while it is currently in stock.
+    const usedProdId = Number(acquired.created_product_id);
+    const saleResult = await sales.createSale({
+      customerId: traded.customerId,
+      paymentType: 'credit',
+      branchId: traded.branchId,
+      locationId: traded.locationId,
+      taxRate: 0,
+      pricesIncludeTax: false,
+      items: [{
+        productId: usedProdId,
+        name: 'Test used terminal',
+        qty: 1,
+        price: 50,
+        unitMultiplier: 1,
+        serials: [deviceSerial],
+      }],
+      payments: [],
+    } as any, traded.auth);
+    assert.ok(Number((saleResult.sale as { id: string }).id) > 0);
+    const soldSerial = await db.selectFrom('product_serials').select('status')
+      .where('tenant_id', '=', traded.auth.tenantId!)
+      .where('serial_number', '=', deviceSerial)
+      .where('product_id', '=', usedProdId)
+      .executeTakeFirstOrThrow();
+    assert.equal(soldSerial.status, 'sold');
+
+    // Customer sells the device back to the store (repurchase cycle)
+    const repurchase = await tradein.createTransaction({
+      ...intake,
+      sellerName: 'Second Owner',
+      agreedPurchasePrice: 25.00,
+      createdProductId: usedProdId,
+    }, traded.auth);
+    assert.ok(Number(repurchase.id) > 0);
+    assert.ok(repurchase.docNo);
+    const repurchaseTxn = await db.selectFrom('trade_in_transactions').select('serial_number')
+      .where('tenant_id', '=', traded.auth.tenantId!)
+      .where('id', '=', Number(repurchase.id))
+      .executeTakeFirstOrThrow();
+    assert.equal(repurchaseTxn.serial_number, deviceSerial);
+
+    // Immediate duplicate purchase while in stock must reject
+    await assert.rejects(tradein.createTransaction({
+      ...intake,
+      sellerName: 'Third Attempt',
+      agreedPurchasePrice: 20.00,
+      createdProductId: usedProdId,
+    }, traded.auth), (e: any) => e.code === 'TRADEIN_DUPLICATE_SERIAL');
+    pass('trade-in lifecycle permits repeat buy-sell-buy cycles while strictly preventing concurrent duplicate in-stock serials');
+
     // A product serial from a pre-existing catalog receipt cannot be purchased
     // a second time through trade-in without reconciliation.
     const occupiedSerial = `OCCUPIED-${tag}`;

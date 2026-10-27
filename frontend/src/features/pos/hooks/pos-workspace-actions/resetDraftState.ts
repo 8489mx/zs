@@ -16,6 +16,7 @@ export function resetDraftState(params: PosWorkspaceActionParams) {
   params.setWholesaleApprovalGranted(false);
   params.setWholesaleApprovalSecret('');
   params.setCashAmount(0);
+  params.setTenderedAmount?.(0);
   params.setCardAmount(0);
   params.setTransferAmount(0);
   params.setPaymentType('cash');

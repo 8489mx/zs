@@ -151,13 +151,14 @@ export class SalesWriteService {
     }
     const rows = await trx.selectFrom('product_serials').select(['id', 'product_id', 'serial_number', 'imei_2', 'status'])
       .where('tenant_id', '=', tenantId)
+      .where('product_id', '=', item.productId)
+      .where('status', '=', 'in_stock')
       .where((eb) => eb.or([
         sql<boolean>`LOWER(serial_number) in (${sql.join(serials)})`,
         sql<boolean>`LOWER(imei_2) in (${sql.join(serials)})`,
       ]))
-      .orderBy('id', 'asc').forUpdate().execute();
-    if (rows.length !== serials.length || rows.some((row) => Number(row.product_id) !== item.productId ||
-        row.status !== 'in_stock') ||
+      .orderBy('id', 'desc').forUpdate().execute();
+    if (rows.length !== serials.length ||
         serials.some((serial) => !rows.some((row) => row.serial_number.toLowerCase() === serial || row.imei_2?.toLowerCase() === serial))) {
       throw new AppError('سيريال غير موجود بالمخزون أو سبق بيعه', 'SALE_SERIAL_UNAVAILABLE', 409);
     }
@@ -3062,7 +3063,7 @@ export class SalesWriteService {
           if (stage === 'cooking' || stage === 'ready' || stage === 'served' ||
               (stage !== 'pending' && (!Number.isFinite(createdMs) ||
                 Date.now() - createdMs > 14 * 60 * 60 * 1000))) {
-            throw new AppError('تم بدء تحضير الوجبة؛ لا يجوز إرجاع الخامات للمخزون بإلغاء البيع، استخدم المرتجع المالي', 'RESTAURANT_PREPARED_CANCEL_USE_RETURN', 409);
+            isPreparedWaste = true;
           }
         }
       }
@@ -3084,8 +3085,8 @@ export class SalesWriteService {
 
         if (allocations.length > 0) {
            for (const alloc of allocations) {
-             // If meal was already prepared in kitchen, consumed raw ingredients must not be falsely restored to physical inventory
-             if (isPreparedWaste && Number(alloc.product_id) !== Number(item.product_id)) {
+             // If meal was already prepared in kitchen, cooked food and consumed ingredients must not be restored to physical inventory
+             if (isPreparedWaste) {
                continue;
              }
              const qtyToRestore = Number(alloc.quantity || 0);
@@ -3129,6 +3130,9 @@ export class SalesWriteService {
            }
         } else {
            // Fallback for legacy sales without allocations
+           if (isPreparedWaste) {
+             continue;
+           }
            const stockChange = await applyStockDelta(trx, {
              productId: Number(item.product_id),
              delta: restoreQty,
@@ -3321,7 +3325,7 @@ export class SalesWriteService {
       }).execute();
 
       try {
-        await this.accountingPosting.reverseSaleJournal(trx, saleId, String(reason || '').trim(), auth);
+        await this.accountingPosting.reverseSaleJournal(trx, saleId, String(reason || '').trim(), auth, { isPreparedWaste });
       } catch (error) {
         this.logger.error(`Failed to post reversal accounting journal for cancelled sale ${saleId}`, error instanceof Error ? error.stack : String(error));
         throw error;

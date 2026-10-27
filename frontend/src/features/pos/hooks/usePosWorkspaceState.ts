@@ -17,6 +17,7 @@ export function usePosWorkspaceState() {
   const [loyaltyPointsRedeemed, setLoyaltyPointsRedeemed] = useState<number>(Number((storedDraft as any)?.loyaltyPointsRedeemed || 0));
   const [deliveryFee, setDeliveryFee] = useState(Number((storedDraft as any)?.deliveryFee || 0));
   const [cashAmount, setCashAmount] = useState(Number(storedDraft?.cashAmount ?? (storedDraft?.paymentChannel === 'cash' ? storedDraft?.paidAmount || 0 : 0)));
+  const [tenderedAmount, setTenderedAmount] = useState<number>(0);
   const [cardAmount, setCardAmount] = useState(Number(storedDraft?.cardAmount ?? (storedDraft?.paymentChannel === 'card' ? storedDraft?.paidAmount || 0 : 0)));
   const [transferAmount, setTransferAmount] = useState(
     Number(
@@ -92,6 +93,8 @@ export function usePosWorkspaceState() {
     setDeliveryFee,
     cashAmount,
     setCashAmount,
+    tenderedAmount,
+    setTenderedAmount,
     cardAmount,
     setCardAmount,
     transferAmount,

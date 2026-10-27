@@ -164,6 +164,9 @@ export function PosWorkspace() {
   }, [pos, selectedCustomerName, selectedCustomer]);
 
   const focusBarcodeEntry = useCallback(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+      return () => {};
+    }
     const handle = window.requestAnimationFrame(() => {
       searchInputRef.current?.focus();
       searchInputRef.current?.select();
@@ -640,8 +643,8 @@ export function PosWorkspace() {
           focusBarcodeEntry();
         }}
         onOpenSplitBill={isRestaurantActive ? () => setSplitBillOpen(true) : undefined}
-        onConfirmSale={(managerPin) => {
-          void pos.handleSubmit({ managerPin }).then(() => {
+        onConfirmSale={(managerPin, tenderedAmount) => {
+          void pos.handleSubmit({ managerPin, tenderedAmount }).then(() => {
             setCheckoutDialogOpen(false);
             focusBarcodeEntry();
           });

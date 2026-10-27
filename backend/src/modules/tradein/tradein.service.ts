@@ -148,9 +148,23 @@ export class TradeInService {
       const existingIntake = await trx.selectFrom('trade_in_transactions')
         .select(['id', 'doc_no'])
         .where('tenant_id', '=', scope.tenantId).where('serial_number', '=', serial)
+        .orderBy('id', 'desc')
         .executeTakeFirst();
       if (existingIntake) {
-        throw new AppError(`Device serial already has trade-in document ${existingIntake.doc_no}; reconcile the original before retrying`, 'TRADEIN_DUPLICATE_SERIAL', 409);
+        // If an intake exists, verify if the serial is still active in stock.
+        // A serial currently in stock cannot be purchased again.
+        // If the serial was sold or retired, a new trade-in cycle is permitted.
+        const serialRow = await trx.selectFrom('product_serials')
+          .select(['id', 'status'])
+          .where('tenant_id', '=', scope.tenantId)
+          .where('serial_number', '=', serial)
+          .orderBy('id', 'desc')
+          .executeTakeFirst();
+        if (serialRow && serialRow.status === 'in_stock') {
+          throw new AppError(`Device serial already has trade-in document ${existingIntake.doc_no}; reconcile the original before retrying`, 'TRADEIN_DUPLICATE_SERIAL', 409);
+        } else if (!serialRow) {
+          throw new AppError(`Device serial already has trade-in document ${existingIntake.doc_no}; reconcile the original before retrying`, 'TRADEIN_DUPLICATE_SERIAL', 409);
+        }
       }
       const agreed = Number(payload.agreedPurchasePrice);
       if (!Number.isFinite(agreed) || agreed < 0) {
