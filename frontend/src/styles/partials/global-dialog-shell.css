@@ -1,8 +1,16 @@
 /* Global modal background scroll lock standard */
 html.dialog-shell-open,
-body.dialog-shell-open,
+body.dialog-shell-open {
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+}
+
 html.dialog-shell-open #root,
-body.dialog-shell-open #root {
+body.dialog-shell-open #root,
+body.dialog-shell-open .content-wrap,
+body.dialog-shell-open .pos-workspace,
+body.dialog-shell-open .pos-products-scroll,
+body.dialog-shell-open .pos-body {
   overflow: hidden !important;
   overflow-y: hidden !important;
   overscroll-behavior: none !important;
@@ -10,13 +18,10 @@ body.dialog-shell-open #root {
   pointer-events: none !important;
 }
 
-body.dialog-shell-open .content-wrap,
-body.dialog-shell-open .pos-workspace,
-body.dialog-shell-open .pos-products-scroll,
-body.dialog-shell-open .pos-body {
-  overflow: hidden !important;
-  overflow-y: hidden !important;
-  pointer-events: none !important;
+.dialog-overlay,
+.dialog-shell {
+  pointer-events: auto !important;
+  touch-action: pan-y !important;
 }
 
 /* Global dialog shell positioning

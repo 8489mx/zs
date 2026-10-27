@@ -1906,12 +1906,14 @@
   .dialog-shell.cash-drawer-adaptive-dialog {
     width: calc(100vw - 16px) !important;
     max-width: calc(100vw - 16px) !important;
-    max-height: calc(100dvh - 16px) !important;
+    height: min(92vh, calc(100dvh - 24px)) !important;
+    max-height: calc(100dvh - 24px) !important;
     border-radius: 14px !important;
     margin: auto !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
+    touch-action: pan-y !important;
   }
 }
 
@@ -3586,11 +3588,12 @@ html[dir="ltr"] .two-column-layout {
   }
 
   .page-header-title {
-    font-size: 14.5px !important;
+    font-size: 14px !important;
     font-weight: 800 !important;
-    white-space: nowrap !important;
+    white-space: normal !important;
+    max-width: 100% !important;
     margin: 0 !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
   }
 
   .page-header-badge:not(.pos-page-header .page-header-badge) {

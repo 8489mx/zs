@@ -85,7 +85,7 @@ export function PageHeader({
                   display: 'inline-flex', 
                   alignItems: 'center',
                   minWidth: 0,
-                  maxWidth: 'min(600px, 60vw)',
+                  maxWidth: '100%',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',

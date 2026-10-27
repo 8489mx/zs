@@ -647,7 +647,30 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
     >
       {props.activeForm === 'open' && (
         <div className="cash-drawer-modal-scroll">
-          <h2 className="cash-drawer-form-title">{t('cash_drawer.cash_drawer_forms_panel.s12', "فتح وردية نقطة بيع")}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h2 className="cash-drawer-form-title" style={{ margin: 0 }}>{t('cash_drawer.cash_drawer_forms_panel.s12', "فتح وردية نقطة بيع")}</h2>
+            <button
+              type="button"
+              onClick={props.onCloseForm}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                background: '#f8fafc',
+                color: '#64748b',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0,
+              }}
+              title={t('common.close', 'إغلاق')}
+            >
+              <XIcon size={18} />
+            </button>
+          </div>
         <form className="form-grid" onSubmit={props.openForm.handleSubmit((values) => props.openMutation.mutate(values))}>
           <Field label={t('cash_drawer.cash_drawer_forms_panel.s13', "رصيد الفتح")}><input type="number" step="0.01" {...props.openForm.register('openingCash', { valueAsNumber: true })} disabled={props.openMutation.isPending} onFocus={(e) => e.target.select()} /></Field>
           {!SINGLE_STORE_MODE ? <Field label={t('cash_drawer.cash_drawer_forms_panel.s14', "الفرع")}>
@@ -711,7 +734,30 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
 
       {props.activeForm === 'movement' && (
         <div className="cash-drawer-modal-scroll">
-          <h2 className="cash-drawer-form-title">{t('cash_drawer.cash_drawer_forms_panel.s26', "تسجيل حركة درج النقدية")}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+            <h2 className="cash-drawer-form-title" style={{ margin: 0 }}>{t('cash_drawer.cash_drawer_forms_panel.s26', "تسجيل حركة درج النقدية")}</h2>
+            <button
+              type="button"
+              onClick={props.onCloseForm}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                background: '#f8fafc',
+                color: '#64748b',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0,
+              }}
+              title={t('common.close', 'إغلاق')}
+            >
+              <XIcon size={18} />
+            </button>
+          </div>
         <form className="form-grid" onSubmit={props.onMovementSubmit}>
           {props.isManager && props.openOptions.length > 1 ? (
             <Field label={t('cash_drawer.cash_drawer_forms_panel.s27', "وردية نقطة البيع المفتوحة")}>
@@ -788,22 +834,26 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
         <div className="cash-drawer-modal-scroll">
           <style>{`
             .cash-drawer-adaptive-dialog {
-              max-height: min(92vh, calc(100dvh - 16px)) !important;
+              height: min(92vh, calc(100dvh - 24px)) !important;
+              max-height: min(92vh, calc(100dvh - 24px)) !important;
               display: flex !important;
               flex-direction: column !important;
               overflow: hidden !important;
               width: min(940px, calc(100vw - 16px)) !important;
               margin: auto !important;
               border-radius: 14px !important;
+              touch-action: pan-y !important;
             }
             .cash-drawer-modal-scroll {
+              flex: 1 1 0% !important;
+              min-height: 0 !important;
               overflow-y: auto !important;
               overscroll-behavior: contain !important;
               -webkit-overflow-scrolling: touch !important;
-              padding: 24px;
+              touch-action: pan-y !important;
+              padding: 20px 24px 32px 24px;
               box-sizing: border-box !important;
               width: 100% !important;
-              max-height: min(90vh, calc(100dvh - 20px)) !important;
               display: flex;
               flex-direction: column;
               gap: 12px;
@@ -930,8 +980,7 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
             }
             @media (max-width: 640px) {
               .cash-drawer-modal-scroll {
-                padding: 12px 14px !important;
-                max-height: calc(100dvh - 16px) !important;
+                padding: 12px 14px 32px 14px !important;
                 gap: 8px !important;
               }
               .close-shift-modal-header {
@@ -1001,9 +1050,32 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 {t('cash_drawer.cash_drawer_forms_panel.s45', "تسجيل إقرار مبيعات النقدية والمدفوعات الإلكترونية ومطابقة بونات الدفع")}
               </div>
             </div>
-            <div className="close-shift-modal-badge-chip">
-              <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || t('cash_drawer.cash_drawer_forms_panel.s46', "الوردية الحالية")}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
-              <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>{t('cash_drawer.cash_drawer_forms_panel.s47', "وردية نشطة")}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+              <div className="close-shift-modal-badge-chip">
+                <span>{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.openedByName || t('cash_drawer.cash_drawer_forms_panel.s46', "الوردية الحالية")}{(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo ? ` — ${(props.myOpenShift || props.openOptions.find(s => String(s.id) === String(props.closeForm.watch('shiftId'))) || props.openOptions[0])?.docNo}` : ''}</span>
+                <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>{t('cash_drawer.cash_drawer_forms_panel.s47', "وردية نشطة")}</span>
+              </div>
+              <button
+                type="button"
+                onClick={props.onCloseForm}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  padding: 0,
+                }}
+                title={t('common.close', 'إغلاق')}
+              >
+                <XIcon size={18} />
+              </button>
             </div>
           </div>
 
@@ -1390,14 +1462,24 @@ export function CashDrawerFormsPanel(props: CashDrawerFormsPanelProps) {
                 <span>{t('cash_drawer.cash_drawer_forms_panel.s101', "طباعة تقرير Z النهائي (Z-Report)")}</span>
               </Button>
             ) : null}
-            <SubmitButton
-              type="submit"
-              isPending={props.closeMutation.isPending}
-              disabled={offlinePendingCount !== 0 || !props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
-              idleText={isBlindCloseMode ? t('cash_drawer.cash_drawer_forms_panel.s102', "إرسال إقرار الإغلاق") : t('cash_drawer.cash_drawer_forms_panel.s103', "إغلاق وردية نقطة البيع")}
-              pendingText={t('cash_drawer.cash_drawer_forms_panel.s104', "جارٍ الإغلاق...")}
-              style={{ width: '100%', minHeight: '42px', fontSize: '0.95rem', fontWeight: 800, marginTop: '8px' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', width: '100%' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={props.onCloseForm}
+                style={{ minHeight: '42px', padding: '0 16px', fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                {t('common.cancel', 'إلغاء')}
+              </Button>
+              <SubmitButton
+                type="submit"
+                isPending={props.closeMutation.isPending}
+                disabled={offlinePendingCount !== 0 || !props.closeForm.watch('shiftId') || (!isBlindCloseMode && Math.abs(props.closeVariancePreview) >= 0.01 && !props.closeNoteValue) || !props.closeForm.watch('managerPin')}
+                idleText={isBlindCloseMode ? t('cash_drawer.cash_drawer_forms_panel.s102', "إرسال إقرار الإغلاق") : t('cash_drawer.cash_drawer_forms_panel.s103', "إغلاق وردية نقطة البيع")}
+                pendingText={t('cash_drawer.cash_drawer_forms_panel.s104', "جارٍ الإغلاق...")}
+                style={{ flex: 1, minHeight: '42px', fontSize: '0.95rem', fontWeight: 800 }}
+              />
+            </div>
           </form>
         </div>
       )}
