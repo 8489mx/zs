@@ -909,43 +909,52 @@ export class DeliveryRepsService {
     actor: AuthContext,
     payload: { repId: number; saleIds?: number[]; onlineOrderIds?: number[]; notes?: string }
   ) {
-    const rep = await this.db
-      .selectFrom('delivery_representatives')
-      .select(['id', 'name', 'phone'])
-      .where('id', '=', payload.repId)
-      .where(this.tenantPredicate(actor))
-      .executeTakeFirst();
-
-    if (!rep) {
-      throw new AppError('MANDATORY_FIELD_MISSING', 'مندوب التوصيل المحدد غير موجود');
+    const validateIds = (ids: number[] | undefined): number[] => {
+      const values = ids || [];
+      if (!Array.isArray(values) || values.length > 200 ||
+          values.some(id => !Number.isSafeInteger(id) || id <= 0) ||
+          new Set(values).size !== values.length) {
+        throw new AppError('معرفات الطلبات غير صالحة أو مكررة', 'DELIVERY_DISPATCH_INVALID_IDS', 400);
+      }
+      return values;
+    };
+    const saleIds = validateIds(payload.saleIds);
+    const onlineOrderIds = validateIds(payload.onlineOrderIds);
+    if (!saleIds.length && !onlineOrderIds.length) {
+      throw new AppError('اختر طلباً واحداً على الأقل', 'DELIVERY_DISPATCH_EMPTY', 400);
     }
 
-    const now = new Date();
-    const notifications: Array<{ recipientPhone: string; orderNumber: string; text: string }> = [];
+    const result = await this.db.transaction().execute(async (trx) => {
+      const rep = await trx.selectFrom('delivery_representatives')
+        .select(['id', 'name', 'phone', 'is_active'])
+        .where('id', '=', payload.repId).where(this.tenantPredicate(actor))
+        .executeTakeFirst();
+      if (!rep || !rep.is_active) {
+        throw new AppError('مندوب التوصيل غير موجود أو غير نشط', 'DELIVERY_REP_NOT_FOUND', 404);
+      }
+      const now = new Date();
+      const notifications: Array<{ recipientPhone: string; orderNumber: string; text: string }> = [];
 
-    // 1. Dispatch POS / phone delivery sales
-    if (payload.saleIds && payload.saleIds.length > 0) {
-      const sales = await this.db
-        .selectFrom('sales')
-        .select(['id', 'doc_no', 'customer_name', 'customer_phone', 'total'])
-        .where('id', 'in', payload.saleIds)
-        .where(this.tenantPredicate(actor))
-        .execute();
-
-      await this.db
-        .updateTable('sales')
-        .set({
+      if (saleIds.length) {
+        const sales = await trx.selectFrom('sales')
+          .select(['id','doc_no','customer_phone','order_type','status','delivery_status','delivery_rep_id'])
+          .where('id', 'in', saleIds).where(this.tenantPredicate(actor))
+          .orderBy('id', 'asc').forUpdate().execute();
+        if (sales.length !== saleIds.length ||
+            sales.some(s => s.order_type !== 'delivery' || s.status === 'cancelled' ||
+              s.delivery_status === 'settled' ||
+              (s.delivery_rep_id && Number(s.delivery_rep_id) !== Number(rep.id) &&
+                !['pending', null].includes(s.delivery_status)))) {
+          throw new AppError('لا يمكن إسناد طلب غير دليفري أو ملغي أو مسلم أو بعهدة مندوب آخر', 'DELIVERY_DISPATCH_FORBIDDEN', 409);
+        }
+        await trx.updateTable('sales').set({
           delivery_rep_id: rep.id,
           delivery_status: 'out_for_delivery',
           dispatched_at: now,
-          note: payload.notes ? sql`COALESCE(note, '') || ${' [' + payload.notes + ']'}` as any : undefined,
-        })
-        .where('id', 'in', payload.saleIds)
-        .where(this.tenantPredicate(actor))
-        .execute();
+          ...(payload.notes ? { note: sql`COALESCE(note, '') || ${' [' + payload.notes + ']'}` as any } : {}),
+        }).where('id', 'in', saleIds).where(this.tenantPredicate(actor)).execute();
 
-      for (const s of sales) {
-        if (s.customer_phone) {
+        for (const s of sales) if (s.customer_phone) {
           notifications.push({
             recipientPhone: s.customer_phone,
             orderNumber: s.doc_no || `SALE-${s.id}`,
@@ -953,47 +962,36 @@ export class DeliveryRepsService {
           });
         }
       }
-    }
 
-    // 2. Dispatch online storefront orders
-    if (payload.onlineOrderIds && payload.onlineOrderIds.length > 0) {
-      const onlineOrders = await this.db
-        .selectFrom('online_orders')
-        .select(['id', 'order_number', 'customer_name', 'customer_phone'])
-        .where('id', 'in', payload.onlineOrderIds)
-        .where(this.tenantPredicate(actor))
-        .execute();
-
-      await this.db
-        .updateTable('online_orders')
-        .set({
-          status: 'shipped',
-          dispatched_at: now,
-        })
-        .where('id', 'in', payload.onlineOrderIds)
-        .where(this.tenantPredicate(actor))
-        .execute();
-
-      for (const ord of onlineOrders) {
-        if (ord.customer_phone) {
+      if (onlineOrderIds.length) {
+        const orders = await trx.selectFrom('online_orders')
+          .select(['id','order_number','customer_phone','status'])
+          .where('id', 'in', onlineOrderIds).where(this.tenantPredicate(actor))
+          .orderBy('id', 'asc').forUpdate().execute();
+        if (orders.length !== onlineOrderIds.length ||
+            orders.some(order => ['cancelled','delivered','returned'].includes(String(order.status)))) {
+          throw new AppError('طلب أونلاين غير موجود أو أُلغي أو سُلّم بالفعل', 'DELIVERY_DISPATCH_FORBIDDEN', 409);
+        }
+        await trx.updateTable('online_orders').set({
+          status: 'shipped', dispatched_at: now,
+        }).where('id','in',onlineOrderIds).where(this.tenantPredicate(actor)).execute();
+        for (const order of orders) if (order.customer_phone) {
           notifications.push({
-            recipientPhone: ord.customer_phone,
-            orderNumber: ord.order_number,
-            text: `عزيزي العميل، طلبك رقم #${ord.order_number} في الطريق إليك مع كابتن التوصيل ${rep.name} (${rep.phone || ''}). نتمنى لك وجبة شهية!`,
+            recipientPhone: order.customer_phone,
+            orderNumber: order.order_number,
+            text: `عزيزي العميل، طلبك رقم #${order.order_number} في الطريق إليك مع كابتن التوصيل ${rep.name} (${rep.phone || ''}). نتمنى لك وجبة شهية!`,
           });
         }
       }
-    }
-
-    const count = (payload.saleIds?.length || 0) + (payload.onlineOrderIds?.length || 0);
+      return { rep, notifications };
+    });
 
     return {
       success: true,
-      repId: rep.id,
-      repName: rep.name,
-      dispatchedCount: count,
-      notifications,
-      message: `تم إسناد وانطلاق ${count} طلب بنجاح مع الكابتن ${rep.name}`,
+      repId: result.rep.id,
+      repName: result.rep.name,
+      dispatchedCount: saleIds.length + onlineOrderIds.length,
+      notifications: result.notifications,
+      message: `تم إسناد وانطلاق ${saleIds.length + onlineOrderIds.length} طلب بنجاح مع الكابتن ${result.rep.name}`,
     };
-  }
-}
+  }}
