@@ -378,6 +378,49 @@ async function main(): Promise<void> {
     await check(rest,[meal,cheese]);
     console.log('PASS sector-restaurant PostgreSQL shortage rolls back POS source, tender, stock and GL');
 
+    // REAL BOM: restaurant-only entitlement must produce a menu item from
+    // costed ingredients, apply WAC/COGS and rollback shortage atomically.
+    const recipe=await shop('recipe',['restaurant']);
+    const recipeDish=await product(recipe,'Fresh burger BOM','BOM-DISH');
+    const recipeMeat=await product(recipe,'Raw beef kg','BOM-BEEF');
+    await receive(recipe,recipeMeat,3,20);
+    const bom=await db.insertInto('manufacturing_boms').values({
+      tenant_id:recipe.auth.tenantId!,account_id:recipe.auth.accountId!,
+      product_id:recipeDish,quantity:1,overhead_cost:0,expected_cost:40,is_active:true,
+    } as any).returning('id').executeTakeFirstOrThrow();
+    await db.insertInto('manufacturing_bom_lines').values({
+      bom_id:Number(bom.id),component_product_id:recipeMeat,quantity:2,
+      unit_name:'kg',unit_multiplier:1,waste_percentage:0,expected_cost:40,
+    } as any).execute();
+    await db.updateTable('products').set({bom_id:Number(bom.id)} as any)
+      .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish).execute();
+    const bomSale=await checkout(recipe,[{productId:recipeDish,name:'Fresh burger BOM',
+      qty:1,price:60,unitMultiplier:1}],{orderType:'dine_in'});
+    const bomSaleId=Number((bomSale.sale as {id:string}).id);
+    const rawAfter=await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeMeat).executeTakeFirstOrThrow();
+    const dishAfter=await db.selectFrom('products').select(['stock_qty','cost_price'])
+      .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish).executeTakeFirstOrThrow();
+    const bomLine=await db.selectFrom('sale_items').select(['cost_price'])
+      .where('tenant_id','=',recipe.auth.tenantId!).where('sale_id','=',bomSaleId).executeTakeFirstOrThrow();
+    assert.equal(Number(rawAfter.stock_qty),1,'two real raw units consumed');
+    assert.equal(Number(dishAfter.stock_qty),0,'prepared dish sold, not left phantom stock');
+    assert.equal(Number(dishAfter.cost_price),40,'finished product WAC equals ingredients');
+    assert.equal(Number(bomLine.cost_price),40,'sale line records resulting BOM WAC');
+    assert.equal(await posted(recipe,'5100'),40,'actual BOM cost posted as COGS');
+    await check(recipe,[recipeDish,recipeMeat]);
+    const recipeSalesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',recipe.auth.tenantId!).executeTakeFirstOrThrow();
+    await assert.rejects(checkout(recipe,[{productId:recipeDish,
+      name:'Second burger shortage',qty:1,price:60,unitMultiplier:1}],{orderType:'dine_in'}));
+    assert.equal(Number((await db.selectFrom('sales').select(db.fn.countAll().as('n'))
+      .where('tenant_id','=',recipe.auth.tenantId!).executeTakeFirstOrThrow()).n),Number(recipeSalesBefore.n));
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeMeat).executeTakeFirstOrThrow()).stock_qty),1);
+    await check(recipe,[recipeDish,recipeMeat]);
+    console.log('PASS restaurant PostgreSQL real BOM recipe consumes ingredients, values COGS/WAC/GL, rejects shortages with rollback');
+
+
     // KDS: real PostgreSQL queue, tenant isolation, item/station routing and
     // simultaneous status advances. The second transition must not be lost.
     const restaurantTicket = (await kds.getActiveTickets(rest.auth,{station:'kitchen'}))
