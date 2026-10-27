@@ -402,7 +402,7 @@ export function PosCheckoutExpressSection({
                 setIsManualCardConfirmed(false);
                 setTerminalDispatchStatus('idle');
                 setTerminalMsg('');
-                pos.setTerminalPaymentDetails?.(undefined);
+                pos.setTerminalPaymentDetails?.(null);
               }}
               style={{
                 background: 'none',
