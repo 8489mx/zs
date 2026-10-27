@@ -36,7 +36,7 @@
             android:exported="true"
             android:label="Z-Systems ERP"
             android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustResize|stateHidden">
+            android:windowSoftInputMode="stateAlwaysHidden|adjustPan">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
