@@ -477,6 +477,7 @@ export function usePosWorkspace() {
     setScannerMessage: state.setScannerMessage,
     lastAddedLineKey: state.lastAddedLineKey,
     barcodeFocusTick: state.barcodeFocusTick,
+    registerBarcodeFocusListener: state.registerBarcodeFocusListener,
     customersQuery,
     settingsQuery,
     settings: settingsQuery.data || null,

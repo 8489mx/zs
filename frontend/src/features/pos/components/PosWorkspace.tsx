@@ -541,8 +541,11 @@ export function PosWorkspace() {
 
   useEffect(() => {
     if (catalogsLoading) return;
+    if (pos.registerBarcodeFocusListener) {
+      return pos.registerBarcodeFocusListener(focusBarcodeEntry);
+    }
     return focusBarcodeEntry();
-  }, [catalogsLoading, focusBarcodeEntry, pos.barcodeFocusTick]);
+  }, [catalogsLoading, focusBarcodeEntry, pos.registerBarcodeFocusListener, pos.barcodeFocusTick]);
 
   useEffect(() => {
     if (pos.canShowLastSaleActions && pos.lastSale) {
@@ -651,35 +654,41 @@ export function PosWorkspace() {
         }}
       />
 
-      <PosSplitBillModal
-        open={splitBillOpen}
-        pos={pos}
-        onClose={() => {
-          setSplitBillOpen(false);
-          focusBarcodeEntry();
-        }}
-        onSplitCompleted={() => {
-          setSplitBillOpen(false);
-          focusBarcodeEntry();
-        }}
-      />
+      {splitBillOpen && (
+        <PosSplitBillModal
+          open={splitBillOpen}
+          pos={pos}
+          onClose={() => {
+            setSplitBillOpen(false);
+            focusBarcodeEntry();
+          }}
+          onSplitCompleted={() => {
+            setSplitBillOpen(false);
+            focusBarcodeEntry();
+          }}
+        />
+      )}
 
-      <PosWorkspaceDiscountDialog
-        open={discountApprovalDialogOpen}
-        pos={pos}
-        onClose={() => setDiscountApprovalDialogOpen(false)}
-        onFocusBarcodeEntry={focusBarcodeEntry}
-      />
+      {discountApprovalDialogOpen && (
+        <PosWorkspaceDiscountDialog
+          open={discountApprovalDialogOpen}
+          pos={pos}
+          onClose={() => setDiscountApprovalDialogOpen(false)}
+          onFocusBarcodeEntry={focusBarcodeEntry}
+        />
+      )}
 
-      <PosWorkspaceWholesaleDialog
-        open={wholesaleApprovalDialogOpen}
-        pos={pos}
-        onClose={() => setWholesaleApprovalDialogOpen(false)}
-        onFocusBarcodeEntry={focusBarcodeEntry}
-      />
+      {wholesaleApprovalDialogOpen && (
+        <PosWorkspaceWholesaleDialog
+          open={wholesaleApprovalDialogOpen}
+          pos={pos}
+          onClose={() => setWholesaleApprovalDialogOpen(false)}
+          onFocusBarcodeEntry={focusBarcodeEntry}
+        />
+      )}
 
       {/* 1. Restaurant Unified Floor & Orders Dialog (Restaurant Mode) */}
-      {isRestaurantActive && (
+      {isRestaurantActive && restaurantTablesOpen && (
         <PosTablesFloorPlanDialog
           open={restaurantTablesOpen}
           onClose={() => {
@@ -901,26 +910,28 @@ export function PosWorkspace() {
       )}
 
       {/* 2. Standard Retail Held Drafts Dialog (Non-Restaurant Mode) */}
-      <PosHeldDraftsDialog
-        open={heldDraftsDialogOpen && !isRestaurantActive}
-        heldDrafts={pos.heldDraftSummaries}
-        requestedRecallDraftId={shortcutRecallDraftId}
-        onRequestedRecallHandled={() => setShortcutRecallDraftId('')}
-        onClose={() => {
-          setHeldDraftsDialogOpen(false);
-          setShortcutRecallDraftId('');
-          focusBarcodeEntry();
-        }}
-        onRecall={async (draftId) => { 
-          if (pos.cart.length > 0) {
-            await pos.holdDraft();
-          }
-          await pos.recallDraft(draftId); 
-        }}
-        onDelete={async (draftId) => { await pos.deleteDraft(draftId); }}
-        onClearAll={async () => { await pos.clearHeldDrafts(); }}
-        settings={pos.settingsQuery.data}
-      />
+      {heldDraftsDialogOpen && !isRestaurantActive && (
+        <PosHeldDraftsDialog
+          open={heldDraftsDialogOpen && !isRestaurantActive}
+          heldDrafts={pos.heldDraftSummaries}
+          requestedRecallDraftId={shortcutRecallDraftId}
+          onRequestedRecallHandled={() => setShortcutRecallDraftId('')}
+          onClose={() => {
+            setHeldDraftsDialogOpen(false);
+            setShortcutRecallDraftId('');
+            focusBarcodeEntry();
+          }}
+          onRecall={async (draftId) => { 
+            if (pos.cart.length > 0) {
+              await pos.holdDraft();
+            }
+            await pos.recallDraft(draftId); 
+          }}
+          onDelete={async (draftId) => { await pos.deleteDraft(draftId); }}
+          onClearAll={async () => { await pos.clearHeldDrafts(); }}
+          settings={pos.settingsQuery.data}
+        />
+      )}
 
       <PosWorkspaceConfirmDialogs
         clearCartConfirmOpen={clearCartConfirmOpen}
@@ -987,19 +998,21 @@ export function PosWorkspace() {
         onPrintBoth={pos.printBothNow}
       />
 
-      <PosRecentSalesReprintModal
-        isOpen={reprintModalOpen}
-        onClose={() => {
-          setReprintModalOpen(false);
-          focusBarcodeEntry();
-        }}
-        lastSale={pos.lastSale}
-        settings={pos.settingsQuery.data || null}
-        cashierName={(pos.ownOpenShift as any)?.openedByName || '—'}
-        onReprintLastSale={() => {
-          pos.reprintLastSale();
-        }}
-      />
+      {reprintModalOpen && (
+        <PosRecentSalesReprintModal
+          isOpen={reprintModalOpen}
+          onClose={() => {
+            setReprintModalOpen(false);
+            focusBarcodeEntry();
+          }}
+          lastSale={pos.lastSale}
+          settings={pos.settingsQuery.data || null}
+          cashierName={(pos.ownOpenShift as any)?.openedByName || '—'}
+          onReprintLastSale={() => {
+            pos.reprintLastSale();
+          }}
+        />
+      )}
 
       <PosDraftSwitcherOverlay
         drafts={pos.heldDraftSummaries}
@@ -1020,29 +1033,33 @@ export function PosWorkspace() {
         }}
       />
 
-      <PosOpenShiftModal
-        open={openShiftModalOpen}
-        onClose={() => {
-          setOpenShiftModalOpen(false);
-          focusBarcodeEntry();
-        }}
-        branches={pos.branchesQuery.data || []}
-        locations={pos.locationsQuery.data || []}
-        defaultBranchId={pos.branchId}
-        defaultLocationId={pos.locationId}
-        requirePassword={Boolean(pos.settings?.requirePasswordOnShiftOpen)}
-        onShiftOpened={() => {
-          void pos.refetchCatalogs();
-        }}
-      />
+      {openShiftModalOpen && (
+        <PosOpenShiftModal
+          open={openShiftModalOpen}
+          onClose={() => {
+            setOpenShiftModalOpen(false);
+            focusBarcodeEntry();
+          }}
+          branches={pos.branchesQuery.data || []}
+          locations={pos.locationsQuery.data || []}
+          defaultBranchId={pos.branchId}
+          defaultLocationId={pos.locationId}
+          requirePassword={Boolean(pos.settings?.requirePasswordOnShiftOpen)}
+          onShiftOpened={() => {
+            void pos.refetchCatalogs();
+          }}
+        />
+      )}
 
-      <SerialLookupModal
-        open={serialLookupOpen}
-        onClose={() => {
-          setSerialLookupOpen(false);
-          focusBarcodeEntry();
-        }}
-      />
+      {serialLookupOpen && (
+        <SerialLookupModal
+          open={serialLookupOpen}
+          onClose={() => {
+            setSerialLookupOpen(false);
+            focusBarcodeEntry();
+          }}
+        />
+      )}
 
       {quickServiceOpen && (
         <QuickProductModal

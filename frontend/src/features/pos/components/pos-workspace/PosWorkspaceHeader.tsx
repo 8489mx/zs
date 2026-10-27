@@ -932,7 +932,7 @@ function PosWorkspaceHeaderComponent({
       isOpen={isOnlineOrdersOpen}
       onClose={() => setIsOnlineOrdersOpen(false)}
     />
-    {!onOpenTables && (
+    {!onOpenTables && isTablesOpen && (
       <PosTablesFloorPlanDialog
         open={isTablesOpen}
         onClose={() => setIsTablesOpen(false)}

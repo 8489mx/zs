@@ -386,17 +386,18 @@ export function PosCartItemsList({ cart, products, onNavigateToProducts, lastAdd
     return window.innerWidth <= 900 ? 380 : 0;
   });
 
+  const hasCartItems = cart.length > 0;
   useEffect(() => {
     if (isMobile || !containerRef.current || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect?.width;
       if (w && w > 0) {
-        setContainerWidth(w);
+        setContainerWidth((prev) => (Math.abs(prev - w) > 4 ? w : prev));
       }
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [isMobile, cart.length]); // Re-attach if cart toggles between empty/list
+  }, [isMobile, hasCartItems]); // Re-attach only if cart toggles between empty/list
 
   const handleSelectLine = useCallback((lineKey: string) => onSelectLine(lineKey), [onSelectLine]);
   const handleEditProduct = useCallback((productId: string) => onEditProduct?.(productId), [onEditProduct]);

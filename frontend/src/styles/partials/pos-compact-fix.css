@@ -1782,6 +1782,42 @@ html[dir="ltr"] .pos-shift-dropdown-menu,
   border: 0;
   padding: 0;
   width: 100%;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none;
+}
+
+.pos-workspace .pos-group-card-action:focus,
+.pos-workspace .pos-group-card-action:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.pos-workspace .pos-group-card {
+  transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.12s ease;
+  will-change: transform;
+}
+
+.pos-workspace .pos-group-card:active:not(.is-out-of-stock),
+.pos-workspace .pos-group-card:has(.pos-group-card-action:active):not(.is-out-of-stock) {
+  transform: scale(0.965);
+}
+
+.pos-workspace .pos-group-card-action:active {
+  transform: scale(0.98);
+}
+
+.pos-workspace .pos-card-add-pill {
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.12s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.12s ease;
+  will-change: transform, background-color;
+}
+
+.pos-workspace .pos-group-card-action:active:not([disabled]) .pos-card-add-pill {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  transform: scale(1.06);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
 }
 
 .pos-workspace .pos-group-card-action strong {

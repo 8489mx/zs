@@ -20,6 +20,19 @@ function getBroadcastChannel(): BroadcastChannel | null {
   return broadcastChannelInstance;
 }
 
+let cfdStorageTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingCfdPayload: CustomerDisplayPayload | null = null;
+
+function flushCfdStoragePersistence(): void {
+  if (!pendingCfdPayload || typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(POS_CFD_STORAGE_KEY, JSON.stringify(pendingCfdPayload));
+  } catch {
+    // ignore storage quota error
+  }
+  pendingCfdPayload = null;
+}
+
 export function broadcastCustomerDisplayState(payload: CustomerDisplayPayload): void {
   // 1. Post message via BroadcastChannel (0ms in-browser communication)
   const channel = getBroadcastChannel();
@@ -31,13 +44,13 @@ export function broadcastCustomerDisplayState(payload: CustomerDisplayPayload): 
     }
   }
 
-  // 2. Persist to localStorage for initial load & storage event cross-tab sync
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(POS_CFD_STORAGE_KEY, JSON.stringify(payload));
-    } catch {
-      // ignore storage quota error
-    }
+  // 2. Debounce localStorage persistence to eliminate synchronous disk I/O on the main thread during rapid clicks
+  pendingCfdPayload = payload;
+  if (!cfdStorageTimer) {
+    cfdStorageTimer = setTimeout(() => {
+      cfdStorageTimer = null;
+      flushCfdStoragePersistence();
+    }, 200);
   }
 }
 

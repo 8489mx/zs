@@ -689,7 +689,10 @@ function PosProductsPanelComponent({
   }, [daypartFilteredProducts, selectedCategoryId]);
 
   const groupedProducts = useMemo(() => buildPosProductGroups(categoryFilteredProducts, priceType), [priceType, categoryFilteredProducts]);
-  const recentGroupKeys = useMemo(() => buildRecentGroupKeys(recentProducts, groupedProducts), [groupedProducts, recentProducts]);
+  const recentGroupKeys = useMemo(
+    () => (shelf === 'recent' ? buildRecentGroupKeys(recentProducts, groupedProducts) : []),
+    [groupedProducts, recentProducts, shelf]
+  );
   const favoriteKeySet = useMemo(() => new Set(favoriteKeys), [favoriteKeys]);
   const deferredSearch = useDeferredValue(search);
   const scannerSearchQuery = deferredSearch.trim();
@@ -777,7 +780,11 @@ function PosProductsPanelComponent({
     return () => window.removeEventListener('keydown', handleEscape, true);
   }, [openGroupKey, searchInputRef]);
 
+  const isKeyboardNavigatingRef = useRef(false);
+
   useEffect(() => {
+    if (!isKeyboardNavigatingRef.current) return;
+    isKeyboardNavigatingRef.current = false;
     const handle = window.requestAnimationFrame(() => {
       groupRefs.current[selectedIndex]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     });
@@ -787,6 +794,7 @@ function PosProductsPanelComponent({
   function moveSelection(nextIndex: number) {
     if (!displayedGroups.length) return;
     const safeIndex = Math.max(0, Math.min(nextIndex, displayedGroups.length - 1));
+    isKeyboardNavigatingRef.current = true;
     setSelectedIndex(safeIndex);
   }
 
@@ -809,7 +817,9 @@ function PosProductsPanelComponent({
       return true;
     }
     onAddProduct(group.products[0]);
-    focusSearchInput(searchInputRef);
+    if (search.trim().length > 0) {
+      focusSearchInput(searchInputRef);
+    }
     return true;
   }
 
@@ -1516,7 +1526,7 @@ function PosProductsPanelComponent({
               } : undefined)}
             >
               {displayedGroups.map((group, index) => {
-                const isSelected = index === selectedIndex;
+                const isSelected = isKeyboardNavigatingRef.current && index === selectedIndex;
                 const isFavorite = favoriteKeySet.has(group.key);
                 const isOutOfStock = isOutOfStockGroup(group);
                 const priceLabel = group.minPrice === group.maxPrice
@@ -1535,13 +1545,13 @@ function PosProductsPanelComponent({
                       style={{
                         background: isOutOfStock ? '#f8fafc' : '#ffffff',
                         border: isSelected
-                          ? '2px solid #170e5e'
+                          ? '1px solid #170e5e'
                           : isOutOfStock
                           ? '1px dashed #cbd5e1'
                           : '1px solid #e2e8f0',
                         borderRadius: '12px',
                         overflow: 'hidden',
-                        boxShadow: isSelected ? '0 4px 14px rgba(23, 14, 94, 0.14)' : '0 1px 4px rgba(0,0,0,0.03)',
+                        boxShadow: isSelected ? '0 0 0 1px #170e5e' : '0 1px 4px rgba(0,0,0,0.03)',
                         display: 'flex',
                         flexDirection: 'column',
                         position: 'relative',
@@ -1673,11 +1683,7 @@ function PosProductsPanelComponent({
                         ref={(node) => { groupRefs.current[index] = node; }}
                         type="button"
                         className="pos-group-card-action"
-                        onClick={() => {
-                          setSelectedIndex(index);
-                          activateGroup(group);
-                        }}
-                        onFocus={() => setSelectedIndex(index)}
+                        onClick={() => activateGroup(group)}
                         style={{
                           border: 'none',
                           background: 'transparent',
@@ -1689,6 +1695,9 @@ function PosProductsPanelComponent({
                           flexDirection: 'column',
                           alignItems: 'center',
                           flex: 1,
+                          outline: 'none',
+                          WebkitTapHighlightColor: 'transparent',
+                          userSelect: 'none',
                         }}
                       >
                         {/* Dominant Hero Image (Natural Square Proportion) */}
@@ -1850,12 +1859,8 @@ function PosProductsPanelComponent({
                         type="button"
                         dir="rtl"
                         className="pos-group-card-action"
-                        onClick={() => {
-                          setSelectedIndex(index);
-                          activateGroup(group);
-                        }}
-                        onFocus={() => setSelectedIndex(index)}
-                        style={{ direction: 'rtl', textAlign: 'right', cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
+                        onClick={() => activateGroup(group)}
+                        style={{ direction: 'rtl', textAlign: 'right', cursor: isOutOfStock ? 'not-allowed' : 'pointer', outline: 'none', WebkitTapHighlightColor: 'transparent', userSelect: 'none' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '4px', width: '100%', direction: 'rtl', minHeight: '36px' }}>
                           {group.imageUrl ? (
@@ -1956,13 +1961,13 @@ function PosProductsPanelComponent({
                     style={{
                       background: isOutOfStock ? '#f8fafc' : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
                       border: isSelected
-                        ? '2px solid #0f172a'
+                        ? '1px solid #0f172a'
                         : isOutOfStock
                         ? '1px dashed #cbd5e1'
                         : '1px solid rgba(148, 163, 184, 0.28)',
                       borderRadius: '8px',
                       padding: isMobile ? (customization.mobileGridColumns === '3' ? '5px 5px' : '6px 8px') : '8px 10px',
-                      boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.12)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
+                      boxShadow: isSelected ? '0 0 0 1px #0f172a' : '0 1px 3px rgba(15, 23, 42, 0.03)',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
@@ -1974,6 +1979,8 @@ function PosProductsPanelComponent({
                       position: 'relative',
                       opacity: isOutOfStock ? 0.55 : 1,
                       filter: isOutOfStock ? 'grayscale(0.65)' : undefined,
+                      outline: 'none',
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                   >
                     <button
@@ -1981,11 +1988,7 @@ function PosProductsPanelComponent({
                       type="button"
                       dir="rtl"
                       className="pos-group-card-action"
-                      onClick={() => {
-                        setSelectedIndex(index);
-                        activateGroup(group);
-                      }}
-                      onFocus={() => setSelectedIndex(index)}
+                      onClick={() => activateGroup(group)}
                       style={{
                         border: 'none',
                         background: 'transparent',
@@ -1999,6 +2002,9 @@ function PosProductsPanelComponent({
                         flex: 1,
                         height: '100%',
                         justifyContent: 'space-between',
+                        outline: 'none',
+                        WebkitTapHighlightColor: 'transparent',
+                        userSelect: 'none',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%', marginBottom: '6px', direction: 'rtl' }}>
@@ -2118,6 +2124,7 @@ function PosProductsPanelComponent({
                         </span>
 
                         <span
+                          className="pos-card-add-pill"
                           style={{
                             fontSize: isMobile ? '0.66rem' : '0.7rem',
                             fontWeight: 700,
@@ -2207,10 +2214,11 @@ function PosProductsPanelComponent({
 }
 
 function arePropsEqual(prev: PosProductsPanelProps, next: PosProductsPanelProps) {
+  const recentMatters = prev.productFilter === 'recent' || next.productFilter === 'recent';
   return prev.search === next.search
     && prev.priceType === next.priceType
     && prev.products === next.products
-    && prev.recentProducts === next.recentProducts
+    && (!recentMatters || prev.recentProducts === next.recentProducts)
     && prev.productFilter === next.productFilter
     && prev.posMode === next.posMode
     && prev.onOpenNewProduct === next.onOpenNewProduct;

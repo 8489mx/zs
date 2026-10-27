@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { loadPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
 import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import type { Sale } from '@/types/domain';
@@ -64,6 +64,23 @@ export function usePosWorkspaceState() {
   const [lastAddedLineKey, setLastAddedLineKey] = useState('');
   const [postSaleSaleKey, setPostSaleSaleKey] = useState('');
   const [barcodeFocusTick, setBarcodeFocusTick] = useState(0);
+  const barcodeFocusListenersRef = useRef<Set<() => void>>(new Set());
+  const registerBarcodeFocusListener = useCallback((listener: () => void) => {
+    barcodeFocusListenersRef.current.add(listener);
+    return () => {
+      barcodeFocusListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const requestBarcodeFocus = useCallback(() => {
+    if (barcodeFocusListenersRef.current.size > 0) {
+      for (const listener of barcodeFocusListenersRef.current) {
+        listener();
+      }
+    } else {
+      setBarcodeFocusTick((current) => current + 1);
+    }
+  }, []);
   const [discountApprovalGranted, setDiscountApprovalGranted] = useState(false);
   const [discountApprovalSecret, setDiscountApprovalSecret] = useState('');
   const [wholesaleApprovalGranted, setWholesaleApprovalGranted] = useState(false);
@@ -162,6 +179,7 @@ export function usePosWorkspaceState() {
     setWholesaleApprovalSecret,
     terminalPaymentDetails,
     setTerminalPaymentDetails,
-    requestBarcodeFocus: () => setBarcodeFocusTick((current) => current + 1),
+    registerBarcodeFocusListener,
+    requestBarcodeFocus,
   };
 }
