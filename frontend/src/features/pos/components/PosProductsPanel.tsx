@@ -627,7 +627,7 @@ function PosProductsPanelComponent({
     };
   }, []);
 
-  const groupRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const groupRefs = useRef<Array<HTMLElement | null>>([]);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   
   const setCardDensityMode = (mode: PosCardDensity) => {
@@ -1983,12 +1983,19 @@ function PosProductsPanelComponent({
                       WebkitTapHighlightColor: 'transparent',
                     }}
                   >
-                    <button
+                    <div
                       ref={(node) => { groupRefs.current[index] = node; }}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       dir="rtl"
                       className="pos-group-card-action"
                       onClick={() => activateGroup(group)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          activateGroup(group);
+                        }
+                      }}
                       style={{
                         border: 'none',
                         background: 'transparent',
@@ -2078,6 +2085,9 @@ function PosProductsPanelComponent({
                             e.stopPropagation();
                             toggleFavorite(group.key);
                           }}
+                          onKeyDown={(e) => {
+                            e.stopPropagation();
+                          }}
                           aria-label={isFavorite ? t('pos.pos_products_panel.s30', "إزالة من المفضلة") : t('pos.pos_products_panel.s31', "إضافة إلى المفضلة")}
                           style={{
                             border: 'none',
@@ -2157,7 +2167,7 @@ function PosProductsPanelComponent({
                           )}
                         </span>
                       </div>
-                    </button>
+                    </div>
                   </article>
                 );
               })}
