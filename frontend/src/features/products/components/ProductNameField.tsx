@@ -11,7 +11,7 @@ export interface ProductNameFieldProps {
   onChange: (v: string) => void;
   allProducts: Product[];
   disabled?: boolean;
-  label: string;
+  label: React.ReactNode;
   placeholder?: string;
   error?: string;
   iconPicker?: React.ReactNode;

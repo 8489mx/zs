@@ -46,11 +46,21 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 14px',
+    padding: '10px 12px',
     background: '#f8fafc',
     borderRadius: '10px',
     border: '1px solid #e2e8f0',
-    gap: '12px',
+    gap: '10px',
+  };
+
+  const selectorContainerStyle = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    padding: '10px 12px',
+    background: '#f8fafc',
+    borderRadius: '10px',
+    border: '1px solid #e2e8f0',
+    gap: '8px',
   };
 
   const switchLabelStyle = {
@@ -73,9 +83,9 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
   };
 
   const toggleButtonStyle = (isActive: boolean) => ({
-    width: '42px',
-    height: '24px',
-    borderRadius: '12px',
+    width: '38px',
+    height: '20px',
+    borderRadius: '999px',
     background: isActive ? '#170e5e' : '#cbd5e1',
     border: 'none',
     cursor: 'pointer',
@@ -86,8 +96,8 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
   });
 
   const toggleThumbStyle = (isActive: boolean) => ({
-    width: '20px',
-    height: '20px',
+    width: '16px',
+    height: '16px',
     borderRadius: '50%',
     background: '#ffffff',
     boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
@@ -108,7 +118,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
       <div
         dir="rtl"
         style={{
-          padding: '22px 24px',
+          padding: '16px',
           background: '#ffffff',
           borderRadius: '16px',
           display: 'flex',
@@ -123,17 +133,18 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            paddingBottom: '16px',
+            paddingBottom: '12px',
             borderBottom: '1px solid #f1f5f9',
-            marginBottom: '16px',
+            marginBottom: '12px',
+            gap: '8px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
             <div
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
                 background: '#eef2ff',
                 display: 'flex',
                 alignItems: 'center',
@@ -141,14 +152,14 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                 flexShrink: 0,
               }}
             >
-              <SlidersIcon size={18} color="#170e5e" />
+              <SlidersIcon size={16} color="#170e5e" />
             </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 800, color: '#0f172a' }}>
-                {t('pos.customization_modal_title', 'تخصيص واجهة الكاشير والشاشات المتنقلة')}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t('pos.customization_modal_title', 'تخصيص واجهة الكاشير')}
               </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                {t('pos.customization_modal_desc', 'إظهار وإخفاء الأقسام وتنسيق شبكة المنتجات لتوفير أكبر مساحة ممكنة')}
+              <p style={{ margin: '1px 0 0', fontSize: '10.5px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {t('pos.customization_modal_desc', 'إظهار وإخفاء الأقسام وتنسيق الشاشات المتنقلة لتوفير أقصى مساحة')}
               </p>
             </div>
           </div>
@@ -160,11 +171,12 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
               background: '#f8fafc',
               color: '#64748b',
               cursor: 'pointer',
-              padding: '6px',
-              borderRadius: '8px',
+              padding: '5px',
+              borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
             title={t('common.close', 'إغلاق')}
           >
@@ -229,7 +241,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
               {/* 2.5 Default Price Selection */}
               <div
                 style={{
-                  ...switchContainerStyle,
+                  ...selectorContainerStyle,
                   background: '#ffffff',
                   borderColor: '#cbd5e1',
                   borderRight: '4px solid #170e5e',
@@ -239,12 +251,13 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <span style={titleStyle}>{t('pos.default_price_tier', 'السعر الافتراضي للبيع بالكاشير')}</span>
                   <span style={descStyle}>{t('pos.default_price_tier_desc', 'السعر المعتمد تلقائياً عند فتح الكاشير أو عند إخفاء زري التبديل')}</span>
                 </div>
-                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
                   <button
                     type="button"
                     onClick={() => setDraft((p) => ({ ...p, defaultPriceType: 'retail' }))}
                     style={{
-                      padding: '5px 12px',
+                      flex: 1,
+                      padding: '6px 8px',
                       fontSize: '12px',
                       fontWeight: 700,
                       borderRadius: '6px',
@@ -252,6 +265,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                       background: draft.defaultPriceType === 'retail' ? '#0f172a' : 'transparent',
                       color: draft.defaultPriceType === 'retail' ? '#ffffff' : '#475569',
                       cursor: 'pointer',
+                      textAlign: 'center',
                     }}
                   >
                     {t('pos.retail_price', 'سعر القطاعي')}
@@ -260,7 +274,8 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                     type="button"
                     onClick={() => setDraft((p) => ({ ...p, defaultPriceType: 'wholesale' }))}
                     style={{
-                      padding: '5px 12px',
+                      flex: 1,
+                      padding: '6px 8px',
                       fontSize: '12px',
                       fontWeight: 700,
                       borderRadius: '6px',
@@ -268,6 +283,7 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                       background: draft.defaultPriceType === 'wholesale' ? '#dc2626' : 'transparent',
                       color: draft.defaultPriceType === 'wholesale' ? '#ffffff' : '#475569',
                       cursor: 'pointer',
+                      textAlign: 'center',
                     }}
                   >
                     {t('pos.wholesale_price', 'سعر الجملة')}
@@ -306,6 +322,59 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                   <div style={toggleThumbStyle(draft.showQuickFilters)} />
                 </button>
               </div>
+
+              {/* 5. Desktop Card Layout Density */}
+              <div style={selectorContainerStyle}>
+                <div style={switchLabelStyle}>
+                  <span style={titleStyle}>{t('pos.desktop_card_layout_density', 'نمط كروت الأصناف على الكمبيوتر')}</span>
+                  <span style={descStyle}>{t('pos.desktop_card_layout_density_desc', 'معرض الصور يبرز صور المنتجات الكبيرة، والمضغوط يتيح رؤية أكبر عدد من الأصناف بدون سكرول')}</span>
+                </div>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
+                  {[
+                    { key: 'gallery', label: 'معرض صور' },
+                    { key: 'compact', label: 'مضغوط' },
+                    { key: 'comfortable', label: 'كروت موسعة' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setDraft((p) => ({ ...p, cardLayout: opt.key as any }))}
+                      style={{
+                        flex: 1,
+                        padding: '6px 4px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: draft.cardLayout === opt.key ? '#170e5e' : 'transparent',
+                        color: draft.cardLayout === opt.key ? '#ffffff' : '#475569',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 6. Hide Out of Stock Items */}
+              <div style={switchContainerStyle}>
+                <div style={switchLabelStyle}>
+                  <span style={titleStyle}>{t('pos.hide_out_of_stock_title', 'إخفاء الأصناف النافذة من العرض')}</span>
+                  <span style={descStyle}>{t('pos.hide_out_of_stock_desc', 'إخفاء الأصناف التي انتهى رصيدها تلقائياً من شبكة الكاشير عند حظر البيع بالسالب')}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggle('hideOutOfStockItems')}
+                  style={toggleButtonStyle(draft.hideOutOfStockItems)}
+                  aria-label={t('pos.hide_out_of_stock_title', 'إخفاء الأصناف النافذة من العرض')}
+                  aria-pressed={draft.hideOutOfStockItems}
+                >
+                  <div style={toggleThumbStyle(draft.hideOutOfStockItems)} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -320,12 +389,12 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* Columns on Mobile */}
-              <div style={switchContainerStyle}>
+              <div style={selectorContainerStyle}>
                 <div style={switchLabelStyle}>
                   <span style={titleStyle}>{t('pos.mobile_grid_cols', 'أعمدة عرض الأصناف على الموبايل')}</span>
                   <span style={descStyle}>{t('pos.mobile_grid_cols_desc', '3 أعمدة مدمجة تتيح رؤية 9 إلى 12 صنفاً معاً على أجهزة iMin / Sunmi')}</span>
                 </div>
-                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
                   {[
                     { key: '2', label: 'عمودين' },
                     { key: '3', label: '3 أعمدة (موصى به)' },
@@ -336,7 +405,8 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                       type="button"
                       onClick={() => setDraft((p) => ({ ...p, mobileGridColumns: opt.key as any }))}
                       style={{
-                        padding: '5px 10px',
+                        flex: 1,
+                        padding: '6px 4px',
                         fontSize: '11.5px',
                         fontWeight: 700,
                         borderRadius: '6px',
@@ -344,6 +414,8 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                         background: draft.mobileGridColumns === opt.key ? '#170e5e' : 'transparent',
                         color: draft.mobileGridColumns === opt.key ? '#ffffff' : '#475569',
                         cursor: 'pointer',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {opt.label}
@@ -352,13 +424,13 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                 </div>
               </div>
 
-              {/* Card Layout Density */}
-              <div style={switchContainerStyle}>
+              {/* Mobile Card Layout Density */}
+              <div style={selectorContainerStyle}>
                 <div style={switchLabelStyle}>
-                  <span style={titleStyle}>{t('pos.card_layout_density', 'نمط كروت الأصناف الافتراضي')}</span>
-                  <span style={descStyle}>{t('pos.card_layout_density_desc', 'معرض الصور مثالي للعطور والمنتجات البصرية، والمضغوط للمخازن والسوبرماركت')}</span>
+                  <span style={titleStyle}>{t('pos.mobile_card_layout_density', 'نمط كروت الأصناف على الموبايل')}</span>
+                  <span style={descStyle}>{t('pos.mobile_card_layout_density_desc', 'الوضع المضغوط يجمع الأصناف لشاشات الهواتف وSunmi، ومعرض الصور يبرز المنتجات ذات الصور')}</span>
                 </div>
-                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px' }}>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
                   {[
                     { key: 'gallery', label: 'معرض صور' },
                     { key: 'compact', label: 'مضغوط' },
@@ -367,16 +439,19 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                     <button
                       key={opt.key}
                       type="button"
-                      onClick={() => setDraft((p) => ({ ...p, cardLayout: opt.key as any }))}
+                      onClick={() => setDraft((p) => ({ ...p, mobileCardLayout: opt.key as any }))}
                       style={{
-                        padding: '5px 10px',
+                        flex: 1,
+                        padding: '6px 4px',
                         fontSize: '11.5px',
                         fontWeight: 700,
                         borderRadius: '6px',
                         border: 'none',
-                        background: draft.cardLayout === opt.key ? '#170e5e' : 'transparent',
-                        color: draft.cardLayout === opt.key ? '#ffffff' : '#475569',
+                        background: draft.mobileCardLayout === opt.key ? '#170e5e' : 'transparent',
+                        color: draft.mobileCardLayout === opt.key ? '#ffffff' : '#475569',
                         cursor: 'pointer',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {opt.label}
@@ -399,6 +474,90 @@ export function PosCustomizationDialog({ isOpen, onClose }: PosCustomizationDial
                 >
                   <div style={toggleThumbStyle(draft.autoHideBottomNav)} />
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Checkout Experience & Handheld Settings */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+              <span style={{ width: '3px', height: '14px', backgroundColor: '#170e5e', borderRadius: '2px', display: 'inline-block' }} />
+              <strong style={{ fontSize: '13px', fontWeight: 800, color: '#0f172a' }}>
+                {t('pos.checkout_experience_title', 'تجربة شاشة الدفع والأجهزة المحمولة (Sunmi / iMin)')}
+              </strong>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {/* Checkout Mode */}
+              <div style={selectorContainerStyle}>
+                <div style={switchLabelStyle}>
+                  <span style={titleStyle}>{t('pos.checkout_mode', 'نمط نافذة الدفع الافتراضي')}</span>
+                  <span style={descStyle}>{t('pos.checkout_mode_desc', 'الدفع السريع يوفر بلاطات لمس عملاقة ونقرة واحدة لإنهاء البيع (مثالي للخليج وأجهزة الكاشير المحمولة)')}</span>
+                </div>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
+                  {[
+                    { key: 'auto', label: 'تلقائي ذكي' },
+                    { key: 'express', label: 'دفع سريع' },
+                    { key: 'detailed', label: 'تفصيلي' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setDraft((p) => ({ ...p, checkoutMode: opt.key as any }))}
+                      style={{
+                        flex: 1,
+                        padding: '6px 4px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: draft.checkoutMode === opt.key ? '#170e5e' : 'transparent',
+                        color: draft.checkoutMode === opt.key ? '#ffffff' : '#475569',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Default Payment Channel */}
+              <div style={selectorContainerStyle}>
+                <div style={switchLabelStyle}>
+                  <span style={titleStyle}>{t('pos.default_payment_channel', 'وسيلة الدفع المحددة تلقائياً عند فتح الشاشة')}</span>
+                  <span style={descStyle}>{t('pos.default_payment_channel_desc', 'في الكويت تفتح على K-NET كي نت، وفي السعودية على مدى، وفي مصر على نقدي أو كارت')}</span>
+                </div>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: '3px', borderRadius: '8px', gap: '3px', width: '100%' }}>
+                  {[
+                    { key: 'auto', label: 'حسب الدولة' },
+                    { key: 'card', label: 'بطاقة / KNET' },
+                    { key: 'cash', label: 'نقدي كاش' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      type="button"
+                      onClick={() => setDraft((p) => ({ ...p, defaultPaymentChannel: opt.key as any }))}
+                      style={{
+                        flex: 1,
+                        padding: '6px 4px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        borderRadius: '6px',
+                        border: 'none',
+                        background: draft.defaultPaymentChannel === opt.key ? '#170e5e' : 'transparent',
+                        color: draft.defaultPaymentChannel === opt.key ? '#ffffff' : '#475569',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

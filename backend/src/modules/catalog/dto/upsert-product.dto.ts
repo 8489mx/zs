@@ -152,8 +152,9 @@ class ProductFashionVariantDto {
 }
 
 export class UpsertProductDto {
+  @IsOptional()
   @IsString()
-  name!: string;
+  name?: string;
 
   @IsOptional()
   @IsString()

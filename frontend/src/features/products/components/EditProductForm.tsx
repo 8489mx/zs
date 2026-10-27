@@ -285,7 +285,16 @@ export function EditProductForm({
       toast.error(`مضاعف الوحدة "${invalidMultiplierUnit.name || 'الإضافية'}" يجب أن يكون أكبر من 1 مقارنة بالوحدة الأساسية`);
       return;
     }
-    mutation.mutate({ ...omitStock(values as any), itemKind: watchedItemKind, isCombo: (values as any).isCombo, comboComponents: (values as any).comboComponents });
+    const resolvedName = values.name?.trim() || values.nameEn?.trim() || '';
+    const resolvedNameEn = values.nameEn?.trim() || (values.name?.trim() ? '' : resolvedName);
+    mutation.mutate({
+      ...omitStock(values as any),
+      name: resolvedName,
+      nameEn: resolvedNameEn,
+      itemKind: watchedItemKind,
+      isCombo: (values as any).isCombo,
+      comboComponents: (values as any).comboComponents,
+    });
   });
 
   useEffect(() => {
@@ -611,7 +620,10 @@ export function EditProductForm({
           {/* Row 1: Product Names (Arabic & English side-by-side) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.85fr)', gap: '12px', marginBottom: '0.85rem' }}>
             <div className="field">
-              <label>{watchedItemKind === 'fashion' ? t('products.edit_product_form.s27', "اسم الصنف الأساسي (بالعربية)") : t('products.edit_product_form.s28', "اسم الصنف (بالعربية)")}</label>
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>{watchedItemKind === 'fashion' ? t('products.edit_product_form.s27', "اسم الصنف الأساسي (بالعربية)") : t('products.edit_product_form.s28', "اسم الصنف (بالعربية)")}</span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>{t('products.edit_product_form.either_name', "(يكفي إدخال أحدهما)")}</span>
+              </label>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <ProductIconPicker
                   value={form.watch('icon')}
@@ -640,12 +652,21 @@ export function EditProductForm({
             <div className="field">
               <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span>{t('products.edit_product_form.s31', "اسم الصنف بالإنجليزي (Item Name)")}</span>
-                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>{t('products.edit_product_form.s32', "اختياري للفاتورة والكاشير")}</span>
+                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>{t('products.edit_product_form.s32_smart', "للفواتير أو كاسم أساسي")}</span>
               </label>
               <input
                 className="purchase-prototype-field-input"
                 style={{ width: '100%', direction: 'ltr', textAlign: 'left' }}
                 {...form.register('nameEn')}
+                onChange={(e) => {
+                  form.setValue('nameEn', e.target.value, { shouldDirty: true, shouldValidate: true });
+                  if (!form.getValues('name')?.trim()) {
+                    const guessed = guessProductIcon(e.target.value, undefined, settingsQuery.data?.businessIndustry);
+                    if (guessed) {
+                      form.setValue('icon', guessed, { shouldDirty: true });
+                    }
+                  }
+                }}
                 disabled={isFormDisabled}
                 placeholder="e.g. Almarai Milk 1L / Nivea Deo"
               />

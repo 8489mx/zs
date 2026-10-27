@@ -20,8 +20,14 @@ export const RESERVED_STORE_SLUGS: ReadonlySet<string> = new Set([
 const DNS_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export function storefrontRootDomain(raw: unknown = import.meta.env?.VITE_STOREFRONT_ROOT_DOMAIN): string {
-  return String(raw || '')
-    .trim()
+  let val = String(raw || '').trim();
+  if (!val && typeof window !== 'undefined') {
+    const host = window.location.hostname.toLowerCase();
+    if (host === 'zsystemai.com' || host.endsWith('.zsystemai.com')) {
+      val = 'zsystemai.com';
+    }
+  }
+  return val
     .toLowerCase()
     .replace(/^https?:\/\//, '')
     .replace(/\/.*$/, '')

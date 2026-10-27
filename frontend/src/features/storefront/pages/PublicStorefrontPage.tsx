@@ -279,7 +279,7 @@ export function PublicStorefrontPage() {
       dir="rtl"
       style={{
         minHeight: '100vh',
-        background: '#f8fafc',
+        background: info?.brandSurfaceColor && info.brandSurfaceColor !== '#f8fafc' ? info.brandSurfaceColor : '#ffffff',
         color: '#0f172a',
         display: 'flex',
         flexDirection: 'column',
@@ -435,6 +435,7 @@ export function PublicStorefrontPage() {
           bannerPositions={info.bannerPositions}
           bannerIntervalSeconds={info.bannerIntervalSeconds || 4}
           onBannerClick={handleBannerClick}
+          fullBleed={info.heroBannerFullBleed !== false}
         />
       )}
 

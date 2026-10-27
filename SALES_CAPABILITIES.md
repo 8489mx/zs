@@ -12,7 +12,37 @@
 
 ## التحديثات الحالية
 
-عند تعديل قدرة، حدّث وصفها في مكانها أو أضف سجلاً بمعرّف ثابت: السلوك والحدود، مصادر الكود، الاختبارات ونتائجها الفعلية، تاريخ التحقق والـcommit. اربط المجالات المتأثرة دون نسخ تفاصيلها.
+### 260. التزامن الديناميكي لشريط السلة العائم مع إخفاء شريط التنقل السفلي في نقاط البيع للموبايل (Mobile POS Dynamic Floating Cart Bar & Bottom Nav Synchronizer - 26 October 2026)
+* **حالة القدرة:** 🟢 مكتملة ومختبرة بنسبة 100% (26 أكتوبر 2026).
+* **المسارات المتأثرة:** شاشة نقطة البيع للموبايل وشاشات الكاشير اللمسية (`/pos`).
+* **المشكلة المعالجة:** عند التمرير لأسفل في شاشة نقطة البيع للموبايل، يختفي شريط التنقل السفلي (`MobileBottomNav`)، لكن شريط السلة العائم (`pos-mobile-floating-cart-bar`) كان يظل ثابتاً في موضعه المرتفع (`bottom: 64px`)، تاركاً فراغاً تحته وقاطعاً نصف شاشة الأصناف بصرياً.
+* **الحلول والضوابط المنفذة:**
+  1. **المزامنة الحركية التلقائية في CSS (`mobile-layout.css`):**
+     - ربط انزلاق شريط السلة العائم بحالة إخفاء شريط التنقل عبر `body:has(.mobile-bottom-nav.is-hidden)`, `body.mobile-nav-hidden`, و `body.pos-scroll-hides-nav`.
+     - تغيير الإحداثي السفلي لشريط السلة من `bottom: 64px` إلى `bottom: 10px` لحظياً عند إخفاء شريط التنقل ليحل محله أسفل الشاشة تماماً.
+     - إضافة انتقال انسيابي ناعم `transition: bottom 0.28s cubic-bezier(0.16, 1, 0.3, 1)` يطابق تماماً سرعة حركة شريط التنقل.
+  2. **مزامنة أحداث التمرير والشريط السفلي (`MobileBottomNav.tsx` و `PosProductsPanel.tsx`):**
+     - التقاط أحداث التمرير عبر نمط الـ Capture على `window` و `.content-wrap` لضمان استجابة شريط التنقل لكافة حاويات التمرير بما فيها شبكة الأصناف.
+     - مزامنة حالة الإخفاء مع `document.body.classList.toggle('mobile-nav-hidden', isHidden)`.
+* **المراجع البرمجية:**
+  - `frontend/src/shared/layout/MobileBottomNav.tsx`
+  - `frontend/src/features/pos/components/PosProductsPanel.tsx`
+  - `frontend/src/styles/partials/mobile-layout.css`
+
+### 261. ثبات وتناسق هيدر نقطة البيع للموبايل (Mobile POS Top Header Layout Stability - 26 October 2026)
+* **حالة القدرة:** 🟢 مكتملة ومختبرة بنسبة 100% (26 أكتوبر 2026).
+* **المسارات المتأثرة:** شاشة نقطة البيع للموبايل وشاشات الكاشير اللمسية (`/pos`).
+* **المشكلة المعالجة:** عند تجربة تثبيت الهيدر العلوي بـ `position: fixed` تسبب في خروجه من إطار البطاقة وتداخله مع شريط التبويبات ("الأصناف" و"السلة") واختفائه مع السحب.
+* **الحلول والضوابط المنفذة:**
+  1. **الاستقرار الهيكلي الطبيعي للهيدر (`mobile-layout.css`):**
+     - إعادة الهيدر إلى موضعه الطبيعي المتناسق داخل شل نقطة البيع، مع الحفاظ على هوامشه القياسية وخلفيته البيضاء وحدوده الناعمة، دون أي تداخل مع التبويبات.
+  2. **حصر سلوك الإخفاء التلقائي على الشريط السفلي وكارت السلة:**
+     - عند التمرير لأسفل: يختفي الشريط السفلي وينزل كارت السلة العائم إلى أسفل الشاشة (`bottom: 10px`) للاستفادة الكاملة من المساحة.
+     - عند التمرير لأعلى: يرتفع الشريط السفلي في مكانه بسلاسة تامة.
+* **المراجع البرمجية:**
+  - `frontend/src/shared/layout/MobileBottomNav.tsx`
+  - `frontend/src/features/pos/components/PosProductsPanel.tsx`
+  - `frontend/src/styles/partials/mobile-layout.css`
 
 ## فهرس الأقسام المنقولة
 
@@ -366,3 +396,11 @@
 - `sales-write.service.ts`, `sales-write.helper.ts`, invoice discount and tender allocation engines now accept the tenant book's 2/3-digit precision for sale source line amounts, discount/tax distribution, applied cash and receivables. `accounting-posting.service.ts` uses the same precision before journal-line aggregation for revenue/COGS and AR. `sales-finance.service.ts` retains the running customer-ledger mill value.
 - Additive migration `2040000000258_sale_minor_unit_precision.ts` widens required sale, product-price and customer-balance storage without truncating historic postings on rollback.
 - Disposable PostgreSQL acceptance now checks a 0.001 KWD credit sale from product stock and cost through customer debt and four-account GL. **Do not mark certified until the new SHA's CI/PG runs pass**. Mixed tender, tax, exchange, cancellation, downstream reporting and 8-cycle/11-sector certification still need testing.
+
+## POS Out-of-Stock Handling & Display Control (27 October 2026)
+
+- Out-of-stock items in POS catalog grid (`stock <= 0`, non-services and non-BOM) are visually dimmed (`opacity: 0.55`, grayscale) with a distinct red badge (`نفد`) and disabled when negative stock sales are prohibited (`allowNegativeStockSales = false`).
+- Clicking or selecting out-of-stock items via keyboard Enter triggers non-blocking toast feedback (`الصنف نافذ من المخزون ولا يمكن بيعه حالياً`) and blocks cart addition. Variant options in `InlineGroupPicker` mirror this isolation per variant.
+- Introduced `posHideOutOfStockItems` setting in tenant settings (`SalesInventorySettingsTab`) and per-workstation customization (`PosCustomizationDialog`) to completely filter out-of-stock products from browsing shelves when negative selling is blocked, while maintaining searchable discovery upon explicit name/barcode lookup.
+- Implementation: `PosProductsPanel.tsx`, `usePosUiCustomization.ts`, `PosCustomizationDialog.tsx`, `SalesInventorySettingsTab.tsx`, `settings.schema.ts`, `contracts.ts`, `settings.ts`, `system.ts`.
+- Verification evidence: `frontend/src/features/pos/components/PosProductsPanel.spec.tsx` (4/4 tests passing on 27 October 2026).

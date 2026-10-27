@@ -152,7 +152,9 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
       <SubmitButton
         type="button"
         variant="secondary"
-        isPending={mutation.isPending} disabled={!canManageSettings}
+        isPending={mutation.isPending}
+        isSuccess={mutation.isSuccess}
+        disabled={!canManageSettings}
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -160,6 +162,7 @@ export function LocationForm({ branches, canManageSettings, setupMode = false, o
         }}
         idleText={idleButtonText}
         pendingText={t('settings.forms.location_form.s19', "جارٍ الحفظ...")}
+        successText={successMessage}
       />
     </div>
   );

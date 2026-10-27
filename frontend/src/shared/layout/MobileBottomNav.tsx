@@ -169,13 +169,21 @@ export function MobileBottomNav() {
       return window.scrollY || document.documentElement.scrollTop || contentWrap?.scrollTop || 0;
     };
 
-    const handleScroll = () => {
-      const currentScrollY = getContentScrollY();
+    const handleScroll = (e?: Event) => {
+      const target = e?.target as HTMLElement | null;
+      let currentScrollY = 0;
+      if (target && target !== (document as any) && typeof target.scrollTop === 'number' && target.scrollTop > 0) {
+        currentScrollY = target.scrollTop;
+      } else {
+        currentScrollY = getContentScrollY();
+      }
+
       const diff = currentScrollY - lastScrollY.current;
 
       // Always show near the top of the page
-      if (currentScrollY < 40) {
+      if (currentScrollY < 35) {
         setIsHidden(false);
+        document.body.classList.remove('pos-scroll-hides-nav');
         lastScrollY.current = currentScrollY;
         return;
       }
@@ -183,7 +191,7 @@ export function MobileBottomNav() {
       // Check if near bottom of document
       const contentWrap = document.querySelector('.content-wrap');
       const windowHeight = window.innerHeight;
-      const docHeight = contentWrap?.scrollHeight || document.documentElement.scrollHeight;
+      const docHeight = target && target !== (document as any) && target.scrollHeight ? target.scrollHeight : (contentWrap?.scrollHeight || document.documentElement.scrollHeight);
       if (currentScrollY + windowHeight >= docHeight - 40) {
         setIsHidden(false);
         lastScrollY.current = currentScrollY;
@@ -191,23 +199,24 @@ export function MobileBottomNav() {
       }
 
       // Scroll Down -> Hide
-      if (diff > 12) {
+      if (diff > 10) {
         setIsHidden(true);
       } 
       // Scroll Up -> Show
-      else if (diff < -8) {
+      else if (diff < -6) {
         setIsHidden(false);
+        document.body.classList.remove('pos-scroll-hides-nav');
       }
 
       lastScrollY.current = currentScrollY;
     };
 
     const contentWrap = document.querySelector('.content-wrap');
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true, capture: true });
     contentWrap?.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', handleScroll, { capture: true });
       contentWrap?.removeEventListener('scroll', handleScroll);
     };
   }, [location.pathname]);
@@ -216,6 +225,22 @@ export function MobileBottomNav() {
   useEffect(() => {
     setIsHidden(false);
   }, [location.pathname, quickActionOpen]);
+
+  // Sync mobile nav visibility state with document.body so floating overlays (like POS cart) can react seamlessly
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.toggle('mobile-nav-hidden', isHidden);
+      if (!isHidden) {
+        document.body.classList.remove('pos-scroll-hides-nav');
+      }
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('mobile-nav-hidden');
+        document.body.classList.remove('pos-scroll-hides-nav');
+      }
+    };
+  }, [isHidden]);
 
   const isHomeActive = location.pathname === '/' || location.pathname === '/dashboard';
   const isSecondaryActive = navConfig.secondary.activeMatchPrefixes.some((p) =>

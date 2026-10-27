@@ -273,7 +273,7 @@ export class WhatsAppGatewayService {
     const businessName = tenant?.business_name || 'متجرنا';
     const invoiceNo = sale.doc_no || String(sale.id);
     const totalAmount = this.formatAmountWithCurrency(sale.total, curr);
-    const invoiceLink = `https://${tenant?.slug || 'my'}.sslip.io/invoice/${sale.doc_no || sale.id}`;
+    const invoiceLink = `https://${tenant?.slug || 'app'}.zsystemai.com/invoice/${sale.doc_no || sale.id}`;
 
     // Clean up template if it still has hardcoded "ج.م"
     template = template.replace(/{totalAmount}\s*ج\.م/g, '{totalAmount}');

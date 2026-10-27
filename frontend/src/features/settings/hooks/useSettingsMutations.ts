@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { buildBranchPayload, buildLocationPayload, buildSettingsUpdatePayload } from '@/features/settings/contracts';
 import { setGlobalSystemCurrency } from '@/lib/currencies';
 import { authApi } from '@/shared/api/auth';
+import { toast } from '@/shared/components/system-alert';
 import type { AppSettings } from '@/types/domain';
 import type { BranchFormOutput, LocationFormOutput, SettingsFormOutput } from '@/features/settings/schemas/settings.schema';
 
@@ -54,7 +55,11 @@ export function useSettingsUpdateMutation(currentSettings?: AppSettings, onSucce
         queryClient.invalidateQueries({ queryKey: ['auth'] }),
         invalidateAuditLogs(queryClient),
       ]);
+      toast.success('تم حفظ وتطبيق كافة إعدادات النظام بنجاح!');
       onSuccessCallback?.();
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'تعذر حفظ إعدادات النظام، يرجى المحاولة مرة أخرى.');
     }
   });
 }
@@ -80,12 +85,14 @@ export function useCreateBranchMutation(onSuccess?: (result: { branchId?: string
         : null;
       const fallbackBranchId = String(matchedBranch?.id || '').trim()
         || (Array.isArray(result?.branches) && result.branches.length ? String(result.branches[result.branches.length - 1]?.id || '').trim() : '');
+      toast.success('تم إنشاء الفرع بنجاح!');
       onSuccess?.({ branchId: createdBranchId || responseBranchId || fallbackBranchId || null });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر إنشاء الفرع، يرجى مراجعة البيانات.');
     }
   });
 }
-
-
 
 export function useUpdateBranchMutation(onSuccess?: () => void) {
   const queryClient = useQueryClient();
@@ -93,7 +100,11 @@ export function useUpdateBranchMutation(onSuccess?: () => void) {
     mutationFn: ({ branchId, values }: { branchId: string; values: BranchFormValues }) => settingsApi.updateBranch(branchId, buildBranchPayload(values)),
     onSuccess: async () => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: true, includeBranches: true, includeLocations: true });
+      toast.success('تم تحديث بيانات الفرع بنجاح!');
       onSuccess?.();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر تحديث بيانات الفرع.');
     }
   });
 }
@@ -104,7 +115,11 @@ export function useDeleteBranchMutation(onSuccess?: () => void) {
     mutationFn: (branchId: string) => settingsApi.deleteBranch(branchId),
     onSuccess: async () => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: true, includeBranches: true, includeLocations: true });
+      toast.success('تم حذف الفرع بنجاح!');
       onSuccess?.();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر حذف الفرع.');
     }
   });
 }
@@ -132,7 +147,11 @@ export function useCreateLocationMutation(onSuccess?: (result: { locationId?: st
         : null;
       const fallbackLocationId = String(matchedLocation?.id || '').trim()
         || (Array.isArray(result?.locations) && result.locations.length ? String(result.locations[result.locations.length - 1]?.id || '').trim() : '');
+      toast.success('تم إنشاء المخزن بنجاح!');
       onSuccess?.({ locationId: createdLocationId || responseLocationId || fallbackLocationId || null });
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر إنشاء المخزن، يرجى مراجعة البيانات.');
     }
   });
 }
@@ -143,7 +162,11 @@ export function useUpdateLocationMutation(onSuccess?: () => void) {
     mutationFn: ({ locationId, values }: { locationId: string; values: LocationFormValues }) => settingsApi.updateLocation(locationId, buildLocationPayload(values)),
     onSuccess: async () => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: true, includeBranches: false, includeLocations: true });
+      toast.success('تم تحديث بيانات المخزن بنجاح!');
       onSuccess?.();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر تحديث بيانات المخزن.');
     }
   });
 }
@@ -154,7 +177,11 @@ export function useDeleteLocationMutation(onSuccess?: () => void) {
     mutationFn: (locationId: string) => settingsApi.deleteLocation(locationId),
     onSuccess: async () => {
       await invalidateSettingsReferenceDomain(queryClient, { includeSettings: true, includeBranches: false, includeLocations: true });
+      toast.success('تم حذف المخزن بنجاح!');
       onSuccess?.();
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر حذف المخزن.');
     }
   });
 }

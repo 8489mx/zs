@@ -10,6 +10,7 @@ interface StorefrontBannerCarouselProps {
   autoPlayIntervalMs?: number;
   bannerIntervalSeconds?: number;
   onBannerClick?: (index: number) => void;
+  fullBleed?: boolean;
 }
 
 export function StorefrontBannerCarousel({
@@ -21,6 +22,7 @@ export function StorefrontBannerCarousel({
   autoPlayIntervalMs,
   bannerIntervalSeconds = 4,
   onBannerClick,
+  fullBleed = true,
 }: StorefrontBannerCarouselProps) {
   const { t } = useTranslation();
   const validBanners = banners.filter(Boolean);
@@ -82,26 +84,26 @@ export function StorefrontBannerCarousel({
 
   return (
     <div
-      className="storefront-banner-carousel-wrapper"
+      className={`storefront-banner-carousel-wrapper ${fullBleed ? 'full-bleed' : ''}`}
       style={{
-        maxWidth: 'var(--storefront-container, 1440px)',
+        maxWidth: fullBleed ? '100%' : 'var(--storefront-container, 1440px)',
         width: '100%',
-        margin: '14px auto 8px',
-        padding: '0 20px',
+        margin: fullBleed ? '0 0 16px' : '14px auto 8px',
+        padding: fullBleed ? '0' : '0 20px',
         boxSizing: 'border-box',
         direction: 'rtl',
       }}
     >
       <style>{`
         .storefront-banner-carousel-inner {
-          border-radius: 16px;
+          border-radius: ${fullBleed ? '0' : '16px'};
           overflow: hidden;
           isolation: isolate;
           -webkit-mask-image: -webkit-radial-gradient(white, black);
           transform: translateZ(0);
         }
         .storefront-banner-img {
-          border-radius: 16px !important;
+          border-radius: ${fullBleed ? '0' : '16px'} !important;
           overflow: hidden !important;
         }
         .storefront-banner-nav-btn {
@@ -203,10 +205,11 @@ export function StorefrontBannerCarousel({
           aspectRatio: '4 / 1',
           minHeight: '160px',
           maxHeight: '360px',
-          borderRadius: '16px',
+          borderRadius: fullBleed ? '0' : '16px',
           overflow: 'hidden',
-          boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
-          border: '1px solid #e2e8f0',
+          boxShadow: fullBleed ? '0 2px 12px rgba(15, 23, 42, 0.06)' : '0 4px 20px rgba(15, 23, 42, 0.08)',
+          border: fullBleed ? 'none' : '1px solid #e2e8f0',
+          borderBottom: fullBleed ? '1px solid #e2e8f0' : undefined,
           background: '#ffffff',
           position: 'relative',
           display: 'flex',

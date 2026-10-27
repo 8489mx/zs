@@ -697,5 +697,29 @@
   }
 }
 
+/* Full-Bleed Panoramic Hero Banner */
+.storefront-banner-carousel-wrapper.full-bleed {
+  max-width: 100% !important;
+  margin: 0 0 14px !important;
+  padding: 0 !important;
+}
 
+.storefront-banner-carousel-wrapper.full-bleed .storefront-banner-carousel-inner {
+  border-radius: 0 !important;
+}
 
+.storefront-banner-carousel-wrapper.full-bleed .storefront-banner-img {
+  border-radius: 0 !important;
+}
+
+/* Mid-Page Interstitial Promotional Banners */
+.storefront-mid-banner-card {
+  width: 100%;
+  margin: 20px 0;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.storefront-mid-banner-card:focus-visible {
+  outline: 2px solid var(--storefront-primary-color, #170e5e);
+  outline-offset: 2px;
+}

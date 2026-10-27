@@ -14,6 +14,7 @@ export interface PosProductGroup {
   sizes: string[];
   itemKind?: Product['itemKind'];
   imageUrl?: string | null;
+  totalStock: number;
 }
 
 export type PosGroupShelf = 'all' | 'choices' | 'direct' | 'favorites' | 'recent';
@@ -83,6 +84,7 @@ export function buildPosProductGroups(products: Product[], priceType: PosPriceTy
         || (first as any)?.metadata?.imageUrl 
         || first.imageUrl 
         || null;
+      const totalStock = orderedProducts.reduce((sum, p) => sum + (Number(p.stock) || 0), 0);
       return {
         key,
         title,
@@ -95,6 +97,7 @@ export function buildPosProductGroups(products: Product[], priceType: PosPriceTy
         sizes,
         itemKind: first.itemKind,
         imageUrl,
+        totalStock,
       } satisfies PosProductGroup;
     })
     .sort((a, b) => a.title.localeCompare(b.title, 'ar'));

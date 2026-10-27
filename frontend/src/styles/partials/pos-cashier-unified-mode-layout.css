@@ -303,13 +303,13 @@
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even,
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row:nth-child(even),
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-even {
-  background: #fef3c7 !important;
+  background: #f8fafc !important;
   border-bottom: 1px solid #cbd5e1 !important;
 }
 
 .pos-workspace.pos-sale-mode-scanner .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected,
 .pos-workspace.pos-sale-mode-touch .pos-cart-list-upgraded .pos-cart-grid-row.pos-cart-row-selected {
-  outline: 2px dashed rgba(23, 12, 92, 0.2) !important;
+  outline: 2px solid rgba(23, 14, 94, 0.25) !important;
   outline-offset: -2px;
   box-shadow: none !important;
   border-radius: 4px !important;

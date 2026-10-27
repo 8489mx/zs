@@ -6,6 +6,7 @@ import { normalizeUserRecord } from '@/features/settings/components/user-managem
 import type { UserMutationAction } from '@/features/settings/hooks/user-management/user-management.types';
 import type { SetupStepKey } from '@/features/settings/hooks/useFirstRunSetupFlow';
 import { useAuthStore } from '@/stores/auth-store';
+import { toast } from '@/shared/components/system-alert';
 
 export function useUserManagementMutation({
   draft,
@@ -99,10 +100,20 @@ export function useUserManagementMutation({
         updateSessionUser({ mustChangePassword: false, usingDefaultAdminPassword: false });
       }
 
-      setStatusMessage(action.type === 'create' ? 'تمت إضافة المستخدم بنجاح.' : action.type === 'unlock' ? 'تم فتح قفل المستخدم وإعادة ضبط محاولات الدخول.' : 'تم حفظ المستخدم بنجاح.');
+      const successMessage = action.type === 'create'
+        ? 'تمت إضافة وتفعيل المستخدم بنجاح!'
+        : action.type === 'unlock'
+        ? 'تم فتح قفل الحساب بنجاح.'
+        : 'تم حفظ وتحديث بيانات المستخدم بنجاح!';
+      setStatusMessage(successMessage);
+      toast.success(successMessage);
       if (setupMode && action.type === 'create' && setupStepKey === 'admin-user') onSetupAdvance?.();
       if (setupMode && isSelfUpdate && setupStepKey === 'secure-account' && rotatedOwnPassword) onSetupAdvance?.();
     },
-    onError: (error) => setStatusMessage(error instanceof Error ? error.message : 'تعذرت العملية على المستخدم'),
+    onError: (error) => {
+      const errMsg = error instanceof Error ? error.message : 'تعذرت العملية على المستخدم';
+      setStatusMessage(errMsg);
+      toast.error(errMsg);
+    },
   });
 }

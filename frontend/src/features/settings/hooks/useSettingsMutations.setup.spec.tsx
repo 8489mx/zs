@@ -89,6 +89,7 @@ const baseSettingsMutationValues = {
   posShowQuickFilters: true,
   posMobileGridColumns: 'auto' as const,
   posAutoHideBottomNav: true,
+  posHideOutOfStockItems: false,
   printDeliveryRepOnReceipt: false,
   clothingModuleEnabled: false,
   enableMobileStoreFeatures: false,

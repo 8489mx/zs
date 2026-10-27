@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
+import { SubmitButton } from '@/shared/components/submit-button';
 import { DialogShell } from '@/shared/components/dialog-shell';
 import { toast } from '@/shared/components/system-alert';
 import { formatDateTimeArabic } from '@/lib/format';
@@ -4003,14 +4004,16 @@ export const SettingsMarketplacesSection: React.FC = () => {
             <Button variant="secondary" onClick={() => testMutation.mutate('amazon')} disabled={testMutation.isPending}>
               {testMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s367', "جاري الفحص...") : t('settings.workspace_sections.settings_marketplaces_section.s368', "فحص واختبار الاتصال")}
             </Button>
-            <Button
-              variant="primary"
+            <SubmitButton
+              type="button"
               onClick={() => saveMutation.mutate({ amazon: amazonCfg })}
-              disabled={saveMutation.isPending}
+              isPending={saveMutation.isPending}
+              isSuccess={saveSuccess}
+              idleText={t('settings.workspace_sections.settings_marketplaces_section.s370', "حفظ إعدادات أمازون")}
+              pendingText={t('settings.workspace_sections.settings_marketplaces_section.s369', "جاري الحفظ...")}
+              successText="تم حفظ إعدادات أمازون بنجاح!"
               style={{ background: '#170e5e', color: '#ffffff' }}
-            >
-              {saveMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s369', "جاري الحفظ...") : t('settings.workspace_sections.settings_marketplaces_section.s370', "حفظ إعدادات أمازون")}
-            </Button>
+            />
           </div>
         </div>
       ) : null}
@@ -4123,14 +4126,16 @@ export const SettingsMarketplacesSection: React.FC = () => {
             <Button variant="secondary" onClick={() => testMutation.mutate('noon')} disabled={testMutation.isPending}>
               {testMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s386', "جاري الفحص...") : t('settings.workspace_sections.settings_marketplaces_section.s387', "فحص واختبار الاتصال")}
             </Button>
-            <Button
-              variant="primary"
+            <SubmitButton
+              type="button"
               onClick={() => saveMutation.mutate({ noon: noonCfg })}
-              disabled={saveMutation.isPending}
+              isPending={saveMutation.isPending}
+              isSuccess={saveSuccess}
+              idleText={t('settings.workspace_sections.settings_marketplaces_section.s389', "حفظ إعدادات نون")}
+              pendingText={t('settings.workspace_sections.settings_marketplaces_section.s388', "جاري الحفظ...")}
+              successText="تم حفظ إعدادات نون بنجاح!"
               style={{ background: '#170e5e', color: '#ffffff' }}
-            >
-              {saveMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s388', "جاري الحفظ...") : t('settings.workspace_sections.settings_marketplaces_section.s389', "حفظ إعدادات نون")}
-            </Button>
+            />
           </div>
         </div>
       ) : null}
@@ -4221,14 +4226,16 @@ export const SettingsMarketplacesSection: React.FC = () => {
             <Button variant="secondary" onClick={() => testMutation.mutate('jumia')} disabled={testMutation.isPending}>
               {testMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s402', "جاري الفحص...") : t('settings.workspace_sections.settings_marketplaces_section.s403', "فحص واختبار الاتصال")}
             </Button>
-            <Button
-              variant="primary"
+            <SubmitButton
+              type="button"
               onClick={() => saveMutation.mutate({ jumia: jumiaCfg })}
-              disabled={saveMutation.isPending}
+              isPending={saveMutation.isPending}
+              isSuccess={saveSuccess}
+              idleText={t('settings.workspace_sections.settings_marketplaces_section.s405', "حفظ إعدادات جوميا")}
+              pendingText={t('settings.workspace_sections.settings_marketplaces_section.s404', "جاري الحفظ...")}
+              successText="تم حفظ إعدادات جوميا بنجاح!"
               style={{ background: '#170e5e', color: '#ffffff' }}
-            >
-              {saveMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s404', "جاري الحفظ...") : t('settings.workspace_sections.settings_marketplaces_section.s405', "حفظ إعدادات جوميا")}
-            </Button>
+            />
           </div>
         </div>
       ) : null}
@@ -4317,14 +4324,16 @@ export const SettingsMarketplacesSection: React.FC = () => {
             <Button variant="secondary" onClick={() => testMutation.mutate('trendyol')} disabled={testMutation.isPending}>
               {testMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s416', "جاري الفحص...") : t('settings.workspace_sections.settings_marketplaces_section.s417', "فحص واختبار الاتصال")}
             </Button>
-            <Button
-              variant="primary"
+            <SubmitButton
+              type="button"
               onClick={() => saveMutation.mutate({ trendyol: trendyolCfg })}
-              disabled={saveMutation.isPending}
+              isPending={saveMutation.isPending}
+              isSuccess={saveSuccess}
+              idleText={t('settings.workspace_sections.settings_marketplaces_section.s419', "حفظ إعدادات ترينديول")}
+              pendingText={t('settings.workspace_sections.settings_marketplaces_section.s418', "جاري الحفظ...")}
+              successText="تم حفظ إعدادات ترينديول بنجاح!"
               style={{ background: '#170e5e', color: '#ffffff' }}
-            >
-              {saveMutation.isPending ? t('settings.workspace_sections.settings_marketplaces_section.s418', "جاري الحفظ...") : t('settings.workspace_sections.settings_marketplaces_section.s419', "حفظ إعدادات ترينديول")}
-            </Button>
+            />
           </div>
         </div>
       ) : null}

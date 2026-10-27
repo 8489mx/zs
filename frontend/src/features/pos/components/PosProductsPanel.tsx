@@ -1,4 +1,4 @@
-import { memo, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/shared/ui/button';
@@ -26,6 +26,8 @@ import { useIsMobile } from '@/shared/hooks/use-is-mobile';
 import { useSettingsQuery } from '@/shared/hooks/use-catalog-queries';
 import { usePosUiCustomization } from '@/features/pos/hooks/usePosUiCustomization';
 import { PosCustomizationDialog } from '@/features/pos/components/pos-workspace/PosCustomizationDialog';
+import { isNegativeStockSalesAllowed } from '@/features/pos/lib/pos.domain';
+import { toast } from '@/shared/components/system-alert';
 
 interface PosProductsPanelProps {
   search: string;
@@ -46,15 +48,21 @@ interface PosProductsPanelProps {
 
 const favoritesStorageKey = 'pos-group-favorites-v2';
 const cardDensityStorageKey = 'pos-card-density-preference-v2';
+const cardDensityDesktopKey = 'pos-card-density-desktop-v1';
+const cardDensityMobileKey = 'pos-card-density-mobile-v1';
 const touchModeVisibleStep = 60;
 
 export type PosCardDensity = 'comfortable' | 'compact' | 'gallery';
 
-function readCardDensityPreference(fallback: PosCardDensity = 'comfortable'): PosCardDensity {
+function readCardDensityPreference(fallback: PosCardDensity = 'comfortable', isMobileDevice = false): PosCardDensity {
   if (typeof window === 'undefined') return fallback;
   try {
-    const val = window.localStorage.getItem(cardDensityStorageKey) || window.localStorage.getItem('pos-card-density-preference-v1');
+    const key = isMobileDevice ? cardDensityMobileKey : cardDensityDesktopKey;
+    const val = window.localStorage.getItem(key);
     if (val === 'compact' || val === 'comfortable' || val === 'gallery') return val as PosCardDensity;
+    if (fallback) return fallback;
+    const legacy = window.localStorage.getItem(cardDensityStorageKey) || window.localStorage.getItem('pos-card-density-preference-v1');
+    if (legacy === 'compact' || legacy === 'comfortable' || legacy === 'gallery') return legacy as PosCardDensity;
   } catch {}
   return fallback;
 }
@@ -75,9 +83,19 @@ function groupMetaLabel(group: PosProductGroup) {
     return directProduct?.barcode ? `باركود: ${directProduct.barcode}` : 'إضافة مباشرة';
   }
   const parts: string[] = [];
-  if (group.colors.length) parts.push(`${group.colors.length} لون`);
-  if (group.sizes.length) parts.push(`${group.sizes.length} اختيار`);
-  if (!parts.length) parts.push(`${group.products.length} فرع`);
+  if (group.colors.length) {
+    const sample = group.colors.slice(0, 3).join('، ');
+    const more = group.colors.length > 3 ? '...' : '';
+    parts.push(`${group.colors.length} ألوان: ${sample}${more}`);
+  }
+  if (group.sizes.length) {
+    const sample = group.sizes.slice(0, 3).join('، ');
+    const more = group.sizes.length > 3 ? '...' : '';
+    parts.push(`${group.sizes.length} مقاسات: ${sample}${more}`);
+  }
+  if (!parts.length) {
+    parts.push(`${group.products.length} خيارات`);
+  }
   return parts.join(' • ');
 }
 
@@ -105,12 +123,14 @@ function InlineGroupPicker({
   onAddProduct,
   priceType,
   searchInputRef,
+  allowNegativeStockSales = false,
 }: {
   group: PosProductGroup;
   onClose: () => void;
   onAddProduct: (product: Product) => void;
   priceType: PosPriceType;
   searchInputRef: RefObject<HTMLInputElement | null>;
+  allowNegativeStockSales?: boolean;
 }) {
   const { t } = useTranslation();
   const [selectedColor, setSelectedColor] = useState('');
@@ -225,25 +245,44 @@ function InlineGroupPicker({
         <div className="pos-inline-picker-grid">
           {filteredProducts.map((product) => {
             const price = priceType === 'wholesale' ? (product.wholesalePrice || product.retailPrice) : product.retailPrice;
+            const isOutOfStock = !allowNegativeStockSales && (product.itemType !== 'service') && !product.hasBom && (Number(product.stock) || 0) <= 0;
             return (
               <button
                 key={product.id}
                 type="button"
-                className="pos-inline-variant-card"
+                className={`pos-inline-variant-card ${isOutOfStock ? 'is-out-of-stock' : ''}`}
+                style={isOutOfStock ? {
+                  opacity: 0.55,
+                  filter: 'grayscale(0.65)',
+                  cursor: 'not-allowed',
+                  background: '#f8fafc',
+                  border: '1px dashed #cbd5e1',
+                } : undefined}
                 onClick={() => {
+                  if (isOutOfStock) {
+                    toast.warning(t('pos.variant_out_of_stock_warning', 'هذا الاختيار نافذ من المخزون ولا يمكن بيعه حالياً'));
+                    return;
+                  }
                   onAddProduct(product);
                   onClose();
                   focusSearchInput(searchInputRef);
                 }}
               >
                 <div className="pos-inline-variant-card-top">
-                  <span className="status-badge status-posted">{product.stock}</span>
+                  <span
+                    className={`status-badge ${isOutOfStock ? 'status-draft' : 'status-posted'}`}
+                    style={isOutOfStock ? { background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' } : undefined}
+                  >
+                    {isOutOfStock ? t('pos.out_of_stock', 'نفد') : product.stock}
+                  </span>
                   <strong>{[product.color, product.size].filter(Boolean).join(' / ') || product.name}</strong>
                 </div>
                 <div className="muted small pos-inline-variant-card-meta">{product.name}</div>
                 <div className="pos-inline-variant-card-bottom">
                   <span>{formatCurrency(Number(price || 0))}</span>
-                  <span className="muted small">{t('pos.pos_inline_picker.add_this_branch', "إضافة هذا الفرع")}</span>
+                  <span className="muted small">
+                    {isOutOfStock ? t('pos.out_of_stock', 'نفد') : t('pos.pos_inline_picker.add_this_branch', 'إضافة هذا الفرع')}
+                  </span>
                 </div>
               </button>
             );
@@ -294,23 +333,44 @@ function PosProductsPanelComponent({
 
   const settingsQuery = useSettingsQuery();
   const defaultLayoutFromSettings = settingsQuery.data?.posProductCardLayout;
-  const { customization } = usePosUiCustomization();
+  const { customization, saveCustomization } = usePosUiCustomization();
+  const isMobile = useIsMobile(900);
+
+  const allowNegativeStockSales = isNegativeStockSalesAllowed(settingsQuery.data);
+  const shouldHideOutOfStock = !allowNegativeStockSales && Boolean(
+    customization.hideOutOfStockItems || settingsQuery.data?.posHideOutOfStockItems
+  );
+
+  const isOutOfStockGroup = useCallback((group: PosProductGroup) => {
+    if (allowNegativeStockSales) return false;
+    const first = group.products[0];
+    const isService = (group.itemKind as string) === 'service' || (first as any)?.item_type === 'service';
+    const hasBom = Boolean(first?.hasBom || (first as any)?.has_bom);
+    if (isService || hasBom) return false;
+    return typeof group.totalStock === 'number' && group.totalStock <= 0;
+  }, [allowNegativeStockSales]);
 
   const [shelf, setShelf] = useState<PosGroupShelf>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [favoriteKeys, setFavoriteKeys] = useState<string[]>(readFavoriteKeys);
   const [openGroupKey, setOpenGroupKey] = useState<string | null>(null);
   const [touchVisibleCount, setTouchVisibleCount] = useState(touchModeVisibleStep);
-  const [cardDensity, setCardDensity] = useState<PosCardDensity>(() => readCardDensityPreference(customization.cardLayout || defaultLayoutFromSettings));
+  const activeLayoutTarget = isMobile
+    ? (customization.mobileCardLayout || 'compact')
+    : (customization.cardLayout || defaultLayoutFromSettings || 'comfortable');
+  const [cardDensity, setCardDensity] = useState<PosCardDensity>(() =>
+    readCardDensityPreference(activeLayoutTarget, isMobile)
+  );
 
-  // Sync with customization setting
+  // Sync with customization setting per device type
   useEffect(() => {
-    if (customization.cardLayout) {
-      setCardDensity(customization.cardLayout);
-    } else if (defaultLayoutFromSettings) {
-      setCardDensity(defaultLayoutFromSettings);
+    const target = isMobile
+      ? (customization.mobileCardLayout || 'compact')
+      : (customization.cardLayout || defaultLayoutFromSettings || 'comfortable');
+    if (target) {
+      setCardDensity(target);
     }
-  }, [customization.cardLayout, defaultLayoutFromSettings]);
+  }, [isMobile, customization.mobileCardLayout, customization.cardLayout, defaultLayoutFromSettings]);
 
   // If price tier toggle is hidden, ensure active price type matches defaultPriceType
   useEffect(() => {
@@ -319,10 +379,13 @@ function PosProductsPanelComponent({
     }
   }, [customization.showPriceTierToggle, customization.defaultPriceType, priceType, onPriceTypeChange]);
 
+  const lastProductsScrollTopRef = useRef<number>(0);
+
   useEffect(() => {
     return () => {
       if (typeof document !== 'undefined') {
         document.body.classList.remove('pos-scroll-hides-nav');
+        document.body.classList.remove('mobile-nav-hidden');
       }
     };
   }, []);
@@ -334,8 +397,15 @@ function PosProductsPanelComponent({
     setCardDensity(mode);
     if (typeof window !== 'undefined') {
       try {
+        const key = isMobile ? cardDensityMobileKey : cardDensityDesktopKey;
+        window.localStorage.setItem(key, mode);
         window.localStorage.setItem(cardDensityStorageKey, mode);
       } catch {}
+    }
+    if (isMobile) {
+      void saveCustomization({ mobileCardLayout: mode });
+    } else {
+      void saveCustomization({ cardLayout: mode });
     }
   };
   
@@ -388,15 +458,20 @@ function PosProductsPanelComponent({
   const scannerSearchQuery = deferredSearch.trim();
   const isScannerMode = posMode === 'scanner';
   const isTouchMode = posMode === 'touch';
-  const isMobile = useIsMobile(900);
   const hasBrowseFilter = productFilter !== 'all' || shelf !== 'all';
   const canShowScannerResults = !isScannerMode || isMobile || scannerSearchQuery.length >= 2 || hasBrowseFilter;
-  const visibleGroups = useMemo(() => getGroupShelfGroups({
-    groups: groupedProducts,
-    shelf,
-    favoriteKeys: favoriteKeySet,
-    recentKeys: recentGroupKeys,
-  }), [favoriteKeySet, groupedProducts, recentGroupKeys, shelf]);
+  const visibleGroups = useMemo(() => {
+    const rawGroups = getGroupShelfGroups({
+      groups: groupedProducts,
+      shelf,
+      favoriteKeys: favoriteKeySet,
+      recentKeys: recentGroupKeys,
+    });
+    if (!shouldHideOutOfStock || scannerSearchQuery.length > 0) {
+      return rawGroups;
+    }
+    return rawGroups.filter((group) => !isOutOfStockGroup(group));
+  }, [favoriteKeySet, groupedProducts, recentGroupKeys, shelf, shouldHideOutOfStock, scannerSearchQuery, isOutOfStockGroup]);
   const visibleTouchGroupCount = Math.min(touchVisibleCount, visibleGroups.length);
   const displayedGroups = useMemo(
     () => (canShowScannerResults ? visibleGroups.slice(0, visibleTouchGroupCount) : []),
@@ -487,6 +562,10 @@ function PosProductsPanelComponent({
 
   function activateGroup(group: PosProductGroup | null) {
     if (!group) return false;
+    if (isOutOfStockGroup(group)) {
+      toast.warning(t('pos.item_out_of_stock_warning', 'الصنف نافذ من المخزون ولا يمكن بيعه حالياً'));
+      return false;
+    }
     if (group.hasVariants) {
       setOpenGroupKey(group.key);
       return true;
@@ -1020,13 +1099,24 @@ function PosProductsPanelComponent({
         <div
           className="pos-products-scroll"
           onScroll={(e) => {
-            if (typeof document === 'undefined' || !customization.autoHideBottomNav) return;
-            const top = e.currentTarget.scrollTop;
-            if (top > 30) {
-              document.body.classList.add('pos-scroll-hides-nav');
-            } else {
+            if (typeof document === 'undefined') return;
+            const currentTop = e.currentTarget.scrollTop;
+            const diff = currentTop - lastProductsScrollTopRef.current;
+
+            if (currentTop <= 25) {
               document.body.classList.remove('pos-scroll-hides-nav');
+              document.body.classList.remove('mobile-nav-hidden');
+            } else if (diff > 10) {
+              // Scrolling down: hide bottom nav & dock floating cart
+              document.body.classList.add('pos-scroll-hides-nav');
+              document.body.classList.add('mobile-nav-hidden');
+            } else if (diff < -6) {
+              // Scrolling up slightly: reveal bottom nav immediately
+              document.body.classList.remove('pos-scroll-hides-nav');
+              document.body.classList.remove('mobile-nav-hidden');
             }
+
+            lastProductsScrollTopRef.current = currentTop;
           }}
           style={{
             flex: '1 1 0%',
@@ -1034,6 +1124,7 @@ function PosProductsPanelComponent({
             overflowY: openGroup ? 'hidden' : 'auto',
             overflowX: 'hidden',
             scrollbarWidth: 'none',
+            paddingBottom: isMobile ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : '24px',
             msOverflowStyle: 'none',
           }}
         >
@@ -1140,6 +1231,7 @@ function PosProductsPanelComponent({
                   : 'repeat(auto-fill, minmax(155px, 185px))',
                 gap: isMobile ? (customization.mobileGridColumns === '3' ? '6px' : '8px') : '12px',
                 alignItems: 'stretch',
+                paddingBottom: isMobile ? 'calc(140px + env(safe-area-inset-bottom, 0px))' : '24px',
               } : (isMobile && customization.mobileGridColumns === '3' ? {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -1149,6 +1241,7 @@ function PosProductsPanelComponent({
               {displayedGroups.map((group, index) => {
                 const isSelected = index === selectedIndex;
                 const isFavorite = favoriteKeySet.has(group.key);
+                const isOutOfStock = isOutOfStockGroup(group);
                 const priceLabel = group.minPrice === group.maxPrice
                   ? formatCurrencyWithCode(group.minPrice)
                   : `${formatCurrencyWithCode(group.minPrice)} - ${formatCurrencyWithCode(group.maxPrice)}`;
@@ -1157,14 +1250,18 @@ function PosProductsPanelComponent({
                 const showCardIcon = iconSettings.showIcons;
 
                 if (cardDensity === 'gallery') {
-                  // Ultra-Clean Seamless Visual Card (Balanced 2-Column Mobile Proportions)
+                  // Ultra-Clean Seamless Visual Card (Balanced Mobile & Touch Ergonomics)
                   return (
                     <article
                       key={group.key}
-                      className={`pos-group-card pos-group-card-gallery ${isSelected ? 'is-selected' : ''}`}
+                      className={`pos-group-card pos-group-card-gallery ${isSelected ? 'is-selected' : ''} ${isOutOfStock ? 'is-out-of-stock' : ''}`}
                       style={{
-                        background: '#ffffff',
-                        border: isSelected ? '2px solid #170e5e' : '1px solid #e2e8f0',
+                        background: isOutOfStock ? '#f8fafc' : '#ffffff',
+                        border: isSelected
+                          ? '2px solid #170e5e'
+                          : isOutOfStock
+                          ? '1px dashed #cbd5e1'
+                          : '1px solid #e2e8f0',
                         borderRadius: '12px',
                         overflow: 'hidden',
                         boxShadow: isSelected ? '0 4px 14px rgba(23, 14, 94, 0.14)' : '0 1px 4px rgba(0,0,0,0.03)',
@@ -1176,19 +1273,25 @@ function PosProductsPanelComponent({
                         height: '100%',
                         maxWidth: isMobile ? '100%' : '190px',
                         width: '100%',
+                        opacity: isOutOfStock ? 0.55 : 1,
+                        filter: isOutOfStock ? 'grayscale(0.65)' : undefined,
+                        transition: 'opacity 0.2s ease, border-color 0.2s ease',
                       }}
                     >
-                      {/* Top Floating Pill: ONLY if variants exist (e.g. 3 خيارات) */}
-                      {group.hasVariants && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '6px',
-                            right: '6px',
-                            zIndex: 2,
-                            pointerEvents: 'none',
-                          }}
-                        >
+                      {/* Top Right Floating Pill: Variants Count OR Available Stock Badge */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '6px',
+                          right: '6px',
+                          zIndex: 2,
+                          pointerEvents: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                        }}
+                      >
+                        {group.hasVariants ? (
                           <span
                             style={{
                               fontSize: '9.5px',
@@ -1203,14 +1306,65 @@ function PosProductsPanelComponent({
                           >
                             {group.products.length} {t('pos.options', 'خيارات')}
                           </span>
-                        </div>
-                      )}
+                        ) : (group.itemKind as string) !== 'service' && typeof group.totalStock === 'number' ? (
+                          group.totalStock <= 0 ? (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                padding: '2px 5px',
+                                borderRadius: '5px',
+                                background: 'rgba(254, 242, 242, 0.95)',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                              }}
+                            >
+                              {t('pos.out_of_stock', 'نفد')}
+                            </span>
+                          ) : group.totalStock <= 5 ? (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                padding: '2px 5px',
+                                borderRadius: '5px',
+                                background: 'rgba(255, 251, 235, 0.95)',
+                                color: '#b45309',
+                                border: '1px solid #fde68a',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                              }}
+                            >
+                              {group.totalStock} {t('pos.left', 'متبقي')}
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                padding: '1px 5px',
+                                borderRadius: '5px',
+                                background: 'rgba(248, 250, 252, 0.92)',
+                                color: '#64748b',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                              }}
+                            >
+                              {group.totalStock}
+                            </span>
+                          )
+                        ) : null}
+                      </div>
 
-                      {/* Favorite Star Button (Discreet Top Left) */}
+                      {/* Favorite Star Button (Ergonomic Touch Separation) */}
                       <button
                         type="button"
                         className={`pos-favorite-star ${isFavorite ? 'is-active' : ''}`}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                        }}
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           toggleFavorite(group.key);
                         }}
@@ -1219,20 +1373,22 @@ function PosProductsPanelComponent({
                           position: 'absolute',
                           top: '6px',
                           left: '6px',
-                          zIndex: 2,
-                          background: isFavorite ? '#ffffff' : 'rgba(255, 255, 255, 0.85)',
-                          border: '1px solid #e2e8f0',
+                          zIndex: 3,
+                          background: isFavorite ? '#ffffff' : 'rgba(255, 255, 255, 0.92)',
+                          border: isFavorite ? '1px solid #fde68a' : '1px solid #e2e8f0',
                           borderRadius: '50%',
-                          width: '22px',
-                          height: '22px',
+                          width: '26px',
+                          height: '26px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: 'pointer',
                           padding: 0,
+                          boxShadow: isFavorite ? '0 2px 6px rgba(245, 158, 11, 0.22)' : '0 1px 3px rgba(0, 0, 0, 0.08)',
+                          transition: 'transform 0.1s ease, background 0.15s ease',
                         }}
                       >
-                        <StarIcon size={11} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#cbd5e1'} />
+                        <StarIcon size={12.5} filled={isFavorite} color={isFavorite ? '#f59e0b' : '#94a3b8'} />
                       </button>
 
                       {/* Card Action Button */}
@@ -1253,25 +1409,25 @@ function PosProductsPanelComponent({
                           direction: 'rtl',
                           padding: 0,
                           width: '100%',
-                          cursor: 'pointer',
+                          cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
                           flex: 1,
                         }}
                       >
-                        {/* Dominant Hero Image (Natural Square-ish Proportion) */}
+                        {/* Dominant Hero Image (Natural Square Proportion) */}
                         <div
                           style={{
                             width: '100%',
-                            height: isMobile ? (customization.mobileGridColumns === '3' ? '76px' : '120px') : '140px',
-                            background: '#ffffff',
+                            aspectRatio: '1 / 1',
+                            background: '#f8fafc',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative',
                             overflow: 'hidden',
-                            padding: '4px',
+                            padding: isMobile && customization.mobileGridColumns === '3' ? '6px' : '8px',
                             boxSizing: 'border-box',
                           }}
                         >
@@ -1289,18 +1445,19 @@ function PosProductsPanelComponent({
                           ) : (
                             <div
                               style={{
-                                width: '44px',
-                                height: '44px',
+                                width: isMobile ? '38px' : '48px',
+                                height: isMobile ? '38px' : '48px',
                                 borderRadius: '10px',
-                                background: '#f8fafc',
+                                background: '#ffffff',
                                 border: '1px solid #e2e8f0',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 color: '#94a3b8',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                               }}
                             >
-                              <ProductIcon name={rawIcon || 'box-package'} size={22} />
+                              <ProductIcon name={rawIcon || 'box-package'} size={isMobile ? 20 : 24} />
                             </div>
                           )}
                         </div>
@@ -1309,32 +1466,35 @@ function PosProductsPanelComponent({
                         <div
                           style={{
                             width: '100%',
-                            padding: '6px 6px 8px 6px',
+                            padding: isMobile && customization.mobileGridColumns === '3' ? '6px 4px 6px' : '8px 6px 8px',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '2px',
+                            gap: '3px',
                             boxSizing: 'border-box',
-                            borderTop: '1px solid #f8fafc',
+                            borderTop: '1px solid #f1f5f9',
                             background: '#ffffff',
+                            minHeight: isMobile && customization.mobileGridColumns === '3' ? '60px' : '66px',
                           }}
                         >
                           <strong
                             style={{
-                              fontSize: '11.5px',
+                              fontSize: isMobile && customization.mobileGridColumns === '3' ? '11px' : '12px',
                               fontWeight: 700,
                               color: '#0f172a',
-                              lineHeight: '1.3',
+                              lineHeight: '1.25',
                               textAlign: 'center',
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
+                              wordBreak: 'break-word',
                               width: '100%',
-                              padding: '0 2px',
+                              minHeight: '28px',
                               boxSizing: 'border-box',
+                              padding: '0 2px',
                             }}
                             title={group.title}
                           >
@@ -1347,21 +1507,24 @@ function PosProductsPanelComponent({
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: '2px 8px',
+                              padding: isMobile && customization.mobileGridColumns === '3' ? '2px 6px' : '2px 8px',
                               borderRadius: '6px',
                               background: '#f1f5f9',
                               border: '1px solid #e2e8f0',
-                              marginTop: '2px',
+                              maxWidth: '100%',
                             }}
                           >
                             <span
                               style={{
-                                fontSize: '11px',
+                                fontSize: isMobile && customization.mobileGridColumns === '3' ? '10.5px' : '11px',
                                 fontWeight: 800,
                                 color: '#170e5e',
                                 letterSpacing: '0.2px',
                                 direction: 'ltr',
                                 display: 'inline-block',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
                               }}
                             >
                               {priceLabel}
@@ -1376,10 +1539,26 @@ function PosProductsPanelComponent({
                 if (cardDensity === 'comfortable') {
                   // Classic Comfortable Card (Default)
                   return (
-                    <article key={group.key} className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}>
+                    <article
+                      key={group.key}
+                      className={`pos-group-card ${isSelected ? 'is-selected' : ''} ${isOutOfStock ? 'is-out-of-stock' : ''}`}
+                      style={isOutOfStock ? {
+                        opacity: 0.55,
+                        filter: 'grayscale(0.65)',
+                        border: '1px dashed #cbd5e1',
+                        background: '#f8fafc',
+                      } : undefined}
+                    >
                       <div className="pos-group-card-top">
-                        <span className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}>
-                          {group.hasVariants ? `${group.products.length} فرع` : t('pos.pos_products_panel.s24', "مباشر")}
+                        <span
+                          className={`pos-group-kind ${group.hasVariants ? 'has-choices' : 'is-direct'}`}
+                          style={isOutOfStock ? { background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca' } : undefined}
+                        >
+                          {isOutOfStock
+                            ? t('pos.out_of_stock', 'نفد')
+                            : group.hasVariants
+                            ? `${group.products.length} فرع`
+                            : t('pos.pos_products_panel.s24', "مباشر")}
                         </span>
                         <button
                           type="button"
@@ -1401,9 +1580,9 @@ function PosProductsPanelComponent({
                           activateGroup(group);
                         }}
                         onFocus={() => setSelectedIndex(index)}
-                        style={{ direction: 'rtl', textAlign: 'right' }}
+                        style={{ direction: 'rtl', textAlign: 'right', cursor: isOutOfStock ? 'not-allowed' : 'pointer' }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '4px', width: '100%', direction: 'rtl' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '4px', width: '100%', direction: 'rtl', minHeight: '36px' }}>
                           {group.imageUrl ? (
                             <div className="pos-card-product-img" style={{
                               width: '36px',
@@ -1441,18 +1620,53 @@ function PosProductsPanelComponent({
                               <ProductIcon name={rawIcon || 'box-package'} size={16} />
                             </div>
                           ) : null}
-                          <strong style={{ flex: 1, textAlign: 'right', minWidth: 0 }}>{group.title}</strong>
+                          <strong
+                            style={{
+                              flex: 1,
+                              textAlign: 'right',
+                              minWidth: 0,
+                              fontSize: '13px',
+                              lineHeight: '1.38',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              minHeight: '36px',
+                            }}
+                          >
+                            {group.title}
+                          </strong>
                         </div>
-                        <div className="muted small pos-group-card-meta">{groupMetaLabel(group)}</div>
-                        {group.hasVariants ? (
-                          <div className="pos-group-tags">
-                            {group.colors.slice(0, 3).map((color) => <span key={`${group.key}-${color}`} className="pos-group-tag">{color}</span>)}
-                            {group.sizes.slice(0, 3).map((size) => <span key={`${group.key}-${size}`} className="pos-group-tag">{size}</span>)}
-                          </div>
-                        ) : null}
+                        <div
+                          className="muted small pos-group-card-meta"
+                          style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '100%',
+                            direction: 'rtl',
+                            textAlign: 'right',
+                            fontSize: '11px',
+                            color: '#64748b',
+                            height: '18px',
+                            minHeight: '18px',
+                            maxHeight: '18px',
+                            lineHeight: '18px',
+                            margin: '2px 0 6px',
+                          }}
+                          title={groupMetaLabel(group)}
+                        >
+                          {groupMetaLabel(group)}
+                        </div>
                         <div className="pick-meta-row pos-pick-meta-row" style={{ direction: 'rtl', width: '100%' }}>
                           <span>{priceLabel}</span>
-                          <span className="small muted">{group.hasVariants ? t('pos.pos_products_panel.s27', "افتح الاختيارات") : t('pos.pos_products_panel.s28', "أضف الآن")}</span>
+                          <span className="small muted">
+                            {isOutOfStock
+                              ? t('pos.out_of_stock', 'نفد')
+                              : group.hasVariants
+                              ? t('pos.pos_products_panel.s27', "افتح الاختيارات")
+                              : t('pos.pos_products_panel.s28', "أضف الآن")}
+                          </span>
                         </div>
                       </button>
                     </article>
@@ -1463,10 +1677,14 @@ function PosProductsPanelComponent({
                 return (
                   <article
                     key={group.key}
-                    className={`pos-group-card ${isSelected ? 'is-selected' : ''}`}
+                    className={`pos-group-card ${isSelected ? 'is-selected' : ''} ${isOutOfStock ? 'is-out-of-stock' : ''}`}
                     style={{
-                      background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-                      border: isSelected ? '2px solid #0f172a' : '1px solid rgba(148, 163, 184, 0.28)',
+                      background: isOutOfStock ? '#f8fafc' : 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                      border: isSelected
+                        ? '2px solid #0f172a'
+                        : isOutOfStock
+                        ? '1px dashed #cbd5e1'
+                        : '1px solid rgba(148, 163, 184, 0.28)',
                       borderRadius: '8px',
                       padding: '8px 10px',
                       boxShadow: isSelected ? '0 4px 12px rgba(15, 23, 42, 0.12)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
@@ -1475,6 +1693,8 @@ function PosProductsPanelComponent({
                       justifyContent: 'space-between',
                       minHeight: '94px',
                       position: 'relative',
+                      opacity: isOutOfStock ? 0.55 : 1,
+                      filter: isOutOfStock ? 'grayscale(0.65)' : undefined,
                     }}
                   >
                     <button
@@ -1494,7 +1714,7 @@ function PosProductsPanelComponent({
                         direction: 'rtl',
                         padding: 0,
                         width: '100%',
-                        cursor: 'pointer',
+                        cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
                         flex: 1,
@@ -1609,14 +1829,18 @@ function PosProductsPanelComponent({
                             fontWeight: 700,
                             padding: '2px 7px',
                             borderRadius: '5px',
-                            background: group.hasVariants ? '#eff6ff' : '#ecfdf5',
-                            color: group.hasVariants ? '#1d4ed8' : '#047857',
-                            border: group.hasVariants ? '1px solid #dbeafe' : '1px solid #a7f3d0',
+                            background: isOutOfStock ? '#fee2e2' : group.hasVariants ? '#eff6ff' : '#ecfdf5',
+                            color: isOutOfStock ? '#b91c1c' : group.hasVariants ? '#1d4ed8' : '#047857',
+                            border: isOutOfStock ? '1px solid #fecaca' : group.hasVariants ? '1px solid #dbeafe' : '1px solid #a7f3d0',
                             display: 'inline-flex',
                             alignItems: 'center',
                           }}
                         >
-                          {group.hasVariants ? t('pos.pos_products_panel.s32', "خيارات ▾") : t('pos.pos_products_panel.s33', "+ أضف")}
+                          {isOutOfStock
+                            ? t('pos.out_of_stock', 'نفد')
+                            : group.hasVariants
+                            ? t('pos.pos_products_panel.s32', "خيارات ▾")
+                            : t('pos.pos_products_panel.s33', "+ أضف")}
                         </span>
                       </div>
                     </button>
@@ -1648,6 +1872,7 @@ function PosProductsPanelComponent({
             onAddProduct={onAddProduct}
             priceType={priceType}
             searchInputRef={searchInputRef}
+            allowNegativeStockSales={allowNegativeStockSales}
           />
         ) : null}
 

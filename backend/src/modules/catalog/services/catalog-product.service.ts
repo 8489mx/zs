@@ -336,7 +336,7 @@ export class CatalogProductService {
   }
 
   async listProducts(query: Record<string, unknown>, actor: AuthContext): Promise<Record<string, unknown>> {
-    const { page, pageSize, q, view, requestedLocationId, categoryId, supplierId, brief } = this.parseListProductsQuery(query);
+    const { page, pageSize, q, view, requestedLocationId, categoryId, supplierId, brief, sortBy, sortDir } = this.parseListProductsQuery(query);
     const canViewCost = this.canViewCostPrice(actor);
     const offerCapabilities = await this.getProductOfferColumnCapabilities();
     const scopedLocation = requestedLocationId > 0 && actor ? await this.inventoryScope.assertLocationScope(requestedLocationId, actor).catch(() => null) : null;
@@ -371,6 +371,49 @@ export class CatalogProductService {
       supplierId,
       ...listContext,
     });
+
+    // Sorting order determination:
+    // 1. Explicit sort request takes highest precedence across the entire tenant catalog.
+    // 2. Otherwise:
+    //    - 'low' view defaults to least stock first (stock ASC).
+    //    - 'out' view defaults to category then name (category ASC, name ASC).
+    //    - 'all' and all other views default to newest products first (id DESC) as fetched from DB.
+    const effectiveSortBy = sortBy || (view === 'low' ? 'stock' : view === 'out' ? 'category' : 'id');
+    const effectiveSortDir = sortDir || (view === 'low' ? 'asc' : view === 'out' ? 'asc' : 'desc');
+
+    if (effectiveSortBy !== 'id' || effectiveSortDir !== 'desc') {
+      filteredBaseRows.sort((a, b) => {
+        if (effectiveSortBy === 'name') {
+          const comp = String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+          return effectiveSortDir === 'desc' ? -comp : comp;
+        }
+        if (effectiveSortBy === 'barcode') {
+          const comp = String(a.barcode || '').localeCompare(String(b.barcode || ''));
+          return effectiveSortDir === 'desc' ? -comp : comp;
+        }
+        if (effectiveSortBy === 'stock') {
+          const aStock = scopedStockResult.stock.get(String(a.id)) ?? Number(a.stock_qty || 0);
+          const bStock = scopedStockResult.stock.get(String(b.id)) ?? Number(b.stock_qty || 0);
+          return effectiveSortDir === 'desc' ? bStock - aStock : aStock - bStock;
+        }
+        if (effectiveSortBy === 'price' || effectiveSortBy === 'retail_price') {
+          const aPrice = Number(a.retail_price || 0);
+          const bPrice = Number(b.retail_price || 0);
+          return effectiveSortDir === 'desc' ? bPrice - aPrice : aPrice - bPrice;
+        }
+        if (effectiveSortBy === 'category') {
+          const catA = listContext.categoriesById[String(a.category_id || '')] || '';
+          const catB = listContext.categoriesById[String(b.category_id || '')] || '';
+          const catComp = catA.localeCompare(catB, 'ar');
+          if (catComp !== 0) return effectiveSortDir === 'desc' ? -catComp : catComp;
+          return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+        }
+        if (effectiveSortBy === 'id') {
+          return effectiveSortDir === 'desc' ? Number(b.id) - Number(a.id) : Number(a.id) - Number(b.id);
+        }
+        return 0;
+      });
+    }
 
     // Fashion pages are counted by models, never by individual sizes.
     // Every selected model returns all of its tenant-scoped active variants.
@@ -492,6 +535,8 @@ export class CatalogProductService {
   }
 
   private parseListProductsQuery(query: Record<string, unknown>) {
+    const rawSortBy = query.sortBy ? String(query.sortBy).trim().toLowerCase() : undefined;
+    const rawSortDir = query.sortDir ? String(query.sortDir).trim().toLowerCase() : undefined;
     return {
       page: Math.max(1, Number(query.page || 1)),
       pageSize: Math.min(10000, Math.max(5, Number(query.pageSize || 20))),
@@ -501,6 +546,8 @@ export class CatalogProductService {
       categoryId: query.categoryId ? Number(query.categoryId) : undefined,
       supplierId: query.supplierId ? Number(query.supplierId) : undefined,
       brief: String(query.brief || '').toLowerCase() === 'true' || query.brief === true,
+      sortBy: rawSortBy,
+      sortDir: (rawSortDir === 'asc' || rawSortDir === 'desc') ? rawSortDir : undefined,
     };
   }
 
@@ -1504,9 +1551,13 @@ export class CatalogProductService {
       seenVariants.add(key);
     }
 
+    const rawName = normalizeArabicInput(payload.name);
+    const rawNameEn = payload.nameEn ? String(payload.nameEn).trim() : null;
+    const resolvedName = rawName || rawNameEn || '';
+
     return {
-      name: normalizeArabicInput(payload.name),
-      nameEn: payload.nameEn ? String(payload.nameEn).trim() : null,
+      name: resolvedName,
+      nameEn: rawNameEn,
       barcode: String(payload.barcode || '').trim(),
       sku: String(payload.sku || '').trim(),
       itemType: payload.itemType === 'raw_material' ? 'raw_material' : payload.itemType === 'service' ? 'service' : 'product',
@@ -2274,7 +2325,7 @@ export class CatalogProductService {
 
   async createProduct(payload: UpsertProductDto, actor: AuthContext): Promise<Record<string, unknown>> {
     const normalized = this.normalizeProductPayload(payload);
-    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب.', 'PRODUCT_NAME_REQUIRED', 400);
+    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب (بالعربية أو الإنجليزية).', 'PRODUCT_NAME_REQUIRED', 400);
     normalized.styleCode = this.coerceNewStyleCode(normalized.styleCode);
     const shouldExpandVariants = normalized.fashionVariants.length > 0 && (normalized.itemKind === 'fashion' || Boolean(normalized.styleCode));
     const drafts = shouldExpandVariants
@@ -2445,7 +2496,7 @@ export class CatalogProductService {
     const existing = await this.db.selectFrom('products').selectAll().where('id', '=', id).where(this.tenantPredicate(actor)).executeTakeFirst();
     if (!existing) throw new AppError('Product not found', 'PRODUCT_NOT_FOUND', 404);
     const normalized = this.normalizeProductPayload(payload);
-    if (!normalized.name) throw new AppError('Product name is required', 'PRODUCT_NAME_REQUIRED', 400);
+    if (!normalized.name) throw new AppError('اسم الصنف الأساسي مطلوب (بالعربية أو الإنجليزية).', 'PRODUCT_NAME_REQUIRED', 400);
 
     const existingStyleCode = String(existing.style_code || '').trim();
     const requestedStyleCode = String(normalized.styleCode || '').trim();

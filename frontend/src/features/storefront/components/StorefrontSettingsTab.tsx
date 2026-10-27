@@ -1,16 +1,19 @@
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { buildStorePublicUrl, storePublicUrlParts } from '@/lib/store-public-url';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { compressImage } from '@/shared/utils/image-compressor';
+import { toast } from '@/shared/components/system-alert';
 import { StorefrontProductStudio } from './StorefrontProductStudio';
 import { StorefrontCouponsManager } from './StorefrontCouponsManager';
 import { StorefrontDeliveryZonesManager } from './StorefrontDeliveryZonesManager';
 import { StorefrontPaymentGatewaysManager } from './StorefrontPaymentGatewaysManager';
 import { BostaSettingsCard } from './BostaSettingsCard';
 import { GccShippingSettingsCard } from './GccShippingSettingsCard';
+import type { StorefrontMidBanner } from '../types/storefront.types';
 import {
   CheckIcon,
   XIcon,
@@ -19,6 +22,10 @@ import {
   Trash2Icon,
   QrCodeIcon,
   CopyIcon,
+  PlusCircleIcon,
+  LayersIcon,
+  TrendingUpIcon,
+  UploadIcon,
 } from '@/shared/components/icons/AppIcons';
 import { TableQrPrintDialog } from '@/features/pos';
 
@@ -41,6 +48,7 @@ function parsePosition(posStr?: string): { x: number; y: number } {
 
 export function StorefrontSettingsTab() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images' | 'bosta' | 'gcc-shipping'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
@@ -50,15 +58,21 @@ export function StorefrontSettingsTab() {
   const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
   const [copiedPromptKey, setCopiedPromptKey] = useState<'ar' | 'en' | null>(null);
 
+  const analyticsQuery = useQuery({
+    queryKey: ['storefront-admin-analytics'],
+    queryFn: storefrontApi.getAnalytics,
+    refetchInterval: 30 * 1000,
+  });
+
   const aiPromptTemplateAr =
-    'صمم بنر إعلاني سينمائي شريطي فائق العرض (Ultra-Wide Panoramic Banner) بنسبة 4:1 وأبعاد دقيقة 1600x400 بكسل لمتجر [اكتب اسم ونشاط متجرك هنا].\n' +
-    'شروط توزيع العناصر لملء المتجر بالكامل دون أي قص:\n' +
-    '1. أبعاد التصميم: نسبة العرض إلى الارتفاع 4:1 (العرض أربعة أضعاف الارتفاع تماماً، مقاس 1600x400 بكسل).\n' +
-    '2. منطقة الأمان المركزية (60%): ضع اسم المتجر والشعار والمنتجات الرئيسية والنصوص في الـ 60% الوسطى فقط من الكادر.\n' +
-    '3. امتداد الأطراف (20% يميناً و 20% يساراً): اجعل الحواف مجرد خلفية ممتدة متجانسة بتدرج لوني وإضاءة أنيقة بدون نصوص أو أجهزة مقطوعة لتملأ الشاشة بسلاسة بدون قص.';
+    'صمم بنر إعلاني سينمائي فائق العرض (Ultra-Wide Panoramic Store Banner) بنسبة 4:1 وأبعاد دقيقة 1920x480 بكسل (أو 1600x400 بكسل) لمتجر إلكتروني فاخر [اكتب اسم ونشاط متجرك هنا].\n' +
+    'شروط توزيع العناصر والتكوين البصري لملء المتجر دون أي قص:\n' +
+    '1. أبعاد التصميم: نسبة العرض إلى الارتفاع 4:1 شريطي بانورامي (مقاس 1920×480 بكسل للبنر كامل الشاشة، أو 1400×350 بكسل للبانرات الفاصلة بين الأقسام).\n' +
+    '2. منطقة الأمان المركزية (60%): ضع اسم المتجر، الشعار، عبارات العرض الترويجي، والمنتجات الرئيسية حصرياً في الـ 60% الوسطى من الكادر.\n' +
+    '3. امتداد الأطراف (20% يميناً و 20% يساراً): اجعل الحواف الجانبية مجرد خلفية ممتدة متجانسة بتدرج لوني وإضاءة استوديو ناعمة بدون أي نصوص أو منتجات مقطوعة لتملأ الشاشة بسلاسة وتتوافق تماماً مع الهواتف والشاشات العريضة دون أي قص.';
 
   const aiPromptTemplateEn =
-    'Ultra-wide commercial e-commerce panoramic header banner, exact aspect ratio 4:1, 1600x400 resolution, for [Your Store Name / Business Type]. Luxury modern commercial design, clean studio lighting, 8k render. CRITICAL COMPOSITION RULES: Place all hero products, branding text, and logo strictly inside the central 60% horizontal safe zone. The left 20% and right 20% edges must be smooth, seamless ambient background gradient with extended atmospheric lighting and zero cut-off objects or text at borders. --ar 4:1';
+    'Ultra-wide cinematic commercial e-commerce panoramic header banner, exact aspect ratio 4:1, 1920x480 resolution, for [Your Store Name / Business Type]. Luxury modern commercial branding, clean studio lighting, hyper-realistic, 8k render. CRITICAL COMPOSITION RULES: Place all hero products, promotional copy, branding, and logos strictly inside the central 60% horizontal safe zone. The left 20% and right 20% edges must be seamless ambient extending background gradient with atmospheric lighting and zero cut-off text or cropped objects at the borders. Works perfectly for full-bleed screens and responsive mobile viewports. --ar 4:1';
 
   const handleCopyPrompt = (type: 'ar' | 'en') => {
     const textToCopy = type === 'ar' ? aiPromptTemplateAr : aiPromptTemplateEn;
@@ -104,6 +118,9 @@ export function StorefrontSettingsTab() {
     snapchatPixelId: '',
     allowOutOfStockOrders: true,
     showOutOfStockProducts: true,
+    heroBannerFullBleed: true,
+    midBannersEnabled: true,
+    midBanners: [] as StorefrontMidBanner[],
   });
 
   const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
@@ -184,6 +201,9 @@ export function StorefrontSettingsTab() {
         snapchatPixelId: settingsQuery.data.snapchatPixelId || '',
         allowOutOfStockOrders: (settingsQuery.data as any).allowOutOfStockOrders !== false,
         showOutOfStockProducts: (settingsQuery.data as any).showOutOfStockProducts !== false,
+        heroBannerFullBleed: (settingsQuery.data as any).heroBannerFullBleed !== false,
+        midBannersEnabled: (settingsQuery.data as any).midBannersEnabled !== false,
+        midBanners: (settingsQuery.data as any).midBanners || [],
       });
     }
   }, [settingsQuery.data]);
@@ -268,7 +288,11 @@ export function StorefrontSettingsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-settings'] });
       setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
+      toast.success(t('storefront.storefront_settings_tab.save_success', 'تم حفظ وتطبيق كافة إعدادات المتجر بنجاح!'));
+      setTimeout(() => setSavedSuccess(false), 3500);
+    },
+    onError: (err: any) => {
+      toast.error(err?.message || 'تعذر حفظ إعدادات المتجر، يرجى المحاولة مرة أخرى.');
     },
   });
 
@@ -398,6 +422,79 @@ export function StorefrontSettingsTab() {
     });
   };
 
+  const catalogQuery = useQuery({
+    queryKey: ['storefront-catalog', formState.slug || storeSlug],
+    queryFn: () => storefrontApi.getCatalog(formState.slug || storeSlug),
+    enabled: Boolean(formState.slug || storeSlug),
+    staleTime: 60 * 1000,
+  });
+  const categories = catalogQuery.data?.categories || [];
+
+  const [compressingMidBannerIdx, setCompressingMidBannerIdx] = useState<number | null>(null);
+
+  const handleMidBannerFileChange = async (index: number, file: File) => {
+    try {
+      setCompressingMidBannerIdx(index);
+      const res = await compressImage(file, {
+        maxWidth: 1600,
+        maxHeight: 480,
+        initialQuality: 0.85,
+        maxSizeKb: 75,
+      });
+
+      setFormState((prev) => {
+        const next = [...(prev.midBanners || [])];
+        if (next[index]) {
+          next[index] = { ...next[index], imageUrl: res.dataUrl };
+        }
+        return { ...prev, midBanners: next };
+      });
+      setCompressingMidBannerIdx(null);
+    } catch (err: any) {
+      alert(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
+      setCompressingMidBannerIdx(null);
+    }
+  };
+
+  const handleAddMidBanner = () => {
+    setFormState((prev) => {
+      const current = prev.midBanners || [];
+      const newBanner: StorefrontMidBanner = {
+        id: `mid-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        imageUrl: '',
+        title: '',
+        subtitle: '',
+        badge: '',
+        linkType: 'category',
+        categoryId: categories[0]?.id ? Number(categories[0].id) : undefined,
+        customUrl: '',
+        slot: current.length === 0 ? 'after_deals' : current.length === 1 ? 'after_row_1' : current.length === 2 ? 'after_row_2' : 'bottom',
+        isEnabled: true,
+      };
+      return {
+        ...prev,
+        midBanners: [...current, newBanner],
+      };
+    });
+  };
+
+  const handleUpdateMidBanner = (index: number, updates: Partial<StorefrontMidBanner>) => {
+    setFormState((prev) => {
+      const next = [...(prev.midBanners || [])];
+      if (next[index]) {
+        next[index] = { ...next[index], ...updates };
+      }
+      return { ...prev, midBanners: next };
+    });
+  };
+
+  const handleRemoveMidBanner = (index: number) => {
+    setFormState((prev) => {
+      const next = (prev.midBanners || []).filter((_, idx) => idx !== index);
+      return { ...prev, midBanners: next };
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateMutation.mutate(formState);
@@ -523,6 +620,90 @@ export function StorefrontSettingsTab() {
           >
             <span>{t('storefront.storefront_settings_tab.s8', "معاينة المتجر ↗")}</span>
           </a>
+        </div>
+      </div>
+
+      {/* Executive E-Commerce Operations & Hub Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #170e5e 0%, #2e1065 100%)',
+          borderRadius: '10px',
+          padding: '12px 16px',
+          marginBottom: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          color: '#ffffff',
+          boxShadow: '0 2px 8px rgba(23, 14, 94, 0.15)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <TrendingUpIcon size={20} color="#ffffff" />
+          </div>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span>مركز عمليات وطلبات المتجر الإلكتروني (E-Commerce Operations)</span>
+              <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#10b981', color: '#ffffff', padding: '1px 7px', borderRadius: '4px' }}>
+                مباشر ومربوط بالمخزن
+              </span>
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.82)', marginTop: '2px' }}>
+              متابعة وتجهيز الطلبات، بوالص بوسطة وسمسا، رادار السلات المتروكة، ومؤشرات الأداء اللحظية
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {(analyticsQuery.data?.pendingOrders ?? 0) > 0 && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                background: '#ef4444',
+                color: '#ffffff',
+                padding: '3px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              {analyticsQuery.data?.pendingOrders} طلبات جديدة بحاجة للمراجعة
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={() => navigate('/online-orders')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: '#ffffff',
+              color: '#170e5e',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '7px 14px',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            }}
+          >
+            <span>فتح لوحة القيادة ومتابعة الطلبات</span>
+            <span style={{ fontSize: '13px' }}>←</span>
+          </button>
         </div>
       </div>
 
@@ -1390,11 +1571,16 @@ export function StorefrontSettingsTab() {
                     marginBottom: '8px',
                   }}
                 />
-                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
-                  {t('storefront.storefront_settings_tab.s75', "لربط دومينك الخاص، أضف سجل")} <strong>CNAME</strong> {t('storefront.storefront_settings_tab.s76', "في لوحة تحكم نطاقك يوجه إلى:")}
-                  <code style={{ background: '#e2e8f0', padding: '2px 5px', borderRadius: '4px', margin: '0 4px', color: '#0f172a' }}>
-                    92-5-178-54.sslip.io
-                  </code>
+                <div style={{ fontSize: '11.5px', color: '#64748b', lineHeight: 1.6, marginTop: '4px' }}>
+                  <span>{t('storefront.storefront_settings_tab.s75', "لربط دومينك الخاص (مثل store.mybrand.com)، أضف سجل")} <strong>CNAME</strong> {t('storefront.storefront_settings_tab.s76', "في لوحة تحكم نطاقك يوجه إلى:")}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', margin: '4px 0', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '5px' }}>
+                    <code style={{ color: '#170e5e', fontWeight: 800, fontFamily: 'monospace', direction: 'ltr' }}>
+                      {formState.slug ? `${formState.slug.trim().toLowerCase()}.zsystemai.com` : 'cname.zsystemai.com'}
+                    </code>
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 600 }}>
+                    يعمل متجرك افتراضياً ومباشرة على السب دومين: https://{formState.slug ? formState.slug.trim().toLowerCase() : (storeSlug || 'yourstore')}.zsystemai.com
+                  </div>
                 </div>
               </div>
             </div>
@@ -2136,6 +2322,68 @@ export function StorefrontSettingsTab() {
                   </div>
                 )}
 
+                {/* Hero Banner Width Mode Setting (Full-Bleed vs Contained) */}
+                {formState.bannerUrls.length > 0 && (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      marginBottom: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      minWidth: 0,
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
+                        عرض البنر العلوي في واجهة المتجر:
+                      </span>
+                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>
+                        الامتداد السينمائي بكامل حواف الشاشة (Full-Bleed) يعطي فخامة المتاجر العالمية
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => setFormState((prev) => ({ ...prev, heroBannerFullBleed: true }))}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          borderRadius: '5px',
+                          border: formState.heroBannerFullBleed !== false ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                          background: formState.heroBannerFullBleed !== false ? '#eff6ff' : '#ffffff',
+                          color: formState.heroBannerFullBleed !== false ? '#170e5e' : '#64748b',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        عرض كامل بحواف الشاشة (Full-Bleed)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormState((prev) => ({ ...prev, heroBannerFullBleed: false }))}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          borderRadius: '5px',
+                          border: formState.heroBannerFullBleed === false ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
+                          background: formState.heroBannerFullBleed === false ? '#eff6ff' : '#ffffff',
+                          color: formState.heroBannerFullBleed === false ? '#170e5e' : '#64748b',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        داخل كادر مدمج (Contained)
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* List of Configured Slides */}
                 {formState.bannerUrls.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
@@ -2251,15 +2499,18 @@ export function StorefrontSettingsTab() {
                     <span>{t('storefront.storefront_settings_tab.s128', "دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / Midjourney / DALL-E):")}</span>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
                     <div>
-                      • <strong>{t('storefront.storefront_settings_tab.s129', "المقاس الذهبي المعتمد:")}</strong> <strong>1600 × 400</strong> {t('storefront.storefront_settings_tab.s130', "بكسل (أو")} <strong>1920 × 480</strong> {t('storefront.storefront_settings_tab.s131', "فائقة الجودة أو")} <strong>1280 × 320</strong>{t('storefront.storefront_settings_tab.s132', "). النسبة الهندسية الثابتة هي")} <strong>4:1</strong> {t('storefront.storefront_settings_tab.s133', "شريطي بانورامي (العرض أربعة أضعاف الارتفاع تماماً).")}
+                      • <strong>بنر الهيرو كامل الشاشة (Full-Bleed):</strong> المقاس الذهبي هو <strong>1920 × 480</strong> بكسل (أو <strong>1920 × 400</strong>) بنسبة <strong>4:1</strong>. هذا المقاس يملأ نافذة المتصفح بنقاء استثنائي وفخامة تضاهي كبرى المتاجر العالمية دون أي بكسلة على الشاشات الكبيرة.
                     </div>
                     <div>
-                      • <strong>{t('storefront.storefront_settings_tab.s134', "قاعدة منطقة الأمان (60% بالمنتصف):")}</strong> {t('storefront.storefront_settings_tab.s135', "اطلب دائماً حصر اسم المتجر والشعار والمنتجات والنصوص في الـ")} <strong>{t('storefront.storefront_settings_tab.s136', "60% الوسطى فقط")}</strong> {t('storefront.storefront_settings_tab.s137', "من الكادر، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة ناعمة بدون عناصر مقطوعة حتى يملأ البنر الشاشة 100% بدون أي قص للحروف.")}
+                      • <strong>بنر الهيرو المدمج (Contained):</strong> المقاس المعتمد <strong>1600 × 400</strong> أو <strong>1440 × 360</strong> بكسل بنسبة <strong>4:1</strong> ليطابق عرض كادر المتجر بدقة دون أي زوائد.
                     </div>
                     <div>
-                      • <strong>{t('storefront.storefront_settings_tab.s138', "ملء الشاشة مع نمط الاحتواء الكامل (Contain):")}</strong> {t('storefront.storefront_settings_tab.s139', "عند استخدام مقاس 1600×400 ونمط \"احتواء كامل\"، سيملأ البنر كامل عرض الحاوية دون أي فراغات ودون قطع أي طرف من التصميم.")}
+                      • <strong>البانرات الفاصلة بين الأقسام (Mid-Page Promos):</strong> المقاس الموصى به <strong>1400 × 350</strong> بكسل (أو <strong>1200 × 300</strong>) بنسبة <strong>4:1</strong> لملء الفواصل الإعلانية بين صفوف المنتجات بوضوح وسرعة تحميل فائقة.
+                    </div>
+                    <div>
+                      • <strong>قاعدة منطقة الأمان (Safe Zone 60% بالمنتصف):</strong> احرص دائماً على حصر اسم المتجر، الشعار، عبارات العرض، والمنتجات في <strong>الـ 60% الوسطى فقط</strong>، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة وإضاءة ناعمة، لضمان ظهور البنر متجاوباً ومتكاملاً على شاشات الموبايل والحواسيب دون أي قص للحروف أو المنتجات.
                     </div>
                   </div>
 
@@ -2411,6 +2662,424 @@ export function StorefrontSettingsTab() {
               </div>
             </div>
 
+            {/* Card 2.5: بانرات التصفح الإعلانية الفاصلة بين الأقسام (Mid-Page Promos) */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                gridColumn: '1 / -1',
+              }}
+            >
+              <div
+                style={{
+                  borderBottom: '1px solid #f1f5f9',
+                  paddingBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    <LayersIcon size={16} color="#170e5e" />
+                    <span>بانرات التصفح الإعلانية الفاصلة بين الأقسام (Mid-Page Promos)</span>
+                    <span style={{ fontSize: '10.5px', fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '4px', padding: '1px 7px' }}>
+                      المقاس الموصى به: 1400 × 350 بكسل (4:1)
+                    </span>
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>
+                    فواصل إعلانية جذابة تفصل بين صفوف وأقسام المنتجات لكسر الملل وتوجيه الزبائن لأقسام وعروض محددة
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                      background: '#f8fafc',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #e2e8f0',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formState.midBannersEnabled}
+                      onChange={(e) => setFormState({ ...formState, midBannersEnabled: e.target.checked })}
+                      style={{ width: '15px', height: '15px', accentColor: '#170e5e', cursor: 'pointer' }}
+                    />
+                    <span>تفعيل البانرات الفاصلة</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAddMidBanner}
+                    style={{
+                      background: '#170e5e',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '5px 12px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <PlusCircleIcon size={14} color="#ffffff" />
+                    <span>إضافة بنر فاصل جديد</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Banners List */}
+              {(!formState.midBanners || formState.midBanners.length === 0) ? (
+                <div
+                  style={{
+                    padding: '24px 16px',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px dashed #cbd5e1',
+                  }}
+                >
+                  <p style={{ margin: '0 0 8px', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                    لم يتم إضافة أي بنرات فاصلة حتى الآن. يمكنك إضافة بنرات شريطية جذابة تفصل بين الرفوف مثل المتاجر العالمية.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAddMidBanner}
+                    style={{
+                      background: '#ffffff',
+                      color: '#170e5e',
+                      border: '1px solid #170e5e',
+                      borderRadius: '6px',
+                      padding: '5px 14px',
+                      fontSize: '11.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <PlusCircleIcon size={14} color="#170e5e" />
+                    <span>إضافة أول بنر إعلاني فاصل</span>
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {formState.midBanners.map((banner, index) => (
+                    <div
+                      key={banner.id || `mid-${index}`}
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px',
+                      }}
+                    >
+                      {/* Banner Header */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 800, background: '#170e5e', color: '#ffffff', padding: '2px 8px', borderRadius: '4px' }}>
+                            بنر #{index + 1}
+                          </span>
+                          <span style={{ fontSize: '11.5px', color: '#0f172a', fontWeight: 700 }}>
+                            {banner.title || 'بنر إعلاني فاصل (بدون عنوان)'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 700, color: '#334155', cursor: 'pointer' }}>
+                            <input
+                              type="checkbox"
+                              checked={banner.isEnabled !== false}
+                              onChange={(e) => handleUpdateMidBanner(index, { isEnabled: e.target.checked })}
+                              style={{ width: '14px', height: '14px', accentColor: '#170e5e' }}
+                            />
+                            <span>مفعل</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMidBanner(index)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '2px 6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                            }}
+                          >
+                            <Trash2Icon size={12} color="#ef4444" />
+                            <span>حذف</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Content Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', alignItems: 'start' }}>
+                        {/* Image Preview & Upload */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '4px' }}>
+                            صورة البنر (نسبة 4:1 أو عريضة):
+                          </label>
+                          <div
+                            style={{
+                              width: '100%',
+                              aspectRatio: '3.6 / 1',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              border: '1px dashed #cbd5e1',
+                              background: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative',
+                              marginBottom: '6px',
+                            }}
+                          >
+                            {banner.imageUrl ? (
+                              <img
+                                src={banner.imageUrl}
+                                alt="معاينة البنر"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <span style={{ fontSize: '10.5px', color: '#94a3b8' }}>لا توجد صورة بعد</span>
+                            )}
+                          </div>
+                          <label
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              width: '100%',
+                              padding: '5px 8px',
+                              borderRadius: '5px',
+                              border: '1px solid #cbd5e1',
+                              background: '#ffffff',
+                              color: '#170e5e',
+                              fontSize: '10.5px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            <UploadIcon size={12} color="#170e5e" />
+                            <span>
+                              {compressingMidBannerIdx === index
+                                ? 'جاري ضغط ومعالجة الصورة...'
+                                : banner.imageUrl
+                                ? 'تغيير صورة البنر'
+                                : 'رفع صورة البنر (WebP)'}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              disabled={compressingMidBannerIdx === index}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) handleMidBannerFileChange(index, f);
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Text Fields */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                              عنوان البنر (اختياري لو مدمج بالتصميم):
+                            </label>
+                            <input
+                              type="text"
+                              value={banner.title || ''}
+                              placeholder="مثال: عروض كروت الشاشة والجيمنج"
+                              onChange={(e) => handleUpdateMidBanner(index, { title: e.target.value })}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '5px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '11.5px',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                              نص توضيحي فرعي (اختياري):
+                            </label>
+                            <input
+                              type="text"
+                              value={banner.subtitle || ''}
+                              placeholder="مثال: خصم 15% على كروت الشاشة المستعملة الأصلية بضمان معتمد"
+                              onChange={(e) => handleUpdateMidBanner(index, { subtitle: e.target.value })}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '5px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '11.5px',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                              شارة صغيرة (Badge):
+                            </label>
+                            <input
+                              type="text"
+                              value={banner.badge || ''}
+                              placeholder="مثال: عرض محدود، جديد، حصرى"
+                              onChange={(e) => handleUpdateMidBanner(index, { badge: e.target.value })}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '5px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '11.5px',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Slot & Link Action */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                              موضع الظهور في الصفحة:
+                            </label>
+                            <select
+                              value={banner.slot || 'after_deals'}
+                              onChange={(e) => handleUpdateMidBanner(index, { slot: e.target.value as any })}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '5px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '11.5px',
+                                background: '#ffffff',
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              <option value="after_deals">بعد صف العروض الحصرية الأولى</option>
+                              <option value="after_row_1">بعد أول قسم منتجات</option>
+                              <option value="after_row_2">بعد ثاني قسم منتجات</option>
+                              <option value="bottom">في نهاية الصفحة قبل الفوتر</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                              نوع الرابط عند نقر الزبون:
+                            </label>
+                            <select
+                              value={banner.linkType || 'category'}
+                              onChange={(e) => handleUpdateMidBanner(index, { linkType: e.target.value as any })}
+                              style={{
+                                width: '100%',
+                                padding: '5px 8px',
+                                borderRadius: '5px',
+                                border: '1px solid #cbd5e1',
+                                fontSize: '11.5px',
+                                background: '#ffffff',
+                                boxSizing: 'border-box',
+                              }}
+                            >
+                              <option value="category">الانتقال لتصنيف / قسم محدد</option>
+                              <option value="deals">الانتقال للعروض والتخفيضات (Smart Deals)</option>
+                              <option value="url">رابط خارجي مخصص</option>
+                              <option value="none">بدون رابط (صورة للعرض فقط)</option>
+                            </select>
+                          </div>
+
+                          {banner.linkType === 'category' && (
+                            <div>
+                              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                                اختر القسم المرتبط بالبنر:
+                              </label>
+                              <select
+                                value={banner.categoryId || ''}
+                                onChange={(e) => handleUpdateMidBanner(index, { categoryId: Number(e.target.value) || undefined })}
+                                style={{
+                                  width: '100%',
+                                  padding: '5px 8px',
+                                  borderRadius: '5px',
+                                  border: '1px solid #cbd5e1',
+                                  fontSize: '11.5px',
+                                  background: '#ffffff',
+                                  boxSizing: 'border-box',
+                                }}
+                              >
+                                <option value="">-- اختر قسماً --</option>
+                                {categories.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {banner.linkType === 'url' && (
+                            <div>
+                              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#475569', marginBottom: '3px' }}>
+                                الرابط المخصص:
+                              </label>
+                              <input
+                                type="text"
+                                value={banner.customUrl || ''}
+                                placeholder="https://..."
+                                onChange={(e) => handleUpdateMidBanner(index, { customUrl: e.target.value })}
+                                style={{
+                                  width: '100%',
+                                  padding: '5px 8px',
+                                  borderRadius: '5px',
+                                  border: '1px solid #cbd5e1',
+                                  fontSize: '11.5px',
+                                  direction: 'ltr',
+                                  boxSizing: 'border-box',
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Card 3: أكواد البيكسل والتتبع الإعلاني */}
             <div
               style={{
@@ -2539,29 +3208,72 @@ export function StorefrontSettingsTab() {
             </div>
           </div>
 
-          {/* Save Action Button matching Image 1 exact height & proportions */}
-          <div style={{ width: '100%', marginTop: '6px' }}>
+          {/* Save Action Button with Direct Visual Feedback & Animations */}
+          <div style={{ width: '100%', marginTop: '8px' }}>
             <button
               type="submit"
               disabled={updateMutation.isPending}
               style={{
                 width: '100%',
-                padding: '9px 16px',
-                borderRadius: '6px',
-                background: '#170e5e',
+                padding: '11px 16px',
+                borderRadius: '8px',
+                background: savedSuccess ? '#16a34a' : updateMutation.isPending ? '#334155' : '#170e5e',
                 color: '#ffffff',
-                fontSize: '13px',
-                fontWeight: 700,
+                fontSize: '13.5px',
+                fontWeight: 800,
                 border: 'none',
                 cursor: updateMutation.isPending ? 'wait' : 'pointer',
-                boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
-                transition: 'background 0.15s ease',
+                boxShadow: savedSuccess
+                  ? '0 2px 10px rgba(22, 163, 74, 0.35)'
+                  : '0 2px 6px rgba(23, 14, 94, 0.25)',
+                transition: 'all 0.25s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transform: savedSuccess ? 'scale(1.008)' : 'none',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#110a47')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#170e5e')}
+              onMouseEnter={(e) => {
+                if (!savedSuccess && !updateMutation.isPending) e.currentTarget.style.background = '#110a47';
+              }}
+              onMouseLeave={(e) => {
+                if (!savedSuccess && !updateMutation.isPending) e.currentTarget.style.background = '#170e5e';
+              }}
             >
-              {updateMutation.isPending ? t('storefront.storefront_settings_tab.s163', "جاري الحفظ...") : t('storefront.storefront_settings_tab.s164', "حفظ إعدادات المتجر")}
+              {updateMutation.isPending ? (
+                <span>{t('storefront.storefront_settings_tab.s163', "جاري الحفظ والمعالجة...")}</span>
+              ) : savedSuccess ? (
+                <>
+                  <CheckIcon size={18} color="#ffffff" />
+                  <span>تم حفظ وتطبيق كافة إعدادات المتجر بنجاح!</span>
+                </>
+              ) : (
+                <span>{t('storefront.storefront_settings_tab.s164', "حفظ إعدادات المتجر")}</span>
+              )}
             </button>
+
+            {savedSuccess && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px 14px',
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: '8px',
+                  color: '#15803d',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  marginTop: '8px',
+                  boxShadow: '0 1px 4px rgba(22, 163, 74, 0.12)',
+                }}
+              >
+                <CheckIcon size={16} color="#16a34a" />
+                <span>تم تحديث وحفظ بيانات وهوية المتجر بنجاح! التغييرات مفعلة مباشرة الآن.</span>
+              </div>
+            )}
           </div>
         </form>
       )}

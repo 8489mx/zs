@@ -252,6 +252,7 @@ export interface AppSettings {
   defaultDeliveryFee?: number;
   allowNegativeStockSales?: boolean;
   allowSellingBelowStock?: boolean;
+  posHideOutOfStockItems?: boolean;
   allowZeroPurchaseCost?: boolean;
   requireCashierShiftForSales?: boolean;
   requirePasswordOnShiftOpen?: boolean;

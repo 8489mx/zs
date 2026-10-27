@@ -146,6 +146,9 @@ export function ProductsWorkspace() {
           onPageSizeChange={(nextPageSize) => { controller.setPageSize(nextPageSize); controller.setPage(1); }}
           clothingEnabled={clothingEnabled}
           mobileStoreEnabled={settingsQuery.data?.enableMobileStoreFeatures === true}
+          sortField={controller.sortField}
+          sortDirection={controller.sortDirection}
+          onSortChange={controller.handleSortChange}
           onOpenSerialsDialog={(product) => setSerialsProduct(product)}
           onToggleArchiveProduct={controller.setProductToArchive}
         />

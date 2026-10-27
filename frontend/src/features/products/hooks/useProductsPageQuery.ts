@@ -10,6 +10,8 @@ export function useProductsPageQuery(params: ProductsListParams) {
     groupFashion: params.groupFashion,
     q: params.q,
     view: params.view && params.view !== 'all' ? params.view : undefined,
+    sortBy: params.sortBy,
+    sortDir: params.sortDir,
   });
   return useQuery({
     queryKey: queryKeys.productsPage(paramsKey),

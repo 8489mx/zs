@@ -2105,12 +2105,14 @@
   grid-template-columns: minmax(0, 1fr) 136px 98px 78px !important;
 }
 
-.pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-product-name {
-  white-space: normal !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  line-height: 1.2 !important;
+@media (min-width: 769px) {
+  .pos-workspace .pos-cart-table.pos-cart-w440 .pos-cart-product-name {
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
 }

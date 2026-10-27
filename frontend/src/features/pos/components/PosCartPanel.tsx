@@ -36,7 +36,7 @@ function PosCartPanelComponent(props: PosCartPanelProps) {
 
       <div className="pos-checkout-scroll">
         <div className="pos-checkout-body">
-          <PosCartItemsList {...props} />
+          <PosCartItemsList {...props} onNavigateToProducts={props.onNavigateToProducts} />
           <PosCartFooter {...props} />
         </div>
       </div>

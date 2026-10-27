@@ -29,4 +29,6 @@ export interface PosItem {
   quantityChunks?: number[];
   trackSerials?: boolean;
   serials?: string[];
+  imageUrl?: string;
+  icon?: string;
 }

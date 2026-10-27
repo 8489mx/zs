@@ -12,6 +12,8 @@ export interface ProductsListParams {
   locationId?: number | string;
   categoryId?: number | string;
   supplierId?: number | string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
 }
 
 export interface ProductsPageResponse {

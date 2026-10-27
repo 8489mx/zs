@@ -80,6 +80,7 @@ export const settingsFormSchema = z.object({
   vanSettlementRequireSupervisorPin: z.boolean().default(false).optional(),
   vanSettlementBlindMode: z.boolean().default(false).optional(),
   allowNegativeStockSales: z.boolean().default(false),
+  posHideOutOfStockItems: z.boolean().default(false),
   allowZeroPurchaseCost: z.boolean().default(false),
   requireCashierShiftForSales: z.boolean().default(true),
   requirePasswordOnShiftOpen: z.boolean().default(false).optional(),
