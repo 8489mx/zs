@@ -540,7 +540,11 @@ export class SalesWriteService {
       throw new AppError('تجاوز الحد الأقصى لعمق شجرة التركيبات التصنيعية المتداخلة', 'BOM_RECURSION_LIMIT', 400);
     }
 
-    if (!this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'manufacturing')) {
+    // Restaurant BOMs are kitchen recipes: restaurants must consume real ingredients
+    // even without the unrelated Manufacturing feature. Otherwise hasBOM lets a
+    // sale bypass stock checks while no recipe is actually produced.
+    if (!this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'manufacturing') &&
+        !this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
       return;
     }
 
@@ -559,13 +563,16 @@ export class SalesWriteService {
       const baseShortfall = Number(qtyToProduce.toFixed(3)); // requiredQty and availableQty are already base stock units
       
       const bom = await trx.selectFrom('manufacturing_boms')
-        .select(['expected_cost', 'quantity', 'overhead_cost'])
+        .select(['expected_cost', 'quantity', 'overhead_cost', 'is_active'])
         .where('id', '=', item.bomId)
+        .where('product_id', '=', item.productId)
         .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
         .executeTakeFirst();
-      if (!bom) continue;
+      if (!bom || !bom.is_active || !Number.isFinite(Number(bom.quantity)) || Number(bom.quantity) <= 0) {
+        throw new AppError('الوجبة مرتبطة بوصفة BOM غير صالحة أو غير نشطة', 'RESTAURANT_BOM_INVALID', 409);
+      }
 
-      const bomQuantity = Number(bom.quantity || 1);
+      const bomQuantity = Number(bom.quantity);
       let totalCost = Number((Number(bom.overhead_cost || 0) * (baseShortfall / bomQuantity)).toFixed(2));
       const wo = await trx.insertInto('manufacturing_work_orders').values({
         bom_id: item.bomId,
@@ -584,16 +591,26 @@ export class SalesWriteService {
       const woId = Number(wo.id);
 
       const bomLines = await trx.selectFrom('manufacturing_bom_lines as l')
-        .innerJoin('products as p', 'p.id', 'l.component_product_id')
+        .innerJoin('products as p', (join) => join
+          .onRef('p.id', '=', 'l.component_product_id')
+          .on('p.tenant_id', '=', scope.tenantId))
         .select(['l.component_product_id', 'l.quantity', 'l.unit_multiplier', 'l.expected_cost', 'l.waste_percentage', 'p.name as component_name'])
         .where('l.bom_id', '=', item.bomId)
         .execute();
+      if (!bomLines.length) {
+        throw new AppError('وصفة الوجبة لا تحتوي على خامات', 'RESTAURANT_BOM_EMPTY', 409);
+      }
 
       for (const line of [...bomLines].sort((a, b) => Number(a.component_product_id) - Number(b.component_product_id))) {
         const wasteFactor = 1 / (1 - (Number(line.waste_percentage || 0) / 100));
         const lineMultiplier = Number(line.unit_multiplier || 1);
         const quantityConsumedInSelectedUnit = Number(line.quantity) * wasteFactor * (baseShortfall / bomQuantity);
         const requiredMaterialQty = Number((quantityConsumedInSelectedUnit * lineMultiplier).toFixed(3));
+        if (!Number.isFinite(requiredMaterialQty) || requiredMaterialQty <= 0 ||
+            !Number.isFinite(Number(line.waste_percentage)) || Number(line.waste_percentage) < 0 ||
+            Number(line.waste_percentage) >= 100) {
+          throw new AppError('معدل استهلاك أو نسبة هدر الوصفة غير صالحة', 'RESTAURANT_BOM_QUANTITY_INVALID', 409);
+        }
 
         // Recursive BOM check
         const componentStock = await previewAssignedLocationStockQty(trx, {
