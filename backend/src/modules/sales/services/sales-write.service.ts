@@ -1472,7 +1472,10 @@ export class SalesWriteService {
 
         deliveryStatus = (payload as any).deliveryStatus || 'pending';
         const hasUnpaidAmount = paidAmount + 0.0001 < collectibleTotal;
-        collectionStatus = rawCollectionStatus || (hasUnpaidAmount ? 'pending' : 'collected');
+        if (rawCollectionStatus && !['cod', 'prepaid_by_rep', 'prepaid_online'].includes(rawCollectionStatus)) {
+          throw new AppError('حالة تحصيل الدليفري غير صالحة', 'DELIVERY_COLLECTION_STATUS_INVALID', 400);
+        }
+        collectionStatus = rawCollectionStatus || (hasUnpaidAmount ? 'cod' : 'prepaid_online');
       }
 
       const isCodDelivery = isDelivery && (collectionStatus === 'cod' || collectionStatus === 'pending' || paidAmount + 0.0001 < collectibleTotal);
