@@ -1,6 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/app/query-keys';
-import { broadcastSignageOffersUpdate } from '@/features/pos/lib/pos-customer-display-bridge';
 
 export async function invalidateDashboardOverview(queryClient: QueryClient) {
   await queryClient.invalidateQueries({ queryKey: ['dashboard-overview'] });
@@ -36,7 +35,9 @@ export async function invalidateCatalogDomain(
     tasks.push(queryClient.invalidateQueries({ queryKey: ['signage-products'] }));
     tasks.push(queryClient.invalidateQueries({ queryKey: ['storefront-catalog'] }));
     tasks.push(queryClient.invalidateQueries({ queryKey: ['storefront-info'] }));
-    broadcastSignageOffersUpdate();
+    void import('@/features/pos/lib/pos-customer-display-bridge')
+      .then((m) => m.broadcastSignageOffersUpdate())
+      .catch(() => {});
   }
   if (includeCustomers) {
     tasks.push(queryClient.invalidateQueries({ queryKey: queryKeys.customers }));

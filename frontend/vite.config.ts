@@ -163,6 +163,9 @@ export default defineConfig(({ mode }) => {
           ) {
             return 'i18n-locales';
           }
+          if (normalizedId.includes('/src/shared/components/icons/AppIcons')) {
+            return 'vendor-icons';
+          }
           const match = normalizedId.match(/\/node_modules\/((?:@[^/]+\/)?[^/]+)\//g);
           if (!match) return undefined;
           // Innermost package wins (handles nested node_modules).
