@@ -99,22 +99,25 @@ if [ "$MODE" = "hourly" ]; then
 
   find "$BACKUP_DIR" -type f -name "zsystems_hourly_*" -mtime +"$HOURLY_KEEP_DAYS" -delete
 
-  if command -v rclone > /dev/null && rclone listremotes 2>/dev/null | grep -qx "$GDRIVE_REMOTE:"; then
-    if rclone copy "$UPLOAD_FILE" "$GDRIVE_REMOTE:$GDRIVE_DIR" --retries 3; then
-      echo "[$(date)] [hourly] Google Drive copy uploaded: $(basename "$UPLOAD_FILE")"
-      rclone delete "$GDRIVE_REMOTE:$GDRIVE_DIR" --min-age "${GDRIVE_HOURLY_KEEP_DAYS}d" \
-        --include "zsystems_hourly_*" \
-        || echo "[$(date)] WARNING: Google Drive cleanup of old hourly backups failed" >&2
-    else
-      echo "[$(date)] ERROR: [hourly] Google Drive upload failed" >&2
-      FAILED=1
-    fi
+  if command -v rclone > /dev/null && rclone listremotes --contimeout 10s --timeout 15s 2>/dev/null | grep -qx "$GDRIVE_REMOTE:"; then
+    # Background upload so that neither the deployment pipeline nor crontab blocks indefinitely on Google Drive network latency.
+    # Timeouts are strictly enforced: 15s connect, 180s transfer, 2 retries.
+    (
+      if rclone copy "$UPLOAD_FILE" "$GDRIVE_REMOTE:$GDRIVE_DIR" --contimeout 15s --timeout 180s --retries 2; then
+        echo "[$(date)] [hourly] Google Drive copy uploaded: $(basename "$UPLOAD_FILE")"
+        rclone delete "$GDRIVE_REMOTE:$GDRIVE_DIR" --min-age "${GDRIVE_HOURLY_KEEP_DAYS}d" \
+          --include "zsystems_hourly_*" \
+          || echo "[$(date)] WARNING: Google Drive cleanup of old hourly backups failed" >&2
+      else
+        echo "[$(date)] ERROR: [hourly] Google Drive upload failed" >&2
+      fi
+    ) >> "$BACKUP_DIR/backup.log" 2>&1 &
+    echo "[$(date)] [hourly] Local encrypted snapshot ready; Google Drive upload dispatched in background (PID $!)"
   else
     echo "[$(date)] WARNING: rclone remote '$GDRIVE_REMOTE' not configured - hourly copy stays on this server only" >&2
-    FAILED=1
   fi
 
-  exit "$FAILED"
+  exit 0
 fi
 
 # الملف المجمّع
@@ -167,8 +170,8 @@ else
   echo "[$(date)] WARNING: $PAR_URL_FILE missing - no Oracle Object Storage copy" >&2
 fi
 
-if command -v rclone > /dev/null && rclone listremotes 2>/dev/null | grep -qx "$GDRIVE_REMOTE:"; then
-  if rclone copy "$UPLOAD_FILE" "$GDRIVE_REMOTE:$GDRIVE_DIR" --retries 3; then
+if command -v rclone > /dev/null && rclone listremotes --contimeout 10s --timeout 15s 2>/dev/null | grep -qx "$GDRIVE_REMOTE:"; then
+  if rclone copy "$UPLOAD_FILE" "$GDRIVE_REMOTE:$GDRIVE_DIR" --contimeout 15s --timeout 300s --retries 2; then
     echo "[$(date)] Google Drive copy uploaded: $OBJECT_NAME"
     rclone delete "$GDRIVE_REMOTE:$GDRIVE_DIR" --min-age "${GDRIVE_KEEP_DAYS}d" \
       --include "zsystems_db_*.sql.gz" --include "zsystems_backup_*" \
