@@ -392,7 +392,7 @@ async function main(): Promise<void> {
       bom_id:Number(bom.id),component_product_id:recipeMeat,quantity:2,
       unit_name:'kg',unit_multiplier:1,waste_percentage:0,expected_cost:40,
     } as any).execute();
-    await db.updateTable('products').set({bom_id:Number(bom.id)} as any)
+    await db.updateTable('products').set({bom_id:Number(bom.id),kitchen_station:'grill'} as any)
       .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish).execute();
     const bomSale=await checkout(recipe,[{productId:recipeDish,name:'Fresh burger BOM',
       qty:1,price:60,unitMultiplier:1}],{orderType:'dine_in'});
@@ -407,6 +407,11 @@ async function main(): Promise<void> {
     assert.equal(Number(dishAfter.stock_qty),0,'prepared dish sold, not left phantom stock');
     assert.equal(Number(dishAfter.cost_price),40,'finished product WAC equals ingredients');
     assert.equal(Number(bomLine.cost_price),40,'sale line records resulting BOM WAC');
+    const grillTicket=(await kds.getActiveTickets(recipe.auth,{station:'grill'})).tickets
+      .find(t=>t.id===bomSaleId);
+    assert.equal(grillTicket?.items[0]?.station,'grill','configured kitchen station is authoritative');
+    assert.equal((await kds.getActiveTickets(recipe.auth,{station:'kitchen'})).tickets
+      .some(t=>t.id===bomSaleId),false,'do not deliver the same item to the wrong station');
     assert.equal(await posted(recipe,'5100'),40,'actual BOM cost posted as COGS');
     await check(recipe,[recipeDish,recipeMeat]);
     const recipeSalesBefore=await db.selectFrom('sales').select(db.fn.countAll().as('n'))
