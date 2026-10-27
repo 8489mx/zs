@@ -1354,3 +1354,16 @@ When a `pos_modifier_options` row has no `component_product_id`, a client-provid
 ### Customer release gate update (2026-10-26)
 
 The earlier P0-C note describing `COMPOSITE_RETURN_RECONCILIATION_REQUIRED` as the default remaining blocker is superseded above for supported stock-allocated prepared meals. A configured **non-stock modifier option remains non-stock** and client attempts to force an ingredient ID are rejected. Passing simulated menu engineering/KDS routing tests alone does not certify KDS printer routing, third-party delivery, or a real commercial launch.
+ 
+### Restaurant-only P0/P1 operational safeguards (2026-10-27)
+
+Scope: restaurant KDS (including provider orders), ingredient/modifier and real manufactured recipe BOM WAC, waste stock/GL integrity, courier dispatch/collection, cancellation before versus after kitchen preparation. The corresponding targeted PostgreSQL scenarios are in `backend/test/acceptance/priority-sectors.postgres.spec.ts` and must be checked against **the exact final HEAD**; an added test is not a passing test.
+
+- Kitchen state writes are tenant-locked and transactional; status updates validate ticket and sale-item tenancy and permitted state values. Corrupt persisted state fails closed rather than creating phantom pending tickets. Orders ingested twice with the same aggregator/external ID reuse their original KDS ticket.
+- Food-waste logs require an active branch warehouse and actual nonnegative stock deduction, costed from the locked tenant product WAC, within the same transaction as the stock movement and GL entry.
+- A restaurant-only subscription may consume a **real** finished-meal BOM and component stock via the existing manufacturing work-order costing path even without the manufacturing add-on. Invalid/inactive/empty recipes and invalid component quantities fail closed.
+- If a composite meal is already cooking/ready/served in KDS, the generic full-sale cancellation refuses to fabricate ingredient restocking and COGS reversal; the supported prepared-food financial-only refund path is used instead. Pre-preparation cancellation remains supported.
+- Driver proof of delivery records a physical status but does **not** certify money was settled. Cashier courier settlement retains its own locked transaction, treasury/customer ledger/GL posting and duplicate guard. Dispatch rejects invalid, non-delivery, cancelled and settled orders atomically. Unsafe partially prepaid COD settlements are refused pending explicit reconciliation.
+- Equipment/printers, courier mobile device behavior, external webhook authenticity and user-observed field UAT are **separate evidence** from these code/database assertions; this note does not assert they passed.
+
+No changes to clothing, market, Electron, Windows packaging, production database, or `main` were in scope.
