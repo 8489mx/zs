@@ -15,6 +15,7 @@ import type { PosItem, PosPriceType } from '@/features/pos/types/pos.types';
 import { usePosCustomerDisplayBroadcaster } from '@/features/pos/hooks/usePosCustomerDisplayBroadcaster';
 import { useAuthStore } from '@/stores/auth-store';
 import { loadPosWorkspaceStorage } from '@/features/pos/lib/pos.persistence';
+import { getCurrencyDecimals } from '@/lib/currencies';
 
 const posReferenceStaleTime = 45_000;
 
@@ -65,16 +66,17 @@ function getSaleKey(sale: { docNo?: string | number; id?: string | number } | nu
 
 export function usePosWorkspace() {
   const state = usePosWorkspaceState();
-  const paidAmount = Number((
-    state.paymentChannel === 'wallet' || state.paymentChannel === 'instapay'
-      ? Number(state.cashAmount || 0) + Number(state.transferAmount || 0)
-      : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
-  ).toFixed(2));
-
   const customersQuery = useQuery({ queryKey: queryKeys.posCustomers, queryFn: () => posApi.customers({ limit: 50 }), staleTime: posReferenceStaleTime });
   const settingsQuery = useQuery({ queryKey: queryKeys.posSettings, queryFn: posApi.settings, staleTime: posReferenceStaleTime });
   const branchesQuery = useQuery({ queryKey: queryKeys.posBranches, queryFn: posApi.branches, staleTime: posReferenceStaleTime });
   const locationsQuery = useQuery({ queryKey: queryKeys.posLocations, queryFn: posApi.locations, staleTime: posReferenceStaleTime });
+
+  const currencyDecimals = getCurrencyDecimals(settingsQuery.data?.currency);
+  const paidAmount = Number((
+    state.paymentChannel === 'wallet' || state.paymentChannel === 'instapay'
+      ? Number(state.cashAmount || 0) + Number(state.transferAmount || 0)
+      : Number(state.cashAmount || 0) + Number(state.cardAmount || 0)
+  ).toFixed(currencyDecimals));
 
   const operationalContext = usePosOperationalContext({
     settings: settingsQuery.data || null,

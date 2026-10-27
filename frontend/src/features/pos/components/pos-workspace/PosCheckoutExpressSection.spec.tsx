@@ -142,4 +142,62 @@ describe('PosCheckoutExpressSection - Cash Input & Change Calculation', () => {
 
     expect(screen.getByText(/مسدد بالكامل/)).toBeInTheDocument();
   });
+
+  it('prevents K-NET confirm sale when idle and enables it after manual receipt confirmation', () => {
+    const mockPos = createMockPos(12);
+    const confirmSaleMock = vi.fn();
+
+    render(
+      <PosCheckoutExpressSection
+        pos={mockPos as any}
+        isKwdStore={true}
+        isKsaStore={false}
+        isPaymentActive={(preset) => preset === 'card'}
+        onSelectPaymentPreset={vi.fn()}
+        onConfirmSale={confirmSaleMock}
+        onSwitchToDetailed={vi.fn()}
+        selectedCustomerName="عميل نقدي"
+        onOpenCustomerPicker={vi.fn()}
+        onOpenNotes={vi.fn()}
+        isNotesOpen={false}
+        cartQtySummaries={['1 قطعة']}
+      />
+    );
+
+    // K-NET is active, but button should be disabled initially (no bypass)
+    const confirmButton = screen.getByRole('button', { name: /في انتظار دفع كي نت بالماكينة/i });
+    expect(confirmButton).toBeDisabled();
+
+    // Click on "إتمام يدوي (ماكينة خارجية)"
+    const manualBtn = screen.getByRole('button', { name: /إتمام يدوي \(ماكينة خارجية\)/i });
+    fireEvent.click(manualBtn);
+
+    // Manual input card should appear
+    const authCodeInput = screen.getByPlaceholderText(/مثال: 392616/i);
+    expect(authCodeInput).toBeInTheDocument();
+
+    // Type Auth Code from Kuwait K-NET receipt: 392616
+    fireEvent.change(authCodeInput, { target: { value: '392616' } });
+
+    // Click "اعتماد وتفعيل البيع"
+    const approveBtn = screen.getByRole('button', { name: /اعتماد وتفعيل البيع/i });
+    fireEvent.click(approveBtn);
+
+    // Terminal payment details should be registered with 392616
+    expect(mockPos.setTerminalPaymentDetails).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authCode: '392616',
+        cardScheme: 'knet',
+      })
+    );
+
+    // Confirm button should now be enabled with F2 text
+    const readyConfirmBtn = screen.getByRole('button', { name: /تأكيد البيع والطباعة/i });
+    expect(readyConfirmBtn).not.toBeDisabled();
+
+    // Clicking confirm sale calls onConfirmSale
+    fireEvent.click(readyConfirmBtn);
+    expect(confirmSaleMock).toHaveBeenCalled();
+  });
 });
+

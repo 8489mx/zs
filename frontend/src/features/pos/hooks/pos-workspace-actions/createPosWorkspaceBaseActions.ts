@@ -371,36 +371,15 @@ export function createPosWorkspaceBaseActions(params: PosWorkspaceActionParams) 
       }
     } else if (preset === 'card') {
       params.setPaymentChannel('card');
-      if (currentCash > 0 && currentCash < total && currentTransfer === 0) {
-        // Keep cash and assign remainder to card
-        params.setCardAmount(toMoney(Math.max(0, total - currentCash)));
-        params.setTransferAmount(0);
-      } else if (currentCard > 0) {
-        // Keep existing card
-        params.setTransferAmount(0);
-      } else {
-        // Full single payment
-        params.setCashAmount(0);
-        params.setCardAmount(total);
-        params.setTransferAmount(0);
-      }
+      params.setCashAmount(0);
+      params.setCardAmount(total);
+      params.setTransferAmount(0);
     } else {
       // Preset is 'cash'
       params.setPaymentChannel('cash');
-      if (currentTransfer > 0 && currentTransfer < total && currentCard === 0) {
-        // Keep transfer and fill remainder in cash
-        params.setCashAmount(toMoney(Math.max(0, total - currentTransfer)));
-        params.setCardAmount(0);
-      } else if (currentCard > 0 && currentCard < total && currentTransfer === 0) {
-        // Keep card and fill remainder in cash
-        params.setCashAmount(toMoney(Math.max(0, total - currentCard)));
-        params.setTransferAmount(0);
-      } else {
-        // Full single payment
-        params.setCashAmount(total);
-        params.setCardAmount(0);
-        params.setTransferAmount(0);
-      }
+      params.setCashAmount(total);
+      params.setCardAmount(0);
+      params.setTransferAmount(0);
     }
     params.requestBarcodeFocus();
   }

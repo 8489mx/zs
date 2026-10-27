@@ -45,6 +45,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
   const managerPinInputRef = useRef<HTMLInputElement | null>(null);
   const approvedManagerPinRef = useRef('');
   const openedOnceRef = useRef(false);
+  const autoFilledOnOpenRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const createSalePendingRef = useRef(Boolean(pos.createSale.isPending));
   
@@ -79,9 +80,15 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
     }
   }, [pos.orderType, checkoutViewMode]);
 
-  // Smart Auto-fill payment on dialog open if no payment entered yet
+  // Smart Auto-fill payment on dialog open if no payment entered yet (runs once on open)
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      autoFilledOnOpenRef.current = false;
+      return;
+    }
+    if (autoFilledOnOpenRef.current) return;
+    autoFilledOnOpenRef.current = true;
+
     const hasExistingPayment = (pos.cashAmount > 0 || pos.cardAmount > 0 || pos.transferAmount > 0) || pos.paymentType === 'credit';
     if (!hasExistingPayment && pos.totals.total > 0) {
       const pref = customization.defaultPaymentChannel;
@@ -215,11 +222,15 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
         void handleInlineManagerApproval();
         return;
       }
-      if (pos.canSubmitSale) handleConfirmSale();
+      if (isPaymentActive('card') && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn) {
+        toast.warning(t('pos.card_payment_required_notice', 'يرجى إتمام عملية الدفع بالماكينة أو اعتماد الإيصال اليدوي أولاً'));
+        return;
+      }
+      handleConfirmSale();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleConfirmSale, handleInlineManagerApproval, managerApprovalOpen, open, pos.canSubmitSale, pos.createSale.isPending, pos.discountApprovalGranted]);
+  }, [handleConfirmSale, handleInlineManagerApproval, isPaymentActive, managerApprovalOpen, open, pos.createSale.isPending, pos.discountApprovalGranted, pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn, t]);
 
   const customers = useMemo(() => (Array.isArray(pos.customersQuery.data) ? pos.customersQuery.data : []), [pos.customersQuery.data]);
   const selectedCustomer = useMemo(
@@ -245,7 +256,10 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
   function isPaymentActive(preset: PaymentPreset) {
     if (preset === 'credit') return pos.paymentType === 'credit';
     if (pos.paymentType === 'credit') return false;
-    return pos.paymentChannel === preset;
+    if (pos.paymentChannel === preset) return true;
+    if (preset === 'card' && pos.cardAmount > 0 && pos.cashAmount === 0 && pos.transferAmount === 0) return true;
+    if (preset === 'cash' && pos.cashAmount > 0 && pos.cardAmount === 0 && pos.transferAmount === 0) return true;
+    return false;
   }
 
   if (!open) return null;
@@ -328,7 +342,19 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
       >
         {checkoutViewMode === 'express' ? (
           /* Express Handheld Touch Mode */
-          <div className="pos-checkout-dialog" style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          <div
+            className="pos-checkout-dialog thin-scrollbar"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              width: '100%',
+              maxHeight: isMobile ? 'calc(100dvh - 90px)' : 'calc(100vh - 120px)',
+              overflowY: 'auto',
+              boxSizing: 'border-box',
+              paddingRight: '2px',
+            }}
+          >
             <PosCheckoutExpressSection
               pos={pos}
               isKwdStore={isKwdStore}
@@ -496,7 +522,18 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                   {t('pos.split_bill', 'تجزئة / تقسيم الشيك')}
                 </Button>
               )}
-              <Button type="button" variant="success" onClick={() => handleConfirmSale()} disabled={pos.createSale.isPending || !pos.canSubmitSale}>
+              <Button
+                type="button"
+                variant="success"
+                onClick={() => {
+                  if (isPaymentActive('card') && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn) {
+                    toast.warning(t('pos.card_payment_required_notice', 'يرجى إتمام عملية الدفع بالماكينة أو اعتماد الإيصال اليدوي أولاً'));
+                    return;
+                  }
+                  handleConfirmSale();
+                }}
+                disabled={pos.createSale.isPending || (isPaymentActive('card') && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn)}
+              >
                 {pos.createSale.isPending ? t('common.saving', 'جاري الحفظ...') : t('pos.confirm_sale_f2', 'تأكيد البيع (F2)')}
               </Button>
             </div>

@@ -40,8 +40,10 @@ export function PosCheckoutExpressSection({
   const total = Number(pos.totals.total || 0);
   const [customCashInput, setCustomCashInput] = useState<string>('');
   const [showMoreOptions, setShowMoreOptions] = useState(false);
-  const [terminalDispatchStatus, setTerminalDispatchStatus] = useState<'idle' | 'waiting' | 'approved' | 'declined'>('idle');
+  const [terminalDispatchStatus, setTerminalDispatchStatus] = useState<'idle' | 'waiting' | 'approved' | 'declined' | 'manual'>('idle');
   const [terminalMsg, setTerminalMsg] = useState<string>('');
+  const [manualAuthCode, setManualAuthCode] = useState<string>('');
+  const [isManualCardConfirmed, setIsManualCardConfirmed] = useState<boolean>(false);
 
   const parsedCash = Number(customCashInput.trim());
   const hasCustomCash = customCashInput.trim() !== '' && !isNaN(parsedCash) && parsedCash >= 0;
@@ -57,8 +59,33 @@ export function PosCheckoutExpressSection({
     }
   }, [effectiveReceivedCash, isPaymentActive, pos]);
 
+  const handleConfirmManualPayment = () => {
+    const code = manualAuthCode.trim() || 'MANUAL-OK';
+    const defaultProvider = isKwdStore ? 'knet' : isKsaStore ? 'mada' : 'manual_terminal';
+    pos.setTerminalPaymentDetails?.({
+      ...(pos.terminalPaymentDetails || {}),
+      authCode: code,
+      rrn: code,
+      cardScheme: isKwdStore ? 'knet' : isKsaStore ? 'mada' : 'visa',
+      provider: defaultProvider,
+    });
+    onSelectPaymentPreset('card');
+    pos.setCardAmount?.(total);
+    pos.setCashAmount?.(0);
+    pos.setTransferAmount?.(0);
+    pos.setPaymentChannel?.('card');
+    setIsManualCardConfirmed(true);
+    setTerminalDispatchStatus('approved');
+    setTerminalMsg(isKwdStore ? `تم اعتماد إيصال كي نت اليدوي (مرجع: ${code})` : `تم اعتماد إيصال الدفع اليدوي (مرجع: ${code})`);
+    toast.success(isKwdStore ? `تم تسجيل مرجع إيصال كي نت (${code}) وتفعيل إتمام البيع` : `تم تسجيل مرجع الدفع اليدوي (${code})`);
+  };
+
   const handleSelectCard = async () => {
     onSelectPaymentPreset('card');
+    pos.setCardAmount?.(total);
+    pos.setCashAmount?.(0);
+    pos.setTransferAmount?.(0);
+    pos.setPaymentChannel?.('card');
     setCustomCashInput('');
 
     const currency = isKwdStore ? 'KWD' : isKsaStore ? 'SAR' : (pos.settings?.currency || (pos.settingsQuery?.data as any)?.currency || 'EGP');
@@ -121,9 +148,11 @@ export function PosCheckoutExpressSection({
         setTerminalDispatchStatus('declined');
         setTerminalMsg(err?.message || t('pos.terminal_connection_error', 'تعذر الاتصال بماكينة الدفع'));
       }
+    } else {
+      // If no smart terminal is connected, guide directly to manual receipt input
+      setTerminalDispatchStatus('manual');
     }
   };
-
 
   // Compute smart cash banknote denomination shortcuts >= total
   const cashDenominations = useMemo(() => {
@@ -273,6 +302,41 @@ export function PosCheckoutExpressSection({
         </button>
 
         {/* Live Feedback for Handheld Smart POS & Terminal Dispatch */}
+        {isPaymentActive('card') && terminalDispatchStatus === 'idle' && !isManualCardConfirmed && !pos.terminalPaymentDetails?.authCode && (
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px dashed #cbd5e1',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '8px',
+            }}
+          >
+            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+              {isKwdStore ? 'في انتظار تمرير البطاقة بالماكينة أو إتمام البيع يدوياً' : 'في انتظار تأكيد عملية الدفع بالبطاقة'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setTerminalDispatchStatus('manual')}
+              style={{
+                background: '#eef2ff',
+                border: '1px solid #c7d2fe',
+                color: '#170e5e',
+                fontSize: '11px',
+                fontWeight: 800,
+                padding: '3px 8px',
+                borderRadius: '5px',
+                cursor: 'pointer',
+              }}
+            >
+              إتمام يدوي (ماكينة خارجية)
+            </button>
+          </div>
+        )}
+
         {isPaymentActive('card') && terminalDispatchStatus === 'waiting' && (
           <div
             style={{
@@ -332,6 +396,25 @@ export function PosCheckoutExpressSection({
                 {terminalMsg || t('pos.terminal_approved_badge', 'تمت الموافقة بنجاح من الماكينة')}
               </span>
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsManualCardConfirmed(false);
+                setTerminalDispatchStatus('idle');
+                setTerminalMsg('');
+                pos.setTerminalPaymentDetails?.(undefined);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '11px',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+              }}
+            >
+              تغيير
+            </button>
           </div>
         )}
 
@@ -347,32 +430,35 @@ export function PosCheckoutExpressSection({
               gap: '6px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11.5px', color: '#991b1b', fontWeight: 700 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <span style={{ fontSize: '12px', color: '#991b1b', fontWeight: 700, lineHeight: 1.5, flex: 1, textAlign: 'right' }}>
                 {terminalMsg || t('pos.terminal_declined_badge', 'تعذر إتمام الدفع بالماكينة')}
               </span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={handleSelectCard}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#170e5e',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  {t('common.retry', 'إعادة المحاولة')}
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'stretch', flexShrink: 0, minWidth: '95px' }}>
                 <button
                   type="button"
                   onClick={() => {
-                    setTerminalDispatchStatus('idle');
+                    setTerminalDispatchStatus('manual');
                     setTerminalMsg('');
                   }}
+                  style={{
+                    background: '#170e5e',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    padding: '5px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t('pos.manual_override', 'إتمام يدوي')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectCard}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -380,11 +466,90 @@ export function PosCheckoutExpressSection({
                     fontSize: '11px',
                     fontWeight: 700,
                     cursor: 'pointer',
+                    textDecoration: 'underline',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {t('pos.manual_override', 'إتمام يدوي')}
+                  {t('common.retry', 'إعادة المحاولة')}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Manual Terminal Fallback Card (Standalone Bank POS in Kuwait / Retail) */}
+        {isPaymentActive('card') && terminalDispatchStatus === 'manual' && (
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1.5px solid #170e5e',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CreditCardIcon size={16} color="#170e5e" />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#170e5e' }}>
+                  {isKwdStore ? 'إتمام يدوي عبر ماكينة كي نت (الوضع المستقل)' : 'إتمام يدوي عبر ماكينة الدفع الخارجية'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTerminalDispatchStatus('idle');
+                  setTerminalMsg('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  fontSize: '11px',
+                  cursor: 'pointer',
+                }}
+              >
+                {t('common.cancel', 'إلغاء')}
+              </button>
+            </div>
+            <div style={{ fontSize: '11px', color: '#64748b' }}>
+              {isKwdStore
+                ? 'مرر البطاقة على ماكينة البنك وسجل رقم الموافقة (Auth Code / Ref) من الإيصال الورقي لتفعيل زر البيع.'
+                : 'أدخل رقم مرجع الإيصال من ماكينة البنك المستقلة لتأكيد البيع.'}
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <input
+                type="text"
+                value={manualAuthCode}
+                onChange={(e) => setManualAuthCode(e.target.value)}
+                placeholder="مثال: 392616 (رقم مرجع الإيصال)"
+                style={{
+                  flex: 1,
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  borderRadius: '6px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                }}
+              />
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleConfirmManualPayment}
+                style={{
+                  minHeight: '32px',
+                  padding: '4px 12px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  background: '#170e5e',
+                  color: '#ffffff',
+                }}
+              >
+                اعتماد وتفعيل البيع
+              </Button>
             </div>
           </div>
         )}
@@ -394,6 +559,13 @@ export function PosCheckoutExpressSection({
           type="button"
           onClick={() => {
             onSelectPaymentPreset('cash');
+            pos.setCashAmount?.(effectiveReceivedCash || total);
+            pos.setCardAmount?.(0);
+            pos.setTransferAmount?.(0);
+            pos.setPaymentChannel?.('cash');
+            setTerminalDispatchStatus('idle');
+            setTerminalMsg('');
+            setIsManualCardConfirmed(false);
           }}
           style={{
             display: 'flex',
@@ -763,34 +935,86 @@ export function PosCheckoutExpressSection({
       </div>
 
       {/* 4. Action Buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-        <Button
-          type="button"
-          variant="success"
-          onClick={() => {
-            if (isPaymentActive('cash')) {
-              onConfirmSale(effectiveReceivedCash);
-            } else {
-              onConfirmSale();
-            }
-          }}
-          disabled={pos.createSale.isPending || !pos.canSubmitSale}
-          style={{
-            height: '46px',
-            fontSize: '14.5px',
-            fontWeight: 800,
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
-          }}
-        >
-          <CheckIcon size={18} />
-          <span>{pos.createSale.isPending ? t('common.saving', 'جاري الحفظ...') : t('pos.confirm_sale_f2', 'تأكيد البيع والطباعة (F2)')}</span>
-        </Button>
-      </div>
+      {(() => {
+        const isCardPayment = isPaymentActive('card');
+        const isCardReady = !isCardPayment || terminalDispatchStatus === 'approved' || isManualCardConfirmed || Boolean(pos.terminalPaymentDetails?.authCode || pos.terminalPaymentDetails?.rrn);
+        const isCardBlocked = isCardPayment && !isCardReady;
+        const canConfirmNow = !pos.createSale.isPending && !isCardBlocked;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+            <Button
+              type="button"
+              variant={canConfirmNow ? 'success' : 'secondary'}
+              onClick={() => {
+                if (pos.createSale.isPending) return;
+                if (isCardBlocked) {
+                  toast.warning(t('pos.card_payment_required_notice', 'يرجى إتمام عملية الدفع بالماكينة أو اعتماد الإيصال اليدوي أولاً'));
+                  return;
+                }
+                if (isPaymentActive('cash')) {
+                  pos.setCashAmount?.(effectiveReceivedCash || total);
+                  pos.setCardAmount?.(0);
+                  pos.setPaymentChannel?.('cash');
+                  onConfirmSale(effectiveReceivedCash);
+                } else {
+                  pos.setCardAmount?.(total);
+                  pos.setCashAmount?.(0);
+                  pos.setPaymentChannel?.('card');
+                  onConfirmSale();
+                }
+              }}
+              disabled={!canConfirmNow}
+              style={{
+                height: '46px',
+                fontSize: '14.5px',
+                fontWeight: 800,
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                background: canConfirmNow ? '#10b981' : '#f1f5f9',
+                color: canConfirmNow ? '#ffffff' : '#64748b',
+                border: canConfirmNow ? 'none' : '1.5px solid #cbd5e1',
+                boxShadow: canConfirmNow ? '0 2px 4px rgba(16, 185, 129, 0.25)' : 'none',
+                cursor: canConfirmNow ? 'pointer' : 'not-allowed',
+              }}
+            >
+              {canConfirmNow && <CheckIcon size={18} />}
+              <span>
+                {pos.createSale.isPending
+                  ? t('common.saving', 'جاري الحفظ...')
+                  : isCardBlocked
+                  ? (terminalDispatchStatus === 'waiting'
+                      ? t('pos.terminal_waiting_button', 'في انتظار استجابة الماكينة...')
+                      : terminalDispatchStatus === 'declined'
+                      ? t('pos.terminal_declined_button', 'تعذر الاتصال (اضغط إتمام يدوي أو كاش)')
+                      : terminalDispatchStatus === 'manual'
+                      ? t('pos.terminal_manual_button', 'سجل رقم إيصال K-NET واضغط اعتماد')
+                      : t('pos.terminal_idle_button', 'في انتظار دفع كي نت بالماكينة'))
+                  : t('pos.confirm_sale_f2', 'تأكيد البيع والطباعة (F2)')}
+              </span>
+            </Button>
+            {!pos.canSubmitSale && pos.canSubmitHint && canConfirmNow && (
+              <div
+                style={{
+                  fontSize: '11.5px',
+                  color: '#92400e',
+                  background: '#fef3c7',
+                  border: '1px solid #fde68a',
+                  padding: '6px 10px',
+                  borderRadius: '6px',
+                  textAlign: 'center',
+                  fontWeight: 700,
+                }}
+              >
+                {pos.canSubmitHint}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -18,10 +18,13 @@ export type MobileTerminalProvider =
   | 'auto_detect'
   | 'geidea'
   | 'knet'
+  | 'tap_knet'
+  | 'myfatoorah'
   | 'fawry'
   | 'paymob'
   | 'sunmi'
   | 'pax'
+  | 'imin'
   | 'custom_intent'
   | 'manual';
 
@@ -73,7 +76,7 @@ export interface MobileTerminalCapabilities {
   hasHardwareBridge: boolean;
   canDirectPay: boolean;
   canDirectPrint: boolean;
-  detectedPlatform: 'android_webview' | 'sunmi' | 'pax' | 'local_bridge' | 'browser_web' | 'unknown';
+  detectedPlatform: 'android_webview' | 'sunmi' | 'pax' | 'imin' | 'local_bridge' | 'browser_web' | 'unknown';
 }
 
 // Preset definitions for major payment providers across Egypt, Kuwait, and Saudi Arabia
@@ -96,6 +99,27 @@ export const MOBILE_TERMINAL_PRESETS: Record<
   },
   knet: {
     nameAr: 'ماكينة كي نت الذكية الكويت (K-NET Smart Terminal)',
+    packageName: 'kw.com.knet.pos',
+    intentAction: 'kw.com.knet.action.TRANSACTION',
+    defaultPort: 8080,
+    defaultScheme: 'knet',
+  },
+  tap_knet: {
+    nameAr: 'ماكينة تاب الذكية الكويت والخليج (Tap Payments POS)',
+    packageName: 'company.tap.go',
+    intentAction: 'company.tap.action.SALE',
+    defaultPort: 8080,
+    defaultScheme: 'knet',
+  },
+  myfatoorah: {
+    nameAr: 'ماكينة ماي فاتورة الذكية (MyFatoorah POS)',
+    packageName: 'com.myfatoorah.pos',
+    intentAction: 'com.myfatoorah.pos.SALE',
+    defaultPort: 8080,
+    defaultScheme: 'knet',
+  },
+  imin: {
+    nameAr: 'أجهزة آي مين الذكية (iMin Smart POS / Swift)',
     packageName: 'kw.com.knet.pos',
     intentAction: 'kw.com.knet.action.TRANSACTION',
     defaultPort: 8080,
@@ -193,10 +217,12 @@ export class MobileTerminalBridge {
     const hasAndroidBridge = Boolean(win.AndroidBridge || win.SmartPos || win.PosBridge);
     const hasSunmiPay = Boolean(win.SunmiPay || win.sunmi);
     const hasPaxBridge = Boolean(win.PaxPos || win.pax);
+    const hasIminBridge = Boolean(win.iMinPrinter || win.imin || win.IminPrinter || (isClient && /imin/i.test(ua)));
 
     let detectedPlatform: MobileTerminalCapabilities['detectedPlatform'] = 'browser_web';
     if (hasSunmiPay) detectedPlatform = 'sunmi';
     else if (hasPaxBridge) detectedPlatform = 'pax';
+    else if (hasIminBridge) detectedPlatform = 'imin';
     else if (hasAndroidBridge) detectedPlatform = 'android_webview';
 
     let hasLocalDaemon = false;
@@ -223,7 +249,7 @@ export class MobileTerminalBridge {
       }
     }
 
-    const hasNativeBridge = hasAndroidBridge || hasSunmiPay || hasPaxBridge;
+    const hasNativeBridge = hasAndroidBridge || hasSunmiPay || hasPaxBridge || hasIminBridge;
     const canDirectPay = hasNativeBridge || hasLocalDaemon || hasHardwareBridge;
     const canDirectPrint = hasNativeBridge || hasLocalDaemon || hasHardwareBridge;
 
@@ -475,6 +501,27 @@ export class MobileTerminalBridge {
         win.SunmiPrinter.printText(request.receiptText);
         if (request.cutPaper !== false && win.SunmiPrinter.cutPaper) {
           win.SunmiPrinter.cutPaper();
+        }
+        return true;
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2.b iMin Built-in Thermal Printer (Swift / M2 / Falcon / D1)
+    if (win.iMinPrinter || win.IminPrinter || win.imin) {
+      try {
+        const imin = win.iMinPrinter || win.IminPrinter || win.imin;
+        if (imin.printText) {
+          imin.printText(request.receiptText);
+        } else if (imin.printString) {
+          imin.printString(request.receiptText);
+        }
+        if (imin.printAndFeedPaper) {
+          imin.printAndFeedPaper(50);
+        }
+        if (request.cutPaper !== false && imin.partialCut) {
+          imin.partialCut();
         }
         return true;
       } catch {

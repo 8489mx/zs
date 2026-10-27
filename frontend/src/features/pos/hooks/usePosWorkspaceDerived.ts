@@ -275,7 +275,8 @@ export function usePosWorkspaceDerived(params: PosWorkspaceDerivedParams) {
       }
       const product = productById.get(String(item.productId));
       if (!product) return false;
-      return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty) || 0)) > 0.0001;
+      const unitMultiplier = Number(item.unitMultiplier) > 0 ? Number(item.unitMultiplier) : 1;
+      return Math.abs(Number(item.price || 0) - Number(getProductPrice(product, item.priceType, item.qty, unitMultiplier) || 0)) > 0.0001;
     });
   }, [canEditPrice, params.cart, defaultPriceByProductId, productById]);
 
