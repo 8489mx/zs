@@ -428,7 +428,7 @@ export class DeliveryRepsService {
       if (sale.status === 'cancelled' || sale.order_type !== 'delivery') {
         throw new AppError('Only active delivery orders may be settled', 'DELIVERY_SETTLEMENT_INVALID_ORDER', 409);
       }
-      const isCourierCash = sale.collection_status === 'cod' || sale.collection_status === 'pending';
+      const isCourierCash = sale.collection_status === 'cod';
       if (isCourierCash && Number(sale.paid_amount || 0) > 0.009) {
         // The current GL posting contract expects the entire invoice as an
         // outstanding receivable. Refuse partially paid orders until reconciled.
@@ -537,7 +537,7 @@ export class DeliveryRepsService {
         .selectFrom('sales')
         .select(['id', 'total', 'customer_id', 'delivery_fee', 'delivery_fee_mode', 'paid_amount'])
         .where('delivery_rep_id', '=', repId)
-        .where('collection_status', 'in', ['cod', 'pending'])
+        .where('collection_status', '=', 'cod')
         .where('order_type', '=', 'delivery')
         .where('status', '!=', 'cancelled')
         .where((eb) => eb.or([
@@ -994,4 +994,5 @@ export class DeliveryRepsService {
       notifications: result.notifications,
       message: `تم إسناد وانطلاق ${saleIds.length + onlineOrderIds.length} طلب بنجاح مع الكابتن ${result.rep.name}`,
     };
-  }}
+  }
+}
