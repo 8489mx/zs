@@ -392,7 +392,7 @@ async function main(): Promise<void> {
       bom_id:Number(bom.id),component_product_id:recipeMeat,quantity:2,
       unit_name:'kg',unit_multiplier:1,waste_percentage:0,expected_cost:40,
     } as any).execute();
-    await db.updateTable('products').set({bom_id:Number(bom.id),kitchen_station:'grill'} as any)
+    await db.updateTable('products').set({kitchen_station:'grill'} as any)
       .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish).execute();
     const bomSale=await checkout(recipe,[{productId:recipeDish,name:'Fresh burger BOM',
       qty:1,price:60,unitMultiplier:1}],{orderType:'dine_in'});
