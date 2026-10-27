@@ -309,7 +309,9 @@ function PosProductsPanelComponent({
   onOpenNewProduct,
   restaurantModuleEnabled,
 }: PosProductsPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isEn = Boolean(i18n.language && i18n.language.startsWith('en'));
+  const isRtl = !isEn;
   // Scanner buffer: detects rapid barcode scanner input and batches it into a single
   // state update instead of triggering re-renders on every character.
   // Uses refs + direct DOM manipulation — ZERO React renders during scanning.
@@ -660,9 +662,35 @@ function PosProductsPanelComponent({
                       onChange={scannerBuffer.handleChange}
                       onKeyDown={handleSearchKeyDown}
                       placeholder={t('pos.search_placeholder', 'امسح باركود أو اكتب الاسم...')}
-                      style={{ borderRadius: '8px', width: '100%', padding: '10px 80px 10px 14px', border: '1px solid #cbd5e1', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                      style={{
+                        borderRadius: '8px',
+                        width: '100%',
+                        height: '36px',
+                        paddingTop: '6px',
+                        paddingBottom: '6px',
+                        paddingRight: isRtl ? '12px' : '72px',
+                        paddingLeft: isRtl ? '72px' : '12px',
+                        textAlign: isRtl ? 'right' : 'left',
+                        direction: isRtl ? 'rtl' : 'ltr',
+                        fontSize: '13px',
+                        border: '1px solid #cbd5e1',
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                      }}
                     />
-                    <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: isRtl ? '6px' : 'auto',
+                        right: isRtl ? 'auto' : '6px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
                       <button
                         type="button"
                         className="pos-customize-trigger-btn"
@@ -673,14 +701,15 @@ function PosProductsPanelComponent({
                           border: '1px solid #cbd5e1',
                           color: '#475569',
                           borderRadius: '6px',
-                          padding: '6px 8px',
+                          height: '26px',
+                          padding: '0 6px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: 'pointer',
                         }}
                       >
-                        <SlidersIcon size={16} />
+                        <SlidersIcon size={14} />
                       </button>
                       <button
                         type="button"
@@ -692,14 +721,15 @@ function PosProductsPanelComponent({
                           border: '1px solid #bfdbfe',
                           color: '#2563eb',
                           borderRadius: '6px',
-                          padding: '6px 8px',
+                          height: '26px',
+                          padding: '0 6px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           cursor: 'pointer',
                         }}
                       >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                           <circle cx="12" cy="13" r="4"></circle>
                         </svg>
@@ -711,20 +741,21 @@ function PosProductsPanelComponent({
 
               {customization.showPriceTierToggle && (
                 <div className="pos-price-toggle-container" style={{ width: '100%' }}>
-                  <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: '4px' }}>
+                  <div className="pos-price-toggle-buttons" style={{ display: 'flex', background: '#f1f5f9', padding: isMobile ? '2.5px' : '4px', borderRadius: '8px', border: '1px solid #e2e8f0', gap: isMobile ? '3px' : '4px' }}>
                     <button
                       type="button"
                       style={{
                         flex: 1,
-                        padding: '8px 16px',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
+                        padding: isMobile ? '5px 10px' : '7px 16px',
+                        fontSize: isMobile ? '12px' : '13px',
+                        fontWeight: '700',
                         borderRadius: '6px',
                         border: 'none',
                         background: priceType === 'retail' ? '#0f172a' : 'transparent',
                         color: priceType === 'retail' ? '#ffffff' : '#475569',
-                        boxShadow: priceType === 'retail' ? '0 1px 3px rgba(0,0,0,0.2)' : 'none',
+                        boxShadow: priceType === 'retail' ? '0 1px 2px rgba(0,0,0,0.12)' : 'none',
                         cursor: 'pointer',
+                        transition: 'background-color 0.15s ease',
                       }}
                       onClick={() => onPriceTypeChange('retail')}
                     >
@@ -734,15 +765,16 @@ function PosProductsPanelComponent({
                       type="button"
                       style={{
                         flex: 1,
-                        padding: '8px 16px',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
+                        padding: isMobile ? '5px 10px' : '7px 16px',
+                        fontSize: isMobile ? '12px' : '13px',
+                        fontWeight: '700',
                         borderRadius: '6px',
                         border: 'none',
                         background: priceType === 'wholesale' ? '#dc2626' : 'transparent',
                         color: priceType === 'wholesale' ? '#ffffff' : '#475569',
-                        boxShadow: priceType === 'wholesale' ? '0 1px 3px rgba(220,38,38,0.3)' : 'none',
+                        boxShadow: priceType === 'wholesale' ? '0 1px 2px rgba(220,38,38,0.2)' : 'none',
                         cursor: 'pointer',
+                        transition: 'background-color 0.15s ease',
                       }}
                       onClick={() => onPriceTypeChange('wholesale')}
                     >
@@ -804,7 +836,7 @@ function PosProductsPanelComponent({
         {customization.showCategories && (isTouchMode || isMobile) && categories.length > 0 && (
           <div
             className="filter-chip-row pos-filter-row-compact pos-filter-row-single"
-            style={{ gap: '6px', marginTop: '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '4px' }}
+            style={{ gap: '6px', marginTop: isMobile ? '6px' : '10px', display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', paddingBottom: '3px' }}
             onWheel={(e) => {
               if (e.deltaY !== 0) {
                 e.currentTarget.scrollLeft += e.deltaY;
@@ -818,9 +850,9 @@ function PosProductsPanelComponent({
                 setSelectedIndex(0);
               }}
               style={{
-                padding: '6px 14px',
-                fontSize: '13px',
-                borderRadius: '8px',
+                padding: isMobile ? '4px 11px' : '6px 14px',
+                fontSize: isMobile ? '12px' : '13px',
+                borderRadius: '7px',
                 border: selectedCategoryId === null ? '1px solid #0f172a' : '1px solid #cbd5e1',
                 background: selectedCategoryId === null ? '#0f172a' : '#ffffff',
                 color: selectedCategoryId === null ? '#ffffff' : '#334155',
@@ -842,9 +874,9 @@ function PosProductsPanelComponent({
                   setSelectedIndex(0);
                 }}
                 style={{
-                  padding: '6px 14px',
-                  fontSize: '13px',
-                  borderRadius: '8px',
+                  padding: isMobile ? '4px 11px' : '6px 14px',
+                  fontSize: isMobile ? '12px' : '13px',
+                  borderRadius: '7px',
                   border: selectedCategoryId === String(cat.id) ? '1px solid #0f172a' : '1px solid #cbd5e1',
                   background: selectedCategoryId === String(cat.id) ? '#0f172a' : '#ffffff',
                   color: selectedCategoryId === String(cat.id) ? '#ffffff' : '#334155',
@@ -879,9 +911,9 @@ function PosProductsPanelComponent({
                 setSelectedIndex(0);
               }}
               style={{
-                padding: '5px 12px',
-                fontSize: '12px',
-                borderRadius: '7px',
+                padding: isMobile ? '3.5px 9px' : '5px 12px',
+                fontSize: isMobile ? '11.5px' : '12px',
+                borderRadius: '6px',
                 border: shelf === 'all' && productFilter === 'all' ? '1px solid #0f172a' : '1px solid #cbd5e1',
                 background: shelf === 'all' && productFilter === 'all' ? '#0f172a' : '#ffffff',
                 color: shelf === 'all' && productFilter === 'all' ? '#ffffff' : '#334155',
@@ -900,9 +932,9 @@ function PosProductsPanelComponent({
                 setSelectedIndex(0);
               }}
               style={{
-                padding: '5px 12px',
-                fontSize: '12px',
-                borderRadius: '7px',
+                padding: isMobile ? '3.5px 9px' : '5px 12px',
+                fontSize: isMobile ? '11.5px' : '12px',
+                borderRadius: '6px',
                 border: shelf === 'favorites' ? '1px solid #0f172a' : '1px solid #cbd5e1',
                 background: shelf === 'favorites' ? '#0f172a' : '#ffffff',
                 color: shelf === 'favorites' ? '#ffffff' : '#334155',
@@ -921,9 +953,9 @@ function PosProductsPanelComponent({
                 setSelectedIndex(0);
               }}
               style={{
-                padding: '5px 12px',
-                fontSize: '12px',
-                borderRadius: '7px',
+                padding: isMobile ? '3.5px 9px' : '5px 12px',
+                fontSize: isMobile ? '11.5px' : '12px',
+                borderRadius: '6px',
                 border: productFilter === 'offers' ? '1px solid #0f172a' : '1px solid #cbd5e1',
                 background: productFilter === 'offers' ? '#0f172a' : '#ffffff',
                 color: productFilter === 'offers' ? '#ffffff' : '#334155',
@@ -942,9 +974,9 @@ function PosProductsPanelComponent({
                 setSelectedIndex(0);
               }}
               style={{
-                padding: '5px 12px',
-                fontSize: '12px',
-                borderRadius: '7px',
+                padding: isMobile ? '3.5px 9px' : '5px 12px',
+                fontSize: isMobile ? '11.5px' : '12px',
+                borderRadius: '6px',
                 border: shelf === 'recent' ? '1px solid #0f172a' : '1px solid #cbd5e1',
                 background: shelf === 'recent' ? '#0f172a' : '#ffffff',
                 color: shelf === 'recent' ? '#ffffff' : '#334155',
@@ -964,9 +996,9 @@ function PosProductsPanelComponent({
                   setSelectedIndex(0);
                 }}
                 style={{
-                  padding: '5px 12px',
-                  fontSize: '12px',
-                  borderRadius: '7px',
+                  padding: isMobile ? '3.5px 9px' : '5px 12px',
+                  fontSize: isMobile ? '11.5px' : '12px',
+                  borderRadius: '6px',
                   border: productFilter === 'raw_materials' ? '1px solid #0f172a' : '1px solid #cbd5e1',
                   background: productFilter === 'raw_materials' ? '#0f172a' : '#ffffff',
                   color: productFilter === 'raw_materials' ? '#ffffff' : '#334155',
@@ -1395,7 +1427,6 @@ function PosProductsPanelComponent({
                       <button
                         ref={(node) => { groupRefs.current[index] = node; }}
                         type="button"
-                        dir="rtl"
                         className="pos-group-card-action"
                         onClick={() => {
                           setSelectedIndex(index);
@@ -1406,7 +1437,6 @@ function PosProductsPanelComponent({
                           border: 'none',
                           background: 'transparent',
                           textAlign: 'center',
-                          direction: 'rtl',
                           padding: 0,
                           width: '100%',
                           cursor: isOutOfStock ? 'not-allowed' : 'pointer',
@@ -1421,13 +1451,13 @@ function PosProductsPanelComponent({
                           style={{
                             width: '100%',
                             aspectRatio: '1 / 1',
-                            background: '#f8fafc',
+                            background: '#ffffff',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative',
                             overflow: 'hidden',
-                            padding: isMobile && customization.mobileGridColumns === '3' ? '6px' : '8px',
+                            padding: isMobile && customization.mobileGridColumns === '3' ? '4px' : isMobile ? '5px' : '8px',
                             boxSizing: 'border-box',
                           }}
                         >
@@ -1445,10 +1475,10 @@ function PosProductsPanelComponent({
                           ) : (
                             <div
                               style={{
-                                width: isMobile ? '38px' : '48px',
-                                height: isMobile ? '38px' : '48px',
+                                width: isMobile ? '36px' : '48px',
+                                height: isMobile ? '36px' : '48px',
                                 borderRadius: '10px',
-                                background: '#ffffff',
+                                background: '#f8fafc',
                                 border: '1px solid #e2e8f0',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1457,7 +1487,7 @@ function PosProductsPanelComponent({
                                 boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                               }}
                             >
-                              <ProductIcon name={rawIcon || 'box-package'} size={isMobile ? 20 : 24} />
+                              <ProductIcon name={rawIcon || 'box-package'} size={isMobile ? 18 : 24} />
                             </div>
                           )}
                         </div>
@@ -1466,21 +1496,21 @@ function PosProductsPanelComponent({
                         <div
                           style={{
                             width: '100%',
-                            padding: isMobile && customization.mobileGridColumns === '3' ? '6px 4px 6px' : '8px 6px 8px',
+                            padding: isMobile && customization.mobileGridColumns === '3' ? '4px 3px 5px' : isMobile ? '5px 5px 6px' : '8px 6px 8px',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '3px',
+                            gap: '2px',
                             boxSizing: 'border-box',
                             borderTop: '1px solid #f1f5f9',
                             background: '#ffffff',
-                            minHeight: isMobile && customization.mobileGridColumns === '3' ? '60px' : '66px',
+                            minHeight: isMobile && customization.mobileGridColumns === '3' ? '48px' : isMobile ? '52px' : '66px',
                           }}
                         >
                           <strong
                             style={{
-                              fontSize: isMobile && customization.mobileGridColumns === '3' ? '11px' : '12px',
+                              fontSize: isMobile && customization.mobileGridColumns === '3' ? '10.5px' : isMobile ? '11.5px' : '12px',
                               fontWeight: 700,
                               color: '#0f172a',
                               lineHeight: '1.25',
@@ -1492,7 +1522,7 @@ function PosProductsPanelComponent({
                               textOverflow: 'ellipsis',
                               wordBreak: 'break-word',
                               width: '100%',
-                              minHeight: '28px',
+                              minHeight: isMobile ? '24px' : '28px',
                               boxSizing: 'border-box',
                               padding: '0 2px',
                             }}
@@ -1507,9 +1537,9 @@ function PosProductsPanelComponent({
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              padding: isMobile && customization.mobileGridColumns === '3' ? '2px 6px' : '2px 8px',
-                              borderRadius: '6px',
-                              background: '#f1f5f9',
+                              padding: isMobile && customization.mobileGridColumns === '3' ? '1.5px 5px' : isMobile ? '2px 6px' : '2px 8px',
+                              borderRadius: '5px',
+                              background: '#f8fafc',
                               border: '1px solid #e2e8f0',
                               maxWidth: '100%',
                             }}

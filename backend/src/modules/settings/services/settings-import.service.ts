@@ -5,6 +5,7 @@ import { AuthContext } from '../../../core/auth/interfaces/auth-context.interfac
 import { requireTenantScope } from '../../../core/auth/utils/tenant-boundary';
 import { AppError } from '../../../common/errors/app-error';
 import { applyStockDelta, setScopedStockQty } from '../../../common/utils/location-stock-ledger';
+import { formatBranchStockLocationName } from '../../../common/utils/branch-stock.util';
 import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 
@@ -283,19 +284,124 @@ export class SettingsImportService {
     return Number(inserted.id);
   }
 
-  private async ensureLocation(db: DbExecutor, name: string, actor: AuthContext): Promise<number | null> {
+  private async ensureLocation(
+    db: DbExecutor,
+    name: string,
+    actor: AuthContext,
+    cache?: Map<string, { locationId: number; branchId: number | null }>,
+  ): Promise<{ locationId: number; branchId: number | null } | null> {
     const normalized = cleanString(name);
-    if (!normalized) return null;
     const scope = this.scope(actor);
-    const existing = await db.selectFrom('stock_locations').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where(sql`LOWER(name)`, '=', normalized.toLowerCase()).executeTakeFirst();
-    if (existing) return Number(existing.id);
-    
-    // Auto-create location. We need a branch_id. We'll find the first active branch for this tenant or null.
-    const branch = await db.selectFrom('branches').select(['id']).where(sql<boolean>`tenant_id = ${scope.tenantId}`).where('is_active', '=', true).executeTakeFirst();
+    const cacheKey = normalized.toLowerCase();
+
+    if (cache && cache.has(cacheKey)) {
+      return cache.get(cacheKey)!;
+    }
+
+    const activeLocations = await db
+      .selectFrom('stock_locations')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .where('is_active', '=', true)
+      .execute();
+
+    const branch = await db
+      .selectFrom('branches')
+      .selectAll()
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .where('is_active', '=', true)
+      .orderBy('id', 'asc')
+      .executeTakeFirst();
     const branchId = branch ? Number(branch.id) : null;
-    
-    const inserted = await db.insertInto('stock_locations').values({ name: normalized, branch_id: branchId, is_active: true, location_type: 'internal_warehouse' as const, ...this.tenantFields(actor) }).returning('id').executeTakeFirstOrThrow();
-    return Number(inserted.id);
+
+    // Resolve tenant primary / default branch stock location (e.g. 'رصيد الفرع الرئيسي')
+    const defaultLocation = (branch?.default_stock_location_id
+      ? activeLocations.find((l) => Number(l.id) === Number(branch.default_stock_location_id))
+      : null)
+      || activeLocations.find((l) => l.location_type === 'branch_stock')
+      || activeLocations.find((l) => (l.name || '').includes('رصيد'))
+      || activeLocations[0]
+      || null;
+
+    let result: { locationId: number; branchId: number | null } | null = null;
+
+    // CASE 1: Empty warehouse name -> fallback to tenant default location
+    if (!normalized) {
+      if (defaultLocation) {
+        result = { locationId: Number(defaultLocation.id), branchId: defaultLocation.branch_id ? Number(defaultLocation.branch_id) : branchId };
+      } else {
+        const locName = branch ? formatBranchStockLocationName(branch.name) : 'رصيد الفرع الرئيسي';
+        const inserted = await db
+          .insertInto('stock_locations')
+          .values({
+            name: locName,
+            branch_id: branchId,
+            is_active: true,
+            location_type: 'branch_stock',
+            ...this.tenantFields(actor),
+          })
+          .returning(['id', 'branch_id'])
+          .executeTakeFirstOrThrow();
+        result = { locationId: Number(inserted.id), branchId: inserted.branch_id ? Number(inserted.branch_id) : branchId };
+      }
+    } else {
+      // CASE 2: Exact match (case insensitive)
+      const exactMatch = activeLocations.find((l) => (l.name || '').trim().toLowerCase() === normalized.toLowerCase());
+      if (exactMatch) {
+        result = { locationId: Number(exactMatch.id), branchId: exactMatch.branch_id ? Number(exactMatch.branch_id) : branchId };
+      } else if (activeLocations.length === 1 && defaultLocation) {
+        // CASE 3: Only ONE active location exists in tenant -> map to it without fracturing stock
+        result = { locationId: Number(defaultLocation.id), branchId: defaultLocation.branch_id ? Number(defaultLocation.branch_id) : branchId };
+      } else {
+        // CASE 4: Common aliases for the default/primary location
+        const cleanNorm = normalized.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').trim();
+        const isGenericDefaultAlias = [
+          'المخزن الرئيسي',
+          'المخزن الاساسي',
+          'مخزن رئيسي',
+          'المخزن',
+          'الرئيسي',
+          'مخزن الفرع',
+          'مخزن الفرع الرئيسي',
+          'رصيد الفرع',
+          'رصيد الفرع الرئيسي',
+          'فرع رئيسي',
+          'الفرع الرئيسي',
+          'main warehouse',
+          'primary',
+          'main',
+          'default',
+          'store',
+          'warehouse',
+        ].some((alias) => {
+          const aliasNorm = alias.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').trim();
+          return cleanNorm === aliasNorm;
+        });
+
+        if (isGenericDefaultAlias && defaultLocation) {
+          result = { locationId: Number(defaultLocation.id), branchId: defaultLocation.branch_id ? Number(defaultLocation.branch_id) : branchId };
+        } else {
+          // CASE 5: Custom location name -> create as internal_warehouse
+          const inserted = await db
+            .insertInto('stock_locations')
+            .values({
+              name: normalized,
+              branch_id: branchId,
+              is_active: true,
+              location_type: 'internal_warehouse' as const,
+              ...this.tenantFields(actor),
+            })
+            .returning(['id', 'branch_id'])
+            .executeTakeFirstOrThrow();
+          result = { locationId: Number(inserted.id), branchId: inserted.branch_id ? Number(inserted.branch_id) : branchId };
+        }
+      }
+    }
+
+    if (cache && result) {
+      cache.set(cacheKey, result);
+    }
+    return result;
   }
 
   private async addCustomerOpeningBalance(db: DbExecutor, customerId: number, amount: number, actor: AuthContext): Promise<void> {
@@ -343,6 +449,7 @@ export class SettingsImportService {
       let inserted = 0;
       let updated = 0;
       let stockQtyIgnoredOnUpdate = 0;
+      const locationsCache = new Map<string, { locationId: number; branchId: number | null }>();
 
       for (const rawRow of rows) {
         const row = rawRow as Record<string, unknown>;
@@ -358,7 +465,9 @@ export class SettingsImportService {
         const supplierId = await this.ensureSupplier(trx, supplierName, actor);
 
         const warehouseName = cleanString(row.warehouseName || row.warehouse || row.store || '') || this.pickCell(lookup, ['المخزن', 'warehouse', 'store', 'الميناء', 'موقع التشوين']);
-        const locationId = await this.ensureLocation(trx, warehouseName, actor);
+        const locInfo = await this.ensureLocation(trx, warehouseName, actor, locationsCache);
+        const locationId = locInfo?.locationId ?? null;
+        const locationBranchId = locInfo?.branchId ?? null;
 
         const barcode = normalizeBarcodeText(row.barcode) || normalizeBarcodeText(this.pickCell(lookup, ['الباركود', 'باركود', 'barcode', 'كود', 'code'])) || null;
 

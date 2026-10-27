@@ -1709,6 +1709,17 @@ html[dir="ltr"] .pos-shift-dropdown-menu,
   overflow: hidden !important;
 }
 
+.pos-workspace .pos-group-card.pos-group-card-gallery .pos-group-card-action {
+  text-align: center !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.pos-workspace .pos-group-card.pos-group-card-gallery strong {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
 .pos-workspace .pos-group-card.is-selected {
   border-color: rgba(23, 12, 92, 0.45);
   box-shadow: 0 10px 26px rgba(23, 12, 92, 0.14);
