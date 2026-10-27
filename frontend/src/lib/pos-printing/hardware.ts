@@ -211,6 +211,16 @@ export async function tryPrintViaHardware(
   sale: Sale,
   options?: HardwarePrintOptions
 ): Promise<boolean> {
+  // 1. Check Mobile Handheld Smart POS built-in printer (Sunmi / Pax / Android WebView Bridge)
+  try {
+    const { MobileTerminalBridge } = await import('@/features/pos/lib/mobile-terminal-bridge');
+    const printText = formatSaleForHardwarePrinter(sale, options);
+    const printedOnMobile = await MobileTerminalBridge.printReceipt({ receiptText: printText, cutPaper: true });
+    if (printedOnMobile) return true;
+  } catch {
+    // ignore and continue to standard network printer
+  }
+
   const targetUrl = getHardwarePrinterUrl(options);
   const available = await isHardwarePrinterAvailable(targetUrl);
   if (available) {

@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, StarIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { HardwareBridgeClient } from '@/features/pos/lib/hardware-bridge-client';
+import { MobileTerminalBridge } from '@/features/pos/lib/mobile-terminal-bridge';
 import { shouldTryAlternateTerminalCharge, canChangePaymentAfterTerminalApproval, terminalAuthorizationLabel } from './pos-terminal-charge-safety';
 import { toast } from '@/shared/components/system-alert';
 import { useAuthStore } from '@/stores/auth-store';
@@ -564,6 +565,66 @@ export function PosCheckoutPaymentSection({
     const prov = targetTerminal?.provider || 'fawry';
 
     setTerminalSession({ status: 'initiating', message: 'جاري الاتصال بماكينة الدفع...' });
+
+    // 0. Direct Handheld Smart POS Bridge (window.AndroidBridge / Sunmi / Pax / Localhost Daemon)
+    try {
+      const caps = await MobileTerminalBridge.getCapabilities();
+      if (caps.hasNativeBridge || caps.hasLocalDaemon) {
+        setTerminalSession({
+          status: 'waiting',
+          transactionId: `MOB-${Date.now()}`,
+          message: 'في انتظار تمرير أو إدخال البطاقة أو الهاتف على ماكينة الدفع الذكية...',
+        });
+
+        const mobRes = await MobileTerminalBridge.requestPayment({
+          amount,
+          currency: currentCurrency,
+          config: {
+            provider: (prov as any) || 'auto_detect',
+          },
+        });
+
+        if (mobRes.success && mobRes.status === 'approved') {
+          const authCode = String(mobRes.authCode || 'APPROVED').trim();
+          const rrn = mobRes.rrn || `MOB-${Date.now()}`;
+          const cardScheme = mobRes.cardScheme || 'card';
+          const cardLastFour = mobRes.cardLastFour || '';
+
+          setTerminalSession({
+            status: 'approved',
+            transactionId: rrn,
+            message: terminalAuthorizationLabel(authCode, rrn),
+            approvalCode: authCode,
+          });
+          pos.setPaymentChannel('card');
+          pos.setCardAmount(amount);
+          if (!pos.cashAmount || pos.cashAmount <= 0) {
+            pos.setCashAmount(0);
+            pos.setTransferAmount(0);
+          }
+          pos.setTerminalPaymentDetails?.({
+            authCode,
+            rrn,
+            cardScheme,
+            cardLastFour,
+            provider: prov,
+          });
+
+          if (pos.settingsQuery?.data?.posTerminalAutoFinalize && onConfirmSale) {
+            setTimeout(() => onConfirmSale(), 700);
+          }
+          return;
+        } else if (mobRes.status === 'declined' || mobRes.status === 'cancelled') {
+          setTerminalSession({
+            status: mobRes.status === 'cancelled' ? 'cancelled' : 'declined',
+            message: mobRes.message || 'تم إلغاء أو رفض العملية من الماكينة',
+          });
+          return;
+        }
+      }
+    } catch {
+      // Continue to HardwareBridgeClient / Cloud Backend
+    }
 
     // 1. Direct Local Hardware Bridge dispatch (if bridge is active on 127.0.0.1:18181)
     let bridgeChargeIssued = false;

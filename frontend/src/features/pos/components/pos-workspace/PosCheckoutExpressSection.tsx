@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, SmartphoneIcon, UserIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
+import { MobileTerminalBridge } from '@/features/pos/lib/mobile-terminal-bridge';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PaymentPreset } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 
@@ -39,6 +41,74 @@ export function PosCheckoutExpressSection({
   const total = Number(pos.totals.total || 0);
   const [receivedCash, setReceivedCash] = useState<number | null>(null);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [terminalDispatchStatus, setTerminalDispatchStatus] = useState<'idle' | 'waiting' | 'approved' | 'declined'>('idle');
+  const [terminalMsg, setTerminalMsg] = useState<string>('');
+
+  const handleSelectCard = async () => {
+    onSelectPaymentPreset('card');
+    setReceivedCash(null);
+
+    const currency = isKwdStore ? 'KWD' : isKsaStore ? 'SAR' : (pos.settings?.currency || (pos.settingsQuery?.data as any)?.currency || 'EGP');
+    const defaultProvider = isKwdStore ? 'knet' : isKsaStore ? 'geidea' : 'fawry';
+
+    pos.setTerminalPaymentDetails?.({
+      ...(pos.terminalPaymentDetails || {}),
+      cardScheme: isKwdStore ? 'knet' : isKsaStore ? 'mada' : 'visa',
+      provider: defaultProvider,
+    });
+
+    const caps = await MobileTerminalBridge.getCapabilities();
+    const isTerminalEnabled = Boolean(pos.settings?.posTerminalEnabled || (pos.settingsQuery?.data as any)?.posTerminalEnabled);
+
+    // If handheld Smart POS or terminal bridge is available, dispatch payment pulse
+    if (caps.canDirectPay || isTerminalEnabled) {
+      setTerminalDispatchStatus('waiting');
+      setTerminalMsg(t('pos.terminal_waiting_pulse', 'جاري إرسال نبضة الدفع للماكينة...'));
+
+      try {
+        const result = await MobileTerminalBridge.requestPayment({
+          amount: total,
+          currency,
+          config: {
+            provider: defaultProvider as any,
+          },
+        });
+
+        if (result.success && result.status === 'approved') {
+          const authCode = result.authCode || 'APPROVED';
+          const rrn = result.rrn || `TX-${Date.now()}`;
+          const scheme = result.cardScheme || (isKwdStore ? 'knet' : isKsaStore ? 'mada' : 'visa');
+          const lastFour = result.cardLastFour || '';
+
+          setTerminalDispatchStatus('approved');
+          setTerminalMsg(`تمت الموافقة بنجاح (تفويض: ${authCode})`);
+
+          pos.setTerminalPaymentDetails?.({
+            authCode,
+            rrn,
+            cardScheme: scheme,
+            cardLastFour: lastFour,
+            provider: defaultProvider,
+          });
+
+          toast.success(t('pos.terminal_payment_approved', 'تمت الموافقة على الدفع من الماكينة بنجاح'));
+
+          const autoFinalize = Boolean(pos.settings?.posTerminalAutoFinalize || (pos.settingsQuery?.data as any)?.posTerminalAutoFinalize);
+          if (autoFinalize) {
+            setTimeout(() => {
+              onConfirmSale();
+            }, 800);
+          }
+        } else {
+          setTerminalDispatchStatus('declined');
+          setTerminalMsg(result.message || t('pos.terminal_payment_declined', 'تم إلغاء أو رفض العملية من الماكينة'));
+        }
+      } catch (err: any) {
+        setTerminalDispatchStatus('declined');
+        setTerminalMsg(err?.message || t('pos.terminal_connection_error', 'تعذر الاتصال بماكينة الدفع'));
+      }
+    }
+  };
 
   const transferSelected = !pos.paymentType && (pos.paymentChannel === 'wallet' || pos.paymentChannel === 'instapay');
 
@@ -125,23 +195,7 @@ export function PosCheckoutExpressSection({
         {/* Tile A: Electronic Card / K-NET */}
         <button
           type="button"
-          onClick={() => {
-            onSelectPaymentPreset('card');
-            if (isKwdStore) {
-              pos.setTerminalPaymentDetails?.({
-                ...(pos.terminalPaymentDetails || {}),
-                cardScheme: 'knet',
-                provider: 'knet_pos',
-              });
-            } else if (isKsaStore) {
-              pos.setTerminalPaymentDetails?.({
-                ...(pos.terminalPaymentDetails || {}),
-                cardScheme: 'mada',
-                provider: 'geidea',
-              });
-            }
-            setReceivedCash(null);
-          }}
+          onClick={handleSelectCard}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -201,6 +255,123 @@ export function PosCheckoutExpressSection({
             )}
           </div>
         </button>
+
+        {/* Live Feedback for Handheld Smart POS & Terminal Dispatch */}
+        {isPaymentActive('card') && terminalDispatchStatus === 'waiting' && (
+          <div
+            style={{
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '12px', color: '#1e40af', fontWeight: 700 }}>
+                {t('pos.terminal_waiting_card', 'في انتظار تمرير أو إدخال البطاقة أو الهاتف على الماكينة...')}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  MobileTerminalBridge.cancelPayment();
+                  setTerminalDispatchStatus('idle');
+                  setTerminalMsg('');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#ef4444',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {t('common.cancel', 'إلغاء')}
+              </button>
+            </div>
+            <div style={{ fontSize: '10.5px', color: '#64748b' }}>
+              {t('pos.terminal_waiting_hint', 'يتم التواصل مع الماكينة تلقائياً. يمكنك الضغط على إلغاء للإتمام اليدوي.')}
+            </div>
+          </div>
+        )}
+
+        {isPaymentActive('card') && terminalDispatchStatus === 'approved' && (
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CheckIcon size={14} color="#16a34a" />
+              <span style={{ fontSize: '12px', color: '#166534', fontWeight: 800 }}>
+                {terminalMsg || t('pos.terminal_approved_badge', 'تمت الموافقة بنجاح من الماكينة')}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {isPaymentActive('card') && terminalDispatchStatus === 'declined' && (
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11.5px', color: '#991b1b', fontWeight: 700 }}>
+                {terminalMsg || t('pos.terminal_declined_badge', 'تعذر إتمام الدفع بالماكينة')}
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleSelectCard}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#170e5e',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  {t('common.retry', 'إعادة المحاولة')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTerminalDispatchStatus('idle');
+                    setTerminalMsg('');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {t('pos.manual_override', 'إتمام يدوي')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tile B: Cash */}
         <button
@@ -341,72 +512,7 @@ export function PosCheckoutExpressSection({
           </div>
         )}
 
-        {/* Tile C: Wallets / Electronic Links */}
-        <button
-          type="button"
-          onClick={() => {
-            onSelectPaymentPreset(isKwdStore ? 'instapay' : 'wallet');
-            setReceivedCash(null);
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 14px',
-            borderRadius: '10px',
-            border: transferSelected ? '2px solid #170e5e' : '1px solid #cbd5e1',
-            background: transferSelected ? '#170e5e' : '#ffffff',
-            color: transferSelected ? '#ffffff' : '#0f172a',
-            cursor: 'pointer',
-            transition: 'all 0.12s ease',
-            boxShadow: transferSelected ? '0 2px 6px rgba(23, 14, 94, 0.2)' : 'none',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: transferSelected ? 'rgba(255,255,255,0.18)' : '#e0f2fe',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <SmartphoneIcon size={20} color={transferSelected ? '#ffffff' : '#0284c7'} />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'right' }}>
-              <span style={{ fontSize: '13.5px', fontWeight: 800 }}>
-                {isKwdStore ? 'روابط دفع KNET / محافظ' : isKsaStore ? 'STC Pay / محافظ' : 'InstaPay / محافظ ذكية'}
-              </span>
-              <span style={{ fontSize: '10.5px', opacity: 0.8, color: transferSelected ? '#e2e8f0' : '#64748b' }}>
-                {isKwdStore ? 'Wafra / روابط دفع سريعة' : isKsaStore ? 'دفع إلكتروني ومحافظ' : 'إنستاباي وفودافون كاش والمحافظ'}
-              </span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {transferSelected && (
-              <span
-                style={{
-                  background: '#10b981',
-                  color: '#ffffff',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  padding: '2px 8px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                }}
-              >
-                <CheckIcon size={12} />
-                <span>{formatCurrency(total)}</span>
-              </span>
-            )}
-          </div>
-        </button>
+        {/* Tile C: Wallets / Electronic Links - مخفي مؤقتاً في ماكينة الدفع المتنقلة للتركيز على الكاش وكي نت المباشر */}
       </div>
 
       {/* 3. Collapsible Additional Options (+ خيارات إضافية) */}
