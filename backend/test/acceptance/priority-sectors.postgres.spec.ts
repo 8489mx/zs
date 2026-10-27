@@ -407,6 +407,13 @@ async function main(): Promise<void> {
     assert.equal(Number(dishAfter.stock_qty),0,'prepared dish sold, not left phantom stock');
     assert.equal(Number(dishAfter.cost_price),40,'finished product WAC equals ingredients');
     assert.equal(Number(bomLine.cost_price),40,'sale line records resulting BOM WAC');
+
+    await kds.setTicketStatus(recipe.auth,bomSaleId,'cooking');
+    await assert.rejects(sales.cancelSale(bomSaleId,'Already cooked',PASSWORD,recipe.auth),
+      (e:any)=>e.code==='RESTAURANT_PREPARED_CANCEL_USE_RETURN');
+    assert.equal(Number((await db.selectFrom('products').select('stock_qty')
+      .where('tenant_id','=',recipe.auth.tenantId!).where('id','=',recipeDish)
+      .executeTakeFirstOrThrow()).stock_qty),0,'cooked BOM dish cannot be restocked on cancellation');
     const grillTicket=(await kds.getActiveTickets(recipe.auth,{station:'grill'})).tickets
       .find(t=>t.id===bomSaleId);
     assert.equal(grillTicket?.items[0]?.station,'grill','configured kitchen station is authoritative');
