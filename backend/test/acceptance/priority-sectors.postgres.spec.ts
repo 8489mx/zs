@@ -19,6 +19,7 @@ import { CashDrawerService } from '../../src/modules/cash-drawer/cash-drawer.ser
 import { KdsService } from '../../src/modules/sales/services/kds.service';
 import { RestaurantFoodWasteService } from '../../src/modules/sales/services/restaurant-food-waste.service';
 import { DeliveryRepsService } from '../../src/modules/delivery-reps/delivery-reps.service';
+import { DeliveryAggregatorsService } from '../../src/modules/sales/services/delivery-aggregators.service';
 
 const PASSWORD = 'DisposableAcceptance!2026#Only';
 const cents = (n: unknown) => Number(Number(n).toFixed(2));
@@ -48,6 +49,7 @@ async function main(): Promise<void> {
   const kds = app.get(KdsService);
   const waste = app.get(RestaurantFoodWasteService);
   const couriers = app.get(DeliveryRepsService);
+  const aggregators = app.get(DeliveryAggregatorsService);
   const tag = randomUUID().replaceAll('-','').slice(0,9);
   const creds = await createPasswordRecord(PASSWORD);
 
@@ -483,6 +485,29 @@ async function main(): Promise<void> {
       (e:any)=>e.code==='ALREADY_SETTLED');
     await check(rest,[meal,cheese]);
     console.log('PASS restaurant PostgreSQL COD courier POD, dispatch rollback, settlement fee/cash/GL once');
+
+    // Provider retries must not produce two kitchen tickets or overwrite progress.
+    await aggregators.listAggregators(rest.auth);
+    const providerOrder={
+      aggregatorCode:'talabat',externalOrderId:`ACCEPT_${tag}`,branchId:rest.branchId,
+      subtotal:50,deliveryFee:5,customerName:'Provider test',
+      items:[{name:'عصير برتقال',qty:1,unitPrice:50}],
+    };
+    const [aggA,aggB]=await Promise.all([
+      aggregators.ingestOrder(rest.auth,providerOrder),
+      aggregators.ingestOrder(rest.auth,providerOrder),
+    ]);
+    assert.equal(aggA.orderId,aggB.orderId,'retries must return same provider order');
+    const providerTicketId=10_000_000+aggA.orderId;
+    const beverages=(await kds.getActiveTickets(rest.auth,{station:'beverages'})).tickets;
+    assert.equal(beverages.filter(x=>x.id===providerTicketId).length,1,
+      'KDS displays a provider order only once in its routed station');
+    await assert.rejects(aggregators.ingestOrder(rest.auth,{...providerOrder,subtotal:100}));
+    await kds.advanceTicketStatus(rest.auth,providerTicketId);
+    assert.equal((await kds.getActiveTickets(rest.auth,{station:'beverages'}))
+      .tickets.find(x=>x.id===providerTicketId)?.status,'ready');
+    console.log('PASS restaurant PostgreSQL provider webhook retries, deduplicated kitchen station ticket and preserved status');
+
   } finally {
     await app.close();
   }
