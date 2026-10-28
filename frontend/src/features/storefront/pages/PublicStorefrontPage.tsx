@@ -12,6 +12,7 @@ import { StorefrontModals } from '../components/StorefrontModals';
 import { StorefrontDeliveryInfoBar } from '../components/StorefrontDeliveryInfoBar';
 import { StorefrontFooter } from '../components/StorefrontFooter';
 import { StorefrontSkeleton } from '../components/StorefrontSkeleton';
+import { StorefrontTrustBar } from '../components/StorefrontTrustBar';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
@@ -34,8 +35,8 @@ export function PublicStorefrontPage() {
   const navigate = useNavigate();
   const tableParam = (tableNo || searchParams.get('table') || '').trim();
   // SF-10: on `<slug>.<root>` there is no slug in the path; the host is the store.
-  const hostSlug = useMemo(() => (slug ? null : getStoreHostSlug()), [slug]);
-  const cleanSlug = String(slug || hostSlug || 'default').trim();
+  const hostSlug = useMemo(() => (slug ? null : (import.meta.env.VITE_STOREFRONT_PREVIEW === 'true' ? 'demo' : getStoreHostSlug())), [slug]);
+  const cleanSlug = String(slug || hostSlug || (import.meta.env.VITE_STOREFRONT_PREVIEW === 'true' ? 'demo' : 'default')).trim();
   const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
   const [isTableBillOpen, setIsTableBillOpen] = useState(false);
 
@@ -439,6 +440,9 @@ export function PublicStorefrontPage() {
           fullBleed={info.heroBannerFullBleed !== false}
         />
       )}
+
+      {/* Trust & Guarantee Metrics Ribbon */}
+      {!searchTerm && <StorefrontTrustBar info={info} />}
 
       {/* Sub-Header Utility Navigation Bar (Amazon Quick Bar) */}
       <StorefrontSubNav

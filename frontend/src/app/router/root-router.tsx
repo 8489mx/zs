@@ -36,7 +36,7 @@ const createRouter = isElectron ? createHashRouter : createBrowserRouter;
  * SF-10: on `<slug>.<root>` the whole host is one store, so it gets only storefront routes —
  * no ERP shell, no login redirect. The slug comes from the host (see PublicStorefrontPage).
  */
-const storeHostSlug = isElectron ? null : getStoreHostSlug();
+const storeHostSlug = isElectron ? null : (import.meta.env.VITE_STOREFRONT_PREVIEW === 'true' ? 'demo' : getStoreHostSlug());
 
 function storeHostRoutes() {
   const storefront = () => createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage })));
@@ -155,6 +155,19 @@ function ProtectedLayout() {
   if (appGate === 'activation') return <Navigate to="/activate" replace />;
   if (appGate === 'setup') return <Navigate to="/setup" replace />;
   if (!user) return <Navigate to="/login" replace />;
+
+  const isPosTerminal = typeof window !== 'undefined' && (
+    Boolean((window as any).AndroidBridge?.isPosLite?.()) ||
+    Boolean((window as any).SmartPos?.isPosLite?.()) ||
+    Boolean((window as any).SunmiPrinter?.isPosLite?.()) ||
+    window.location.search.includes('standalone=pos') ||
+    window.location.search.includes('kiosk=1') ||
+    window.localStorage.getItem('zsystems.pos.standalone') === 'true'
+  );
+
+  if (isPosTerminal && !location.pathname.startsWith('/pos') && !location.pathname.startsWith('/cash-drawer')) {
+    return <Navigate to="/pos" replace />;
+  }
 
   const firstAccessibleRoute = findFirstAccessibleRoute(user, navigationItems);
 

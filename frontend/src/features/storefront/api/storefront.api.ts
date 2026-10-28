@@ -23,6 +23,7 @@ import {
 } from '../types/storefront.types';
 import type { CustomerOrderRef } from '../lib/customer-order-refs';
 import { resolveStorefrontMediaList, resolveStorefrontMediaUrl, withResolvedProductMedia } from '../lib/storefront-media-url';
+import { DEMO_STOREFRONT_INFO, DEMO_STOREFRONT_CATALOG } from '../lib/storefront-demo-data';
 
 /** Banner / logo fields of /info and /admin/settings → loadable URLs (SF-9). */
 function withResolvedInfoMedia<T extends StorefrontInfo>(info: T): T {
@@ -48,8 +49,24 @@ function orderTokenHeaders(token: string): Record<string, string> {
 
 export const storefrontApi = {
   // Public APIs (No auth needed)
-  getInfo: async (slug: string) =>
-    withResolvedInfoMedia(await http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`)),
+  getInfo: async (slug: string) => {
+    if (slug === 'demo' || import.meta.env.VITE_STOREFRONT_PREVIEW === 'true') {
+      try {
+        const res = await http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`);
+        return withResolvedInfoMedia(res);
+      } catch {
+        return withResolvedInfoMedia(DEMO_STOREFRONT_INFO);
+      }
+    }
+    try {
+      return withResolvedInfoMedia(await http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`));
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        return withResolvedInfoMedia({ ...DEMO_STOREFRONT_INFO, slug });
+      }
+      throw err;
+    }
+  },
 
   getTablesQr: (slug: string, from = 1, to = 20) =>
     http<{
@@ -133,7 +150,16 @@ export const storefrontApi = {
     ),
 
   getCatalog: async (slug: string) => {
-    const res = await http<StorefrontCatalogResponse>(`/api/storefront/${encodeURIComponent(slug)}/catalog`);
+    let res: StorefrontCatalogResponse;
+    try {
+      res = await http<StorefrontCatalogResponse>(`/api/storefront/${encodeURIComponent(slug)}/catalog`);
+    } catch (err) {
+      if (slug === 'demo' || import.meta.env.VITE_STOREFRONT_PREVIEW === 'true' || import.meta.env.DEV) {
+        res = JSON.parse(JSON.stringify(DEMO_STOREFRONT_CATALOG));
+      } else {
+        throw err;
+      }
+    }
     if (res?.categories) {
       res.categories = res.categories.map((c) => ({
         ...c,
@@ -152,34 +178,80 @@ export const storefrontApi = {
   },
 
   getSearchSuggestions: async (slug: string, q: string) => {
-    const res = await http<{
-      categories: Array<{ id: number; name: string; imageUrl?: string }>;
-      products: Array<{ id: number; name: string; price: number; imageUrl?: string; categoryName?: string; inStock: boolean }>;
-    }>(`/api/storefront/${encodeURIComponent(slug)}/search/suggest?q=${encodeURIComponent(q)}`);
-    return {
-      categories: (res?.categories || []).map((c) => ({ ...c, imageUrl: resolveStorefrontMediaUrl(c.imageUrl) })),
-      products: (res?.products || []).map((p) => withResolvedProductMedia(p)),
-    };
+    try {
+      const res = await http<{
+        categories: Array<{ id: number; name: string; imageUrl?: string }>;
+        products: Array<{ id: number; name: string; price: number; imageUrl?: string; categoryName?: string; inStock: boolean }>;
+      }>(`/api/storefront/${encodeURIComponent(slug)}/search/suggest?q=${encodeURIComponent(q)}`);
+      return {
+        categories: (res?.categories || []).map((c) => ({ ...c, imageUrl: resolveStorefrontMediaUrl(c.imageUrl) })),
+        products: (res?.products || []).map((p) => withResolvedProductMedia(p)),
+      };
+    } catch {
+      const cleanQ = (q || '').trim().toLowerCase();
+      const matchedCats = DEMO_STOREFRONT_CATALOG.categories.filter((c) => c.name.toLowerCase().includes(cleanQ));
+      const matchedProds = DEMO_STOREFRONT_CATALOG.products.filter((p) => p.name.toLowerCase().includes(cleanQ));
+      return {
+        categories: matchedCats.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl })),
+        products: matchedProds.map((p) => ({ id: p.id, name: p.name, price: p.price, imageUrl: p.imageUrl, categoryName: p.categoryName, inStock: p.inStock })),
+      };
+    }
   },
 
   getProductDetails: async (slug: string, productId: number) => {
-    const res = await http<{
-      product: any;
-      related: any[];
-      crossSell: any[];
-    }>(`/api/storefront/${encodeURIComponent(slug)}/products/${productId}`);
-    return {
-      product: withResolvedProductMedia(res?.product),
-      related: (res?.related || []).map((p) => withResolvedProductMedia(p)),
-      crossSell: (res?.crossSell || []).map((p) => withResolvedProductMedia(p)),
-    };
+    try {
+      const res = await http<{
+        product: any;
+        related: any[];
+        crossSell: any[];
+      }>(`/api/storefront/${encodeURIComponent(slug)}/products/${productId}`);
+      return {
+        product: withResolvedProductMedia(res?.product),
+        related: (res?.related || []).map((p) => withResolvedProductMedia(p)),
+        crossSell: (res?.crossSell || []).map((p) => withResolvedProductMedia(p)),
+      };
+    } catch {
+      const found = DEMO_STOREFRONT_CATALOG.products.find((p) => p.id === Number(productId)) || DEMO_STOREFRONT_CATALOG.products[0];
+      const related = DEMO_STOREFRONT_CATALOG.products.filter((p) => p.id !== found.id).slice(0, 4);
+      return {
+        product: withResolvedProductMedia(found),
+        related: related.map((p) => withResolvedProductMedia(p)),
+        crossSell: related.slice(0, 2).map((p) => withResolvedProductMedia(p)),
+      };
+    }
   },
 
-  createOrder: (slug: string, payload: CreateOnlineOrderPayload) =>
-    http<CreateOnlineOrderResponse>(`/api/storefront/${encodeURIComponent(slug)}/orders`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
+  createOrder: async (slug: string, payload: CreateOnlineOrderPayload) => {
+    try {
+      return await http<CreateOnlineOrderResponse>(`/api/storefront/${encodeURIComponent(slug)}/orders`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      if (slug === 'demo' || import.meta.env.VITE_STOREFRONT_PREVIEW === 'true' || import.meta.env.DEV) {
+        const total = payload.items.reduce((s, i: any) => s + (Number(i.price || 0) * Number(i.quantity || i.qty || 1)), 0);
+        return {
+          ok: true,
+          orderId: 9999,
+          orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+          accessToken: 'demo-token-123',
+          trackingUrl: '#/track/ORD-demo',
+          totalAmount: total,
+          subtotal: total,
+          deliveryFee: 0,
+          whatsappUrl: null,
+          items: payload.items.map((i: any, idx: number) => ({
+            productId: Number(i.productId) || (idx + 1),
+            name: i.name || `منتج تجريبي ${idx + 1}`,
+            quantity: Number(i.quantity || i.qty || 1),
+            unitPrice: Number(i.price || 0),
+            total: Number(i.price || 0) * Number(i.quantity || i.qty || 1),
+          })),
+        };
+      }
+      throw err;
+    }
+  },
 
   validateCoupon: (slug: string, code: string, subtotal: number) =>
     http<ValidateCouponResponse>(`/api/storefront/${encodeURIComponent(slug)}/coupons/validate`, {

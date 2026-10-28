@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontShelfSection } from './StorefrontShelfSection';
 import { StorefrontMidBannerCard } from './StorefrontMidBannerCard';
+import { StorefrontInteractiveSpotlightBreak } from './StorefrontInteractiveSpotlightBreak';
+import { StorefrontFeaturedBroadcastCard } from './StorefrontFeaturedBroadcastCard';
 import { IconFolder } from './StorefrontIcons';
 
 interface TopHomepageSection {
@@ -133,6 +135,24 @@ export function StorefrontMultiRowHome({
                 onSelectDeals={onSelectDeals}
               />
             ))}
+
+            {idx === 0 && (
+              <StorefrontInteractiveSpotlightBreak
+                product={dealsProducts.length > 0 ? dealsProducts[0] : (topHomepageSections[1]?.products[0] || section.products[0])}
+                cartQuantity={cartMap.get(dealsProducts.length > 0 ? dealsProducts[0]?.id : (topHomepageSections[1]?.products[0]?.id || section.products[0]?.id)) || 0}
+                whatsappPhone={info.whatsappPhone}
+                onAddToCart={onAddToCart}
+                onUpdateQuantity={onUpdateQuantity}
+                onQuickView={onQuickView}
+              />
+            )}
+
+            {idx === 1 && bannersAfterThis.length === 0 && (
+              <StorefrontFeaturedBroadcastCard
+                whatsappPhone={info.whatsappPhone}
+                onOpenCategories={onOpenCategoriesModal}
+              />
+            )}
           </React.Fragment>
         );
       })}

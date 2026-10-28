@@ -24,6 +24,7 @@ import {
   POS_TOGGLE_CHROME_EVENT,
   POS_TOGGLE_FULLSCREEN_EVENT,
   readPosShellPreference,
+  isStandalonePosTerminal,
 } from '@/features/pos/lib/pos-shell';
 import { QuickAttendanceShortcut } from '@/shared/layout/quick-attendance-shortcut';
 import { GlobalAppToolbar } from '@/shared/layout/GlobalAppToolbar';
@@ -2172,7 +2173,7 @@ export function AppShell({ children }: PropsWithChildren) {
       dir={isEn ? 'ltr' : 'rtl'}
       className={`app-layout ${effectiveSidebarCollapsed ? 'sidebar-collapsed' : ''} ${isPosRoute ? 'app-layout-pos' : ''} ${isPosRoute && isPosChromeHidden ? 'app-layout-pos-focus' : ''}`.trim()}
     >
-      {(!isPosRoute || !isPosChromeHidden || isMobileScreen) ? (
+      {(!isPosRoute || (!isPosChromeHidden && !isMobileScreen && !isStandalonePosTerminal())) ? (
         <>
           <aside ref={sidebarRef} className={`sidebar-fixed ${isMobileSidebarOpen ? 'is-mobile-open' : ''}`.trim()}>
             <div className="brand">
@@ -2357,7 +2358,7 @@ export function AppShell({ children }: PropsWithChildren) {
           <main className={`page-stack ${isPosRoute ? 'page-stack-pos' : ''} ${isPosRoute && isPosChromeHidden ? 'page-stack-pos-focus' : ''}`.trim()}>{children}</main>
         </div>
       </div>
-      {(isMobileScreen || !isPosChromeHidden) && <MobileBottomNav />}
+      {!isPosRoute && !isStandalonePosTerminal() && (isMobileScreen || !isPosChromeHidden) && <MobileBottomNav />}
       <PasswordRotationGate />
       <LiveOrderNotificationBanner />
       <PwaInstallBanner />

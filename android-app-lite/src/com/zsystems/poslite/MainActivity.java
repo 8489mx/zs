@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
 
     private WebView webView;
     private ProgressBar progressBar;
-    private static final String APP_URL = "https://app.zsystemai.com/pos";
+    private static final String APP_URL = "https://app.zsystemai.com/pos?standalone=pos&kiosk=1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -288,8 +288,12 @@ public class MainActivity extends Activity {
                 if (url == null || url.startsWith("about:blank") || url.startsWith("javascript:")) {
                     return true;
                 }
-                if (url.startsWith("https://app.zsystemai.com") || url.startsWith(APP_URL)) {
+                if (url.contains("/login") || url.contains("/auth") || url.contains("/pos") || url.contains("/cash-drawer") || url.contains("/api/")) {
                     return false;
+                }
+                if (url.startsWith("https://app.zsystemai.com")) {
+                    view.loadUrl(APP_URL);
+                    return true;
                 }
                 view.loadUrl(url);
                 return true;
@@ -302,8 +306,12 @@ public class MainActivity extends Activity {
                 if (url.startsWith("about:blank") || url.startsWith("javascript:")) {
                     return true;
                 }
-                if (url.startsWith("https://app.zsystemai.com") || url.startsWith(APP_URL)) {
+                if (url.contains("/login") || url.contains("/auth") || url.contains("/pos") || url.contains("/cash-drawer") || url.contains("/api/")) {
                     return false;
+                }
+                if (url.startsWith("https://app.zsystemai.com")) {
+                    view.loadUrl(APP_URL);
+                    return true;
                 }
                 view.loadUrl(url);
                 return true;
@@ -360,11 +368,12 @@ public class MainActivity extends Activity {
     private void injectSunmiHook(WebView view) {
         if (view == null) return;
         String js = "(function() {" +
+            "try { localStorage.setItem('zsystems.pos.standalone', 'true'); } catch(e) {}" +
             "if (window.__sunmi_hooked) return;" +
             "window.__sunmi_hooked = true;" +
             "var s = document.createElement('style');" +
             "s.id = '__pos_lite_clean';" +
-            "s.textContent = '.mobile-bottom-nav { display: none !important; } .content-wrap { padding-bottom: 0 !important; }';" +
+            "s.textContent = '.mobile-bottom-nav, .app-header, .mobile-sidebar-toggle, .sidebar-mobile-overlay, .sidebar-fixed, aside.sidebar-fixed { display: none !important; } .content-wrap, .page-stack { padding: 0 !important; margin: 0 !important; width: 100vw !important; height: 100vh !important; }';" +
             "document.head.appendChild(s);" +
             "var origOpen = window.open;" +
             "window.open = function(u, t, f) {" +

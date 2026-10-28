@@ -31,6 +31,19 @@ function pickOperationalLandingRoute(user: AuthUser, tenant?: AuthTenant | null)
     if (canAccessPath(user, '/inventory')) return '/inventory';
   }
 
+  // Standalone POS Terminal Landing: Direct POS terminal users straight to /pos
+  const isPosTerminal = typeof window !== 'undefined' && (
+    Boolean((window as any).AndroidBridge?.isPosLite?.()) ||
+    Boolean((window as any).SmartPos?.isPosLite?.()) ||
+    Boolean((window as any).SunmiPrinter?.isPosLite?.()) ||
+    window.location.search.includes('standalone=pos') ||
+    window.location.search.includes('kiosk=1') ||
+    window.localStorage.getItem('zsystems.pos.standalone') === 'true'
+  );
+  if (isPosTerminal && canAccessPath(user, '/pos')) {
+    return '/pos';
+  }
+
   // Native Mobile Device Landing: Direct native app users to mobile suite
   const isNative = typeof window !== 'undefined' && Boolean((window as any).Capacitor?.isNativePlatform?.());
   if (isNative) {
