@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontShelfSection } from './StorefrontShelfSection';
 import { StorefrontMidBannerCard } from './StorefrontMidBannerCard';
-import { StorefrontCustomerReviewsSection } from './StorefrontCustomerReviewsSection';
 
 interface TopHomepageSection {
   categoryId: number;
@@ -47,10 +46,6 @@ export function StorefrontMultiRowHome({
 }: StorefrontMultiRowHomeProps) {
   const { t } = useTranslation();
 
-  const allShowcaseProducts = useMemo(() => {
-    if (dealsProducts.length > 0) return dealsProducts;
-    return topHomepageSections.flatMap((s) => s.products);
-  }, [dealsProducts, topHomepageSections]);
 
   const isMidBannersActive = info.midBannersEnabled !== false;
   const validMidBanners = isMidBannersActive && Array.isArray(info.midBanners)
@@ -142,12 +137,6 @@ export function StorefrontMultiRowHome({
         );
       })}
 
-      {/* Customer Reviews Section (Once at the bottom) */}
-      <StorefrontCustomerReviewsSection
-        products={allShowcaseProducts}
-        onQuickView={onQuickView}
-        onOpenReviewModal={onOpenReviewModal}
-      />
 
       {/* Mid Banner Slot: Bottom */}
       {bottomBanners.map((banner) => (

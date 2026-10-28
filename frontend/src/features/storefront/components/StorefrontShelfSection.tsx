@@ -138,27 +138,24 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
           flexWrap: 'nowrap',
         }}
       >
-        {/* Title Badge & Subtitle */}
+        {/* Title & Subtitle */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
-          <span
+          <h2
+            className="storefront-shelf-title"
             style={{
-              background: 'var(--storefront-primary-color, #170e5e)',
-              color: '#ffffff',
-              fontSize: '13px',
+              margin: 0,
+              fontSize: '17px',
               fontWeight: 800,
-              padding: '0 14px',
-              height: '35px',
-              borderRadius: '12px',
+              color: '#0f172a',
               display: 'inline-flex',
               alignItems: 'center',
               flexShrink: 0,
               whiteSpace: 'nowrap',
-              boxShadow: '0 2px 6px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))',
-              boxSizing: 'border-box',
+              lineHeight: 1.25,
             }}
           >
             {badge}
-          </span>
+          </h2>
           {subtitle && (
             <span
               className="storefront-shelf-subtitle"

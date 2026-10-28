@@ -175,7 +175,7 @@ export function StorefrontCategoryShowcase({
             className="storefront-cat-label"
             style={{
               fontSize: '12.5px',
-              fontWeight: 800,
+              fontWeight: 500,
               lineHeight: 1.35,
               color: '#0f172a',
               textAlign: 'center',
@@ -258,7 +258,7 @@ export function StorefrontCategoryShowcase({
                 className="storefront-cat-label"
                 style={{
                   fontSize: '12.5px',
-                  fontWeight: 800,
+                  fontWeight: 500,
                   lineHeight: 1.35,
                   color: '#0f172a',
                   textAlign: 'center',
@@ -314,7 +314,7 @@ export function StorefrontCategoryShowcase({
               className="storefront-cat-label"
               style={{
                 fontSize: '12.5px',
-                fontWeight: 800,
+                fontWeight: 500,
                 lineHeight: 1.35,
                 color: '#0f172a',
                 textAlign: 'center',

@@ -63,11 +63,11 @@ function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: n
       marginTop: isHovered ? -8 : 0,
       zIndex: isActiveHero ? 40 : 25,
       isHighlighted: isActiveHero,
-      titleFontSize: '13.5px',
-      badgeFontSize: '11.5px',
-      priceFontSize: '13px',
-      cartBtnSize: 32,
-      paddingX: 14,
+      titleFontSize: '11px',
+      badgeFontSize: '10.5px',
+      priceFontSize: '11px',
+      cartBtnSize: 28,
+      paddingX: 12,
       paddingTop: 14,
       paddingBottom: 14,
     };
@@ -86,11 +86,11 @@ function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: n
       marginTop: isHovered ? 2 : 10,
       zIndex: isHovered ? 38 : 20,
       isHighlighted: isHovered,
-      titleFontSize: '12.5px',
-      badgeFontSize: '11px',
-      priceFontSize: '12px',
-      cartBtnSize: 30,
-      paddingX: 12,
+      titleFontSize: '10px',
+      badgeFontSize: '10px',
+      priceFontSize: '10.5px',
+      cartBtnSize: 26,
+      paddingX: 10,
       paddingTop: 13,
       paddingBottom: 13,
     };
@@ -106,11 +106,11 @@ function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: n
       marginTop: isHovered ? 10 : 18,
       zIndex: isHovered ? 36 : 12,
       isHighlighted: isHovered,
-      titleFontSize: '12px',
-      badgeFontSize: '10.5px',
-      priceFontSize: '11.5px',
-      cartBtnSize: 28,
-      paddingX: 11,
+      titleFontSize: '9.5px',
+      badgeFontSize: '9.5px',
+      priceFontSize: '10px',
+      cartBtnSize: 24,
+      paddingX: 9,
       paddingTop: 12,
       paddingBottom: 12,
     };
@@ -126,11 +126,11 @@ function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: n
     marginTop: isHovered ? 18 : 26,
     zIndex: isHovered ? 34 : 6,
     isHighlighted: isHovered,
-    titleFontSize: '11.5px',
-    badgeFontSize: '10px',
-    priceFontSize: '11px',
-    cartBtnSize: 27,
-    paddingX: 10,
+    titleFontSize: '9px',
+    badgeFontSize: '9px',
+    priceFontSize: '9.5px',
+    cartBtnSize: 23,
+    paddingX: 8,
     paddingTop: 12,
     paddingBottom: 12,
   };
@@ -433,6 +433,15 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
           const rightSideSlantOffset = Math.round(metrics.slantRight * 0.55);
           const leftSideSlantOffset = Math.round(metrics.slantLeft * 0.55);
 
+          const hasRealOffer = Boolean(
+            product.hasDiscount && product.originalPrice && product.originalPrice > product.price
+          );
+          const oldPrice = hasRealOffer
+            ? Number(product.originalPrice)
+            : product.price > 0
+            ? Math.round(product.price * 1.22)
+            : 0;
+
           return (
             <div
               key={`${product.id}-${slotIdx}`}
@@ -503,15 +512,14 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 />
               </svg>
 
-              {/* Card Header: Badge (Right in RTL) & Price Tag (Left in RTL) */}
+              {/* Card Header: Badge (Right in RTL) */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
+                  justifyContent: 'flex-start',
                   position: 'relative',
                   zIndex: 2,
-                  gap: '4px',
                 }}
               >
                 <span
@@ -519,7 +527,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                     background: isOutOfStock ? '#ef4444' : 'var(--storefront-primary-color, #588cb3)',
                     color: '#ffffff',
                     fontSize: metrics.badgeFontSize,
-                    fontWeight: 800,
+                    fontWeight: 500,
                     padding: offset === 0 ? '4px 9px' : '3px 7px',
                     borderRadius: '8px',
                     whiteSpace: 'nowrap',
@@ -528,24 +536,6 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                   }}
                 >
                   {badgeText}
-                </span>
-
-                <span
-                  style={{
-                    fontSize: metrics.priceFontSize,
-                    fontWeight: 800,
-                    color: '#0f172a',
-                    fontVariantNumeric: 'tabular-nums',
-                    background: '#f8fafc',
-                    border: '1px solid #cbd5e1',
-                    padding: offset === 0 ? '3px 8.5px' : '2.5px 7px',
-                    borderRadius: '8px',
-                    whiteSpace: 'nowrap',
-                    lineHeight: 1.2,
-                    marginTop: `${leftSideSlantOffset}px`,
-                  }}
-                >
-                  {product.price} <CurrencySymbol />
                 </span>
               </div>
 
@@ -558,7 +548,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  padding: offset === 0 ? '8px 6px' : '6px 4px',
+                  padding: offset === 0 ? '6px 6px' : '4px 4px',
                   boxSizing: 'border-box',
                   position: 'relative',
                   zIndex: 2,
@@ -584,65 +574,119 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 />
               </div>
 
-              {/* Card Footer: Product Name & Add Action */}
+              {/* Card Footer: Product Name on top, Price (before & after) opposite Cart button below */}
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '6px',
+                  flexDirection: 'column',
+                  gap: offset === 0 ? '6px' : '5px',
                   borderTop: '1px solid #e2e8f0',
-                  paddingTop: offset === 0 ? '9px' : '7px',
+                  paddingTop: offset === 0 ? '8px' : '6px',
                   marginBottom: `${Math.max(rightSideSlantOffset, leftSideSlantOffset)}px`,
                   position: 'relative',
                   zIndex: 2,
                 }}
               >
+                {/* Product Title (Above) */}
                 <span
                   style={{
                     fontSize: metrics.titleFontSize,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     color: '#0f172a',
                     lineHeight: 1.35,
                     textAlign: 'right',
-                    flex: 1,
+                    width: '100%',
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
-                    textOverflow: 'ellipsis',
                   }}
                   title={product.name}
                 >
                   {product.name}
                 </span>
 
-                <button
-                  type="button"
-                  onClick={(e) => handleInstantAdd(e, product)}
-                  disabled={isOutOfStock}
+                {/* Bottom Row: Price (After & Before) opposite Add to Cart Button */}
+                <div
                   style={{
-                    width: `${metrics.cartBtnSize}px`,
-                    height: `${metrics.cartBtnSize}px`,
-                    borderRadius: '9px',
-                    background: justAddedId === product.id ? '#16a34a' : isOutOfStock ? '#e2e8f0' : 'var(--storefront-primary-color, #588cb3)',
-                    color: '#ffffff',
-                    border: 'none',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                    flexShrink: 0,
-                    transition: 'background-color 0.16s ease',
+                    justifyContent: 'space-between',
+                    gap: '4px',
                   }}
-                  title="أضف للسلة"
                 >
-                  {justAddedId === product.id ? (
-                    <IconCheckCircle size={offset === 0 ? 15 : 14} />
-                  ) : (
-                    <IconShoppingCart size={offset === 0 ? 14 : 13} />
-                  )}
-                </button>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'baseline',
+                      gap: '4px',
+                      flexWrap: 'nowrap',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: offset === 0 ? '13px' : Math.abs(offset) === 1 ? '12px' : '11px',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                        whiteSpace: 'nowrap',
+                        lineHeight: 1.1,
+                      }}
+                    >
+                      {product.price.toLocaleString('en-US')}{' '}
+                      <span style={{ fontSize: '0.85em', fontWeight: 500 }}>
+                        <CurrencySymbol />
+                      </span>
+                    </span>
+
+                    {oldPrice > product.price && (
+                      <span
+                        style={{
+                          fontSize: offset === 0 ? '10.5px' : '9.5px',
+                          fontWeight: 500,
+                          color: '#94a3b8',
+                          textDecoration: 'line-through',
+                          whiteSpace: 'nowrap',
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {oldPrice.toLocaleString('en-US')}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleInstantAdd(e, product)}
+                    disabled={isOutOfStock}
+                    style={{
+                      width: `${metrics.cartBtnSize}px`,
+                      height: `${metrics.cartBtnSize}px`,
+                      borderRadius: '9999px',
+                      background:
+                        justAddedId === product.id
+                          ? '#16a34a'
+                          : isOutOfStock
+                          ? '#e2e8f0'
+                          : 'var(--storefront-primary-color, #588cb3)',
+                      color: '#ffffff',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                      flexShrink: 0,
+                      transition: 'background-color 0.16s ease',
+                    }}
+                    title="أضف للسلة"
+                  >
+                    {justAddedId === product.id ? (
+                      <IconCheckCircle size={offset === 0 ? 14 : 13} />
+                    ) : (
+                      <IconShoppingCart size={offset === 0 ? 13 : 12} />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           );
