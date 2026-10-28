@@ -2523,7 +2523,12 @@ export class AccountingPostingService {
       .where('code', '=', code)
       .executeTakeFirst();
 
-    const dedicatedTypes: Record<string, string> = { '1165': 'asset', '2160': 'liability', '2155': 'liability', '7170': 'revenue', '7270': 'expense', '5190': 'expense', '5300': 'expense', '6900': 'expense' };
+    const dedicatedTypes: Record<string, string> = {
+      '1165': 'asset', '2160': 'liability', '2155': 'liability', '7170': 'revenue', '7270': 'expense',
+      '5190': 'expense', '5300': 'expense', '6900': 'expense', '6950': 'expense', '3200': 'equity',
+      '1150': 'asset', '2150': 'liability', '4300': 'contra_revenue', '4400': 'contra_revenue',
+      '7110': 'revenue', '7210': 'expense', '7290': 'expense',
+    };
     if (account && dedicatedTypes[code] && account.account_type !== dedicatedTypes[code]) throw new AppError('Dedicated system account has an incompatible type', 'SYSTEM_ACCOUNT_TYPE_MISMATCH', 409);
     if (!account) {
       const knownAccounts: Record<string, { name_ar: string; name_en: string; type: string; group: string; balance: string }> = {
@@ -2560,8 +2565,17 @@ export class AccountingPostingService {
         '5200': { name_ar: 'فروق تكلفة المخزون', name_en: 'Inventory Cost Variance', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
         '5300': { name_ar: 'هالك وفاقد بضاعة أثناء النقل', name_en: 'In-Transit Inventory Shrinkage', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
         '6900': { name_ar: 'مواد ومستلزمات تشغيل مصروفة', name_en: 'Issued Operating Materials Expense', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '6950': { name_ar: 'مصروفات أخرى', name_en: 'Other Expenses', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '3200': { name_ar: 'أرباح محتجزة', name_en: 'Retained Earnings', type: 'equity', group: 'equity', balance: 'credit' },
+        '1150': { name_ar: 'ضريبة مشتريات قابلة للخصم', name_en: 'Purchase VAT Receivable', type: 'asset', group: 'tax', balance: 'debit' },
+        '2150': { name_ar: 'دفعات مقدمة من العملاء', name_en: 'Customer Advances', type: 'liability', group: 'current_liabilities', balance: 'credit' },
         '4100': { name_ar: 'مبيعات المنتجات', name_en: 'Product Sales', type: 'revenue', group: 'income', balance: 'credit' },
+        '4300': { name_ar: 'خصومات المبيعات', name_en: 'Sales Discounts', type: 'contra_revenue', group: 'income', balance: 'debit' },
+        '4400': { name_ar: 'مردودات المبيعات', name_en: 'Sales Returns', type: 'contra_revenue', group: 'income', balance: 'debit' },
         '5100': { name_ar: 'تكلفة بضاعة مباعة', name_en: 'COGS', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
+        '7110': { name_ar: 'زيادة نقدية الصندوق', name_en: 'Cash Over', type: 'revenue', group: 'income', balance: 'credit' },
+        '7210': { name_ar: 'عجز نقدية الصندوق', name_en: 'Cash Short', type: 'expense', group: 'operating_expenses', balance: 'debit' },
+        '7290': { name_ar: 'فروق التقريب المحاسبي', name_en: 'Rounding Differences', type: 'expense', group: 'operating_expenses', balance: 'debit' },
       };
       const known = knownAccounts[code];
       if (known) {
