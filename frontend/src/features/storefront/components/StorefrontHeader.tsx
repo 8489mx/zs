@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
-import { IconCheckCircle, IconWhatsapp } from './StorefrontIcons';
+import type { StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
 import { StorefrontPredictiveSearch } from './StorefrontPredictiveSearch';
 import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
@@ -97,8 +96,6 @@ export function StorefrontHeader({
   }, []);
 
   const brand = resolveStorefrontBrand(info);
-  const whatsappNumber = info.whatsappPhone.replace(/[^0-9]/g, '');
-  const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
   const storeCurr = info?.currency || 'EGP';
   const currSymbol = getCurrencySymbol(storeCurr);
 

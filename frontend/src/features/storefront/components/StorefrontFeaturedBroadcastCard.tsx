@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { BuildingIcon, CreditCardIcon, PhoneIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { BuildingIcon, CreditCardIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 import { IconWhatsapp } from './StorefrontIcons';
 
 interface StorefrontFeaturedBroadcastCardProps {

@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { StorefrontInfo } from '../types/storefront.types';
 import { resolveStorefrontBrand } from './StorefrontHeader';
-import { IconCheckCircle } from './StorefrontIcons';
 import { PaymentMethodBadges } from '@/shared/components/ui/PaymentMethodBadges';
 
 interface StorefrontFooterProps {

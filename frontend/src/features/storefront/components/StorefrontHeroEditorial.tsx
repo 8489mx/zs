@@ -91,15 +91,10 @@ function getCoverflowTransform(offset: number, isHovered: boolean, hoveredOffset
 }
 
 export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditorial({
-  info,
   featuredProducts,
-  categories,
-  cartMap,
   onAddToCart,
-  onUpdateQuantity,
   onQuickView,
   onSelectDeals,
-  onSelectCategory,
   onOpenCategoriesModal,
 }: StorefrontHeroEditorialProps) {
   const [hoveredCardIdx, setHoveredCardIdx] = useState<number | null>(null);

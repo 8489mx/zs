@@ -2,7 +2,6 @@ import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { resolveProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
-import { getProductVariants } from '../lib/storefront-variant-pricing';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { IconShoppingCart, IconCheckCircle, IconFlame, IconTruck, IconShieldCheck, IconWhatsapp } from './StorefrontIcons';
 import { EyeIcon } from '@/shared/components/icons/AppIcons';
