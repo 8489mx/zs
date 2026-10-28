@@ -22,6 +22,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { usePosUiCustomization } from '@/features/pos/hooks/usePosUiCustomization';
 import { isKuwait, isSaudi } from '@/lib/currencies';
 import { useIsMobile } from '@/shared/hooks/use-is-mobile';
+import { isStandalonePosTerminal } from '@/features/pos/lib/pos-shell';
 
 interface PosCheckoutDialogProps {
   open: boolean;
@@ -211,6 +212,13 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
     return () => window.cancelAnimationFrame(frameId);
   }, [managerApprovalOpen, pos.discountApprovalGranted]);
 
+  const isTerminalHardwareManaged = useMemo(() => Boolean(
+    isStandalonePosTerminal() ||
+    (typeof window !== 'undefined' && Boolean((window as any).AndroidBridge?.requestPayment || (window as any).SmartPos?.requestPayment || (window as any).SunmiPay?.sale)) ||
+    pos.settings?.posTerminalEnabled ||
+    (pos.settingsQuery?.data as any)?.posTerminalEnabled
+  ), [pos.settings?.posTerminalEnabled, pos.settingsQuery?.data]);
+
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -222,7 +230,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
         void handleInlineManagerApproval();
         return;
       }
-      if (isPaymentActive('card') && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn) {
+      if (isPaymentActive('card') && isTerminalHardwareManaged && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn) {
         toast.warning(t('pos.card_payment_required_notice', 'يرجى إتمام عملية الدفع بالماكينة أو اعتماد الإيصال اليدوي أولاً'));
         return;
       }
@@ -230,7 +238,7 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleConfirmSale, handleInlineManagerApproval, isPaymentActive, managerApprovalOpen, open, pos.createSale.isPending, pos.discountApprovalGranted, pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn, t]);
+  }, [handleConfirmSale, handleInlineManagerApproval, isPaymentActive, isTerminalHardwareManaged, managerApprovalOpen, open, pos.createSale.isPending, pos.discountApprovalGranted, pos.terminalPaymentDetails?.authCode, pos.terminalPaymentDetails?.rrn, t]);
 
   const customers = useMemo(() => (Array.isArray(pos.customersQuery.data) ? pos.customersQuery.data : []), [pos.customersQuery.data]);
   const selectedCustomer = useMemo(
@@ -526,13 +534,13 @@ function PosCheckoutDialogContent({ open, pos, selectedCustomerName, onClose, on
                 type="button"
                 variant="success"
                 onClick={() => {
-                  if (isPaymentActive('card') && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn) {
+                  if (isPaymentActive('card') && isTerminalHardwareManaged && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn) {
                     toast.warning(t('pos.card_payment_required_notice', 'يرجى إتمام عملية الدفع بالماكينة أو اعتماد الإيصال اليدوي أولاً'));
                     return;
                   }
                   handleConfirmSale();
                 }}
-                disabled={pos.createSale.isPending || (isPaymentActive('card') && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn)}
+                disabled={pos.createSale.isPending || (isPaymentActive('card') && isTerminalHardwareManaged && !pos.terminalPaymentDetails?.authCode && !pos.terminalPaymentDetails?.rrn)}
               >
                 {pos.createSale.isPending ? t('common.saving', 'جاري الحفظ...') : t('pos.confirm_sale_f2', 'تأكيد البيع (F2)')}
               </Button>

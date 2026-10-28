@@ -115,6 +115,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   TRADEIN_DUPLICATE_SERIAL: 'الجهاز برقم السيريال هذا مسجل مسبقاً وما زال رصيده متاحاً بالمخزن.',
   PHARMACY_PRODUCT_NOT_LINKED: 'يجب ربط الصنف الدوائي المستورد بصنف مخزني في بطاقة الأصناف أولاً.',
   PHARMACY_BATCH_REQUIRED: 'الصنف الدوائي يتطلب إدخال رقم التشغيلة وتاريخ الصلاحية عند الشراء والاستلام.',
+  PHARMACY_INVOICE_LINE_INVALID: 'بيانات سطر فاتورة الموزع غير صالحة أو غير متوافقة مع قواعد الصيدلية.',
+  PHARMACY_INVOICE_TOTAL_INVALID: 'إجمالي فاتورة الموزع يتجاوز الحدود المالية المسموح بها.',
 };
 
 function looksArabic(value: string): boolean {

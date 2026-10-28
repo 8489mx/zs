@@ -336,8 +336,13 @@ export class PharmacyService {
         item = buildDistributorPurchaseItem(line, productId, locationId, moneyDigits, isDrug);
         const payableMinor = toMinorUnits(Number(line.quantity) * Number(line.costPrice), moneyDigits);
         const roundedPurchaseMinor = toMinorUnits(roundMoney(item.qty * item.cost, moneyDigits), moneyDigits);
-        if (payableMinor !== roundedPurchaseMinor) {
-          throw new Error('Drug bonus unit dilution exceeds permitted vendor invoice precision');
+        const varianceMinor = Math.abs(payableMinor - roundedPurchaseMinor);
+        if (varianceMinor > 0) {
+          // If bonus units diluted the cost, allow fractional cent/fil rounding tolerance
+          const maxAllowedVariance = Math.max(2, Math.ceil(item.qty));
+          if (varianceMinor > maxAllowedVariance) {
+            throw new Error('Drug bonus unit dilution exceeds permitted vendor invoice precision');
+          }
         }
         totalCostMinor += payableMinor;
       } catch (error) {

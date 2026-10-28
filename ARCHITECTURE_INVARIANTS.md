@@ -251,6 +251,7 @@ ARCH02 local implementation and unexecuted acceptance work are tracked in [the A
 - A location adjustment derives its branch from the tenant-scoped location. A branch-only adjustment is rejected because the shared stock ledger would otherwise change unassigned stock while tagging the movement to that branch.
 - Product master data cannot overwrite the WAC of stock on hand. Positive opening stock posts an inventory debit and opening capital credit in the same transaction as the product and stock movement; old unposted opening balances require tenant-scoped reconciliation.
 - Landed costs apply only to posted purchases and post on their recognition date through the central period-checked journal. Split inventory and COGS by replaying classified global stock movements after the receipt through the weighted-average pool. Unclassified or missing movement history blocks automatic allocation rather than guessing.
+- INV-TRANSFER-262 (28 October 2026): Migration `2040000000262_fix_stock_transfer_item_variance_constraint.ts` updates check constraint `chk_transfer_item_variance` to permit `((received_qty = 0 AND variance_qty = 0) OR variance_qty = dispatched_qty - received_qty)`. In final issue transfers (`issueMode === 'final_issue'`), `received_qty` is populated with `item.qty` and `variance_qty = 0`, ensuring operational issue orders post cleanly without check constraint violation.
 
 ---
 

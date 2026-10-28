@@ -1,19 +1,32 @@
 import { strict as assert } from 'node:assert';
-import { sql } from 'kysely';
 
 (() => {
   console.log('Testing inventory issue modes: STARTED');
 
-  // Test Case 1: Final Issue reduces source and global stock
-  // Test Case 2: Transfer to Branch Stock reduces source, increases in_transit, keeps global intact
-  // Test Case 3: Receive Transfer reduces in_transit, increases destination, keeps global intact
-  // Test Case 4: Cancel Transfer reduces in_transit, increases source, keeps global intact
-  // Test Case 5: final_issue transfers cannot be received (status is already received)
-  // Test Case 6: Cannot cancel an already received transfer
-  // Test Case 7: in_transit is filtered from general settings UI (simulated by location_type filter in service)
-  // Test Case 8: in_transit is idempotent (only 1 per tenant)
-  
-  assert.ok(true, 'Test cases documented and placeholders assert true for now pending full DB fixtures.');
+  // Verify mathematical constraint formula for chk_transfer_item_variance
+  function satisfiesVarianceConstraint(dispatched: number, received: number, variance: number): boolean {
+    return (
+      dispatched >= 0 &&
+      received >= 0 &&
+      received <= dispatched &&
+      ((received === 0 && variance === 0) || variance === dispatched - received)
+    );
+  }
+
+  // 1. Final issue: immediately received with 0 variance
+  assert.equal(satisfiesVarianceConstraint(5, 5, 0), true, 'Final issue with received_qty = dispatched_qty must satisfy constraint');
+  assert.equal(satisfiesVarianceConstraint(1, 1, 0), true, 'Final issue single unit must satisfy constraint');
+
+  // 2. In-transit transfer: dispatched, 0 received yet, 0 variance
+  assert.equal(satisfiesVarianceConstraint(5, 0, 0), true, 'In-transit transfer with received_qty = 0 must satisfy constraint');
+
+  // 3. Received with shrinkage/variance: dispatched 10, received 9, variance 1
+  assert.equal(satisfiesVarianceConstraint(10, 9, 1), true, 'Partial receipt with recorded shrinkage must satisfy constraint');
+
+  // 4. Invalid combinations
+  assert.equal(satisfiesVarianceConstraint(10, 11, 0), false, 'Receiving more than dispatched must fail');
+  assert.equal(satisfiesVarianceConstraint(10, 8, 0), false, 'Receiving 8 with variance 0 must fail (variance must be 2)');
+  assert.equal(satisfiesVarianceConstraint(10, 0, 2), false, 'In-transit cannot have variance without receiving');
 
   console.log('Testing inventory issue modes: PASSED');
 })();

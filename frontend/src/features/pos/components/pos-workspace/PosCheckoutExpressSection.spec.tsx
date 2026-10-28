@@ -143,8 +143,12 @@ describe('PosCheckoutExpressSection - Cash Input & Change Calculation', () => {
     expect(screen.getByText(/مسدد بالكامل/)).toBeInTheDocument();
   });
 
-  it('prevents K-NET confirm sale when idle and enables it after manual receipt confirmation', () => {
-    const mockPos = createMockPos(12);
+  it('prevents K-NET confirm sale when idle on managed terminal hardware and enables it after manual receipt confirmation', () => {
+    const mockPos = {
+      ...createMockPos(12),
+      settings: { currency: 'KWD', posTerminalEnabled: true },
+      settingsQuery: { data: { currency: 'KWD', posTerminalEnabled: true } },
+    };
     const confirmSaleMock = vi.fn();
 
     render(
@@ -164,7 +168,7 @@ describe('PosCheckoutExpressSection - Cash Input & Change Calculation', () => {
       />
     );
 
-    // K-NET is active, but button should be disabled initially (no bypass)
+    // K-NET is active on managed terminal hardware, button should be disabled initially waiting for approval
     const confirmButton = screen.getByRole('button', { name: /في انتظار دفع كي نت بالماكينة/i });
     expect(confirmButton).toBeDisabled();
 
@@ -197,6 +201,35 @@ describe('PosCheckoutExpressSection - Cash Input & Change Calculation', () => {
 
     // Clicking confirm sale calls onConfirmSale
     fireEvent.click(readyConfirmBtn);
+    expect(confirmSaleMock).toHaveBeenCalled();
+  });
+
+  it('allows instant card confirmation on standard desktop PC when terminal hardware is not enabled', () => {
+    const mockPos = createMockPos(12);
+    const confirmSaleMock = vi.fn();
+
+    render(
+      <PosCheckoutExpressSection
+        pos={mockPos as any}
+        isKwdStore={true}
+        isKsaStore={false}
+        isPaymentActive={(preset) => preset === 'card'}
+        onSelectPaymentPreset={vi.fn()}
+        onConfirmSale={confirmSaleMock}
+        onSwitchToDetailed={vi.fn()}
+        selectedCustomerName="عميل نقدي"
+        onOpenCustomerPicker={vi.fn()}
+        onOpenNotes={vi.fn()}
+        isNotesOpen={false}
+        cartQtySummaries={['1 قطعة']}
+      />
+    );
+
+    // On standard desktop PC, confirm button is immediately ready and enabled
+    const confirmButton = screen.getByRole('button', { name: /تأكيد البيع والطباعة/i });
+    expect(confirmButton).not.toBeDisabled();
+
+    fireEvent.click(confirmButton);
     expect(confirmSaleMock).toHaveBeenCalled();
   });
 });

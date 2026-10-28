@@ -27,6 +27,7 @@ export function NewIssueOrderPage() {
     note,
     setNote,
     lines,
+    summary,
     isSubmitting,
     isPolling,
     errorMsg,
@@ -165,6 +166,7 @@ export function NewIssueOrderPage() {
               onUpdateLine={updateLine}
               onRemoveLine={removeLine}
               onQtyKeyDown={handleQtyKeyDown}
+              summary={summary}
             />
 
             <IssueOrderMobileCards
@@ -204,16 +206,43 @@ export function NewIssueOrderPage() {
           </div>
         </section>
 
-        <section className="document-prototype-section">
-          <h3 className="document-prototype-section-title">{t('inventory.new_issue_order_page.s8', "ملاحظات")}</h3>
-          <div className="document-prototype-grid">
-            <textarea
-              className="purchase-prototype-field-input"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder={t('inventory.new_issue_order_page.s9', "أي ملاحظات إضافية على إذن الصرف...")}
-              style={{ minHeight: '100px', resize: 'vertical', width: '100%' }}
-            />
+        {/* Section: Notes & Totals Summary */}
+        <section className="document-prototype-bottom-grid" style={{ marginTop: '16px' }}>
+          {/* Notes Card */}
+          <div className="document-prototype-section">
+            <h3 className="document-prototype-section-title">{t('inventory.new_issue_order_page.s8', "ملاحظات")}</h3>
+            <div className="document-prototype-grid">
+              <textarea
+                className="purchase-prototype-field-input"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder={t('inventory.new_issue_order_page.s9', "أي ملاحظات إضافية على إذن الصرف...")}
+                style={{ minHeight: '110px', resize: 'vertical', width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
+          </div>
+
+          {/* Totals / Summary Card */}
+          <div className="document-prototype-section document-totals-card">
+            <h3 className="document-prototype-section-title">{t('inventory.new_issue_order_page.summary_title', "ملخص إذن الصرف")}</h3>
+            <div className="document-totals-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ color: 'var(--text-secondary, #64748b)', fontWeight: 600 }}>
+                  {t('inventory.new_issue_order_page.items_count', "عدد الأصناف:")}
+                </span>
+                <strong style={{ color: '#0f172a', fontSize: '1rem', fontWeight: 800 }}>
+                  {summary.itemsCount} {t('inventory.new_issue_order_page.items_unit', "صنف")}
+                </strong>
+              </div>
+              <div className="document-total-grand" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0 4px', borderTop: '2px solid #e2e8f0', marginTop: '6px' }}>
+                <span style={{ color: '#170e5e', fontWeight: 700, fontSize: '0.95rem' }}>
+                  {t('inventory.new_issue_order_page.total_pieces', "عدد القطع:")}
+                </span>
+                <strong style={{ color: '#170e5e', fontSize: '1.25rem', fontWeight: 900 }}>
+                  {summary.totalPieces} {t('inventory.new_issue_order_page.pieces_unit', "قطعة")}
+                </strong>
+              </div>
+            </div>
           </div>
         </section>
       </div>

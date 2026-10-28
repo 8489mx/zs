@@ -159,6 +159,7 @@ export class InventoryTransferService {
         const availableAtSource = await previewAssignedLocationStockQty(trx, stockScope);
         ensureNonNegativeStock(Number(availableAtSource || 0) - Number(item.qty || 0), 'INSUFFICIENT_LOCATION_STOCK', `الكمية غير كافية في مخزن ${from.name} للصنف ${product.name}. المتاح: ${availableAtSource || 0}`);
 
+        const isFinalIssue = issueMode === 'final_issue';
         const trace = await dispatchTrackedStock(trx, scope, item, from.id, from.branchId, inTransitLocationId, id);
         await trx.insertInto('stock_transfer_items').values({
           transfer_id: id, product_id: item.productId, product_name: product.name || '', qty: item.qty,
@@ -166,13 +167,14 @@ export class InventoryTransferService {
           // "0.000" is truthy, so a later receiver cannot infer dispatch
           // quantity using ||. Persist the actual dispatch at source.
           dispatched_qty: Number(item.qty),
+          received_qty: isFinalIssue ? Number(item.qty) : 0,
+          variance_qty: 0,
           serial_tracking: JSON.stringify(trace.serialTracking), batch_tracking: JSON.stringify(trace.batchTracking),
           ...this.tenantFields(auth),
         } as any).execute();
 
         // Deduct from source. Only reduce global stock if final_issue (inTransitLocationId is null)
         const stockChange = await applyStockDelta(trx, { ...stockScope, delta: -Number(item.qty || 0), skipGlobalUpdate: inTransitLocationId !== null, disableAutoDrain: true, errorCode: 'INSUFFICIENT_LOCATION_STOCK', errorMessage: `Insufficient stock at ${from.name} for ${product.name}` });
-        const isFinalIssue = issueMode === 'final_issue';
         const originalUnitCost = Number(product.cost_price || 0);
         const unitCost = Number.isFinite(originalUnitCost) && originalUnitCost > 0 ? originalUnitCost : 0;
         const movement = await trx.insertInto('stock_movements').values({

@@ -8,6 +8,7 @@ import { withIdempotency } from '@/lib/idempotency';
 import { referenceDataApi } from '@/services/reference-data.api';
 import { queryKeys } from '@/app/query-keys';
 import { useFormDraft } from '@/shared/hooks/use-form-draft';
+import { toast } from '@/shared/components/system-alert';
 import { LineItem } from './types';
 
 export function useNewIssueOrderController() {
@@ -150,22 +151,26 @@ export function useNewIssueOrderController() {
     return ids;
   }, [stocks, fromLocationId]);
 
+  const selectedProductIds = useMemo(() => {
+    return new Set(lines.map(l => String(l.productId || '')).filter(Boolean));
+  }, [lines]);
+
   const productOptions = useMemo(() => {
     return products
-      .filter(p => availableProductIds.has(String(p.id)))
+      .filter(p => availableProductIds.has(String(p.id)) && !selectedProductIds.has(String(p.id)))
       .map(p => ({
         id: String(p.id),
         name: p.name,
         code: p.barcode || '',
         searchTerms: [p.name, p.barcode || ''].filter(Boolean).join(' ').toLowerCase(),
       }));
-  }, [products, availableProductIds]);
+  }, [products, availableProductIds, selectedProductIds]);
 
   const fetchProductOptions = async (query: string) => {
     try {
       const results = await inventoryApi.searchProducts(query);
       return results
-        .filter(p => availableProductIds.has(String(p.id)))
+        .filter(p => availableProductIds.has(String(p.id)) && !selectedProductIds.has(String(p.id)))
         .map(p => ({
           id: String(p.id),
           name: p.name,
@@ -180,7 +185,7 @@ export function useNewIssueOrderController() {
 
   const locationOptions = [
     { id: 'all', name: 'كل المخازن', searchTerms: 'كل المخازن all' },
-    ...locations.filter((l: any) => l.locationType === 'internal_warehouse' || l.locationType === 'external_warehouse' || !l.locationType).map((l) => ({
+    ...locations.filter((l: any) => l.locationType !== 'in_transit').map((l) => ({
       id: String(l.id),
       name: l.name,
       searchTerms: l.name.toLowerCase(),
@@ -205,6 +210,14 @@ export function useNewIssueOrderController() {
   };
 
   const handleSelectProduct = (lineId: number, productOption: { id: string; name: string }) => {
+    const existingLine = lines.find(l => l.id !== lineId && String(l.productId) === String(productOption.id));
+    if (existingLine) {
+      toast.warning(`الصنف "${productOption.name}" تم اختياره مسبقاً في الإذن.`);
+      setLines(prevLines => prevLines.map(l => l.id === lineId && !l.productId ? { ...l, productName: '' } : l));
+      setPendingFocusQtyLineId(existingLine.id);
+      return;
+    }
+
     setLines(prevLines => {
       const lineToUpdate = prevLines.find(l => l.id === lineId);
       let newLines = prevLines.map(l => l.id === lineId ? { ...l, productId: productOption.id, productName: productOption.name } : l);
@@ -290,6 +303,12 @@ export function useNewIssueOrderController() {
       let newLines = prevLines.map(l => l.id === id ? { ...l, [field]: actualValue } : l);
 
       if (field === 'productId' && value) {
+        const existingLine = prevLines.find(l => l.id !== id && String(l.productId) === String(value));
+        if (existingLine) {
+          toast.warning('الصنف مضاف مسبقاً في الإذن.');
+          return prevLines.map(l => l.id === id && !l.productId ? { ...l, productName: '' } : l);
+        }
+
         const product = products.find(p => String(p.id) === String(value));
         if (product) {
           newLines = newLines.map(l => l.id === id ? { ...l, productName: product.name } : l);
@@ -483,6 +502,8 @@ export function useNewIssueOrderController() {
       if (errors.length > 0) {
         const uniqueErrors = Array.from(new Set(errors));
         setErrorMsg(uniqueErrors.join(' - '));
+        idempotencyKeyRef.current = null;
+        currentPayloadRef.current = null;
         if (successfulTransfers.length === 0) {
           setIsSubmitting(false);
           return;
@@ -566,6 +587,16 @@ export function useNewIssueOrderController() {
     setNote('');
   };
 
+  const summary = useMemo(() => {
+    const validLines = lines.filter(l => Boolean(l.productId && Number(l.qty) > 0));
+    const itemsCount = validLines.length;
+    const totalPieces = validLines.reduce((acc, l) => acc + (Number(l.qty) || 0), 0);
+    return {
+      itemsCount,
+      totalPieces: Number(totalPieces.toFixed(3)),
+    };
+  }, [lines]);
+
   return {
     navigate,
     user,
@@ -582,6 +613,7 @@ export function useNewIssueOrderController() {
     note,
     setNote,
     lines,
+    summary,
     isSubmitting,
     isPolling,
     errorMsg,

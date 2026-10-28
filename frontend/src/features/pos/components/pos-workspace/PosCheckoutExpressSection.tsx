@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { CreditCardIcon, UserIcon, ChevronDownIcon, ChevronUpIcon, CheckIcon } from '@/shared/components/icons/AppIcons';
 import { toast } from '@/shared/components/system-alert';
+import { isStandalonePosTerminal } from '@/features/pos/lib/pos-shell';
 import type { PosWorkspaceState } from '@/features/pos/components/pos-workspace/posWorkspace.helpers';
 import type { PaymentPreset } from '@/features/pos/components/pos-workspace/PosCheckoutDialogSections';
 
@@ -50,6 +51,13 @@ export function PosCheckoutExpressSection({
   const effectiveReceivedCash = hasCustomCash ? parsedCash : total;
   const changeDue = effectiveReceivedCash >= total ? Number((effectiveReceivedCash - total).toFixed(2)) : 0;
   const underpaidAmount = effectiveReceivedCash < total ? Number((total - effectiveReceivedCash).toFixed(2)) : 0;
+
+  const isTerminalHardwareManaged = useMemo(() => Boolean(
+    isStandalonePosTerminal() ||
+    (typeof window !== 'undefined' && Boolean((window as any).AndroidBridge?.requestPayment || (window as any).SmartPos?.requestPayment || (window as any).SunmiPay?.sale)) ||
+    pos.settings?.posTerminalEnabled ||
+    (pos.settingsQuery?.data as any)?.posTerminalEnabled
+  ), [pos.settings?.posTerminalEnabled, pos.settingsQuery?.data]);
 
   useEffect(() => {
     if (isPaymentActive('cash')) {
@@ -149,8 +157,9 @@ export function PosCheckoutExpressSection({
         setTerminalMsg(err?.message || t('pos.terminal_connection_error', 'تعذر الاتصال بماكينة الدفع'));
       }
     } else {
-      // If no smart terminal is connected, guide directly to manual receipt input
-      setTerminalDispatchStatus('manual');
+      // Standard desktop PC / laptop POS without integrated terminal hardware:
+      // Keep idle so confirm button is immediately ready while allowing optional reference
+      setTerminalDispatchStatus('idle');
     }
   };
 
@@ -302,7 +311,7 @@ export function PosCheckoutExpressSection({
         </button>
 
         {/* Live Feedback for Handheld Smart POS & Terminal Dispatch */}
-        {isPaymentActive('card') && terminalDispatchStatus === 'idle' && !isManualCardConfirmed && !pos.terminalPaymentDetails?.authCode && (
+        {isPaymentActive('card') && isTerminalHardwareManaged && terminalDispatchStatus === 'idle' && !isManualCardConfirmed && !pos.terminalPaymentDetails?.authCode && (
           <div
             style={{
               background: '#f8fafc',
@@ -333,6 +342,27 @@ export function PosCheckoutExpressSection({
               }}
             >
               إتمام يدوي (ماكينة خارجية)
+            </button>
+          </div>
+        )}
+
+        {/* Optional Manual Reference for Desktop PC */}
+        {isPaymentActive('card') && !isTerminalHardwareManaged && terminalDispatchStatus === 'idle' && !isManualCardConfirmed && !pos.terminalPaymentDetails?.authCode && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-4px' }}>
+            <button
+              type="button"
+              onClick={() => setTerminalDispatchStatus('manual')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+                fontSize: '11px',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontFamily: 'inherit',
+              }}
+            >
+              {isKwdStore ? 'تسجيل رقم إيصال كي نت (اختياري)' : 'تسجيل رقم مرجع الإيصال (اختياري)'}
             </button>
           </div>
         )}
@@ -937,8 +967,8 @@ export function PosCheckoutExpressSection({
       {/* 4. Action Buttons */}
       {(() => {
         const isCardPayment = isPaymentActive('card');
-        const isCardReady = !isCardPayment || terminalDispatchStatus === 'approved' || isManualCardConfirmed || Boolean(pos.terminalPaymentDetails?.authCode || pos.terminalPaymentDetails?.rrn);
-        const isCardBlocked = isCardPayment && !isCardReady;
+        const isCardReady = !isCardPayment || !isTerminalHardwareManaged || terminalDispatchStatus === 'approved' || isManualCardConfirmed || Boolean(pos.terminalPaymentDetails?.authCode || pos.terminalPaymentDetails?.rrn);
+        const isCardBlocked = isCardPayment && isTerminalHardwareManaged && !isCardReady;
         const canConfirmNow = !pos.createSale.isPending && !isCardBlocked;
 
         return (

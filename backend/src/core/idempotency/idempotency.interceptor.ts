@@ -71,19 +71,21 @@ export class IdempotencyInterceptor implements NestInterceptor {
                   },
                 }),
                 catchError((err) => {
-                  if (err instanceof HttpException || err.status || err.name === 'AppError') {
-                    return from(
-                      this.idempotencyService.recordFailure(
-                        reservation,
-                        err.name || 'UNKNOWN_ERROR',
-                        err.getResponse ? err.getResponse() : { message: err.message }
-                      )
-                    ).pipe(
-                      switchMap(() => throwError(() => err)),
-                      catchError(() => throwError(() => err))
-                    );
-                  }
-                  return throwError(() => err);
+                  const errorCode = (err && (err.code || err.name)) ? String(err.code || err.name) : 'UNKNOWN_ERROR';
+                  const errorPayload = typeof err?.getResponse === 'function'
+                    ? err.getResponse()
+                    : { message: err?.message || 'Operation failed' };
+
+                  return from(
+                    this.idempotencyService.recordFailure(
+                      reservation,
+                      errorCode,
+                      errorPayload
+                    )
+                  ).pipe(
+                    switchMap(() => throwError(() => err)),
+                    catchError(() => throwError(() => err))
+                  );
                 })
               ).subscribe(subscriber);
             }

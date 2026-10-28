@@ -16,6 +16,7 @@ interface IssueOrderItemsTableProps {
   onUpdateLine: (lineId: number, field: keyof LineItem, value: any) => void;
   onRemoveLine: (lineId: number) => void;
   onQtyKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, lineId: number) => void;
+  summary?: { itemsCount: number; totalPieces: number };
 }
 
 export const IssueOrderItemsTable: React.FC<IssueOrderItemsTableProps> = ({
@@ -30,6 +31,7 @@ export const IssueOrderItemsTable: React.FC<IssueOrderItemsTableProps> = ({
   onUpdateLine,
   onRemoveLine,
   onQtyKeyDown,
+  summary,
 }) => {
   const { t } = useTranslation();
   return (
@@ -143,6 +145,26 @@ export const IssueOrderItemsTable: React.FC<IssueOrderItemsTableProps> = ({
               );
             })}
           </tbody>
+          {summary && (
+            <tfoot style={{ backgroundColor: 'var(--surface-color, #f8fafc)', borderTop: '2px solid var(--border-color, #e2e8f0)', fontWeight: 700 }}>
+              <tr>
+                <td style={{ padding: '10px 16px', color: 'var(--text-secondary, #64748b)' }}>
+                  {t('inventory.issue_order.issue_order_items_table.s6', "عدد الأصناف:")}{' '}
+                  <strong style={{ color: 'var(--text-primary, #0f172a)', fontSize: '0.95rem' }}>
+                    {summary.itemsCount}
+                  </strong>
+                </td>
+                {fromLocationId === 'all' && <td />}
+                <td style={{ padding: '10px 16px', color: 'var(--text-secondary, #64748b)', textAlign: 'left' }}>
+                  {t('inventory.issue_order.issue_order_items_table.s7', "عدد القطع:")}
+                </td>
+                <td style={{ padding: '10px 16px', color: '#170e5e', fontWeight: 800, fontSize: '1rem' }}>
+                  {summary.totalPieces}
+                </td>
+                <td />
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
