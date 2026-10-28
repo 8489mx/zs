@@ -214,3 +214,66 @@ body:has(.content-wrap-pos) {
     flex: 0 0 auto;
   }
 }
+
+/* Mobile & Handheld POS Terminal (Sunmi, Kiosk, Mobile Viewports)
+   Guarantees zero horizontal clipping, zero asymmetric shifting in RTL, and balanced gutters. */
+@media (max-width: 900px) {
+  .app-layout.app-layout-pos .content-wrap,
+  .app-layout.app-layout-pos-focus .content-wrap,
+  .content-wrap.content-wrap-pos,
+  .content-wrap.content-wrap-pos-focus {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-inline: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-inline: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .content-wrap.content-wrap-pos > .page-stack,
+  .content-wrap.content-wrap-pos-focus > .page-stack,
+  .page-stack.page-stack-pos {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-inline: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-inline: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pos-workspace {
+    padding: 4px 6px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .pos-workspace .pos-page-header {
+    padding: 6px 8px !important;
+    margin-bottom: 6px !important;
+    border-radius: 10px !important;
+  }
+
+  .pos-workspace .pos-products-card {
+    padding: 6px 6px !important;
+    margin: 0 !important;
+    border-radius: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pos-product-group-grid,
+  .product-pick-grid {
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+

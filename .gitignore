@@ -79,6 +79,7 @@ android-app-lite/bin/
 android-app-lite/*.keystore
 *.idsig
 screen*.png
+tools/platform-tools/
 tools/z-systems-bridge/dist/
 tools/z-systems-bridge/*.exe
 tools/*.exe
