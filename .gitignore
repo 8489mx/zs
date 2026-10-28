@@ -71,6 +71,7 @@ backend/runtime/
 .last_migrated_*
 **/.last_migrated_*
 *.apk
+!frontend/public/Z-POS-Lite.apk
 *.aab
 android-app/bin/
 android-app/*.keystore
