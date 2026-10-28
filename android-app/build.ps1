@@ -56,8 +56,12 @@ if (-not (Test-Path $KEYSTORE)) {
     --ks $KEYSTORE `
     --ks-pass pass:zsystems123 `
     --key-pass pass:zsystems123 `
-    --out "d:\zn\Z-Systems-ERP.apk" `
+    --out "d:\zn\zf.apk" `
     "$APP_DIR\bin\app.aligned.apk"
 
-Write-Host "SUCCESS! Generated d:\zn\Z-Systems-ERP.apk"
-Get-Item "d:\zn\Z-Systems-ERP.apk" | Select-Object Name, Length
+Copy-Item -Force "d:\zn\zf.apk" "d:\zn\Z-Systems-ERP.apk"
+Copy-Item -Force "d:\zn\zf.apk" "d:\zn\frontend\public\zf.apk"
+Copy-Item -Force "d:\zn\zf.apk" "d:\zn\frontend\public\Z-Systems-ERP.apk"
+
+Write-Host "SUCCESS! Generated d:\zn\zf.apk and d:\zn\Z-Systems-ERP.apk"
+Get-Item "d:\zn\zf.apk" | Select-Object Name, Length

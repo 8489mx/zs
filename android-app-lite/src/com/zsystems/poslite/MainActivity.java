@@ -369,12 +369,29 @@ public class MainActivity extends Activity {
         if (view == null) return;
         String js = "(function() {" +
             "try { localStorage.setItem('zsystems.pos.standalone', 'true'); } catch(e) {}" +
+            "var css = '.mobile-bottom-nav, .app-header, .mobile-sidebar-toggle, .sidebar-mobile-overlay, .sidebar-fixed, aside.sidebar-fixed { display: none !important; } ' +" +
+            "'.app-layout, .main-col, .content-wrap, .content-wrap-pos, .content-wrap-pos-focus, main.page-stack, .page-stack-pos, [dir=\\\"rtl\\\"] .content-wrap, [dir=\\\"ltr\\\"] .content-wrap, [dir=\\\"rtl\\\"] .content-wrap:has(.pos-workspace), [dir=\\\"ltr\\\"] .content-wrap:has(.pos-workspace), html[dir=\\\"rtl\\\"] .content-wrap, html[dir=\\\"ltr\\\"] .content-wrap { padding-left: 0 !important; padding-right: 0 !important; padding-inline: 0 !important; padding-top: 0 !important; margin-left: 0 !important; margin-right: 0 !important; margin-inline: 0 !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; } ' +" +
+            "'.pos-workspace { padding: 4px 6px !important; width: 100% !important; max-width: 100% !important; margin: 0 !important; box-sizing: border-box !important; } ' +" +
+            "'.pos-workspace .pos-page-header { padding: 6px 8px !important; margin-bottom: 6px !important; border-radius: 10px !important; } ' +" +
+            "'.pos-workspace .pos-mobile-tab-switcher { margin-bottom: 6px !important; } ' +" +
+            "'.pos-workspace .pos-products-card { padding: 6px 6px !important; margin: 0 !important; border-radius: 10px !important; width: 100% !important; box-sizing: border-box !important; } ' +" +
+            "'.pos-workspace .pos-products-static, .pos-workspace .pos-products-viewport-wrapper, .pos-workspace .pos-products-scroll { width: 100% !important; box-sizing: border-box !important; } ' +" +
+            "'.pos-product-group-grid, .product-pick-grid { gap: 6px !important; width: 100% !important; box-sizing: border-box !important; }';" +
+            "function applyPosStyles() {" +
+            "  var s = document.getElementById('__pos_lite_clean');" +
+            "  if (!s) {" +
+            "    s = document.createElement('style');" +
+            "    s.id = '__pos_lite_clean';" +
+            "    (document.head || document.documentElement).appendChild(s);" +
+            "  }" +
+            "  if (s.textContent !== css) s.textContent = css;" +
+            "}" +
+            "applyPosStyles();" +
+            "if (!window.__pos_style_interval) {" +
+            "  window.__pos_style_interval = setInterval(applyPosStyles, 500);" +
+            "}" +
             "if (window.__sunmi_hooked) return;" +
             "window.__sunmi_hooked = true;" +
-            "var s = document.createElement('style');" +
-            "s.id = '__pos_lite_clean';" +
-            "s.textContent = '.mobile-bottom-nav, .app-header, .mobile-sidebar-toggle, .sidebar-mobile-overlay, .sidebar-fixed, aside.sidebar-fixed { display: none !important; } .app-layout, .main-col, .content-wrap, .content-wrap-pos, .content-wrap-pos-focus, main.page-stack, .page-stack-pos { padding-left: 0 !important; padding-right: 0 !important; padding-inline: 0 !important; margin-left: 0 !important; margin-right: 0 !important; margin-inline: 0 !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; } .pos-workspace { padding: 4px 6px !important; width: 100% !important; max-width: 100% !important; margin: 0 auto !important; box-sizing: border-box !important; } .pos-workspace .pos-page-header { padding: 6px 8px !important; margin-bottom: 6px !important; border-radius: 10px !important; } .pos-workspace .pos-products-card { padding: 6px 6px !important; margin: 0 !important; border-radius: 10px !important; width: 100% !important; box-sizing: border-box !important; } .pos-product-group-grid, .product-pick-grid { gap: 6px !important; width: 100% !important; box-sizing: border-box !important; }';" +
-            "document.head.appendChild(s);" +
             "var origOpen = window.open;" +
             "window.open = function(u, t, f) {" +
             "  var buf = '';" +

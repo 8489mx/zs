@@ -72,6 +72,9 @@ backend/runtime/
 **/.last_migrated_*
 *.apk
 !frontend/public/Z-POS-Lite.apk
+!frontend/public/zl.apk
+!frontend/public/zf.apk
+!frontend/public/Z-Systems-ERP.apk
 *.aab
 android-app/bin/
 android-app/*.keystore

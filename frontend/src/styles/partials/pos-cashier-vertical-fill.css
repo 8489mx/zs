@@ -220,11 +220,17 @@ body:has(.content-wrap-pos) {
 @media (max-width: 900px) {
   .app-layout.app-layout-pos .content-wrap,
   .app-layout.app-layout-pos-focus .content-wrap,
+  .content-wrap:has(.pos-workspace),
+  [dir="rtl"] .content-wrap:has(.pos-workspace),
+  [dir="ltr"] .content-wrap:has(.pos-workspace),
+  html[dir="rtl"] .content-wrap:has(.pos-workspace),
+  html[dir="ltr"] .content-wrap:has(.pos-workspace),
   .content-wrap.content-wrap-pos,
   .content-wrap.content-wrap-pos-focus {
     padding-left: 0 !important;
     padding-right: 0 !important;
     padding-inline: 0 !important;
+    padding-top: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
     margin-inline: 0 !important;
@@ -233,12 +239,15 @@ body:has(.content-wrap-pos) {
     box-sizing: border-box !important;
   }
 
+  .content-wrap:has(.pos-workspace) > .page-stack,
   .content-wrap.content-wrap-pos > .page-stack,
   .content-wrap.content-wrap-pos-focus > .page-stack,
-  .page-stack.page-stack-pos {
+  .page-stack.page-stack-pos,
+  main.page-stack {
     padding-left: 0 !important;
     padding-right: 0 !important;
     padding-inline: 0 !important;
+    padding-top: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
     margin-inline: 0 !important;
@@ -251,7 +260,7 @@ body:has(.content-wrap-pos) {
     padding: 4px 6px !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin: 0 auto !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
   }
 
@@ -261,10 +270,21 @@ body:has(.content-wrap-pos) {
     border-radius: 10px !important;
   }
 
+  .pos-workspace .pos-mobile-tab-switcher {
+    margin-bottom: 6px !important;
+  }
+
   .pos-workspace .pos-products-card {
     padding: 6px 6px !important;
     margin: 0 !important;
     border-radius: 10px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .pos-workspace .pos-products-static,
+  .pos-workspace .pos-products-viewport-wrapper,
+  .pos-workspace .pos-products-scroll {
     width: 100% !important;
     box-sizing: border-box !important;
   }
