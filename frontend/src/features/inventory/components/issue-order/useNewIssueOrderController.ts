@@ -360,9 +360,19 @@ export function useNewIssueOrderController() {
       setErrorMsg('يرجى تحديد مخزن الصرف والفرع المستلم');
       return;
     }
-    const validLines = lines.filter(l => l.productId && l.qty > 0);
+    const validLines = lines.filter(l => {
+      const pId = Number(l.productId);
+      const q = Number(l.qty);
+      return Number.isSafeInteger(pId) && pId > 0 && Number.isFinite(q) && q > 0;
+    });
     if (validLines.length === 0) {
-      setErrorMsg('يرجى إضافة صنف واحد على الأقل');
+      setErrorMsg('يرجى إضافة صنف واحد على الأقل وتحديد كميته');
+      return;
+    }
+
+    const toBranchIdNum = Number(toLocationId);
+    if (!Number.isSafeInteger(toBranchIdNum) || toBranchIdNum <= 0) {
+      setErrorMsg('يرجى تحديد فرع المستلم بشكل صحيح');
       return;
     }
 
@@ -384,7 +394,7 @@ export function useNewIssueOrderController() {
     }
 
     if (fromLocationId === 'all') {
-      const missingLocations = validLines.some(l => !l.fromLocationId);
+      const missingLocations = validLines.some(l => !l.fromLocationId || l.fromLocationId === 'all' || !Number(l.fromLocationId));
       if (missingLocations) {
         setErrorMsg('يرجى تحديد مخزن الصرف لكل الأصناف المضافة');
         return;
@@ -407,11 +417,20 @@ export function useNewIssueOrderController() {
       }
 
       const groupedLines = validLines.reduce((acc, line) => {
-        const locId = fromLocationId === 'all' ? line.fromLocationId! : fromLocationId;
-        if (!acc[locId]) acc[locId] = [];
-        acc[locId].push(line);
+        const rawLoc = fromLocationId === 'all' ? line.fromLocationId : fromLocationId;
+        const locNum = Number(rawLoc);
+        if (!Number.isSafeInteger(locNum) || locNum <= 0) return acc;
+        const key = String(locNum);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(line);
         return acc;
       }, {} as Record<string, LineItem[]>);
+
+      if (Object.keys(groupedLines).length === 0) {
+        setErrorMsg('يرجى تحديد مخزن الصرف بشكل صحيح');
+        setIsSubmitting(false);
+        return;
+      }
 
       const successfulTransfers: any[] = [];
       const errors: string[] = [];
@@ -423,7 +442,7 @@ export function useNewIssueOrderController() {
           return withIdempotency(
             (headers) => inventoryApi.createStockTransfer({
               fromLocationId: Number(locId),
-              toBranchId: Number(toLocationId),
+              toBranchId: toBranchIdNum,
               recipientName,
               note,
               issueMode,
@@ -452,7 +471,8 @@ export function useNewIssueOrderController() {
             }
           }
         } else {
-          errors.push(r.reason?.message || 'حدث خطأ أثناء اعتماد إذن الصرف');
+          const serverMsg = (r.reason as any)?.response?.data?.message || r.reason?.message || 'حدث خطأ أثناء اعتماد إذن الصرف';
+          errors.push(serverMsg);
         }
       });
 
@@ -461,7 +481,8 @@ export function useNewIssueOrderController() {
       queryClient.invalidateQueries({ queryKey: ['manager-actions'] });
 
       if (errors.length > 0) {
-        setErrorMsg(errors.join('\n'));
+        const uniqueErrors = Array.from(new Set(errors));
+        setErrorMsg(uniqueErrors.join(' - '));
         if (successfulTransfers.length === 0) {
           setIsSubmitting(false);
           return;

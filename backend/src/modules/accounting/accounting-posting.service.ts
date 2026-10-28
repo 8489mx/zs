@@ -2523,7 +2523,7 @@ export class AccountingPostingService {
       .where('code', '=', code)
       .executeTakeFirst();
 
-    const dedicatedTypes: Record<string, string> = { '1165': 'asset', '2160': 'liability', '2155': 'liability', '7170': 'revenue', '7270': 'expense', '5190': 'expense' };
+    const dedicatedTypes: Record<string, string> = { '1165': 'asset', '2160': 'liability', '2155': 'liability', '7170': 'revenue', '7270': 'expense', '5190': 'expense', '5300': 'expense', '6900': 'expense' };
     if (account && dedicatedTypes[code] && account.account_type !== dedicatedTypes[code]) throw new AppError('Dedicated system account has an incompatible type', 'SYSTEM_ACCOUNT_TYPE_MISMATCH', 409);
     if (!account) {
       const knownAccounts: Record<string, { name_ar: string; name_en: string; type: string; group: string; balance: string }> = {
@@ -2558,6 +2558,8 @@ export class AccountingPostingService {
         '6400': { name_ar: 'مصاريف نقل وشحن ووقود رحلات', name_en: 'Delivery, Fuel & Freight Expense', type: 'expense', group: 'operating_expenses', balance: 'debit' },
         '5190': { name_ar: 'فروق سعر الشراء والمرتجعات', name_en: 'Purchase Price Variance', type: 'expense', group: 'cogs', balance: 'debit' },
         '5200': { name_ar: 'فروق تكلفة المخزون', name_en: 'Inventory Cost Variance', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
+        '5300': { name_ar: 'هالك وفاقد بضاعة أثناء النقل', name_en: 'In-Transit Inventory Shrinkage', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
+        '6900': { name_ar: 'مواد ومستلزمات تشغيل مصروفة', name_en: 'Issued Operating Materials Expense', type: 'expense', group: 'operating_expenses', balance: 'debit' },
         '4100': { name_ar: 'مبيعات المنتجات', name_en: 'Product Sales', type: 'revenue', group: 'income', balance: 'credit' },
         '5100': { name_ar: 'تكلفة بضاعة مباعة', name_en: 'COGS', type: 'expense', group: 'cost_of_sales', balance: 'debit' },
       };

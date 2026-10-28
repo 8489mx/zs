@@ -79,6 +79,14 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   NO_STOCK: 'لا يوجد مخزون كافي لنقله في الموقع المصدر.',
   INVENTORY_COST_MISSING: 'الصنف ليس له سعر تكلفة مسجل لتوليد القيد المالي.',
   LEDGER_POSTING_MISSING: 'تعذر إنشاء قيد اليومية المالي للعملية.',
+  TRANSFER_SERIALS_REQUIRED: 'يرجى تحديد أرقام السيريال المطلوب صرفها.',
+  TRANSFER_SERIALS_INSUFFICIENT: 'رصيد السيريالات المتاحة في المخزن غير كافٍ لتغطية الكمية.',
+  TRANSFER_SERIALS_NOT_AVAILABLE: 'أرقام السيريال المحددة غير متوفرة في مخزن الصرف.',
+  TRANSFER_BATCH_ALLOCATION_REQUIRED: 'يرجى تحديد تشغيلات الصنف بدقة أو التأكد من توفر الرصيد.',
+  TRANSFER_BATCH_ALLOCATION_INSUFFICIENT: 'رصيد تشغيلات الصنف في المخزن غير كافٍ لتغطية الكمية المطلوبة.',
+  TRANSFER_BATCH_NOT_AVAILABLE: 'التشغيلة المحددة غير موجودة أو رصيدها غير كافٍ في المخزن.',
+  TRANSFER_DESTINATION_MISSING: 'مخزن أو فرع الاستلام غير محدد.',
+  FINAL_ISSUE_JOURNAL_MISSING: 'تعذر إنشاء قيد يومية متوازن لإذن الصرف النهائي.',
 };
 
 function looksArabic(value: string): boolean {

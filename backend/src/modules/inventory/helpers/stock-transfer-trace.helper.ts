@@ -55,13 +55,13 @@ export async function dispatchTrackedStock(
     if (requested.some(s => !s) || requested.length !== new Set(requested).size) {
       throw new AppError('السيريالات غير صالحة أو مكررة', 'TRANSFER_SERIAL_SELECTION_INVALID', 400);
     }
-    if (!requested.length && available.length !== qty) {
-      throw new AppError('حدد السيريالات المطلوب تحويلها', 'TRANSFER_SERIALS_REQUIRED', 422);
+    if (!requested.length && available.length < qty) {
+      throw new AppError('رصيد السيريالات المتاحة في المخزن غير كافٍ', 'TRANSFER_SERIALS_INSUFFICIENT', 409);
     }
     const selected = requested.length
       ? available.filter(s => requested.includes(s.serial_number.toLowerCase()) ||
         Boolean(s.imei_2 && requested.includes(s.imei_2.toLowerCase())))
-      : available;
+      : available.slice(0, qty);
     if (selected.length !== qty || (requested.length > 0 && requested.length !== selected.length)) {
       throw new AppError('السيريالات لا تطابق رصيد مخزن المصدر', 'TRANSFER_SERIALS_NOT_AVAILABLE', 409);
     }
@@ -83,13 +83,23 @@ export async function dispatchTrackedStock(
       .where('location_id', '=', fromLocationId).where('quantity', '>', 0)
       .orderBy('id', 'asc').forUpdate().execute();
     let allocations = input.batchAllocations || [];
-    if (!allocations.length && candidates.length === 1 && Number(candidates[0].quantity) + 1e-7 >= qty) {
-      allocations = [{ batchId: Number(candidates[0].id), qty }];
+    if (!allocations.length) {
+      let remaining = qty;
+      allocations = [];
+      for (const candidate of candidates) {
+        if (remaining <= 0) break;
+        const availableInBatch = Number(candidate.quantity || 0);
+        if (availableInBatch > 0) {
+          const take = Math.min(availableInBatch, remaining);
+          allocations.push({ batchId: Number(candidate.id), qty: roundQty(take) });
+          remaining = roundQty(remaining - take);
+        }
+      }
     }
     const ids = allocations.map(a => Number(a.batchId));
     if (!allocations.length || new Set(ids).size !== ids.length ||
       Math.abs(roundQty(allocations.reduce((sum, a) => sum + preciseQty(a.qty), 0)) - qty) > 1e-7) {
-      throw new AppError('حدد توزيع الكمية على التشغيلات بدقة', 'TRANSFER_BATCH_ALLOCATION_REQUIRED', 422);
+      throw new AppError('حدد توزيع الكمية على التشغيلات بدقة أو تأكد من كفاية الرصيد', 'TRANSFER_BATCH_ALLOCATION_REQUIRED', 422);
     }
     for (const allocation of [...allocations].sort((a, b) => a.batchId - b.batchId)) {
       const batch = candidates.find(candidate => Number(candidate.id) === Number(allocation.batchId));
