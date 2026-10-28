@@ -25,7 +25,6 @@ export function getContrastTextColor(hexColor?: string, darkText = '#0f172a', li
   if (!hexColor) return lightText;
   try {
     const lum = getLuminance(hexColor);
-    // WCAG threshold: if luminance > 0.45, dark text is required for high contrast
     return lum > 0.45 ? darkText : lightText;
   } catch {
     return lightText;
@@ -44,6 +43,18 @@ export function getHexAlpha(hexColor: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+export function darkenHexColor(hexColor: string, factor = 0.8): string {
+  if (!hexColor) return '#120b4c';
+  const clean = hexColor.replace('#', '').trim();
+  const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
+  if (full.length !== 6) return '#120b4c';
+  const r = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(0, 2), 16) * factor)));
+  const g = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(2, 4), 16) * factor)));
+  const b = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(4, 6), 16) * factor)));
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#120b4c';
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 export function applyStorefrontThemeVariables(info?: {
   brandColor?: string;
   brandSecondaryColor?: string;
@@ -53,6 +64,7 @@ export function applyStorefrontThemeVariables(info?: {
   const root = document.documentElement;
 
   const primary = info?.brandColor || '#170e5e';
+  const primaryHover = darkenHexColor(primary, 0.8);
   const secondary = info?.brandSecondaryColor || '#d97706';
   const surface = info?.brandSurfaceColor || '#f8fafc';
 
@@ -62,6 +74,7 @@ export function applyStorefrontThemeVariables(info?: {
   const surfaceBorder = getLuminance(surface) > 0.85 ? '#e2e8f0' : getHexAlpha(surfaceContrast, 0.15);
 
   root.style.setProperty('--storefront-primary-color', primary);
+  root.style.setProperty('--storefront-primary-hover', primaryHover);
   root.style.setProperty('--storefront-primary-contrast', primaryContrast);
   root.style.setProperty('--storefront-primary-subtle', getHexAlpha(primary, 0.08));
 

@@ -3,11 +3,14 @@ import { useTranslation } from 'react-i18next';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { ShoppingCartIcon, PhoneIcon, CheckCircleIcon, EyeIcon } from '@/shared/components/icons/AppIcons';
-import { resolveProductPhoto } from '../lib/storefront-photo-matcher';
+import { resolveProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
+import { IconStar, IconWhatsapp } from './StorefrontIcons';
 
 interface StorefrontInteractiveSpotlightBreakProps {
   product: StorefrontProduct;
+  dealProducts?: StorefrontProduct[];
   cartQuantity: number;
+  cartMap?: Map<number, number>;
   whatsappPhone?: string;
   onAddToCart: (product: StorefrontProduct) => void;
   onUpdateQuantity: (productId: number, qty: number) => void;
@@ -15,14 +18,21 @@ interface StorefrontInteractiveSpotlightBreakProps {
 }
 
 export const StorefrontInteractiveSpotlightBreak = React.memo(function StorefrontInteractiveSpotlightBreak({
-  product,
-  cartQuantity,
+  product: initialProduct,
+  dealProducts = [],
+  cartQuantity: initialCartQty,
+  cartMap,
   whatsappPhone,
   onAddToCart,
   onUpdateQuantity,
   onQuickView,
 }: StorefrontInteractiveSpotlightBreakProps) {
   const { t } = useTranslation();
+  const pool = dealProducts.length > 0 ? dealProducts.slice(0, 4) : (initialProduct ? [initialProduct] : []);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const product = pool[selectedIndex] || initialProduct;
+
+  const cartQuantity = cartMap ? (cartMap.get(product?.id) || 0) : initialCartQty;
   const [localQty, setLocalQty] = useState(cartQuantity > 0 ? cartQuantity : 1);
 
   if (!product) return null;
@@ -36,19 +46,24 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
     ? Math.round(((oldPrice - product.price) / oldPrice) * 100)
     : 20;
 
+  const stockRemaining = Math.max(3, Math.min(25, product.stockQty || 12));
+  const claimedPercent = Math.min(92, Math.max(64, 100 - stockRemaining * 2));
+
   const handleIncrement = () => {
-    const next = localQty + 1;
+    const current = cartQuantity > 0 ? cartQuantity : localQty;
+    const next = current + 1;
     setLocalQty(next);
     if (cartQuantity > 0) onUpdateQuantity(product.id, next);
   };
 
   const handleDecrement = () => {
-    if (localQty <= 1) {
+    const current = cartQuantity > 0 ? cartQuantity : localQty;
+    if (current <= 1) {
       if (cartQuantity > 0) onUpdateQuantity(product.id, 0);
       setLocalQty(1);
       return;
     }
-    const next = localQty - 1;
+    const next = current - 1;
     setLocalQty(next);
     if (cartQuantity > 0) onUpdateQuantity(product.id, next);
   };
@@ -66,80 +81,118 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
     : undefined;
 
   return (
-    <div
+    <section
       className="storefront-spotlight-breakaway"
       style={{
-        margin: '28px 0',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #170e5e 100%)',
-        borderRadius: '20px',
-        padding: '24px 28px',
+        margin: '16px 0',
+        background: 'linear-gradient(135deg, #0b0f19 0%, var(--storefront-primary-color, #170e5e) 55%, var(--storefront-primary-hover, #120b4c) 100%)',
+        borderRadius: '26px',
+        padding: '28px',
         color: '#ffffff',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.15)',
+        boxShadow: '0 16px 36px -8px rgba(15, 23, 42, 0.22)',
       }}
     >
-      {/* Background ambient glow circles */}
+      {/* Top Bar: Deal of the Day Title + Product Switcher Tabs */}
       <div
         style={{
-          position: 'absolute',
-          top: '-40px',
-          left: '-40px',
-          width: '180px',
-          height: '180px',
-          borderRadius: '50%',
-          background: 'rgba(99, 102, 241, 0.15)',
-          filter: 'blur(40px)',
-          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          paddingBottom: '18px',
+          marginBottom: '22px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.12)',
+          position: 'relative',
+          zIndex: 2,
         }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '-30px',
-          right: '20%',
-          width: '150px',
-          height: '150px',
-          borderRadius: '50%',
-          background: 'rgba(236, 72, 153, 0.12)',
-          filter: 'blur(35px)',
-          pointerEvents: 'none',
-        }}
-      />
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <span
+            style={{
+              background: '#e11d48',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 900,
+              padding: '4px 12px',
+              borderRadius: '8px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            صفقة اليوم
+          </span>
+          <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 600 }}>
+            وفر أكثر مع خصومات اليوم المحدودة
+          </span>
+        </div>
+
+        {pool.length > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            {pool.map((item, idx) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setSelectedIndex(idx);
+                  setLocalQty(1);
+                }}
+                style={{
+                  background: idx === selectedIndex ? '#fbbf24' : 'rgba(255, 255, 255, 0.08)',
+                  color: idx === selectedIndex ? '#0f172a' : '#e2e8f0',
+                  border: idx === selectedIndex ? 'none' : '1px solid rgba(255, 255, 255, 0.16)',
+                  borderRadius: '12px',
+                  padding: '0 14px',
+                  height: '35px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontVariantNumeric: 'tabular-nums',
+                  transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease',
+                  boxSizing: 'border-box',
+                }}
+              >
+                عرض #{idx + 1}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           alignItems: 'center',
-          gap: '24px',
+          gap: '28px',
           position: 'relative',
-          zIndex: 1,
+          zIndex: 2,
         }}
       >
-        {/* Right side: Image showcase */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-          }}
-        >
+        {/* Right Column: Studio Product Stage */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
+            onClick={() => onQuickView?.(product)}
             style={{
               width: '100%',
-              maxWidth: '320px',
-              height: '240px',
-              borderRadius: '16px',
+              maxWidth: '250px',
+              aspectRatio: '1 / 1',
+              borderRadius: '20px',
               background: '#ffffff',
-              padding: '16px',
+              border: 'none',
+              padding: '12px',
               boxSizing: 'border-box',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+              boxShadow: '0 16px 32px rgba(0,0,0,0.3)',
               position: 'relative',
+              cursor: onQuickView ? 'pointer' : 'default',
             }}
           >
             <div
@@ -147,24 +200,27 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 position: 'absolute',
                 top: '12px',
                 right: '12px',
-                background: '#dc2626',
+                background: '#0f172a',
                 color: '#ffffff',
-                fontSize: '11px',
-                fontWeight: 800,
+                fontSize: '11.5px',
+                fontWeight: 900,
                 padding: '4px 10px',
                 borderRadius: '8px',
-                boxShadow: '0 2px 6px rgba(220, 38, 38, 0.3)',
+                fontVariantNumeric: 'tabular-nums',
               }}
             >
-              {t('storefront.spotlight.badge', 'صفقة اليوم | خصم {{percent}}%', { percent: discountPercent })}
+              {(!product.inStock || product.stockQty <= 0) ? 'نفدت الكمية' : t('storefront.spotlight.badge', 'خصم {{percent}}%', { percent: discountPercent })}
             </div>
 
             <img
               src={displayPhotoUrl}
               alt={product.name}
+              onError={(e) => {
+                e.currentTarget.src = generatePremiumProductSvg(product.name, product.categoryName);
+              }}
               style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
+                width: '100%',
+                height: '100%',
                 objectFit: 'contain',
               }}
               loading="lazy"
@@ -172,44 +228,26 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
           </div>
         </div>
 
-        {/* Left side: Content & Action */}
+        {/* Left Column: Details, Stock Progress & Instant Stepper */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                background: 'rgba(255, 255, 255, 0.12)',
-                color: '#f8fafc',
-                fontSize: '11px',
-                fontWeight: 700,
-                padding: '4px 12px',
-                borderRadius: '20px',
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}
-            >
-              {product.categoryName || 'عرض مميز'}
-            </span>
-            <span
-              style={{
-                background: 'rgba(245, 158, 11, 0.2)',
-                color: '#fbbf24',
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '4px 10px',
-                borderRadius: '20px',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-              }}
-            >
-              {t('storefront.spotlight.limited_stock', 'متبقي كمية محدودة بالسعر المخفض')}
+          {/* Unboxed Metadata Line */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#cbd5e1', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ color: '#fbbf24' }}>{product.categoryName || 'أفضل العروض'}</span>
+            <span>·</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <IconStar size={13} fill="#fbbf24" color="#fbbf24" />
+              <strong style={{ color: '#ffffff' }}>{Number(product.rating || 4.9).toFixed(1)}</strong>
+              <span>({product.reviewCount || 120} تقييم)</span>
             </span>
           </div>
 
           <h3
             style={{
               margin: 0,
-              fontSize: '20px',
-              fontWeight: 800,
+              fontSize: 'clamp(1.25rem, 2.2vw, 1.65rem)',
+              fontWeight: 900,
               color: '#ffffff',
-              lineHeight: 1.35,
+              lineHeight: 1.3,
             }}
           >
             {product.name}
@@ -219,12 +257,9 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
             <p
               style={{
                 margin: 0,
-                fontSize: '13px',
+                fontSize: '13.5px',
                 color: '#cbd5e1',
-                lineHeight: 1.5,
-                maxHeight: '44px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                lineHeight: 1.6,
               }}
             >
               {product.description}
@@ -232,61 +267,84 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
           )}
 
           {/* Pricing Row */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
             <div
               style={{
-                fontSize: '24px',
+                fontSize: '28px',
                 fontWeight: 900,
                 color: '#ffffff',
                 display: 'inline-flex',
-                alignItems: 'center',
+                alignItems: 'baseline',
                 gap: '4px',
               }}
             >
-              <span>{product.price}</span>
-              <CurrencySymbol />
+              <span>{product.price.toLocaleString('en-US')}</span>
+              <span style={{ fontSize: '14px' }}><CurrencySymbol /></span>
             </div>
 
             {oldPrice > product.price && (
               <span
                 style={{
-                  fontSize: '14px',
+                  fontSize: '15px',
                   color: '#94a3b8',
                   textDecoration: 'line-through',
+                  fontWeight: 600,
                 }}
               >
-                {oldPrice} <CurrencySymbol />
+                {oldPrice.toLocaleString('en-US')} <CurrencySymbol />
               </span>
             )}
 
             {savings > 0 && (
               <span
                 style={{
-                  fontSize: '11px',
+                  fontSize: '12.5px',
                   fontWeight: 800,
                   color: '#4ade80',
-                  background: 'rgba(74, 222, 128, 0.15)',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
                 }}
               >
-                {t('storefront.spotlight.saved', 'وفرت {{savings}} ج.م', { savings })}
+                · وفرت {savings.toLocaleString('en-US')} <CurrencySymbol />
               </span>
             )}
           </div>
 
+          {/* Interactive Stock Demand Indicator */}
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              borderRadius: '12px',
+              padding: '10px 14px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', fontWeight: 700, marginBottom: '6px' }}>
+              <span style={{ color: '#fbbf24' }}>تم بيع {claimedPercent}% من الكمية المتوفرة</span>
+              <span style={{ color: '#e2e8f0' }}>متبقي {stockRemaining} فقط بالمخزون</span>
+            </div>
+            <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.14)', borderRadius: '999px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  width: `${claimedPercent}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #f59e0b, #ef4444)',
+                  borderRadius: '999px',
+                }}
+              />
+            </div>
+          </div>
+
           {/* Stepper + Add to Cart Action Row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '4px' }}>
-            {/* RTL Stepper: [+] on the right, qty in center, [-] on the left */}
             <div
               className="storefront-stepper-control"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 background: '#ffffff',
-                borderRadius: '10px',
+                borderRadius: '9999px',
                 padding: '3px',
-                border: '1px solid rgba(255,255,255,0.3)',
+                fontVariantNumeric: 'tabular-nums',
               }}
             >
               <button
@@ -294,11 +352,11 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 onClick={handleIncrement}
                 aria-label="زيادة الكمية"
                 style={{
-                  width: '32px',
-                  height: '32px',
+                  width: '34px',
+                  height: '34px',
                   background: '#f1f5f9',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '9999px',
                   fontWeight: 800,
                   fontSize: '16px',
                   color: '#0f172a',
@@ -312,12 +370,12 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
               </button>
               <span
                 style={{
-                  minWidth: '32px',
+                  minWidth: '34px',
                   textAlign: 'center',
-                  fontWeight: 800,
+                  fontWeight: 900,
                   fontSize: '14px',
                   color: '#0f172a',
-                  padding: '0 4px',
+                  padding: '0 6px',
                 }}
               >
                 {cartQuantity > 0 ? cartQuantity : localQty}
@@ -327,11 +385,11 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 onClick={handleDecrement}
                 aria-label="إنقاص الكمية"
                 style={{
-                  width: '32px',
-                  height: '32px',
+                  width: '34px',
+                  height: '34px',
                   background: '#f1f5f9',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '9999px',
                   fontWeight: 800,
                   fontSize: '16px',
                   color: '#0f172a',
@@ -345,24 +403,26 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
               </button>
             </div>
 
-            {/* Add to cart primary button */}
             <button
               type="button"
               onClick={handleAddToCartClick}
+              className="storefront-gpu-btn"
               style={{
-                background: cartQuantity > 0 ? '#16a34a' : '#38bdf8',
+                background: cartQuantity > 0 ? '#16a34a' : '#f59e0b',
                 color: cartQuantity > 0 ? '#ffffff' : '#0f172a',
                 border: 'none',
-                borderRadius: '10px',
-                padding: '9px 18px',
-                fontSize: '13.5px',
-                fontWeight: 800,
+                borderRadius: '12px',
+                padding: '0 14px',
+                height: '35px',
+                fontSize: '13px',
+                fontWeight: 900,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
-                transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
+                boxSizing: 'border-box',
               }}
             >
               {cartQuantity > 0 ? (
@@ -373,7 +433,7 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
               ) : (
                 <>
                   <ShoppingCartIcon size={16} color="#0f172a" />
-                  <span>{t('storefront.spotlight.add_to_cart', 'أضف للسلة الآن')}</span>
+                  <span>{t('storefront.spotlight.add_to_cart', 'أضف إلى السلة')}</span>
                 </>
               )}
             </button>
@@ -384,17 +444,20 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 onClick={() => onQuickView(product)}
                 aria-label="معاينة التفاصيل"
                 style={{
-                  background: 'rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.1)',
                   color: '#ffffff',
-                  border: '1px solid rgba(255,255,255,0.25)',
-                  borderRadius: '10px',
-                  padding: '9px 14px',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  borderRadius: '12px',
+                  padding: '0 14px',
+                  height: '35px',
                   fontSize: '12.5px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxSizing: 'border-box',
                 }}
               >
                 <EyeIcon size={14} color="#ffffff" />
@@ -408,26 +471,29 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  background: 'rgba(37, 211, 102, 0.15)',
+                  background: 'rgba(37, 211, 102, 0.14)',
                   color: '#4ade80',
                   border: '1px solid rgba(37, 211, 102, 0.3)',
-                  borderRadius: '10px',
-                  padding: '9px 14px',
+                  borderRadius: '12px',
+                  padding: '0 14px',
+                  height: '35px',
                   fontSize: '12.5px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   textDecoration: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
+                  whiteSpace: 'nowrap',
+                  boxSizing: 'border-box',
                 }}
               >
-                <PhoneIcon size={14} color="#4ade80" />
+                <IconWhatsapp size={15} color="#4ade80" />
                 <span>{t('storefront.spotlight.whatsapp_order', 'طلب واتساب')}</span>
               </a>
             )}
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 });

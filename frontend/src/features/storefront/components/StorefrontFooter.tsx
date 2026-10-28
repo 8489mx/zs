@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { StorefrontInfo } from '../types/storefront.types';
 import { resolveStorefrontBrand } from './StorefrontHeader';
 import { IconCheckCircle } from './StorefrontIcons';
+import { PaymentMethodBadges } from '@/shared/components/ui/PaymentMethodBadges';
 
 interface StorefrontFooterProps {
   info: StorefrontInfo;
@@ -86,12 +87,12 @@ export function StorefrontFooter({
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          height: 28px;
-          padding: 0 9px;
-          border-radius: 6px;
+          height: 32px;
+          padding: 0 12px;
+          border-radius: 10px;
           background: #ffffff;
-          border: 1px solid #e2e8f0;
-          font-size: 11px;
+          border: 1px solid #E0E3E7;
+          font-size: 11.5px;
           font-weight: 700;
           color: #334155;
           letter-spacing: 0.2px;
@@ -385,138 +386,6 @@ export function StorefrontFooter({
         <span>{t('storefront.storefront_footer.s1', "الرجوع إلى أعلى الصفحة")}</span>
       </button>
 
-      {/* Top Enterprise Trust Strip - Unified Subtle Slate Palette */}
-      <div className="sf-footer-trust-wrapper" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '18px 20px' }}>
-        <div style={{ maxWidth: 'var(--storefront-container, 1440px)', margin: '0 auto' }}>
-          <div className="sf-footer-trust-strip">
-            {/* Value 1: Fast Shipping */}
-            <div className="sf-footer-trust-item">
-              <div
-                className="sf-footer-trust-icon"
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  background: '#f1f5f9',
-                  color: '#334155',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="3" width="15" height="13" />
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
-                  <circle cx="5.5" cy="18.5" r="2.5" />
-                  <circle cx="18.5" cy="18.5" r="2.5" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {t('storefront.storefront_footer.s2', "توصيل سريع وآمن")}
-                </h4>
-                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  {t('storefront.storefront_footer.s3', "شحن مباشر مع متابعة دقيقة لحالة الطلب")}
-                </p>
-              </div>
-            </div>
-
-            {/* Value 2: Original Quality */}
-            <div className="sf-footer-trust-item">
-              <div
-                className="sf-footer-trust-icon"
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  background: '#f1f5f9',
-                  color: '#334155',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <polyline points="9 12 11 14 15 10" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {t('storefront.storefront_footer.s4', "منتجات أصلية 100%")}
-                </h4>
-                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  {t('storefront.storefront_footer.s5', "فحص وضمان جودة لكافة الأصناف المعروضة")}
-                </p>
-              </div>
-            </div>
-
-            {/* Value 3: Flexible Payment */}
-            <div className="sf-footer-trust-item">
-              <div
-                className="sf-footer-trust-icon"
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  background: '#f1f5f9',
-                  color: '#334155',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="4" width="20" height="16" rx="2" />
-                  <line x1="2" y1="10" x2="22" y2="10" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {t('storefront.storefront_footer.s6', "دفع آمن ومرن")}
-                </h4>
-                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  {t('storefront.storefront_footer.s7', "كاش عند الاستلام أو بطاقات ومحافظ رقمية")}
-                </p>
-              </div>
-            </div>
-
-            {/* Value 4: Customer Care */}
-            <div className="sf-footer-trust-item">
-              <div
-                className="sf-footer-trust-icon"
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  background: '#f1f5f9',
-                  color: '#334155',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                </svg>
-              </div>
-              <div>
-                <h4 className="sf-footer-trust-title" style={{ margin: '0 0 2px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {t('storefront.storefront_footer.s8', "خدمة عملاء مباشرة")}
-                </h4>
-                <p className="sf-footer-trust-desc" style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: 1.45, fontWeight: 500 }}>
-                  {t('storefront.storefront_footer.s9', "دعم واستفسارات فورية عبر محادثة واتساب")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Directory & Storefront Details */}
       <div className="sf-footer-directory-wrapper" style={{ maxWidth: 'var(--storefront-container, 1440px)', margin: '0 auto', padding: '34px 20px 28px' }}>
         <div className="sf-footer-directory">
@@ -558,11 +427,8 @@ export function StorefrontFooter({
                 </div>
               )}
               <div className="sf-footer-brand-title-wrap">
-                <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h3 style={{ margin: 0, fontSize: '15.5px', fontWeight: 900, color: '#0f172a' }}>
                   <span>{brand.title}</span>
-                  <span title={t('storefront.storefront_footer.s10', "متجر موثق")} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    <IconCheckCircle size={13} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.5} />
-                  </span>
                 </h3>
               </div>
             </div>
@@ -651,8 +517,8 @@ export function StorefrontFooter({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  padding: '8px 14px',
-                  borderRadius: '9px',
+                  padding: '9px 18px',
+                  borderRadius: '9999px',
                   background: '#f0fdf4',
                   border: '1.5px solid #bbf7d0',
                   color: '#166534',
@@ -689,41 +555,11 @@ export function StorefrontFooter({
           <div className="sf-footer-pay-col">
             <h4 className="sf-footer-section-title" style={{ margin: '0 0 14px', fontSize: '13.5px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '3px', height: '14px', backgroundColor: 'var(--storefront-primary-color, #170e5e)', borderRadius: '2px', display: 'inline-block' }} />
-              <span>{t('storefront.storefront_footer.s25', "طرق الدفع والضمان")}</span>
+              <span>{t('storefront.storefront_footer.s25', "طرق الدفع المتاحة")}</span>
             </h4>
             
-            <div className="sf-footer-pay-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
-              {/* Cash On Delivery */}
-              <div className="sf-pay-badge">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ marginInlineEnd: '4px' }}>
-                  <rect x="2" y="6" width="20" height="12" rx="2" />
-                  <circle cx="12" cy="12" r="2" />
-                  <path d="M6 12h.01M18 12h.01" />
-                </svg>
-                <span>{t('storefront.storefront_footer.s26', "كاش عند الاستلام")}</span>
-              </div>
-
-              {/* Visa */}
-              <div className="sf-pay-badge" style={{ fontFamily: 'sans-serif', fontWeight: 900, color: '#1e293b', letterSpacing: '0.8px' }}>
-                VISA
-              </div>
-
-              {/* Mastercard - Official Brand Standard */}
-              <div className="sf-pay-badge" dir="ltr" style={{ gap: '4px' }}>
-                <svg className="sf-pay-mc-logo" width="16" height="10" viewBox="0 0 32 20" fill="none" style={{ display: 'inline-block', flexShrink: 0 }}>
-                  <circle cx="10" cy="10" r="10" fill="#EB001B" />
-                  <circle cx="22" cy="10" r="10" fill="#F79E1B" />
-                  <path d="M 16 2 A 10 10 0 0 1 16 18 A 10 10 0 0 1 16 2 Z" fill="#FF5F00" />
-                </svg>
-                <span style={{ fontSize: '10.5px', fontFamily: 'system-ui, -apple-system, sans-serif', fontWeight: 700, color: '#1e293b', letterSpacing: '-0.2px' }}>
-                  Mastercard
-                </span>
-              </div>
-
-              {/* Mobile Wallets */}
-              <div className="sf-pay-badge" style={{ color: '#334155' }}>
-                <span>{t('storefront.storefront_footer.s27', "محافظ إلكترونية")}</span>
-              </div>
+            <div style={{ marginBottom: '14px' }}>
+              <PaymentMethodBadges />
             </div>
 
             {/* SSL Badge - Clean Unified Slate Trust Pill */}
@@ -734,12 +570,13 @@ export function StorefrontFooter({
                 alignItems: 'center',
                 gap: '7px',
                 padding: '6px 12px',
-                borderRadius: '6px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                borderRadius: '10px',
+                background: '#ffffff',
+                border: '1px solid #E0E3E7',
                 color: '#475569',
-                fontSize: '11px',
+                fontSize: '11.5px',
                 fontWeight: 700,
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
               }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -801,26 +638,28 @@ export function StorefrontFooter({
                 e.currentTarget.style.opacity = '1';
               }}
             >
-              <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#64748b', letterSpacing: '0.2px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', letterSpacing: '0.2px' }}>
                 Powered by
               </span>
               <span
                 style={{
-                  fontWeight: 900,
+                  fontWeight: 800,
                   color: 'var(--storefront-primary-color, #170e5e)',
                   background: '#ffffff',
-                  padding: '3px 9px',
-                  borderRadius: '6px',
-                  border: '1px solid #cbd5e1',
-                  fontSize: '11px',
-                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                  height: '35px',
+                  padding: '0 14px',
+                  borderRadius: '12px',
+                  border: '1px solid #E0E3E7',
+                  fontSize: '12px',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
+                  gap: '6px',
+                  boxSizing: 'border-box',
                 }}
               >
                 <span>Z-Systems ERP</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                   <polyline points="15 3 21 3 21 9" />
                   <line x1="10" y1="14" x2="21" y2="3" />

@@ -5,14 +5,14 @@ import { useParams, useSearchParams, useLocation, useNavigate } from 'react-rout
 import { StorefrontHeader } from '../components/StorefrontHeader';
 import { StorefrontSubNav } from '../components/StorefrontSubNav';
 import { StorefrontCategoryShowcase } from '../components/StorefrontCategoryShowcase';
-import { StorefrontBannerCarousel } from '../components/StorefrontBannerCarousel';
+import { StorefrontHeroEditorial } from '../components/StorefrontHeroEditorial';
 import { StorefrontMultiRowHome } from '../components/StorefrontMultiRowHome';
 import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
-import { StorefrontDeliveryInfoBar } from '../components/StorefrontDeliveryInfoBar';
 import { StorefrontFooter } from '../components/StorefrontFooter';
 import { StorefrontSkeleton } from '../components/StorefrontSkeleton';
 import { StorefrontTrustBar } from '../components/StorefrontTrustBar';
+import { StorefrontMobileBottomNav } from '../components/StorefrontMobileBottomNav';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { usePublicStorefront, ITEMS_PER_PAGE } from '../hooks/usePublicStorefront';
@@ -39,6 +39,16 @@ export function PublicStorefrontPage() {
   const cleanSlug = String(slug || hostSlug || (import.meta.env.VITE_STOREFRONT_PREVIEW === 'true' ? 'demo' : 'default')).trim();
   const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
   const [isTableBillOpen, setIsTableBillOpen] = useState(false);
+
+  // Free storefront completely from global ERP layout restrictions
+  useEffect(() => {
+    document.documentElement.classList.add('storefront-standalone-mode');
+    document.body.classList.add('storefront-standalone-mode');
+    return () => {
+      document.documentElement.classList.remove('storefront-standalone-mode');
+      document.body.classList.remove('storefront-standalone-mode');
+    };
+  }, []);
 
   /**
    * جذر المتجر الحالي (`/st/:slug` أو `/store/:slug` أو `/shop/:slug`).
@@ -279,16 +289,17 @@ export function PublicStorefrontPage() {
   return (
     <div
       dir="rtl"
+      className="storefront-page-root"
       style={{
         minHeight: '100vh',
         background: info?.brandSurfaceColor && info.brandSurfaceColor !== '#f8fafc' ? info.brandSurfaceColor : '#ffffff',
         color: '#0f172a',
-        display: 'flex',
-        flexDirection: 'column',
+        display: 'block',
         fontFamily: 'inherit',
         width: '100%',
-        maxWidth: '100vw',
-        overflowX: 'hidden',
+        maxWidth: '100%',
+        position: 'relative',
+        overflow: 'visible',
         boxSizing: 'border-box',
       }}
     >
@@ -310,9 +321,6 @@ export function PublicStorefrontPage() {
         onSelectProduct={openProduct}
         onAddToCart={handleAddToCart}
       />
-
-      {/* إشارات التوصيل (المدة، الرسوم، أقل طلب) قبل أي تصفح */}
-      <StorefrontDeliveryInfoBar info={info} />
 
       {/* Dine-In QR Table Banner */}
       {tableParam && (
@@ -395,7 +403,7 @@ export function PublicStorefrontPage() {
               type="button"
               onClick={() => setIsTableBillOpen(true)}
               style={{
-                background: '#170e5e',
+                background: 'var(--storefront-primary-color, #170e5e)',
                 color: '#ffffff',
                 border: '1px solid rgba(255,255,255,0.4)',
                 borderRadius: '8px',
@@ -427,56 +435,38 @@ export function PublicStorefrontPage() {
         </div>
       )}
 
-      {/* Top Promotional Billboard Banner Carousel */}
-      {!searchTerm && ((info.bannerUrls && info.bannerUrls.length > 0) || info.bannerUrl) && (
-        <StorefrontBannerCarousel
-          banners={info.bannerUrls && info.bannerUrls.length > 0 ? info.bannerUrls : (info.bannerUrl ? [info.bannerUrl] : [])}
-          title={info.title || info.businessName}
-          bannerFit={info.bannerFit || 'contain'}
-          bannerPosition={info.bannerPosition || 'center'}
-          bannerPositions={info.bannerPositions}
-          bannerIntervalSeconds={info.bannerIntervalSeconds || 4}
-          onBannerClick={handleBannerClick}
-          fullBleed={info.heroBannerFullBleed !== false}
+      {/* Interactive Luxury Split-Screen Editorial Hero */}
+      {!searchTerm && isHomepageMultiRow && (
+        <StorefrontHeroEditorial
+          info={info}
+          featuredProducts={dealsProducts.length > 0 ? dealsProducts : filteredProducts}
+          categories={categories}
+          cartMap={cartMap}
+          onAddToCart={handleAddToCart}
+          onUpdateQuantity={handleUpdateQuantity}
+          onQuickView={openProduct}
+          onSelectDeals={() => {
+            setOnlyDeals(true);
+            setOnlyFavorites(false);
+            setSelectedCategory('all');
+            handleBannerClick();
+          }}
+          onSelectCategory={(id) => {
+            setSelectedCategory(id);
+            setOnlyDeals(false);
+            setOnlyFavorites(false);
+            handleBannerClick();
+          }}
+          onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
         />
       )}
 
       {/* Trust & Guarantee Metrics Ribbon */}
       {!searchTerm && <StorefrontTrustBar info={info} />}
 
-      {/* Sub-Header Utility Navigation Bar (Amazon Quick Bar) */}
-      <StorefrontSubNav
-        categories={categories}
-        selectedCategoryId={selectedCategory}
-        onSelectCategory={(id) => {
-          setSelectedCategory(id);
-          setOnlyDeals(false);
-          setOnlyFavorites(false);
-        }}
-        onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
-        onlyDeals={onlyDeals}
-        onToggleDeals={() => {
-          setOnlyDeals(!onlyDeals);
-          setOnlyFavorites(false);
-          setSelectedCategory('all');
-        }}
-        inStockOnly={inStockOnly}
-        onToggleInStock={() => setInStockOnly(!inStockOnly)}
-        dealsCount={dealsProducts.length}
-        onlyFavorites={onlyFavorites}
-        onToggleFavorites={handleToggleFavorites}
-        favoritesCount={favoriteIds.size}
-        onClearFilters={() => {
-          setOnlyDeals(false);
-          setOnlyFavorites(false);
-          setInStockOnly(false);
-          setSelectedCategory('all');
-        }}
-      />
-
-      {/* Horizontal Circular Category Showcase - Always visible unless searching */}
-      {!searchTerm && (
-        <StorefrontCategoryShowcase
+      {/* Sub-Header Utility Navigation Bar (Shown when filtering/browsing specific view to avoid duplicating Hero CTAs) */}
+      {!isHomepageMultiRow && (
+        <StorefrontSubNav
           categories={categories}
           selectedCategoryId={selectedCategory}
           onSelectCategory={(id) => {
@@ -485,12 +475,54 @@ export function PublicStorefrontPage() {
             setOnlyFavorites(false);
           }}
           onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
+          onlyDeals={onlyDeals}
+          onToggleDeals={() => {
+            setOnlyDeals(!onlyDeals);
+            setOnlyFavorites(false);
+            setSelectedCategory('all');
+          }}
+          inStockOnly={inStockOnly}
+          onToggleInStock={() => setInStockOnly(!inStockOnly)}
+          dealsCount={dealsProducts.length}
+          onlyFavorites={onlyFavorites}
+          onToggleFavorites={handleToggleFavorites}
+          favoritesCount={favoriteIds.size}
+          onClearFilters={() => {
+            setOnlyDeals(false);
+            setOnlyFavorites(false);
+            setInStockOnly(false);
+            setSelectedCategory('all');
+          }}
+        />
+      )}
+
+      {/* Horizontal Circular Category Showcase - Always visible unless searching */}
+      {!searchTerm && (
+        <StorefrontCategoryShowcase
+          categories={categories}
+          selectedCategoryId={selectedCategory}
+          onSelectCategory={(id) => {
+            if (id !== 'all') {
+              const shelfEl = document.getElementById(`storefront-category-shelf-${id}`);
+              if (shelfEl) {
+                shelfEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+              }
+            }
+            setSelectedCategory(id);
+            setOnlyDeals(false);
+            setOnlyFavorites(false);
+            const mainEl = document.querySelector('.storefront-main-content');
+            if (mainEl) {
+              mainEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
+          onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
           categoryCounts={categoryCounts}
         />
       )}
 
       {/* Main Content Area */}
-
       <main
         className="storefront-main-content"
         style={{
@@ -506,6 +538,7 @@ export function PublicStorefrontPage() {
             dealsProducts={dealsProducts}
             topHomepageSections={topHomepageSections}
             categories={categories}
+            categoryCounts={categoryCounts}
             cartMap={cartMap}
             info={info}
             favoriteIds={favoriteIds}
@@ -556,6 +589,40 @@ export function PublicStorefrontPage() {
           setOnlyDeals(true);
           setSelectedCategory('all');
         }}
+      />
+
+      {/* Native-Grade Mobile Bottom Navigation Bar */}
+      <StorefrontMobileBottomNav
+        activeTab={
+          isCartOpen
+            ? 'cart'
+            : isCategoriesModalOpen
+            ? 'categories'
+            : onlyFavorites
+            ? 'favorites'
+            : onlyDeals
+            ? 'deals'
+            : 'home'
+        }
+        cartCount={cartCount}
+        favoritesCount={favoriteIds.size}
+        dealsCount={dealsProducts.length}
+        onGoHome={() => {
+          handleGoHome();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onOpenCategories={() => setIsCategoriesModalOpen(true)}
+        onToggleDeals={() => {
+          setOnlyDeals(!onlyDeals);
+          setOnlyFavorites(false);
+          setSelectedCategory('all');
+          window.scrollTo({ top: 180, behavior: 'smooth' });
+        }}
+        onToggleFavorites={() => {
+          handleToggleFavorites();
+          window.scrollTo({ top: 180, behavior: 'smooth' });
+        }}
+        onOpenCart={() => setIsCartOpen(true)}
       />
 
       {/* Modals & Live Cart */}

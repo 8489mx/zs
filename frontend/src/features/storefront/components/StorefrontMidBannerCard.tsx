@@ -61,7 +61,7 @@ export function StorefrontMidBannerCard({
         position: 'relative',
         width: '100%',
         margin: '18px 0',
-        borderRadius: '16px',
+        borderRadius: '24px',
         overflow: 'hidden',
         boxShadow: '0 4px 20px rgba(15, 23, 42, 0.08)',
         border: '1px solid #e2e8f0',
@@ -88,7 +88,7 @@ export function StorefrontMidBannerCard({
         }
         @media (max-width: 640px) {
           .storefront-mid-banner-card {
-            border-radius: 12px !important;
+            border-radius: 18px !important;
             margin: 12px 0 !important;
           }
           .storefront-mid-banner-inner {

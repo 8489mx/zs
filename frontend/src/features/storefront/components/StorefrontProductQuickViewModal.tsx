@@ -172,7 +172,7 @@ export function StorefrontProductQuickViewModal({
           }
           .sf-quickview-shell {
             max-height: 94vh !important;
-            border-radius: 16px !important;
+            border-radius: 20px !important;
             width: 100% !important;
             max-width: min(100%, 460px) !important;
           }
@@ -375,7 +375,7 @@ export function StorefrontProductQuickViewModal({
         className="sf-quickview-shell"
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: '24px',
           maxWidth: '540px',
           width: '100%',
           maxHeight: '90vh',
@@ -455,7 +455,7 @@ export function StorefrontProductQuickViewModal({
               maxWidth: '32px',
               maxHeight: '32px',
               aspectRatio: '1 / 1',
-              borderRadius: '50%',
+              borderRadius: '12px',
               padding: 0,
               margin: 0,
               boxSizing: 'border-box',
@@ -697,7 +697,7 @@ export function StorefrontProductQuickViewModal({
               <div className="sf-quickview-variants-box" style={{ marginTop: '12px', padding: '10px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '12px', fontWeight: 800, color: '#1e293b', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <TagIcon size={12} color={brandColor} />
-                  <span>{t('storefront.storefront_product_quick_view_modal.s10', "اختر المقاس / الحجم:")}</span>
+                  <span>{t('storefront.storefront_product_quick_view_modal.s10', "اختر الخيار / الحجم المطلوب:")}</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {variants.map((v, idx) => {
@@ -708,8 +708,8 @@ export function StorefrontProductQuickViewModal({
                         type="button"
                         onClick={() => setSelectedVariantIndex(idx)}
                         style={{
-                          padding: '6px 12px',
-                          borderRadius: '6px',
+                          padding: '6px 14px',
+                          borderRadius: '9999px',
                           border: isSelected ? `2px solid ${brandColor}` : '1px solid #cbd5e1',
                           background: isSelected ? brandColor : '#ffffff',
                           color: isSelected ? '#ffffff' : '#1e293b',
@@ -733,7 +733,7 @@ export function StorefrontProductQuickViewModal({
                 </div>
                 {cartHasOtherVariant && cartLine && (
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '6px 10px', lineHeight: 1.5 }}>
-                    {t('storefront.storefront_product_quick_view_modal.s12', "في سلتك الآن")} {cartLine.variantName ? `المقاس «${cartLine.variantName}»` : t('storefront.storefront_product_quick_view_modal.s13', "هذا الصنف")} ({cartLine.quantity}{t('storefront.storefront_product_quick_view_modal.s14', "). الإضافة ستستبدله بالمقاس المختار، لأن الطلب الواحد يقبل مقاساً واحداً لكل صنف.")}
+                    {t('storefront.storefront_product_quick_view_modal.s12', "في سلتك الآن")} {cartLine.variantName ? `الخيار «${cartLine.variantName}»` : t('storefront.storefront_product_quick_view_modal.s13', "هذا الصنف")} ({cartLine.quantity}{t('storefront.storefront_product_quick_view_modal.s14', "). الإضافة ستستبدله بالخيار المحدد.")}
                   </div>
                 )}
               </div>
@@ -788,8 +788,8 @@ export function StorefrontProductQuickViewModal({
                 <ClockIcon size={13} color="#b45309" />
               </div>
               <span className="sf-quickview-highlight-text" style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                <span className="sf-highlight-text-full">{t('storefront.storefront_product_quick_view_modal.s17', "تجهيز فوري طازج عند الطلب")}</span>
-                <span className="sf-highlight-text-mobile">{t('storefront.storefront_product_quick_view_modal.s18', "تجهيز فوري للطلب")}</span>
+                <span className="sf-highlight-text-full">{t('storefront.storefront_product_quick_view_modal.s17', "تجهيز سريع وعناية بتغليف الطلب")}</span>
+                <span className="sf-highlight-text-mobile">{t('storefront.storefront_product_quick_view_modal.s18', "تجهيز وتغليف سريع")}</span>
               </span>
             </div>
           </div>
@@ -881,7 +881,7 @@ export function StorefrontProductQuickViewModal({
               style={{
                 width: '100%',
                 height: '42px',
-                borderRadius: '8px',
+                borderRadius: '9999px',
                 backgroundColor: '#f0fdf4',
                 color: '#166534',
                 border: '1.5px solid #bbf7d0',
@@ -919,7 +919,7 @@ export function StorefrontProductQuickViewModal({
                   alignItems: 'center',
                   backgroundColor: '#f8fafc',
                   border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
+                  borderRadius: '9999px',
                   padding: '2px',
                   flexShrink: 0,
                 }}
@@ -932,7 +932,7 @@ export function StorefrontProductQuickViewModal({
                   style={{
                     width: '32px',
                     height: '32px',
-                    borderRadius: '6px',
+                    borderRadius: '9999px',
                     border: 'none',
                     backgroundColor: '#ffffff',
                     display: 'flex',
@@ -968,7 +968,7 @@ export function StorefrontProductQuickViewModal({
                   style={{
                     width: '32px',
                     height: '32px',
-                    borderRadius: '6px',
+                    borderRadius: '9999px',
                     border: 'none',
                     backgroundColor: '#ffffff',
                     display: 'flex',
@@ -995,12 +995,12 @@ export function StorefrontProductQuickViewModal({
                 style={{
                   flex: 1,
                   minWidth: 0,
-                  height: '42px',
-                  borderRadius: '8px',
+                  height: '35px',
+                  borderRadius: '12px',
                   backgroundColor: inStock ? brandColor : '#f8fafc',
                   color: inStock ? (brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)') : '#64748b',
                   border: inStock ? 'none' : '1px solid #e2e8f0',
-                  fontSize: '13.5px',
+                  fontSize: '13px',
                   fontWeight: 800,
                   cursor: inStock ? 'pointer' : 'not-allowed',
                   display: 'flex',
@@ -1010,7 +1010,8 @@ export function StorefrontProductQuickViewModal({
                   boxShadow: inStock ? '0 2px 8px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))' : 'none',
                   transition: 'all 0.15s ease',
                   whiteSpace: 'nowrap',
-                  padding: '0 10px',
+                  padding: '0 14px',
+                  boxSizing: 'border-box',
                 }}
               >
                 {addedAnimation ? (

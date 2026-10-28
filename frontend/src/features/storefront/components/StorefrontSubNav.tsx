@@ -36,13 +36,14 @@ export function StorefrontSubNav({
     <div
       className="storefront-subnav"
       style={{
-        background: '#ffffff',
+        background: 'rgba(255, 255, 255, 0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid #e2e8f0',
         padding: '8px 20px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 90,
-        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+        position: 'relative',
+        zIndex: 85,
+        boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
         width: '100%',
         maxWidth: '100vw',
         boxSizing: 'border-box',
@@ -80,11 +81,12 @@ export function StorefrontSubNav({
             flex-shrink: 0 !important;
           }
           .storefront-subnav-pill {
-            padding: 5px 7px !important;
-            font-size: clamp(9.5px, 2.6vw, 11px) !important;
+            padding: 0 12px !important;
+            font-size: clamp(10.5px, 2.7vw, 12px) !important;
             white-space: nowrap;
-            min-height: 28px !important;
-            border-radius: 7px !important;
+            height: 35px !important;
+            min-height: 35px !important;
+            border-radius: 12px !important;
           }
           .storefront-subnav-hint {
             display: none !important;
@@ -114,8 +116,9 @@ export function StorefrontSubNav({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '6px 14px',
-              borderRadius: '8px',
+              padding: '0 14px',
+              height: '35px',
+              borderRadius: '12px',
               background: 'var(--storefront-primary-color, #170e5e)',
               color: '#ffffff',
               border: 'none',
@@ -123,6 +126,7 @@ export function StorefrontSubNav({
               fontWeight: 700,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              boxSizing: 'border-box',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.15)')}
             onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
@@ -133,8 +137,9 @@ export function StorefrontSubNav({
               style={{
                 fontSize: '11px',
                 background: 'rgba(255,255,255,0.22)',
-                padding: '1px 5px',
-                borderRadius: '4px',
+                padding: '2px 7px',
+                borderRadius: '8px',
+                fontWeight: 800,
               }}
             >
               {categories.length}
@@ -151,15 +156,18 @@ export function StorefrontSubNav({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
+                padding: '0 14px',
+                height: '35px',
+                borderRadius: '12px',
+                border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #E0E3E7',
                 background: onlyDeals ? '#fef2f2' : '#ffffff',
-                color: onlyDeals ? '#dc2626' : '#334155',
-                fontSize: '12px',
+                color: onlyDeals ? '#dc2626' : '#0f172a',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                 transition: 'all 0.15s ease',
+                boxSizing: 'border-box',
               }}
             >
               <IconFlame size={14} color={onlyDeals ? '#dc2626' : '#ef4444'} strokeWidth={2} />
@@ -170,8 +178,8 @@ export function StorefrontSubNav({
                     fontSize: '10.5px',
                     background: onlyDeals ? '#ef4444' : '#fee2e2',
                     color: onlyDeals ? '#ffffff' : '#991b1b',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
                     fontWeight: 800,
                   }}
                 >
@@ -190,18 +198,21 @@ export function StorefrontSubNav({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              border: inStockOnly ? '1.5px solid #16a34a' : '1px solid #e2e8f0',
+              padding: '0 14px',
+              height: '35px',
+              borderRadius: '12px',
+              border: inStockOnly ? '1.5px solid #16a34a' : '1px solid #E0E3E7',
               background: inStockOnly ? '#f0fdf4' : '#ffffff',
-              color: inStockOnly ? '#166534' : '#334155',
-              fontSize: '12px',
+              color: inStockOnly ? '#166534' : '#0f172a',
+              fontSize: '12.5px',
               fontWeight: 700,
               cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
               transition: 'all 0.15s ease',
+              boxSizing: 'border-box',
             }}
           >
-            <IconCheckCircle size={14} color={inStockOnly ? '#16a34a' : '#94a3b8'} strokeWidth={2} />
+            <IconCheckCircle size={14} color={inStockOnly ? '#16a34a' : '#64748b'} strokeWidth={2} />
             <span>{t('storefront.storefront_sub_nav.s2', "المتوفر بالمخزن")}</span>
           </button>
 
@@ -215,15 +226,18 @@ export function StorefrontSubNav({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: onlyFavorites ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
+                padding: '0 14px',
+                height: '35px',
+                borderRadius: '12px',
+                border: onlyFavorites ? '1.5px solid #ef4444' : '1px solid #E0E3E7',
                 background: onlyFavorites ? '#fef2f2' : '#ffffff',
-                color: onlyFavorites ? '#dc2626' : '#334155',
-                fontSize: '12px',
+                color: onlyFavorites ? '#dc2626' : '#0f172a',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                 transition: 'all 0.15s ease',
+                boxSizing: 'border-box',
               }}
             >
               <svg
@@ -245,8 +259,8 @@ export function StorefrontSubNav({
                     fontSize: '10.5px',
                     background: onlyFavorites ? '#ef4444' : '#fee2e2',
                     color: onlyFavorites ? '#ffffff' : '#991b1b',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
+                    padding: '2px 6px',
+                    borderRadius: '8px',
                     fontWeight: 800,
                   }}
                 >

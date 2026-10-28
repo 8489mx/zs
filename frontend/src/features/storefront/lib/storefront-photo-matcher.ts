@@ -1284,14 +1284,10 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
 
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
-      <!-- Seamless 100% Full-Bleed Studio Surface -->
-      <rect width="200" height="200" fill="#f8fafc" />
-      
-      <!-- Centered Premium Squircle Badge (Apple / Spotify Studio Standard) -->
-      <rect x="70" y="70" width="60" height="60" rx="18" fill="${theme.bg}" stroke="${theme.border}" stroke-width="1.5" />
-      
+      <!-- Seamless 100% Pure White Studio Surface -->
+      <rect width="200" height="200" fill="#ffffff" />
       <!-- Crisp Centered Vector Icon -->
-      <g>
+      <g transform="translate(-100, -100) scale(2)">
         ${theme.icon}
       </g>
     </svg>
@@ -1393,11 +1389,12 @@ export function getAutoProductPhoto(productName: string, categoryName?: string):
     }
   }
 
-  // Only accept a photo match if confidence score is solid (>= 40).
-  // Otherwise, fall back to the clean, enterprise SVG vector placeholder (NEVER vegetables!).
+  // Only accept a photo match if confidence score is solid (>= 40) AND not an external unverified host.
   const matched = Boolean(bestRule && highestScore >= 40);
-  const result = matched
-    ? (bestRule as SemanticPhotoRule).imageUrl
+  const candidateUrl = matched ? (bestRule as SemanticPhotoRule).imageUrl : '';
+  const isExternalHost = candidateUrl.startsWith('http://') || candidateUrl.startsWith('https://');
+  const result = matched && !isExternalHost
+    ? candidateUrl
     : generatePremiumProductSvg(productName, categoryName);
 
   photoCache.set(cacheKey, result);

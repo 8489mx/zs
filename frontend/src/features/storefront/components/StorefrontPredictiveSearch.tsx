@@ -82,9 +82,10 @@ export function StorefrontPredictiveSearch({
       ref={containerRef}
       className="storefront-search-wrapper"
       style={{
-        flex: 1,
-        maxWidth: '640px',
-        margin: '0 16px',
+        flex: '0 1 360px',
+        width: '100%',
+        maxWidth: '360px',
+        margin: '0',
         position: 'relative',
       }}
     >
@@ -95,13 +96,13 @@ export function StorefrontPredictiveSearch({
           display: 'flex',
           alignItems: 'center',
           background: isOpen ? '#ffffff' : '#f8fafc',
-          borderRadius: '10px',
-          padding: '3px 4px 3px 12px',
-          border: isOpen ? '1.5px solid var(--storefront-primary-color, #170e5e)' : '1.5px solid #cbd5e1',
+          borderRadius: '12px',
+          padding: '0 4px 0 12px',
+          border: isOpen ? '1.5px solid var(--storefront-primary-color, #170e5e)' : '1px solid #E0E3E7',
           transition: 'all 0.2s ease',
-          boxShadow: isOpen ? '0 4px 20px rgba(23, 14, 94, 0.12)' : '0 1px 4px rgba(15, 23, 42, 0.04)',
+          boxShadow: isOpen ? '0 4px 16px rgba(23, 14, 94, 0.08)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
           boxSizing: 'border-box',
-          height: '40px',
+          height: '35px',
         }}
       >
         <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', marginRight: '6px', flexShrink: 0 }}>
@@ -155,32 +156,6 @@ export function StorefrontPredictiveSearch({
             <XIcon size={15} />
           </button>
         )}
-
-        <button
-          className="storefront-search-btn"
-          type="button"
-          onClick={() => setIsOpen(false)}
-          style={{
-            background: 'var(--storefront-primary-color, #170e5e)',
-            color: 'var(--storefront-primary-contrast, #ffffff)',
-            border: 'none',
-            borderRadius: '8px',
-            padding: '0 16px',
-            height: '32px',
-            fontSize: '13px',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            flexShrink: 0,
-            boxShadow: '0 2px 6px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))',
-            transition: 'filter 0.15s ease',
-          }}
-        >
-          <IconSearch size={15} strokeWidth={2.2} />
-          <span className="storefront-search-btn-text">{t('storefront.storefront_predictive_search.s2', "بحث")}</span>
-        </button>
       </div>
 
       {/* Instant Dropdown Results */}
@@ -193,7 +168,7 @@ export function StorefrontPredictiveSearch({
             left: 0,
             right: 0,
             background: '#ffffff',
-            borderRadius: '12px',
+            borderRadius: '20px',
             border: '1px solid #e2e8f0',
             boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12)',
             zIndex: 200,

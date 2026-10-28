@@ -31,7 +31,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
     <div
       style={{
         background: '#ffffff',
-        borderRadius: '14px',
+        borderRadius: '22px',
         border: '1px solid #e2e8f0',
         padding: '18px',
         display: 'flex',
@@ -95,7 +95,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
-                  borderRadius: '10px',
+                  borderRadius: '14px',
                   background: '#f8fafc',
                   padding: '8px',
                   border: '1px solid #f1f5f9',
@@ -107,7 +107,7 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                   style={{
                     width: '100%',
                     height: '115px',
-                    borderRadius: '8px',
+                    borderRadius: '10px',
                     overflow: 'hidden',
                     background: '#ffffff',
                     position: 'relative',

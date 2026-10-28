@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BuildingIcon, CreditCardIcon, PhoneIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
+import { IconWhatsapp } from './StorefrontIcons';
 
 interface StorefrontFeaturedBroadcastCardProps {
   whatsappPhone?: string;
@@ -31,15 +32,15 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
       {/* Card 1: B2B & Wholesale */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #170e5e 100%)',
-          borderRadius: '16px',
+          background: 'linear-gradient(135deg, var(--storefront-primary-hover, #120b4c) 0%, var(--storefront-primary-color, #170e5e) 100%)',
+          borderRadius: '24px',
           padding: '22px 24px',
           color: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           gap: '14px',
-          boxShadow: '0 4px 14px rgba(23, 14, 94, 0.12)',
+          boxShadow: '0 4px 14px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.12))',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -83,7 +84,7 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
                 borderRadius: '6px',
               }}
             >
-              {t('storefront.broadcast.b2b_tag', 'توريدات وتجهيز الشركات')}
+              {t('storefront.broadcast.b2b_tag', 'طلبات الجملة والشركات')}
             </span>
           </div>
 
@@ -96,7 +97,7 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
               lineHeight: 1.35,
             }}
           >
-            {t('storefront.broadcast.b2b_title', 'عروض الجملة والكميات التجارية')}
+            {t('storefront.broadcast.b2b_title', 'خصومات خاصة لطلبات الجملة')}
           </h4>
           <p
             style={{
@@ -106,7 +107,7 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
               lineHeight: 1.45,
             }}
           >
-            {t('storefront.broadcast.b2b_desc', 'أسعار خاصة للمؤسسات والمحلات التجارية مع فواتير ضريبية رسمية معتمدة وتسليم فوري.')}
+            {t('storefront.broadcast.b2b_desc', 'أسعار خاصة للكميات الكبيرة والمحلات مع فواتير معتمدة وشحن سريع ومباشر.')}
           </p>
         </div>
 
@@ -120,18 +121,20 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
                 background: '#22c55e',
                 color: '#ffffff',
                 textDecoration: 'none',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '12px',
+                padding: '0 14px',
+                height: '35px',
+                borderRadius: '12px',
+                fontSize: '12.5px',
                 fontWeight: 800,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
                 boxShadow: '0 2px 6px rgba(34, 197, 94, 0.25)',
+                boxSizing: 'border-box',
               }}
             >
-              <PhoneIcon size={14} color="#ffffff" />
-              <span>{t('storefront.broadcast.request_quote', 'طلب تسعير جملة')}</span>
+              <IconWhatsapp size={15} color="#ffffff" />
+              <span>{t('storefront.broadcast.request_quote', 'تواصل لطلب الجملة')}</span>
             </a>
           )}
           {onOpenCategories && (
@@ -142,14 +145,16 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
                 background: 'rgba(255,255,255,0.12)',
                 color: '#ffffff',
                 border: '1px solid rgba(255,255,255,0.2)',
-                padding: '8px 14px',
-                borderRadius: '8px',
-                fontSize: '12px',
+                padding: '0 14px',
+                height: '35px',
+                borderRadius: '12px',
+                fontSize: '12.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                boxSizing: 'border-box',
               }}
             >
-              {t('storefront.broadcast.browse_catalog', 'دليل الأقسام')}
+              {t('storefront.broadcast.browse_catalog', 'تصفح الأقسام')}
             </button>
           )}
         </div>
@@ -160,7 +165,7 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
         style={{
           background: '#ffffff',
           border: '1px solid #e2e8f0',
-          borderRadius: '16px',
+          borderRadius: '24px',
           padding: '22px 24px',
           display: 'flex',
           flexDirection: 'column',
@@ -207,7 +212,7 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
               lineHeight: 1.35,
             }}
           >
-            {t('storefront.broadcast.payment_title', 'طرق سداد متعددة وفحص عند الاستلام')}
+            {t('storefront.broadcast.payment_title', 'طرق دفع متعددة ومعاينة عند الاستلام')}
           </h4>
           <p
             style={{
@@ -217,7 +222,7 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
               lineHeight: 1.45,
             }}
           >
-            {t('storefront.broadcast.payment_desc', 'ادفع نقداً عند استلام طلبك بعد المعاينة، أو سدد إلكترونياً بأمان عبر البطاقات والمحافظ الإلكترونية.')}
+            {t('storefront.broadcast.payment_desc', 'ادفع نقداً عند الاستلام بعد معاينة طلبك، أو سدد إلكترونياً بأمان عبر البطاقات البنكية والمحافظ الرقمية.')}
           </p>
         </div>
 
@@ -228,11 +233,11 @@ export const StorefrontFeaturedBroadcastCard = React.memo(function StorefrontFea
           </div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#334155' }}>
             <CheckCircleIcon size={14} color="#16a34a" />
-            <span>{t('storefront.broadcast.cards', 'بطاقات بنكية ومحافظ')}</span>
+            <span>{t('storefront.broadcast.cards', 'بطاقات بنكية ودفع إلكتروني')}</span>
           </div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#334155' }}>
             <CheckCircleIcon size={14} color="#16a34a" />
-            <span>{t('storefront.broadcast.instant_inspection', 'معاينة قبل الدفع')}</span>
+            <span>{t('storefront.broadcast.instant_inspection', 'معاينة قبل الاستلام')}</span>
           </div>
         </div>
       </div>

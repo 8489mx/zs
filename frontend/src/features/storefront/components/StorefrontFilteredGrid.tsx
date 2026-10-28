@@ -97,7 +97,7 @@ export function StorefrontFilteredGrid({
         style={{
           background: '#ffffff',
           border: '1px solid #e2e8f0',
-          borderRadius: '12px',
+          borderRadius: '20px',
           padding: '8px 12px',
           display: 'flex',
           flexWrap: 'nowrap',

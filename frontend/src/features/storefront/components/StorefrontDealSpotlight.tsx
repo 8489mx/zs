@@ -4,7 +4,7 @@ import type { StorefrontProduct } from '../types/storefront.types';
 import { resolveProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { getProductVariants } from '../lib/storefront-variant-pricing';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { IconShoppingCart, IconCheckCircle, IconFlame, IconTruck, IconShieldCheck } from './StorefrontIcons';
+import { IconShoppingCart, IconCheckCircle, IconFlame, IconTruck, IconShieldCheck, IconWhatsapp } from './StorefrontIcons';
 import { EyeIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontDealSpotlightProps {
@@ -83,11 +83,9 @@ export function StorefrontDealSpotlight({
   const cleanPhone = (whatsappPhone || '').replace(/[^0-9]/g, '');
   const formattedPhone = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
 
-  const handleAdd = () => {
-    if (getProductVariants(product).length > 0 && onQuickView) {
-      onQuickView(product);
-      return;
-    }
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isOutOfStock) return;
     onAddToCart(product);
   };
 
@@ -97,7 +95,7 @@ export function StorefrontDealSpotlight({
       style={{
         background: '#fafbfc',
         border: '1px solid #f1f5f9',
-        borderRadius: '14px',
+        borderRadius: '22px',
         padding: '20px',
         display: 'grid',
         gridTemplateColumns: '290px minmax(0, 1fr) 280px',
@@ -219,7 +217,7 @@ export function StorefrontDealSpotlight({
             grid-column: auto !important;
             padding: 8px 10px !important;
             gap: 6px !important;
-            border-radius: 10px !important;
+            border-radius: 16px !important;
           }
           .storefront-deal-buy-box-header {
             padding-bottom: 4px !important;
@@ -254,15 +252,14 @@ export function StorefrontDealSpotlight({
           position: 'relative',
           width: '100%',
           aspectRatio: '1 / 1',
-          borderRadius: '12px',
+          borderRadius: '16px',
           overflow: 'hidden',
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          border: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '8px',
+          padding: '12px',
           boxSizing: 'border-box',
         }}
       >
@@ -377,17 +374,17 @@ export function StorefrontDealSpotlight({
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: '6px',
-              background: isOutOfStock ? '#fef2f2' : '#f0fdf4',
-              color: isOutOfStock ? '#b91c1c' : '#166534',
-              border: isOutOfStock ? '1px solid #fecaca' : '1px solid #bbf7d0',
+              background: isOutOfStock ? '#f1f5f9' : '#f0fdf4',
+              color: isOutOfStock ? '#475569' : '#166534',
+              border: isOutOfStock ? '1px solid #cbd5e1' : '1px solid #bbf7d0',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
             }}
           >
-            <IconCheckCircle size={11} color={isOutOfStock ? '#b91c1c' : '#16a34a'} strokeWidth={2.4} />
-            <span>{isOutOfStock ? t('storefront.storefront_deal_spotlight.s3', "نفد من المخزن") : t('storefront.storefront_deal_spotlight.s4', "متوفر بالمخزن")}</span>
+            <IconCheckCircle size={11} color={isOutOfStock ? '#475569' : '#16a34a'} strokeWidth={2.4} />
+            <span>{isOutOfStock ? 'نفدت الكمية' : t('storefront.storefront_deal_spotlight.s4', "متوفر بالمخزن")}</span>
           </span>
         </div>
       </div>
@@ -604,7 +601,7 @@ export function StorefrontDealSpotlight({
         style={{
           background: '#ffffff',
           border: '1.5px solid #e2e8f0',
-          borderRadius: '12px',
+          borderRadius: '18px',
           padding: '16px',
           boxShadow: '0 2px 10px rgba(15, 23, 42, 0.04)',
           display: 'flex',
@@ -762,12 +759,12 @@ export function StorefrontDealSpotlight({
               disabled={isOutOfStock}
               style={{
                 width: '100%',
-                height: '42px',
-                borderRadius: '10px',
-                background: isOutOfStock ? '#94a3b8' : 'var(--storefront-primary-color, #170e5e)',
-                color: '#ffffff',
-                border: 'none',
-                fontSize: '13.5px',
+                height: '35px',
+                borderRadius: '12px',
+                background: isOutOfStock ? '#e2e8f0' : 'var(--storefront-primary-color, #170e5e)',
+                color: isOutOfStock ? '#64748b' : '#ffffff',
+                border: isOutOfStock ? '1px solid #cbd5e1' : 'none',
+                fontSize: '13px',
                 fontWeight: 800,
                 cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
@@ -780,8 +777,8 @@ export function StorefrontDealSpotlight({
               onMouseEnter={(e) => !isOutOfStock && (e.currentTarget.style.filter = 'brightness(1.12)')}
               onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
             >
-              <IconShoppingCart size={17} color="#ffffff" strokeWidth={2.2} />
-              <span>{isOutOfStock ? t('storefront.storefront_deal_spotlight.s22', "غير متاح حالياً") : t('storefront.storefront_deal_spotlight.s23', "أضف العرض للسلة")}</span>
+              {!isOutOfStock && <IconShoppingCart size={17} color="#ffffff" strokeWidth={2.2} />}
+              <span>{isOutOfStock ? 'غير متوفر' : t('storefront.storefront_deal_spotlight.s23', "أضف العرض للسلة")}</span>
             </button>
           )}
         </div>
@@ -795,8 +792,8 @@ export function StorefrontDealSpotlight({
             rel="noopener noreferrer"
             style={{
               width: '100%',
-              height: '38px',
-              borderRadius: '10px',
+              height: '35px',
+              borderRadius: '12px',
               background: '#f0fdf4',
               border: '1.5px solid #bbf7d0',
               color: '#166534',
@@ -819,9 +816,7 @@ export function StorefrontDealSpotlight({
               e.currentTarget.style.borderColor = '#bbf7d0';
             }}
           >
-            <svg width="15" height="15" fill="#25d366" viewBox="0 0 24 24">
-              <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
-            </svg>
+            <IconWhatsapp size={16} color="#25D366" />
             <span>{t('storefront.storefront_deal_spotlight.s24', "طلب سريع عبر واتساب")}</span>
           </a>
         )}

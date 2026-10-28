@@ -93,11 +93,12 @@ export function StorefrontHero({
           <h1
             style={{
               margin: 0,
-              fontSize: '30px',
-              fontWeight: 800,
+              fontSize: '32px',
+              fontWeight: 700,
               color: '#ffffff',
               letterSpacing: '-0.3px',
-              lineHeight: '1.25',
+              lineHeight: '1.3',
+              fontFamily: "'Alexandria', 'Inter', 'Tajawal', 'Cairo', sans-serif",
             }}
           >
             {brand.title}
@@ -140,10 +141,11 @@ export function StorefrontHero({
           <p
             style={{
               margin: 0,
-              fontSize: '14px',
-              color: 'rgba(255, 255, 255, 0.85)',
-              lineHeight: '1.6',
+              fontSize: '15px',
+              color: 'rgba(255, 255, 255, 0.9)',
+              lineHeight: '1.65',
               maxWidth: '560px',
+              fontFamily: "'Alexandria', 'Inter', 'Tajawal', 'Cairo', sans-serif",
             }}
           >
             {info.bio || t('storefront.storefront_hero.s2', "تسوق تشكيلة واسعة من أجود المنتجات بأفضل الأسعار المباشرة مع خدمة التوصيل السريع لباب منزلك.")}

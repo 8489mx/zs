@@ -136,17 +136,18 @@ export function StorefrontCartDrawer({
             type="button"
             onClick={onClose}
             style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
+              background: '#f0f4f9',
+              border: '1px solid #dadce0',
+              borderRadius: '12px',
               width: '32px',
               height: '32px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#64748b',
+              color: '#1f1f1f',
               fontSize: '16px',
+              transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
             <XIcon size={15} />
@@ -230,7 +231,7 @@ export function StorefrontCartDrawer({
                   alignItems: 'center',
                   gap: '12px',
                   padding: '12px',
-                  borderRadius: '12px',
+                  borderRadius: '16px',
                   border: '1px solid #f1f5f9',
                   background: '#ffffff',
                 }}
@@ -240,7 +241,7 @@ export function StorefrontCartDrawer({
                   style={{
                     width: '52px',
                     height: '52px',
-                    borderRadius: '8px',
+                    borderRadius: '12px',
                     background: '#f8fafc',
                     display: 'flex',
                     alignItems: 'center',
@@ -310,7 +311,7 @@ export function StorefrontCartDrawer({
                     display: 'flex',
                     alignItems: 'center',
                     background: '#f1f5f9',
-                    borderRadius: '8px',
+                    borderRadius: '9999px',
                     padding: '2px',
                   }}
                 >
@@ -321,6 +322,7 @@ export function StorefrontCartDrawer({
                     style={{
                       width: '26px',
                       height: '26px',
+                      borderRadius: '9999px',
                       border: 'none',
                       background: 'none',
                       cursor: 'pointer',
@@ -353,6 +355,7 @@ export function StorefrontCartDrawer({
                     style={{
                       width: '26px',
                       height: '26px',
+                      borderRadius: '9999px',
                       border: 'none',
                       background: 'none',
                       cursor: 'pointer',
@@ -447,16 +450,18 @@ export function StorefrontCartDrawer({
                 disabled={!isMinOrderMet}
                 style={{
                   flex: 1,
-                  padding: '12px 16px',
-                  borderRadius: '10px',
+                  padding: '0 14px',
+                  height: '35px',
+                  borderRadius: '12px',
                   background: isMinOrderMet ? 'var(--storefront-primary-color, #170e5e)' : '#94a3b8',
                   color: 'var(--storefront-primary-contrast, #ffffff)',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: 800,
                   border: 'none',
                   cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
                   boxShadow: isMinOrderMet ? '0 4px 14px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))' : 'none',
                   transition: 'all 0.15s ease',
+                  boxSizing: 'border-box',
                 }}
               >
                 {t('storefront.storefront_cart_drawer.s13', "إتمام الطلب الآن (")}{formatPriceNumber(total)} {activeCurrencySymbol})
@@ -466,13 +471,17 @@ export function StorefrontCartDrawer({
                 onClick={onClearCart}
                 title={t('storefront.storefront_cart_drawer.s14', "تفريغ السلة")}
                 style={{
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: '1px solid #cbd5e1',
+                  padding: '0 14px',
+                  height: '35px',
+                  borderRadius: '12px',
+                  border: '1px solid #E0E3E7',
                   background: '#ffffff',
                   color: '#ef4444',
                   cursor: 'pointer',
-                  fontSize: '13px',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  transition: 'all 0.15s ease',
+                  boxSizing: 'border-box',
                 }}
               >
                 {t('storefront.storefront_cart_drawer.s15', "مسح")}

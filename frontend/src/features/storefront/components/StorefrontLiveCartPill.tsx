@@ -83,19 +83,6 @@ export function StorefrontLiveCartPill({
           boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.25))',
         }}
       >
-        <span
-          style={{
-            position: 'absolute',
-            top: '-1px',
-            right: '-1px',
-            width: '9px',
-            height: '9px',
-            borderRadius: '50%',
-            background: '#22c55e',
-            border: '2px solid #ffffff',
-            animation: 'livePulseDot 2s infinite ease-in-out',
-          }}
-        />
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
           <line x1="3" y1="6" x2="21" y2="6" />
@@ -104,7 +91,7 @@ export function StorefrontLiveCartPill({
       </div>
 
       {/* Exactly 2 clean lines: Line 1 = Items & Pieces, Line 2 = Total */}
-      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, minWidth: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, minWidth: 0, fontVariantNumeric: 'tabular-nums' }}>
         <div style={{ fontSize: '12px', fontWeight: 700, color: '#475569', whiteSpace: 'nowrap' }}>
           <strong style={{ color: '#0f172a', fontWeight: 800 }}>{itemsCount}</strong> {t('storefront.storefront_live_cart_pill.s1', "صنف •")} <strong style={{ color: '#0f172a', fontWeight: 800 }}>{totalQuantity}</strong> {t('storefront.storefront_live_cart_pill.s2', "قطعة")}
         </div>

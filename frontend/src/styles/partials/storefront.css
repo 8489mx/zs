@@ -10,6 +10,7 @@
   /* ارتفاع بار السلة السفلي — تقرؤه شبكة المنتجات لتترك مساحة أسفلها */
   --storefront-dock-height: 84px;
   --storefront-primary-color: #170e5e;
+  --storefront-primary-hover: #120b4c;
   --storefront-primary-contrast: #ffffff;
   --storefront-primary-subtle: rgba(23, 14, 94, 0.08);
   --storefront-secondary-color: #d97706;
@@ -18,6 +19,30 @@
   --storefront-surface-color: #f8fafc;
   --storefront-surface-contrast: #0f172a;
   --storefront-surface-border: #e2e8f0;
+}
+
+/* تحرير واستقلال المتجر الإلكتروني بالكامل من قيود لوحات تحكم الـ ERP */
+html.storefront-standalone-mode,
+body.storefront-standalone-mode,
+body.storefront-standalone-mode #root,
+html:has(.storefront-page-root),
+body:has(.storefront-page-root),
+body:has(.storefront-page-root) #root {
+  height: auto !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  overflow-x: clip !important;
+  overflow-y: visible !important;
+  position: static !important;
+}
+
+[class*="storefront-"], [class*="storefront-"] button, [class*="storefront-"] input, [class*="storefront-"] select, [class*="storefront-"] textarea {
+  font-family: 'Alexandria', 'Inter', 'Tajawal', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.font-en, [data-font="en"] {
+  font-family: 'Inter', 'Alexandria', sans-serif !important;
 }
 
 .storefront-container {
@@ -122,7 +147,7 @@
   transform: translateY(-50%) scale(1.06);
   box-shadow: 0 6px 24px rgba(15, 23, 42, 0.25);
   border-color: #cbd5e1;
-  color: #170e5e;
+  color: var(--storefront-primary-color, #170e5e);
 }
 
 .storefront-shelf-floating-arrow:active {
@@ -204,7 +229,7 @@
   }
   .storefront-main-content .storefront-section-card {
     padding: 10px !important;
-    border-radius: 12px !important;
+    border-radius: 20px !important;
   }
   .storefront-homepage-sections {
     gap: 12px !important;
@@ -409,10 +434,10 @@
   width: 32px;
   height: 32px;
   aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  background: #f1f5f9;
-  border: none;
-  color: #475569;
+  border-radius: 12px;
+  background: #f0f4f9;
+  border: 1px solid #dadce0;
+  color: #1f1f1f;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -603,7 +628,7 @@
     width: 28px !important;
     height: 28px !important;
     aspect-ratio: 1 / 1 !important;
-    border-radius: 50% !important;
+    border-radius: 10px !important;
     flex-shrink: 0 !important;
   }
 
@@ -716,10 +741,415 @@
 .storefront-mid-banner-card {
   width: 100%;
   margin: 20px 0;
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .storefront-mid-banner-card:focus-visible {
   outline: 2px solid var(--storefront-primary-color, #170e5e);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   60fps Compositor-Only Micro-interactions & Luxury Card Physics
+   ========================================================================== */
+.storefront-product-card {
+  will-change: transform;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.storefront-product-img {
+  will-change: transform, opacity;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+@media (min-width: 641px) {
+  .storefront-product-card:hover {
+    transform: translateY(-4px);
+    border-color: #cbd5e1 !important;
+  }
+  .storefront-product-card:hover .storefront-product-img {
+    transform: scale(1.045);
+  }
+}
+
+.storefront-gpu-btn {
+  will-change: transform, opacity;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease !important;
+}
+
+.storefront-gpu-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.95;
+}
+
+.storefront-gpu-btn:active {
+  transform: scale(0.97);
+}
+
+.storefront-product-fav-btn {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.storefront-product-fav-btn:hover {
+  transform: scale(1.12);
+}
+
+/* ==========================================================================
+   Asymmetric Bento Grid Curation Showcase
+   ========================================================================== */
+.storefront-bento-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.95fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.storefront-bento-card {
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 641px) {
+  .storefront-bento-card:hover {
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .storefront-bento-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .storefront-bento-card-hero {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .storefront-bento-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .storefront-bento-card-hero {
+    min-height: 210px !important;
+    padding: 18px !important;
+  }
+  .storefront-bento-card-hero img {
+    width: 112px !important;
+    height: 112px !important;
+  }
+}
+
+/* ==========================================================================
+   Interactive Split-Screen Editorial Hero
+   ========================================================================== */
+@media (max-width: 960px) {
+  .storefront-hero-editorial-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    padding: 20px 16px 24px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .storefront-hero-spotlight-card {
+    grid-template-columns: 110px 1fr !important;
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+  .storefront-hero-spotlight-card > div:first-child {
+    width: 110px !important;
+    height: 110px !important;
+  }
+  .storefront-product-card {
+    padding: 9px !important;
+    border-radius: 18px !important;
+  }
+  .storefront-product-photo-box {
+    border-radius: 14px !important;
+    margin-bottom: 6px !important;
+    padding: 12px !important;
+    background: #ffffff !important;
+    aspect-ratio: 1 / 1 !important;
+  }
+  .storefront-product-title {
+    font-size: 12.5px !important;
+    line-height: 1.35 !important;
+  }
+  .storefront-product-price-main {
+    font-size: 16.5px !important;
+  }
+}
+
+/* ==========================================================================
+   Native-Grade Mobile Bottom Navigation Bar (<= 56px height)
+   ========================================================================== */
+.storefront-mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .storefront-mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: center;
+    z-index: 9985;
+    user-select: none;
+  }
+
+  .storefront-mobile-nav-item {
+    height: 56px;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0 4px;
+    white-space: nowrap;
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
+  }
+
+  .storefront-mobile-nav-item.active {
+    color: var(--storefront-primary-color, #170e5e);
+    font-weight: 900;
+  }
+
+  .storefront-mobile-nav-item:active {
+    transform: scale(0.92);
+  }
+
+  .storefront-mobile-nav-badge {
+    position: absolute;
+    top: -5px;
+    right: -9px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+    border: 1.5px solid #ffffff;
+  }
+
+  .storefront-mobile-nav-badge.cart {
+    background: var(--storefront-primary-color, #170e5e);
+  }
+
+  .storefront-mobile-nav-badge.fav {
+    background: #e11d48;
+  }
+
+  .storefront-mobile-nav-badge.deals {
+    background: #d97706;
+  }
+
+  .storefront-main-content {
+    padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ==========================================================================
+   Google AI Studio Universal Button & Pill Design System
+   Exact curvature, styling, and micro-elevation from Google AI Studio UI
+   ========================================================================== */
+
+/* 1. All Action & CTA Text Buttons -> rounded-xl (12px) Curvature */
+.storefront-product-action-btn,
+.storefront-checkout-btn,
+.sf-quickview-cta-btn,
+.storefront-cart-btn,
+.storefront-action-btn,
+.storefront-subnav-pill,
+.storefront-hero-btn,
+.storefront-live-cart-pill,
+.sf-footer-whatsapp-link,
+.storefront-filter-chip,
+.storefront-pill-btn {
+  border-radius: 12px !important;
+  font-family: inherit;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* 2. Secondary / Neutral Text Buttons (Like [Preview], [Default v], My Orders & Support) */
+.storefront-btn-neutral,
+.storefront-action-btn:not(.storefront-cart-btn) {
+  height: 35px !important;
+  min-height: 34px !important;
+  max-height: 36px !important;
+  padding: 0 13px !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #E0E3E7 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+.storefront-btn-neutral:hover,
+.storefront-action-btn:not(.storefront-cart-btn):hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-1px);
+}
+
+/* 3. Primary Cart Button & CTAs */
+.storefront-cart-btn {
+  height: 35px !important;
+  min-height: 34px !important;
+  max-height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  box-sizing: border-box !important;
+}
+
+/* 4. Icon Buttons -> Squircle Curvature (12px) */
+.storefront-icon-btn,
+.storefront-product-fav-btn,
+.storefront-shelf-arrows button,
+.storefront-shelf-floating-arrow,
+.storefront-cat-modal-close-btn,
+.sf-quickview-close-btn,
+.storefront-modal-close-btn {
+  border-radius: 12px !important;
+  border: 1px solid #E0E3E7 !important;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.storefront-icon-btn:hover,
+.storefront-shelf-arrows button:hover {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  transform: scale(1.02);
+}
+
+/* 5. Stepper Container & Plus/Minus Controls */
+.storefront-product-stepper,
+.sf-quickview-stepper,
+.storefront-stepper-control {
+  border-radius: 10px !important;
+}
+
+.storefront-product-stepper-btn,
+.sf-quickview-stepper-btn {
+  border-radius: 8px !important;
+}
+
+/* 6. Floating Chevrons on Shelf */
+.storefront-shelf-floating-arrow {
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #E0E3E7 !important;
+}
+
+/* 7. Predictive Search Bar */
+.storefront-search-box {
+  border-radius: 12px !important;
+  height: 35px !important;
+  border: 1px solid #E0E3E7 !important;
+}
+
+.storefront-search-btn {
+  border-radius: 9px !important;
+  height: 27px !important;
+  padding: 0 12px !important;
+}
+
+/* 8. Zero-Pill Enforcement across ALL Buttons, Badges, and Action Pills */
+button,
+a.storefront-action-btn,
+.storefront-subnav-pill,
+.storefront-cat-shelf-header span,
+.storefront-deal-add-btn,
+.storefront-deal-wa-btn,
+.storefront-spotlight-breakaway button,
+.storefront-spotlight-breakaway a {
+  border-radius: 12px !important;
+}
+
+
+/* ==========================================================================
+   Apple-Grade Universal Squircle Geometry System
+   Applied across all sections, shelves, cards, modals, and content boxes
+   ========================================================================== */
+
+/* 1. Main Sections, Shelves & Feature Containers -> 26px Squircle (desktop), 20px (mobile) */
+.storefront-section-card,
+.storefront-customer-reviews-section,
+.storefront-deals-shelf-section {
+  border-radius: 26px !important;
+}
+
+/* 2. Bento Grid Hero & Major Cards -> 24px Squircle */
+.storefront-bento-card-hero,
+.storefront-bento-card,
+.storefront-mid-banner-card,
+.storefront-trust-bar-grid,
+.storefront-featured-broadcast-grid > div {
+  border-radius: 24px !important;
+}
+
+/* 3. Product Cards -> 22px Continuous Apple Squircle */
+.storefront-product-card {
+  border-radius: 22px !important;
+}
+
+/* 4. Product Photo Boxes & Inner Card Media Windows -> 16px Squircle */
+.storefront-product-photo-box {
+  border-radius: 16px !important;
+}
+
+/* 5. Filter Headers & Control Bars -> 20px Squircle */
+.storefront-filter-header {
+  border-radius: 20px !important;
+}
+
+/* 6. Modal Shells & Large Popovers -> 24px Squircle */
+.storefront-checkout-modal-container,
+.sf-quickview-shell,
+.storefront-cat-modal-shell,
+.storefront-modal-shell {
+  border-radius: 24px !important;
+}
+
+/* 7. Predictive Search Dropdown Popover -> 20px Squircle */
+.storefront-predictive-popover {
+  border-radius: 20px !important;
+}
+
+/* 8. Free Shipping Milestone Bar -> 16px Squircle */
+.storefront-free-shipping-bar {
+  border-radius: 16px !important;
+}
+.storefront-free-shipping-bar.compact {
+  border-radius: 10px !important;
+}
+
+/* 9. Floating Scrolled Header Island -> 20px Squircle */
+.storefront-sticky-header.is-scrolled {
+  border-radius: 20px !important;
+}
+

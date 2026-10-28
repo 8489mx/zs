@@ -788,7 +788,7 @@ export function StorefrontCheckoutModal({
           maxWidth: '860px',
           maxHeight: 'min(92vh, calc(100dvh - 24px))',
           background: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: '24px',
           boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
           overflow: 'hidden',
           position: 'relative',
@@ -892,27 +892,27 @@ export function StorefrontCheckoutModal({
             type="button"
             onClick={onClose}
             style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '50%',
-              width: '28px',
-              height: '28px',
+              background: '#f0f4f9',
+              border: '1px solid #dadce0',
+              borderRadius: '12px',
+              width: '30px',
+              height: '30px',
               aspectRatio: '1 / 1',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#64748b',
+              color: '#1f1f1f',
               padding: 0,
               boxSizing: 'border-box',
               flexShrink: 0,
-              transition: 'background 0.15s ease',
+              transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#e3e8ee')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#f0f4f9')}
             title={t('storefront.storefront_checkout_modal.s3', "إغلاق (Esc)")}
           >
-            <XIcon size={14} color="#64748b" strokeWidth={2.2} />
+            <XIcon size={14} color="#1f1f1f" strokeWidth={2.2} />
           </button>
         </div>
 
@@ -2172,8 +2172,8 @@ export function StorefrontCheckoutModal({
             style={{
               flex: 1,
               height: '38px',
-              padding: '0 16px',
-              borderRadius: '8px',
+              padding: '0 20px',
+              borderRadius: '9999px',
               background: brandColor,
               color: brandColorContrast || 'var(--storefront-primary-contrast, #ffffff)',
               fontSize: '13px',
@@ -2195,17 +2195,18 @@ export function StorefrontCheckoutModal({
             disabled={loading}
             style={{
               height: '38px',
-              padding: '0 14px',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#475569',
-              fontSize: '11.5px',
-              fontWeight: 600,
+              padding: '0 18px',
+              borderRadius: '9999px',
+              border: '1px solid #dadce0',
+              background: '#f0f4f9',
+              color: '#1f1f1f',
+              fontSize: '12px',
+              fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              transition: 'all 0.15s ease',
             }}
           >
             {t('storefront.storefront_checkout_modal.s69', "إلغاء")}

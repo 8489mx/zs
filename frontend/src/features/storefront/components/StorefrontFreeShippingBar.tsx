@@ -39,7 +39,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
       style={{
         background: isUnlocked ? '#f0fdf4' : '#f8fafc',
         border: `1px solid ${isUnlocked ? '#bbf7d0' : '#e2e8f0'}`,
-        borderRadius: compact ? '7px' : '12px',
+        borderRadius: compact ? '10px' : '16px',
         padding: compact ? '5px 10px 6px' : '10px 16px',
         transition: 'all 0.3s ease',
         boxShadow: isUnlocked ? '0 2px 8px rgba(22, 163, 74, 0.08)' : '0 1px 3px rgba(15, 23, 42, 0.03)',

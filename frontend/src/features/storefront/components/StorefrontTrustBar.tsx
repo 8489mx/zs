@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { UsersIcon, ShieldCheckIcon, TruckIcon, RefreshCwIcon } from '@/shared/components/icons/AppIcons';
+import { ShieldCheckIcon, TruckIcon, CreditCardIcon } from '@/shared/components/icons/AppIcons';
+import { IconWhatsapp } from './StorefrontIcons';
 import type { StorefrontInfo } from '../types/storefront.types';
 
 interface StorefrontTrustBarProps {
@@ -15,40 +16,40 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar({ info 
         amount: info.freeShippingMinOrder,
         curr: info.currency || 'ج.م',
       })
-    : t('storefront.trust_bar.fast_delivery', 'شحن وتوصيل سريع ومباشر لبابك');
+    : 'توصيل سريع وآمن';
 
   const trustItems = [
     {
-      id: 'clients',
-      icon: UsersIcon,
-      accentColor: '#4338ca',
-      bgLight: '#eef2ff',
-      title: '+1,420 متجر وعميل',
-      subtitle: t('storefront.trust_bar.clients_sub', 'يعتمدون على منتجاتنا في مصر والشرق الأوسط'),
-    },
-    {
-      id: 'warranty',
-      icon: ShieldCheckIcon,
-      accentColor: '#16a34a',
-      bgLight: '#f0fdf4',
-      title: 'ضمان استبدال معتمد',
-      subtitle: t('storefront.trust_bar.warranty_sub', 'ضمان رسمي شامل مع دعم فني مستمر'),
-    },
-    {
       id: 'shipping',
       icon: TruckIcon,
-      accentColor: '#0284c7',
-      bgLight: '#f0f9ff',
+      accentColor: '#1e293b',
+      bgLight: '#f1f5f9',
       title: freeShippingText,
-      subtitle: t('storefront.trust_bar.shipping_sub', 'تجهيز وشحن فوري خلال 24 - 48 ساعة'),
+      subtitle: t('storefront.trust_bar.shipping_sub', 'شحن مباشر مع متابعة دقيقة لحالة الطلب'),
     },
     {
       id: 'sync',
-      icon: RefreshCwIcon,
-      accentColor: '#7c3aed',
-      bgLight: '#f5f3ff',
-      title: '100% متزامن وأصلي',
-      subtitle: t('storefront.trust_bar.sync_sub', 'ربط لحظي للأسعار والمخزون مع الفرع الرئيسي'),
+      icon: ShieldCheckIcon,
+      accentColor: '#1e293b',
+      bgLight: '#f1f5f9',
+      title: 'جودة مضمونة 100%',
+      subtitle: t('storefront.trust_bar.sync_sub', 'عناية فائقة بجودة وتغليف كافة الأصناف المعروضة'),
+    },
+    {
+      id: 'payment',
+      icon: CreditCardIcon,
+      accentColor: '#1e293b',
+      bgLight: '#f1f5f9',
+      title: 'دفع آمن ومارن',
+      subtitle: 'الدفع عند الاستلام أو بالبطاقات والمحافظ الرقمية',
+    },
+    {
+      id: 'support',
+      icon: IconWhatsapp,
+      accentColor: '#25D366',
+      bgLight: '#f0fdf4',
+      title: 'خدمة عملاء مباشرة',
+      subtitle: 'دعم واستفسارات فورية عبر محادثة واتساب',
     },
   ];
 
@@ -59,7 +60,7 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar({ info 
       style={{
         maxWidth: 'var(--storefront-container, 1440px)',
         width: '100%',
-        margin: '12px auto 6px',
+        margin: '16px auto 8px',
         padding: '0 16px',
         boxSizing: 'border-box',
       }}
@@ -69,12 +70,7 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar({ info 
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '12px',
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '16px',
-          padding: '14px 18px',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          gap: '14px',
         }}
       >
         {trustItems.map((item) => {
@@ -85,34 +81,24 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar({ info 
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: '12px',
-                padding: '6px 8px',
+                padding: '14px 18px',
+                background: '#ffffff',
+                border: '1px solid #E0E3E7',
+                borderRadius: '16px',
+                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
+                transition: 'border-color 0.15s ease, transform 0.15s ease',
               }}
             >
-              <div
-                style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '12px',
-                  backgroundColor: item.bgLight,
-                  color: item.accentColor,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                }}
-              >
-                <Icon size={22} color={item.accentColor} strokeWidth={2.2} />
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ minWidth: 0, flex: 1, textAlign: 'right' }}>
                 <div
                   style={{
-                    fontSize: '13px',
+                    fontSize: '13.5px',
                     fontWeight: 800,
                     color: '#0f172a',
                     lineHeight: 1.35,
-                    marginBottom: '2px',
+                    marginBottom: '3px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -134,6 +120,22 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar({ info 
                   {item.subtitle}
                 </div>
               </div>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  backgroundColor: item.bgLight,
+                  color: item.accentColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <Icon size={18} color={item.accentColor} strokeWidth={2} />
+              </div>
             </div>
           );
         })}
@@ -141,3 +143,4 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar({ info 
     </section>
   );
 });
+
