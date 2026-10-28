@@ -3,7 +3,7 @@ import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useState } from 'react';
 import { StorefrontProduct } from '../types/storefront.types';
 import { resolveProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
-import { IconCheckCircle, IconStar, IconShoppingCart } from './StorefrontIcons';
+import { IconCheckCircle, IconShoppingCart } from './StorefrontIcons';
 import { ClockIcon } from '@/shared/components/icons/AppIcons';
 
 interface StorefrontProductCardProps {
@@ -45,7 +45,6 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   onAddToCart,
   onUpdateQuantity,
   isSmartDeal,
-  onOpenReviewModal,
   isFavorite: isFavoriteProp,
   onToggleFavorite: onToggleFavoriteProp,
   onQuickView,
@@ -108,27 +107,25 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   const offerBadgeText = product.offerBadge || (discountPercent > 0 ? `خصم ${discountPercent}%` : 'عرض خاص');
 
   // Single-Badge Discipline: Out of Stock shows "نفدت الكمية"
-  let primaryBadge: { text: string; bg: string; color: string; border?: string; isOut?: boolean } | null = null;
+  let primaryBadge: { text: string; bg: string; color: string; isOut?: boolean } | null = null;
   if (isOutOfStock) {
     primaryBadge = {
       text: 'نفدت الكمية',
-      bg: '#f1f5f9',
-      color: '#475569',
-      border: '#cbd5e1',
+      bg: '#dc2626',
+      color: '#ffffff',
       isOut: true,
     };
   } else if (product.stockQty > 0 && product.stockQty <= 5) {
     primaryBadge = {
       text: `${t('storefront.storefront_product_card.s2', 'متبقي')} ${product.stockQty} ${t('storefront.storefront_product_card.s3', 'فقط')}`,
-      bg: '#fff7ed',
-      color: '#c2410c',
-      border: '#fed7aa',
+      bg: '#c2410c',
+      color: '#ffffff',
     };
-  } else if (hasDiscount || hasQuantityOffer) {
+  } else if (hasDiscount || hasQuantityOffer || Boolean(product.offerBadge)) {
     primaryBadge = {
       text: offerBadgeText,
-      bg: 'var(--storefront-primary-color, #170e5e)',
-      color: 'var(--storefront-primary-contrast, #ffffff)',
+      bg: '#CC0C39',
+      color: '#ffffff',
     };
   }
 
@@ -218,33 +215,44 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </span>
           )}
 
-          {/* Top Right: Single Disciplined Badge */}
+          {/* Top Right: Deal / Offer badge (Amazon-style flat matte solid box, centered vertically with heart button) */}
           {primaryBadge && (
             <div
               style={{
                 position: 'absolute',
                 top: '8px',
                 right: '8px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 zIndex: 2,
+                pointerEvents: 'none',
               }}
             >
               <span
                 className="storefront-product-badge"
                 style={{
-                  fontSize: '10.5px',
+                  fontSize: '11px',
                   fontWeight: 800,
-                  background: primaryBadge.bg,
                   color: primaryBadge.color,
+                  backgroundColor: primaryBadge.bg,
                   padding: '3px 8px',
-                  borderRadius: '7px',
-                  border: primaryBadge.border ? `1px solid ${primaryBadge.border}` : 'none',
+                  borderRadius: '6px',
+                  boxShadow: 'none',
+                  filter: 'none',
+                  textShadow: 'none',
+                  border: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
                   fontVariantNumeric: 'tabular-nums',
+                  lineHeight: '1.2',
+                  letterSpacing: '-0.01em',
+                  userSelect: 'none',
                 }}
               >
-                {primaryBadge.isOut && <ClockIcon size={11} color="#475569" />}
+                {primaryBadge.isOut && <ClockIcon size={12} color="#ffffff" />}
                 <span>{primaryBadge.text}</span>
               </span>
             </div>
@@ -318,64 +326,33 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           {/* Unboxed Metadata Row: Category · Rating */}
           <div
             className="storefront-product-meta-row"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            height: '20px',
-            minHeight: '20px',
-            maxHeight: '20px',
-            marginBottom: '5px',
-          }}
-        >
-          <span
-            className="storefront-product-cat-tag"
             style={{
-              fontSize: '11px',
-              color: '#64748b',
-              fontWeight: 600,
-              maxWidth: '130px',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              display: 'inline-block',
-            }}
-            title={product.categoryName || t('storefront.storefront_product_card.s9', 'عام')}
-          >
-            {formatSmartCategoryName(product.categoryName)}
-          </span>
-          <button
-            type="button"
-            className="storefront-product-rating"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenReviewModal?.(product);
-            }}
-            title={t('storefront.storefront_product_card.s10', 'عرض وكتابة تقييم للمنتج')}
-            style={{
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
-              gap: '3px',
-              fontSize: '11.5px',
-              color: '#f59e0b',
-              background: 'transparent',
-              border: 'none',
-              padding: '0 2px',
-              cursor: onOpenReviewModal ? 'pointer' : 'default',
-              fontVariantNumeric: 'tabular-nums',
+              justifyContent: 'flex-start',
+              height: '20px',
+              minHeight: '20px',
+              maxHeight: '20px',
+              marginBottom: '5px',
             }}
           >
-            <IconStar size={12} fill="#f59e0b" color="#f59e0b" />
-            {product.reviewCount && product.reviewCount > 0 ? (
-              <>
-                <span style={{ color: '#0f172a', fontWeight: 800 }}>{Number(product.rating || 5).toFixed(1)}</span>
-                <span style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600 }}>({product.reviewCount})</span>
-              </>
-            ) : (
-              <span style={{ color: '#64748b', fontSize: '10.5px', fontWeight: 700 }}>{t('storefront.storefront_product_card.s11', 'جديد')}</span>
-            )}
-          </button>
-        </div>
+            <span
+              className="storefront-product-cat-tag"
+              style={{
+                fontSize: '11px',
+                color: '#64748b',
+                fontWeight: 600,
+                maxWidth: '100%',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: 'inline-block',
+              }}
+              title={product.categoryName || t('storefront.storefront_product_card.s9', 'عام')}
+            >
+              {formatSmartCategoryName(product.categoryName)}
+            </span>
+          </div>
 
         {/* Product Title - Clicking opens QuickView modal */}
         <h3
@@ -384,19 +361,17 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           style={{
             cursor: onQuickView ? 'pointer' : 'default',
             margin: '0 0 6px',
-            fontSize: '13.5px',
-            fontWeight: 800,
+            fontSize: '12px',
+            fontWeight: 500,
             color: '#0f172a',
-            lineHeight: '1.38',
-            height: '38px',
-            minHeight: '38px',
-            maxHeight: '38px',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
+            lineHeight: '1.4',
+            height: '20px',
+            minHeight: '20px',
+            maxHeight: '20px',
+            whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            wordBreak: 'break-word',
+            display: 'block',
           }}
           title={product.name}
         >
@@ -468,30 +443,18 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </div>
 
             {hasDiscount && (
-              <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '5px' }}>
-                <span
-                  className="storefront-product-price-old"
-                  style={{
-                    fontSize: '11.5px',
-                    fontWeight: 600,
-                    color: '#94a3b8',
-                    textDecoration: 'line-through',
-                  }}
-                >
-                  {oldPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </span>
-                <span
-                  className="storefront-product-price-save"
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    color: '#15803d',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  · {t('storefront.storefront_product_card.s13', 'وفر')} {Math.round((oldPrice - product.price) * 100) / 100} <CurrencySymbol />
-                </span>
-              </div>
+              <span
+                className="storefront-product-price-old"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#94a3b8',
+                  textDecoration: 'line-through',
+                  marginInlineStart: '2px',
+                }}
+              >
+                {oldPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </span>
             )}
           </div>
         )}

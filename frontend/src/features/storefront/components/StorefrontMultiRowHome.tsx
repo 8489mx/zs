@@ -76,7 +76,6 @@ export function StorefrontMultiRowHome({
         <StorefrontShelfSection
           sectionId="storefront-deals-shelf"
           badge={t('storefront.storefront_multi_row_home.s0', 'تخفيضات وعروض اليوم')}
-          subtitle={t('storefront.storefront_multi_row_home.s1', 'خصومات لفترة محدودة حتى نفاد الكمية')}
           viewAllLabel={`عرض كل التخفيضات (${dealsProducts.length})`}
           products={dealsProducts.slice(0, 12)}
           cartMap={cartMap}
@@ -114,7 +113,6 @@ export function StorefrontMultiRowHome({
             <StorefrontShelfSection
               sectionId={`storefront-category-shelf-${section.categoryId}`}
               badge={section.categoryName}
-              subtitle={t('storefront.multi_row.category_subtitle', 'أفضل المنتجات في قسم {{category}}', { category: section.categoryName })}
               viewAllLabel={`عرض كل أصناف القسم (${section.totalCount})`}
               products={section.products.slice(0, 12)}
               cartMap={cartMap}

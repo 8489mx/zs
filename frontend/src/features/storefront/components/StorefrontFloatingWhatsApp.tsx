@@ -62,44 +62,35 @@ export function StorefrontFloatingWhatsApp({
           z-index: 9980;
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          justify-content: center;
+          width: 52px;
+          height: 52px;
+          padding: 0;
+          box-sizing: border-box;
           background: #25D366;
           color: #ffffff;
-          border-radius: 9999px;
-          padding: 10px 16px 10px 14px;
+          border-radius: 50% !important;
           text-decoration: none;
-          box-shadow: 0 10px 25px -3px rgba(37, 211, 102, 0.42), 0 4px 10px -2px rgba(15, 23, 42, 0.12);
+          box-shadow: 0 10px 25px -3px rgba(37, 211, 102, 0.45), 0 4px 10px -2px rgba(15, 23, 42, 0.12);
           transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.15s ease;
           font-family: inherit;
           user-select: none;
         }
         .sf-floating-whatsapp:hover {
           background: #22c55e;
-          transform: translateY(-2px) scale(1.03);
-          box-shadow: 0 14px 32px -3px rgba(37, 211, 102, 0.52), 0 6px 14px -2px rgba(15, 23, 42, 0.15);
+          transform: translateY(-2px) scale(1.05);
+          box-shadow: 0 14px 32px -3px rgba(37, 211, 102, 0.55), 0 6px 14px -2px rgba(15, 23, 42, 0.15);
         }
         .sf-floating-whatsapp:active {
-          transform: translateY(0) scale(0.98);
-        }
-        .sf-floating-whatsapp-text {
-          font-size: 12.5px;
-          font-weight: 800;
-          letter-spacing: -0.2px;
-          white-space: nowrap;
+          transform: translateY(0) scale(0.96);
         }
         @media (max-width: 640px) {
           .sf-floating-whatsapp {
             bottom: ${hasFloatingCart ? '140px' : '76px'} !important;
             right: 14px !important;
-            padding: 11px !important;
+            width: 48px !important;
+            height: 48px !important;
             border-radius: 50% !important;
-            width: 46px !important;
-            height: 46px !important;
-            justify-content: center !important;
-            box-sizing: border-box !important;
-          }
-          .sf-floating-whatsapp-text {
-            display: none !important;
           }
         }
         @media print {
@@ -117,10 +108,7 @@ export function StorefrontFloatingWhatsApp({
         title={t('storefront.floating_whatsapp.tooltip', 'تواصل مع خدمة العملاء عبر واتساب')}
         aria-label={t('storefront.floating_whatsapp.aria', 'محادثة واتساب فورية')}
       >
-        <IconWhatsapp size={22} color="#ffffff" />
-        <span className="sf-floating-whatsapp-text">
-          {t('storefront.floating_whatsapp.label', 'تواصل معنا')}
-        </span>
+        <IconWhatsapp size={26} color="#ffffff" />
       </a>
     </>
   );

@@ -9,6 +9,12 @@ name: Deploy to Oracle SaaS Server
 # إن فشل فحص الصحة بعد التبديل يرجع تلقائياً للنسخة السابقة.
 
 on:
+  workflow_run:
+    workflows: ["ci"]
+    branches:
+      - main
+    types:
+      - completed
   workflow_dispatch:
 
 concurrency:
@@ -24,12 +30,13 @@ jobs:
     name: Build on GitHub and deploy to Oracle Cloud VPS
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     env:
-      DEPLOY_SHA: ${{ github.sha }}
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
     steps:
       - name: Require current main SHA with successful full CI
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

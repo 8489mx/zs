@@ -637,10 +637,13 @@ export function StorefrontProductQuickViewModal({
                         style={{
                           fontSize: '11px',
                           fontWeight: 800,
-                          background: 'var(--storefront-secondary-color, #e11d48)',
-                          color: 'var(--storefront-secondary-contrast, #ffffff)',
+                          background: '#CC0C39',
+                          color: '#ffffff',
                           padding: '2px 8px',
                           borderRadius: '6px',
+                          boxShadow: 'none',
+                          filter: 'none',
+                          textShadow: 'none',
                           marginInlineStart: '4px',
                         }}
                       >

@@ -183,13 +183,12 @@ export const StorefrontAmazonQuadCard = React.memo(function StorefrontAmazonQuad
                   style={{
                     fontSize: '11.5px',
                     color: '#334155',
-                    fontWeight: 700,
+                    fontWeight: 500,
                     lineHeight: '1.35',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
+                    whiteSpace: 'nowrap',
                     overflow: 'hidden',
-                    minHeight: '30px',
+                    textOverflow: 'ellipsis',
+                    display: 'block',
                   }}
                   title={p.name}
                 >

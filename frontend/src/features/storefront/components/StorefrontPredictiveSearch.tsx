@@ -104,12 +104,12 @@ export function StorefrontPredictiveSearch({
           gap: isScrolled ? '6px' : '8px',
           background: '#ffffff',
           borderRadius: '9999px',
-          padding: isScrolled ? '0 10px' : '0 12px',
+          padding: isScrolled ? '0 12px' : '0 12px',
           border: isOpen ? '1.5px solid var(--storefront-primary-color, #588cb3)' : '1px solid #E0E3E7',
           transition: 'all 0.2s ease',
           boxShadow: isOpen ? '0 4px 16px rgba(88, 140, 179, 0.12)' : '0 1px 2px rgba(15, 23, 42, 0.04)',
           boxSizing: 'border-box',
-          height: isScrolled ? '31px' : '35px',
+          height: isScrolled ? '36px' : '37px',
           position: 'relative',
         }}
       >
@@ -124,13 +124,13 @@ export function StorefrontPredictiveSearch({
               justifyContent: 'center',
               gap: '6px',
               color: '#94a3b8',
-              fontSize: isScrolled ? '12px' : '13px',
+              fontSize: isScrolled ? '12.5px' : '13px',
               fontWeight: 600,
               pointerEvents: 'none',
               userSelect: 'none',
             }}
           >
-            <IconSearch size={isScrolled ? 14 : 16} strokeWidth={2.2} />
+            <IconSearch size={isScrolled ? 15 : 16} strokeWidth={2.2} />
             <span>{t('storefront.storefront_predictive_search.s0', "البحث في Z")}</span>
           </div>
         )}
@@ -145,7 +145,7 @@ export function StorefrontPredictiveSearch({
             transition: 'opacity 0.15s ease',
           }}
         >
-          <IconSearch size={isScrolled ? 14 : 16} strokeWidth={2.2} />
+          <IconSearch size={isScrolled ? 15 : 16} strokeWidth={2.2} />
         </span>
         <input
           className="storefront-search-input"
@@ -164,11 +164,11 @@ export function StorefrontPredictiveSearch({
             flex: 1,
             border: 'none',
             outline: 'none',
-            fontSize: isScrolled ? '12px' : '13px',
+            fontSize: isScrolled ? '12.5px' : '13px',
             fontWeight: 600,
             color: '#0f172a',
             background: 'transparent',
-            padding: isScrolled ? '4px 2px' : '6px 2px',
+            padding: isScrolled ? '5px 2px' : '6px 2px',
             fontFamily: 'inherit',
             minWidth: 0,
           }}

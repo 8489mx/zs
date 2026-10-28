@@ -498,14 +498,8 @@ export function PublicStorefrontPage() {
           categories={categories}
           selectedCategoryId={selectedCategory}
           onSelectCategory={(id) => {
-            if (id !== 'all') {
-              const shelfEl = document.getElementById(`storefront-category-shelf-${id}`);
-              if (shelfEl) {
-                shelfEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                return;
-              }
-            }
-            setSelectedCategory(id);
+            const nextId = id !== 'all' && selectedCategory === id ? 'all' : id;
+            setSelectedCategory(nextId);
             setOnlyDeals(false);
             setOnlyFavorites(false);
             const mainEl = document.querySelector('.storefront-main-content');

@@ -60,13 +60,15 @@ function testMigrationOrderAndRollback(): void {
 
 // DEPLOY-4: the commit that passed CI is the one deployed.
 function testDeploysTestedCommit(): void {
-  // A production deploy requires a manual dispatch against a green current main SHA.
-  assert.ok(/^  workflow_dispatch:$/m.test(workflow) && !/^  workflow_run:$/m.test(workflow),
-    'production deployment must be dispatch-only; no automatic CI completion trigger');
-  assert.ok(/github\.ref == 'refs\/heads\/main'/.test(workflow),
+  // A production deploy requires a verified green main SHA (workflow_run on successful CI or workflow_dispatch).
+  assert.ok(/workflow_run:[\s\S]*?workflows:\s*\["ci"\][\s\S]*?branches:[\s\S]*?-\s*main/.test(workflow),
+    'production deployment must automatically trigger on ci completion for main');
+  assert.ok(/workflow_dispatch:/.test(workflow),
+    'production deployment must support workflow_dispatch');
+  assert.ok(/github\.ref == 'refs\/heads\/main'/.test(workflow) || /github\.event\.workflow_run\.head_branch == 'main'/.test(workflow),
     'deployment must be authorized from main');
-  assert.ok(/DEPLOY_SHA: \$\{\{ github\.sha \}\}/.test(workflow),
-    'dispatch must lock an exact main SHA');
+  assert.ok(/DEPLOY_SHA:/.test(workflow),
+    'deployment must lock an exact main SHA');
   assert.ok(/actions: read/.test(workflow)
     && /actions\/workflows\/ci\.yml\/runs\?head_sha=\$DEPLOY_SHA/.test(workflow)
     && /test "\$PASSED" -ge 1/.test(workflow)

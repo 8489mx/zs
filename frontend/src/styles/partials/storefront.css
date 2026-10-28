@@ -457,6 +457,44 @@ body, button, input, select, textarea, [class*="storefront-"] {
 }
 
 /* ==========================================================================
+   DialogShell Universal Overlay & Modal Container
+   ========================================================================== */
+
+html.storefront-standalone-mode .dialog-overlay,
+body.storefront-standalone-mode .dialog-overlay,
+.storefront-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+html.storefront-standalone-mode .dialog-shell,
+body.storefront-standalone-mode .dialog-shell,
+.storefront-dialog-shell {
+  position: relative;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 4px 16px -2px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  max-width: 100%;
+  max-height: min(90vh, 820px);
+  overflow: hidden;
+  box-sizing: border-box;
+  outline: none;
+  margin: auto;
+}
+
+/* ==========================================================================
    Storefront Categories Modal (تصفح جميع أقسام وتصنيفات المتجر)
    ========================================================================== */
 
@@ -1078,9 +1116,9 @@ body, button, input, select, textarea, [class*="storefront-"] {
 /* 2. Secondary / Neutral Text Buttons (Like [Preview], [Default v], My Orders & Support) */
 .storefront-btn-neutral,
 .storefront-action-btn:not(.storefront-cart-btn) {
-  height: 35px !important;
-  min-height: 34px !important;
-  max-height: 36px !important;
+  height: 37px !important;
+  min-height: 36px !important;
+  max-height: 38px !important;
   padding: 0 13px !important;
   border-radius: 12px !important;
   background: #ffffff !important;
@@ -1101,9 +1139,9 @@ body, button, input, select, textarea, [class*="storefront-"] {
 
 /* 3. Primary Cart Button & CTAs */
 .storefront-cart-btn {
-  height: 35px !important;
-  min-height: 34px !important;
-  max-height: 36px !important;
+  height: 37px !important;
+  min-height: 36px !important;
+  max-height: 38px !important;
   padding: 0 14px !important;
   border-radius: 12px !important;
   border: 1px solid transparent !important;
@@ -1152,7 +1190,7 @@ body, button, input, select, textarea, [class*="storefront-"] {
 /* 7. Predictive Search Bar */
 .storefront-search-box {
   border-radius: 12px !important;
-  height: 35px !important;
+  height: 37px !important;
   border: 1px solid #E0E3E7 !important;
 }
 
@@ -1232,8 +1270,8 @@ a.storefront-action-btn,
   border-radius: 10px !important;
 }
 
-/* 9. Floating Scrolled Header Island -> 20px Squircle */
+/* 9. Floating Scrolled Header Island -> Matches Button Curvature (14px) */
 .storefront-sticky-header.is-scrolled {
-  border-radius: 20px !important;
+  border-radius: 14px !important;
 }
 
