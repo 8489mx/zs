@@ -32,7 +32,7 @@ export function getContrastTextColor(hexColor?: string, darkText = '#0f172a', li
 }
 
 export function getHexAlpha(hexColor: string, alpha: number): string {
-  if (!hexColor) return `rgba(23, 14, 94, ${alpha})`;
+  if (!hexColor) return `rgba(88, 140, 179, ${alpha})`;
   const clean = hexColor.replace('#', '').trim();
   const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
   if (full.length !== 6) return hexColor;
@@ -43,15 +43,15 @@ export function getHexAlpha(hexColor: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export function darkenHexColor(hexColor: string, factor = 0.8): string {
-  if (!hexColor) return '#120b4c';
+export function darkenHexColor(hexColor: string, factor = 0.85): string {
+  if (!hexColor) return '#477ba2';
   const clean = hexColor.replace('#', '').trim();
   const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
-  if (full.length !== 6) return '#120b4c';
+  if (full.length !== 6) return '#477ba2';
   const r = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(0, 2), 16) * factor)));
   const g = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(2, 4), 16) * factor)));
   const b = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(4, 6), 16) * factor)));
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#120b4c';
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#477ba2';
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
@@ -63,9 +63,10 @@ export function applyStorefrontThemeVariables(info?: {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
 
-  const primary = info?.brandColor || '#170e5e';
-  const primaryHover = darkenHexColor(primary, 0.8);
-  const secondary = info?.brandSecondaryColor || '#d97706';
+  const rawBrand = (info?.brandColor || '').trim().toLowerCase();
+  const primary = !rawBrand || rawBrand === '#170e5e' || rawBrand === '#0f172a' ? '#588cb3' : info!.brandColor!;
+  const primaryHover = darkenHexColor(primary, 0.85);
+  const secondary = info?.brandSecondaryColor || '#2d6c97';
   const surface = info?.brandSurfaceColor || '#f8fafc';
 
   const primaryContrast = getContrastTextColor(primary);
@@ -76,7 +77,7 @@ export function applyStorefrontThemeVariables(info?: {
   root.style.setProperty('--storefront-primary-color', primary);
   root.style.setProperty('--storefront-primary-hover', primaryHover);
   root.style.setProperty('--storefront-primary-contrast', primaryContrast);
-  root.style.setProperty('--storefront-primary-subtle', getHexAlpha(primary, 0.08));
+  root.style.setProperty('--storefront-primary-subtle', getHexAlpha(primary, 0.14));
 
   root.style.setProperty('--storefront-secondary-color', secondary);
   root.style.setProperty('--storefront-secondary-contrast', secondaryContrast);

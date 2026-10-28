@@ -9,13 +9,13 @@
   --storefront-container: 1440px;
   /* ارتفاع بار السلة السفلي — تقرؤه شبكة المنتجات لتترك مساحة أسفلها */
   --storefront-dock-height: 84px;
-  --storefront-primary-color: #170e5e;
-  --storefront-primary-hover: #120b4c;
+  --storefront-primary-color: #588cb3;
+  --storefront-primary-hover: #477ba2;
   --storefront-primary-contrast: #ffffff;
-  --storefront-primary-subtle: rgba(23, 14, 94, 0.08);
-  --storefront-secondary-color: #d97706;
+  --storefront-primary-subtle: rgba(88, 140, 179, 0.14);
+  --storefront-secondary-color: #2d6c97;
   --storefront-secondary-contrast: #ffffff;
-  --storefront-secondary-subtle: rgba(217, 119, 6, 0.12);
+  --storefront-secondary-subtle: rgba(45, 108, 151, 0.12);
   --storefront-surface-color: #f8fafc;
   --storefront-surface-contrast: #0f172a;
   --storefront-surface-border: #e2e8f0;
@@ -37,7 +37,7 @@ body:has(.storefront-page-root) #root {
   position: static !important;
 }
 
-[class*="storefront-"], [class*="storefront-"] button, [class*="storefront-"] input, [class*="storefront-"] select, [class*="storefront-"] textarea {
+body, button, input, select, textarea, [class*="storefront-"] {
   font-family: 'Alexandria', 'Inter', 'Tajawal', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -178,6 +178,90 @@ body:has(.storefront-page-root) #root {
   }
   .storefront-shelf-arrows {
     display: none !important;
+  }
+}
+
+/* ==========================================================================
+   معمارية العرض التفاعلي الذكي حسب عدد الأصناف (Zero Dead White Space)
+   ========================================================================== */
+
+/* حالة الصنفين: شبكة ثنائية متوازنة تملأ 100% من عرض الرف */
+.storefront-shelf-dual-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .storefront-shelf-dual-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+}
+
+/* حالة الـ 3 أصناف: شبكة ثلاثية متوازنة تملأ 100% من عرض الرف */
+.storefront-shelf-tri-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .storefront-shelf-tri-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .storefront-shelf-tri-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+}
+
+/* بطاقة المنتج العريضة الفاخرة للرفوف الثنائية */
+.storefront-product-card-wide {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+  padding: 16px !important;
+}
+
+.storefront-product-card-wide .storefront-product-photo-box {
+  width: 180px !important;
+  min-width: 180px !important;
+  max-width: 200px !important;
+  height: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  margin-bottom: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.storefront-product-card-wide .storefront-product-info-col {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .storefront-product-card-wide {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+  .storefront-product-card-wide .storefront-product-photo-box {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    max-height: 240px !important;
+    margin-bottom: 8px !important;
   }
 }
 

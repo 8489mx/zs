@@ -6,16 +6,15 @@ import { StorefrontDealSpotlight } from './StorefrontDealSpotlight';
 import { IconArrowUpRight } from './StorefrontIcons';
 
 /**
- * رفّ منتجات موحّد: ترويسة + شريط تمرير أفقي.
+ * رفّ منتجات ذكي تفاعلي (Dynamic Responsive Storefront Shelf):
  *
- * **لماذا وُحِّد:** كانت الصفحة الرئيسية تعرض ثلاثة أشكال مختلفة لنفس الفكرة —
- * شبكة للعروض، ورفّ بلا أسهم للأقسام، و`StorefrontHorizontalCarousel` منفصل
- * للقسم الثالث فقط. ثلاث ترويسات بثلاثة تنسيقات في صفحة واحدة.
- *
- * ومشكلة الترويسة القديمة تحديداً: `flexWrap: 'wrap'` مع عنوان طويل وبلا أي
- * تحكم في الانكماش، فكانت مجموعة الأزرار («عرض الكل» والأسهم) **تنزل لسطر
- * ثانٍ** وتترك فراغاً مكسوراً. هنا العنوان وحده هو ما ينكمش (`min-width: 0`
- * و`text-overflow: ellipsis`)، والأزرار لا تنزل أبداً (`flex-shrink: 0`).
+ * يطبّق معمارية العرض التفاعلي الذكي حسب عدد الأصناف (Zero Dead White Space):
+ * 1. صنف واحد (1 Item): كارت أفقي عريض وفاخر (Full-Width Spotlight Showcase)
+ *    بتخطيط من عمودين متوازنين (ديسكتوب) وعمود واحد (موبايل).
+ * 2. صنفان (2 Items): شبكة ثنائية متوازنة (repeat(2, minmax(0, 1fr))) تملأ 100% من عرض الرف
+ *    ببطاقات عريضة فاخرة تبرز الصورة والمواصفات.
+ * 3. ثلاثة أصناف (3 Items): شبكة ثلاثية متوازنة (repeat(3, minmax(0, 1fr))) تملأ المساحة بالكامل.
+ * 4. أربعة أصناف فأكثر (4+ Items): شريط تمرير أفقي سلس مع أسهم تنقل عند الفائض.
  */
 
 type Props = {
@@ -61,13 +60,17 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [canScroll, setCanScroll] = useState(false);
 
-  // الأسهم تظهر فقط عندما يكون هناك ما يُمرَّر إليه فعلاً
+  // الأسهم تظهر فقط عندما يكون هناك ما يُمرَّر إليه فعلاً في حالة الـ 4 أصناف فأكثر
   const syncScrollability = useCallback(() => {
+    if (products.length < 4) {
+      setCanScroll(false);
+      return;
+    }
     const el = trackRef.current;
     if (!el) return;
     const scrollable = el.scrollWidth - el.clientWidth > 8;
     setCanScroll((prev) => (prev !== scrollable ? scrollable : prev));
-  }, []);
+  }, [products.length]);
 
   useEffect(() => {
     syncScrollability();
@@ -79,8 +82,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
   }, [syncScrollability, products.length]);
 
   /**
-   * `prev`/`next` منطقيان لا بصريان: في RTL يتكفّل المتصفح بعكس الاتجاه، فلا
-   * نحتاج التعامل مع إشارة `scrollLeft` يدوياً (وهي تختلف بين المتصفحات).
+   * `prev`/`next` منطقيان لا بصريان: في RTL يتكفّل المتصفح بعكس الاتجاه.
    */
   const scrollBy = (direction: 'prev' | 'next') => {
     const el = trackRef.current;
@@ -105,6 +107,10 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
     flexShrink: 0,
   };
 
+  if (!products || products.length === 0) {
+    return null;
+  }
+
   return (
     <div
       id={sectionId}
@@ -118,6 +124,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
         scrollMarginTop: '96px',
       }}
     >
+      {/* Shelf Header */}
       <div
         className="storefront-cat-shelf-header"
         style={{
@@ -128,7 +135,6 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
           borderBottom: '1px solid #f1f5f9',
           paddingBottom: '12px',
           gap: '12px',
-          // بلا `wrap`: الأزرار لا تنزل لسطر ثانٍ مهما طال العنوان
           flexWrap: 'nowrap',
         }}
       >
@@ -155,12 +161,11 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
           </span>
           {subtitle && (
             <span
-              className="storefront-deals-subtitle"
+              className="storefront-shelf-subtitle"
               style={{
-                fontSize: '12.5px',
-                color: '#475569',
+                fontSize: '12px',
+                color: '#64748b',
                 fontWeight: 600,
-                minWidth: 0,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -171,14 +176,15 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
           )}
         </div>
 
+        {/* Navigation & View All Action */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          {canScroll && (
+          {products.length >= 4 && canScroll && (
             <div className="storefront-shelf-arrows" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
                 type="button"
                 onClick={() => scrollBy('prev')}
-                title={t('storefront.storefront_shelf_section.s0', "السابق")}
-                aria-label={t('storefront.storefront_shelf_section.s1', "السابق")}
+                title={t('storefront.storefront_shelf_section.s0', 'السابق')}
+                aria-label={t('storefront.storefront_shelf_section.s1', 'السابق')}
                 style={arrowStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
@@ -190,8 +196,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               <button
                 type="button"
                 onClick={() => scrollBy('next')}
-                title={t('storefront.storefront_shelf_section.s2', "التالي")}
-                aria-label={t('storefront.storefront_shelf_section.s3', "التالي")}
+                title={t('storefront.storefront_shelf_section.s2', 'التالي')}
+                aria-label={t('storefront.storefront_shelf_section.s3', 'التالي')}
                 style={arrowStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
@@ -227,27 +233,27 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
         </div>
       </div>
 
-      {/* 1. Single Deal Spotlight Layout */}
-      {isSmartDeal && products.length === 1 ? (
+      {/* =========================================================================
+          معمارية العرض التفاعلي حسب عدد الأصناف (Zero Dead White Space):
+          ========================================================================= */}
+
+      {/* الحالة 1: صنف واحد فقط -> كارت أفقي عريض وفاخر (Full-Width Spotlight Showcase) */}
+      {products.length === 1 ? (
         <StorefrontDealSpotlight
           product={products[0]}
           cartQuantity={cartMap.get(products[0].id) || 0}
           whatsappPhone={whatsappPhone}
+          isSmartDeal={isSmartDeal}
+          categoryBadge={badge}
           onAddToCart={onAddToCart}
           onUpdateQuantity={onUpdateQuantity}
           onQuickView={onQuickView}
           isFavorite={favoriteIds?.has(products[0].id)}
           onToggleFavorite={onToggleFavorite}
         />
-      ) : isSmartDeal && products.length === 2 ? (
-        /* 2. Two Balanced Deal Cards Grid */
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '16px',
-          }}
-        >
+      ) : products.length === 2 ? (
+        /* الحالة 2: صنفان فقط -> شبكة ثنائية متوازنة تملأ 100% من عرض الرف ببطاقات عريضة */
+        <div className="storefront-shelf-dual-grid">
           {products.map((product) => (
             <StorefrontProductCard
               key={product.id}
@@ -255,6 +261,27 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               cartQuantity={cartMap.get(product.id) || 0}
               whatsappPhone={whatsappPhone}
               isSmartDeal={isSmartDeal}
+              variant="wide"
+              onAddToCart={onAddToCart}
+              onUpdateQuantity={onUpdateQuantity}
+              onOpenReviewModal={onOpenReviewModal}
+              isFavorite={favoriteIds?.has(product.id)}
+              onToggleFavorite={onToggleFavorite}
+              onQuickView={onQuickView}
+            />
+          ))}
+        </div>
+      ) : products.length === 3 ? (
+        /* الحالة 3: ثلاثة أصناف -> شبكة ثلاثية متوازنة تملأ المساحة بالكامل بتناسق بصري */
+        <div className="storefront-shelf-tri-grid">
+          {products.map((product) => (
+            <StorefrontProductCard
+              key={product.id}
+              product={product}
+              cartQuantity={cartMap.get(product.id) || 0}
+              whatsappPhone={whatsappPhone}
+              isSmartDeal={isSmartDeal}
+              variant="standard"
               onAddToCart={onAddToCart}
               onUpdateQuantity={onUpdateQuantity}
               onOpenReviewModal={onOpenReviewModal}
@@ -265,7 +292,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
           ))}
         </div>
       ) : (
-        /* 3. Standard Shelf Carousel Track */
+        /* الحالة 4: أربعة أصناف فأكثر -> شريط التمرير الأفقي السلس مع أسهم الفائض */
         <div className="storefront-shelf-wrapper">
           {/* Floating Right Chevron (Previous in RTL) */}
           {canScroll && (
@@ -273,8 +300,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               type="button"
               className="storefront-shelf-floating-arrow storefront-shelf-arrow-prev"
               onClick={() => scrollBy('prev')}
-              aria-label={t('storefront.storefront_shelf_section.s4', "السابق")}
-              title={t('storefront.storefront_shelf_section.s5', "السابق")}
+              aria-label={t('storefront.storefront_shelf_section.s4', 'السابق')}
+              title={t('storefront.storefront_shelf_section.s5', 'السابق')}
             >
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M9 5l7 7-7 7" />
@@ -282,10 +309,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
             </button>
           )}
 
-          <div
-            className="storefront-shelf"
-            ref={trackRef}
-          >
+          <div className="storefront-shelf" ref={trackRef}>
             {products.map((product) => (
               <div className="storefront-shelf-item" key={product.id}>
                 <StorefrontProductCard
@@ -293,6 +317,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
                   cartQuantity={cartMap.get(product.id) || 0}
                   whatsappPhone={whatsappPhone}
                   isSmartDeal={isSmartDeal}
+                  variant="standard"
                   onAddToCart={onAddToCart}
                   onUpdateQuantity={onUpdateQuantity}
                   onOpenReviewModal={onOpenReviewModal}
@@ -302,50 +327,6 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
                 />
               </div>
             ))}
-
-            {/* If a regular category shelf has only 1 product, show an elegant dashed companion tile */}
-            {!isSmartDeal && products.length === 1 && (
-              <div
-                className="storefront-shelf-item"
-                style={{
-                  minWidth: '220px',
-                  border: '1.5px dashed #cbd5e1',
-                  borderRadius: '14px',
-                  background: '#f8fafc',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '24px 16px',
-                  textAlign: 'center',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <div
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    borderRadius: '10px',
-                    background: '#e2e8f0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: '10px',
-                    color: '#64748b',
-                  }}
-                >
-                  <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>
-                  {t('storefront.storefront_shelf_section.s6', "قريباً بهذا القسم")}
-                </div>
-                <div style={{ fontSize: '11.5px', color: '#64748b', lineHeight: '1.45' }}>
-                  {t('storefront.storefront_shelf_section.s7', "جاري إضافة المزيد من المنتجات الجديدة لهذا القسم")}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Floating Left Chevron (Next in RTL) */}
@@ -354,8 +335,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               type="button"
               className="storefront-shelf-floating-arrow storefront-shelf-arrow-next"
               onClick={() => scrollBy('next')}
-              aria-label={t('storefront.storefront_shelf_section.s8', "التالي")}
-              title={t('storefront.storefront_shelf_section.s9', "التالي")}
+              aria-label={t('storefront.storefront_shelf_section.s8', 'التالي')}
+              title={t('storefront.storefront_shelf_section.s9', 'التالي')}
             >
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M15 19l-7-7 7-7" />

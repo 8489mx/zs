@@ -174,7 +174,7 @@ export function StorefrontHero({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder={t('storefront.storefront_hero.s3', "ابحث عن أي صنف، كود، أو تصنيف...")}
+                placeholder={t('storefront.storefront_hero.s3', "البحث في Z")}
                 style={{
                   flex: 1,
                   border: 'none',

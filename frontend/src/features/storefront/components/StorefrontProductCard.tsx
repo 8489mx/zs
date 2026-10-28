@@ -17,6 +17,7 @@ interface StorefrontProductCardProps {
   isFavorite?: boolean;
   onToggleFavorite?: (productId: number) => void;
   onQuickView?: (product: StorefrontProduct) => void;
+  variant?: 'standard' | 'wide';
 }
 
 function formatSmartCategoryName(categoryName?: string): string {
@@ -48,7 +49,9 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   isFavorite: isFavoriteProp,
   onToggleFavorite: onToggleFavoriteProp,
   onQuickView,
+  variant = 'standard',
 }: StorefrontProductCardProps) {
+  const isWide = variant === 'wide';
   const { t } = useTranslation();
   const isOutOfStock = product.inStock !== undefined ? !product.inStock : product.stockQty <= 0;
   const isZeroPrice = product.price <= 0;
@@ -131,43 +134,47 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
 
   return (
     <div
-      className="storefront-product-card"
+      className={`storefront-product-card ${isWide ? 'storefront-product-card-wide' : ''}`}
       style={{
         background: '#ffffff',
         borderRadius: '22px',
         border: '1px solid #e2e8f0',
-        padding: '12px',
+        padding: isWide ? '16px' : '12px',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: isWide ? 'row' : 'column',
         justifyContent: 'space-between',
+        gap: isWide ? '16px' : '0',
         height: '100%',
         boxSizing: 'border-box',
         position: 'relative',
         boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
       }}
     >
-      <div>
-        {/* Pure White Seamless Studio Product Image Box (aspect-ratio: 1/1, object-fit: contain, padding: 12px) */}
-        <div
-          className="storefront-product-photo-box"
-          onClick={() => onQuickView?.(product)}
-          style={{
-            cursor: onQuickView ? 'pointer' : 'default',
-            width: '100%',
-            aspectRatio: '1 / 1',
-            borderRadius: '16px',
-            background: '#ffffff',
-            position: 'relative',
-            overflow: 'hidden',
-            marginBottom: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            padding: '12px',
-            boxSizing: 'border-box',
-          }}
-        >
+      {/* Pure White Seamless Studio Product Image Box */}
+      <div
+        className="storefront-product-photo-box"
+        onClick={() => onQuickView?.(product)}
+        style={{
+          cursor: onQuickView ? 'pointer' : 'default',
+          width: isWide ? '180px' : '100%',
+          minWidth: isWide ? '180px' : undefined,
+          maxWidth: isWide ? '200px' : undefined,
+          aspectRatio: '1 / 1',
+          maxHeight: isWide ? undefined : '260px',
+          borderRadius: '16px',
+          background: '#ffffff',
+          position: 'relative',
+          overflow: 'hidden',
+          marginBottom: isWide ? '0' : '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: 'none',
+          padding: '12px',
+          boxSizing: 'border-box',
+          flexShrink: 0,
+        }}
+      >
           <img
             src={displayPhotoUrl}
             alt={product.name}
@@ -295,9 +302,22 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           </button>
         </div>
 
-        {/* Unboxed Metadata Row: Category · Rating */}
-        <div
-          className="storefront-product-meta-row"
+      {/* Product Details & Actions Column */}
+      <div
+        className="storefront-product-info-col"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          flex: '1 1 auto',
+          minWidth: 0,
+          height: isWide ? '100%' : 'auto',
+        }}
+      >
+        <div>
+          {/* Unboxed Metadata Row: Category · Rating */}
+          <div
+            className="storefront-product-meta-row"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -382,6 +402,24 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         >
           {product.name}
         </h3>
+
+        {isWide && product.description && (
+          <p
+            className="storefront-product-wide-desc"
+            style={{
+              fontSize: '12px',
+              color: '#64748b',
+              lineHeight: '1.45',
+              margin: '0 0 8px',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {product.description}
+          </p>
+        )}
 
         {/* Price Row with Tabular Numerals & Unboxed Savings */}
         {isZeroPrice ? (
@@ -645,6 +683,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             )}
           </button>
         )}
+      </div>
       </div>
     </div>
   );

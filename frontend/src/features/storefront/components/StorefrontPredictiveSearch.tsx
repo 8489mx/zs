@@ -14,6 +14,7 @@ interface StorefrontPredictiveSearchProps {
   onSelectCategory?: (categoryId: number) => void;
   onSelectProduct?: (product: StorefrontProduct) => void;
   onAddToCart?: (product: StorefrontProduct) => void;
+  isScrolled?: boolean;
 }
 
 export function StorefrontPredictiveSearch({
@@ -23,9 +24,11 @@ export function StorefrontPredictiveSearch({
   onSelectCategory,
   onSelectProduct,
   onAddToCart,
+  isScrolled = false,
 }: StorefrontPredictiveSearchProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<{
     categories: Array<{ id: number; name: string }>;
     products: Array<any>;
@@ -82,11 +85,14 @@ export function StorefrontPredictiveSearch({
       ref={containerRef}
       className="storefront-search-wrapper"
       style={{
-        flex: '0 1 360px',
+        flex: '1 1 auto',
         width: '100%',
-        maxWidth: '360px',
-        margin: '0',
+        maxWidth: isScrolled ? '320px' : '420px',
+        minWidth: '120px',
+        margin: '0 auto',
+        justifySelf: 'center',
         position: 'relative',
+        transition: 'max-width 0.25s ease',
       }}
     >
       <div
@@ -95,18 +101,51 @@ export function StorefrontPredictiveSearch({
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          background: isOpen ? '#ffffff' : '#f8fafc',
-          borderRadius: '12px',
-          padding: '0 4px 0 12px',
-          border: isOpen ? '1.5px solid var(--storefront-primary-color, #170e5e)' : '1px solid #E0E3E7',
+          gap: isScrolled ? '6px' : '8px',
+          background: '#ffffff',
+          borderRadius: '9999px',
+          padding: isScrolled ? '0 10px' : '0 12px',
+          border: isOpen ? '1.5px solid var(--storefront-primary-color, #588cb3)' : '1px solid #E0E3E7',
           transition: 'all 0.2s ease',
-          boxShadow: isOpen ? '0 4px 16px rgba(23, 14, 94, 0.08)' : '0 1px 3px rgba(15, 23, 42, 0.03)',
+          boxShadow: isOpen ? '0 4px 16px rgba(88, 140, 179, 0.12)' : '0 1px 2px rgba(15, 23, 42, 0.04)',
           boxSizing: 'border-box',
-          height: '35px',
+          height: isScrolled ? '31px' : '35px',
+          position: 'relative',
         }}
       >
-        <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', marginRight: '6px', flexShrink: 0 }}>
-          <IconSearch size={16} strokeWidth={2.2} />
+        {/* Centered Search Icon + "البحث في Z" exactly in the middle when idle */}
+        {!searchTerm && !isFocused && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              color: '#94a3b8',
+              fontSize: isScrolled ? '12px' : '13px',
+              fontWeight: 600,
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          >
+            <IconSearch size={isScrolled ? 14 : 16} strokeWidth={2.2} />
+            <span>{t('storefront.storefront_predictive_search.s0', "البحث في Z")}</span>
+          </div>
+        )}
+
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            color: '#94a3b8',
+            flexShrink: 0,
+            opacity: !searchTerm && !isFocused ? 0 : 1,
+            transition: 'opacity 0.15s ease',
+          }}
+        >
+          <IconSearch size={isScrolled ? 14 : 16} strokeWidth={2.2} />
         </span>
         <input
           className="storefront-search-input"
@@ -114,20 +153,22 @@ export function StorefrontPredictiveSearch({
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           onFocus={() => {
+            setIsFocused(true);
             if (suggestions.categories.length > 0 || suggestions.products.length > 0) {
               setIsOpen(true);
             }
           }}
-          placeholder={t('storefront.storefront_predictive_search.s0', "ابحث عن أي منتج، كود، أو تصنيف...")}
+          onBlur={() => setIsFocused(false)}
+          placeholder={isFocused ? t('storefront.storefront_predictive_search.s0', "البحث في Z") : ''}
           style={{
             flex: 1,
             border: 'none',
             outline: 'none',
-            fontSize: '13px',
+            fontSize: isScrolled ? '12px' : '13px',
             fontWeight: 600,
             color: '#0f172a',
             background: 'transparent',
-            padding: '6px 4px',
+            padding: isScrolled ? '4px 2px' : '6px 2px',
             fontFamily: 'inherit',
             minWidth: 0,
           }}

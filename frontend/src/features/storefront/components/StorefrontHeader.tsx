@@ -105,7 +105,7 @@ export function StorefrontHeader({
       {info.announcement && (
         <div
           style={{
-            background: 'linear-gradient(90deg, #0b0f19 0%, #170e5e 50%, #0b0f19 100%)',
+            background: 'linear-gradient(90deg, #2d6c97 0%, #588cb3 50%, #2d6c97 100%)',
             color: '#ffffff',
             padding: '7px 16px',
             fontSize: '12px',
@@ -119,29 +119,26 @@ export function StorefrontHeader({
         </div>
       )}
 
-      {/* Sticky Translucent Luxury Header — transforms into a floating pill island on scroll */}
+      {/* Sticky Luxury Header — full-width unboxed over Hero at top, morphs into 60% floating pill island on scroll */}
       <header
         className={`storefront-sticky-header ${isScrolled ? 'is-scrolled' : ''}`}
         style={{
-          background: isScrolled ? 'rgba(255, 255, 255, 0.88)' : '#ffffff',
+          background: isScrolled ? 'rgba(255, 255, 255, 0.96)' : 'transparent',
           backdropFilter: isScrolled ? 'blur(20px) saturate(180%)' : 'none',
           WebkitBackdropFilter: isScrolled ? 'blur(20px) saturate(180%)' : 'none',
-          borderTop: isScrolled ? '1px solid #dadce0' : '1px solid transparent',
-          borderLeft: isScrolled ? '1px solid #dadce0' : '1px solid transparent',
-          borderRight: isScrolled ? '1px solid #dadce0' : '1px solid transparent',
-          borderBottom: isScrolled ? '1px solid #dadce0' : '1px solid #e2e8f0',
-          borderRadius: isScrolled ? '20px' : '0px',
+          border: isScrolled ? '1px solid rgba(226, 232, 240, 0.92)' : '1px solid transparent',
+          borderRadius: isScrolled ? '9999px' : '0px',
           position: 'sticky',
           top: isScrolled ? '12px' : '0px',
-          width: isScrolled ? 'calc(100% - 32px)' : '100%',
-          maxWidth: isScrolled ? '760px' : '100%',
+          width: isScrolled ? '48%' : '100%',
+          maxWidth: isScrolled ? '780px' : '100%',
           margin: '0 auto',
           zIndex: 9999,
           boxShadow: isScrolled
-            ? '0 16px 36px -8px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(15, 23, 42, 0.06)'
-            : '0 2px 10px rgba(15, 23, 42, 0.03)',
+            ? '0 10px 30px -4px rgba(15, 23, 42, 0.12), 0 3px 10px -2px rgba(15, 23, 42, 0.05)'
+            : 'none',
           transition:
-            'top 0.32s cubic-bezier(0.16, 1, 0.3, 1), width 0.32s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.32s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease',
+            'top 0.32s cubic-bezier(0.16, 1, 0.3, 1), width 0.32s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.32s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
         }}
       >
         <style>{`
@@ -150,15 +147,26 @@ export function StorefrontHeader({
           .storefront-nav-bottom-row {
             display: contents;
           }
-          @media (max-width: 640px) {
+          @media (min-width: 769px) {
+            .storefront-sticky-header.is-scrolled {
+              width: 48% !important;
+              max-width: 780px !important;
+              min-width: 480px !important;
+              border-radius: 9999px !important;
+              top: 12px !important;
+            }
+          }
+          @media (max-width: 768px) {
             .storefront-sticky-header.is-scrolled {
               top: 8px !important;
               width: calc(100% - 16px) !important;
+              max-width: calc(100% - 16px) !important;
               border-radius: 20px !important;
             }
             .storefront-navbar {
               display: grid !important;
-              grid-template-columns: minmax(0, 1fr) auto !important;
+              grid-template-columns: auto auto !important;
+              justify-content: space-between !important;
               grid-template-rows: auto auto !important;
               gap: 7px 8px !important;
               padding: 7px 12px 9px !important;
@@ -235,6 +243,16 @@ export function StorefrontHeader({
               margin: 0 !important;
               justify-content: flex-end !important;
             }
+            .storefront-brand-btn {
+              grid-column: 1 / 2 !important;
+              grid-row: 1 !important;
+              gap: 8px !important;
+              min-width: 0 !important;
+              max-width: 100% !important;
+              overflow: hidden !important;
+              width: auto !important;
+              justify-content: flex-start !important;
+            }
             .storefront-action-label {
               display: none !important;
             }
@@ -285,17 +303,19 @@ export function StorefrontHeader({
         <div
           className="storefront-navbar storefront-header-shell"
           style={{
-            maxWidth: '760px',
-            margin: '0 auto',
-            padding: isScrolled ? '8px 18px' : '10px 20px',
-            display: 'flex',
+            width: '100%',
+            maxWidth: '100%',
+            margin: '0',
+            padding: isScrolled ? '4px 14px' : '12px 24px',
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: '14px',
-            transition: 'padding 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+            gap: isScrolled ? '10px' : '14px',
+            boxSizing: 'border-box',
+            transition: 'padding 0.25s cubic-bezier(0.16, 1, 0.3, 1), gap 0.25s ease',
           }}
         >
-          {/* Brand & Store Name (Clickable to go home / reset) */}
+          {/* Brand & Store Name (Clickable to go home / reset) — Right side in RTL */}
           <div
             onClick={onGoHome}
             role={onGoHome ? 'button' : undefined}
@@ -309,6 +329,7 @@ export function StorefrontHeader({
             title={onGoHome ? t('storefront.storefront_header.s0', 'العودة للصفحة الرئيسية') : undefined}
             className="storefront-brand-btn"
             style={{
+              justifySelf: 'start',
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
@@ -323,8 +344,8 @@ export function StorefrontHeader({
                 alt={info.title || info.businessName}
                 className="storefront-brand-avatar"
                 style={{
-                  width: isScrolled ? '38px' : '42px',
-                  height: isScrolled ? '38px' : '42px',
+                  width: isScrolled ? '30px' : '42px',
+                  height: isScrolled ? '30px' : '42px',
                   objectFit: 'contain',
                   background: 'transparent',
                   border: 'none',
@@ -332,27 +353,27 @@ export function StorefrontHeader({
                   borderRadius: 0,
                   padding: 0,
                   flexShrink: 0,
-                  transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               />
             ) : (
               <div
                 className="storefront-brand-avatar"
                 style={{
-                  width: isScrolled ? '38px' : '42px',
-                  height: isScrolled ? '38px' : '42px',
-                  borderRadius: '11px',
-                  background: 'linear-gradient(135deg, var(--storefront-primary-color, #170e5e) 0%, #312e81 100%)',
+                  width: isScrolled ? '30px' : '42px',
+                  height: isScrolled ? '30px' : '42px',
+                  borderRadius: '9px',
+                  background: 'linear-gradient(135deg, var(--storefront-primary-color, #588cb3) 0%, #2d6c97 100%)',
                   color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 900,
-                  fontSize: '17px',
-                  boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.22))',
+                  fontSize: isScrolled ? '14px' : '17px',
+                  boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(88, 140, 179, 0.25))',
                   flexShrink: 0,
                   border: '1.5px solid rgba(255,255,255,0.25)',
-                  transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                 }}
               >
                 {((brand.title || '').trim().replace(/^ال/, '').trim().charAt(0) || (brand.title || '').trim().charAt(0) || t('storefront.storefront_header.s1', 'م'))}
@@ -370,116 +391,117 @@ export function StorefrontHeader({
               onSelectCategory={onSelectCategory}
               onSelectProduct={onSelectProduct}
               onAddToCart={onAddToCart}
+              isScrolled={isScrolled}
             />
+          </div>
 
-            {/* Quick Actions (WhatsApp, Orders & Cart) */}
-            <div className="storefront-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-
-              {/* My Orders Trigger */}
-              {onOpenOrders && (
-                <button
-                  className="storefront-action-btn"
-                  type="button"
-                  onClick={onOpenOrders}
-                  title={t('storefront.storefront_header.s5', 'متابعة وتتبع طلباتي')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '0 13px',
-                    height: '35px',
-                    borderRadius: '12px',
-                    background: '#ffffff',
-                    border: '1px solid #E0E3E7',
-                    color: '#0f172a',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                    transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
-                    boxSizing: 'border-box',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f8fafc';
-                    e.currentTarget.style.borderColor = '#cbd5e1';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#ffffff';
-                    e.currentTarget.style.borderColor = '#E0E3E7';
-                  }}
-                >
-                  <PackageIcon size={18} />
-                  <span className="storefront-action-label" style={{ fontSize: '12.5px', fontWeight: 700 }}>
-                    {t('storefront.storefront_header.s6', 'طلباتي')}
-                  </span>
-                </button>
-              )}
-
-              {/* Cart Trigger */}
+          {/* Quick Actions (WhatsApp, Orders & Cart) — Left side in RTL */}
+          <div className="storefront-actions" style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: isScrolled ? '6px' : '8px', flexShrink: 0 }}>
+            {/* My Orders Trigger */}
+            {onOpenOrders && (
               <button
-                className="storefront-cart-btn storefront-gpu-btn"
+                className="storefront-action-btn"
                 type="button"
-                onClick={onOpenCart}
+                onClick={onOpenOrders}
+                title={t('storefront.storefront_header.s5', 'متابعة وتتبع طلباتي')}
                 style={{
-                  position: 'relative',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '0 14px',
-                  height: '35px',
-                  borderRadius: '12px',
-                  background: 'var(--storefront-primary-color, #170e5e)',
-                  color: 'var(--storefront-primary-contrast, #ffffff)',
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  border: 'none',
+                  gap: '5px',
+                  padding: isScrolled ? '0 10px' : '0 13px',
+                  height: isScrolled ? '31px' : '35px',
+                  borderRadius: '9999px',
+                  background: '#ffffff',
+                  border: '1px solid #E0E3E7',
+                  color: '#0f172a',
+                  fontSize: isScrolled ? '12px' : '13px',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.2))',
+                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                  transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
                   boxSizing: 'border-box',
-                  fontVariantNumeric: 'tabular-nums',
                   whiteSpace: 'nowrap',
                 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#f8fafc';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.borderColor = '#E0E3E7';
+                }}
               >
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.2"
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
-                <span className="storefront-action-label">{t('storefront.storefront_header.s7', 'السلة')}</span>
-                {cartCount > 0 && (
-                  <span
-                    style={{
-                      background: '#ffffff',
-                      color: 'var(--storefront-primary-color, #0f172a)',
-                      fontSize: '11px',
-                      fontWeight: 900,
-                      padding: '1px 6px',
-                      borderRadius: '8px',
-                      minWidth: '18px',
-                      textAlign: 'center',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.18)',
-                    }}
-                  >
-                    {cartCount}
-                  </span>
-                )}
-                {cartTotal > 0 && (() => {
-                  const isThreeDec = isThreeDecimalCurrency(storeCurr);
-                  const formattedTotal = isThreeDec
-                    ? cartTotal.toFixed(3)
-                    : (storeCurr === 'EGP' && cartTotal % 1 === 0 ? cartTotal.toFixed(0) : cartTotal.toFixed(2));
-                  return (
-                    <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.25)', paddingRight: '6px', marginRight: '4px' }}>
-                      {formattedTotal} {currSymbol}
-                    </span>
-                  );
-                })()}
+                <PackageIcon size={isScrolled ? 15 : 18} />
+                <span className="storefront-action-label" style={{ fontSize: isScrolled ? '11.5px' : '12.5px', fontWeight: 700 }}>
+                  {t('storefront.storefront_header.s6', 'طلباتي')}
+                </span>
               </button>
-            </div>
+            )}
+
+            {/* Cart Trigger */}
+            <button
+              className="storefront-cart-btn storefront-gpu-btn"
+              type="button"
+              onClick={onOpenCart}
+              style={{
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: isScrolled ? '0 11px' : '0 14px',
+                height: isScrolled ? '31px' : '35px',
+                borderRadius: '9999px',
+                background: 'var(--storefront-primary-color, #588cb3)',
+                color: 'var(--storefront-primary-contrast, #ffffff)',
+                fontSize: isScrolled ? '12px' : '13px',
+                fontWeight: 800,
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(88, 140, 179, 0.22))',
+                boxSizing: 'border-box',
+                fontVariantNumeric: 'tabular-nums',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+            >
+              <svg width={isScrolled ? 15 : 18} height={isScrolled ? 15 : 18} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.2"
+                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
+                />
+              </svg>
+              <span className="storefront-action-label">{t('storefront.storefront_header.s7', 'السلة')}</span>
+              {cartCount > 0 && (
+                <span
+                  style={{
+                    background: '#ffffff',
+                    color: 'var(--storefront-primary-color, #0f172a)',
+                    fontSize: '10.5px',
+                    fontWeight: 900,
+                    padding: '1px 5px',
+                    borderRadius: '9999px',
+                    minWidth: '16px',
+                    textAlign: 'center',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.18)',
+                  }}
+                >
+                  {cartCount}
+                </span>
+              )}
+              {cartTotal > 0 && (() => {
+                const isThreeDec = isThreeDecimalCurrency(storeCurr);
+                const formattedTotal = isThreeDec
+                  ? cartTotal.toFixed(3)
+                  : (storeCurr === 'EGP' && cartTotal % 1 === 0 ? cartTotal.toFixed(0) : cartTotal.toFixed(2));
+                return (
+                  <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.25)', paddingRight: '6px', marginRight: '4px' }}>
+                    {formattedTotal} {currSymbol}
+                  </span>
+                );
+              })()}
+            </button>
           </div>
         </div>
       </header>

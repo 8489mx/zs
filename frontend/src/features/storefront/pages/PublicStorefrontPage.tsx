@@ -11,7 +11,6 @@ import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
 import { StorefrontFooter } from '../components/StorefrontFooter';
 import { StorefrontSkeleton } from '../components/StorefrontSkeleton';
-import { StorefrontTrustBar } from '../components/StorefrontTrustBar';
 import { StorefrontMobileBottomNav } from '../components/StorefrontMobileBottomNav';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
@@ -460,9 +459,6 @@ export function PublicStorefrontPage() {
           onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
         />
       )}
-
-      {/* Trust & Guarantee Metrics Ribbon */}
-      {!searchTerm && <StorefrontTrustBar info={info} />}
 
       {/* Sub-Header Utility Navigation Bar (Shown when filtering/browsing specific view to avoid duplicating Hero CTAs) */}
       {!isHomepageMultiRow && (

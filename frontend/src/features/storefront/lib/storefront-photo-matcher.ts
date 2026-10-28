@@ -1283,7 +1283,7 @@ export function generatePremiumProductSvg(productName: string, categoryName?: st
   }
 
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
       <!-- Seamless 100% Pure White Studio Surface -->
       <rect width="200" height="200" fill="#ffffff" />
       <!-- Crisp Centered Vector Icon -->
