@@ -182,6 +182,16 @@ export function PublicStorefrontPage() {
   // عنوان التبويب ووسوم المشاركة تتبع المنتج المفتوح إن وُجد
   useStorefrontSeo({ info, product: quickViewProduct });
 
+  // SF-Sticky: Unlock natural browser window scrolling while inside the public storefront
+  useEffect(() => {
+    document.documentElement.classList.add('storefront-html');
+    document.body.classList.add('storefront-body');
+    return () => {
+      document.documentElement.classList.remove('storefront-html');
+      document.body.classList.remove('storefront-body');
+    };
+  }, []);
+
   useEffect(() => {
     if (info) {
       if (info.currency) {
@@ -299,7 +309,6 @@ export function PublicStorefrontPage() {
         fontFamily: 'inherit',
         width: '100%',
         maxWidth: '100vw',
-        overflowX: 'clip',
         boxSizing: 'border-box',
       }}
     >

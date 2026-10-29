@@ -83,7 +83,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
     let currentScrolled = false;
 
     const updateScrollState = () => {
-      const y = window.scrollY;
+      const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       // Hysteresis prevents rapid toggling jitter near the scroll threshold
       const nextScrolled = currentScrolled ? y > 8 : y > 24;
       if (nextScrolled !== currentScrolled) {
@@ -101,9 +101,11 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { passive: true });
     updateScrollState();
     return () => {
       window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('scroll', onScroll);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, []);
@@ -172,12 +174,15 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             border: 1px solid transparent;
             transform: translate3d(0, 0, 0);
             backface-visibility: hidden;
-            transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease, max-width 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.2s ease;
           }
           .storefront-sticky-header.is-scrolled .storefront-navbar {
-            background: rgba(255, 255, 255, 0.97);
+            background: rgba(255, 255, 255, 0.98);
             border-color: rgba(226, 232, 240, 0.95);
-            box-shadow: 0 10px 26px -6px rgba(15, 23, 42, 0.1), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 12px 30px -6px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 9999px;
           }
           @media (min-width: 769px) {
             .storefront-sticky-header.is-scrolled .storefront-navbar {

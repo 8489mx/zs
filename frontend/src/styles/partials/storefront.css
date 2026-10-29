@@ -1405,9 +1405,54 @@ button.storefront-btn-pill,
   border-radius: 10px !important;
 }
 
-/* 9. Floating Scrolled Header Island -> Matches Button Curvature (14px) */
+/* 9. Floating Scrolled Header Island -> Matches Button Curvature */
+.storefront-sticky-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 110 !important;
+}
+
 .storefront-sticky-header.is-scrolled {
-  border-radius: 14px !important;
+  border-radius: 9999px !important;
+}
+
+.storefront-sticky-header.is-scrolled .storefront-navbar {
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 12px 30px -6px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* 10. Public Storefront Natural Window Scrolling & Unconstrained Sticky Header
+   Safely overrides ERP shell's body { overflow: hidden } and #root { height: 100% }
+   strictly while visiting the public storefront routes. */
+html.storefront-html,
+html.storefront-html body,
+body.storefront-body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+
+body.storefront-body #root {
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow: visible !important;
+}
+
+/* 11. Seamless Studio Image Blending on Vibrant & Colored Surfaces
+   Dissolves solid white photo backgrounds on podium stages, colored promotional cards,
+   and gradient category tiles so legacy and live products look natively cut out. */
+.sf-amz-podium-side-img,
+.sf-amz-podium-center-img,
+.sf-amz-promo-card img,
+.sf-cat-tile-img,
+.sf-amz-quick-tile-img,
+.sf-studio-blend {
+  mix-blend-mode: multiply !important;
 }
 
 

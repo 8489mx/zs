@@ -4,11 +4,14 @@
  * using HTML5 Canvas & WebP while preserving retina clarity and aspect ratio.
  */
 
+import { knockoutWhiteStudioBackground } from './background-knockout';
+
 export interface CompressionOptions {
   maxWidth?: number;
   maxHeight?: number;
   initialQuality?: number;
   maxSizeKb?: number; // target max size in KB (e.g. 35KB)
+  knockoutStudioBackground?: boolean; // Auto-detect and remove white studio backgrounds (default: true)
 }
 
 export interface CompressionResult {
@@ -18,6 +21,7 @@ export interface CompressionResult {
   compressionRatio: number; // e.g. 98%
   width: number;
   height: number;
+  backgroundRemoved?: boolean;
 }
 
 export async function compressImage(
@@ -29,6 +33,7 @@ export async function compressImage(
     maxHeight = 600,
     initialQuality = 0.78,
     maxSizeKb = 40,
+    knockoutStudioBackground = true,
   } = options;
 
   const originalSizeKb = Math.round(file.size / 1024);
@@ -64,12 +69,17 @@ export async function compressImage(
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
-        // Draw background white in case of transparent PNG to avoid black WebP borders
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, width, height);
+        // Clear canvas to preserve native transparent alpha
+        ctx.clearRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
 
-        // First pass compression using WebP
+        // Adaptive Studio Gradient Matting: automatically knockout solid white/studio backdrop
+        let backgroundRemoved = false;
+        if (knockoutStudioBackground) {
+          backgroundRemoved = knockoutWhiteStudioBackground(ctx, width, height);
+        }
+
+        // First pass compression using WebP (native transparent alpha support)
         let quality = initialQuality;
         let dataUrl = canvas.toDataURL('image/webp', quality);
 
@@ -100,6 +110,7 @@ export async function compressImage(
           compressionRatio,
           width,
           height,
+          backgroundRemoved,
         });
       };
 

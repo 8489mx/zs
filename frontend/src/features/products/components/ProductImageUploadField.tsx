@@ -41,9 +41,14 @@ export function ProductImageUploadField({
       });
 
       onChange(result.dataUrl);
-      setCompressNote(`تم الضغط: ${result.originalSizeKb}KB ← ${result.compressedSizeKb}KB`);
-      toast.success(`تم ضغط وحفظ صورة الصنف بنجاح (${result.compressedSizeKb} KB)`);
-      setTimeout(() => setCompressNote(null), 4000);
+      const bgMsg = result.backgroundRemoved ? ' + تفريغ الاستوديو' : '';
+      setCompressNote(`تم الضغط: ${result.originalSizeKb}KB ← ${result.compressedSizeKb}KB${bgMsg}`);
+      toast.success(
+        result.backgroundRemoved
+          ? `تم ضغط وتفريغ خلفية الصورة تلقائياً (${result.compressedSizeKb} KB)`
+          : `تم ضغط وحفظ صورة الصنف بنجاح (${result.compressedSizeKb} KB)`
+      );
+      setTimeout(() => setCompressNote(null), 5000);
     } catch (err: any) {
       toast.error(`فشل ضغط الصورة: ${err?.message || 'خطأ غير متوقع'}`);
     } finally {
@@ -99,7 +104,7 @@ export function ProductImageUploadField({
             width: '46px',
             height: '46px',
             borderRadius: '8px',
-            background: '#f8fafc',
+            background: value ? 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 10px 10px' : '#f8fafc',
             border: '1px solid #e2e8f0',
             overflow: 'hidden',
             display: 'flex',

@@ -224,6 +224,7 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
           width: 78px;
           height: 78px;
           object-fit: contain;
+          mix-blend-mode: multiply;
           transform: translate3d(0, 0, 0);
           transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
           filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.15));
