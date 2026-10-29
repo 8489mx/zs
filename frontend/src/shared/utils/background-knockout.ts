@@ -13,10 +13,12 @@
  */
 
 export interface BackgroundKnockoutOptions {
-  /** Maximum color distance to be considered pure background (default: 24) */
+  /** Maximum color distance to be considered pure background (default: 28) */
   pureThreshold?: number;
-  /** Maximum color distance for smooth feathering transition (default: 48) */
+  /** Maximum color distance for smooth feathering transition (default: 55) */
   featherThreshold?: number;
+  /** Maximum color distance for neutral studio floor shadow suppression (default: 85) */
+  shadowThreshold?: number;
   /** Maximum allowed delta between R, G, B for a color to be considered neutral studio backdrop (default: 18) */
   neutralTolerance?: number;
 }
@@ -30,8 +32,9 @@ export function knockoutWhiteStudioBackground(
   if (width <= 0 || height <= 0) return false;
 
   const {
-    pureThreshold = 22,
-    featherThreshold = 46,
+    pureThreshold = 28,
+    featherThreshold = 55,
+    shadowThreshold = 85,
     neutralTolerance = 18,
   } = options;
 
@@ -65,15 +68,15 @@ export function knockoutWhiteStudioBackground(
     const g = data[p + 1];
     const b = data[p + 2];
     const isLightNeutral =
-      r >= 228 &&
-      g >= 228 &&
-      b >= 228 &&
+      r >= 220 &&
+      g >= 220 &&
+      b >= 220 &&
       Math.abs(r - g) <= neutralTolerance &&
       Math.abs(r - b) <= neutralTolerance;
     if (isLightNeutral) whiteCorners++;
   }
 
-  // If corners are not predominantly studio white/light, preserve photo untouched (e.g. outdoor photos)
+  // If corners are not predominantly studio white/light, preserve photo untouched
   if (whiteCorners < 3) {
     return false;
   }
@@ -124,11 +127,27 @@ export function knockoutWhiteStudioBackground(
     const dr = r - bg.r;
     const dg = g - bg.g;
     const db = b - bg.b;
-    // Human perceptual weighted formula
     return Math.sqrt(2 * dr * dr + 4 * dg * dg + 3 * db * db);
   };
 
-  // 3. Multi-pass Boundary-Connected Flood Fill
+  // Helper: check if a pixel is neutral studio backdrop or floor shadow
+  const isBackdropOrShadow = (idx: number, dist: number) => {
+    if (dist <= featherThreshold) return true;
+    if (dist <= shadowThreshold) {
+      const p = idx * 4;
+      const r = data[p];
+      const g = data[p + 1];
+      const b = data[p + 2];
+      const chroma = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+      const lum = (r * 2 + g * 3 + b) / 6;
+      if (chroma <= neutralTolerance && lum >= 155) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // 3. Multi-pass Boundary-Connected Flood Fill with Floor Shadow Elimination
   const visited = new Uint8Array(totalPixels);
   const queue = new Int32Array(totalPixels);
   let qHead = 0;
@@ -140,12 +159,14 @@ export function knockoutWhiteStudioBackground(
   // Push matching top & bottom perimeter pixels
   for (let x = 0; x < width; x++) {
     const tIdx = x;
-    if (computeColorDist(tIdx, topBg) <= featherThreshold) {
+    const tDist = computeColorDist(tIdx, topBg);
+    if (isBackdropOrShadow(tIdx, tDist)) {
       visited[tIdx] = 1;
       queue[qTail++] = tIdx;
     }
     const bIdx = (height - 1) * width + x;
-    if (!visited[bIdx] && computeColorDist(bIdx, btmBg) <= featherThreshold) {
+    const bDist = computeColorDist(bIdx, btmBg);
+    if (!visited[bIdx] && isBackdropOrShadow(bIdx, bDist)) {
       visited[bIdx] = 1;
       queue[qTail++] = bIdx;
     }
@@ -155,18 +176,20 @@ export function knockoutWhiteStudioBackground(
   for (let y = 0; y < height; y++) {
     const bg = getExpectedBg(y);
     const lIdx = y * width;
-    if (!visited[lIdx] && computeColorDist(lIdx, bg) <= featherThreshold) {
+    const lDist = computeColorDist(lIdx, bg);
+    if (!visited[lIdx] && isBackdropOrShadow(lIdx, lDist)) {
       visited[lIdx] = 1;
       queue[qTail++] = lIdx;
     }
     const rIdx = y * width + (width - 1);
-    if (!visited[rIdx] && computeColorDist(rIdx, bg) <= featherThreshold) {
+    const rDist = computeColorDist(rIdx, bg);
+    if (!visited[rIdx] && isBackdropOrShadow(rIdx, rDist)) {
       visited[rIdx] = 1;
       queue[qTail++] = rIdx;
     }
   }
 
-  // BFS Flood Fill with Cosine Alpha Feathering
+  // BFS Flood Fill with Floor Shadow Suppression & Cosine Alpha Feathering
   const tDiff = Math.max(1, featherThreshold - pureThreshold);
 
   while (qHead < qTail) {
@@ -177,11 +200,18 @@ export function knockoutWhiteStudioBackground(
     const bg = getExpectedBg(cy);
     const dist = computeColorDist(curr, bg);
 
-    if (dist <= pureThreshold) {
-      // 100% Pure background -> clear to alpha 0
+    const r = data[p];
+    const g = data[p + 1];
+    const b = data[p + 2];
+    const chroma = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+    const lum = (r * 2 + g * 3 + b) / 6;
+    const isNeutralShadow = chroma <= neutralTolerance && lum >= 155 && dist <= shadowThreshold;
+
+    if (dist <= pureThreshold || isNeutralShadow) {
+      // 100% Pure background or neutral floor shadow -> clear to alpha 0
       data[p + 3] = 0;
     } else {
-      // Feathering boundary contour -> smooth cosine ramp
+      // Feathering boundary contour on product edges -> smooth cosine ramp
       const norm = Math.max(0, Math.min(1, (dist - pureThreshold) / tDiff));
       const cosineAlpha = 0.5 * (1 - Math.cos(norm * Math.PI));
       data[p + 3] = Math.round(data[p + 3] * cosineAlpha);
@@ -200,7 +230,7 @@ export function knockoutWhiteStudioBackground(
         const nBg = getExpectedBg(ny);
         const nDist = computeColorDist(n, nBg);
 
-        if (nDist <= featherThreshold) {
+        if (isBackdropOrShadow(n, nDist)) {
           visited[n] = 1;
           queue[qTail++] = n;
         }

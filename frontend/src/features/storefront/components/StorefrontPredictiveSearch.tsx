@@ -245,12 +245,13 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
                     style={{
                       background: '#f1f5f9',
                       border: '1px solid #dadce0',
-                      borderRadius: '9999px',
-                      padding: '4px 12px',
+                      borderRadius: '8px',
+                      padding: '5px 12px',
                       fontSize: '12px',
                       fontWeight: 600,
                       color: '#1f1f1f',
                       cursor: 'pointer',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={(e) => {

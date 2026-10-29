@@ -288,6 +288,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
           max-width: 1280px;
           margin-top: 26px;
           padding-top: 14px;
+          padding-bottom: 8px;
           border-top: 1px solid rgba(203, 213, 225, 0.55);
           overflow: hidden;
           position: relative;
@@ -856,24 +857,24 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             className="sf-hero-btn-primary"
             onClick={onSelectDeals}
             style={{
-              height: '38px',
-              padding: '0 20px',
-              borderRadius: '9999px',
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '12px',
               background: 'var(--storefront-primary-color, #2d68c4)',
               color: '#ffffff',
               border: '1px solid var(--storefront-primary-color, #2d68c4)',
-              fontSize: '13px',
-              fontWeight: 700,
+              fontSize: '12.5px',
+              fontWeight: 600,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 4px 14px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))',
-              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.16s ease',
             }}
           >
             <span>تصفح عروض اليوم</span>
-            <span style={{ fontSize: '15px', lineHeight: 1 }}>←</span>
+            <span style={{ fontSize: '13px', lineHeight: 1 }}>←</span>
           </button>
 
           <button
@@ -881,20 +882,20 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             className="sf-hero-btn-secondary"
             onClick={onOpenCategoriesModal}
             style={{
-              height: '38px',
-              padding: '0 18px',
-              borderRadius: '9999px',
+              height: '36px',
+              padding: '0 16px',
+              borderRadius: '12px',
               background: '#ffffff',
               color: '#1f1f1f',
               border: '1px solid #dadce0',
-              fontSize: '13px',
+              fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-              transition: 'all 0.2s ease',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.16s ease',
             }}
           >
             <span>تصفح كل الأقسام</span>

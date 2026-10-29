@@ -378,7 +378,7 @@ export function StorefrontProductQuickViewModal({
               className="sf-quickview-cat-badge"
               style={{
                 fontSize: '12.5px',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: '#1f1f1f',
                 background: '#f1f3f4',
                 border: '1px solid #dadce0',
@@ -386,8 +386,9 @@ export function StorefrontProductQuickViewModal({
                 height: '36px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                borderRadius: '9999px',
+                borderRadius: '12px',
                 boxSizing: 'border-box',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
               }}
             >
               {product.categoryName}
@@ -722,19 +723,19 @@ export function StorefrontProductQuickViewModal({
                 style={{
                   flex: 1,
                   minWidth: 0,
-                  height: '40px',
-                  borderRadius: '9999px',
+                  height: '36px',
+                  borderRadius: '12px',
                   backgroundColor: inStock ? brandColor : '#f1f3f4',
                   color: inStock ? (brandColorContrast || '#ffffff') : '#64748b',
                   border: inStock ? `1px solid ${brandColor}` : '1px solid #dadce0',
-                  fontSize: '13.5px',
-                  fontWeight: 800,
+                  fontSize: '12.5px',
+                  fontWeight: 600,
                   cursor: inStock ? 'pointer' : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  boxShadow: inStock ? '0 2px 6px rgba(45, 104, 196, 0.2)' : 'none',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                   transition: 'transform 0.16s ease, background-color 0.16s ease, opacity 0.16s ease',
                   whiteSpace: 'nowrap',
                   padding: '0 16px',
@@ -762,20 +763,21 @@ export function StorefrontProductQuickViewModal({
                 )}
               </button>
 
-              {/* Quantity Stepper in Google AI Studio Pill Style */}
+              {/* Quantity Stepper in Google AI Studio Soft Squircle Style */}
               <div
                 className="sf-quickview-stepper"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  height: '40px',
+                  height: '36px',
                   backgroundColor: '#f8fafc',
                   border: '1px solid #dadce0',
-                  borderRadius: '9999px',
-                  padding: '3px 4px',
+                  borderRadius: '12px',
+                  padding: '2px 4px',
                   gap: '2px',
                   flexShrink: 0,
                   boxSizing: 'border-box',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 }}
               >
                 <button
@@ -784,9 +786,9 @@ export function StorefrontProductQuickViewModal({
                   disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
                   onClick={() => setQty((prev) => prev + 1)}
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '9999px',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '10px',
                     border: '1px solid #dadce0',
                     backgroundColor: '#ffffff',
                     display: 'flex',
@@ -795,6 +797,7 @@ export function StorefrontProductQuickViewModal({
                     cursor: !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty) ? 'not-allowed' : 'pointer',
                     opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
                     color: '#1f1f1f',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
                   }}
                 >
                   <PlusIcon size={14} color="#1f1f1f" />
@@ -803,8 +806,8 @@ export function StorefrontProductQuickViewModal({
                   style={{
                     minWidth: '28px',
                     textAlign: 'center',
-                    fontSize: '14px',
-                    fontWeight: 800,
+                    fontSize: '13px',
+                    fontWeight: 700,
                     color: '#1f1f1f',
                   }}
                 >
@@ -816,9 +819,9 @@ export function StorefrontProductQuickViewModal({
                   disabled={qty <= 1 || !inStock}
                   onClick={() => setQty((prev) => Math.max(1, prev - 1))}
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '9999px',
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '10px',
                     border: '1px solid #dadce0',
                     backgroundColor: '#ffffff',
                     display: 'flex',
@@ -829,6 +832,7 @@ export function StorefrontProductQuickViewModal({
                     fontWeight: 800,
                     fontSize: '15px',
                     color: '#1f1f1f',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
                   }}
                 >
                   -

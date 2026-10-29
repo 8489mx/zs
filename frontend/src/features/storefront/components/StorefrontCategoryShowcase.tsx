@@ -76,16 +76,21 @@ export function StorefrontCategoryShowcase({
         WebkitOverflowScrolling: 'touch',
         direction: 'rtl',
         maxWidth: 'var(--storefront-container, 1440px)',
-        margin: '0 auto 12px',
+        margin: '24px auto 14px',
         width: 'calc(100% - 32px)',
         boxSizing: 'border-box',
       }}
     >
       <style>{`
+        @media (max-width: 920px) {
+          .storefront-cat-showcase {
+            margin: 20px auto 12px !important;
+          }
+        }
         @media (max-width: 640px) {
           .storefront-cat-showcase {
             width: calc(100% - 16px) !important;
-            margin: 0 auto 8px !important;
+            margin: 16px auto 10px !important;
             border-radius: 18px !important;
             padding: 10px 12px 6px !important;
             box-sizing: border-box !important;

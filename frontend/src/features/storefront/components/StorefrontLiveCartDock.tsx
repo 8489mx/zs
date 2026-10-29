@@ -1,20 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { CurrencySymbol } from '@/shared/ui/currency-symbol';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CartItem, StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
 import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
-import { Trash2Icon, XIcon, AlertTriangleIcon, TruckIcon, PlusIcon } from '@/shared/components/icons/AppIcons';
-import { IconShoppingCart } from './StorefrontIcons';
+import { Trash2Icon, XIcon, AlertTriangleIcon, TruckIcon } from '@/shared/components/icons/AppIcons';
 import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
-import { isThreeDecimalCurrency } from '@/lib/currencies';
-
-function formatArabicItems(count: number): string {
-  if (count === 1) return 'صنف واحد';
-  if (count === 2) return 'صنفان';
-  if (count >= 3 && count <= 10) return `${count} أصناف`;
-  return `${count} صنفاً`;
-}
+import { isThreeDecimalCurrency, getCurrencySymbol } from '@/lib/currencies';
 
 interface StorefrontLiveCartDockProps {
   cartItems: CartItem[];
@@ -42,8 +33,6 @@ export function StorefrontLiveCartDock({
   onUpdateQuantity,
   onClearCart,
   onProceedToCheckout,
-  suggestedProducts = [],
-  onAddToCart,
 }: StorefrontLiveCartDockProps) {
   const { t } = useTranslation();
   const [isDismissed, setIsDismissed] = useState(false);
@@ -88,6 +77,7 @@ export function StorefrontLiveCartDock({
 
   const storeCurrency = info?.currency || 'EGP';
   const isThreeDec = isThreeDecimalCurrency(storeCurrency);
+  const activeCurrencySymbol = storeCurrency === 'EGP' ? 'جنيه' : getCurrencySymbol(storeCurrency);
 
   const formatPriceNumber = (val: number | string | undefined | null): string => {
     const num = Number(val || 0);
@@ -99,6 +89,7 @@ export function StorefrontLiveCartDock({
   const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const cartTotals = calculateCartSubtotal(cartItems, storeCurrency);
   const subtotal = cartTotals.subtotal;
+  const totalSavings = cartTotals.totalSavings;
 
   const freeShippingThreshold = info?.freeShippingMinOrder || 500;
   const isFreeShippingQualified = Boolean(info?.freeShippingEnabled && subtotal >= freeShippingThreshold);
@@ -112,11 +103,6 @@ export function StorefrontLiveCartDock({
   const minOrder = minOrderProp ?? info?.minOrder ?? 0;
   const total = subtotal + effectiveDeliveryFee;
   const isMinOrderMet = minOrder <= 0 || subtotal >= minOrder;
-
-  const cartProductIds = useMemo(() => new Set(cartItems.map((item) => item.product.id)), [cartItems]);
-  const crossSellProducts = useMemo(() => {
-    return suggestedProducts.filter((p) => !cartProductIds.has(p.id)).slice(0, 4);
-  }, [suggestedProducts, cartProductIds]);
 
   // Auto-restore visibility if items or quantities change
   useEffect(() => {
@@ -175,7 +161,7 @@ export function StorefrontLiveCartDock({
     );
   }
 
-  // Case 2: Expanded State -> Full-Height Premium Drawer with Backdrop Blur
+  // Case 2: Expanded State -> Brand New Modern Minimalist Cart Sheet (Nike / Apple Inspired)
   return (
     <div
       dir="rtl"
@@ -183,11 +169,11 @@ export function StorefrontLiveCartDock({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(5px)',
-        WebkitBackdropFilter: 'blur(5px)',
+        background: 'rgba(15, 23, 42, 0.38)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
-        justifyContent: 'flex-start', // In RTL flex-start aligns to the right edge
+        justifyContent: 'flex-start',
         alignItems: 'stretch',
         animation: 'fadeIn 0.2s ease',
         fontFamily: 'inherit',
@@ -196,37 +182,16 @@ export function StorefrontLiveCartDock({
     >
       <style>{`
         @keyframes liveCartSlideInRight {
-          from { opacity: 0; transform: translateX(50px); }
+          from { opacity: 0; transform: translateX(40px); }
           to { opacity: 1; transform: translateX(0); }
         }
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        .live-cart-scroll::-webkit-scrollbar { width: 5px; }
-        .live-cart-scroll::-webkit-scrollbar-track { background: #f8fafc; }
-        .live-cart-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .live-cart-ctrl-btn {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          width: 32px;
-          height: 32px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0;
-          transition: all 0.15s ease;
-        }
-        .live-cart-clear-btn { color: #94a3b8; }
-        .live-cart-clear-btn:hover { color: #ef4444; background: #fee2e2; border-color: #fca5a5; }
-        .live-cart-close-btn { color: #64748b; }
-        .live-cart-close-btn:hover { background: #e2e8f0; color: #0f172a; }
-        .storefront-checkout-btn:not(:disabled):hover { opacity: 0.94; transform: translateY(-1px); }
-        .storefront-checkout-btn:not(:disabled):hover .storefront-checkout-arrow {
-          transform: translateX(-4px);
-        }
+        .live-cart-scroll::-webkit-scrollbar { width: 4px; }
+        .live-cart-scroll::-webkit-scrollbar-track { background: transparent; }
+        .live-cart-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
         @media (max-width: 640px) {
           .storefront-live-cart-fullsheet { width: 100% !important; max-width: 100% !important; }
         }
@@ -237,11 +202,10 @@ export function StorefrontLiveCartDock({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '430px',
+          maxWidth: '410px',
           height: '100%',
           background: '#ffffff',
-          boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
-          borderRight: '5px solid var(--storefront-primary-color, #170e5e)',
+          boxShadow: '-20px 0 50px rgba(15, 23, 42, 0.16)',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -249,11 +213,10 @@ export function StorefrontLiveCartDock({
           overflow: 'hidden',
         }}
       >
-        {/* Full-Height Drawer Header */}
+        {/* Minimalist Centered Top Bar (Circular Back/Close Button, Centered Title, Circular Clear Button) */}
         <div
           style={{
-            padding: '14px 18px',
-            borderBottom: '1px solid #f1f5f9',
+            padding: '20px 22px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -261,98 +224,96 @@ export function StorefrontLiveCartDock({
             position: 'relative',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                background: '#eff6ff',
-                color: 'var(--storefront-primary-color, #170e5e)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-                flexShrink: 0,
-              }}
-            >
-              <IconShoppingCart size={18} strokeWidth={2.2} />
-            </div>
+          {/* Right Circular Button: Close / Back */}
+          <button
+            type="button"
+            onClick={onClose}
+            title={t('storefront.storefront_live_cart_dock.s3', 'تصغير ومتابعة التسوق')}
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '999px',
+              background: '#f8fafc',
+              border: '1px solid #f1f5f9',
+              color: '#0f172a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              padding: 0,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
+          >
+            <XIcon size={16} />
+          </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-              <h3 style={{ margin: 0, fontSize: '15px', color: '#0f172a', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                {t('storefront.storefront_live_cart_dock.s0', "سلة المشتريات")}
-              </h3>
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: '1px solid #e2e8f0',
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                }}
-              >
-                {cartItems.length === totalQuantity ? formatArabicItems(cartItems.length) : `${cartItems.length} صنف • ${totalQuantity} قطعة`}
-              </span>
-            </div>
+          {/* Centered Title */}
+          <div style={{ textAlign: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: '16.5px', color: '#0f172a', fontWeight: 600, letterSpacing: '0px' }}>
+              {t('storefront.storefront_live_cart_dock.s0', 'سلة المشتريات')}
+            </h3>
           </div>
 
-          {/* Controls: Clear Cart & Close / Minimize */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <button
-              type="button"
-              className="live-cart-ctrl-btn live-cart-clear-btn"
-              onClick={() => setShowClearConfirm((prev) => !prev)}
-              title={t('storefront.storefront_live_cart_dock.s1', "تفريغ السلة بالكامل")}
-              aria-label={t('storefront.storefront_live_cart_dock.s2', "تفريغ السلة بالكامل")}
-              style={{
-                background: showClearConfirm ? '#fef2f2' : '#f8fafc',
-                borderColor: showClearConfirm ? '#fca5a5' : '#e2e8f0',
-                color: showClearConfirm ? '#ef4444' : '#94a3b8',
-              }}
-            >
-              <Trash2Icon size={15} />
-            </button>
+          {/* Left Circular Button: Clear Cart */}
+          <button
+            type="button"
+            onClick={() => setShowClearConfirm((prev) => !prev)}
+            title={t('storefront.storefront_live_cart_dock.s1', 'تفريغ السلة بالكامل')}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: showClearConfirm ? '#fef2f2' : '#f8fafc',
+              border: showClearConfirm ? '1px solid #fecaca' : '1px solid #f1f5f9',
+              color: showClearConfirm ? '#ef4444' : '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              padding: 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#ef4444';
+              e.currentTarget.style.background = '#fef2f2';
+            }}
+            onMouseLeave={(e) => {
+              if (!showClearConfirm) {
+                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.background = '#f8fafc';
+              }
+            }}
+          >
+            <Trash2Icon size={15} />
+          </button>
 
-            <button
-              type="button"
-              className="live-cart-ctrl-btn live-cart-close-btn"
-              onClick={onClose}
-              title={t('storefront.storefront_live_cart_dock.s3', "تصغير ومتابعة التسوق")}
-              aria-label={t('storefront.storefront_live_cart_dock.s4', "تصغير ومتابعة التسوق")}
-            >
-              <XIcon size={16} />
-            </button>
-          </div>
-
-          {/* Luxury Floating Confirmation Popover for Clear Cart */}
+          {/* Confirmation Popover for Clear Cart */}
           {showClearConfirm && (
             <div
               ref={clearConfirmRef}
               dir="rtl"
               style={{
                 position: 'absolute',
-                top: 'calc(100% + 6px)',
-                left: '18px',
+                top: 'calc(100% + 4px)',
+                left: '22px',
                 zIndex: 100,
                 width: '230px',
                 background: '#ffffff',
                 border: '1px solid #e2e8f0',
                 borderRadius: '12px',
-                boxShadow: '0 12px 28px -4px rgba(15, 23, 42, 0.16), 0 4px 10px -2px rgba(15, 23, 42, 0.08)',
-                padding: '12px 14px',
+                boxShadow: '0 14px 32px rgba(15, 23, 42, 0.14)',
+                padding: '14px',
                 animation: 'fadeIn 0.15s ease-out',
+                letterSpacing: '0px',
               }}
             >
-              <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#0f172a', marginBottom: '4px' }}>
-                {t('storefront.storefront_live_cart_dock.s5', "تفريغ السلة بالكامل؟")}
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginBottom: '4px' }}>
+                {t('storefront.storefront_live_cart_dock.s5', 'تفريغ السلة بالكامل؟')}
               </div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px', lineHeight: 1.4 }}>
-                {t('storefront.storefront_live_cart_dock.s6', "هل تريد إزالة كافة المنتجات (")}{cartItems.length}{t('storefront.storefront_live_cart_dock.s7', ") من سلتك؟")}
+              <div style={{ fontSize: '11.5px', color: '#64748b', marginBottom: '12px', lineHeight: 1.4 }}>
+                {t('storefront.storefront_live_cart_dock.s6', 'هل تريد إزالة كافة المنتجات (')}{cartItems.length}{t('storefront.storefront_live_cart_dock.s7', ') من سلتك؟')}
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
@@ -363,105 +324,98 @@ export function StorefrontLiveCartDock({
                   }}
                   style={{
                     flex: 1,
-                    padding: '6px 10px',
-                    borderRadius: '7px',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
                     background: '#ef4444',
                     color: '#ffffff',
                     border: 'none',
                     fontSize: '11.5px',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     cursor: 'pointer',
-                    transition: 'background 0.15s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#dc2626')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#ef4444')}
                 >
-                  {t('storefront.storefront_live_cart_dock.s8', "تأكيد التفريغ")}
+                  {t('storefront.storefront_live_cart_dock.s8', 'تأكيد')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowClearConfirm(false)}
                   style={{
                     flex: 1,
-                    padding: '6px 10px',
-                    borderRadius: '7px',
+                    padding: '7px 10px',
+                    borderRadius: '8px',
                     background: '#f1f5f9',
                     color: '#475569',
-                    border: '1px solid #e2e8f0',
+                    border: 'none',
                     fontSize: '11.5px',
                     fontWeight: 600,
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#e2e8f0')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = '#f1f5f9')}
                 >
-                  {t('storefront.storefront_live_cart_dock.s9', "إلغاء")}
+                  {t('storefront.storefront_live_cart_dock.s9', 'إلغاء')}
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Interactive Free Shipping Progress Bar */}
+        {/* Sleek Minimal Free Shipping Indicator */}
         {info?.freeShippingEnabled && (
-          <div
-            style={{
-              padding: '5px 14px 6px',
-              background: isFreeShippingQualified ? '#f0fdf4' : '#f8fafc',
-              borderBottom: '1px solid #e2e8f0',
-              transition: 'background 0.2s ease',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px', fontSize: '11px', lineHeight: 1.2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <TruckIcon size={12.5} color={isFreeShippingQualified ? '#16a34a' : 'var(--storefront-primary-color, #170e5e)'} />
-                {isFreeShippingQualified ? (
-                  <span style={{ fontWeight: 800, color: '#15803d' }}>
-                    {t('storefront.storefront_live_cart_dock.s10', "مبروك! حصلت على توصيل مجاني لطلبك!")}
-                  </span>
-                ) : (
-                  <span style={{ color: '#334155' }}>
-                    {t('storefront.storefront_live_cart_dock.s11', "أضف بـ")} <strong style={{ color: 'var(--storefront-primary-color, #170e5e)' }}>{formatPriceNumber(freeShippingRemaining)} <CurrencySymbol /></strong> {t('storefront.storefront_live_cart_dock.s12', "للشحن المجاني")}
-                  </span>
-                )}
-              </div>
-              <span style={{ fontWeight: 700, color: isFreeShippingQualified ? '#15803d' : '#64748b', fontSize: '10.5px' }}>
-                {freeShippingPercent}%
-              </span>
-            </div>
+          <div style={{ padding: '0 22px 10px', letterSpacing: '0px' }}>
             <div
               style={{
-                height: '4px',
-                width: '100%',
-                background: '#e2e8f0',
-                borderRadius: '999px',
-                overflow: 'hidden',
+                padding: '8px 14px',
+                borderRadius: '12px',
+                background: isFreeShippingQualified ? '#f0fdf4' : '#f8fafc',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '5px',
               }}
             >
-              <div
-                style={{
-                  height: '100%',
-                  width: `${freeShippingPercent}%`,
-                  background: isFreeShippingQualified ? '#22c55e' : 'var(--storefront-primary-color, #170e5e)',
-                  borderRadius: '999px',
-                  transition: 'width 0.3s ease',
-                }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <TruckIcon size={13} color={isFreeShippingQualified ? '#16a34a' : '#0f172a'} />
+                  {isFreeShippingQualified ? (
+                    <span style={{ fontWeight: 600, color: '#15803d', letterSpacing: '0px' }}>
+                      {t('storefront.storefront_live_cart_dock.s10', 'مبروك! حصلت على توصيل مجاني لطلبك!')}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#475569', fontWeight: 500, letterSpacing: '0px' }}>
+                      {t('storefront.storefront_live_cart_dock.s11', 'أضف بـ')}{' '}
+                      <span style={{ color: '#0f172a', fontWeight: 600 }}>
+                        {formatPriceNumber(freeShippingRemaining)} {activeCurrencySymbol}
+                      </span>{' '}
+                      {t('storefront.storefront_live_cart_dock.s12', 'للشحن المجاني')}
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontWeight: 600, color: isFreeShippingQualified ? '#15803d' : '#64748b', fontSize: '11px' }}>
+                  {freeShippingPercent}%
+                </span>
+              </div>
+              <div style={{ height: '3.5px', width: '100%', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${freeShippingPercent}%`,
+                    background: isFreeShippingQualified ? '#22c55e' : '#0f172a',
+                    borderRadius: '999px',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
             </div>
           </div>
         )}
 
-        {/* Scrollable Items List */}
+        {/* Un-boxed Scrollable Items List */}
         <div
           className="live-cart-scroll"
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '8px 12px',
+            padding: '0 22px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '5px',
             background: '#ffffff',
           }}
         >
@@ -474,126 +428,75 @@ export function StorefrontLiveCartDock({
           ))}
         </div>
 
-        {/* Cross-Sell Recommendations (shown only when cart has <= 3 items to avoid crowding) */}
-        {crossSellProducts.length > 0 && onAddToCart && cartItems.length <= 3 && (
-          <div
-            style={{
-              padding: '10px 16px',
-              background: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
-            }}
-          >
-            <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>
-              {t('storefront.storefront_live_cart_dock.s13', "قد يعجبك أيضاً (إضافة سريعة للسلة):")}
-            </div>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-              {crossSellProducts.map((p) => (
-                <div
-                  key={p.id}
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '8px 10px',
-                    minWidth: '130px',
-                    maxWidth: '150px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    flexShrink: 0,
-                  }}
-                >
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={p.name}>
-                    {p.name}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--storefront-primary-color, #170e5e)' }}>
-                      {p.price} <CurrencySymbol />
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => onAddToCart(p)}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '9999px',
-                        background: '#eff6ff',
-                        color: '#1d4ed8',
-                        border: '1px solid #bfdbfe',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                      }}
-                    >
-                      <PlusIcon size={12} />
-                      <span>{t('storefront.storefront_live_cart_dock.s14', "إضافة")}</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Compressed Enterprise Footer Shelf */}
+        {/* Clean Un-boxed Summary Footer & Standard Rounded Checkout Button */}
         <div
           style={{
-            padding: '10px 14px 12px',
+            padding: '16px 22px 22px',
             background: '#ffffff',
-            borderTop: '1px solid #e2e8f0',
-            boxShadow: '0 -4px 14px rgba(15, 23, 42, 0.04)',
+            borderTop: '1px solid #f1f5f9',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px',
+            gap: '14px',
             flexShrink: 0,
+            letterSpacing: '0px',
           }}
         >
-          {/* Compressed Pricing Rows */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-              background: '#f8fafc',
-              padding: '7px 11px',
-              borderRadius: '9px',
-              border: '1px solid #f1f5f9',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b' }}>
-              <span>{t('storefront.storefront_live_cart_dock.s15', "قيمة الأصناف (")}{cartItems.length}):</span>
-              <span style={{ fontWeight: 700, color: '#0f172a' }}>{formatPriceNumber(subtotal)} <CurrencySymbol /></span>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: '#64748b' }}>
-              <span>{t('storefront.storefront_live_cart_dock.s16', "مصاريف التوصيل:")}</span>
-              <span style={{ fontWeight: 700, color: effectiveDeliveryFee > 0 ? '#0f172a' : '#166534', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                {effectiveDeliveryFee === 0 && baseDeliveryFee > 0 && (
-                  <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px' }}>
-                    {formatPriceNumber(baseDeliveryFee)} <CurrencySymbol />
-                  </span>
-                )}
-                <span>{effectiveDeliveryFee > 0 ? <>{formatPriceNumber(effectiveDeliveryFee)} <CurrencySymbol /></> : t('storefront.storefront_live_cart_dock.s17', "توصيل مجاني")}</span>
+          {/* Un-boxed Pricing Breakdown (Subtotal, Delivery Fee, Discount, Total) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+              <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>
+                {t('storefront.storefront_live_cart_dock.subtotal_label', 'قيمة الأصناف :')}
+              </span>
+              <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13.5px', letterSpacing: '0px' }}>
+                {formatPriceNumber(subtotal)} {activeCurrencySymbol}
               </span>
             </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+              <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>
+                {t('storefront.storefront_live_cart_dock.s16', 'مصاريف التوصيل :')}
+              </span>
+              <span style={{ fontWeight: 600, color: effectiveDeliveryFee > 0 ? '#0f172a' : '#16a34a', fontSize: '13.5px', letterSpacing: '0px' }}>
+                {effectiveDeliveryFee === 0 && baseDeliveryFee > 0 && (
+                  <span style={{ textDecoration: 'line-through', color: '#cbd5e1', fontSize: '12px', marginLeft: '6px', fontWeight: 400 }}>
+                    {formatPriceNumber(baseDeliveryFee)} {activeCurrencySymbol}
+                  </span>
+                )}
+                <span>
+                  {effectiveDeliveryFee > 0
+                    ? `${formatPriceNumber(effectiveDeliveryFee)} ${activeCurrencySymbol}`
+                    : t('storefront.storefront_live_cart_dock.s17', 'مجاني')}
+                </span>
+              </span>
+            </div>
+
+            {totalSavings > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>
+                  {t('storefront.storefront_live_cart_dock.discount_label', 'الخصم :')}
+                </span>
+                <span style={{ fontWeight: 600, color: '#ef4444', fontSize: '13.5px', letterSpacing: '0px' }}>
+                  - {formatPriceNumber(totalSavings)} {activeCurrencySymbol}
+                </span>
+              </div>
+            )}
 
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                paddingTop: '4px',
+                paddingTop: '10px',
                 marginTop: '2px',
-                borderTop: '1px dashed #cbd5e1',
-                fontSize: '13px',
-                fontWeight: 800,
-                color: '#0f172a',
+                borderTop: '1px solid #f1f5f9',
               }}
             >
-              <span>{t('storefront.storefront_live_cart_dock.s18', "المبلغ الإجمالي:")}</span>
-              <span style={{ fontSize: '15px', color: '#166534' }}>{formatPriceNumber(total)} <CurrencySymbol /></span>
+              <span style={{ fontSize: '14.5px', fontWeight: 600, color: '#0f172a', letterSpacing: '0px' }}>
+                {t('storefront.storefront_live_cart_dock.s18', 'المبلغ الإجمالي :')}
+              </span>
+              <span style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', letterSpacing: '0px' }}>
+                {formatPriceNumber(total)} {activeCurrencySymbol}
+              </span>
             </div>
           </div>
 
@@ -602,93 +505,62 @@ export function StorefrontLiveCartDock({
               style={{
                 background: '#fff7ed',
                 border: '1px solid #fed7aa',
-                borderRadius: '7px',
-                padding: '4px 8px',
-                fontSize: '11px',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                fontSize: '11.5px',
                 color: '#c2410c',
-                fontWeight: 700,
+                fontWeight: 500,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '5px',
+                gap: '6px',
+                letterSpacing: '0px',
               }}
             >
-              <AlertTriangleIcon size={12} color="#c2410c" />
-              <span>{t('storefront.storefront_live_cart_dock.s19', "الحد الأدنى للطلب هو")} {minOrder} <CurrencySymbol /> {t('storefront.storefront_live_cart_dock.s20', "(متبقي")} {formatPriceNumber(minOrder - subtotal)} <CurrencySymbol />)</span>
+              <AlertTriangleIcon size={13} color="#c2410c" />
+              <span>
+                {t('storefront.storefront_live_cart_dock.s19', 'الحد الأدنى للطلب هو')} {minOrder} {activeCurrencySymbol} (
+                {t('storefront.storefront_live_cart_dock.s20', 'متبقي')} {formatPriceNumber(minOrder - subtotal)} {activeCurrencySymbol})
+              </span>
             </div>
           )}
 
-          {/* 2-Column Side-by-Side Action Buttons: Checkout (Right) & Continue Shopping (Left) */}
-          <div
+          {/* Primary Checkout Button with standard site border-radius (12px) */}
+          <button
+            type="button"
+            onClick={onProceedToCheckout}
+            disabled={!isMinOrderMet}
             style={{
+              width: '100%',
+              height: '46px',
+              borderRadius: '12px',
+              background: isMinOrderMet ? 'var(--storefront-primary-color, #588cb3)' : '#cbd5e1',
+              color: '#ffffff',
+              border: 'none',
+              fontSize: '14.5px',
+              fontWeight: 600,
+              letterSpacing: '0px',
+              cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
+              boxShadow: isMinOrderMet ? '0 4px 12px rgba(88, 140, 179, 0.22)' : 'none',
+              transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+              fontFamily: 'inherit',
+            }}
+            onMouseEnter={(e) => {
+              if (isMinOrderMet) e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              if (isMinOrderMet) e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <button
-              type="button"
-              className="storefront-checkout-btn"
-              onClick={onProceedToCheckout}
-              disabled={!isMinOrderMet}
-              style={{
-                flex: 1.25,
-                height: '38px',
-                borderRadius: '9999px',
-                background: isMinOrderMet ? 'var(--storefront-primary-color, #170e5e)' : '#94a3b8',
-                color: 'var(--storefront-primary-contrast, #ffffff)',
-                border: 'none',
-                fontSize: '12.5px',
-                fontWeight: 800,
-                cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '5px',
-                boxShadow: isMinOrderMet ? '0 3px 10px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.22))' : 'none',
-                transition: 'all 0.15s ease',
-                fontFamily: 'inherit',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span>{t('storefront.storefront_live_cart_dock.s21', "إتمام الطلب")}</span>
-              <span style={{ fontSize: '14px', lineHeight: 1 }}>←</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                flex: 1,
-                height: '38px',
-                borderRadius: '9999px',
-                background: '#f0f4f9',
-                color: '#1f1f1f',
-                border: '1px solid #dadce0',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.15s ease',
-                fontFamily: 'inherit',
-                whiteSpace: 'nowrap',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f1f5f9';
-                e.currentTarget.style.color = '#0f172a';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#f8fafc';
-                e.currentTarget.style.color = '#475569';
-              }}
-            >
-              {t('storefront.storefront_live_cart_dock.s22', "متابعة التسوق")}
-            </button>
-          </div>
+            <span>{t('storefront.storefront_live_cart_dock.s21', 'إتمام الطلب')}</span>
+          </button>
         </div>
       </div>
     </div>
   );
 }
+

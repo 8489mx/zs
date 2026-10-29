@@ -79,7 +79,7 @@ body, button, input, select, textarea, [class*="storefront-"] {
 }
 .storefront-shelf::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 999px;
+  border-radius: 4px;
 }
 .storefront-shelf::-webkit-scrollbar-track {
   background: transparent;
@@ -1101,15 +1101,16 @@ html, body {
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
-    border-radius: 999px;
+    border-radius: 5px;
     font-size: 9.5px;
-    font-weight: 900;
+    font-weight: 800;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #ffffff;
     font-variant-numeric: tabular-nums;
     border: 1.5px solid #ffffff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   }
 
   .storefront-mobile-nav-badge.cart {
@@ -1130,11 +1131,15 @@ html, body {
 }
 
 /* ==========================================================================
-   Google AI Studio Universal Button, Pill & Badge Design System
-   Exact curvature, styling, border, height, and micro-elevation from Google AI Studio UI
+   Google AI Studio Soft Squircle Geometry System (Strict Zero-Pill Discipline)
+   Exact curvature, styling, border, height, and micro-elevation:
+   - Text Buttons: height 34-36px, border-radius 12px, padding 0 14-16px, 1px solid, font 12-12.5px 600
+   - Square Icon Buttons: 34x34px or 36x36px, border-radius 10-12px
+   - Badges & Chips: border-radius 8px
+   - Micro Elevation: box-shadow 0 1px 2px rgba(0, 0, 0, 0.05)
    ========================================================================== */
 
-/* 1. All Action & CTA Text Buttons -> Google AI Studio Capsule Pill (border-radius: 9999px) */
+/* 1. All Action & CTA Text Buttons -> Google AI Studio Soft Squircle (border-radius: 12px) */
 .storefront-product-action-btn,
 .storefront-checkout-btn,
 .sf-quickview-cta-btn,
@@ -1156,12 +1161,13 @@ html, body {
 button.storefront-btn-pill,
 .storefront-btn-neutral,
 .sf-cat-modal-chip {
-  border-radius: 9999px !important;
+  border-radius: 12px !important;
   font-family: inherit;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease !important;
 }
 
-/* 2. Google AI Studio Capsule Pill Neutral / Secondary Buttons (Like [👁 Preview] button) */
+/* 2. Google AI Studio Soft Squircle Neutral / Secondary Buttons (Like [👁 Preview] button) */
 .storefront-btn-neutral,
 .sf-hero-btn-secondary,
 .storefront-action-btn:not(.storefront-cart-btn),
@@ -1170,12 +1176,12 @@ button.storefront-btn-pill,
   height: 36px !important;
   min-height: 36px !important;
   padding: 0 16px !important;
-  border-radius: 9999px !important;
+  border-radius: 12px !important;
   background: #ffffff !important;
   border: 1px solid #dadce0 !important;
   color: #1f1f1f !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -1205,22 +1211,22 @@ button.storefront-btn-pill,
   }
 }
 
-/* 3. Google AI Studio Capsule Pill Primary Buttons (Brand Blue) */
+/* 3. Google AI Studio Soft Squircle Primary Buttons (Brand Blue) */
 .sf-hero-btn-primary,
 .storefront-deal-add-btn:not(:disabled),
 .storefront-product-action-btn:not([disabled]):not(.secondary),
 .storefront-cart-checkout-btn,
 .storefront-checkout-btn.primary {
-  border-radius: 9999px !important;
+  border-radius: 12px !important;
   height: 36px !important;
   min-height: 36px !important;
-  padding: 0 18px !important;
+  padding: 0 16px !important;
   background: var(--storefront-primary-color, #2d68c4) !important;
   color: #ffffff !important;
-  border: 1px solid transparent !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  box-shadow: 0 2px 8px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22)) !important;
+  border: 1px solid var(--storefront-primary-color, #2d68c4) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1237,20 +1243,21 @@ button.storefront-btn-pill,
   transform: translateY(-1px);
 }
 
-/* 4. WhatsApp Capsule Pill Action Buttons */
+/* 4. WhatsApp Soft Squircle Action Buttons */
 .storefront-deal-wa-btn,
 .sf-footer-whatsapp-link,
 .sf-footer-contact-btn,
 .storefront-product-action-btn.whatsapp {
-  border-radius: 9999px !important;
+  border-radius: 12px !important;
   height: 36px !important;
   min-height: 36px !important;
   padding: 0 16px !important;
   background: #f0fdf4 !important;
   border: 1px solid #bbf7d0 !important;
   color: #15803d !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1267,18 +1274,21 @@ button.storefront-btn-pill,
   border-color: #86efac !important;
 }
 
-/* 5. Header Cart Button -> Google AI Studio Pill */
+/* 5. Header Cart Button -> Google AI Studio Soft Squircle */
 .storefront-cart-btn {
   height: 36px !important;
   min-height: 36px !important;
   max-height: 38px !important;
   padding: 0 16px !important;
-  border-radius: 9999px !important;
-  border: 1px solid transparent !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--storefront-primary-color, #2d68c4) !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   box-sizing: border-box !important;
 }
 
-/* 6. All Badges & Micro-Pills -> Google AI Studio Full Capsule (border-radius: 9999px) */
+/* 6. All Badges & Micro-Pills -> Google AI Studio Soft Squircle (border-radius: 8px) */
 .storefront-product-badge,
 .sf-coverflow-badge,
 .sf-amz-quick-tile-badge,
@@ -1288,24 +1298,26 @@ button.storefront-btn-pill,
 .storefront-cart-badge,
 .storefront-badge-pill,
 .sf-cat-tile span {
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
-/* 7. Stepper Container & Plus/Minus Controls -> Google Studio Pill Stepper */
+/* 7. Stepper Container & Plus/Minus Controls -> Soft Squircle Stepper */
 .storefront-product-stepper,
 .sf-quickview-stepper,
 .storefront-stepper-control {
-  border-radius: 9999px !important;
-  height: 36px !important;
+  border-radius: 12px !important;
+  height: 35px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
   box-sizing: border-box !important;
 }
 
 .storefront-product-stepper-btn,
 .sf-quickview-stepper-btn {
-  border-radius: 9999px !important;
+  border-radius: 8px !important;
 }
 
-/* 8. Icon Buttons -> Google AI Studio Squircle Box (10px, 1px solid #dadce0) like [< >] and [📁] */
+/* 8. Square Icon Buttons -> Google AI Studio Squircle Box (10px to 12px, 34x34px or 36x36px, 1px solid #dadce0) */
 .storefront-icon-btn,
 .storefront-product-fav-btn,
 .storefront-shelf-arrows button,
@@ -1314,9 +1326,12 @@ button.storefront-btn-pill,
 .sf-quickview-close-btn,
 .storefront-modal-close-btn,
 .sf-footer-social-btn {
+  width: 34px !important;
+  height: 34px !important;
   border-radius: 10px !important;
   border: 1px solid #dadce0 !important;
   background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease !important;
 }
 
@@ -1330,14 +1345,15 @@ button.storefront-btn-pill,
 
 /* 9. Predictive Search Bar */
 .storefront-search-box {
-  border-radius: 9999px !important;
-  height: 38px !important;
+  border-radius: 12px !important;
+  height: 36px !important;
   border: 1px solid #dadce0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
 .storefront-search-btn {
-  border-radius: 9999px !important;
-  height: 30px !important;
+  border-radius: 10px !important;
+  height: 32px !important;
   padding: 0 14px !important;
 }
 
@@ -1405,24 +1421,9 @@ button.storefront-btn-pill,
   border-radius: 10px !important;
 }
 
-/* 9. Floating Scrolled Header Island -> Matches Button Curvature */
-.storefront-sticky-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 110 !important;
-}
-
+/* 9. Floating Scrolled Header Island -> Matches Button Curvature (14px) */
 .storefront-sticky-header.is-scrolled {
-  border-radius: 9999px !important;
-}
-
-.storefront-sticky-header.is-scrolled .storefront-navbar {
-  border-radius: 9999px !important;
-  background: rgba(255, 255, 255, 0.98) !important;
-  border-color: rgba(226, 232, 240, 0.95) !important;
-  box-shadow: 0 12px 30px -6px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  border-radius: 14px !important;
 }
 
 /* 10. Public Storefront Natural Window Scrolling & Unconstrained Sticky Header
@@ -1445,14 +1446,17 @@ body.storefront-body #root {
 
 /* 11. Seamless Studio Image Blending on Vibrant & Colored Surfaces
    Dissolves solid white photo backgrounds on podium stages, colored promotional cards,
-   and gradient category tiles so legacy and live products look natively cut out. */
+   gradient category tiles, and product cards so legacy and live products look natively cut out. */
 .sf-amz-podium-side-img,
 .sf-amz-podium-center-img,
 .sf-amz-promo-card img,
 .sf-cat-tile-img,
 .sf-amz-quick-tile-img,
+.storefront-product-img,
+.sf-quickview-img,
 .sf-studio-blend {
   mix-blend-mode: multiply !important;
 }
+
 
 

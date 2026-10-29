@@ -267,13 +267,18 @@ export const StorefrontBentoShowcase = React.memo(function StorefrontBentoShowca
                   style={{
                     background: isLookbookOutOfStock ? '#e2e8f0' : 'var(--storefront-primary-color, #170e5e)',
                     color: isLookbookOutOfStock ? '#64748b' : '#ffffff',
-                    border: 'none',
-                    borderRadius: '9999px',
-                    padding: '8px 18px',
-                    fontSize: '12px',
-                    fontWeight: 800,
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
+                    borderRadius: '12px',
+                    height: '35px',
+                    padding: '0 16px',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
                     cursor: isLookbookOutOfStock ? 'not-allowed' : 'pointer',
                     whiteSpace: 'nowrap',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   {isLookbookOutOfStock ? 'غير متوفر' : 'أضف إلى السلة'}

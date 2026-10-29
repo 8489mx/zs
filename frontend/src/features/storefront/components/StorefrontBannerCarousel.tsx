@@ -121,7 +121,7 @@ export function StorefrontBannerCarousel({
           background: rgba(15, 23, 42, 0.45) !important;
           backdrop-filter: blur(6px) !important;
           border: 1px solid rgba(255, 255, 255, 0.18) !important;
-          border-radius: 999px !important;
+          border-radius: 10px !important;
           z-index: 3;
           pointer-events: auto;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
@@ -131,7 +131,7 @@ export function StorefrontBannerCarousel({
           height: 6px !important;
           min-width: 6px !important;
           min-height: 6px !important;
-          border-radius: 50% !important;
+          border-radius: 3px !important;
           border: none !important;
           padding: 0 !important;
           background: rgba(255, 255, 255, 0.55) !important;
@@ -143,7 +143,7 @@ export function StorefrontBannerCarousel({
         }
         .storefront-banner-dot.active {
           width: 18px !important;
-          border-radius: 999px !important;
+          border-radius: 4px !important;
           background: #ffffff !important;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
         }
@@ -309,15 +309,15 @@ export function StorefrontBannerCarousel({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '5px 12px',
-              borderRadius: '999px',
+              padding: '6px 14px',
+              borderRadius: '12px',
               background: isHovered ? 'var(--storefront-primary-color, #170e5e)' : 'rgba(15, 23, 42, 0.72)',
               backdropFilter: 'blur(8px)',
               border: '1px solid rgba(255, 255, 255, 0.22)',
               color: '#ffffff',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.28)',
+              fontSize: '12px',
+              fontWeight: 600,
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
               pointerEvents: 'none',
               transition: 'all 0.25s ease',
             }}

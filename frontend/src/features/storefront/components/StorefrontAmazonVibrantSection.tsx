@@ -124,11 +124,6 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
           transform: translate3d(0, -4px, 0);
           box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
         }
-        .sf-amz-promo-card img,
-        .sf-amz-podium-side-img,
-        .sf-amz-podium-center-img {
-          mix-blend-mode: multiply;
-        }
         .sf-amz-hero-orange-card {
           border-radius: 30px;
           background: linear-gradient(180deg, #ff6200 0%, #f95700 60%, #ea4c00 100%);
@@ -992,9 +987,10 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                           fontSize: '10.5px',
                           fontWeight: 700,
                           lineHeight: 1.4,
-                          padding: '2px 9px',
-                          borderRadius: '999px',
+                          padding: '2.5px 9px',
+                          borderRadius: '8px',
                           whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                         }}
                       >
                         {meta.badge}

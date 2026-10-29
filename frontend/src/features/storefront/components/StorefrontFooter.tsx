@@ -142,11 +142,11 @@ export function StorefrontFooter({
         .sf-footer-contact-btn {
           height: 36px;
           padding: 0 16px;
-          border-radius: 9999px !important;
+          border-radius: 12px !important;
           background: #ffffff;
-          border: 1px solid #dadce0;
+          border: 1px solid #E0E3E7;
           color: #1f1f1f;
-          font-size: 13px;
+          font-size: 12.5px;
           font-weight: 600;
           text-decoration: none;
           display: inline-flex;
@@ -154,7 +154,7 @@ export function StorefrontFooter({
           justify-content: center;
           gap: 8px;
           cursor: pointer;
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
           transition: all 0.16s ease;
           box-sizing: border-box;
         }

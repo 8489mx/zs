@@ -142,7 +142,7 @@ export function StorefrontSuccessModal({
             padding: '2px 10px',
             background: '#f8fafc',
             border: '1px solid #e2e8f0',
-            borderRadius: '999px',
+            borderRadius: '8px',
             margin: '0 auto 10px',
             fontSize: '11.5px',
             fontWeight: 700,

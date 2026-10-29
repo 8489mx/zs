@@ -33,6 +33,8 @@ export function StorefrontDealSpotlight({
   product,
   cartQuantity,
   whatsappPhone,
+  isSmartDeal: _isSmartDeal,
+  categoryBadge: _categoryBadge,
   onAddToCart,
   onUpdateQuantity,
   onQuickView,
@@ -440,25 +442,25 @@ export function StorefrontDealSpotlight({
               disabled={isOutOfStock}
               style={{
                 flex: '1 1 200px',
-                height: '38px',
-                borderRadius: '9999px',
+                height: '36px',
+                borderRadius: '12px',
                 background: isOutOfStock ? '#e2e8f0' : 'var(--storefront-primary-color, #170e5e)',
                 color: isOutOfStock ? '#64748b' : '#ffffff',
-                border: isOutOfStock ? '1px solid #cbd5e1' : 'none',
-                fontSize: '13.5px',
-                fontWeight: 800,
+                border: isOutOfStock ? '1px solid #cbd5e1' : '1px solid var(--storefront-primary-color, #170e5e)',
+                fontSize: '12.5px',
+                fontWeight: 600,
                 cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                boxShadow: isOutOfStock ? 'none' : '0 2px 10px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.22))',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 transition: 'filter 0.15s ease, transform 0.15s ease',
               }}
               onMouseEnter={(e) => !isOutOfStock && (e.currentTarget.style.filter = 'brightness(1.12)')}
               onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
             >
-              {!isOutOfStock && <IconShoppingCart size={17} color="#ffffff" strokeWidth={2.2} />}
+              {!isOutOfStock && <IconShoppingCart size={16} color="#ffffff" strokeWidth={2.2} />}
               <span>{isOutOfStock ? 'غير متوفر' : t('storefront.storefront_deal_spotlight.s23', 'أضف للسلة الآن')}</span>
             </button>
           )}
@@ -471,14 +473,14 @@ export function StorefrontDealSpotlight({
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                height: '38px',
+                height: '36px',
                 padding: '0 16px',
-                borderRadius: '9999px',
+                borderRadius: '12px',
                 background: '#f0fdf4',
-                border: '1.5px solid #bbf7d0',
+                border: '1px solid #bbf7d0',
                 color: '#166534',
                 fontSize: '12.5px',
-                fontWeight: 700,
+                fontWeight: 600,
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -486,6 +488,7 @@ export function StorefrontDealSpotlight({
                 gap: '6px',
                 boxSizing: 'border-box',
                 whiteSpace: 'nowrap',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
@@ -509,14 +512,14 @@ export function StorefrontDealSpotlight({
               className="storefront-btn-neutral"
               onClick={() => onQuickView(product)}
               style={{
-                height: '38px',
+                height: '36px',
                 padding: '0 16px',
-                borderRadius: '9999px',
+                borderRadius: '12px',
                 border: '1px solid #dadce0',
                 background: '#ffffff',
                 color: '#1f1f1f',
                 fontSize: '12.5px',
-                fontWeight: 500,
+                fontWeight: 600,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',

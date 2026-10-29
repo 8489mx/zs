@@ -1,8 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEffect } from 'react';
-import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
-import { XIcon } from '@/shared/components/icons/AppIcons';
+import { XIcon, Trash2Icon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { StorefrontFreeShippingBar } from './StorefrontFreeShippingBar';
@@ -34,6 +33,7 @@ export function StorefrontCartDrawer({
   onProceedToCheckout,
 }: StorefrontCartDrawerProps) {
   const { t } = useTranslation();
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -51,7 +51,7 @@ export function StorefrontCartDrawer({
 
   const storeCurrency = info?.currency || 'EGP';
   const isThreeDec = isThreeDecimalCurrency(storeCurrency);
-  const activeCurrencySymbol = getCurrencySymbol(storeCurrency);
+  const activeCurrencySymbol = storeCurrency === 'EGP' ? 'جنيه' : getCurrencySymbol(storeCurrency);
 
   const formatPriceNumber = (val: number | string | undefined | null): string => {
     const num = Number(val || 0);
@@ -85,19 +85,21 @@ export function StorefrontCartDrawer({
         zIndex: 9999,
         display: 'flex',
         justifyContent: 'flex-start',
-        background: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(3px)',
-        animation: 'fadeIn 0.2s ease',
+        background: 'rgba(15, 23, 42, 0.38)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
       onClick={onClose}
     >
       <div
+        dir="rtl"
         style={{
           width: '100%',
-          maxWidth: '420px',
+          maxWidth: '410px',
           height: '100%',
           background: '#ffffff',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+          boxShadow: '-20px 0 50px rgba(15, 23, 42, 0.16)',
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
@@ -105,59 +107,80 @@ export function StorefrontCartDrawer({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Drawer Header */}
+        {/* Minimalist Centered Top Bar */}
         <div
           style={{
-            padding: '18px 20px',
-            borderBottom: '1px solid #e2e8f0',
+            padding: '20px 22px 14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             background: '#ffffff',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0f172a' }}>
-              {t('storefront.storefront_cart_drawer.s0', "سلة المشتريات")}
-            </h2>
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                background: '#f1f5f9',
-                color: '#475569',
-                padding: '2px 8px',
-                borderRadius: '999px',
-              }}
-            >
-              {cartItems.reduce((acc, i) => acc + i.quantity, 0)} {t('storefront.storefront_cart_drawer.s1', "منتج")}
-            </span>
-          </div>
           <button
             type="button"
             onClick={onClose}
+            title={t('common.close', 'إغلاق')}
             style={{
-              background: '#f0f4f9',
-              border: '1px solid #dadce0',
-              borderRadius: '12px',
-              width: '32px',
-              height: '32px',
+              background: '#f8fafc',
+              border: '1px solid #f1f5f9',
+              borderRadius: '999px',
+              width: '38px',
+              height: '38px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#1f1f1f',
-              fontSize: '16px',
-              transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
+              color: '#0f172a',
+              transition: 'all 0.16s ease',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#f8fafc')}
           >
-            <XIcon size={15} />
+            <XIcon size={16} />
           </button>
+
+          <h2 style={{ margin: 0, fontSize: '16.5px', fontWeight: 600, color: '#0f172a', letterSpacing: '0px' }}>
+            {t('storefront.storefront_cart_drawer.s0', 'سلة المشتريات')}
+          </h2>
+
+          {cartItems.length > 0 ? (
+            <button
+              type="button"
+              onClick={onClearCart}
+              title={t('storefront.storefront_cart_drawer.s15', 'مسح الكل')}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                background: '#f8fafc',
+                border: '1px solid #f1f5f9',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ef4444';
+                e.currentTarget.style.background = '#fef2f2';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.background = '#f8fafc';
+              }}
+            >
+              <Trash2Icon size={15} />
+            </button>
+          ) : (
+            <div style={{ width: '36px', height: '36px' }} />
+          )}
         </div>
 
-        {/* Free Shipping Progress inside Drawer */}
+        {/* Free Shipping Progress Bar */}
         {info?.freeShippingEnabled && (
-          <div style={{ padding: '6px 14px 0' }}>
+          <div style={{ padding: '0 22px 10px', letterSpacing: '0px' }}>
             <StorefrontFreeShippingBar
               subtotal={subtotal}
               freeShippingEnabled={info.freeShippingEnabled}
@@ -168,15 +191,15 @@ export function StorefrontCartDrawer({
           </div>
         )}
 
-        {/* Drawer Body: Cart Items */}
+        {/* Drawer Body: Un-boxed Minimalist Items List */}
         <div
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '16px 20px',
+            padding: '0 22px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
+            letterSpacing: '0px',
           }}
         >
           {cartItems.length === 0 ? (
@@ -194,296 +217,334 @@ export function StorefrontCartDrawer({
             >
               <div
                 style={{
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
+                  width: '68px',
+                  height: '68px',
+                  borderRadius: '999px',
                   background: '#f8fafc',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: '16px',
-                  color: '#cbd5e1',
+                  color: '#94a3b8',
                 }}
               >
-                <IconShoppingCart size={32} strokeWidth={1.6} />
+                <IconShoppingCart size={32} strokeWidth={1.5} />
               </div>
-              <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#334155' }}>
-                {t('storefront.storefront_cart_drawer.s2', "سلة التسوق فارغة")}
+              <p style={{ margin: 0, fontSize: '15.5px', fontWeight: 600, color: '#0f172a' }}>
+                {t('storefront.storefront_cart_drawer.s2', 'سلة التسوق فارغة')}
               </p>
-              <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#94a3b8' }}>
-                {t('storefront.storefront_cart_drawer.s3', "تصفح المنتجات وأضف ما ترغب لطلبك الآن")}
+              <p style={{ margin: '6px 0 20px', fontSize: '13px', color: '#64748b', maxWidth: '240px', fontWeight: 400 }}>
+                {t('storefront.storefront_cart_drawer.s3', 'تصفح المنتجات وأضف ما ترغب لطلبك الآن')}
               </p>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '12px',
+                  background: 'var(--storefront-primary-color, #588cb3)',
+                  color: '#ffffff',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(88, 140, 179, 0.25)',
+                }}
+              >
+                {t('storefront.storefront_cart_drawer.browse_products', 'تصفح المنتجات')}
+              </button>
             </div>
           ) : (
             cartItems.map((item) => {
               const photo = item.product.imageUrl || resolveProductPhoto(item.product.name, item.product.categoryName)?.url;
+              const linePricing = calculateCartLinePricing(item.product, item.quantity, storeCurrency);
+
               return (
-              <div
-                key={item.product.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px',
-                  borderRadius: '16px',
-                  border: '1px solid #f1f5f9',
-                  background: '#ffffff',
-                }}
-              >
-                {/* Visual */}
                 <div
+                  key={item.product.id}
                   style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '12px',
-                    background: '#f8fafc',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    border: '1px solid #e2e8f0',
+                    gap: '12px',
+                    padding: '14px 2px',
+                    borderBottom: '1px solid #f1f5f9',
+                    position: 'relative',
+                    letterSpacing: '0px',
                   }}
                 >
-                  {photo ? (
-                    <img
-                      src={photo}
-                      alt={item.product.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
-                    />
-                  ) : (
-                    <ProductIcon name={item.product.icon || 'box-package'} size={24} color="#0f172a" />
-                  )}
-                </div>
-
-                {/* Details */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h4
+                  {/* Product Image */}
+                  <div
                     style={{
-                      margin: 0,
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: '#0f172a',
-                      whiteSpace: 'nowrap',
+                      width: '62px',
+                      height: '62px',
+                      borderRadius: '14px',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      flexShrink: 0,
+                      padding: '5px',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    {item.product.name}
-                  </h4>
-                  {(() => {
-                    const linePricing = calculateCartLinePricing(item.product, item.quantity, storeCurrency);
-                    return (
-                      <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                        <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                          {formatPriceNumber(linePricing.lineTotal)} <CurrencySymbol />
+                    {photo ? (
+                      <img
+                        src={photo}
+                        alt={item.product.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '10px' }}
+                        onError={(e) => (e.currentTarget.style.display = 'none')}
+                      />
+                    ) : (
+                      <ProductIcon name={item.product.icon || 'box-package'} size={24} color="#0f172a" />
+                    )}
+                  </div>
+
+                  {/* Middle Details: Full width title on top, Price + Stepper on bottom row */}
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: '13.5px',
+                        fontWeight: 500,
+                        color: '#0f172a',
+                        lineHeight: 1.35,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        letterSpacing: '0px',
+                      }}
+                    >
+                      {item.product.name}
+                    </h4>
+
+                    <div style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 400, letterSpacing: '0px' }}>
+                      {item.product.categoryName || 'منتج أصلي'}
+                    </div>
+
+                    {/* Bottom Row: Price on Right + Circular Stepper on Left */}
+                    <div
+                      style={{
+                        marginTop: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap', letterSpacing: '0px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', letterSpacing: '0px' }}>
+                          {formatPriceNumber(linePricing.lineTotal)} {activeCurrencySymbol}
                         </span>
                         {linePricing.savings > 0 && (
-                          <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '11px' }}>
-                            {formatPriceNumber(linePricing.originalLineTotal)} <CurrencySymbol />
-                          </span>
-                        )}
-                        {item.quantity > 1 && (
-                          <span style={{ fontSize: '10.5px', color: '#64748b', background: '#f1f5f9', padding: '1px 5px', borderRadius: '4px', fontWeight: 600 }}>
-                            ({formatPriceNumber(linePricing.unitPrice)} × {item.quantity})
+                          <span style={{ textDecoration: 'line-through', color: '#cbd5e1', fontSize: '11.5px', fontWeight: 400, letterSpacing: '0px' }}>
+                            {formatPriceNumber(linePricing.originalLineTotal)} {activeCurrencySymbol}
                           </span>
                         )}
                         {linePricing.isBogoApplied && (
-                          <span style={{ fontSize: '9.5px', background: '#dcfce7', color: '#166534', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              background: '#dcfce7',
+                              color: '#166534',
+                              padding: '1px 6px',
+                              borderRadius: '6px',
+                              fontWeight: 500,
+                              letterSpacing: '0px',
+                            }}
+                          >
                             {linePricing.offerBadge}
                           </span>
                         )}
                       </div>
-                    );
-                  })()}
-                </div>
 
-                {/* Stepper Controls */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: '#f1f5f9',
-                    borderRadius: '9999px',
-                    padding: '2px',
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                    title={t('storefront.storefront_cart_drawer.s4', "زيادة الكمية")}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '9999px',
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      color: '#334155',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 0,
-                    }}
-                  >
-                    +
-                  </button>
-                  <span
-                    style={{
-                      minWidth: '22px',
-                      textAlign: 'center',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      color: '#0f172a',
-                    }}
-                  >
-                    {item.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                    title={t('storefront.storefront_cart_drawer.s5', "تقليل الكمية")}
-                    style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '9999px',
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      color: '#334155',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 0,
-                    }}
-                  >
-                    -
-                  </button>
+                      {/* Circular Quantity Stepper Controls (Left in RTL) */}
+                      {/* CRITICAL: Follow RULE[AGENTS_md] Section 5 for RTL: [+] on Right, Quantity in Center, [-] on Left */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '7px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {/* [+] Filled Dark Circle on RIGHT in RTL */}
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                          title={t('storefront.storefront_cart_drawer.s4', 'زيادة الكمية')}
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '999px',
+                            border: 'none',
+                            background: '#0f172a',
+                            color: '#ffffff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            padding: 0,
+                          }}
+                        >
+                          +
+                        </button>
+
+                        {/* Quantity in CENTER */}
+                        <span
+                          style={{
+                            minWidth: '16px',
+                            textAlign: 'center',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            color: '#0f172a',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {item.quantity}
+                        </span>
+
+                        {/* [-] Outlined Circle on LEFT in RTL */}
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                          title={t('storefront.storefront_cart_drawer.s5', 'تقليل الكمية')}
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '999px',
+                            border: item.quantity === 1 ? '1px solid #fecaca' : '1px solid #cbd5e1',
+                            background: item.quantity === 1 ? '#fef2f2' : '#ffffff',
+                            color: item.quantity === 1 ? '#ef4444' : '#0f172a',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            padding: 0,
+                          }}
+                        >
+                          {item.quantity === 1 ? <Trash2Icon size={12.5} /> : '−'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          }))}
+              );
+            })
+          )}
         </div>
 
-        {/* Drawer Footer: Summary & Checkout Button */}
+        {/* Clean Un-boxed Footer Breakdown & Standard Rounded CTA */}
         {cartItems.length > 0 && (
           <div
             style={{
-              padding: '16px 20px',
-              borderTop: '1px solid #e2e8f0',
-              background: '#f8fafc',
+              padding: '16px 22px 22px',
+              borderTop: '1px solid #f1f5f9',
+              background: '#ffffff',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              letterSpacing: '0px',
             }}
           >
-            {/* Min order check warning */}
+            {/* Price Calculations */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>قيمة الأصناف :</span>
+                <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13.5px', letterSpacing: '0px' }}>
+                  {formatPriceNumber(subtotal)} {activeCurrencySymbol}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>مصاريف التوصيل :</span>
+                <span style={{ fontWeight: 600, color: deliveryFee > 0 ? '#0f172a' : '#16a34a', fontSize: '13.5px', letterSpacing: '0px' }}>
+                  {deliveryFee > 0 ? `${formatPriceNumber(deliveryFee)} ${activeCurrencySymbol}` : 'مجاني'}
+                </span>
+              </div>
+
+              {totalSavings > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                  <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>الخصم :</span>
+                  <span style={{ fontWeight: 600, color: '#ef4444', fontSize: '13.5px', letterSpacing: '0px' }}>
+                    - {formatPriceNumber(totalSavings)} {activeCurrencySymbol}
+                  </span>
+                </div>
+              )}
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingTop: '10px',
+                  marginTop: '2px',
+                  borderTop: '1px solid #f1f5f9',
+                }}
+              >
+                <span style={{ fontSize: '14.5px', fontWeight: 600, color: '#0f172a', letterSpacing: '0px' }}>
+                  {t('storefront.storefront_cart_drawer.s12', 'المبلغ الإجمالي :')}
+                </span>
+                <span style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', letterSpacing: '0px' }}>
+                  {formatPriceNumber(total)} {activeCurrencySymbol}
+                </span>
+              </div>
+            </div>
+
             {!isMinOrderMet && (
               <div
                 style={{
                   background: '#fef2f2',
                   border: '1px solid #fecaca',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   padding: '8px 12px',
-                  fontSize: '12px',
+                  fontSize: '11.5px',
                   color: '#991b1b',
-                  marginBottom: '12px',
                   textAlign: 'center',
+                  fontWeight: 500,
+                  letterSpacing: '0px',
                 }}
               >
-                {t('storefront.storefront_cart_drawer.s6', "الحد الأدنى للطلب هو")} {minOrder} <CurrencySymbol /> {t('storefront.storefront_cart_drawer.s7', "(متبقي")} {formatPriceNumber(minOrder - subtotal)} {activeCurrencySymbol})
+                {t('storefront.storefront_cart_drawer.s6', 'الحد الأدنى للطلب هو')} {minOrder} {activeCurrencySymbol} (
+                {t('storefront.storefront_cart_drawer.s7', 'متبقي')} {formatPriceNumber(minOrder - subtotal)} {activeCurrencySymbol})
               </div>
             )}
 
-            {/* Calculations Breakdown */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
-                <span>{t('storefront.storefront_cart_drawer.s8', "مجموع الأصناف:")}</span>
-                <span style={{ fontWeight: 600, color: '#0f172a' }}>{formatPriceNumber(subtotal)} <CurrencySymbol /></span>
-              </div>
-              {totalSavings > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--storefront-secondary-color, #e11d48)' }}>
-                  <span style={{ fontWeight: 700 }}>{t('storefront.storefront_cart_drawer.s9', "وفرت من العروض:")}</span>
-                  <span style={{ fontWeight: 800 }}>- {formatPriceNumber(totalSavings)} <CurrencySymbol /></span>
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
-                <span>{t('storefront.storefront_cart_drawer.s10', "رسوم التوصيل:")}</span>
-                <span style={{ fontWeight: 600, color: deliveryFee > 0 ? '#0f172a' : '#166534', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  {deliveryFee === 0 && baseDeliveryFee > 0 && (
-                    <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '12px' }}>
-                      {formatPriceNumber(baseDeliveryFee)} <CurrencySymbol />
-                    </span>
-                  )}
-                  <span>{deliveryFee > 0 ? `${formatPriceNumber(deliveryFee)} ${activeCurrencySymbol}` : t('storefront.storefront_cart_drawer.s11', "مجاناً")}</span>
-                </span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '16px',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                  paddingTop: '8px',
-                  borderTop: '1px dashed #cbd5e1',
-                }}
-              >
-                <span>{t('storefront.storefront_cart_drawer.s12', "المبلغ الإجمالي:")}</span>
-                <span>{formatPriceNumber(total)} <CurrencySymbol /></span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                onClick={onProceedToCheckout}
-                disabled={!isMinOrderMet}
-                style={{
-                  flex: 1,
-                  padding: '0 14px',
-                  height: '35px',
-                  borderRadius: '12px',
-                  background: isMinOrderMet ? 'var(--storefront-primary-color, #170e5e)' : '#94a3b8',
-                  color: 'var(--storefront-primary-contrast, #ffffff)',
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  border: 'none',
-                  cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-                  boxShadow: isMinOrderMet ? '0 4px 14px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.15))' : 'none',
-                  transition: 'all 0.15s ease',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {t('storefront.storefront_cart_drawer.s13', "إتمام الطلب الآن (")}{formatPriceNumber(total)} {activeCurrencySymbol})
-              </button>
-              <button
-                type="button"
-                onClick={onClearCart}
-                title={t('storefront.storefront_cart_drawer.s14', "تفريغ السلة")}
-                style={{
-                  padding: '0 14px',
-                  height: '35px',
-                  borderRadius: '12px',
-                  border: '1px solid #E0E3E7',
-                  background: '#ffffff',
-                  color: '#ef4444',
-                  cursor: 'pointer',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  transition: 'all 0.15s ease',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {t('storefront.storefront_cart_drawer.s15', "مسح")}
-              </button>
-            </div>
+            {/* Primary Checkout CTA Button with standard site border-radius (12px) */}
+            <button
+              type="button"
+              onClick={onProceedToCheckout}
+              disabled={!isMinOrderMet}
+              style={{
+                width: '100%',
+                height: '46px',
+                borderRadius: '12px',
+                background: isMinOrderMet ? 'var(--storefront-primary-color, #588cb3)' : '#cbd5e1',
+                color: '#ffffff',
+                fontSize: '14.5px',
+                fontWeight: 600,
+                letterSpacing: '0px',
+                border: 'none',
+                cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
+                boxShadow: isMinOrderMet ? '0 4px 12px rgba(88, 140, 179, 0.22)' : 'none',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>{t('storefront.storefront_cart_drawer.checkout_now', 'إتمام الطلب')}</span>
+            </button>
           </div>
         )}
       </div>
     </div>
   );
 }
+
+

@@ -43,7 +43,7 @@ export function StorefrontLiveCartPill({
       className="storefront-live-cart-pill"
       style={{
         background: '#ffffff',
-        borderRadius: '9999px',
+        borderRadius: '16px',
         border: '1px solid #dadce0',
         boxShadow: '0 14px 34px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
         padding: '6px 16px',
@@ -71,9 +71,9 @@ export function StorefrontLiveCartPill({
     >
       <div
         style={{
-          width: '35px',
-          height: '35px',
-          borderRadius: '9999px',
+          width: '34px',
+          height: '34px',
+          borderRadius: '10px',
           background: 'var(--storefront-primary-color, #170e5e)',
           color: 'var(--storefront-primary-contrast, #ffffff)',
           display: 'flex',
@@ -81,7 +81,7 @@ export function StorefrontLiveCartPill({
           justifyContent: 'center',
           position: 'relative',
           flexShrink: 0,
-          boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.25))',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
         }}
       >
         <IconShoppingCart size={17} strokeWidth={2.2} />
@@ -111,13 +111,13 @@ export function StorefrontLiveCartPill({
           style={{
             background: isMinOrderMet ? 'var(--storefront-primary-color, #170e5e)' : '#94a3b8',
             color: 'var(--storefront-primary-contrast, #ffffff)',
-            border: 'none',
-            fontSize: '12px',
-            fontWeight: 800,
+            border: isMinOrderMet ? '1px solid var(--storefront-primary-color, #170e5e)' : '1px solid #94a3b8',
+            fontSize: '12.5px',
+            fontWeight: 600,
             padding: '7px 16px',
-            borderRadius: '9999px',
+            borderRadius: '12px',
             cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-            boxShadow: isMinOrderMet ? '0 2px 7px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.28))' : 'none',
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
             whiteSpace: 'nowrap',
             display: 'inline-flex',
             alignItems: 'center',

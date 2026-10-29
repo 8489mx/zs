@@ -104,7 +104,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
         style={{
           width: '100%',
           height: compact ? '4px' : '6px',
-          borderRadius: '999px',
+          borderRadius: '4px',
           background: '#e2e8f0',
           overflow: 'hidden',
           position: 'relative',
@@ -117,7 +117,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
             background: isUnlocked
               ? 'linear-gradient(90deg, #22c55e, #16a34a)'
               : 'linear-gradient(90deg, #3b76d8, var(--storefront-primary-color, #2d68c4))',
-            borderRadius: '999px',
+            borderRadius: '4px',
             transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
           }}
         />

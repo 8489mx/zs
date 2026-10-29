@@ -457,7 +457,7 @@ export function StorefrontCategoriesModal({
                           fontSize: '10.5px',
                           fontWeight: 700,
                           padding: '1px 6px',
-                          borderRadius: '999px',
+                          borderRadius: '6px',
                           background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
                           color: isActive ? '#ffffff' : '#475569',
                         }}
@@ -522,7 +522,7 @@ export function StorefrontCategoriesModal({
                           fontSize: '10.5px',
                           fontWeight: 700,
                           padding: '1px 6px',
-                          borderRadius: '999px',
+                          borderRadius: '6px',
                           background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
                           color: isActive ? '#ffffff' : '#475569',
                         }}

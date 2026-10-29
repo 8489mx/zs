@@ -70,7 +70,7 @@ export function StorefrontCategoryPills({
             style={{
               fontSize: '11px',
               padding: '2px 7px',
-              borderRadius: '999px',
+              borderRadius: '6px',
               background: selectedCategoryId === 'all' ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
               color: selectedCategoryId === 'all' ? '#ffffff' : '#64748b',
               fontWeight: 800,
@@ -126,7 +126,7 @@ export function StorefrontCategoryPills({
                   style={{
                     fontSize: '11px',
                     padding: '2px 7px',
-                    borderRadius: '999px',
+                    borderRadius: '6px',
                     background: isSelected ? 'rgba(255,255,255,0.2)' : '#e2e8f0',
                     color: isSelected ? '#ffffff' : '#64748b',
                     fontWeight: 800,

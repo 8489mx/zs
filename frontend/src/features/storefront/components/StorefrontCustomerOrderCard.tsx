@@ -157,7 +157,7 @@ export function StorefrontCustomerOrderCard({
                 fontSize: '10.5px',
                 fontWeight: 700,
                 padding: '2px 7px',
-                borderRadius: '999px',
+                borderRadius: '6px',
                 background: '#dcfce7',
                 color: '#15803d',
                 border: '1px solid #86efac',
@@ -172,7 +172,7 @@ export function StorefrontCustomerOrderCard({
               fontSize: '11px',
               fontWeight: 700,
               padding: '2.5px 8px',
-              borderRadius: '999px',
+              borderRadius: '6px',
               background: badge.bg,
               color: badge.text,
               border: `1px solid ${badge.border}`,
@@ -203,7 +203,7 @@ export function StorefrontCustomerOrderCard({
                 right: '24px',
                 height: '3px',
                 background: '#e2e8f0',
-                borderRadius: '999px',
+                borderRadius: '2px',
                 zIndex: 1,
               }}
             >
@@ -211,7 +211,7 @@ export function StorefrontCustomerOrderCard({
                 style={{
                   height: '100%',
                   background: '#170e5e',
-                  borderRadius: '999px',
+                  borderRadius: '2px',
                   width: `${(currentStepIndex / (TRACKING_STEPS.length - 1)) * 100}%`,
                   transition: 'width 0.35s ease',
                 }}

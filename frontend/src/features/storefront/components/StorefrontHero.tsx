@@ -114,7 +114,7 @@ export function StorefrontHero({
                 color: 'rgba(255, 255, 255, 0.92)',
                 background: 'rgba(255, 255, 255, 0.12)',
                 padding: '3px 12px',
-                borderRadius: '999px',
+                borderRadius: '8px',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 fontWeight: 600,
               }}

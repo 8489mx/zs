@@ -137,7 +137,7 @@ export function StorefrontOrderDateGroupCard({
               color: '#475569',
               border: '1px solid #e2e8f0',
               padding: '1px 6px',
-              borderRadius: '999px',
+              borderRadius: '6px',
               flexShrink: 0,
             }}
           >

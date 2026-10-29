@@ -248,7 +248,7 @@ export function StorefrontDeliveryZonesManager() {
                 background: activeZonesCount > 0 ? '#dcfce7' : '#f1f5f9',
                 color: activeZonesCount > 0 ? '#166534' : '#64748b',
                 padding: '2px 8px',
-                borderRadius: '999px',
+                borderRadius: '6px',
                 border: activeZonesCount > 0 ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
               }}
             >
@@ -582,7 +582,7 @@ export function StorefrontDeliveryZonesManager() {
                       onClick={() => toggleActiveMutation.mutate({ id: zone.id, isActive: !isZoneActive })}
                       style={{
                         padding: '3px 8px',
-                        borderRadius: '999px',
+                        borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: 700,
                         border: isZoneActive ? '1px solid #bbf7d0' : '1px solid #e2e8f0',

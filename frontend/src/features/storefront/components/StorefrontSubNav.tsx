@@ -86,7 +86,7 @@ export function StorefrontSubNav({
             white-space: nowrap;
             height: 35px !important;
             min-height: 35px !important;
-            border-radius: 9999px !important;
+            border-radius: 12px !important;
           }
           .storefront-subnav-hint {
             display: none !important;
@@ -118,13 +118,14 @@ export function StorefrontSubNav({
               gap: '6px',
               padding: '0 16px',
               height: '35px',
-              borderRadius: '9999px',
+              borderRadius: '12px',
               background: 'var(--storefront-primary-color, #170e5e)',
               color: '#ffffff',
               border: 'none',
               fontSize: '12.5px',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
               transition: 'all 0.15s ease',
               boxSizing: 'border-box',
             }}
@@ -138,8 +139,8 @@ export function StorefrontSubNav({
                 fontSize: '11px',
                 background: 'rgba(255,255,255,0.22)',
                 padding: '2px 8px',
-                borderRadius: '9999px',
-                fontWeight: 800,
+                borderRadius: '6px',
+                fontWeight: 700,
               }}
             >
               {categories.length}
@@ -158,14 +159,14 @@ export function StorefrontSubNav({
                 gap: '6px',
                 padding: '0 16px',
                 height: '35px',
-                borderRadius: '9999px',
+                borderRadius: '12px',
                 border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #dadce0',
                 background: onlyDeals ? '#fef2f2' : '#ffffff',
                 color: onlyDeals ? '#dc2626' : '#1f1f1f',
                 fontSize: '12.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
                 transition: 'all 0.15s ease',
                 boxSizing: 'border-box',
               }}
@@ -179,8 +180,8 @@ export function StorefrontSubNav({
                     background: onlyDeals ? '#ef4444' : '#fee2e2',
                     color: onlyDeals ? '#ffffff' : '#991b1b',
                     padding: '2px 8px',
-                    borderRadius: '9999px',
-                    fontWeight: 800,
+                    borderRadius: '6px',
+                    fontWeight: 700,
                   }}
                 >
                   {dealsCount}
@@ -200,14 +201,14 @@ export function StorefrontSubNav({
               gap: '6px',
               padding: '0 16px',
               height: '35px',
-              borderRadius: '9999px',
+              borderRadius: '12px',
               border: inStockOnly ? '1.5px solid #16a34a' : '1px solid #dadce0',
               background: inStockOnly ? '#f0fdf4' : '#ffffff',
               color: inStockOnly ? '#166534' : '#1f1f1f',
               fontSize: '12.5px',
               fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
               transition: 'all 0.15s ease',
               boxSizing: 'border-box',
             }}
@@ -228,14 +229,14 @@ export function StorefrontSubNav({
                 gap: '6px',
                 padding: '0 16px',
                 height: '35px',
-                borderRadius: '9999px',
+                borderRadius: '12px',
                 border: onlyFavorites ? '1.5px solid #ef4444' : '1px solid #dadce0',
                 background: onlyFavorites ? '#fef2f2' : '#ffffff',
                 color: onlyFavorites ? '#dc2626' : '#1f1f1f',
                 fontSize: '12.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
                 transition: 'all 0.15s ease',
                 boxSizing: 'border-box',
               }}
@@ -260,8 +261,8 @@ export function StorefrontSubNav({
                     background: onlyFavorites ? '#ef4444' : '#fee2e2',
                     color: onlyFavorites ? '#ffffff' : '#991b1b',
                     padding: '2px 8px',
-                    borderRadius: '9999px',
-                    fontWeight: 800,
+                    borderRadius: '6px',
+                    fontWeight: 700,
                   }}
                 >
                   {favoritesCount}
@@ -284,9 +285,10 @@ export function StorefrontSubNav({
               border: '1px solid #dadce0',
               color: '#64748b',
               fontSize: '11.5px',
-              fontWeight: 700,
+              fontWeight: 600,
               padding: '5px 12px',
-              borderRadius: '9999px',
+              borderRadius: '10px',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',

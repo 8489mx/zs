@@ -316,13 +316,13 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
               <span style={{ color: '#fbbf24' }}>تم بيع {claimedPercent}% من الكمية المتوفرة</span>
               <span style={{ color: '#e2e8f0' }}>متبقي {stockRemaining} فقط بالمخزون</span>
             </div>
-            <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.14)', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '6px', background: 'rgba(255, 255, 255, 0.14)', borderRadius: '4px', overflow: 'hidden' }}>
               <div
                 style={{
                   width: `${claimedPercent}%`,
                   height: '100%',
                   background: 'linear-gradient(90deg, #f59e0b, #ef4444)',
-                  borderRadius: '999px',
+                  borderRadius: '4px',
                 }}
               />
             </div>
@@ -336,8 +336,10 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 display: 'inline-flex',
                 alignItems: 'center',
                 background: '#ffffff',
-                borderRadius: '9999px',
+                borderRadius: '12px',
+                border: '1px solid #E0E3E7',
                 padding: '3px',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 fontVariantNumeric: 'tabular-nums',
               }}
             >
@@ -346,11 +348,11 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 onClick={handleIncrement}
                 aria-label="زيادة الكمية"
                 style={{
-                  width: '34px',
-                  height: '34px',
+                  width: '32px',
+                  height: '32px',
                   background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '9999px',
+                  border: '1px solid #E0E3E7',
+                  borderRadius: '10px',
                   fontWeight: 800,
                   fontSize: '16px',
                   color: '#0f172a',
@@ -379,11 +381,11 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
                 onClick={handleDecrement}
                 aria-label="إنقاص الكمية"
                 style={{
-                  width: '34px',
-                  height: '34px',
+                  width: '32px',
+                  height: '32px',
                   background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '9999px',
+                  border: '1px solid #E0E3E7',
+                  borderRadius: '10px',
                   fontWeight: 800,
                   fontSize: '16px',
                   color: '#0f172a',

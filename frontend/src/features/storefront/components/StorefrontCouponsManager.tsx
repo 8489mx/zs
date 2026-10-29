@@ -6,7 +6,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { StorefrontCoupon, CreateCouponPayload } from '../types/storefront.types';
 import { DialogShell } from '@/shared/components/dialog-shell';
-import { toast } from '@/shared/components/system-alert';
 import {
   TagIcon,
   ShoppingCartIcon,
@@ -77,7 +76,7 @@ export function StorefrontCouponsManager() {
       queryClient.invalidateQueries({ queryKey: ['storefront-admin-coupons'] });
     },
     onError: (err: any) => {
-      toast.error(`تعذر حذف الكوبون: ${err.message || 'خطأ غير معروف'}`);
+      alert(`تعذر حذف الكوبون: ${err.message || 'خطأ غير معروف'}`);
     },
   });
 
@@ -464,7 +463,7 @@ export function StorefrontCouponsManager() {
                           disabled={toggleActiveMutation.isPending}
                           style={{
                             padding: '3px 10px',
-                            borderRadius: '999px',
+                            borderRadius: '6px',
                             border: 'none',
                             fontSize: '11px',
                             fontWeight: 700,
