@@ -236,10 +236,10 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
       className="storefront-pallet-hero"
       style={{
         position: 'relative',
-        background: 'radial-gradient(ellipse 90% 75% at 50% 12%, #ffffff 0%, #f8fafc 58%, #f1f5f9 100%)',
+        background: 'radial-gradient(ellipse 100% 85% at 50% 0%, #ffffff 0%, #f8fafc 48%, #eff4fa 100%)',
         color: '#0f172a',
-        marginTop: '-64px',
-        padding: '88px 16px 18px',
+        marginTop: '-76px',
+        padding: '92px 16px 18px',
         overflow: 'hidden',
         borderBottom: '1px solid #e2e8f0',
         display: 'flex',
@@ -314,20 +314,20 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
         /* Responsive Mobile Scroll Track */
         @media (max-width: 920px) {
           .storefront-pallet-hero {
-            margin-top: -64px !important;
-            padding: 84px 12px 18px !important;
+            margin-top: -76px !important;
+            padding: 92px 12px 18px !important;
           }
         }
         @media (max-width: 768px) {
           .storefront-pallet-hero {
-            margin-top: 0 !important;
-            padding: 12px 12px 14px !important;
+            margin-top: -116px !important;
+            padding: 128px 12px 14px !important;
           }
         }
         @media (max-width: 640px) {
           .storefront-pallet-hero {
-            margin-top: 0 !important;
-            padding: 10px 10px 12px !important;
+            margin-top: -116px !important;
+            padding: 126px 10px 12px !important;
           }
           .sf-hero-headline-wrap {
             margin-bottom: 6px !important;

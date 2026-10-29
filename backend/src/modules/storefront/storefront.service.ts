@@ -247,7 +247,7 @@ export class StorefrontService {
       }
     }
 
-    if (!tenant && (cleanSlug === 'default' || cleanSlug === 'almhnds' || cleanSlug === 'slmhnds' || cleanSlug === 'elmhnds' || cleanSlug === 'almohandes' || cleanSlug === 'elmohandes')) {
+    if (!tenant && (cleanSlug === 'default' || cleanSlug === 'demo' || cleanSlug === 'almhnds' || cleanSlug === 'slmhnds' || cleanSlug === 'elmhnds' || cleanSlug === 'almohandes' || cleanSlug === 'elmohandes')) {
       tenant = await this.db
         .selectFrom('tenants')
         .selectAll()
@@ -995,11 +995,13 @@ export class StorefrontService {
     })();
 
     this.inFlightCatalogPromises.set(cleanSlug, fetchPromise);
-    fetchPromise.finally(() => {
-      if (this.inFlightCatalogPromises.get(cleanSlug) === fetchPromise) {
-        this.inFlightCatalogPromises.delete(cleanSlug);
-      }
-    });
+    fetchPromise
+      .finally(() => {
+        if (this.inFlightCatalogPromises.get(cleanSlug) === fetchPromise) {
+          this.inFlightCatalogPromises.delete(cleanSlug);
+        }
+      })
+      .catch(() => undefined);
 
     if (serveStale) {
       // Background refresh: a failure keeps serving the stale copy until staleUntil, never an unhandled rejection.

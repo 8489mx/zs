@@ -1,3 +1,18 @@
+import {
+  SHIRT_PHOTO,
+  SNEAKER_PHOTO,
+  SMARTWATCH_PHOTO,
+  PERFUME_PHOTO,
+  HEADPHONES_PHOTO,
+  BACKPACK_PHOTO,
+  SUNGLASSES_PHOTO,
+  JACKET_PHOTO,
+  IPHONE_PHOTO,
+  LAPTOP_PHOTO,
+  WATCH_CLASSIC_PHOTO,
+  SNEAKER_2_PHOTO,
+} from './product-photos-registry';
+
 /**
  * Enterprise Semantic Photographic Engine for Retail & Supermarket
  * Automatically and intelligently matches product names and categories to 
@@ -844,7 +859,7 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
       'iphone 16 pro', 'iphone 16 pro max', 'iphone 15 pro', 'iphone 15 pro max',
       'تيتانيوم صحراوي', 'تيتانيوم طبيعي', 'تيتانيوم اسود', 'تيتانيوم أبيض'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&w=400&q=75&fm=webp',
+    imageUrl: IPHONE_PHOTO,
     weight: 99,
   },
   {
@@ -856,14 +871,14 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
       'iphone 16', 'iphone 15', 'iphone 14', 'iphone 13', 'iphone 12', 'iphone 11',
       'ابل ايفون', 'أبل آيفون', 'ابل ايفون 14', 'ابل ايفون 15', 'ابل ايفون 16'
     ],
-    imageUrl: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?auto=format&fit=crop&w=400&q=75&fm=webp',
+    imageUrl: IPHONE_PHOTO,
     weight: 98,
   },
   {
     id: 'apple_iphone_general',
     nameAr: 'هواتف أبل آيفون الذكية العامة',
     keywords: ['ايفون', 'آيفون', 'iphone', 'هواتف ذكية - apple', 'هواتف فلاجشيب - apple'],
-    imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=75&fm=webp',
+    imageUrl: IPHONE_PHOTO,
     weight: 92,
   },
   {
@@ -1160,20 +1175,7 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
   },
 ];
 
-import {
-  SHIRT_PHOTO,
-  SNEAKER_PHOTO,
-  SMARTWATCH_PHOTO,
-  PERFUME_PHOTO,
-  HEADPHONES_PHOTO,
-  BACKPACK_PHOTO,
-  SUNGLASSES_PHOTO,
-  JACKET_PHOTO,
-  IPHONE_PHOTO,
-  LAPTOP_PHOTO,
-  WATCH_CLASSIC_PHOTO,
-  SNEAKER_2_PHOTO,
-} from './product-photos-registry';
+
 
 /**
  * Returns a real, studio-cutout transparent product photograph

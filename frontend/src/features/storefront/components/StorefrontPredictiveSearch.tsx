@@ -9,6 +9,7 @@ import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 
 interface StorefrontPredictiveSearchProps {
   slug: string;
+  storeName?: string;
   searchTerm: string;
   onSearchChange: (val: string) => void;
   onSelectCategory?: (categoryId: number) => void;
@@ -19,6 +20,7 @@ interface StorefrontPredictiveSearchProps {
 
 export const StorefrontPredictiveSearch = React.memo(function StorefrontPredictiveSearch({
   slug,
+  storeName,
   searchTerm,
   onSearchChange,
   onSelectCategory,
@@ -26,6 +28,7 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
   onAddToCart,
 }: StorefrontPredictiveSearchProps) {
   const { t } = useTranslation();
+  const placeholderText = storeName ? `البحث في ${storeName}` : t('storefront.storefront_predictive_search.s0', 'البحث في المتجر');
   const [isOpen, setIsOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<{
@@ -129,7 +132,7 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
             }}
           >
             <IconSearch size={16} strokeWidth={2.2} />
-            <span>{t('storefront.storefront_predictive_search.s0', "البحث في Z")}</span>
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{placeholderText}</span>
           </div>
         )}
 
@@ -157,7 +160,7 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
             }
           }}
           onBlur={() => setIsFocused(false)}
-          placeholder={isFocused ? t('storefront.storefront_predictive_search.s0', "البحث في Z") : ''}
+          placeholder={isFocused ? placeholderText : ""}
           style={{
             flex: 1,
             border: 'none',

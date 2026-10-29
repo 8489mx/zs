@@ -396,6 +396,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             {/* Center: Sleek Unified Predictive Search Bar */}
             <StorefrontPredictiveSearch
               slug={info.slug}
+              storeName={brand.title}
               searchTerm={searchTerm}
               onSearchChange={onSearchChange}
               onSelectCategory={onSelectCategory}

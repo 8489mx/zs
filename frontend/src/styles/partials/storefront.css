@@ -1430,24 +1430,44 @@ button.storefront-btn-pill,
    Safely overrides ERP shell's body { overflow: hidden } and #root { height: 100% }
    strictly while visiting the public storefront routes. */
 html.storefront-html {
-  overflow-y: auto !important;
+  overflow-y: scroll !important;
   overflow-x: hidden !important;
   height: auto !important;
   min-height: 100% !important;
   scroll-behavior: smooth !important;
 }
 
+html.storefront-html body,
 body.storefront-body {
   overflow: visible !important;
-  overflow-x: hidden !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
   height: auto !important;
   min-height: 100vh !important;
 }
 
+html.storefront-html body #root,
 body.storefront-body #root {
   height: auto !important;
   min-height: 100vh !important;
   overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+html.storefront-html::-webkit-scrollbar {
+  width: 10px !important;
+}
+html.storefront-html::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+}
+html.storefront-html::-webkit-scrollbar-thumb {
+  background-color: #94a3b8 !important;
+  border-radius: 9999px !important;
+  border: 2px solid #f1f5f9 !important;
+}
+html.storefront-html::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b !important;
 }
 
 /* 11. Seamless Studio Image Blending on Vibrant & Colored Surfaces

@@ -493,7 +493,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                       e.currentTarget.src = generatePremiumProductSvg(stageProdRight.name, stageProdRight.categoryName);
                     }
                   }}
-                  style={{ width: '82px', height: '82px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)' }}
+                  style={{ width: '82px', height: '82px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)', mixBlendMode: 'multiply' }}
                 />
                 <div
                   className="sf-amz-podium-side-box"
@@ -519,7 +519,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                       e.currentTarget.src = generatePremiumProductSvg(stageProdCenter.name, stageProdCenter.categoryName);
                     }
                   }}
-                  style={{ width: '104px', height: '104px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)' }}
+                  style={{ width: '104px', height: '104px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)', mixBlendMode: 'multiply' }}
                 />
                 <div
                   className="sf-amz-podium-center-box"
@@ -545,7 +545,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                       e.currentTarget.src = generatePremiumProductSvg(stageProdLeft.name, stageProdLeft.categoryName);
                     }
                   }}
-                  style={{ width: '84px', height: '84px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)' }}
+                  style={{ width: '84px', height: '84px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)', mixBlendMode: 'multiply' }}
                 />
                 <div
                   className="sf-amz-podium-side-box"
@@ -640,6 +640,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     height: '158px',
                     objectFit: 'contain',
                     transform: 'translate3d(0, 0, 0)',
+                    mixBlendMode: 'multiply',
                   }}
                 />
               </div>
@@ -831,6 +832,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     height: '150px',
                     objectFit: 'contain',
                     transform: 'translate3d(0, 0, 0)',
+                    mixBlendMode: 'multiply',
                   }}
                 />
               </div>
@@ -911,6 +913,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     height: '136px',
                     objectFit: 'contain',
                     transform: 'translate3d(0, 0, 0)',
+                    mixBlendMode: 'multiply',
                   }}
                 />
               </div>
@@ -973,6 +976,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                           maxHeight: '94px',
                           objectFit: 'contain',
                           transform: 'translate3d(0, 0, 0)',
+                    mixBlendMode: 'multiply',
                         }}
                       />
                     </div>
