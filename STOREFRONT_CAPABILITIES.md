@@ -227,3 +227,11 @@
 
 
 <!-- migrated:cap-249:end -->
+
+<a id="storefront-reservation-scheduler"></a>
+### مجدول إلغاء الحجوزات المنتهية وفك حجب المخزون (Automated Reservation Reaper)
+- **السلوك الحالي والحدود:** خدمة خلفية دورية تمنع هجمات حجب المخزون (Denial-of-Inventory) حيث تفحص كل دقيقتين الطلبات المعلقة غير المدفوعة وتلغي حجز كمياتها وتعيد تفعيل كوبوناتها تلقائياً، مع مسح انتهازي سريع عند إنشاء أي طلب جديد.
+- **حالة التنفيذ:** موجود ومعتمد.
+- **مصدر التنفيذ:** `backend/src/modules/storefront/services/storefront-reservation-scheduler.service.ts`، `backend/src/modules/storefront/storefront.module.ts`، `backend/src/modules/storefront/storefront.service.ts`.
+- **المجالات المتأثرة:** [المخزون والمستودعات](INVENTORY_CAPABILITIES.md) · [المبيعات ونقاط البيع](SALES_CAPABILITIES.md).
+- **التحقق:** بناء الباك إند بنجاح (exit code 0) والتأكد من تركيب الخدمة في دورة حياة التطبيق (`OnApplicationBootstrap`, `OnModuleDestroy`).

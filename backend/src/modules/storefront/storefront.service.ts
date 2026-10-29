@@ -1445,6 +1445,9 @@ export class StorefrontService {
 
     const minOrder = isDineIn ? 0 : Number(settings.get('storefront_min_order') || 0);
 
+    // Opportunistically reap expired online reservations for this tenant in the background
+    void this.reapExpiredReservations({ tenantId: tenant.id, limit: 20 }).catch(() => {});
+
     // Fetch products in order to verify price and names
     const numericIds = dto.items.map((i) => Number(i.productId)).filter((id) => !isNaN(id) && id > 0);
     const stringIds = dto.items.map((i) => String(i.productId).trim()).filter(Boolean);

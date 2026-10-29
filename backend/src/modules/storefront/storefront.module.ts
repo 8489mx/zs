@@ -12,6 +12,7 @@ import { StorefrontPublicController } from './storefront-public.controller';
 import { StorefrontMerchantController } from './storefront-merchant.controller';
 import { MarketplaceSyncService } from './services/marketplace-sync.service';
 import { MarketplaceSyncController } from './controllers/marketplace-sync.controller';
+import { StorefrontReservationSchedulerService } from './services/storefront-reservation-scheduler.service';
 
 @Module({
   imports: [AccountingModule, DatabaseModule, AuditModule, SalesModule, SettingsModule],
@@ -26,12 +27,13 @@ import { MarketplaceSyncController } from './controllers/marketplace-sync.contro
     StorefrontSocialPreviewService,
     StorefrontMediaService,
     MarketplaceSyncService,
+    StorefrontReservationSchedulerService,
   ],
   exports: [
     StorefrontService,
     StorefrontPaymentService,
     MarketplaceSyncService,
+    StorefrontReservationSchedulerService,
   ],
 })
 export class StorefrontModule {}
-
