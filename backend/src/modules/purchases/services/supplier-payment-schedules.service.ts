@@ -147,7 +147,7 @@ export class SupplierPaymentSchedulesService {
     return Math.max(0, originalMinor - directPaidMinor - scheduledPaidMinor - reversedMinor) / factor;
   }
 
-  private buildAmounts(total: number, payload: CreateSupplierPaymentScheduleDto, digits: MoneyDigits = 2): number[] {
+  private buildAmounts(total: number, payload: CreateSupplierPaymentScheduleDto, digits: MoneyDigits): number[] {
     const safeTotal = this.roundCurrency(total, digits);
     const step = payload.roundingStep != null && Number(payload.roundingStep) > 0 ? Number(payload.roundingStep) : null;
     if (!(safeTotal > 0)) throw new AppError('Schedule total must be greater than zero', 'INVALID_SCHEDULE_TOTAL', 400);

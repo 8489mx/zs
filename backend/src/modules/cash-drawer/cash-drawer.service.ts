@@ -10,7 +10,7 @@ import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
-import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
+import { currencyMoneyDigits, roundMoney, type MoneyDigits } from '../accounting/engines/money-minor-units.engine';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
 type ShiftRow = {
@@ -105,6 +105,12 @@ export class CashDrawerService {
   ) {}
 
   private toMoney(value: unknown): number { return Number(Number(value || 0).toFixed(2)); }
+  /**
+   * Book-precision rounding for the EXPECTED-CASH computation only.
+   * The legacy toMoney (2dp) stays for blind-close declared totals, which
+   * are deliberately untouched by this change (see header).
+   */
+  private toBookMoney(value: unknown, digits: MoneyDigits): number { return roundMoney(Number(value || 0), digits); }
   private scope(auth: AuthContext) { return requireTenantScope(auth); }
   private normalizeOperationCount(value: unknown): number { const parsed = Number(value || 0); return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : 0; }
   private normalizeOperationDetails(details: unknown, maxCount: number): Array<{ amount: number; reference?: string }> {
@@ -200,7 +206,7 @@ export class CashDrawerService {
     await this.assertCurrentUserPassword(approvalSecret, auth);
   }
 
-  private async computeShiftCashDrawerMovements(shiftId: number, auth: AuthContext, queryable?: Kysely<Database>): Promise<{
+  private async computeShiftCashDrawerMovements(shiftId: number, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<{
     cashInTotal: number;
     deliveryCashInTotal: number;
     manualCashInTotal: number;
@@ -208,6 +214,7 @@ export class CashDrawerService {
     netMovementTotal: number;
   }> {
     const scope = this.scope(auth);
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     const result = await sql<{
       cash_in_total?: number | string | null;
       delivery_cash_in_total?: number | string | null;
@@ -230,17 +237,18 @@ export class CashDrawerService {
     `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
     return {
-      cashInTotal: this.toMoney(row.cash_in_total || 0),
-      deliveryCashInTotal: this.toMoney(row.delivery_cash_in_total || 0),
-      manualCashInTotal: this.toMoney(row.manual_cash_in_total || 0),
-      cashOutTotal: this.toMoney(row.cash_out_total || 0),
-      netMovementTotal: this.toMoney(row.net_total || 0),
+      cashInTotal: this.toBookMoney(row.cash_in_total || 0, bookDigits),
+      deliveryCashInTotal: this.toBookMoney(row.delivery_cash_in_total || 0, bookDigits),
+      manualCashInTotal: this.toBookMoney(row.manual_cash_in_total || 0, bookDigits),
+      cashOutTotal: this.toBookMoney(row.cash_out_total || 0, bookDigits),
+      netMovementTotal: this.toBookMoney(row.net_total || 0, bookDigits),
     };
   }
 
-  private async computeShiftSupplierPaymentsTotal(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<number> {
+  private async computeShiftSupplierPaymentsTotal(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<number> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return 0;
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     const shiftId = Number(shift.id || 0);
     const result = await sql<{ total?: number | string | null }>`
       select (
@@ -265,12 +273,13 @@ export class CashDrawerService {
         ), 0)
       ) as total
     `.execute(queryable ?? this.db);
-    return this.toMoney(result.rows?.[0]?.total || 0);
+    return this.toBookMoney(result.rows?.[0]?.total || 0, bookDigits);
   }
 
-  private async computeShiftExpensesTotal(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<number> {
+  private async computeShiftExpensesTotal(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<number> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return 0;
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     const result = await sql<{ total?: number | string | null }>`
       select coalesce(sum(e.amount), 0) as total
       from expenses e
@@ -280,12 +289,13 @@ export class CashDrawerService {
         and (${shift.branch_id || null}::int is null or e.branch_id is null or e.branch_id = ${Number(shift.branch_id || 0) || null})
         and (${shift.location_id || null}::int is null or e.location_id is null or e.location_id = ${Number(shift.location_id || 0) || null})
     `.execute(queryable ?? this.db);
-    return this.toMoney(result.rows?.[0]?.total || 0);
+    return this.toBookMoney(result.rows?.[0]?.total || 0, bookDigits);
   }
 
-  private async computeShiftServiceBreakdown(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftServiceBreakdown> {
+  private async computeShiftServiceBreakdown(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<ShiftServiceBreakdown> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return { serviceCashTotal: 0, serviceCardTotal: 0, serviceTotal: 0 };
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     const result = await sql<{ service_cash_total?: number | string | null; service_card_total?: number | string | null; service_total?: number | string | null }>`
       select coalesce(sum(case when coalesce(s.payment_channel, 'cash') = 'cash' then s.amount else 0 end), 0) as service_cash_total,
              coalesce(sum(case when coalesce(s.payment_channel, 'cash') = 'card' then s.amount else 0 end), 0) as service_card_total,
@@ -298,10 +308,10 @@ export class CashDrawerService {
         and (${shift.location_id || null}::int is null or s.location_id is null or s.location_id = ${Number(shift.location_id || 0) || null})
     `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
-    return { serviceCashTotal: this.toMoney(row.service_cash_total || 0), serviceCardTotal: this.toMoney(row.service_card_total || 0), serviceTotal: this.toMoney(row.service_total || 0) };
+    return { serviceCashTotal: this.toBookMoney(row.service_cash_total || 0, bookDigits), serviceCardTotal: this.toBookMoney(row.service_card_total || 0, bookDigits), serviceTotal: this.toBookMoney(row.service_total || 0, bookDigits) };
   }
 
-  private async computeShiftSalesBreakdown(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftSalesBreakdown> {
+  private async computeShiftSalesBreakdown(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<ShiftSalesBreakdown> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     const empty: ShiftSalesBreakdown = {
       cashSalesTotal: 0,
@@ -323,6 +333,7 @@ export class CashDrawerService {
       instapayOperationCount: 0,
     };
     if (!(openerId > 0) || !shift.created_at) return empty;
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     const result = await sql<any>`
       with shift_sales as (
         select s.id, s.total, s.paid_amount, s.payment_type, s.payment_channel, s.collection_status,
@@ -358,22 +369,22 @@ export class CashDrawerService {
       from payment_rows
     `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
-    const shiftSalesTotal = this.toMoney(row.shift_sales_total || 0);
-    const deliverySalesTotal = this.toMoney(row.delivery_sales_total || 0);
-    const deliveryFeeTotal = this.toMoney(row.delivery_fee_total || 0);
-    const freelanceDeliveryFeeTotal = this.toMoney(row.freelance_delivery_fee_total || 0);
-    const storeDeliveryFeeTotal = this.toMoney(row.store_delivery_fee_total || 0);
-    const netStoreSalesTotal = this.toMoney(Math.max(0, shiftSalesTotal - freelanceDeliveryFeeTotal));
+    const shiftSalesTotal = this.toBookMoney(row.shift_sales_total || 0, bookDigits);
+    const deliverySalesTotal = this.toBookMoney(row.delivery_sales_total || 0, bookDigits);
+    const deliveryFeeTotal = this.toBookMoney(row.delivery_fee_total || 0, bookDigits);
+    const freelanceDeliveryFeeTotal = this.toBookMoney(row.freelance_delivery_fee_total || 0, bookDigits);
+    const storeDeliveryFeeTotal = this.toBookMoney(row.store_delivery_fee_total || 0, bookDigits);
+    const netStoreSalesTotal = this.toBookMoney(Math.max(0, shiftSalesTotal - freelanceDeliveryFeeTotal), bookDigits);
 
     return {
-      cashSalesTotal: this.toMoney(row.cash_sales_total || 0),
-      cardSalesTotal: this.toMoney(row.card_sales_total || 0),
-      walletSalesTotal: this.toMoney(row.wallet_sales_total || 0),
-      instapaySalesTotal: this.toMoney(row.instapay_sales_total || 0),
-      creditSalesTotal: this.toMoney(row.credit_sales_total || 0),
+      cashSalesTotal: this.toBookMoney(row.cash_sales_total || 0, bookDigits),
+      cardSalesTotal: this.toBookMoney(row.card_sales_total || 0, bookDigits),
+      walletSalesTotal: this.toBookMoney(row.wallet_sales_total || 0, bookDigits),
+      instapaySalesTotal: this.toBookMoney(row.instapay_sales_total || 0, bookDigits),
+      creditSalesTotal: this.toBookMoney(row.credit_sales_total || 0, bookDigits),
       deliverySalesTotal,
       shiftSalesTotal,
-      tipSalesTotal: this.toMoney(row.tip_sales_total || 0),
+      tipSalesTotal: this.toBookMoney(row.tip_sales_total || 0, bookDigits),
       deliveryFeeTotal,
       freelanceDeliveryFeeTotal,
       storeDeliveryFeeTotal,
@@ -386,9 +397,10 @@ export class CashDrawerService {
     };
   }
 
-  private async computeShiftSaleReturnTotals(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<ShiftSaleReturnTotals> {
+  private async computeShiftSaleReturnTotals(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<ShiftSaleReturnTotals> {
     const openerId = Number(shift.opened_by || 0); const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return { saleReturnCashRefundTotal: 0, saleReturnCardRefundTotal: 0, saleReturnTotal: 0 };
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     const result = await sql<{ sale_return_cash_refund_total: number | string; sale_return_card_refund_total: number | string; sale_return_total: number | string }>`
       select coalesce((
         select sum(abs(tt.amount))
@@ -414,13 +426,14 @@ export class CashDrawerService {
         and (${shift.location_id || null}::int is null or rd.location_id is null or rd.location_id = ${Number(shift.location_id || 0) || null})
     `.execute(queryable ?? this.db);
     const row = result.rows?.[0] || {};
-    return { saleReturnCashRefundTotal: this.toMoney(row.sale_return_cash_refund_total || 0), saleReturnCardRefundTotal: this.toMoney(row.sale_return_card_refund_total || 0), saleReturnTotal: this.toMoney(row.sale_return_total || 0) };
+    return { saleReturnCashRefundTotal: this.toBookMoney(row.sale_return_cash_refund_total || 0, bookDigits), saleReturnCardRefundTotal: this.toBookMoney(row.sale_return_card_refund_total || 0, bookDigits), saleReturnTotal: this.toBookMoney(row.sale_return_total || 0, bookDigits) };
   }
 
-  private async computeShiftCustomerCollections(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>): Promise<number> {
+  private async computeShiftCustomerCollections(shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<number> {
     const openerId = Number(shift.opened_by || 0);
     const scope = this.scope(auth);
     if (!(openerId > 0) || !shift.created_at) return 0;
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     const result = await sql<{ total: string | number }>`
       select coalesce(sum(cp.amount), 0) as total
       from customer_payments cp
@@ -430,15 +443,16 @@ export class CashDrawerService {
         and (${shift.branch_id || null}::int is null or cp.branch_id is null or cp.branch_id = ${Number(shift.branch_id || 0) || null})
         and (${shift.location_id || null}::int is null or cp.location_id is null or cp.location_id = ${Number(shift.location_id || 0) || null})
     `.execute(queryable ?? this.db);
-    return this.toMoney(result.rows?.[0]?.total || 0);
+    return this.toBookMoney(result.rows?.[0]?.total || 0, bookDigits);
   }
 
   private async computeShiftCancelledSaleCashReceipts(
-    shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>,
+    shift: ShiftRow, auth: AuthContext, queryable?: Kysely<Database>, digits?: MoneyDigits,
   ): Promise<number> {
     const openerId = Number(shift.opened_by || 0);
     if (!(openerId > 0) || !shift.created_at) return 0;
     const scope = this.scope(auth);
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, scope.tenantId));
     // A sale cancelled LATER still brought cash into its ORIGINAL shift.
     // Restore that cash to the original shift's expected drawer, and account
     // for the outgoing refund separately in whichever shift actually paid it.
@@ -459,22 +473,23 @@ export class CashDrawerService {
         and (${shift.branch_id || null}::int is null or s.branch_id is null or s.branch_id = ${Number(shift.branch_id || 0) || null})
         and (${shift.location_id || null}::int is null or s.location_id is null or s.location_id = ${Number(shift.location_id || 0) || null})
     `.execute(queryable ?? this.db);
-    return this.toMoney(result.rows?.[0]?.total || 0);
+    return this.toBookMoney(result.rows?.[0]?.total || 0, bookDigits);
   }
 
-  private async computeShiftExpectedCashFromShift(shift: ShiftRow, auth: AuthContext, salesBreakdown?: ShiftSalesBreakdown, serviceBreakdown?: ShiftServiceBreakdown, queryable?: Kysely<Database>): Promise<number> {
+  private async computeShiftExpectedCashFromShift(shift: ShiftRow, auth: AuthContext, salesBreakdown?: ShiftSalesBreakdown, serviceBreakdown?: ShiftServiceBreakdown, queryable?: Kysely<Database>, digits?: MoneyDigits): Promise<number> {
+    const bookDigits = digits ?? currencyMoneyDigits(await tenantBaseCurrency(queryable ?? this.db, this.scope(auth).tenantId));
     const shiftId = Number(shift.id || 0);
-    if (!(shiftId > 0)) return this.toMoney(shift.opening_cash || 0);
-    const movements = await this.computeShiftCashDrawerMovements(shiftId, auth, queryable);
-    const breakdown = salesBreakdown || await this.computeShiftSalesBreakdown(shift, auth, queryable);
-    const services = serviceBreakdown || await this.computeShiftServiceBreakdown(shift, auth, queryable);
-    const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth, queryable);
-    const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth, queryable);
-    const expensesTotal = await this.computeShiftExpensesTotal(shift, auth, queryable);
-    const customerCollections = await this.computeShiftCustomerCollections(shift, auth, queryable);
-    const cancelledCheckoutCash = await this.computeShiftCancelledSaleCashReceipts(shift, auth, queryable);
+    if (!(shiftId > 0)) return this.toBookMoney(shift.opening_cash || 0, bookDigits);
+    const movements = await this.computeShiftCashDrawerMovements(shiftId, auth, queryable, bookDigits);
+    const breakdown = salesBreakdown || await this.computeShiftSalesBreakdown(shift, auth, queryable, bookDigits);
+    const services = serviceBreakdown || await this.computeShiftServiceBreakdown(shift, auth, queryable, bookDigits);
+    const saleReturnTotals = await this.computeShiftSaleReturnTotals(shift, auth, queryable, bookDigits);
+    const supplierPaymentsTotal = await this.computeShiftSupplierPaymentsTotal(shift, auth, queryable, bookDigits);
+    const expensesTotal = await this.computeShiftExpensesTotal(shift, auth, queryable, bookDigits);
+    const customerCollections = await this.computeShiftCustomerCollections(shift, auth, queryable, bookDigits);
+    const cancelledCheckoutCash = await this.computeShiftCancelledSaleCashReceipts(shift, auth, queryable, bookDigits);
     const netDrawerMovement = movements.cashInTotal - movements.cashOutTotal;
-    return this.toMoney(Number(shift.opening_cash || 0) + netDrawerMovement + breakdown.cashSalesTotal + cancelledCheckoutCash + services.serviceCashTotal + customerCollections - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal);
+    return this.toBookMoney(Number(shift.opening_cash || 0) + netDrawerMovement + breakdown.cashSalesTotal + cancelledCheckoutCash + services.serviceCashTotal + customerCollections - saleReturnTotals.saleReturnCashRefundTotal - supplierPaymentsTotal - expensesTotal, bookDigits);
   }
 
   private async fetchShiftMovementItems(shiftId: number, shift: ShiftRow, auth: AuthContext): Promise<Array<{
