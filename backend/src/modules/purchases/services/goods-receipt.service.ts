@@ -10,6 +10,8 @@ import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from 
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
 import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { allocateGrnAccrual, allocateGrniBillPortion } from '../engines/grni-settlement.engine';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, fromMinorUnits, roundMoney, toMinorUnits } from '../../accounting/engines/money-minor-units.engine';
 import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-period-lock';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { PurchasesFinanceService } from './purchases-finance.service';
@@ -396,6 +398,9 @@ export class GoodsReceiptService {
     const scope = requireTenantScope(auth);
 
     return await this.db.transaction().execute(async (trx: any) => {
+      // Book precision for every amount in this flow. goods-receipt previously
+      // used no moneyDigits at all — every site below was hard-coded to 2.
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const receiptLink = await trx.selectFrom('goods_receipt_notes')
         .select('purchase_order_id')
         .where('id', '=', id).where('tenant_id', '=', scope.tenantId)
@@ -462,7 +467,7 @@ export class GoodsReceiptService {
         const accepted = Number(line.acceptedQty || 0);
         if (accepted > 0) {
           const lineUnitCost = Number(line.unitCost || 0);
-          if (!Number.isFinite(lineUnitCost) || lineUnitCost <= 0 || Number((accepted * lineUnitCost).toFixed(2)) <= 0) {
+          if (!Number.isFinite(lineUnitCost) || lineUnitCost <= 0 || roundMoney(accepted * lineUnitCost, moneyDigits) <= 0) {
             throw new BadRequestException(`لا يمكن ترحيل استلام الصنف ${line.productId} بدون تكلفة مالية صالحة.`);
           }
           totalGrniAmount += accepted * lineUnitCost;
@@ -576,7 +581,7 @@ export class GoodsReceiptService {
 
       // 3. Generate GRNI Journal Entry (Dr. Inventory Asset 1140 / Cr. GRNI 2125)
       let grniEntryId: number | null = null;
-      if (totalGrniAmount > 0 && Number(totalGrniAmount.toFixed(2)) <= 0) {
+      if (totalGrniAmount > 0 && roundMoney(totalGrniAmount, moneyDigits) <= 0) {
         throw new BadRequestException('تكلفة البضاعة المستلمة أقل من أصغر وحدة نقدية؛ تعذر إنشاء قيد المخزون.');
       }
       if (totalGrniAmount > 0) {
@@ -623,7 +628,7 @@ export class GoodsReceiptService {
           .where('tenant_id', '=', scope.tenantId)
           .execute();
 
-        const grniAmount = Number(totalGrniAmount.toFixed(2));
+        const grniAmount = roundMoney(totalGrniAmount, moneyDigits);
 
         await trx
           .insertInto('journal_entry_lines')
@@ -671,7 +676,7 @@ export class GoodsReceiptService {
         docNo: grn.docNo,
         status: 'posted',
         grniJournalEntryId: grniEntryId,
-        totalGrniAmount: Number(totalGrniAmount.toFixed(2)),
+        totalGrniAmount: roundMoney(totalGrniAmount, moneyDigits),
       };
     });
   }
@@ -688,6 +693,7 @@ export class GoodsReceiptService {
       throw new BadRequestException('لا يجوز تكرار سطر محضر الاستلام في الفاتورة');
     }
     return this.db.transaction().execute(async (trx) => {
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const po = await trx.selectFrom('purchase_orders').select(['id', 'supplier_id'])
         .where('id', '=', dto.purchaseOrderId).where('tenant_id', '=', scope.tenantId)
         .forUpdate().executeTakeFirst();
@@ -730,8 +736,8 @@ export class GoodsReceiptService {
       const accrualByLine = new Map<number, number>();
       for (const grnId of grnIds) {
         const portions = allocateGrnAccrual(receiptLines.filter((line) => Number(line.grn_id) === grnId)
-          .map((line) => ({ id: Number(line.id), acceptedQty: Number(line.accepted_qty), unitCost: Number(line.unit_cost) })));
-        for (const [lineId, cents] of portions) accrualByLine.set(lineId, cents);
+          .map((line) => ({ id: Number(line.id), acceptedQty: Number(line.accepted_qty), unitCost: Number(line.unit_cost) })), moneyDigits);
+        for (const [lineId, minor] of portions) accrualByLine.set(lineId, minor);
       }
       const poItems = await trx.selectFrom('purchase_order_items').select(['id', 'product_id', 'product_name', 'unit_name', 'unit_cost'])
         .where('tenant_id', '=', scope.tenantId).where('purchase_order_id', '=', dto.purchaseOrderId).execute();
@@ -751,13 +757,16 @@ export class GoodsReceiptService {
         .select(['pi.grn_line_id', 'pi.qty', 'pi.grni_amount'])
         .where('pi.tenant_id', '=', scope.tenantId).where('pi.grn_line_id', 'in', requestedIds)
         .where('p.status', '!=', 'cancelled').execute();
-      const previous = new Map<number, { qty: number; cents: number }>();
+      const previous = new Map<number, { qty: number; minor: number }>();
       for (const line of history) {
         if (line.grni_amount == null) throw new UnprocessableEntityException('فاتورة قديمة مرتبطة بالاستلام تحتاج تسوية GRNI قبل إصدار فاتورة أخرى');
         const id = Number(line.grn_line_id);
-        const value = previous.get(id) || { qty: 0, cents: 0 };
+        const value = previous.get(id) || { qty: 0, minor: 0 };
         value.qty += Number(line.qty);
-        value.cents += Math.round(Number(line.grni_amount) * 100);
+        // Stored grni_amount values are exact minor-unit multiples (post-fix)
+        // or legacy 2dp values; the strict conversion fails closed on anything
+        // else instead of silently re-basing the cleared total.
+        value.minor += toMinorUnits(Number(line.grni_amount), moneyDigits);
         previous.set(id, value);
       }
       const prepared = dto.lines.map((request) => {
@@ -775,22 +784,22 @@ export class GoodsReceiptService {
           unitCost > orderedCost * (1 + tolerancePercent / 100) + 0.000001) {
           throw new UnprocessableEntityException('سعر فاتورة المورد يتجاوز السعر المتفق عليه ونسبة التسامح؛ يتطلب اعتماد فرق السعر قبل الترحيل');
         }
-        const prior = previous.get(Number(receipt.id)) || { qty: 0, cents: 0 };
-        const accruedCents = allocateGrniBillPortion({
-          lineAccrualCents: accrualByLine.get(Number(receipt.id)) || 0,
+        const prior = previous.get(Number(receipt.id)) || { qty: 0, minor: 0 };
+        const accruedMinor = allocateGrniBillPortion({
+          lineAccrualMinor: accrualByLine.get(Number(receipt.id)) || 0,
           acceptedQty: Number(receipt.accepted_qty), previouslyBilledQty: prior.qty,
-          previouslyClearedCents: prior.cents, newQty: qty,
+          previouslyClearedMinor: prior.minor, newQty: qty,
         });
-        return { receipt, poItem, qty, unitCost, grniAmount: accruedCents / 100,
-          lineTotal: Math.round((qty * unitCost + Number.EPSILON) * 100) / 100 };
+        return { receipt, poItem, qty, unitCost, grniAmount: fromMinorUnits(accruedMinor, moneyDigits),
+          lineTotal: roundMoney(qty * unitCost, moneyDigits) };
       });
-      const subtotal = Math.round(prepared.reduce((sum, line) => sum + line.lineTotal, 0) * 100) / 100;
+      const subtotal = roundMoney(prepared.reduce((sum, line) => sum + line.lineTotal, 0), moneyDigits);
       const taxAmount = Number(dto.taxAmount || 0);
       if (subtotal <= 0 || !Number.isFinite(taxAmount) || taxAmount < 0 ||
-        Math.abs(taxAmount * 100 - Math.round(taxAmount * 100)) > 0.001) {
+        Math.abs(taxAmount - roundMoney(taxAmount, moneyDigits)) > 0.000000001) {
         throw new UnprocessableEntityException('قيمة الفاتورة أو الضريبة غير صالحة');
       }
-      const total = Math.round((subtotal + taxAmount) * 100) / 100;
+      const total = roundMoney(subtotal + taxAmount, moneyDigits);
       const firstHeader = headers[0];
       const inserted = await trx.insertInto('purchases').values({
         doc_no: 'TMP', supplier_id: dto.supplierId, payment_type: 'credit', subtotal,
@@ -1028,6 +1037,10 @@ export class GoodsReceiptService {
         unitCost: Number(pi.unit_cost || 0),
       })),
       tolerancePercentage: dto.tolerancePercentage ?? tolerance,
+      // The verification gate rounds to book precision; defaulting to 2 here
+      // would reintroduce the GRNI loss inside the check that is supposed to
+      // catch it. The engine throws on any other value.
+      minorUnits: currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId)),
       isServiceItem: allServices,
       serviceCompletionRef: dto.serviceCompletionRef,
       allowOverride: dto.allowOverride,

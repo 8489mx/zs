@@ -574,7 +574,12 @@ export class SalesWriteService {
       }
 
       const bomQuantity = Number(bom.quantity);
-      let totalCost = Number((Number(bom.overhead_cost || 0) * (baseShortfall / bomQuantity)).toFixed(2));
+      // Same book-precision rule as manufacturing completion: the work order
+      // created here is posted by postManufacturingWorkOrder, so its cost
+      // must already be at book precision, not 2dp. (tenantBaseCurrency,
+      // currencyMoneyDigits and roundMoney are already imported in this file.)
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
+      let totalCost = roundMoney(Number(bom.overhead_cost || 0) * (baseShortfall / bomQuantity), moneyDigits);
       const wo = await trx.insertInto('manufacturing_work_orders').values({
         bom_id: item.bomId,
         quantity_to_produce: baseShortfall,
@@ -645,7 +650,7 @@ export class SalesWriteService {
         const material = await trx.selectFrom('products').select('cost_price').where('tenant_id', '=', scope.tenantId).where('id', '=', Number(line.component_product_id)).executeTakeFirstOrThrow();
         const actualUnitCost = Number(material.cost_price);
         if (!Number.isFinite(actualUnitCost) || actualUnitCost < 0) throw new AppError('Invalid material cost', 'MANUFACTURING_COST_INVALID', 409);
-        const lineTotalCost = Number((requiredMaterialQty * actualUnitCost).toFixed(2));
+        const lineTotalCost = roundMoney(requiredMaterialQty * actualUnitCost, moneyDigits);
         totalCost += lineTotalCost;
         await trx.insertInto('manufacturing_wo_consumptions').values({
           work_order_id: woId,
@@ -696,7 +701,11 @@ export class SalesWriteService {
       await trx.insertInto('stock_movements').values({
         product_id: item.productId,
         movement_type: 'manufacturing_production',
-        unit_cost: totalCost / baseShortfall, total_cost: Number(totalCost.toFixed(2)),
+        // Do not re-round the book amount coarser than itself: totalCost is
+        // already at book precision and is also written to the work order
+        // that the GL posts. A toFixed(2) here would make the movement
+        // disagree with the journal for 3dp tenants.
+        unit_cost: totalCost / baseShortfall, total_cost: totalCost,
         qty: baseShortfall,
         before_qty: fgStockChange.scopeBefore,
         after_qty: fgStockChange.scopeAfter,

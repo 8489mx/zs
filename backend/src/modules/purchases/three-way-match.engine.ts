@@ -1,3 +1,5 @@
+import { roundMoney, type MoneyDigits } from '../accounting/engines/money-minor-units.engine';
+
 /**
  * Three-Way Match Engine (AIA / IFRS / ISO 9001 Procurement Integrity Standard)
  * 
@@ -88,6 +90,10 @@ export interface ThreeWayMatchInput {
   isServiceItem?: boolean;
   serviceCompletionRef?: string;
   tolerancePercentage?: number; // e.g. 2 for 2%
+  /** Tenant book precision (2 or 3). Required, not defaulted: the final
+   *  reconciliation rounds to it, so a silent 2 default would reintroduce
+   *  the GRNI rounding loss inside the gate meant to catch it. */
+  minorUnits: MoneyDigits;
   /** Per-line VAT rates keyed by productId; falls back to vatRate. Mixed-rate invoices are common. */
   vatRateByProduct?: Record<number, number>;
   vatRate?: number; // e.g. 0.14 for 14%
@@ -134,6 +140,8 @@ export interface ThreeWayMatchResult {
 
 export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchResult {
   const tolerance = Number(input.tolerancePercentage ?? 2); // Default 2% tolerance
+  const minorUnits = input.minorUnits;
+  if (minorUnits !== 2 && minorUnits !== 3) throw new Error('Three-way match requires tenant minor units (2 or 3)');
   const vatRate = Number(input.vatRate ?? 0.14);
   const isService = Boolean(input.isServiceItem);
   const serviceRef = String(input.serviceCompletionRef || '').trim();
@@ -335,17 +343,19 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
   }
 
   // Strict Double-Entry Reconciliation
-  const roundedTotalInvoiced = Number(totalInvoicedAmount.toFixed(2));
-  const roundedGrniClearing = Number(totalGrniClearing.toFixed(2));
-  const roundedPpv = Number(totalPpv.toFixed(2));
-  const roundedVat = Number(totalVat.toFixed(2));
-  const totalAccountsPayable = Number((roundedTotalInvoiced + roundedVat).toFixed(2));
+  const roundedTotalInvoiced = roundMoney(totalInvoicedAmount, minorUnits);
+  const roundedGrniClearing = roundMoney(totalGrniClearing, minorUnits);
+  const roundedPpv = roundMoney(totalPpv, minorUnits);
+  const roundedVat = roundMoney(totalVat, minorUnits);
+  const totalAccountsPayable = roundMoney(roundedTotalInvoiced + roundedVat, minorUnits);
 
   // Reconciliation: Invoiced Subtotal MUST equal GRNI Clearing + PPV.
   // This was previously computed, returned, and then ignored — "strict penny reconciliation"
   // that blocked nothing. An unreconciled invoice must not post.
-  const discrepancy = Number((roundedTotalInvoiced - (roundedGrniClearing + roundedPpv)).toFixed(2));
-  if (Math.abs(discrepancy) > 0.01) {
+  const discrepancy = roundMoney(roundedTotalInvoiced - (roundedGrniClearing + roundedPpv), minorUnits);
+  // Same tolerance as before, expressed in minor units: at most one minor
+  // unit of rounding residue is tolerated (0.01 at 2dp, 0.001 at 3dp).
+  if (Math.abs(discrepancy) > 10 ** -minorUnits) {
     block(
       'RECONCILIATION_DISCREPANCY',
       0,

@@ -11,6 +11,8 @@ import { TransactionHelper } from '../../../database/helpers/transaction.helper'
 import { Database } from '../../../database/database.types';
 import { CreateBomDto, CreateWorkOrderDto, CompleteWorkOrderDto, UpsertWorkCenterDto, CreateWoOperationDto, CreateUnbuildOrderDto, CreateMtoWorkOrderDto } from '../dto/manufacturing.dto';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 
 @Injectable()
@@ -374,6 +376,10 @@ export class ManufacturingService {
 
       const bomQuantity = Number(wo.bom_quantity || 1);
 
+      // Book precision for every cost accumulated below. Quantity precision
+      // (toFixed(3) on requiredQty) is untouched — quantities are not money.
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
+
       // Deduct raw materials
       for (const line of [...lines].sort((a, b) => Number(a.component_product_id) - Number(b.component_product_id))) {
         const wastePct = Math.max(0, Math.min(99.9, Number(line.waste_percentage || 0)));
@@ -383,7 +389,7 @@ export class ManufacturingService {
         const requiredQty = Number((quantityConsumedInSelectedUnit * lineMultiplier).toFixed(3));
         const actualUnitCost = Number(costByProduct.get(Number(line.component_product_id)));
         if (!Number.isFinite(actualUnitCost) || actualUnitCost < 0) throw new AppError('Invalid material cost', 'MANUFACTURING_COST_INVALID', 409);
-        const lineTotalCost = Number((requiredQty * actualUnitCost).toFixed(2));
+        const lineTotalCost = roundMoney(requiredQty * actualUnitCost, moneyDigits);
         totalCost += lineTotalCost;
 
         await trx.insertInto('manufacturing_wo_consumptions').values({
@@ -424,7 +430,7 @@ export class ManufacturingService {
 
       // Add overhead cost
       const overheadCost = Number(wo.overhead_cost || 0);
-      const totalOverheadCost = Number((overheadCost * (qtyToProduce / bomQuantity)).toFixed(2));
+      const totalOverheadCost = roundMoney(overheadCost * (qtyToProduce / bomQuantity), moneyDigits);
       totalCost += totalOverheadCost;
 
       // Add Work Center Operations & Machine Costs
@@ -440,7 +446,7 @@ export class ManufacturingService {
               .executeTakeFirst();
             hourlyCost = Number(wc?.cost_per_hour || 0);
           }
-          const opTotalCost = Number((Number(op.durationHours || 0) * Number(hourlyCost || 0)).toFixed(2));
+          const opTotalCost = roundMoney(Number(op.durationHours || 0) * Number(hourlyCost || 0), moneyDigits);
           totalCost += opTotalCost;
 
           await trx.insertInto('manufacturing_wo_operations').values({
@@ -462,13 +468,13 @@ export class ManufacturingService {
       let byProductValue = 0;
       for (const bp of payload.byProducts || []) {
         if (Number(bp.productId) === Number(wo.finished_product_id)) throw new AppError('Finished product cannot also be a by-product', 'MANUFACTURING_COST_INVALID', 400);
-        const value = Number((Number(bp.quantity) * Number(costByProduct.get(Number(bp.productId)))).toFixed(2));
+        const value = roundMoney(Number(bp.quantity) * Number(costByProduct.get(Number(bp.productId))), moneyDigits);
         if (!Number.isFinite(value) || value < 0) throw new AppError('Invalid by-product valuation', 'MANUFACTURING_COST_INVALID', 400);
         byProductValue += value;
       }
       if (byProductValue > totalCost) throw new AppError('By-product value exceeds production cost', 'MANUFACTURING_COST_INVALID', 400);
-      totalCost = Number(totalCost.toFixed(2));
-      const finishedValue = Number((totalCost - byProductValue).toFixed(2));
+      totalCost = roundMoney(totalCost, moneyDigits);
+      const finishedValue = roundMoney(totalCost - byProductValue, moneyDigits);
 
       // Add finished product
       const fgStockScope = { tenantId: scope.tenantId, accountId: scope.accountId, productId: Number(wo.finished_product_id), branchId: null, locationId: destinationLocation };
@@ -509,7 +515,7 @@ export class ManufacturingService {
           await trx.insertInto('stock_movements').values({
             product_id: Number(bp.productId),
             movement_type: 'manufacturing_byproduct',
-            unit_cost: costByProduct.get(Number(bp.productId)), total_cost: bpQty * Number(costByProduct.get(Number(bp.productId))),
+            unit_cost: costByProduct.get(Number(bp.productId)), total_cost: roundMoney(bpQty * Number(costByProduct.get(Number(bp.productId))), moneyDigits),
             qty: bpQty,
             before_qty: bpStockChange.scopeBefore,
             after_qty: bpStockChange.scopeAfter,

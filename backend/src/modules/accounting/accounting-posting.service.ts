@@ -3993,13 +3993,15 @@ export class AccountingPostingService {
 
     if (!wo) return { posted: false, journalEntryId: null };
 
-    const fgCost = this.toMoney(Number(wo.total_cost || 0));
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const fgCost = toBookMoney(Number(wo.total_cost || 0));
     const consumed = await queryable.selectFrom('manufacturing_wo_consumptions as c')
       .innerJoin('manufacturing_work_orders as w', 'w.id', 'c.work_order_id')
       .select(sql<number>`coalesce(sum(c.line_total), 0)`.as('amount'))
       .where('w.tenant_id', '=', scope.tenantId).where('w.id', '=', workOrderId).executeTakeFirst();
-    const rmCost = this.toMoney(consumed?.amount || 0);
-    const overheadCost = this.toMoney(fgCost - rmCost);
+    const rmCost = toBookMoney(consumed?.amount || 0);
+    const overheadCost = toBookMoney(fgCost - rmCost);
     if (overheadCost < 0) throw new AppError('Manufacturing material costs exceed production value', 'MANUFACTURING_COST_MISMATCH', 409);
 
     if (fgCost <= 0) throw new AppError(`Manufacturing work order ${workOrderId} has no cost for ledger posting`, 'MANUFACTURING_COST_MISSING', 400);

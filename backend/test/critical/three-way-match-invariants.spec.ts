@@ -20,6 +20,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 100, unitCost: 10.0 }],
     tolerancePercentage: 2,
     vatRate: 0.14,
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -42,6 +43,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
       { id: 1, grnId: 1, poItemId: 1, productId: 101, receivedQty: 100, acceptedQty: 100, rejectedQty: 0, unitCost: 10.0 },
     ],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 120, unitCost: 10.0 }],
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -62,6 +64,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     ],
     historicalInvoicedLines: [{ poItemId: 1, productId: 101, qty: 60 }],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 50, unitCost: 10.0 }], // 60 + 50 = 110 > 100
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -80,6 +83,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
       { id: 1, grnId: 1, poItemId: 1, productId: 101, receivedQty: 100, acceptedQty: 80, rejectedQty: 20, unitCost: 10.0 },
     ],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 90, unitCost: 10.0 }], // Invoiced 90 vs Accepted 80
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -99,6 +103,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     ],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 100, unitCost: 10.15 }], // 1.5% delta <= 2% tolerance
     tolerancePercentage: 2,
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -122,6 +127,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     ],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 100, unitCost: 10.5 }], // 5% delta > 2% tolerance
     tolerancePercentage: 2,
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -140,6 +146,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     invoiceItems: [{ poItemId: 1, productId: 999, qty: 1, unitCost: 5000.0 }],
     isServiceItem: true,
     serviceCompletionRef: 'CERT-260919-001',
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -158,6 +165,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     invoiceItems: [{ poItemId: 1, productId: 999, qty: 1, unitCost: 5000.0 }],
     isServiceItem: true,
     serviceCompletionRef: '', // Missing certificate!
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -185,6 +193,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     ],
     tolerancePercentage: 2,
     vatRate: 0.14,
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
@@ -209,6 +218,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     tolerancePercentage: 2,
     allowOverride: true,
     overrideReason: 'Approved by CFO per contract amendment #4',
+      minorUnits: 2,
   };
 
   const result = computeThreeWayMatch(input);
