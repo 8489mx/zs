@@ -6,6 +6,19 @@ import { allocateInstallmentInterest } from '../../src/modules/accounting/engine
 import { classifyCashFlow } from '../../src/modules/accounting/engines/cash-flow-classification.engine';
 import { valueStockReceipt } from '../../src/modules/accounting/inventory-valuation';
 import { areOppositeJournalLines } from '../../src/modules/accounting/engines/journal-reversal.engine';
+import { roundMoney, currencyMoneyDigits, toMinorUnits, fromMinorUnits } from '../../src/modules/accounting/engines/money-minor-units.engine';
+
+// Minor units and half-boundary precision guarantees:
+assert.equal(roundMoney(2.675, 2), 2.68);
+assert.equal(roundMoney(0.045, 2), 0.05);
+assert.equal(roundMoney(1.2345, 3), 1.235);
+assert.equal(currencyMoneyDigits('KWD'), 3);
+assert.equal(currencyMoneyDigits('BHD'), 3);
+assert.equal(currencyMoneyDigits('EGP'), 2);
+assert.equal(toMinorUnits(10.55, 2), 1055);
+assert.equal(toMinorUnits(10.555, 3), 10555);
+assert.equal(fromMinorUnits(1055, 2), 10.55);
+assert.equal(fromMinorUnits(10555, 3), 10.555);
 
 // Regression cases import production engines; accounting logic is not copied here.
 // A posting at 23:59:59.999999 on year end must survive an exclusive next-day bound.

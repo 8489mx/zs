@@ -2,7 +2,6 @@ import { allocateInstallmentInterest } from './engines/installment-interest.engi
 import { areOppositeJournalLines } from './engines/journal-reversal.engine';
 import { syncPostedPartnerLedger } from './partner-subledger';
 import { pdcBookAmount } from './engines/pdc-transition.engine';
-import { assertBusinessAccountingDate } from './accounting-boundaries';
 import { Injectable, Logger } from '@nestjs/common';
 import { Kysely, sql } from '../../database/kysely';
 import { Transaction } from 'kysely';
@@ -17,7 +16,7 @@ import { assertAutomatedJournalPeriodOpen, lockAccountingPeriod } from './accoun
 import { assertTaxPeriodOpen } from './accounting-tax-lock';
 import { randomUUID } from 'node:crypto';
 import { tenantBaseCurrency } from './accounting-currency';
-import { currencyMoneyDigits, roundMoney, toMinorUnits, fromMinorUnits } from './engines/money-minor-units.engine';
+import { currencyMoneyDigits, roundMoney, toMinorUnits, fromMinorUnits, MoneyDigits } from './engines/money-minor-units.engine';
 
 type DbOrTx = Kysely<Database> | Transaction<Database>;
 
@@ -84,10 +83,14 @@ export class AccountingPostingService {
     }
   }
 
-  private toMoney(value: unknown, digits: 2 | 3 = 2): number {
+  private toMoney(value: unknown, digits: MoneyDigits = 2): number {
     const amount = Number(value ?? 0);
     if (!Number.isFinite(amount)) throw new AppError('Journal amount must be finite', 'INVALID_JOURNAL_AMOUNT', 400);
-    return Number(amount.toFixed(digits));
+    return roundMoney(amount, digits);
+  }
+
+  private maxAllowedDifference(bookDigits: MoneyDigits = 2): number {
+    return 10 ** -bookDigits;
   }
 
   private async resolveAccountWithFallback(
@@ -607,8 +610,9 @@ export class AccountingPostingService {
     const totalDebit = toBookMoney(lines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(lines.reduce((sum, line) => sum + line.credit, 0));
     const difference = toBookMoney(totalDebit - totalCredit);
+    const maxTolerance = this.maxAllowedDifference(bookDigits);
     if (Math.abs(difference) >= unit / 2) {
-      if (Math.abs(difference) > 0.05) {
+      if (Math.abs(difference) > maxTolerance) {
         throw new AppError(`Unbalanced journal for ${params.sourceType} #${params.sourceId}: debit=${totalDebit.toFixed(bookDigits)} credit=${totalCredit.toFixed(bookDigits)}`, 'UNBALANCED_JOURNAL', 400);
       }
       if (!params.accountId) throw new AppError(`Tenant account scope is required to post ${params.sourceType} #${params.sourceId}`, 'TENANT_SCOPE_REQUIRED', 403);
@@ -616,6 +620,7 @@ export class AccountingPostingService {
       const roundingAccount = await queryable.selectFrom('accounting_accounts').select(['id', 'is_active'])
         .where('tenant_id', '=', params.tenantId).where('code', '=', '7290').executeTakeFirst();
       if (!roundingAccount?.is_active) throw new AppError(`Rounding difference account 7290 is missing for tenant ${params.tenantId}`, 'ROUNDING_ACCOUNT_NOT_FOUND', 400);
+      this.logger.warn(`Journal rounding difference of ${difference.toFixed(bookDigits)} plugged into account 7290 for ${params.sourceType} #${params.sourceId} (tenant ${params.tenantId})`);
       lines.push({
         accountId: Number(roundingAccount.id), description: `Rounding difference: ${params.sourceType} #${params.sourceId}`,
         debit: difference < 0 ? Math.abs(difference) : 0,
@@ -1015,7 +1020,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1238,7 +1243,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced edited sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1339,7 +1344,7 @@ export class AccountingPostingService {
 
     const totalDebit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced sale reversal journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1499,18 +1504,27 @@ export class AccountingPostingService {
             : refundMethod === 'cash' ? 'cash' : 'card',
         amount: total,
       }];
-      const allocatedCents = allocations.reduce((sum, entry) => sum + Math.round(Number(entry.amount) * 100), 0);
-      if (allocatedCents !== Math.round(total * 100)) throw new Error(`Refund tenders do not balance for return ${returnId}`);
-      for (const allocation of allocations) {
+      const rawAllocated = allocations.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+      if (Math.abs(rawAllocated - total) > this.maxAllowedDifference(bookDigits)) {
+        throw new Error(`Refund tenders do not balance for return ${returnId}: allocated=${rawAllocated} total=${total}`);
+      }
+      let allocatedTotalSoFar = 0;
+      for (let i = 0; i < allocations.length; i++) {
+        const allocation = allocations[i];
+        const isLast = i === allocations.length - 1;
+        const lineAmount = isLast
+          ? toBookMoney(total - allocatedTotalSoFar)
+          : toBookMoney(allocation.amount);
+        allocatedTotalSoFar = toBookMoney(allocatedTotalSoFar + lineAmount);
         const accountId = allocation.tender === 'store_credit' ? storeCreditAccountId
           : allocation.tender === 'receivable' ? customerAccountId
             : allocation.tender === 'cash' ? cashAccountId : bankAccountId;
         const partner = allocation.tender === 'store_credit' || allocation.tender === 'receivable';
-        addBookLine( {
+        addBookLine({
           accountId,
           description: `تسوية مرتجع فاتورة رقم ${invoiceNo} - ${allocation.tender}`,
           debit: 0,
-          credit: toBookMoney(allocation.amount),
+          credit: lineAmount,
           partnerType: partner && customerPartnerId ? 'customer' : 'none',
           partnerId: partner ? customerPartnerId : null,
           branchId,
@@ -1571,7 +1585,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced sales return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1812,7 +1826,7 @@ export class AccountingPostingService {
 
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced purchase journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -1924,16 +1938,25 @@ export class AccountingPostingService {
         tender: originalPaymentType === 'credit' ? 'payable' : refundMethod === 'cash' ? 'cash' : 'card',
         amount: total,
       }];
-      const allocatedCents = allocations.reduce((sum, allocation) => sum + Math.round(Number(allocation.amount) * 100), 0);
-      if (allocatedCents !== Math.round(total * 100)) throw new Error(`Purchase return settlement does not balance for ${returnId}`);
-      for (const allocation of allocations) {
+      const rawAllocated = allocations.reduce((sum, allocation) => sum + Number(allocation.amount || 0), 0);
+      if (Math.abs(rawAllocated - total) > this.maxAllowedDifference(bookDigits)) {
+        throw new Error(`Purchase return settlement does not balance for ${returnId}: allocated=${rawAllocated} total=${total}`);
+      }
+      let allocatedTotalSoFar = 0;
+      for (let i = 0; i < allocations.length; i++) {
+        const allocation = allocations[i];
+        const isLast = i === allocations.length - 1;
+        const lineAmount = isLast
+          ? toBookMoney(total - allocatedTotalSoFar)
+          : toBookMoney(allocation.amount);
+        allocatedTotalSoFar = toBookMoney(allocatedTotalSoFar + lineAmount);
         const payable = allocation.tender === 'payable';
         const bank = allocation.tender === 'card';
-        addBookLine( {
+        addBookLine({
           accountId: payable ? supplierPayableAccountId : bank ? bankAccountId : cashAccountId,
           description: payable ? `تخفيض مديونية مورد من مردودات مشتريات فاتورة رقم ${invoiceNo}`
             : `استرداد ${bank ? 'بنكي' : 'نقدي'} من مورد لمرتجع فاتورة رقم ${invoiceNo}`,
-          debit: toBookMoney(allocation.amount),
+          debit: lineAmount,
           credit: 0,
           partnerType: payable && supplierPartnerId ? 'supplier' : 'none',
           partnerId: payable ? supplierPartnerId : null,
@@ -1991,7 +2014,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced purchase return journal for return ${returnId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2067,7 +2090,7 @@ export class AccountingPostingService {
 
     const totalDebit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced purchase reversal journal for purchase ${purchaseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2174,7 +2197,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced supplier payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2197,6 +2220,8 @@ export class AccountingPostingService {
 
   async postSupplierPaymentScheduleSettlement(queryable: DbOrTx, settlementId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingSupplierPaymentScheduleSettlementJournal(queryable, settlementId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -2228,7 +2253,7 @@ export class AccountingPostingService {
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting supplier payment schedule settlement ${settlementId}`);
 
-    const amount = this.toMoney(settlement.amount);
+    const amount = toBookMoney(settlement.amount);
     if (!(amount > 0)) {
       this.logger.warn(`Supplier payment schedule settlement ${settlementId} has non-positive amount; skipping accounting post`);
       return { posted: false, journalEntryId: null };
@@ -2280,10 +2305,10 @@ export class AccountingPostingService {
       if (!accountMap.get(line.accountId)) throw new Error(`Configured account ${line.accountId} is inactive while posting supplier payment schedule settlement ${settlementId}`);
     }
 
-    const normalizedLines = lines.map((line) => ({ ...line, debit: this.toMoney(line.debit), credit: this.toMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
-    const totalDebit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
-    const totalCredit = this.toMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
+    const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced supplier payment schedule settlement journal for settlement ${settlementId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2386,7 +2411,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced customer payment journal for payment ${paymentId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2494,7 +2519,7 @@ export class AccountingPostingService {
     const normalizedLines = lines.map((line) => ({ ...line, debit: toBookMoney(line.debit), credit: toBookMoney(line.credit) })).filter((line) => line.debit > 0 || line.credit > 0);
     const totalDebit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.debit, 0));
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
-    if (Math.abs(totalDebit - totalCredit) > 0.05) {
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced expense journal for expense ${expenseId}: debit=${totalDebit} credit=${totalCredit}`);
     }
 
@@ -2963,12 +2988,14 @@ export class AccountingPostingService {
 
   async postService(queryable: DbOrTx, serviceId: number, revision: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
 
     const service = await queryable.selectFrom('services').selectAll().where('id', '=', serviceId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
     if (!service) return { posted: false, journalEntryId: null };
 
-    const amount = this.toMoney(service.amount);
+    const amount = toBookMoney(service.amount);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -3179,6 +3206,8 @@ export class AccountingPostingService {
 
   async postPayrollAccrual(queryable: DbOrTx, runId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
 
     const existing = await queryable
@@ -3230,14 +3259,14 @@ export class AccountingPostingService {
       .where('status', '!=', 'excluded')
       .executeTakeFirst();
 
-    const grossPay = this.toMoney(totals?.gross_pay || 0);
-    const netPay = this.toMoney(totals?.net_pay || 0);
-    const loanDeductions = this.toMoney(totals?.loan_deductions || 0);
-    const assetRecoveryDeductions = this.toMoney(totals?.asset_recovery_deductions || 0);
-    const operationalDeductions = this.toMoney(totals?.operational_deductions || 0);
-    const employeeInsurance = this.toMoney(totals?.employee_social_insurance || 0);
-    const employerInsurance = this.toMoney(totals?.employer_social_insurance || 0);
-    const incomeTax = this.toMoney(totals?.income_tax || 0);
+    const grossPay = toBookMoney(totals?.gross_pay || 0);
+    const netPay = toBookMoney(totals?.net_pay || 0);
+    const loanDeductions = toBookMoney(totals?.loan_deductions || 0);
+    const assetRecoveryDeductions = toBookMoney(totals?.asset_recovery_deductions || 0);
+    const operationalDeductions = toBookMoney(totals?.operational_deductions || 0);
+    const employeeInsurance = toBookMoney(totals?.employee_social_insurance || 0);
+    const employerInsurance = toBookMoney(totals?.employer_social_insurance || 0);
+    const incomeTax = toBookMoney(totals?.income_tax || 0);
 
     if (grossPay <= 0 && netPay <= 0 && loanDeductions <= 0 && assetRecoveryDeductions <= 0) {
       throw new AppError('Cannot accrue payroll with zero financial value', 'HR_PAYROLL_ZERO_VALUE', 400);
@@ -3262,7 +3291,7 @@ export class AccountingPostingService {
       ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100')
       : null; // Recovery of lost/damaged custody assets, NOT absenteeism income.
 
-    const totalGosiPayable = this.toMoney(employeeInsurance + employerInsurance);
+    const totalGosiPayable = toBookMoney(employeeInsurance + employerInsurance);
 
     const lines: JournalLineDraft[] = [];
 
@@ -5097,6 +5126,8 @@ export class AccountingPostingService {
 
   async postWithholdingTaxRemittance(queryable: DbOrTx, transactionId: number, paymentMethod: 'bank' | 'cash', auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
 
     const tx = await queryable
@@ -5108,7 +5139,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!tx) return { posted: false, journalEntryId: null };
-    const taxAmount = this.toMoney(tx.tax_amount);
+    const taxAmount = toBookMoney(tx.tax_amount);
     if (taxAmount <= 0) return { posted: false, journalEntryId: null };
 
     const lines: JournalLineDraft[] = [];
