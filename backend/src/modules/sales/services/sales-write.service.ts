@@ -22,7 +22,7 @@ import { HeldSaleDto } from '../dto/held-sale.dto';
 import { PosAuditEventDto } from '../dto/pos-audit-event.dto';
 import { UpsertSaleDto } from '../dto/upsert-sale.dto';
 import { normalizeSalePayload } from '../helpers/sales-payload.helper';
-import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel } from '../helpers/sales-write.helper';
+import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, restoreFrozenSaleLineCosts } from '../helpers/sales-write.helper';
 import { allocateSaleTenders, type SaleTenderChannel } from '../engines/sale-tender.engine';
 import { allocateInvoiceDiscount } from '../engines/invoice-discount.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
@@ -2744,6 +2744,15 @@ export class SalesWriteService {
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
       await this.resolveSaleModifierCosts(trx, preparedItems, scope.tenantId,
         this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant'));
+
+      // INV-SALE-EDIT-FROZEN-COST: resolveSaleModifierCosts just re-costed
+      // every rebuilt line at the CURRENT product WAC. Restore the original
+      // per-unit cost for lines whose physical composition (product, sold
+      // unit, modifiers) is unchanged, so a price/discount/tax-only edit
+      // cannot move COGS between periods. currentItems was loaded before
+      // the old sale_items rows were deleted, so it still carries the
+      // original costs; createSale has no old lines and is untouched.
+      restoreFrozenSaleLineCosts(preparedItems, currentItems);
 
       // Deadlock prevention: identical canonical lock ordering as createSale (see note there).
       const stockOrderedItems = [...preparedItems].sort((a, b) => Number(a.productId || 0) - Number(b.productId || 0));

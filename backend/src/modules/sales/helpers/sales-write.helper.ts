@@ -102,6 +102,113 @@ export function buildPreparedSaleItem(
   };
 }
 
+/**
+ * Frozen sale-line cost preservation (INV-SALE-EDIT-FROZEN-COST).
+ *
+ * updateSale deletes every old sale_items row and rebuilds the sale, then
+ * resolveSaleModifierCosts re-costs each rebuilt line at the CURRENT product
+ * WAC. That silently moves COGS between periods for a price/discount/tax-only
+ * edit: the physical composition of the line did not change, but its journal
+ * COGS (postSaleEdit sums qty * sale_items.cost_price) did.
+ *
+ * This pure helper restores the ORIGINAL per-unit cost_price for a rebuilt
+ * line whose physical composition is unchanged. A line is unchanged when its
+ * product, its sold unit (unitMultiplier) and its modifier composition all
+ * match exactly one old line. Quantity, selling price, discount and tax are
+ * deliberately NOT part of the key: changing only the quantity re-prices the
+ * line total (qty * frozen unit cost) without re-costing the unit itself.
+ *
+ * Modifier composition is the sorted list of
+ * componentId|optionId|qty|consumptionQty for every modifier, so a modifier
+ * added, removed or re-quantified makes the whole line "changed" and it
+ * keeps its freshly resolved cost. The optionId is included so two
+ * differently-configured modifiers for the same component cannot collide;
+ * for non-restaurant modifiers (which carry no stock cost) a stricter
+ * signature can only fail safe to re-costing. When the line matches, each
+ * modifier's own costPrice is restored from the matching old modifier too,
+ * so the stored modifiers JSON stays consistent with the frozen line cost
+ * instead of showing the new WAC alongside the old total.
+ *
+ * Fail-safe: an unparseable modifiers value, a non-finite or negative old
+ * cost, or an ambiguous match (two old lines with the same key) leaves the
+ * freshly resolved cost untouched. Nothing here invents a cost; it only
+ * re-uses a cost the sale already carried.
+ */
+function frozenModifierList(modifiers: unknown): Array<Record<string, any>> | null {
+  let list: unknown = modifiers;
+  if (typeof list === 'string') {
+    if (!list.trim()) return [];
+    try {
+      list = JSON.parse(list);
+    } catch {
+      return null;
+    }
+  }
+  if (!Array.isArray(list)) return null;
+  return list as Array<Record<string, any>>;
+}
+
+function frozenModifierKey(modifiers: unknown): string | null {
+  const list = frozenModifierList(modifiers);
+  if (list === null) return null;
+  const parts: string[] = [];
+  for (const mod of list) {
+    const componentId = Number(mod.productId || mod.componentProductId || mod.component_product_id || 0) || 0;
+    const optionId = Number(mod.optionId || mod.option_id || 0) || 0;
+    const qty = Number(mod.qty ?? 1);
+    const consumption = Number(mod.consumptionQty ?? mod.consumption_qty ?? 1);
+    if (!Number.isFinite(qty) || !Number.isFinite(consumption) || qty <= 0 || consumption <= 0) return null;
+    parts.push(`${componentId}|${optionId}|${qty}|${consumption}`);
+  }
+  return parts.sort().join(';');
+}
+
+function frozenLineKey(line: any): string | null {
+  const signature = frozenModifierKey(line.modifiers);
+  if (signature === null) return null;
+  const productId = Number(line.productId ?? line.product_id ?? 0);
+  const unitMultiplier = Number(line.unitMultiplier ?? line.unit_multiplier ?? 1);
+  if (!Number.isFinite(productId) || !Number.isFinite(unitMultiplier) || productId <= 0 || unitMultiplier <= 0) return null;
+  return `${productId}|${unitMultiplier}|${signature}`;
+}
+
+export function restoreFrozenSaleLineCosts(items: any[], oldLines: any[]): void {
+  const byKey = new Map<string, any[]>();
+  for (const old of oldLines || []) {
+    const key = frozenLineKey(old);
+    if (key === null) continue;
+    const bucket = byKey.get(key) || [];
+    bucket.push(old);
+    byKey.set(key, bucket);
+  }
+  for (const item of items || []) {
+    const key = frozenLineKey(item);
+    if (key === null) continue;
+    const candidates = byKey.get(key) || [];
+    if (candidates.length !== 1) continue;
+    const old = candidates[0];
+    const frozenCost = Number(old.costPrice ?? old.cost_price ?? NaN);
+    if (!Number.isFinite(frozenCost) || frozenCost < 0) continue;
+    item.costPrice = frozenCost;
+    const oldMods = frozenModifierList(old.modifiers) || [];
+    const newMods = frozenModifierList(item.modifiers);
+    if (!newMods) continue;
+    for (const mod of newMods) {
+      const componentId = Number(mod.productId || mod.componentProductId || mod.component_product_id || 0) || 0;
+      const optionId = Number(mod.optionId || mod.option_id || 0) || 0;
+      const qty = Number(mod.qty ?? 1);
+      const consumption = Number(mod.consumptionQty ?? mod.consumption_qty ?? 1);
+      const match = oldMods.find((oldMod: any) =>
+        (Number(oldMod.productId || oldMod.componentProductId || oldMod.component_product_id || 0) || 0) === componentId &&
+        (Number(oldMod.optionId || oldMod.option_id || 0) || 0) === optionId &&
+        Number(oldMod.qty ?? 1) === qty &&
+        Number(oldMod.consumptionQty ?? oldMod.consumption_qty ?? 1) === consumption);
+      const oldModCost = match ? Number(match.costPrice ?? match.cost_price ?? NaN) : NaN;
+      if (Number.isFinite(oldModCost) && oldModCost >= 0) mod.costPrice = oldModCost;
+    }
+  }
+}
+
 export function calculateCollectibleTotal(total: number, storeCreditUsed: number, digits: MoneyDigits = 2): number {
   return roundCurrency(Number(total || 0) - Number(storeCreditUsed || 0), digits);
 }
