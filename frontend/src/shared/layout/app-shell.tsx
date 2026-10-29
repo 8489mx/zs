@@ -3,7 +3,7 @@ import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { normalizeArabicSearchKey } from '@/lib/arabic-normalization';
-import { storefrontApi } from '@/features/storefront/api/storefront.api';
+import { http } from '@/lib/http';
 import { Button } from '@/shared/ui/button';
 import { authApi } from '@/shared/api/auth';
 import { resetAuthenticatedClient } from '@/lib/query-client-session';
@@ -16,7 +16,6 @@ import { SystemStatusBanner } from '@/shared/system/system-status-banner';
 import { BootstrapAdminBanner } from '@/shared/system/bootstrap-admin-banner';
 import { TrialStatusBanner } from '@/shared/system/trial-status-banner';
 import { ImpersonationBanner } from '@/shared/system/impersonation-banner';
-import { LiveOrderNotificationBanner } from '@/features/storefront/components/LiveOrderNotificationBanner';
 import { PwaInstallBanner } from '@/shared/components/PwaInstallBanner';
 import { useOfflineUpdateCheck } from '@/features/updates/hooks/useOfflineUpdateCheck';
 import {
@@ -39,6 +38,7 @@ import { resolveAutoBreadcrumbs } from '@/shared/layout/breadcrumbs.helper';
 
 const GlobalSearchModal = lazy(() => import('@/shared/components/GlobalSearchModal').then((m) => ({ default: m.GlobalSearchModal })));
 const DeveloperActivationPanel = lazy(() => import('@/shared/system/DeveloperActivationPanel').then((m) => ({ default: m.DeveloperActivationPanel })));
+const LiveOrderNotificationBanner = lazy(() => import('@/features/storefront/components/LiveOrderNotificationBanner').then((m) => ({ default: m.LiveOrderNotificationBanner })));
 
 
 type SidebarGroupDefinition = {
@@ -126,7 +126,7 @@ export function AppShell({ children }: PropsWithChildren) {
     queryKey: ['storefront-admin-orders-count'],
     queryFn: async () => {
       try {
-        const res = await storefrontApi.getOrderCounts();
+        const res = await http<{ counts: Record<string, number> }>('/api/storefront/admin/orders/counts');
         return res.counts?.pending || 0;
       } catch {
         return 0;
@@ -2360,10 +2360,10 @@ export function AppShell({ children }: PropsWithChildren) {
       </div>
       {!isPosRoute && !isStandalonePosTerminal() && (isMobileScreen || !isPosChromeHidden) && <MobileBottomNav />}
       <PasswordRotationGate />
-      <LiveOrderNotificationBanner />
       <PwaInstallBanner />
       <QuickAttendanceShortcut open={quickAttendanceOpen} onClose={() => setQuickAttendanceOpen(false)} />
       <Suspense fallback={null}>
+        <LiveOrderNotificationBanner />
         <GlobalSearchModal />
         <DeveloperActivationPanel />
       </Suspense>
