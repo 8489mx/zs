@@ -127,6 +127,10 @@ export async function inspectAccountingIntegrity(db: Kysely<Database>, tenantId:
     WHERE tenant_id=${tenantId} AND status='posted' AND source_id IS NOT NULL
       AND source_type IN ('sale','purchase','sales_return','purchase_return','customer_payment','supplier_payment','expense')
     GROUP BY source_type,source_id HAVING count(*)>1`);
+  await check('SALE_EDIT_NET',sql`SELECT source_id AS sale_id, count(*) AS active_journal_count FROM journal_entries
+    WHERE tenant_id=${tenantId} AND status='posted' AND source_id IS NOT NULL
+      AND source_type IN ('sale','sale_edit') AND reversed_by_entry_id IS NULL
+    GROUP BY source_id HAVING count(*)>1`);
   await check('SOURCE_DOCUMENT_POSTINGS',missingSourcePostingIssues(tenantId));
   await check('REVERSAL_LINKS',sql`SELECT j.id,j.reversed_by_entry_id,j.reversal_of_entry_id FROM journal_entries j
     LEFT JOIN journal_entries r ON r.tenant_id=j.tenant_id AND r.id=j.reversed_by_entry_id

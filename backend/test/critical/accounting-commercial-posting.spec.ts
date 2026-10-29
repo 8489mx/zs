@@ -108,6 +108,48 @@ async function main() {
     const creditSale = await posting.postSale(db, 2, auth);
     assert.equal(await amount(creditSale.journalEntryId, 4100, 'credit'), 101.4);
     assert.equal(await amount(creditSale.journalEntryId, 1130, 'debit'), 102.6);
+
+    // Verify Risk #2: postSaleEdit must reverse the original journal atomically and post updated sale_edit
+    await pg.exec(`
+      INSERT INTO sales(id,tenant_id,doc_no,subtotal,discount,tax_amount,total,paid_amount) VALUES (3,'t1','S3',100,10,12.6,102.6,102.6);
+      INSERT INTO sale_payments VALUES ('t1',3,'cash',102.6);
+      INSERT INTO sale_items VALUES (3,'t1',3,10,2,30);
+    `);
+    const sale3 = await posting.postSale(db, 3, auth);
+    assert.equal(sale3.posted, true);
+
+    await pg.exec(`
+      UPDATE sales SET subtotal=150, discount=15, tax_amount=18.9, total=153.9, paid_amount=153.9 WHERE id=3;
+      UPDATE sale_payments SET amount=153.9 WHERE sale_id=3;
+      UPDATE sale_items SET qty=3, cost_price=30 WHERE sale_id=3;
+    `);
+    const editResult = await posting.postSaleEdit(db, 3, auth);
+    assert.equal(editResult.posted, true);
+    const origJournal = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(sale3.journalEntryId)).executeTakeFirstOrThrow();
+    assert.ok(origJournal.reversed_by_entry_id != null, 'original journal must be marked reversed');
+    assert.equal(await amount(editResult.journalEntryId, 1110, 'debit'), 153.9);
+    assert.equal(await amount(editResult.journalEntryId, 4100, 'credit'), 150);
+    assert.equal(await amount(editResult.journalEntryId, 4300, 'debit'), 15);
+    assert.equal(await amount(editResult.journalEntryId, 5100, 'debit'), 90);
+    assert.equal(await amount(editResult.journalEntryId, 2120, 'credit'), 18.9);
+    const activeJournals = await db.selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', 'in', ['sale', 'sale_edit'])
+      .where('source_id', '=', 3)
+      .where('reversed_by_entry_id', 'is', null)
+      .execute();
+    assert.equal(activeJournals.length, 1, 'only exactly 1 active unreversed journal exists after edit');
+    const duplicateSaleCheck = await db.selectFrom('journal_entries')
+      .select(['source_id'])
+      .where('tenant_id', '=', 't1')
+      .where('status', '=', 'posted')
+      .where('source_type', 'in', ['sale', 'sale_edit'])
+      .where('reversed_by_entry_id', 'is', null)
+      .groupBy('source_id')
+      .having(db.fn.count('id'), '>', 1)
+      .execute();
+    assert.equal(duplicateSaleCheck.length, 0, 'SALE_EDIT_NET: zero double-counted unreversed sales');
+    await assertBalanced();
     await pg.exec(`
       INSERT INTO purchases(id,tenant_id,doc_no,supplier_id,payment_type,subtotal,discount,tax_amount,total)
         VALUES (1,'t1','P1',9,'credit',228,22.8,25.2,205.2);

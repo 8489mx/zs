@@ -1052,19 +1052,47 @@ export class AccountingPostingService {
   }
 
   async postSaleEdit(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+    if (queryable && !queryable.isTransaction && typeof queryable.transaction === 'function') {
+      return queryable.transaction().execute((trx: any) => this.postSaleEdit(trx, saleId, auth));
+    }
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
-    const existing = await this.getExistingSaleEditJournal(queryable, saleId, scope.tenantId);
-    if (existing) return { posted: false, journalEntryId: Number(existing.id) };
+
+    // Count postings vs reversals for this sale so we handle already-reversed states
+    const counts = await queryable
+      .selectFrom('journal_entries')
+      .select([
+        sql<number>`count(*) filter (where source_type in ('sale', 'sale_edit'))`.as('postings'),
+        sql<number>`count(*) filter (where source_type = 'sale_reversal')`.as('reversals'),
+      ])
+      .where('source_id', '=', saleId)
+      .where('status', '=', 'posted')
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const totalPostings = Number(counts?.postings || 0);
+    const totalReversals = Number(counts?.reversals || 0);
+    const activePostings = totalPostings - totalReversals;
+
+    if (totalPostings > 0 && activePostings <= 0) {
+      throw new AppError('لا يمكن ترحيل تعديل لفاتورة ملغاة ومعكوسة بالكامل', 'SALE_ALREADY_REVERSED', 400);
+    }
+
+    if (activePostings > 0) {
+      const reversal = await this.reverseSaleJournal(queryable, saleId, 'تعديل فاتورة مبيعات', auth);
+      if (!reversal.reversed && reversal.journalEntryId == null) {
+        throw new AppError('تعذر عكس قيد المبيعات السابق للفاتورة المعدلة', 'SALE_EDIT_REVERSAL_FAILED', 409);
+      }
+    }
 
     const sale = await queryable
       .selectFrom('sales')
       .select([
         'id', 'doc_no', 'customer_id', 'subtotal', 'discount', 'tax_amount',
-        'total', 'paid_amount', 'store_credit_used', 'branch_id', 'location_id', 'created_by', 'created_at',
+        'total', 'paid_amount', 'store_credit_used', 'exchange_return_id', 'branch_id', 'location_id', 'created_by', 'created_at',
         'delivery_fee', 'delivery_fee_mode', 'service_charge', 'tip_amount', 'prices_include_tax',
+        'sale_origin', 'payment_type',
       ])
       .where('id', '=', saleId)
       .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
@@ -1138,16 +1166,70 @@ export class AccountingPostingService {
     }
 
     if (receivableAmount > 0) {
-      this.addLine(lines, {
-        accountId: customerAccountId,
-        description: 'مديونية عميل من تعديل فاتورة بيع',
-        debit: receivableAmount,
-        credit: 0,
-        partnerType: customerPartnerId ? 'customer' : 'none',
-        partnerId: customerPartnerId,
-        branchId: sale.branch_id ? Number(sale.branch_id) : null,
-        locationId: sale.location_id ? Number(sale.location_id) : null,
-      }, bookDigits);
+      const isVanSale = String((sale as any).sale_origin || '') === 'van_sale';
+      const paymentType = String((sale as any).payment_type || '');
+      const branchIdVal = sale.branch_id ? Number(sale.branch_id) : null;
+      const locationIdVal = sale.location_id ? Number(sale.location_id) : null;
+
+      if (isVanSale && paymentType === 'cash') {
+        this.addLine(lines, {
+          accountId: customerAccountId,
+          description: 'عهدة نقدية لدى مندوب التوزيع من تعديل فاتورة بيع نقدي',
+          debit: receivableAmount,
+          credit: 0,
+          partnerType: 'none',
+          partnerId: null,
+          branchId: branchIdVal,
+          locationId: locationIdVal,
+        }, bookDigits);
+      } else if (isVanSale && paymentType === 'split') {
+        const creditLedgerRow = await (queryable as any)
+          .selectFrom('customer_ledger')
+          .select(['amount'])
+          .where('reference_type', '=', 'sale')
+          .where('reference_id', '=', saleId)
+          .where('entry_type', '=', 'sale_credit')
+          .where('tenant_id', '=', scope.tenantId)
+          .executeTakeFirst();
+        const creditPortion = toBookMoney(Math.min(receivableAmount, Math.max(0, Number(creditLedgerRow?.amount || 0))));
+        const repCashPortion = toBookMoney(Math.max(0, receivableAmount - creditPortion));
+
+        if (repCashPortion > 0) {
+          this.addLine(lines, {
+            accountId: customerAccountId,
+            description: 'عهدة نقدية لدى مندوب التوزيع (الجزء النقدي من تعديل بيع مجزأ)',
+            debit: repCashPortion,
+            credit: 0,
+            partnerType: 'none',
+            partnerId: null,
+            branchId: branchIdVal,
+            locationId: locationIdVal,
+          }, bookDigits);
+        }
+        if (creditPortion > 0) {
+          this.addLine(lines, {
+            accountId: customerAccountId,
+            description: 'مديونية عميل من تعديل فاتورة بيع مجزأة',
+            debit: creditPortion,
+            credit: 0,
+            partnerType: customerPartnerId ? 'customer' : 'none',
+            partnerId: customerPartnerId,
+            branchId: branchIdVal,
+            locationId: locationIdVal,
+          }, bookDigits);
+        }
+      } else {
+        this.addLine(lines, {
+          accountId: customerAccountId,
+          description: 'مديونية عميل من تعديل فاتورة بيع',
+          debit: receivableAmount,
+          credit: 0,
+          partnerType: customerPartnerId ? 'customer' : 'none',
+          partnerId: customerPartnerId,
+          branchId: branchIdVal,
+          locationId: locationIdVal,
+        }, bookDigits);
+      }
     }
 
     if (storeCreditUsed > 0) {
@@ -1245,6 +1327,17 @@ export class AccountingPostingService {
     const totalCredit = toBookMoney(normalizedLines.reduce((sum, line) => sum + line.credit, 0));
     if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
       throw new Error(`Unbalanced edited sale journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    if (sale.exchange_return_id) {
+      let returnLinesCollected = false;
+      const returnPosting = await this.postSalesReturn(queryable, Number(sale.exchange_return_id), auth, (returnLines) => {
+        returnLinesCollected = returnLines.length > 0;
+        normalizedLines.push(...returnLines);
+      });
+      if (!returnLinesCollected || returnPosting.posted || returnPosting.journalEntryId != null) {
+        throw new AppError('مرتجع الاستبدال مرتبط بقيد مستقل؛ يلزم تسوية يدوية', 'EXCHANGE_LEDGER_CONFLICT', 422);
+      }
     }
 
     const entryId = await this.insertPostedJournal(queryable, {
