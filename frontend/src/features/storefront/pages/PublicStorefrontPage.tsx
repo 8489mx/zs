@@ -11,6 +11,7 @@ import { StorefrontFilteredGrid } from '../components/StorefrontFilteredGrid';
 import { StorefrontModals } from '../components/StorefrontModals';
 import { StorefrontFooter } from '../components/StorefrontFooter';
 import { StorefrontSkeleton } from '../components/StorefrontSkeleton';
+import { StorefrontTrustBar } from '../components/StorefrontTrustBar';
 import { StorefrontMobileBottomNav } from '../components/StorefrontMobileBottomNav';
 import { initStorefrontPixels, trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import type { StorefrontProduct } from '../types/storefront.types';
@@ -355,7 +356,8 @@ export function PublicStorefrontPage() {
         flexDirection: 'column',
         fontFamily: 'inherit',
         width: '100%',
-        maxWidth: '100%',
+        maxWidth: '100vw',
+        overflowX: 'clip',
         boxSizing: 'border-box',
       }}
     >
@@ -573,7 +575,7 @@ export function PublicStorefrontPage() {
           maxWidth: 'var(--storefront-container, 1440px)',
           width: '100%',
           margin: '0 auto',
-          padding: '20px 20px 80px',
+          padding: '20px 20px 36px',
         }}
       >
         {isHomepageMultiRow ? (
@@ -619,6 +621,9 @@ export function PublicStorefrontPage() {
             onQuickView={openProduct}
           />
         )}
+
+        {/* 🛡️ شريط مميزات وثقة المتجر (Value Proposition & Trust Bar) */}
+        {info && <StorefrontTrustBar info={info} />}
       </main>
 
       {/* Corporate E-commerce Footer */}

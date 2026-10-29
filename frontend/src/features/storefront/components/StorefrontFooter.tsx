@@ -57,8 +57,8 @@ export function StorefrontFooter({
   return (
     <footer
       style={{
-        background: '#ffffff',
-        borderTop: '1px solid #e2e8f0',
+        background: 'transparent',
+        borderTop: 'none',
         marginTop: 'auto',
         color: '#1e293b',
         direction: 'rtl',
@@ -70,12 +70,12 @@ export function StorefrontFooter({
         .sf-modern-footer-container {
           max-width: var(--storefront-container, 1380px);
           margin: 0 auto;
-          padding: 36px 24px 22px;
+          padding: 28px 24px 24px;
           box-sizing: border-box;
         }
         .sf-footer-cols-grid {
           display: grid;
-          grid-template-columns: 1.3fr 0.85fr 0.85fr 1.15fr;
+          grid-template-columns: 1.25fr 1.05fr 0.85fr 1.1fr;
           gap: 36px;
           margin-bottom: 32px;
           align-items: start;
@@ -95,6 +95,12 @@ export function StorefrontFooter({
           padding: 0;
           margin: 0;
         }
+        .sf-footer-links-grid-2 {
+          display: grid !important;
+          grid-template-columns: repeat(2, auto) !important;
+          gap: 10px 24px !important;
+          justify-content: start !important;
+        }
         .sf-footer-link-item {
           background: none;
           border: none;
@@ -108,6 +114,7 @@ export function StorefrontFooter({
           display: inline-flex;
           align-items: center;
           gap: 6px;
+          white-space: nowrap;
         }
         .sf-footer-link-item:hover {
           color: var(--storefront-primary-color, #2d68c4);
@@ -331,10 +338,10 @@ export function StorefrontFooter({
             </div>
           </div>
 
-          {/* Col 2: Quick Links (Concise 3 items) */}
+          {/* Col 2: Quick Links (Concise 4 items in 2x2 grid) */}
           <div>
             <h4 className="sf-footer-col-header">روابط سريعة</h4>
-            <ul className="sf-footer-links-list">
+            <ul className="sf-footer-links-list sf-footer-links-grid-2">
               {onGoHome && (
                 <li>
                   <button type="button" onClick={onGoHome} className="sf-footer-link-item">

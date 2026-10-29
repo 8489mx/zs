@@ -302,16 +302,6 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
           >
             {t('storefront.shop_by_cat.title', 'تسوق حسب القسم')}
           </h2>
-          <span
-            style={{
-              fontSize: '12px',
-              color: '#64748b',
-              fontWeight: 600,
-            }}
-            className="storefront-shelf-subtitle"
-          >
-            {t('storefront.shop_by_cat.subtitle', 'تشكيلة منتقاة من أفضل الأقسام')}
-          </span>
         </div>
 
         <button
@@ -403,43 +393,25 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   {item.name}
                 </h3>
 
-                {item.count !== undefined && item.count > 0 ? (
-                  <span
-                    style={{
-                      fontSize: '10.5px',
-                      fontWeight: 500,
-                      color: theme.badgeColor,
-                      background: theme.badgeBg,
-                      padding: '2.5px 8.5px',
-                      borderRadius: '8px',
-                      whiteSpace: 'nowrap',
-                      border: '1px solid rgba(255, 255, 255, 0.65)',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                    }}
-                  >
-                    {item.count} {t('storefront.shop_by_cat.item_unit', 'صنف')}
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: '10.5px',
-                      fontWeight: 500,
-                      color: theme.badgeColor,
-                      background: theme.badgeBg,
-                      padding: '2.5px 8.5px',
-                      borderRadius: '8px',
-                      whiteSpace: 'nowrap',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '3px',
-                      border: '1px solid rgba(255, 255, 255, 0.65)',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                    }}
-                  >
-                    <span>{t('storefront.shop_by_cat.explore', 'تسوق الآن')}</span>
-                    <span style={{ fontSize: '10px' }}>←</span>
-                  </span>
-                )}
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 600,
+                    color: theme.badgeColor,
+                    background: theme.badgeBg,
+                    padding: '2.5px 8.5px',
+                    borderRadius: '8px',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    border: '1px solid rgba(255, 255, 255, 0.65)',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  }}
+                >
+                  <span>{t('storefront.shop_by_cat.explore', 'تسوق الآن')}</span>
+                  <span style={{ fontSize: '10px' }}>←</span>
+                </span>
               </div>
 
               {/* Photo Showcase (Left in RTL) with 100% Feathered Radial Ambient Glow (Zero Hard Split Line) */}

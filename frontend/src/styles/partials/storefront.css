@@ -1243,7 +1243,10 @@ button.storefront-btn-pill,
   transform: translateY(-1px);
 }
 
-/* 4. WhatsApp Soft Squircle Action Buttons */
+/* 4. WhatsApp Action Buttons & Floating Icon */
+.sf-floating-whatsapp {
+  border-radius: 50% !important;
+}
 .storefront-deal-wa-btn,
 .sf-footer-whatsapp-link,
 .sf-footer-contact-btn,

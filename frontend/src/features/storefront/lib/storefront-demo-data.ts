@@ -1,271 +1,36 @@
 import type { StorefrontInfo, StorefrontCatalogResponse, StorefrontCategory, StorefrontProduct } from '../types/storefront.types';
+import {
+  SHIRT_PHOTO,
+  SNEAKER_PHOTO,
+  SMARTWATCH_PHOTO,
+  PERFUME_PHOTO,
+  HEADPHONES_PHOTO,
+  BACKPACK_PHOTO,
+  SUNGLASSES_PHOTO,
+  JACKET_PHOTO,
+  IPHONE_PHOTO,
+  WATCH_CLASSIC_PHOTO,
+} from './product-photos-registry';
 
 function svgDataUri(svgContent: string): string {
   const cleaned = svgContent.trim().replace(/\s+/g, ' ');
   return `data:image/svg+xml;utf8,${encodeURIComponent(cleaned)}`;
 }
 
-// Bespoke Multi-Layered Studio Vector Illustrations for Categories (Rich Cover Artwork for Bento & Category Circles)
-export const CAT_FASHION_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <rect width="400" height="400" fill="#ffffff"/>
-  <path d="M125 95 L165 75 L235 75 L275 95 L335 145 L302 192 L265 168 L265 325 L135 325 L135 168 L98 192 L65 145 Z" fill="#1e293b" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M165 75 L200 125 L235 75" fill="#e2e8f0" stroke="#0f172a" stroke-width="3"/>
-  <circle cx="200" cy="155" r="4.5" fill="#f8fafc"/>
-  <circle cx="200" cy="195" r="4.5" fill="#f8fafc"/>
-  <circle cx="200" cy="235" r="4.5" fill="#f8fafc"/>
-  <circle cx="200" cy="275" r="4.5" fill="#f8fafc"/>
-</svg>
-`);
-
-export const CAT_TECH_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <rect width="400" height="400" fill="#ffffff"/>
-  <rect x="135" y="75" width="130" height="250" rx="26" fill="#0f172a" stroke="#475569" stroke-width="6"/>
-  <rect x="147" y="92" width="106" height="216" rx="16" fill="#0284c7" opacity="0.22"/>
-  <rect x="180" y="84" width="40" height="6" rx="3" fill="#0f172a"/>
-  <circle cx="200" cy="185" r="36" fill="none" stroke="#38bdf8" stroke-width="4" opacity="0.8"/>
-  <path d="M186 185 L196 195 L216 175" fill="none" stroke="#7dd3fc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
-`);
-
-export const CAT_SHOES_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <rect width="400" height="400" fill="#ffffff"/>
-  <path d="M75 245 Q90 185 155 180 L215 135 Q235 125 250 155 L285 160 Q325 180 330 245 Z" fill="#e11d48"/>
-  <rect x="68" y="242" width="268" height="28" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="3"/>
-  <path d="M135 215 L255 185" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
-  <line x1="175" y1="168" x2="195" y2="180" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-  <line x1="195" y1="154" x2="215" y2="166" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-</svg>
-`);
-
-export const CAT_PERFUME_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <rect width="400" height="400" fill="#ffffff"/>
-  <rect x="176" y="76" width="48" height="28" rx="6" fill="#d97706"/>
-  <rect x="186" y="104" width="28" height="18" fill="#b45309"/>
-  <rect x="128" y="122" width="144" height="190" rx="28" fill="#78350f" stroke="#f59e0b" stroke-width="4"/>
-  <rect x="152" y="158" width="96" height="110" rx="10" fill="#1e1b4b" stroke="#fbbf24" stroke-width="2.5"/>
-  <circle cx="200" cy="213" r="22" fill="none" stroke="#fbbf24" stroke-width="2"/>
-  <path d="M190 213 L200 198 L210 213 L200 228 Z" fill="#fbbf24"/>
-</svg>
-`);
-
-export const CAT_WATCHES_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <rect width="400" height="400" fill="#ffffff"/>
-  <rect x="168" y="60" width="64" height="280" rx="16" fill="#78350f"/>
-  <circle cx="200" cy="200" r="78" fill="#f59e0b" stroke="#fef3c7" stroke-width="4"/>
-  <circle cx="200" cy="200" r="64" fill="#0f172a"/>
-  <line x1="200" y1="200" x2="200" y2="156" stroke="#fbbf24" stroke-width="5" stroke-linecap="round"/>
-  <line x1="200" y1="200" x2="234" y2="214" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="200" cy="200" r="6" fill="#fbbf24"/>
-</svg>
-`);
-
-// Bespoke Studio Product Illustrations on Pure #ffffff Seamless Background (600x600, 100% Pure Vector — Zero Bitmap Filters)
-export const PROD_LINEN_SHIRT_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p1Fabric" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1e293b"/>
-      <stop offset="50%" stop-color="#1e1b4b"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="512" rx="136" ry="14" fill="#e2e8f0" opacity="0.7"/>
-  <ellipse cx="300" cy="512" rx="96" ry="8" fill="#cbd5e1" opacity="0.65"/>
-  <g>
-    <path d="M210 143 L258 120 L342 120 L390 143 L478 213 L436 276 L392 246 L392 483 C392 493 384 500 374 500 L226 500 C216 500 208 493 208 483 L208 246 L164 276 L122 213 Z" fill="#0f172a" opacity="0.08"/>
-    <path d="M210 135 L258 112 L342 112 L390 135 L478 205 L436 268 L392 238 L392 475 C392 485 384 492 374 492 L226 492 C216 492 208 485 208 475 L208 238 L164 268 L122 205 Z" fill="url(#p1Fabric)" stroke="#0f172a" stroke-width="2" stroke-linejoin="round"/>
-    <path d="M258 112 L300 178 L342 112 Z" fill="#e2e8f0"/>
-    <path d="M242 120 L300 184 L274 204 L218 136 Z" fill="#334155"/>
-    <path d="M358 120 L300 184 L326 204 L382 136 Z" fill="#334155"/>
-    <line x1="300" y1="184" x2="300" y2="490" stroke="#334155" stroke-width="3"/>
-    <rect x="322" y="232" width="46" height="52" rx="6" fill="none" stroke="#64748b" stroke-width="3"/>
-    <circle cx="300" cy="218" r="6" fill="#f8fafc"/>
-    <circle cx="300" cy="268" r="6" fill="#f8fafc"/>
-    <circle cx="300" cy="318" r="6" fill="#f8fafc"/>
-    <circle cx="300" cy="368" r="6" fill="#f8fafc"/>
-    <circle cx="300" cy="418" r="6" fill="#f8fafc"/>
-  </g>
-</svg>
-`);
-
-export const PROD_SNEAKER_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p2Upper" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#e11d48"/>
-      <stop offset="60%" stop-color="#be123c"/>
-      <stop offset="100%" stop-color="#881337"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="452" rx="196" ry="15" fill="#e2e8f0" opacity="0.65"/>
-  <ellipse cx="300" cy="452" rx="145" ry="9" fill="#cbd5e1" opacity="0.55"/>
-  <g>
-    <path d="M95 365 C105 280 185 270 235 255 L318 188 C338 172 365 182 376 218 C400 230 432 230 452 220 C488 242 508 302 512 365 Z" fill="url(#p2Upper)" stroke="#9f1239" stroke-width="2" stroke-linejoin="round"/>
-    <path d="M84 360 L518 360 C526 360 532 372 528 386 L516 408 C510 418 496 422 480 422 L104 422 C84 422 72 406 74 384 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="3.5"/>
-    <path d="M94 402 L508 402" stroke="#f43f5e" stroke-width="5.5" stroke-linecap="round"/>
-    <path d="M185 330 Q285 315 395 268" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
-    <line x1="258" y1="242" x2="288" y2="262" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round"/>
-    <line x1="282" y1="222" x2="312" y2="242" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round"/>
-    <line x1="306" y1="202" x2="336" y2="222" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round"/>
-  </g>
-</svg>
-`);
-
-export const PROD_SMARTWATCH_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p3Case" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#cbd5e1"/>
-      <stop offset="50%" stop-color="#64748b"/>
-      <stop offset="100%" stop-color="#334155"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="524" rx="116" ry="13" fill="#e2e8f0" opacity="0.7"/>
-  <ellipse cx="300" cy="524" rx="76" ry="7" fill="#cbd5e1" opacity="0.6"/>
-  <g>
-    <path d="M238 85 L362 85 L376 185 L224 185 Z" fill="#ea580c"/>
-    <path d="M224 415 L376 415 L362 505 L238 505 Z" fill="#c2410c"/>
-    <rect x="400" y="225" width="14" height="44" rx="6" fill="#ea580c"/>
-    <rect x="192" y="168" width="216" height="264" rx="54" fill="url(#p3Case)" stroke="#94a3b8" stroke-width="4"/>
-    <rect x="208" y="184" width="184" height="232" rx="42" fill="#090d16"/>
-    <circle cx="300" cy="278" r="62" fill="none" stroke="#1e293b" stroke-width="10"/>
-    <circle cx="300" cy="278" r="62" fill="none" stroke="#38bdf8" stroke-width="10" stroke-dasharray="290 400" stroke-linecap="round"/>
-    <circle cx="300" cy="278" r="44" fill="none" stroke="#22c55e" stroke-width="8" stroke-dasharray="200 300" stroke-linecap="round"/>
-    <text x="300" y="289" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="35">09:41</text>
-    <rect x="248" y="362" width="104" height="24" rx="12" fill="#1e293b"/>
-    <circle cx="268" cy="374" r="5" fill="#f43f5e"/>
-    <text x="308" y="379" text-anchor="middle" fill="#e2e8f0" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="13.5">98 BPM</text>
-  </g>
-</svg>
-`);
-
-export const PROD_PERFUME_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p4Bottle" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#451a03"/>
-      <stop offset="50%" stop-color="#78350f"/>
-      <stop offset="100%" stop-color="#1c1917"/>
-    </linearGradient>
-    <linearGradient id="p4Gold" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#b45309"/>
-      <stop offset="50%" stop-color="#fde047"/>
-      <stop offset="100%" stop-color="#d97706"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="510" rx="135" ry="14" fill="#e2e8f0" opacity="0.75"/>
-  <ellipse cx="300" cy="510" rx="92" ry="8" fill="#cbd5e1" opacity="0.65"/>
-  <g>
-    <polygon points="260,95 340,95 356,145 244,145" fill="url(#p4Gold)" stroke="#b45309" stroke-width="1.5"/>
-    <rect x="276" y="145" width="48" height="32" fill="url(#p4Gold)" stroke="#b45309" stroke-width="1.5"/>
-    <rect x="190" y="177" width="220" height="305" rx="34" fill="url(#p4Bottle)" stroke="url(#p4Gold)" stroke-width="5"/>
-    <rect x="226" y="232" width="148" height="186" rx="14" fill="#1c1917" stroke="url(#p4Gold)" stroke-width="3.5"/>
-    <circle cx="300" cy="296" r="28" fill="none" stroke="url(#p4Gold)" stroke-width="2.5"/>
-    <path d="M286 296 L300 276 L314 296 L300 316 Z" fill="url(#p4Gold)"/>
-    <rect x="252" y="346" width="96" height="6" rx="3" fill="url(#p4Gold)"/>
-    <rect x="268" y="364" width="64" height="4" rx="2" fill="url(#p4Gold)" opacity="0.8"/>
-  </g>
-</svg>
-`);
-
-export const PROD_HEADPHONES_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p5Metal" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#312e81"/>
-      <stop offset="50%" stop-color="#1e1b4b"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="510" rx="150" ry="14" fill="#e2e8f0" opacity="0.7"/>
-  <ellipse cx="300" cy="510" rx="100" ry="8" fill="#cbd5e1" opacity="0.6"/>
-  <g>
-    <path d="M156 320 C156 175 444 175 444 320" fill="none" stroke="url(#p5Metal)" stroke-width="28" stroke-linecap="round"/>
-    <path d="M180 280 C180 195 420 195 420 280" fill="none" stroke="#6366f1" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
-    <rect x="122" y="285" width="68" height="145" rx="34" fill="url(#p5Metal)" stroke="#818cf8" stroke-width="3.5"/>
-    <rect x="168" y="298" width="28" height="118" rx="14" fill="#334155"/>
-    <rect x="410" y="285" width="68" height="145" rx="34" fill="url(#p5Metal)" stroke="#818cf8" stroke-width="3.5"/>
-    <rect x="404" y="298" width="28" height="118" rx="14" fill="#334155"/>
-  </g>
-</svg>
-`);
-
-export const PROD_BACKPACK_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p6Bag" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#334155"/>
-      <stop offset="100%" stop-color="#0f172a"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="510" rx="140" ry="14" fill="#e2e8f0" opacity="0.7"/>
-  <ellipse cx="300" cy="510" rx="95" ry="8" fill="#cbd5e1" opacity="0.6"/>
-  <g>
-    <path d="M255 125 C255 92 345 92 345 125" fill="none" stroke="#1e293b" stroke-width="16" stroke-linecap="round"/>
-    <rect x="175" y="125" width="250" height="350" rx="56" fill="url(#p6Bag)" stroke="#475569" stroke-width="4"/>
-    <rect x="206" y="285" width="188" height="155" rx="28" fill="#1e293b" stroke="#64748b" stroke-width="3.5"/>
-    <line x1="226" y1="325" x2="374" y2="325" stroke="#94a3b8" stroke-width="4.5" stroke-linecap="round"/>
-    <rect x="268" y="195" width="64" height="28" rx="6" fill="#d97706"/>
-  </g>
-</svg>
-`);
-
-export const PROD_SUNGLASSES_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p7Lens" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f172a"/>
-      <stop offset="50%" stop-color="#1e293b"/>
-      <stop offset="100%" stop-color="#334155"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="430" rx="180" ry="14" fill="#e2e8f0" opacity="0.7"/>
-  <ellipse cx="300" cy="430" rx="120" ry="8" fill="#cbd5e1" opacity="0.6"/>
-  <g>
-    <path d="M78 245 L522 245" stroke="#d97706" stroke-width="8.5" stroke-linecap="round"/>
-    <rect x="96" y="242" width="176" height="118" rx="44" fill="url(#p7Lens)" stroke="#f59e0b" stroke-width="7.5"/>
-    <rect x="328" y="242" width="176" height="118" rx="44" fill="url(#p7Lens)" stroke="#f59e0b" stroke-width="7.5"/>
-    <path d="M272 272 Q300 254 328 272" fill="none" stroke="#f59e0b" stroke-width="7.5"/>
-    <line x1="132" y1="268" x2="178" y2="332" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" opacity="0.4"/>
-    <line x1="364" y1="268" x2="410" y2="332" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" opacity="0.4"/>
-  </g>
-</svg>
-`);
-
-export const PROD_JACKET_SVG = svgDataUri(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-  <defs>
-    <linearGradient id="p8Coat" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#064e3b"/>
-      <stop offset="50%" stop-color="#065f46"/>
-      <stop offset="100%" stop-color="#022c22"/>
-    </linearGradient>
-  </defs>
-  <rect width="600" height="600" fill="#ffffff"/>
-  <ellipse cx="300" cy="515" rx="150" ry="14" fill="#e2e8f0" opacity="0.7"/>
-  <ellipse cx="300" cy="515" rx="100" ry="8" fill="#cbd5e1" opacity="0.6"/>
-  <g>
-    <path d="M205 125 L252 98 L348 98 L395 125 L485 225 L438 272 L396 225 L396 485 L204 485 L204 225 L162 272 L115 225 Z" fill="url(#p8Coat)" stroke="#047857" stroke-width="4" stroke-linejoin="round"/>
-    <line x1="204" y1="210" x2="396" y2="210" stroke="#047857" stroke-width="4"/>
-    <line x1="204" y1="280" x2="396" y2="280" stroke="#047857" stroke-width="4"/>
-    <line x1="204" y1="350" x2="396" y2="350" stroke="#047857" stroke-width="4"/>
-    <line x1="204" y1="420" x2="396" y2="420" stroke="#047857" stroke-width="4"/>
-    <line x1="300" y1="115" x2="300" y2="485" stroke="#fbbf24" stroke-width="5"/>
-  </g>
-</svg>
-`);
+// Legacy vector exports kept for backward module compatibility
+export const CAT_FASHION_SVG = SHIRT_PHOTO;
+export const CAT_TECH_SVG = IPHONE_PHOTO;
+export const CAT_SHOES_SVG = SNEAKER_PHOTO;
+export const CAT_PERFUME_SVG = PERFUME_PHOTO;
+export const CAT_WATCHES_SVG = WATCH_CLASSIC_PHOTO;
+export const PROD_LINEN_SHIRT_SVG = SHIRT_PHOTO;
+export const PROD_SNEAKER_SVG = SNEAKER_PHOTO;
+export const PROD_SMARTWATCH_SVG = SMARTWATCH_PHOTO;
+export const PROD_PERFUME_SVG = PERFUME_PHOTO;
+export const PROD_HEADPHONES_SVG = HEADPHONES_PHOTO;
+export const PROD_BACKPACK_SVG = BACKPACK_PHOTO;
+export const PROD_SUNGLASSES_SVG = SUNGLASSES_PHOTO;
+export const PROD_JACKET_SVG = JACKET_PHOTO;
 
 const HERO_BANNER_1_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 480" width="100%" height="100%">
@@ -282,196 +47,1239 @@ const HERO_BANNER_1_SVG = svgDataUri(`
 </svg>
 `);
 
-import {
-  SHIRT_PHOTO,
-  SNEAKER_PHOTO,
-  SMARTWATCH_PHOTO,
-  PERFUME_PHOTO,
-  HEADPHONES_PHOTO,
-  BACKPACK_PHOTO,
-  SUNGLASSES_PHOTO,
-  JACKET_PHOTO,
-  IPHONE_PHOTO,
-  WATCH_CLASSIC_PHOTO,
-} from './product-photos-registry';
-
 export const DEMO_STOREFRONT_CATEGORIES: StorefrontCategory[] = [
-  { id: 1, name: 'أزياء وملابس', imageUrl: SHIRT_PHOTO },
-  { id: 2, name: 'إلكترونيات وهواتف', imageUrl: IPHONE_PHOTO },
-  { id: 3, name: 'أحذية وحقائب', imageUrl: SNEAKER_PHOTO },
-  { id: 4, name: 'عطور ومستحضرات', imageUrl: PERFUME_PHOTO },
-  { id: 5, name: 'ساعات وإكسسوارات', imageUrl: WATCH_CLASSIC_PHOTO },
+  { id: 1, name: 'اللابتوب والتابلت', imageUrl: '/assets/products/p-zenbook.webp' },
+  { id: 2, name: 'الهواتف والصوتيات الذكية', imageUrl: '/assets/products/p-iphone-13-pro.webp' },
+  { id: 3, name: 'الساعات الفاخرة والذكية', imageUrl: '/assets/products/p-watch-rolex-submariner.webp' },
+  { id: 4, name: 'العطور ومستحضرات التجميل', imageUrl: '/assets/products/p-perfume-jadore.webp' },
+  { id: 5, name: 'الأحذية الرياضية والكاجوال', imageUrl: '/assets/products/p-puma-rider.webp' },
+  { id: 6, name: 'الحقائب والنظارات الشمسية', imageUrl: '/assets/products/p-bag-prada.webp' },
+  { id: 7, name: 'الأزياء والملابس الرجالية', imageUrl: '/assets/products/p-shirt-blue-check.webp' },
+  { id: 8, name: 'الأزياء والملابس النسائية', imageUrl: '/assets/products/p-suit-marni.webp' },
 ];
 
 export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
+  // ============================================================================
+  // TOP 7 HERO SHOWCASE PRODUCTS (One from each diverse category for Coverflow)
+  // ============================================================================
   {
-    id: 101,
-    name: 'قميص كتان بريميوم كاجوال عصري',
-    barcode: 'FASH-00101',
-    price: 450,
-    originalPrice: 600,
+    id: 201,
+    name: 'لابتوب Asus ZenBook Pro ثنائي الشاشة OLED',
+    barcode: 'LAP-00201',
+    price: 42500,
+    originalPrice: 48900,
     hasDiscount: true,
-    discountPercent: 25,
-    offerBadge: 'خصم 25%',
+    discountPercent: 13,
+    offerBadge: 'إصدار احترافي',
     categoryId: 1,
-    categoryName: 'أزياء وملابس',
-    stockQty: 45,
+    categoryName: 'اللابتوب والتابلت',
+    stockQty: 14,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: SHIRT_PHOTO,
-    description: 'قميص كتان طبيعي ناعم ومريح مناسب لجميع الأوقات، خياطة متقنة وجودة فاخرة تمنحك حضوراً أنيقاً.',
-    rating: 4.9,
-    reviewCount: 142,
-    variants: [
-      { name: 'كحلي ملكي - M', price: 450 },
-      { name: 'كحلي ملكي - L', price: 450 },
-      { name: 'أبيض لؤلؤي - L', price: 450 },
-      { name: 'بيج رملي - XL', price: 480 },
-    ],
-  },
-  {
-    id: 102,
-    name: 'حذاء رياضي خفيف ومقاوم للصدمات',
-    barcode: 'SHOE-00102',
-    price: 790,
-    originalPrice: 950,
-    hasDiscount: true,
-    discountPercent: 17,
-    offerBadge: 'الأكثر طلباً',
-    categoryId: 3,
-    categoryName: 'أحذية وحقائب',
-    stockQty: 28,
-    inStock: true,
-    icon: 'PackageIcon',
-    imageUrl: SNEAKER_PHOTO,
-    description: 'حذاء جري خفيف بنعل فوم مرن ديناميكي لتوفير أقصى درجات الراحة طوال اليوم وأثناء الحركة السريعة.',
-    rating: 4.9,
-    reviewCount: 96,
-    variants: [
-      { name: 'مقاس 41', price: 790 },
-      { name: 'مقاس 42', price: 790 },
-      { name: 'مقاس 43', price: 790 },
-      { name: 'مقاس 44', price: 790 },
-    ],
-  },
-  {
-    id: 103,
-    name: 'ساعة يد ذكية Smartwatch Ultra V8',
-    barcode: 'ELEC-00103',
-    price: 1250,
-    originalPrice: 1600,
-    hasDiscount: true,
-    discountPercent: 22,
-    offerBadge: 'صفقة اليوم',
-    categoryId: 2,
-    categoryName: 'إلكترونيات وهواتف',
-    stockQty: 18,
-    inStock: true,
-    icon: 'PackageIcon',
-    imageUrl: SMARTWATCH_PHOTO,
-    description: 'ساعة ذكية بإطار معدني وشاشة AMOLED فائقة الوضوح، مستشعرات حيوية دقيقة، ومقاومة كاملة للماء.',
+    imageUrl: '/assets/products/p-zenbook.webp',
+    description: 'لابتوب احترافي بشاشة OLED رئيسية 4K وشاشة ثانية تفاعلية ScreenPad Plus للمصممين والمبدعين بمعالج فائق السرعة.',
     rating: 5.0,
-    reviewCount: 215,
+    reviewCount: 184,
+    variants: [
+      { name: 'رام 16GB - هارد 1TB SSD', price: 42500 },
+      { name: 'رام 32GB - هارد 2TB SSD', price: 46900 },
+    ],
   },
   {
-    id: 104,
-    name: 'عطر العود الملكي الأصلي 100 مل',
-    barcode: 'PERF-00104',
-    price: 680,
-    originalPrice: 890,
-    hasDiscount: true,
-    discountPercent: 24,
-    offerBadge: 'إصدار خاص',
-    categoryId: 4,
-    categoryName: 'عطور ومستحضرات',
-    stockQty: 35,
-    inStock: true,
-    icon: 'PackageIcon',
-    imageUrl: PERFUME_PHOTO,
-    description: 'مزيج فاخر من دهن العود المعتق والمسك الأبيض والعنبر الملكي، ثبات يدوم لأكثر من 48 ساعة.',
-    rating: 4.8,
-    reviewCount: 84,
-  },
-  {
-    id: 105,
-    name: 'سماعات لاسلكية Pro عازلة للضوضاء',
-    barcode: 'ELEC-00105',
-    price: 890,
-    originalPrice: 1100,
+    id: 202,
+    name: 'ساعة Rolex Submariner ديت ستيل وذهب أسود',
+    barcode: 'WCH-00202',
+    price: 6400,
+    originalPrice: 7900,
     hasDiscount: true,
     discountPercent: 19,
-    offerBadge: 'خصم 19%',
-    categoryId: 2,
-    categoryName: 'إلكترونيات وهواتف',
-    stockQty: 40,
+    offerBadge: 'الأكثر فخامة',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 19,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: HEADPHONES_PHOTO,
-    description: 'صوت محيطي فائق النقاء مع تقنية إلغاء الضوضاء النشطة ANC وبطارية تدوم حتى 36 ساعة تشغيل متواصل.',
+    imageUrl: '/assets/products/p-watch-rolex-submariner.webp',
+    description: 'ساعة غوص كلاسيكية فاخرة بإطار سيراميك أسود وسوار أويستر مزدوج من الفولاذ المقاوم للصدأ والذهب الأصفر.',
     rating: 4.9,
-    reviewCount: 168,
+    reviewCount: 230,
   },
   {
-    id: 106,
-    name: 'حقيبة ظهر كلاسيكية مضادة للماء للابتوب',
-    barcode: 'BAG-00106',
-    price: 520,
-    originalPrice: 650,
+    id: 203,
+    name: 'سماعات Apple AirPods Max الفضية العازلة للضوضاء',
+    barcode: 'AUD-00203',
+    price: 14800,
+    originalPrice: 17500,
     hasDiscount: true,
-    discountPercent: 20,
-    offerBadge: 'وصل حديثاً',
-    categoryId: 3,
-    categoryName: 'أحذية وحقائب',
+    discountPercent: 15,
+    offerBadge: 'خصم حصري',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
     stockQty: 22,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: BACKPACK_PHOTO,
-    description: 'حقيبة عملية مبطنة لحماية أجهزة اللابتوب حتى 16 بوصة مع جيوب ذكية متعددة ومنفذ شحن مدمج.',
-    rating: 4.7,
-    reviewCount: 52,
+    imageUrl: '/assets/products/p-airpods-max.webp',
+    description: 'تجربة صوت محيطي سينمائي مع إلغاء ضوضاء نشط رائد في فئته ووسائد أذن شبكية مريحة طوال اليوم.',
+    rating: 4.9,
+    reviewCount: 312,
   },
   {
-    id: 107,
-    name: 'نظارة شمسية كلاسيكية مستقطبة UV400',
-    barcode: 'ACC-00107',
-    price: 340,
-    originalPrice: 450,
+    id: 204,
+    name: 'عطر Dior J\'adore Eau De Parfum الذهبي 100 مل',
+    barcode: 'PRF-00204',
+    price: 2450,
+    originalPrice: 3100,
+    hasDiscount: true,
+    discountPercent: 21,
+    offerBadge: 'عرض حصري',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 36,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-perfume-jadore.webp',
+    description: 'أيقونة العطور الزهرية الفاخرة بمزيج الإيلنغ والورد الدمشقي وياسمين غراس في زجاجة ذهبية ساحرة.',
+    rating: 5.0,
+    reviewCount: 275,
+  },
+  {
+    id: 205,
+    name: 'حذاء جري Puma Future Rider متعدد الألوان',
+    barcode: 'SHO-00205',
+    price: 1650,
+    originalPrice: 2100,
+    hasDiscount: true,
+    discountPercent: 21,
+    offerBadge: 'تخفيضات اليوم',
+    categoryId: 5,
+    categoryName: 'الأحذية الرياضية والكاجوال',
+    stockQty: 32,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-puma-rider.webp',
+    description: 'تصميم ريترو عصري بألوان نابضة بالحياة ونعل Federbein الماص للصدمات لراحة استثنائية أثناء المشي والجري.',
+    rating: 4.8,
+    reviewCount: 149,
+    variants: [
+      { name: 'مقاس 41', price: 1650 },
+      { name: 'مقاس 42', price: 1650 },
+      { name: 'مقاس 43', price: 1650 },
+      { name: 'مقاس 44', price: 1650 },
+    ],
+  },
+  {
+    id: 206,
+    name: 'حقيبة يد نسائية Prada جلد طبيعي فاخرة',
+    barcode: 'BAG-00206',
+    price: 1890,
+    originalPrice: 2400,
+    hasDiscount: true,
+    discountPercent: 21,
+    offerBadge: 'الأكثر مبيعاً',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 16,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-bag-prada.webp',
+    description: 'حقيبة يد أنيقة بتصميم كلاسيكي راقٍ من الجلد المعالج المقاوم للخدش مع حمالة كتف قابلة للتعديل.',
+    rating: 4.9,
+    reviewCount: 128,
+  },
+  {
+    id: 207,
+    name: 'قميص كاجوال كاروهات أزرق وأسود قطن بريميوم',
+    barcode: 'MEN-00207',
+    price: 590,
+    originalPrice: 780,
     hasDiscount: true,
     discountPercent: 24,
-    offerBadge: 'خصم 24%',
-    categoryId: 5,
-    categoryName: 'ساعات وإكسسوارات',
+    offerBadge: 'مختاراتنا',
+    categoryId: 7,
+    categoryName: 'الأزياء والملابس الرجالية',
+    stockQty: 48,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-shirt-blue-check.webp',
+    description: 'قميص رجالي عصري بنقشة كاروهات كلاسيكية من القطن الصافي المريح، مثالي للإطلالات اليومية والعمل.',
+    rating: 4.8,
+    reviewCount: 94,
+    variants: [
+      { name: 'مقاس M', price: 590 },
+      { name: 'مقاس L', price: 590 },
+      { name: 'مقاس XL', price: 590 },
+      { name: 'مقاس XXL', price: 620 },
+    ],
+  },
+
+  // ============================================================================
+  // CATEGORY 1: اللابتوب والتابلت (7 Total Products)
+  // ============================================================================
+  {
+    id: 1101,
+    name: 'لابتوب Apple MacBook Pro 14 شريحة M3 Pro',
+    barcode: 'LAP-01101',
+    price: 54900,
+    originalPrice: 59500,
+    hasDiscount: true,
+    discountPercent: 8,
+    offerBadge: 'ضمان أبل الرسمي',
+    categoryId: 1,
+    categoryName: 'اللابتوب والتابلت',
+    stockQty: 11,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-macbook.webp',
+    description: 'شاشة Liquid Retina XDR مذهلة مع عمر بطارية يصل إلى 18 ساعة وأداء فائق للمحترفين والبرمجة.',
+    rating: 5.0,
+    reviewCount: 340,
+  },
+  {
+    id: 1102,
+    name: 'لابتوب Huawei MateBook X Pro الفائق النحافة',
+    barcode: 'LAP-01102',
+    price: 34200,
+    originalPrice: 38000,
+    hasDiscount: true,
+    discountPercent: 10,
+    offerBadge: 'خصم 10%',
+    categoryId: 1,
+    categoryName: 'اللابتوب والتابلت',
+    stockQty: 15,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-matebook.webp',
+    description: 'هيكل معدني فائق الخفة بوزن 1.26 كجم وشاشة لمس FullView بلا حواف بدقة 3K.',
+    rating: 4.8,
+    reviewCount: 112,
+  },
+  {
+    id: 1103,
+    name: 'لابتوب Dell XPS 13 9300 بشاشة InfinityEdge',
+    barcode: 'LAP-01103',
+    price: 36800,
+    originalPrice: 41500,
+    hasDiscount: true,
+    discountPercent: 11,
+    offerBadge: 'الأكثر عملية',
+    categoryId: 1,
+    categoryName: 'اللابتوب والتابلت',
+    stockQty: 9,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-dell-xps.webp',
+    description: 'تصميم مدمج من الألومنيوم المصقول وألياف الكربون مع معالج Intel Core i7 الجيل الأحدث.',
+    rating: 4.9,
+    reviewCount: 156,
+  },
+  {
+    id: 1104,
+    name: 'لابتوب Lenovo Yoga 920 القابل للطي 360 درجة',
+    barcode: 'LAP-01104',
+    price: 29500,
+    originalPrice: 33900,
+    hasDiscount: true,
+    discountPercent: 13,
+    offerBadge: '2 في 1 باللمس',
+    categoryId: 1,
+    categoryName: 'اللابتوب والتابلت',
+    stockQty: 18,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-lenovo-yoga.webp',
+    description: 'يتحول من لابتوب إلى تابلت بمرونة كاملة بفضل مفصلات السوار المعدني ودعم القلم الرقمي الذكي.',
+    rating: 4.7,
+    reviewCount: 89,
+  },
+  {
+    id: 1105,
+    name: 'تابلت Apple iPad Mini 6 نسخة Starlight',
+    barcode: 'TAB-01105',
+    price: 18900,
+    originalPrice: 21500,
+    hasDiscount: true,
+    discountPercent: 12,
+    offerBadge: 'حجم مثالي',
+    categoryId: 1,
+    categoryName: 'اللابتوب والتابلت',
+    stockQty: 25,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-ipad-mini.webp',
+    description: 'شاشة Liquid Retina مقاس 8.3 بوصة مع شريحة A15 Bionic ودعم الجيل الثاني من قلم Apple Pencil.',
+    rating: 4.9,
+    reviewCount: 204,
+  },
+  {
+    id: 1106,
+    name: 'تابلت Samsung Galaxy Tab S8 Plus مع قلم S-Pen',
+    barcode: 'TAB-01106',
+    price: 26400,
+    originalPrice: 29900,
+    hasDiscount: true,
+    discountPercent: 12,
+    offerBadge: 'شاشة Super AMOLED',
+    categoryId: 1,
+    categoryName: 'اللابتوب والتابلت',
+    stockQty: 14,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-galaxy-tab-s8.webp',
+    description: 'شاشة 12.4 بوصة بتردد 120Hz مع قلم S-Pen مرفق للرسم وتدوين الملاحظات بأقل زمن استجابة.',
+    rating: 4.8,
+    reviewCount: 143,
+  },
+
+  // ============================================================================
+  // CATEGORY 2: الهواتف والصوتيات الذكية (10 Total Products)
+  // ============================================================================
+  {
+    id: 1201,
+    name: 'هاتف Apple iPhone 13 Pro أزرق سييرا 256GB',
+    barcode: 'PHN-01201',
+    price: 32900,
+    originalPrice: 36500,
+    hasDiscount: true,
+    discountPercent: 10,
+    offerBadge: 'الأكثر طلباً',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 20,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-iphone-13-pro.webp',
+    description: 'نظام كاميرات Pro ثلاثي متطور مع شاشة Super Retina XDR بتقنية ProMotion 120Hz وهيكل فولاذي.',
+    rating: 5.0,
+    reviewCount: 412,
+  },
+  {
+    id: 1202,
+    name: 'هاتف Samsung Galaxy S10 شاشة Dynamic AMOLED',
+    barcode: 'PHN-01202',
+    price: 14900,
+    originalPrice: 17500,
+    hasDiscount: true,
+    discountPercent: 15,
+    offerBadge: 'خصم 15%',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 17,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-galaxy-s10.webp',
+    description: 'شاشة Infinity-O منحنية الأطراف مع بصمة ألتراسونيك مدمجة بالشاشة وثلاث كاميرات احترافية.',
+    rating: 4.8,
+    reviewCount: 188,
+  },
+  {
+    id: 1203,
+    name: 'هاتف Apple iPhone X شاشة OLED سعة 256GB',
+    barcode: 'PHN-01203',
+    price: 13800,
+    originalPrice: 15900,
+    hasDiscount: true,
+    discountPercent: 13,
+    offerBadge: 'سعر ممتاز',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 12,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-iphone-x.webp',
+    description: 'تصميم زجاجي كامل مع تقنية التعرف على الوجه Face ID وشحن لاسلكي سريع.',
+    rating: 4.8,
+    reviewCount: 165,
+  },
+  {
+    id: 1204,
+    name: 'هاتف Oppo F19 Pro Plus 5G شحن فائق السرعة',
+    barcode: 'PHN-01204',
+    price: 9850,
+    originalPrice: 11400,
+    hasDiscount: true,
+    discountPercent: 14,
+    offerBadge: 'يدعم 5G',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 29,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-oppo-f19.webp',
+    description: 'تصوير بورتريه ليلي بالذكاء الاصطناعي مع شاحن Flash Charge بقوة 50 واط يشحن في دقائق.',
+    rating: 4.7,
+    reviewCount: 98,
+  },
+  {
+    id: 1205,
+    name: 'هاتف Realme XT رباعي الكاميرا بدقة 64 ميجابكسل',
+    barcode: 'PHN-01205',
+    price: 8400,
+    originalPrice: 9900,
+    hasDiscount: true,
+    discountPercent: 15,
+    offerBadge: 'قيمة مقابل سعر',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 34,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-realme-xt.webp',
+    description: 'كاميرا 64MP فائقة التفاصيل مع شاشة Super AMOLED وبصمة سريعة مدمجة.',
+    rating: 4.7,
+    reviewCount: 121,
+  },
+  {
+    id: 1206,
+    name: 'سماعات Apple AirPods الجيل الثالث بالشاحن اللاسلكي',
+    barcode: 'AUD-01206',
+    price: 5900,
+    originalPrice: 6800,
+    hasDiscount: true,
+    discountPercent: 13,
+    offerBadge: 'أصلي 100%',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 42,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-airpods.webp',
+    description: 'صوت مكاني مخصص مع تتبع ديناميكي للرأس ومقاومة للعرق والماء.',
+    rating: 4.9,
+    reviewCount: 280,
+  },
+  {
+    id: 1207,
+    name: 'مكبر صوت ذكي Apple HomePod Mini رمادي فلكي',
+    barcode: 'AUD-01207',
+    price: 4250,
+    originalPrice: 4950,
+    hasDiscount: true,
+    discountPercent: 14,
+    offerBadge: 'صوت 360°',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 19,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-homepod-mini.webp',
+    description: 'صوت غني يملأ الغرفة بالكامل في حجم مدمج أنيق مع تحكم ذكي بالمنزل.',
+    rating: 4.8,
+    reviewCount: 74,
+  },
+  {
+    id: 1208,
+    name: 'بطارية شحن لاسلكي Apple MagSafe Battery Pack',
+    barcode: 'ACC-01208',
+    price: 3100,
+    originalPrice: 3750,
+    hasDiscount: true,
+    discountPercent: 17,
+    offerBadge: 'تثبيت مغناطيسي',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 31,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-magsafe-pack.webp',
+    description: 'شحن لاسلكي فوري بمجرد التثبيت المغناطيسي خلف أجهزة آيفون بدون أي كابلات.',
+    rating: 4.8,
+    reviewCount: 119,
+  },
+  {
+    id: 1209,
+    name: 'سماعة رياضية لاسلكية Beats Flex بشريحة Apple W1',
+    barcode: 'AUD-01209',
+    price: 2350,
+    originalPrice: 2800,
+    hasDiscount: true,
+    discountPercent: 16,
+    offerBadge: 'بطارية 12 ساعة',
+    categoryId: 2,
+    categoryName: 'الهواتف والصوتيات الذكية',
+    stockQty: 27,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-beats-flex.webp',
+    description: 'سماعات أذن مغناطيسية مرنة بتشغيل وإيقاف تلقائي مثالية للجيم والحركة اليومية.',
+    rating: 4.7,
+    reviewCount: 83,
+  },
+
+  // ============================================================================
+  // CATEGORY 3: الساعات الفاخرة والذكية (8 Total Products)
+  // ============================================================================
+  {
+    id: 1301,
+    name: 'ساعة Rolex Datejust أوتوماتيك ثنائية اللون',
+    barcode: 'WCH-01301',
+    price: 5900,
+    originalPrice: 7200,
+    hasDiscount: true,
+    discountPercent: 18,
+    offerBadge: 'تصميم ملكي',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 14,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-watch-rolex-datejust.webp',
+    description: 'ساعة كلاسيكية فاخرة بسوار جوبيلي الشهير وعدسة سايكلوبس مكبرة للتاريخ.',
+    rating: 5.0,
+    reviewCount: 195,
+  },
+  {
+    id: 1302,
+    name: 'ساعة Rolex Cellini Moonphase الذهبية بسوار جلد',
+    barcode: 'WCH-01302',
+    price: 5400,
+    originalPrice: 6600,
+    hasDiscount: true,
+    discountPercent: 18,
+    offerBadge: 'إصدار نادر',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 10,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-watch-rolex-moon.webp',
+    description: 'تحفة فنية بمؤشر أطوار القمر الفلكي وإطار ذهبي مصقول مع سوار جلد طبيعي فاخر.',
+    rating: 4.9,
+    reviewCount: 132,
+  },
+  {
+    id: 1303,
+    name: 'ساعة Rolex Cellini Date مينا أسود كلاسيك',
+    barcode: 'WCH-01303',
+    price: 4950,
+    originalPrice: 5900,
+    hasDiscount: true,
+    discountPercent: 16,
+    offerBadge: 'فخامة رسمية',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 16,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-watch-rolex-black.webp',
+    description: 'مينا أسود محفور بأشعة الشمس مع عقارب ذهبية وسوار جلد تمساح أسود أصلي.',
+    rating: 4.9,
+    reviewCount: 118,
+  },
+  {
+    id: 1304,
+    name: 'ساعة سويسرية Longines Master Collection كرونوغراف',
+    barcode: 'WCH-01304',
+    price: 3800,
+    originalPrice: 4500,
+    hasDiscount: true,
+    discountPercent: 16,
+    offerBadge: 'صناعة سويسرية',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 21,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-watch-longines.webp',
+    description: 'عقارب زرقاء كلاسيكية ومينا منقوش بحبيبات الشعير مع حركة أوتوماتيكية دقيقة.',
+    rating: 4.8,
+    reviewCount: 94,
+  },
+  {
+    id: 1305,
+    name: 'ساعة IWC Ingenieur أوتوماتيك فولاذ مقاوم للصدأ',
+    barcode: 'WCH-01305',
+    price: 4100,
+    originalPrice: 4900,
+    hasDiscount: true,
+    discountPercent: 16,
+    offerBadge: 'خصم 16%',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 13,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-watch-iwc.webp',
+    description: 'تصميم هندسي رياضي فاخر من الفولاذ المصقول مقاوم للمجالات المغناطيسية والماء.',
+    rating: 4.8,
+    reviewCount: 77,
+  },
+  {
+    id: 1306,
+    name: 'ساعة Apple Watch Series الذهبية بسوار ميلانيز',
+    barcode: 'WCH-01306',
+    price: 8900,
+    originalPrice: 10500,
+    hasDiscount: true,
+    discountPercent: 15,
+    offerBadge: 'سوار شبكي ذهبي',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 18,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-apple-watch-gold.webp',
+    description: 'تجمع بين الأناقة الكلاسيكية والتقنية الذكية لمتابعة نبضات القلب واللياقة والإشعارات.',
+    rating: 4.9,
+    reviewCount: 208,
+  },
+  {
+    id: 1307,
+    name: 'ساعة كاجوال بسوار جلد طبيعي بني كلاسيكي',
+    barcode: 'WCH-01307',
+    price: 1290,
+    originalPrice: 1650,
+    hasDiscount: true,
+    discountPercent: 22,
+    offerBadge: 'خصم 22%',
+    categoryId: 3,
+    categoryName: 'الساعات الفاخرة والذكية',
+    stockQty: 40,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-watch-brown.webp',
+    description: 'ساعة يومية أنيقة بسوار جلد بني ناعم ومينا واضح مقاوم للخدش.',
+    rating: 4.7,
+    reviewCount: 86,
+  },
+
+  // ============================================================================
+  // CATEGORY 4: العطور ومستحضرات التجميل (9 Total Products)
+  // ============================================================================
+  {
+    id: 1401,
+    name: 'عطر Chanel Coco Noir Eau De Parfum الأصلي 100 مل',
+    barcode: 'PRF-01401',
+    price: 2680,
+    originalPrice: 3300,
+    hasDiscount: true,
+    discountPercent: 19,
+    offerBadge: 'الأكثر مبيعاً',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 28,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-perfume-coco.webp',
+    description: 'عطر شرقي ساحر بزجاجة سوداء ملكية يجمع بين البرغموت والورد والباتشولي وخشب الصندل.',
+    rating: 5.0,
+    reviewCount: 310,
+  },
+  {
+    id: 1402,
+    name: 'عطر Dolce & Gabbana Shine أو دو بارفان 75 مل',
+    barcode: 'PRF-01402',
+    price: 1950,
+    originalPrice: 2450,
+    hasDiscount: true,
+    discountPercent: 20,
+    offerBadge: 'خصم 20%',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 24,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-perfume-dolce.webp',
+    description: 'إشراقة مشمسة من المانجو والجريب فروت وزهر البرتقال بلمسة إيطالية منعشة.',
+    rating: 4.9,
+    reviewCount: 142,
+  },
+  {
+    id: 1403,
+    name: 'عطر Gucci Bloom الزهري المركز 100 مل',
+    barcode: 'PRF-01403',
+    price: 2150,
+    originalPrice: 2700,
+    hasDiscount: true,
+    discountPercent: 20,
+    offerBadge: 'ثبات 48 ساعة',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 30,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-perfume-gucci.webp',
+    description: 'باقة غنية من مسك الروم الطبيعي وبراعم الياسمين تمنحك عبير حديقة مزهرة طوال اليوم.',
+    rating: 4.8,
+    reviewCount: 176,
+  },
+  {
+    id: 1404,
+    name: 'عطر Calvin Klein CK One الكلاسيكي المنعش 100 مل',
+    barcode: 'PRF-01404',
+    price: 1350,
+    originalPrice: 1750,
+    hasDiscount: true,
+    discountPercent: 23,
+    offerBadge: 'منعش يومي',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 45,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-perfume-ck.webp',
+    description: 'نغمات الشاي الأخضر والبرغموت والهيل مع المسك النقي، مناسب للرجال والنساء.',
+    rating: 4.8,
+    reviewCount: 220,
+  },
+  {
+    id: 1405,
+    name: 'باليت ظلال عيون احترافية 12 لون مع مرآة مدمجة',
+    barcode: 'BTY-01405',
+    price: 540,
+    originalPrice: 720,
+    hasDiscount: true,
+    discountPercent: 25,
+    offerBadge: 'خصم 25%',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
     stockQty: 50,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: SUNGLASSES_PHOTO,
-    description: 'عدسات مستقطبة عالية الدقة لحماية العين من الأشعة فوق البنفسجية بإطار معدني مذهب خفيف الوزن.',
-    rating: 4.8,
-    reviewCount: 47,
+    imageUrl: '/assets/products/p-beauty-palette.webp',
+    description: 'درجات مخملية ولامعة عالية الصبغة سهلة الدمج وتدوم طوال اليوم دون تكتل.',
+    rating: 4.9,
+    reviewCount: 164,
   },
   {
-    id: 108,
-    name: 'جاكيت شتوي كاجوال مبطن ضد المطر',
-    barcode: 'FASH-00108',
-    price: 1150,
-    originalPrice: 1450,
+    id: 1406,
+    name: 'ماسكارا Essence Lash Princess لتكثيف وإطالة الرموش',
+    barcode: 'BTY-01406',
+    price: 290,
+    originalPrice: 380,
+    hasDiscount: true,
+    discountPercent: 24,
+    offerBadge: 'الأعلى تقييماً',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 65,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-beauty-mascara.webp',
+    description: 'فرشاة مخروطية مصممة لمنح الرموش كثافة درامية وطولاً فورياً من أول لمسة.',
+    rating: 4.9,
+    reviewCount: 390,
+  },
+  {
+    id: 1407,
+    name: 'أحمر شفاه مات مخملي طويل الثبات بدرجة الياقوت',
+    barcode: 'BTY-01407',
+    price: 340,
+    originalPrice: 440,
+    hasDiscount: true,
+    discountPercent: 23,
+    offerBadge: 'غني بفيتامين E',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 48,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-beauty-lipstick.webp',
+    description: 'تركيبة كريمية مرطبة تمنح شفتيك لوناً غنياً وثباتاً يدوم حتى 12 ساعة.',
+    rating: 4.8,
+    reviewCount: 112,
+  },
+  {
+    id: 1408,
+    name: 'غسول جسم Olay بزبدة الشيا للترطيب العميق 500 مل',
+    barcode: 'BTY-01408',
+    price: 380,
+    originalPrice: 480,
+    hasDiscount: true,
+    discountPercent: 21,
+    offerBadge: 'عناية فائقة',
+    categoryId: 4,
+    categoryName: 'العطور ومستحضرات التجميل',
+    stockQty: 55,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-bodywash-olay.webp',
+    description: 'غني بزبدة الشيا الطبيعية وفيتامين B3 لترطيب البشرة ومنحها نعومة الحرير.',
+    rating: 4.9,
+    reviewCount: 148,
+  },
+
+  // ============================================================================
+  // CATEGORY 5: الأحذية الرياضية والكاجوال (7 Total Products)
+  // ============================================================================
+  {
+    id: 1501,
+    name: 'حذاء رياضي Nike Air Jordan 1 أحمر وأسود الأصلي',
+    barcode: 'SHO-01501',
+    price: 2150,
+    originalPrice: 2650,
+    hasDiscount: true,
+    discountPercent: 19,
+    offerBadge: 'إصدار أيقوني',
+    categoryId: 5,
+    categoryName: 'الأحذية الرياضية والكاجوال',
+    stockQty: 22,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-jordan-1.webp',
+    description: 'حذاء كرة السلة والستريت وير الأشهر عالمياً بخامات جلد طبيعي وتوسيد Air المريح.',
+    rating: 5.0,
+    reviewCount: 345,
+    variants: [
+      { name: 'مقاس 41', price: 2150 },
+      { name: 'مقاس 42', price: 2150 },
+      { name: 'مقاس 43', price: 2150 },
+      { name: 'مقاس 44', price: 2150 },
+      { name: 'مقاس 45', price: 2150 },
+    ],
+  },
+  {
+    id: 1502,
+    name: 'سنيكرز رياضي Off-White & Red نعل طبي مريح',
+    barcode: 'SHO-01502',
+    price: 1380,
+    originalPrice: 1750,
     hasDiscount: true,
     discountPercent: 21,
     offerBadge: 'خصم 21%',
-    categoryId: 1,
-    categoryName: 'أزياء وملابس',
-    stockQty: 5,
+    categoryId: 5,
+    categoryName: 'الأحذية الرياضية والكاجوال',
+    stockQty: 30,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: JACKET_PHOTO,
-    description: 'جاكيت حراري دافئ بخامات معالجة مقاومة للماء والرياح لإطلالة شتوية عصرية وفخمة.',
+    imageUrl: '/assets/products/p-sneaker-offwhite-red.webp',
+    description: 'تصميم عصري يجمع اللون الأبيض الكريمي مع لمسات حمراء جريئة ونعل مرن مضاد للانزلاق.',
+    rating: 4.8,
+    reviewCount: 127,
+  },
+  {
+    id: 1503,
+    name: 'حذاء رياضي أبيض كاجوال بخطوط حمراء كلاسيكية',
+    barcode: 'SHO-01503',
+    price: 1250,
+    originalPrice: 1550,
+    hasDiscount: true,
+    discountPercent: 19,
+    offerBadge: 'مريح للمشي',
+    categoryId: 5,
+    categoryName: 'الأحذية الرياضية والكاجوال',
+    stockQty: 35,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-sneaker-offwhite.webp',
+    description: 'شبكة تهوية مسامية تمنع التعرق مع نعل فوم خفيف الوزن للاستخدام اليومي الطويل.',
+    rating: 4.8,
+    reviewCount: 96,
+  },
+  {
+    id: 1504,
+    name: 'حذاء رياضي احترافي Nike Pro للملاعب والتمارين',
+    barcode: 'SHO-01504',
+    price: 1790,
+    originalPrice: 2200,
+    hasDiscount: true,
+    discountPercent: 19,
+    offerBadge: 'ثبات فائق',
+    categoryId: 5,
+    categoryName: 'الأحذية الرياضية والكاجوال',
+    stockQty: 18,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-cleats-nike.webp',
+    description: 'مصمم لمنحك أقصى ثبات وانطلاقة سريعة بفضل تصميم النعل الهندسي ودعم الكاحل.',
     rating: 4.9,
-    reviewCount: 89,
+    reviewCount: 114,
+  },
+  {
+    id: 1505,
+    name: 'حذاء جري خفيف ومقاوم للصدمات كاجوال',
+    barcode: 'SHO-01505',
+    price: 980,
+    originalPrice: 1250,
+    hasDiscount: true,
+    discountPercent: 22,
+    offerBadge: 'الأكثر مبيعاً',
+    categoryId: 5,
+    categoryName: 'الأحذية الرياضية والكاجوال',
+    stockQty: 42,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/sneaker.png',
+    description: 'نعل ديناميكي مرن يمتص الصدمات ويوفر راحة فائقة للقدمين طوال ساعات اليوم.',
+    rating: 4.9,
+    reviewCount: 210,
+  },
+  {
+    id: 1506,
+    name: 'حذاء مشي رياضي ألترا فوم مزدوج التهوية',
+    barcode: 'SHO-01506',
+    price: 1120,
+    originalPrice: 1400,
+    hasDiscount: true,
+    discountPercent: 20,
+    offerBadge: 'وصل حديثاً',
+    categoryId: 5,
+    categoryName: 'الأحذية الرياضية والكاجوال',
+    stockQty: 26,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/sneaker-2.png',
+    description: 'خفيف الوزن بتصميم مريح يناسب الجيم والمشاوير اليومية السريعة.',
+    rating: 4.7,
+    reviewCount: 78,
+  },
+
+  // ============================================================================
+  // CATEGORY 6: الحقائب والنظارات الشمسية (8 Total Products)
+  // ============================================================================
+  {
+    id: 1601,
+    name: 'حقيبة كتف جلد طبيعي Heshe كافيه أنيقة',
+    barcode: 'BAG-01601',
+    price: 1450,
+    originalPrice: 1850,
+    hasDiscount: true,
+    discountPercent: 22,
+    offerBadge: 'جلد طبيعي',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 20,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-bag-leather.webp',
+    description: 'حقيبة نسائية فاخرة من الجلد البقري الطبيعي بتقسيم داخلي واسع وإكسسوارات ذهبية.',
+    rating: 4.9,
+    reviewCount: 154,
+  },
+  {
+    id: 1602,
+    name: 'حقيبة يد نسائية عصرية باللون الأزرق الملكي',
+    barcode: 'BAG-01602',
+    price: 1190,
+    originalPrice: 1500,
+    hasDiscount: true,
+    discountPercent: 21,
+    offerBadge: 'تصميم راقٍ',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 24,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-bag-blue.webp',
+    description: 'تصميم عصري أنيق يضفي لمسة فخامة على إطلالتك مع قفل معدني محكم.',
+    rating: 4.8,
+    reviewCount: 92,
+  },
+  {
+    id: 1603,
+    name: 'حقيبة ظهر جلدية بيضاء عصرية للابتوب والخروج',
+    barcode: 'BAG-01603',
+    price: 980,
+    originalPrice: 1280,
+    hasDiscount: true,
+    discountPercent: 23,
+    offerBadge: 'مضادة للماء',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 31,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-backpack-white.webp',
+    description: 'حقيبة ظهر أنيقة مبطنة من الداخل لحماية الأجهزة اللوحية واللابتوب مع جيوب متعددة.',
+    rating: 4.9,
+    reviewCount: 138,
+  },
+  {
+    id: 1604,
+    name: 'حقيبة يد كلاسيكية سوداء بمقابض مزدوجة',
+    barcode: 'BAG-01604',
+    price: 1290,
+    originalPrice: 1650,
+    hasDiscount: true,
+    discountPercent: 22,
+    offerBadge: 'خصم 22%',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 19,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-bag-black.webp',
+    description: 'الحقيبة السوداء الأساسية لكل مناسبة، مساحة داخلية منظمة وخامة متينة تدوم طويلاً.',
+    rating: 4.8,
+    reviewCount: 109,
+  },
+  {
+    id: 1605,
+    name: 'نظارة شمسية كلاسيكية مستقطبة UV400 بإطار ذهبي',
+    barcode: 'SUN-01605',
+    price: 580,
+    originalPrice: 780,
+    hasDiscount: true,
+    discountPercent: 26,
+    offerBadge: 'عدسات Polarized',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 45,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-sunglasses-classic.webp',
+    description: 'عدسات مستقطبة تمنع التوهج وتحمي العين بنسبة 100% من الأشعة فوق البنفسجية.',
+    rating: 4.9,
+    reviewCount: 175,
+  },
+  {
+    id: 1606,
+    name: 'نظارة شمسية سوداء فاخرة بحماية كاملة UV400',
+    barcode: 'SUN-01606',
+    price: 620,
+    originalPrice: 820,
+    hasDiscount: true,
+    discountPercent: 24,
+    offerBadge: 'خصم 24%',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 38,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-sunglasses-black.webp',
+    description: 'إطار أسود أنيق خفيف الوزن يناسب جميع أشكال الوجه مع جراب جلدي فاخر.',
+    rating: 4.8,
+    reviewCount: 94,
+  },
+  {
+    id: 1607,
+    name: 'نظارة شمسية رياضية بإطار أخضر وأسود عصري',
+    barcode: 'SUN-01607',
+    price: 490,
+    originalPrice: 650,
+    hasDiscount: true,
+    discountPercent: 25,
+    offerBadge: 'للقيادة والسفر',
+    categoryId: 6,
+    categoryName: 'الحقائب والنظارات الشمسية',
+    stockQty: 52,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-sunglasses-green.webp',
+    description: 'رؤية فائقة الوضوح تحت أشعة الشمس القوية مع وسائد أنف مريحة وثابتة.',
+    rating: 4.7,
+    reviewCount: 68,
+  },
+
+  // ============================================================================
+  // CATEGORY 7: الأزياء والملابس الرجالية (6 Total Products)
+  // ============================================================================
+  {
+    id: 1701,
+    name: 'تيشيرت رياضي أسود مطبوع Aorus قطن 100%',
+    barcode: 'MEN-01701',
+    price: 420,
+    originalPrice: 550,
+    hasDiscount: true,
+    discountPercent: 24,
+    offerBadge: 'قطن ممتاز',
+    categoryId: 7,
+    categoryName: 'الأزياء والملابس الرجالية',
+    stockQty: 60,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-tshirt-aorus.webp',
+    description: 'تيشيرت شبابي من القطن المصري المعالج ضد الانكماش بطباعة حرارية عالية الثبات.',
+    rating: 4.9,
+    reviewCount: 182,
     variants: [
-      { name: 'كحلي كلاسيكي - L', price: 1150 },
-      { name: 'كحلي كلاسيكي - XL', price: 1150 },
-      { name: 'أسود مطفي - L', price: 1150 },
+      { name: 'مقاس M', price: 420 },
+      { name: 'مقاس L', price: 420 },
+      { name: 'مقاس XL', price: 420 },
     ],
+  },
+  {
+    id: 1702,
+    name: 'قميص كلاسيكي مربعات بأكمام طويلة وقصة مريحة',
+    barcode: 'MEN-01702',
+    price: 640,
+    originalPrice: 820,
+    hasDiscount: true,
+    discountPercent: 22,
+    offerBadge: 'خصم 22%',
+    categoryId: 7,
+    categoryName: 'الأزياء والملابس الرجالية',
+    stockQty: 38,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-shirt-plaid.webp',
+    description: 'قصة Regular Fit مريحة بأزرار متينة وخامة ناعمة على البشرة طوال فصول السنة.',
+    rating: 4.8,
+    reviewCount: 115,
+  },
+  {
+    id: 1703,
+    name: 'قميص صيفي كتان بأكمام قصيرة أزرق سماوي',
+    barcode: 'MEN-01703',
+    price: 520,
+    originalPrice: 680,
+    hasDiscount: true,
+    discountPercent: 24,
+    offerBadge: 'مناسب للصيف',
+    categoryId: 7,
+    categoryName: 'الأزياء والملابس الرجالية',
+    stockQty: 44,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-shirt-short.webp',
+    description: 'خامة كتان مهواة تمنحك انتعاشاً وأناقة كاجوال في الأيام المشمسة والعطلات.',
+    rating: 4.8,
+    reviewCount: 97,
+  },
+  {
+    id: 1704,
+    name: 'قميص كاجوال كاروهات أحمر وكحلي فاخر',
+    barcode: 'MEN-01704',
+    price: 610,
+    originalPrice: 790,
+    hasDiscount: true,
+    discountPercent: 23,
+    offerBadge: 'خياطة متقنة',
+    categoryId: 7,
+    categoryName: 'الأزياء والملابس الرجالية',
+    stockQty: 33,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-shirt-check.webp',
+    description: 'نسيج قطني مزدوج يحافظ على رونقه وألوانه الزاهية بعد الغسيل المتكرر.',
+    rating: 4.9,
+    reviewCount: 134,
+  },
+  {
+    id: 1705,
+    name: 'جاكيت شتوي كاجوال مبطن مقاوم للمطر والرياح',
+    barcode: 'MEN-01705',
+    price: 1350,
+    originalPrice: 1750,
+    hasDiscount: true,
+    discountPercent: 23,
+    offerBadge: 'تبطين حراري',
+    categoryId: 7,
+    categoryName: 'الأزياء والملابس الرجالية',
+    stockQty: 15,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/jacket.png',
+    description: 'جاكيت شتوي دافئ بطبقة خارجية عازلة للمياه وجيوب بسحابات محكمة.',
+    rating: 4.9,
+    reviewCount: 160,
+  },
+
+  // ============================================================================
+  // CATEGORY 8: الأزياء والملابس النسائية (6 Total Products)
+  // ============================================================================
+  {
+    id: 1801,
+    name: 'طقم كلاسيكي Marni أحمر وأسود بتصميم إيطالي',
+    barcode: 'WOM-01801',
+    price: 1850,
+    originalPrice: 2350,
+    hasDiscount: true,
+    discountPercent: 21,
+    offerBadge: 'تصميم إيطالي',
+    categoryId: 8,
+    categoryName: 'الأزياء والملابس النسائية',
+    stockQty: 18,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-suit-marni.webp',
+    description: 'طقم نسائي راقٍ بقصة احترافية متقنة يمنحك حضوراً مميزاً في المناسبات الرسمية.',
+    rating: 5.0,
+    reviewCount: 142,
+  },
+  {
+    id: 1802,
+    name: 'فستان سهرة كاجوال أزرق سماوي بقصة انسيابية',
+    barcode: 'WOM-01802',
+    price: 1150,
+    originalPrice: 1480,
+    hasDiscount: true,
+    discountPercent: 22,
+    offerBadge: 'الأكثر أناقة',
+    categoryId: 8,
+    categoryName: 'الأزياء والملابس النسائية',
+    stockQty: 25,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-dress-blue.webp',
+    description: 'قماش ناعم منسدل بلون أزرق هادئ وتفاصيل خصر أنيقة تناسب الخروجات والسهرات.',
+    rating: 4.9,
+    reviewCount: 118,
+  },
+  {
+    id: 1803,
+    name: 'فستان كاجوال رمادي ناعم لإطلالة يومية راقية',
+    barcode: 'WOM-01803',
+    price: 920,
+    originalPrice: 1200,
+    hasDiscount: true,
+    discountPercent: 23,
+    offerBadge: 'خصم 23%',
+    categoryId: 8,
+    categoryName: 'الأزياء والملابس النسائية',
+    stockQty: 30,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-dress-gray.webp',
+    description: 'تصميم مريح وعصري بخامة قطنية مرنة عالية الجودة تناسب كافة الأوقات.',
+    rating: 4.8,
+    reviewCount: 95,
+  },
+  {
+    id: 1804,
+    name: 'فستان كاروهات كلاسيكي بياقة بيضاء أنيقة',
+    barcode: 'WOM-01804',
+    price: 1080,
+    originalPrice: 1390,
+    hasDiscount: true,
+    discountPercent: 22,
+    offerBadge: 'وصل حديثاً',
+    categoryId: 8,
+    categoryName: 'الأزياء والملابس النسائية',
+    stockQty: 22,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-dress-tartan.webp',
+    description: 'إطلالة كلاسيكية مستوحاة من الأناقة الأوروبية مع ياقة بيضاء ناصعة وحزام خصر.',
+    rating: 4.9,
+    reviewCount: 88,
+  },
+  {
+    id: 1805,
+    name: 'حقيبة ظهر جلدية بيضاء + سكارف هدية مجانية',
+    barcode: 'WOM-01805',
+    price: 1050,
+    originalPrice: 1380,
+    hasDiscount: true,
+    discountPercent: 24,
+    offerBadge: 'عرض كومبو',
+    categoryId: 8,
+    categoryName: 'الأزياء والملابس النسائية',
+    stockQty: 19,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/p-backpack-white.webp',
+    description: 'باقة أناقة متكاملة للجامعة والعمل تجمع بين العملية والمظهر العصري الجذاب.',
+    rating: 4.8,
+    reviewCount: 76,
+  },
+  {
+    id: 1806,
+    name: 'قميص كتان نسائي كاجوال بطبعات صيفية مبهجة',
+    barcode: 'WOM-01806',
+    price: 540,
+    originalPrice: 720,
+    hasDiscount: true,
+    discountPercent: 25,
+    offerBadge: 'خصم 25%',
+    categoryId: 8,
+    categoryName: 'الأزياء والملابس النسائية',
+    stockQty: 40,
+    inStock: true,
+    icon: 'PackageIcon',
+    imageUrl: '/assets/products/shirt.png',
+    description: 'خامة خفيفة ومريحة بألوان حيوية تضيف إشراقة مميزة لإطلالتك النهارية.',
+    rating: 4.8,
+    reviewCount: 104,
   },
 ];
 

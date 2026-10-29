@@ -5,6 +5,7 @@ import { StorefrontShelfSection } from './StorefrontShelfSection';
 import { StorefrontMidBannerCard } from './StorefrontMidBannerCard';
 import { StorefrontAmazonVibrantSection } from './StorefrontAmazonVibrantSection';
 import { StorefrontShopByCategoryGrid } from './StorefrontShopByCategoryGrid';
+import { StorefrontFlashSaleCountdown } from './StorefrontFlashSaleCountdown';
 
 interface TopHomepageSection {
   categoryId: number;
@@ -177,9 +178,38 @@ export function StorefrontMultiRowHome({
                 onSelectDeals={onSelectDeals}
               />
             ))}
+
+            {/* Flash Sale Countdown Banner: breaks repetitive shelf stacking */}
+            {(idx === 1 || (topHomepageSections.length === 1 && idx === 0)) && (
+              <StorefrontFlashSaleCountdown
+                products={dealsProducts.length > 0 ? dealsProducts : allProducts}
+                cartMap={cartMap}
+                whatsappPhone={info.whatsappPhone}
+                favoriteIds={favoriteIds}
+                onAddToCart={onAddToCart}
+                onUpdateQuantity={onUpdateQuantity}
+                onQuickView={onQuickView}
+                onToggleFavorite={onToggleFavorite}
+                onSelectDeals={onSelectDeals}
+              />
+            )}
           </React.Fragment>
         );
       })}
+
+      {topHomepageSections.length === 0 && (
+        <StorefrontFlashSaleCountdown
+          products={dealsProducts.length > 0 ? dealsProducts : allProducts}
+          cartMap={cartMap}
+          whatsappPhone={info.whatsappPhone}
+          favoriteIds={favoriteIds}
+          onAddToCart={onAddToCart}
+          onUpdateQuantity={onUpdateQuantity}
+          onQuickView={onQuickView}
+          onToggleFavorite={onToggleFavorite}
+          onSelectDeals={onSelectDeals}
+        />
+      )}
 
 
       {/* Mid Banner Slot: Bottom */}
