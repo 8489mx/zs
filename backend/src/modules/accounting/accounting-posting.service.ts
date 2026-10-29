@@ -2493,7 +2493,8 @@ export class AccountingPostingService {
     const paymentAccountId = (settlement.payment_channel || 'cash') === 'cash' ? cashAccountId :
       await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: supplierPayableAccountId,
       description: 'سداد مستحقات مورد',
       debit: amount,
@@ -2503,7 +2504,7 @@ export class AccountingPostingService {
       branchId,
       locationId,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: paymentAccountId,
       description: (settlement.payment_channel || 'cash') === 'cash' ? 'خروج نقدية لسداد مورد' : 'سداد قسط مورد عبر البنك أو المدفوعات الإلكترونية',
       debit: 0,

@@ -42,7 +42,7 @@ export interface AllocatePaymentDto {
 }
 
 /** The API must not create an apparent invoice settlement without a funded voucher. */
-export function validatePaymentAllocationRequest(dto: AllocatePaymentDto, digits: MoneyDigits = 2): { totalAllocating: number; allocations: AllocateItemInput[] } {
+export function validatePaymentAllocationRequest(dto: AllocatePaymentDto, digits: MoneyDigits): { totalAllocating: number; allocations: AllocateItemInput[] } {
   if (!dto || !['customer', 'supplier'].includes(dto.partnerType) || !Number.isSafeInteger(dto.partnerId) || dto.partnerId <= 0) {
     throw new BadRequestException('Invalid payment partner');
   }

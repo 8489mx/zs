@@ -8,6 +8,8 @@ import { Database } from '../../../database/database.types';
 import { TransactionHelper } from '../../../database/helpers/transaction.helper';
 import { CreateSupplierPaymentScheduleDto, PaySupplierScheduleInstallmentDto } from '../dto/supplier-payment-schedule.dto';
 import { normalizeOptionalNote, normalizePurchaseScope } from '../helpers/purchases-write.helper';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits, roundMoney, toMinorUnits, type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import { PurchasesFinanceService } from './purchases-finance.service';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { IdempotencyService } from '../../../core/idempotency/idempotency.service';
@@ -74,13 +76,22 @@ export class SupplierPaymentSchedulesService {
     if (String(paymentType || '') !== 'credit') throw new AppError('Schedule is only available for credit purchases', 'PURCHASE_SCHEDULE_CREDIT_ONLY', 400);
   }
 
-  private roundCurrency(value: number): number {
-    return Number(Number(value || 0).toFixed(2));
+  private async getMoneyDigits(db: any, tenantId: string): Promise<MoneyDigits> {
+    try {
+      const curr = await tenantBaseCurrency(db, tenantId);
+      return currencyMoneyDigits(curr);
+    } catch {
+      return 2;
+    }
   }
 
-  private roundDownToStep(value: number, step: number): number {
+  private roundCurrency(value: number, digits: MoneyDigits = 2): number {
+    return roundMoney(Number(value || 0), digits);
+  }
+
+  private roundDownToStep(value: number, step: number, digits: MoneyDigits = 2): number {
     const safeStep = Number(step || 1) > 0 ? Number(step || 1) : 1;
-    return this.roundCurrency(Math.floor(Number(value || 0) / safeStep) * safeStep);
+    return this.roundCurrency(Math.floor(Number(value || 0) / safeStep) * safeStep, digits);
   }
 
   private addDays(date: Date, days: number): string {
@@ -99,12 +110,14 @@ export class SupplierPaymentSchedulesService {
     trx: Kysely<Database>,
     purchase: { id: number; total: number; paid_amount?: number | null },
     auth: AuthContext,
+    digits: MoneyDigits = 2,
   ): Promise<number> {
     const previousReturns = await trx.selectFrom('return_documents')
       .select(['total', 'refund_allocations'])
       .where('return_type', '=', 'purchase').where('invoice_id', '=', Number(purchase.id))
       .where(this.tenantPredicate(auth)).execute();
-    let reversedCents = 0;
+    const factor = 10 ** digits;
+    let reversedMinor = 0;
     for (const doc of previousReturns) {
       const raw: unknown = typeof doc.refund_allocations === 'string'
         ? JSON.parse(doc.refund_allocations) : doc.refund_allocations;
@@ -115,11 +128,11 @@ export class SupplierPaymentSchedulesService {
           if (!Number.isFinite(amount) || amount < 0) {
             throw new AppError('تسوية مرتجع المورد غير صالحة', 'PURCHASE_RETURN_SETTLEMENT_INVALID', 409);
           }
-          reversedCents += Math.round(amount * 100);
+          reversedMinor += Math.round(amount * factor);
         }
       } else if (raw == null) {
         // Historic credit purchase returns credited the full return to the supplier ledger.
-        reversedCents += Math.round(Number(doc.total || 0) * 100);
+        reversedMinor += Math.round(Number(doc.total || 0) * factor);
       } else {
         throw new AppError('تسوية مرتجع المورد غير صالحة', 'PURCHASE_RETURN_SETTLEMENT_INVALID', 409);
       }
@@ -128,35 +141,38 @@ export class SupplierPaymentSchedulesService {
       .select(sql<number>`coalesce(sum(paid_amount), 0)`.as('paid'))
       .where('purchase_id', '=', Number(purchase.id)).where(this.tenantPredicate(auth))
       .executeTakeFirst();
-    const originalCents = Math.round(Number(purchase.total || 0) * 100);
-    const directPaidCents = Math.round(Number(purchase.paid_amount || 0) * 100);
-    const scheduledPaidCents = Math.round(Number(scheduledPayments?.paid || 0) * 100);
-    return Math.max(0, originalCents - directPaidCents - scheduledPaidCents - reversedCents) / 100;
+    const originalMinor = Math.round(Number(purchase.total || 0) * factor);
+    const directPaidMinor = Math.round(Number(purchase.paid_amount || 0) * factor);
+    const scheduledPaidMinor = Math.round(Number(scheduledPayments?.paid || 0) * factor);
+    return Math.max(0, originalMinor - directPaidMinor - scheduledPaidMinor - reversedMinor) / factor;
   }
 
-  private buildAmounts(total: number, payload: CreateSupplierPaymentScheduleDto): number[] {
-    const safeTotal = this.roundCurrency(total);
-    const step = Number(payload.roundingStep || 1);
+  private buildAmounts(total: number, payload: CreateSupplierPaymentScheduleDto, digits: MoneyDigits = 2): number[] {
+    const safeTotal = this.roundCurrency(total, digits);
+    const step = payload.roundingStep != null && Number(payload.roundingStep) > 0 ? Number(payload.roundingStep) : null;
     if (!(safeTotal > 0)) throw new AppError('Schedule total must be greater than zero', 'INVALID_SCHEDULE_TOTAL', 400);
+    const factor = 10 ** digits;
+    const epsilon = 10 ** -digits / 2;
     if (payload.mode === 'count') {
       const count = Number(payload.installmentCount || 0);
-      if (!Number.isSafeInteger(count) || count < 1 || count > 600 || count > Math.round(safeTotal * 100)) {
+      if (!Number.isSafeInteger(count) || count < 1 || count > 600 || count > Math.round(safeTotal * factor)) {
         throw new AppError('يجب أن يكون عدد الأقساط بين 1 و600 وألا يتجاوز عدد القروش المستحقة', 'INSTALLMENT_COUNT_INVALID', 400);
       }
       if (count === 1) return [safeTotal];
-      const base = this.roundDownToStep(safeTotal / count, step);
-      const safeBase = base > 0 ? base : this.roundCurrency(safeTotal / count);
+      const base = step != null ? this.roundDownToStep(safeTotal / count, step, digits) : Math.floor((safeTotal / count) * factor) / factor;
+      const safeBase = base > 0 ? base : this.roundCurrency(safeTotal / count, digits);
       const amounts = Array.from({ length: count }, (_, index) => (index < count - 1 ? safeBase : 0));
-      amounts[count - 1] = this.roundCurrency(safeTotal - amounts.slice(0, -1).reduce((sum, value) => sum + value, 0));
+      amounts[count - 1] = this.roundCurrency(safeTotal - amounts.slice(0, -1).reduce((sum, value) => sum + value, 0), digits);
       return amounts;
     }
-    const amount = this.roundDownToStep(Number(payload.installmentAmount || 0), step);
+    const rawAmount = Number(payload.installmentAmount || 0);
+    const amount = step != null ? this.roundDownToStep(rawAmount, step, digits) : this.roundCurrency(rawAmount, digits);
     if (!(amount > 0)) throw new AppError('Installment amount is required', 'INSTALLMENT_AMOUNT_REQUIRED', 400);
     const fullCount = Math.floor(safeTotal / amount);
     if (fullCount > 600) throw new AppError('الجدول لا يمكن أن يتجاوز 600 قسط', 'INSTALLMENT_COUNT_INVALID', 400);
     const amounts = Array.from({ length: fullCount }, () => amount);
-    const remaining = this.roundCurrency(safeTotal - amounts.reduce((sum, value) => sum + value, 0));
-    if (remaining > 0.0001) amounts.push(remaining);
+    const remaining = this.roundCurrency(safeTotal - amounts.reduce((sum, value) => sum + value, 0), digits);
+    if (remaining > epsilon) amounts.push(remaining);
     if (amounts.length > 600) throw new AppError('الجدول لا يمكن أن يتجاوز 600 قسط', 'INSTALLMENT_COUNT_INVALID', 400);
     return amounts.length ? amounts : [safeTotal];
   }
@@ -187,7 +203,7 @@ export class SupplierPaymentSchedulesService {
     return !Number.isNaN(parsed.getTime()) ? parsed.toISOString().slice(0, 10) : str.slice(0, 10);
   }
 
-  private map(row: ScheduleRow, paymentLogs: SchedulePaymentLogRow[] = []): Record<string, unknown> {
+  private map(row: ScheduleRow, paymentLogs: SchedulePaymentLogRow[] = [], digits: MoneyDigits = 2): Record<string, unknown> {
     const amount = Number(row.amount || 0);
     const paidAmount = Number(row.paid_amount || 0);
     const dueDate = this.formatIsoDate(row.due_date);
@@ -202,7 +218,7 @@ export class SupplierPaymentSchedulesService {
       dueDate,
       amount,
       paidAmount,
-      remainingAmount: this.roundCurrency(amount - paidAmount),
+      remainingAmount: this.roundCurrency(amount - paidAmount, digits),
       status,
       note: row.note || '',
       paidAt: row.paid_at,
@@ -211,6 +227,8 @@ export class SupplierPaymentSchedulesService {
   }
 
   private async listWithPayments(where: { purchaseId?: number; supplierId?: number }, auth: AuthContext): Promise<Record<string, unknown>> {
+    const scope = this.tenantScope(auth);
+    const digits = await this.getMoneyDigits(this.db, scope.tenantId);
     const db = this.scheduleDb(this.db);
     let query = db.selectFrom('supplier_payment_schedules').selectAll().where(this.tenantPredicate(auth));
     if (where.purchaseId != null) query = query.where('purchase_id', '=', where.purchaseId);
@@ -225,7 +243,7 @@ export class SupplierPaymentSchedulesService {
       const scheduleId = Number(log.schedule_id);
       logsBySchedule.set(scheduleId, [...(logsBySchedule.get(scheduleId) || []), log]);
     });
-    return { schedules: rows.map((row) => this.map(row, logsBySchedule.get(Number(row.id)) || [])) };
+    return { schedules: rows.map((row) => this.map(row, logsBySchedule.get(Number(row.id)) || [], digits)) };
   }
 
   async listForPurchase(purchaseId: number, auth: AuthContext): Promise<Record<string, unknown>> {
@@ -251,22 +269,25 @@ export class SupplierPaymentSchedulesService {
       const db = this.scheduleDb(trx);
       const paidRow = await db.selectFrom('supplier_payment_schedules').select('id').where('purchase_id', '=', purchaseId).where('paid_amount', '>', 0).where(this.tenantPredicate(auth)).executeTakeFirst();
       if (paidRow) throw new AppError('Cannot reschedule after payments were recorded', 'PURCHASE_SCHEDULE_HAS_PAYMENTS', 400);
-      const invoiceRemaining = await this.purchasePayableRemaining(trx, purchase, auth);
+      const scope = this.tenantScope(auth);
+      const digits = await this.getMoneyDigits(trx, scope.tenantId);
+      const invoiceRemaining = await this.purchasePayableRemaining(trx, purchase, auth, digits);
       const otherSchedules = await trx.selectFrom('supplier_payment_schedules')
         .select(['amount', 'paid_amount'])
         .where('supplier_id', '=', Number(purchase.supplier_id))
-        .where('tenant_id', '=', this.tenantScope(auth).tenantId)
+        .where('tenant_id', '=', scope.tenantId)
         .where('status', '!=', 'cancelled')
         .where((eb) => eb.or([eb('purchase_id', 'is', null), eb('purchase_id', '!=', purchaseId)]))
         .execute();
       const otherReserved = otherSchedules.reduce((sum, schedule) => sum +
         Math.max(0, Number(schedule.amount || 0) - Number(schedule.paid_amount || 0)), 0);
-      const available = this.roundCurrency(Math.min(invoiceRemaining, Math.max(0, Number(supplier.balance || 0) - otherReserved)));
-      const requested = payload.scheduleAmount == null ? available : this.roundCurrency(Number(payload.scheduleAmount));
-      if (!(available > 0) || !Number.isFinite(requested) || requested <= 0 || requested > available + 0.0001) {
+      const available = this.roundCurrency(Math.min(invoiceRemaining, Math.max(0, Number(supplier.balance || 0) - otherReserved)), digits);
+      const requested = payload.scheduleAmount == null ? available : this.roundCurrency(Number(payload.scheduleAmount), digits);
+      const epsilon = 10 ** -digits / 2;
+      if (!(available > 0) || !Number.isFinite(requested) || requested <= 0 || requested > available + epsilon) {
         throw new AppError('الجدولة تتجاوز الرصيد المستحق على الفاتورة أو رصيد المورد غير المجدول', 'PURCHASE_SCHEDULE_EXCEEDS_BALANCE', 400);
       }
-      const amounts = this.buildAmounts(requested, payload);
+      const amounts = this.buildAmounts(requested, payload, digits);
       const firstDueDate = this.parseDate(payload.firstDueDate);
       const intervalDays = Number(payload.intervalDays || 1);
       await db.deleteFrom('supplier_payment_schedules').where('purchase_id', '=', purchaseId).where(this.tenantPredicate(auth)).execute();
@@ -286,18 +307,21 @@ export class SupplierPaymentSchedulesService {
       const existingRows = await db.selectFrom('supplier_payment_schedules').select(['amount', 'paid_amount']).where('supplier_id', '=', supplierId).where('status', '!=', 'cancelled').where(this.tenantPredicate(auth)).execute();
       const existingUnpaid = existingRows.reduce((sum, r) => sum + (Number(r.amount) - Number(r.paid_amount)), 0);
       
-      const balance = this.roundCurrency(Number(supplier.balance || 0));
-      const availableToSchedule = this.roundCurrency(balance - existingUnpaid);
+      const scope = this.tenantScope(auth);
+      const digits = await this.getMoneyDigits(trx, scope.tenantId);
+      const balance = this.roundCurrency(Number(supplier.balance || 0), digits);
+      const availableToSchedule = this.roundCurrency(balance - existingUnpaid, digits);
       
-      const total = this.roundCurrency(Number(payload.scheduleAmount || availableToSchedule));
+      const total = this.roundCurrency(Number(payload.scheduleAmount || availableToSchedule), digits);
+      const epsilon = 10 ** -digits / 2;
       if (!(balance > 0)) throw new AppError('Supplier has no payable balance', 'SUPPLIER_NO_PAYABLE_BALANCE', 400);
       if (!(availableToSchedule > 0)) throw new AppError('No unscheduled balance available to schedule', 'SUPPLIER_NO_UNSCHEDULED_BALANCE', 400);
-      if (!(total > 0) || total > availableToSchedule + 0.0001) throw new AppError('Schedule amount must be within unscheduled supplier balance', 'INVALID_SUPPLIER_SCHEDULE_AMOUNT', 400);
+      if (!(total > 0) || total > availableToSchedule + epsilon) throw new AppError('Schedule amount must be within unscheduled supplier balance', 'INVALID_SUPPLIER_SCHEDULE_AMOUNT', 400);
       
       const lastRow = await db.selectFrom('supplier_payment_schedules').select('installment_no').where('supplier_id', '=', supplierId).where('purchase_id', 'is', null).where(this.tenantPredicate(auth)).orderBy('installment_no', 'desc').executeTakeFirst();
       const startInstallmentNo = lastRow ? Number(lastRow.installment_no) : 0;
       
-      const amounts = this.buildAmounts(total, payload);
+      const amounts = this.buildAmounts(total, payload, digits);
       const firstDueDate = this.parseDate(payload.firstDueDate);
       const intervalDays = Number(payload.intervalDays || 1);
       
@@ -354,6 +378,7 @@ export class SupplierPaymentSchedulesService {
         throw new AppError('قسط المورد ملغي أو مسدد ولا يقبل دفعة جديدة', 'INSTALLMENT_NOT_PAYABLE', 409);
       }
       await this.financeService.assertNoBlockingThreeWayMatch(trx, Number(supplier.id), tenantScope.tenantId);
+      const digits = await this.getMoneyDigits(trx, tenantScope.tenantId);
       let invoiceRemainingForInstallment: number | null = null;
       if (installment.purchase_id) {
         const purchase = lockedPurchase;
@@ -362,27 +387,29 @@ export class SupplierPaymentSchedulesService {
         }
         this.ensureCredit(purchase.payment_type);
         purchaseId = Number(installment.purchase_id);
-        const invoiceRemaining = await this.purchasePayableRemaining(trx, purchase, auth);
+        const invoiceRemaining = await this.purchasePayableRemaining(trx, purchase, auth, digits);
         // Payment is checked below against the invoice, not just global supplier debt.
         // An invoice with a completed return may have no payable even if the
         // supplier owes us for a completely different purchase.
         invoiceRemainingForInstallment = invoiceRemaining;
       }
       supplierId = Number(supplier.id);
-      const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0));
+      const remaining = this.roundCurrency(Number(installment.amount || 0) - Number(installment.paid_amount || 0), digits);
       const rawAmount = payload.amount == null ? remaining : Number(payload.amount);
-      if (!Number.isFinite(rawAmount) || rawAmount <= 0 ||
-        Math.abs(rawAmount * 100 - Math.round(rawAmount * 100)) > 0.000001) {
-        throw new AppError('Supplier installment payment must be positive and have cent precision', 'INVALID_AMOUNT', 400);
+      let isMinorExact = Number.isFinite(rawAmount) && rawAmount > 0;
+      try { if (isMinorExact) toMinorUnits(rawAmount, digits); } catch { isMinorExact = false; }
+      if (!isMinorExact) {
+        throw new AppError('Supplier installment payment must be positive and accurate to the currency minor unit (INVALID_AMOUNT)', 'INVALID_AMOUNT', 400);
       }
-      const amount = this.roundCurrency(rawAmount);
-      if (amount > remaining + 0.0001) throw new AppError('Payment exceeds installment remaining amount', 'INSTALLMENT_OVERPAYMENT', 400);
-      if (invoiceRemainingForInstallment != null && amount > invoiceRemainingForInstallment + 0.0001) {
+      const amount = this.roundCurrency(rawAmount, digits);
+      const epsilon = 10 ** -digits / 2;
+      if (amount > remaining + epsilon) throw new AppError('Payment exceeds installment remaining amount', 'INSTALLMENT_OVERPAYMENT', 400);
+      if (invoiceRemainingForInstallment != null && amount > invoiceRemainingForInstallment + epsilon) {
         throw new AppError('مبلغ القسط يتجاوز المتبقي المستحق على فاتورة المورد بعد المرتجعات والمدفوعات', 'PURCHASE_SCHEDULE_EXCEEDS_INVOICE', 400);
       }
-      if (amount > Number(supplier.balance || 0) + 0.0001) throw new AppError('Payment exceeds supplier payable balance', 'SUPPLIER_OVERPAYMENT', 400);
-      const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount);
-      const status = paidAmount >= Number(installment.amount || 0) - 0.0001 ? 'paid' : 'partial';
+      if (amount > Number(supplier.balance || 0) + epsilon) throw new AppError('Payment exceeds supplier payable balance', 'SUPPLIER_OVERPAYMENT', 400);
+      const paidAmount = this.roundCurrency(Number(installment.paid_amount || 0) + amount, digits);
+      const status = paidAmount >= Number(installment.amount || 0) - epsilon ? 'paid' : 'partial';
       const openShift = await db.selectFrom('cashier_shifts')
         .select(['id', 'branch_id', 'location_id'])
         .where('opened_by', '=', auth.userId)

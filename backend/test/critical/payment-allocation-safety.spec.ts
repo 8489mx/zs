@@ -8,9 +8,9 @@ const request = (): AllocatePaymentDto => ({
 function mustReject(mutator: (dto: AllocatePaymentDto) => void, label: string): void {
   const dto = request();
   mutator(dto);
-  assert.throws(() => validatePaymentAllocationRequest(dto), label);
+  assert.throws(() => validatePaymentAllocationRequest(dto, 2), label);
 }
-assert.deepEqual(validatePaymentAllocationRequest(request()), {
+assert.deepEqual(validatePaymentAllocationRequest(request(), 2), {
   totalAllocating: 10,
   allocations: [{ invoiceId: 99, amount: 10 }],
 });
@@ -25,7 +25,7 @@ mustReject(dto => { dto.allocations.push({ invoiceId: 99, amount: 2 }); }, 'dupl
 mustReject(dto => { dto.allocations = [{ invoiceId: 2, amount: 2 }, { invoiceId: 1, amount: 3 }]; dto.partnerId = 0; }, 'partner required');
 const sorted = request();
 sorted.allocations = [{ invoiceId: 22, amount: 1.10 }, { invoiceId: 21, amount: 2.20 }];
-assert.deepEqual(validatePaymentAllocationRequest(sorted), {
+assert.deepEqual(validatePaymentAllocationRequest(sorted, 2), {
   totalAllocating: 3.3,
   allocations: [{ invoiceId: 21, amount: 2.20 }, { invoiceId: 22, amount: 1.10 }],
 });
