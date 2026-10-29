@@ -13,7 +13,7 @@ import { ensureReturnQtyWithinLimit } from '../../common/utils/financial-integri
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../common/utils/location-stock-ledger';
 import { normalizeReturnItems } from './helpers/return-payload.helper';
 import { filterReturnRows, mapReturnRows, summarizeReturnRows } from './helpers/returns-listing.helper';
-import { buildPurchaseReturnLine, buildSaleReturnLine, calculateNextLedgerBalance, calculateReturnDocumentTotal } from './helpers/returns-write.helper';
+import { buildPurchaseReturnLine, buildSaleReturnLine, calculateNextLedgerBalance, calculateReturnDocumentTotal, originalPurchaseReturnUnitCost } from './helpers/returns-write.helper';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
@@ -1067,8 +1067,22 @@ export class ReturnsService {
       }
 
       const stockChange = await applyStockDelta(trx, { productId: requestItem.productId, delta: -preparedLine.stockDelta, branchId: purchase.branch_id, locationId: itemLocationId, tenantId: scope.tenantId, accountId: scope.accountId, errorCode: 'PURCHASE_RETURN_STOCK_INVALID', errorMessage: 'Invalid stock for purchase return', disableAutoDrain: true });
-      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: Number(product.cost_price), total_cost: roundBookMoney(preparedLine.stockDelta * Number(product.cost_price), moneyDigits), reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
-      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: Number(product.cost_price) * Number(purchaseItem.unit_multiplier || 1), purchaseItemId: purchaseLineId });
+      // INV-PURCHASE-RETURN-ORIGINAL-COST: cost the return at the ORIGINAL
+      // purchase line's net cost, not the current product WAC. The return is
+      // lot-identified (purchase_item_id, plus serial/batch provenance where
+      // applicable), so it reverses that purchase; costing it at a later
+      // WAC would dump the whole WAC drift into the 5190 variance account.
+      // The same original cost feeds both the stock movement and the
+      // return_items.cost_price that postPurchaseReturn journals from, so
+      // the movement and the GL inventory leg cannot diverge.
+      const originalCost = originalPurchaseReturnUnitCost({
+        unitCost: (purchaseItem as any).unit_cost,
+        unitMultiplier: (purchaseItem as any).unit_multiplier,
+        taxRate: (purchase as any).tax_rate,
+        pricesIncludeTax: (purchase as any).prices_include_tax,
+      });
+      await trx.insertInto('stock_movements').values({ product_id: requestItem.productId, movement_type: 'purchase_return', qty: -preparedLine.stockDelta, before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter, unit_cost: originalCost.perBaseUnit, total_cost: roundBookMoney(preparedLine.stockDelta * originalCost.perBaseUnit, moneyDigits), reason: 'purchase_return', note: 'purchase return PUR-' + String(purchase.id), reference_type: 'purchase_return', reference_id: Number(payload.invoiceId), branch_id: purchase.branch_id, location_id: itemLocationId, created_by: auth.userId, ...this.tenantFields(auth) }).execute();
+      normalizedLines.push({ productId: preparedLine.productId, productName: preparedLine.productName, qty: preparedLine.qty, unitTotal: preparedLine.unitTotal, lineTotal: preparedLine.lineTotal, allocatedTax: preparedLine.allocatedTax, costPrice: originalCost.perSoldUnit, purchaseItemId: purchaseLineId });
     }
 
     const total = calculateReturnDocumentTotal(normalizedLines, moneyDigits);
