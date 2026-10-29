@@ -679,18 +679,23 @@ export class PdcChequesService {
           nextJournalId = postRes.journalEntryId;
           updateFields.journal_entry_id = nextJournalId;
         }
+        // Deposit must post: advancing to under_collection without a journal
+        // leaves the cheque in the wrong custody account in the GL.
+        if (!postRes.journalEntryId) throw new BadRequestException('إيداع الشيك لم ينتج قيداً محاسبياً؛ لم يتم تغيير الحالة.');
       } else if (actionDto.action === 'collect') {
         const postRes = await this.accountingPostingService.postPdcChequeCollect(trx, id, actionDto.depositBankId || null, authContext);
         if (postRes.posted && postRes.journalEntryId) {
           nextJournalId = postRes.journalEntryId;
           updateFields.journal_entry_id = nextJournalId;
         }
+        if (!postRes.journalEntryId) throw new BadRequestException('تحصيل الشيك لم ينتج قيداً محاسبياً؛ لم يتم تغيير الحالة.');
       } else if (actionDto.action === 'clear') {
         const postRes = await this.accountingPostingService.postPdcChequeClear(trx, id, actionDto.depositBankId || null, authContext);
         if (postRes.posted && postRes.journalEntryId) {
           nextJournalId = postRes.journalEntryId;
           updateFields.journal_entry_id = nextJournalId;
         }
+        if (!postRes.journalEntryId) throw new BadRequestException('صرف الشيك لم ينتج قيداً محاسبياً؛ لم يتم تغيير الحالة.');
       } else if (actionDto.action === 'bounce') {
         if (existing.type === 'receivable') {
           const postRes = await this.accountingPostingService.postPdcChequeBounce(
@@ -704,6 +709,9 @@ export class PdcChequesService {
             nextJournalId = postRes.journalEntryId;
             updateFields.journal_entry_id = nextJournalId;
           }
+          // The subledger sync below must never run without the bounce
+          // journal: that pairing is exactly the GL/subledger divergence.
+          if (!postRes.journalEntryId) throw new BadRequestException('ارتداد الشيك لم ينتج قيداً محاسبياً؛ لم يتم تغيير الحالة.');
           if (existing.partner_id) {
             await this.syncCustomerSubLedger(
               trx,
@@ -721,6 +729,7 @@ export class PdcChequesService {
             nextJournalId = postRes.journalEntryId;
             updateFields.journal_entry_id = nextJournalId;
           }
+          if (!postRes.journalEntryId) throw new BadRequestException('ارتداد شيك الدفع لم ينتج قيداً محاسبياً؛ لم يتم تغيير الحالة.');
           if (existing.partner_id) {
             await this.syncSupplierSubLedger(
               trx,
@@ -744,6 +753,9 @@ export class PdcChequesService {
           nextJournalId = postRes.journalEntryId;
           updateFields.journal_entry_id = nextJournalId;
         }
+        // The supplier subledger sync below must never run without the
+        // endorse journal.
+        if (!postRes.journalEntryId) throw new BadRequestException('تظهير الشيك لم ينتج قيداً محاسبياً؛ لم يتم تغيير الحالة.');
         if (actionDto.endorsedToSupplierId) {
           await this.syncSupplierSubLedger(
             trx,
