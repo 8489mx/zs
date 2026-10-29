@@ -10,7 +10,7 @@ import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from 
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
 import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { allocateGrnAccrual, allocateGrniBillPortion } from '../engines/grni-settlement.engine';
-import { weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
+import { recoverWacBeforeQty, weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
 import { tenantBaseCurrency } from '../../accounting/accounting-currency';
 import { currencyMoneyDigits, fromMinorUnits, roundMoney, toMinorUnits } from '../../accounting/engines/money-minor-units.engine';
 import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-period-lock';
@@ -497,7 +497,10 @@ export class GoodsReceiptService {
             .executeTakeFirst();
 
           if (prod && lineUnitCost > 0) {
-            const qtyBefore = Number(stockChange.globalBefore || 0);
+            // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
+            // true prior quantity from the corrected globalAfter, not the
+            // cached globalBefore (see recoverWacBeforeQty).
+            const qtyBefore = recoverWacBeforeQty(stockChange.globalAfter, accepted);
             const costBefore = Number(prod.cost_price || 0);
             // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
             // balance algebraically instead of falling back to the incoming cost. The old

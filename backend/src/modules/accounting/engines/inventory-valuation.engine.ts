@@ -25,6 +25,29 @@
  *   during a deep shortfall): fall back to the incoming unit cost on a recovered pool, and to
  *   beforeCost while still short.
  */
+/**
+ * One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the true prior
+ * quantity from applyStockDelta's corrected globalAfter, exactly as
+ * valueStockReceipt already does. The ledger reconciles globalAfter from
+ * the sum of location balances, while globalBefore is the cached
+ * products.stock_qty, which can lag that sum (stale counter, transit legs,
+ * unassigned provisioning). A WAC blend fed the cached counter therefore
+ * weighted the old pool by the wrong quantity whenever the two diverged,
+ * while valueStockReceipt blended by the corrected quantity — two
+ * different WACs for the same receipt. globalAfter already includes this
+ * receipt, so the prior quantity is globalAfter minus the received
+ * quantity, rounded to the ledger's 3dp quantity precision. Callers must
+ * not use this recovery when they passed skipGlobalUpdate to
+ * applyStockDelta (then globalAfter is just the cached counter again);
+ * none of the purchase/goods-receipt call sites below skip the update.
+ */
+export function recoverWacBeforeQty(globalAfter: number, receivedQty: number): number {
+  if (!Number.isFinite(globalAfter) || !Number.isFinite(receivedQty) || receivedQty <= 0) {
+    throw new Error('Invalid WAC quantity recovery inputs');
+  }
+  return Number((globalAfter - receivedQty).toFixed(3));
+}
+
 export function weightedReceiptCost(beforeQty: number, beforeCost: number, receivedQty: number, receivedValue: number): number {
   if (![beforeQty, beforeCost, receivedQty, receivedValue].every(Number.isFinite) || beforeCost < 0 || receivedQty <= 0 || receivedValue < 0) {
     throw new Error('Invalid inventory valuation inputs');

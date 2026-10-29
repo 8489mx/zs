@@ -8,7 +8,7 @@ import { assertUntrackedStockMutation } from '../../inventory/helpers/inventory-
 import { reversePurchaseTrackedStock } from '../helpers/purchase-cancellation-trace.helper';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { purchaseReceiptBaseUnitCost } from '../engines/purchase-receipt-cost.engine';
-import { weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
+import { recoverWacBeforeQty, weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -482,15 +482,18 @@ export class PurchasesWriteService {
             accountId: scope.accountId,
           });
 
-          const oldQty = stockChange.globalBefore;
+          // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
+          // true prior quantity from the corrected globalAfter, not the
+          // cached globalBefore (see recoverWacBeforeQty).
+          const oldQty = recoverWacBeforeQty(stockChange.globalAfter, increasedQty);
           const currentProduct = await trx.selectFrom('products').select('cost_price')
             .where('id', '=', item.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
           const oldCost = Number(currentProduct.cost_price || 0);
           // Inventory cost is per base stock unit, not per purchased carton.
           const baseUnitCost = netPurchaseUnitCost / item.unitMultiplier;
           // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
-          // balance algebraically instead of clamping it to zero. The quantity input stays
-          // the cached globalBefore; the cached-vs-location-sum divergence is a separate item.
+          // balance algebraically instead of clamping it to zero. The quantity input is the recovered true prior quantity
+          // (INV-WAC-QUANTITY-SOURCE), not the cached globalBefore.
           const newCost = increasedQty > 0
             ? weightedReceiptCost(oldQty, oldCost, increasedQty, increasedQty * baseUnitCost)
             : oldCost;
@@ -853,14 +856,17 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
         });
 
-        const oldQty = stockChange.globalBefore;
+        // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
+        // true prior quantity from the corrected globalAfter, not the
+        // cached globalBefore (see recoverWacBeforeQty).
+        const oldQty = recoverWacBeforeQty(stockChange.globalAfter, increaseQty);
         const currentProduct = await trx.selectFrom('products').select('cost_price')
           .where('id', '=', normalizedItem.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
         const oldCost = Number(currentProduct.cost_price || 0);
         const baseUnitCost = netRepricedCost / normalizedItem.unitMultiplier;
         // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
-        // balance algebraically instead of clamping it to zero. The quantity input stays
-        // the cached globalBefore; the cached-vs-location-sum divergence is a separate item.
+        // balance algebraically instead of clamping it to zero. The quantity input is the recovered true prior quantity
+        // (INV-WAC-QUANTITY-SOURCE), not the cached globalBefore.
         const newCost = increaseQty > 0
           ? weightedReceiptCost(oldQty, oldCost, increaseQty, increaseQty * baseUnitCost)
           : oldCost;
@@ -1652,7 +1658,10 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
         });
 
-        const oldQty = stockChange.globalBefore;
+        // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
+        // true prior quantity from the corrected globalAfter, not the
+        // cached globalBefore (see recoverWacBeforeQty).
+        const oldQty = recoverWacBeforeQty(stockChange.globalAfter, increasedQty);
         const oldCostProduct = await trx
           .selectFrom('products')
           .select(['cost_price'])
@@ -1661,8 +1670,8 @@ export class PurchasesWriteService {
           .executeTakeFirst();
         const oldCost = Number(oldCostProduct?.cost_price || 0);
         // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
-        // balance algebraically instead of clamping it to zero. The quantity input stays
-        // the cached globalBefore; the cached-vs-location-sum divergence is a separate item.
+        // balance algebraically instead of clamping it to zero. The quantity input is the recovered true prior quantity
+        // (INV-WAC-QUANTITY-SOURCE), not the cached globalBefore.
         const newCost = increasedQty > 0
           ? weightedReceiptCost(oldQty, oldCost, increasedQty, increasedQty * effectiveUnitCost)
           : oldCost;

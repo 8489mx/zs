@@ -35,7 +35,7 @@ import { WhatsAppGatewayService } from '../../settings/services/whatsapp-gateway
 import { CashierFraudRadarService } from './cashier-fraud-radar.service';
 import { PlanFeatureService } from '../../../core/auth/services/plan-feature.service';
 import { ReturnsService, type ExchangeReturnContext } from '../../returns/returns.service';
-import { allocateSaleFromImportLots, restoreImportLotsFromCancelledSale } from '../../import-sales/helpers/import-lot-allocation.helper';
+import { allocateSaleFromImportLots, isAnomalousImportLotShortfall, restoreImportLotsFromCancelledSale } from '../../import-sales/helpers/import-lot-allocation.helper';
 
 /**
  * Pre-approved commercial terms for a sale created by the system on behalf of a merchant user
@@ -725,6 +725,45 @@ export class SalesWriteService {
 
       const posting = await this.accountingPosting.postManufacturingWorkOrder(trx, woId, auth);
       if (!posting.journalEntryId) throw new AppError(`Manufacturing work order ${woId} has no journal entry`, 'LEDGER_POSTING_MISSING', 500);
+    }
+  }
+
+  /**
+   * Record anomalous import-lot shortfalls instead of discarding the
+   * allocation result (INV-IMPORT-LOT-SHORTFALL-RECORD). The sale itself
+   * is not blocked: for ordinary POS sales the GL COGS comes from WAC,
+   * so a lot shortfall is traceability-only — but it must leave a
+   * persistent, queryable record (pos_audit_events) when it is
+   * anomalous per isAnomalousImportLotShortfall, so an import-tracked
+   * product sold with missing provenance is visible instead of silent.
+   * Runs inside the sale transaction, so a rolled-back sale leaves no
+   * orphan gap record.
+   */
+  private async recordImportLotShortfalls(
+    trx: Kysely<Database> | Transaction<Database>,
+    scope: { tenantId: string; accountId: string },
+    saleId: number,
+    saleLineId: number,
+    allocation: { items: Array<{ productId: number; requestedQty: number; allocatedQty: number; shortfallQty: number; fullyCovered: boolean; reason: string }> },
+    auth: AuthContext,
+  ): Promise<void> {
+    for (const item of allocation.items) {
+      if (item.fullyCovered || item.shortfallQty <= 0.0001) continue;
+      const anyLot = await trx
+        .selectFrom('import_inventory_lots')
+        .select('id')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('product_id', '=', Number(item.productId))
+        .limit(1)
+        .executeTakeFirst();
+      if (!isAnomalousImportLotShortfall(item as any, Boolean(anyLot))) continue;
+      await trx.insertInto('pos_audit_events').values({
+        tenant_id: scope.tenantId, account_id: scope.accountId,
+        event_type: 'import_lot_shortfall', user_id: auth.userId, sale_id: saleId,
+        product_id: Number(item.productId), amount: Number(item.shortfallQty),
+        reason: `Import lot shortfall (${item.reason}): requested ${item.requestedQty}, allocated ${item.allocatedQty}, shortfall ${item.shortfallQty}`,
+        metadata: { saleLineId, requestedQty: item.requestedQty, allocatedQty: item.allocatedQty, shortfallQty: item.shortfallQty, reason: item.reason },
+      }).execute();
     }
   }
 
@@ -1789,7 +1828,7 @@ export class SalesWriteService {
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, id, saleLineId);
         for (const alloc of allocations) {
-          await allocateSaleFromImportLots(trx, {
+          const lotAllocation = await allocateSaleFromImportLots(trx, {
             tenantId: scope.tenantId,
             saleId: id,
             locationId: alloc.locationId ?? normalized.locationId,
@@ -1801,6 +1840,8 @@ export class SalesWriteService {
               locationId: alloc.locationId ?? normalized.locationId,
             }],
           });
+          // INV-IMPORT-LOT-SHORTFALL-RECORD: never discard the coverage.
+          await this.recordImportLotShortfalls(trx, scope, id, saleLineId, lotAllocation, auth);
         }
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {
@@ -2879,7 +2920,7 @@ export class SalesWriteService {
 
         await this.deductPharmacyBatchesFefo(trx, item.productId, allocations, scope, saleId, saleLineId);
         for (const alloc of allocations) {
-          await allocateSaleFromImportLots(trx, {
+          const lotAllocation = await allocateSaleFromImportLots(trx, {
             tenantId: scope.tenantId,
             saleId: saleId,
             locationId: alloc.locationId ?? normalized.locationId,
@@ -2891,6 +2932,8 @@ export class SalesWriteService {
               locationId: alloc.locationId ?? normalized.locationId,
             }],
           });
+          // INV-IMPORT-LOT-SHORTFALL-RECORD: never discard the coverage.
+          await this.recordImportLotShortfalls(trx, scope, saleId, saleLineId, lotAllocation, auth);
         }
 
         if (item.modifiers && Array.isArray(item.modifiers) && this.planFeatureService.hasFeature(auth.planId, auth.extraFeatures, 'restaurant')) {

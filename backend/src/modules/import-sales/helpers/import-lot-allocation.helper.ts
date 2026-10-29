@@ -46,6 +46,31 @@ export interface ImportLotAllocationResult {
 }
 
 /**
+ * Whether an uncovered lot allocation is anomalous enough to record
+ * (INV-IMPORT-LOT-SHORTFALL-RECORD). A shortfall is NOT anomalous just
+ * because lots ran out: a product can legitimately be part import, part
+ * local stock, so lots_exhausted / no_active_lots for a product that has
+ * never had an import lot is ordinary local stock, not a traceability
+ * break. It IS anomalous when the sale itself is malformed
+ * (missing_location, invalid_quantity — traceability was impossible
+ * regardless of lots) or when the product IS import-tracked (it has had
+ * import lots) yet no lot at the sale location covered the sale — then
+ * the sale's provenance is genuinely missing and must leave a record
+ * instead of vanishing in a discarded return value. Callers that
+ * ignore the allocation result entirely are the defect this exists to
+ * close: the P0 preorder conversion already cross-checks coverage, but
+ * ordinary POS sales discarded it.
+ */
+export function isAnomalousImportLotShortfall(
+  coverage: ImportLotAllocationCoverage,
+  hasAnyImportLots: boolean,
+): boolean {
+  if (coverage.fullyCovered) return false;
+  if (coverage.reason === 'missing_location' || coverage.reason === 'invalid_quantity') return true;
+  return hasAnyImportLots;
+}
+
+/**
  * Pure import-sale cost build-up (EGP-denominated by design: the import
  * subsystem prices everything in EGP — unit_cost_egp / unit_price_egp).
  * The total is rounded once to EGP minor units (2 digits); the unit cost
