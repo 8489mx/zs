@@ -83,7 +83,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
     let currentScrolled = false;
 
     const updateScrollState = () => {
-      const y = window.scrollY;
+      const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       // Hysteresis prevents rapid toggling jitter near the scroll threshold
       const nextScrolled = currentScrolled ? y > 8 : y > 24;
       if (nextScrolled !== currentScrolled) {
@@ -101,9 +101,13 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('wheel', onScroll, { passive: true });
     updateScrollState();
     return () => {
       window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onScroll);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, []);
@@ -168,16 +172,17 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             gap: 14px;
             box-sizing: border-box;
             border-radius: 14px;
-            background: transparent;
-            border: 1px solid transparent;
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.09), 0 2px 6px -1px rgba(15, 23, 42, 0.04) !important;
             transform: translate3d(0, 0, 0);
             backface-visibility: hidden;
-            transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
           }
           .storefront-sticky-header.is-scrolled .storefront-navbar {
-            background: rgba(255, 255, 255, 0.97);
-            border-color: rgba(226, 232, 240, 0.95);
-            box-shadow: 0 10px 26px -6px rgba(15, 23, 42, 0.1), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 10px 28px -6px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.06) !important;
           }
           @media (min-width: 769px) {
             .storefront-sticky-header.is-scrolled .storefront-navbar {
@@ -197,14 +202,16 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               padding: 8px 12px 10px !important;
               align-items: center !important;
               border-radius: 14px !important;
-              background: rgba(255, 255, 255, 0.96) !important;
-              border: 1px solid rgba(226, 232, 240, 0.9) !important;
-              box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.06) !important;
+              background: #ffffff !important;
+              border: 1px solid #e2e8f0 !important;
+              box-shadow: 0 4px 18px -4px rgba(15, 23, 42, 0.09) !important;
             }
             .storefront-sticky-header.is-scrolled .storefront-navbar {
               padding: 7px 12px 9px !important;
               gap: 6px 10px !important;
-              box-shadow: 0 10px 26px -6px rgba(15, 23, 42, 0.1), 0 2px 8px -2px rgba(15, 23, 42, 0.04) !important;
+              background: #ffffff !important;
+              border-color: #cbd5e1 !important;
+              box-shadow: 0 10px 26px -6px rgba(15, 23, 42, 0.14), 0 2px 8px -2px rgba(15, 23, 42, 0.05) !important;
             }
             .storefront-brand-btn {
               grid-column: 1 / 2 !important;
@@ -249,12 +256,12 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             .storefront-action-btn,
             .storefront-action-btn:not(.storefront-cart-btn) {
               padding: 0 !important;
-              width: 36px !important;
-              min-width: 36px !important;
-              max-width: 36px !important;
-              height: 36px !important;
-              min-height: 36px !important;
-              border-radius: 12px !important;
+              width: 32px !important;
+              min-width: 32px !important;
+              max-width: 32px !important;
+              height: 32px !important;
+              min-height: 32px !important;
+              border-radius: 10px !important;
               background: #ffffff !important;
               border: 1px solid #E0E3E7 !important;
               box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
@@ -262,14 +269,14 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               align-items: center !important;
             }
             .storefront-cart-btn {
-              padding: 0 14px !important;
-              min-width: 36px !important;
-              border-radius: 12px !important;
-              height: 36px !important;
-              min-height: 36px !important;
+              padding: 0 10px !important;
+              min-width: 32px !important;
+              border-radius: 10px !important;
+              height: 32px !important;
+              min-height: 32px !important;
               box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
               justify-content: center !important;
-              gap: 5px !important;
+              gap: 4px !important;
             }
             .storefront-search-wrapper {
               grid-column: 1 / -1 !important;
@@ -398,7 +405,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
           </div>
 
           {/* Quick Actions (Orders & Cart) — Left side in RTL */}
-          <div className="storefront-actions" style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          <div className="storefront-actions" style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
             {/* My Orders Trigger */}
             {onOpenOrders && (
               <button
@@ -410,14 +417,14 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  padding: '0 16px',
-                  height: '36px',
-                  borderRadius: '12px',
+                  gap: '5px',
+                  padding: '0 10px',
+                  height: '32px',
+                  borderRadius: '10px',
                   background: '#ffffff',
                   border: '1px solid #dadce0',
                   color: '#1f1f1f',
-                  fontSize: '12.5px',
+                  fontSize: '11.5px',
                   fontWeight: 600,
                   cursor: 'pointer',
                   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
@@ -427,8 +434,8 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                   flexShrink: 0,
                 }}
               >
-                <PackageIcon size={17} style={{ flexShrink: 0 }} />
-                <span className="storefront-action-label" style={{ fontSize: '12.5px', fontWeight: 600 }}>
+                <PackageIcon size={14} style={{ flexShrink: 0 }} />
+                <span className="storefront-action-label" style={{ fontSize: '11.5px', fontWeight: 600 }}>
                   {t('storefront.storefront_header.s6', 'طلباتي')}
                 </span>
               </button>
@@ -443,13 +450,13 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                 position: 'relative',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                padding: '0 16px',
-                height: '36px',
-                borderRadius: '12px',
+                gap: '5px',
+                padding: '0 10px',
+                height: '32px',
+                borderRadius: '10px',
                 background: 'var(--storefront-primary-color, #2d68c4)',
                 color: 'var(--storefront-primary-contrast, #ffffff)',
-                fontSize: '12.5px',
+                fontSize: '11.5px',
                 fontWeight: 600,
                 border: '1px solid var(--storefront-primary-color, #2d68c4)',
                 cursor: 'pointer',
@@ -459,32 +466,36 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                 whiteSpace: 'nowrap',
               }}
             >
-              <IconShoppingCart size={17} strokeWidth={2.2} />
-              <span className="storefront-action-label">{t('storefront.storefront_header.s7', 'السلة')}</span>
               {cartCount > 0 && (
                 <span
                   style={{
                     background: '#ffffff',
                     color: 'var(--storefront-primary-color, #0f172a)',
-                    fontSize: '10.5px',
+                    fontSize: '9.5px',
                     fontWeight: 800,
-                    padding: '1px 5px',
-                    borderRadius: '6px',
-                    minWidth: '16px',
+                    padding: '0.5px 4.5px',
+                    borderRadius: '5px',
+                    minWidth: '15px',
+                    height: '16px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     textAlign: 'center',
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.12)',
+                    lineHeight: 1,
                   }}
                 >
                   {cartCount}
                 </span>
               )}
+              <IconShoppingCart size={15} strokeWidth={2.1} />
               {cartTotal > 0 && (() => {
                 const isThreeDec = isThreeDecimalCurrency(storeCurr);
                 const formattedTotal = isThreeDec
                   ? cartTotal.toFixed(3)
                   : (storeCurr === 'EGP' && cartTotal % 1 === 0 ? cartTotal.toFixed(0) : cartTotal.toFixed(2));
                 return (
-                  <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.25)', paddingRight: '6px', marginRight: '4px' }}>
+                  <span className="storefront-action-label" style={{ borderRight: '1px solid rgba(255,255,255,0.25)', paddingRight: '5px', marginRight: '2px', fontSize: '11px', fontWeight: 600 }}>
                     {formattedTotal} {currSymbol}
                   </span>
                 );

@@ -189,7 +189,7 @@ export const StorefrontBentoShowcase = React.memo(function StorefrontBentoShowca
                   <span
                     style={{
                       fontSize: '11.5px',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       color: '#64748b',
                       fontVariantNumeric: 'tabular-nums',
                     }}

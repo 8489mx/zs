@@ -184,11 +184,28 @@ export function PublicStorefrontPage() {
 
   // SF-Sticky: Unlock natural browser window scrolling while inside the public storefront
   useEffect(() => {
+    const origBodyOverflow = document.body.style.overflow;
+    const origBodyHeight = document.body.style.height;
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    const origHtmlHeight = document.documentElement.style.height;
+
     document.documentElement.classList.add('storefront-html');
     document.body.classList.add('storefront-body');
+
+    // Neutralize inline styles set by index.html / app shell
+    document.documentElement.style.overflowY = 'auto';
+    document.documentElement.style.overflowX = 'hidden';
+    document.documentElement.style.height = 'auto';
+    document.body.style.overflow = 'visible';
+    document.body.style.height = 'auto';
+
     return () => {
       document.documentElement.classList.remove('storefront-html');
       document.body.classList.remove('storefront-body');
+      document.body.style.overflow = origBodyOverflow;
+      document.body.style.height = origBodyHeight;
+      document.documentElement.style.overflow = origHtmlOverflow;
+      document.documentElement.style.height = origHtmlHeight;
     };
   }, []);
 

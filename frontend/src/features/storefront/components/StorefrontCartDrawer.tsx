@@ -68,6 +68,7 @@ export function StorefrontCartDrawer({
 
   const cartTotals = calculateCartSubtotal(cartItems, storeCurrency);
   const subtotal = cartTotals.subtotal;
+  const originalSubtotal = cartTotals.originalSubtotal;
   const totalSavings = cartTotals.totalSavings;
   const freeShippingThreshold = info?.freeShippingMinOrder || 500;
   const isFreeShippingQualified = Boolean(info?.freeShippingEnabled && subtotal >= freeShippingThreshold);
@@ -451,45 +452,62 @@ export function StorefrontCartDrawer({
               letterSpacing: '0px',
             }}
           >
-            {/* Price Calculations */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>قيمة الأصناف :</span>
-                <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13.5px', letterSpacing: '0px' }}>
-                  {formatPriceNumber(subtotal)} {activeCurrencySymbol}
+            {/* Price Calculations Card */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '16px',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#475569', fontWeight: 500, fontSize: '13.5px' }}>
+                  {t('storefront.storefront_cart_drawer.subtotal_label', 'قيمة الأصناف')}
+                </span>
+                <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '14px' }}>
+                  {formatPriceNumber(totalSavings > 0 ? originalSubtotal : subtotal)} {activeCurrencySymbol}
                 </span>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>مصاريف التوصيل :</span>
-                <span style={{ fontWeight: 600, color: deliveryFee > 0 ? '#0f172a' : '#16a34a', fontSize: '13.5px', letterSpacing: '0px' }}>
-                  {deliveryFee > 0 ? `${formatPriceNumber(deliveryFee)} ${activeCurrencySymbol}` : 'مجاني'}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#475569', fontWeight: 500, fontSize: '13.5px' }}>
+                  {t('storefront.storefront_cart_drawer.delivery_fee_label', 'مصاريف التوصيل')}
                 </span>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  {deliveryFee === 0 && (deliveryFeeProp ?? info?.deliveryFee ?? 0) > 0 && (
+                    <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '12px', fontWeight: 400 }}>
+                      {formatPriceNumber(deliveryFeeProp ?? info?.deliveryFee ?? 0)} {activeCurrencySymbol}
+                    </span>
+                  )}
+                  <span style={{ fontWeight: 600, color: deliveryFee > 0 ? '#0f172a' : '#16a34a', fontSize: '13.5px' }}>
+                    {deliveryFee > 0 ? `${formatPriceNumber(deliveryFee)} ${activeCurrencySymbol}` : 'مجاني'}
+                  </span>
+                </div>
               </div>
 
               {totalSavings > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                  <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>الخصم :</span>
-                  <span style={{ fontWeight: 600, color: '#ef4444', fontSize: '13.5px', letterSpacing: '0px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#475569', fontWeight: 500, fontSize: '13.5px' }}>
+                    {t('storefront.storefront_cart_drawer.discount_label', 'الخصم')}
+                  </span>
+                  <span style={{ fontWeight: 600, color: '#dc2626', fontSize: '14px' }}>
                     - {formatPriceNumber(totalSavings)} {activeCurrencySymbol}
                   </span>
                 </div>
               )}
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingTop: '10px',
-                  marginTop: '2px',
-                  borderTop: '1px solid #f1f5f9',
-                }}
-              >
-                <span style={{ fontSize: '14.5px', fontWeight: 600, color: '#0f172a', letterSpacing: '0px' }}>
-                  {t('storefront.storefront_cart_drawer.s12', 'المبلغ الإجمالي :')}
+              <div style={{ height: '1px', background: '#e2e8f0', margin: '2px 0' }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+                  {t('storefront.storefront_cart_drawer.s12', 'المبلغ الإجمالي')}
                 </span>
-                <span style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', letterSpacing: '0px' }}>
+                <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--storefront-primary-color, #2d68c4)' }}>
                   {formatPriceNumber(total)} {activeCurrencySymbol}
                 </span>
               </div>
@@ -521,16 +539,16 @@ export function StorefrontCartDrawer({
               disabled={!isMinOrderMet}
               style={{
                 width: '100%',
-                height: '46px',
+                height: '48px',
                 borderRadius: '12px',
-                background: isMinOrderMet ? 'var(--storefront-primary-color, #588cb3)' : '#cbd5e1',
+                background: isMinOrderMet ? 'var(--storefront-primary-color, #2d68c4)' : '#cbd5e1',
                 color: '#ffffff',
-                fontSize: '14.5px',
+                fontSize: '15px',
                 fontWeight: 600,
                 letterSpacing: '0px',
                 border: 'none',
                 cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
-                boxShadow: isMinOrderMet ? '0 4px 12px rgba(88, 140, 179, 0.22)' : 'none',
+                boxShadow: isMinOrderMet ? '0 4px 14px rgba(45, 104, 196, 0.25)' : 'none',
                 transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                 display: 'flex',
                 alignItems: 'center',

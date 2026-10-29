@@ -78,6 +78,7 @@ export function StorefrontDealSpotlight({
     ? Math.round(((oldPrice - product.price) / oldPrice) * 100)
     : 0;
 
+
   const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
   const displayPhotoUrl = product.imageUrl || autoPhoto.url;
 
@@ -460,8 +461,8 @@ export function StorefrontDealSpotlight({
               onMouseEnter={(e) => !isOutOfStock && (e.currentTarget.style.filter = 'brightness(1.12)')}
               onMouseLeave={(e) => (e.currentTarget.style.filter = 'none')}
             >
-              {!isOutOfStock && <IconShoppingCart size={16} color="#ffffff" strokeWidth={2.2} />}
               <span>{isOutOfStock ? 'غير متوفر' : t('storefront.storefront_deal_spotlight.s23', 'أضف للسلة الآن')}</span>
+              {!isOutOfStock && <IconShoppingCart size={16} color="#ffffff" strokeWidth={2.2} />}
             </button>
           )}
 

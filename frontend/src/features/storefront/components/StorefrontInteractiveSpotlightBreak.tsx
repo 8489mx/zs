@@ -423,13 +423,13 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
             >
               {cartQuantity > 0 ? (
                 <>
-                  <CheckCircleIcon size={16} color="#ffffff" />
                   <span>{t('storefront.spotlight.in_cart', 'في السلة ({{qty}})', { qty: cartQuantity })}</span>
+                  <CheckCircleIcon size={16} color="#ffffff" />
                 </>
               ) : (
                 <>
-                  <ShoppingCartIcon size={16} color="#0f172a" />
                   <span>{t('storefront.spotlight.add_to_cart', 'أضف إلى السلة')}</span>
+                  <ShoppingCartIcon size={16} color="#0f172a" />
                 </>
               )}
             </button>

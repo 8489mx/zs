@@ -206,7 +206,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 background: 'rgba(15, 23, 42, 0.78)',
                 color: '#ffffff',
                 fontSize: '0.6rem',
-                fontWeight: 700,
+                fontWeight: 500,
                 padding: '2px 6px',
                 borderRadius: '5px',
                 pointerEvents: 'none',
@@ -236,7 +236,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 className="storefront-product-badge"
                 style={{
                   fontSize: '10.5px',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: primaryBadge.color,
                   backgroundColor: primaryBadge.bg,
                   padding: '3px 10px',
@@ -275,7 +275,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 className="storefront-product-badge"
                 style={{
                   fontSize: '10px',
-                  fontWeight: 700,
+                  fontWeight: 500,
                   color: '#475569',
                   backgroundColor: '#ffffff',
                   padding: '3px 9px',
@@ -683,13 +683,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
           >
             {justAdded ? (
               <>
-                <IconCheckCircle size={15} strokeWidth={2.4} color="#ffffff" />
                 <span>تمت الإضافة</span>
+                <IconCheckCircle size={15} strokeWidth={2.4} color="#ffffff" />
               </>
             ) : (
               <>
-                <IconShoppingCart size={15} strokeWidth={2.2} />
                 <span>{t('storefront.storefront_product_card.s18', 'أضف للسلة')}</span>
+                <IconShoppingCart size={15} strokeWidth={2.2} />
               </>
             )}
           </button>

@@ -485,7 +485,7 @@ export function StorefrontProductQuickViewModal({
                     background: '#CC0C39',
                     color: '#ffffff',
                     fontSize: '11px',
-                    fontWeight: 800,
+                    fontWeight: 500,
                     padding: '4px 10px',
                     borderRadius: '8px',
                     display: 'inline-flex',
@@ -578,7 +578,7 @@ export function StorefrontProductQuickViewModal({
                       <span
                         style={{
                           fontSize: '11px',
-                          fontWeight: 800,
+                          fontWeight: 500,
                           background: '#CC0C39',
                           color: '#ffffff',
                           padding: '3px 9px',
@@ -744,21 +744,21 @@ export function StorefrontProductQuickViewModal({
               >
                 {addedAnimation ? (
                   <>
-                    <CheckIcon size={16} color="#ffffff" />
                     <span>{t('storefront.storefront_product_quick_view_modal.s24', "تمت الإضافة بنجاح")}</span>
+                    <CheckIcon size={16} color="#ffffff" />
                   </>
                 ) : inStock ? (
                   <>
-                    <IconShoppingCart size={16} color="#ffffff" strokeWidth={2.2} />
                     <span>
                       {t('storefront.storefront_product_quick_view_modal.s25', "إضافة إلى السلة (")}
                       {(basePrice * qty).toLocaleString()} <CurrencySymbol />)
                     </span>
+                    <IconShoppingCart size={16} color="#ffffff" strokeWidth={2.2} />
                   </>
                 ) : (
                   <>
-                    <ClockIcon size={16} color="#64748b" />
                     <span>{t('storefront.storefront_product_quick_view_modal.s26', "ستتوفر قريباً")}</span>
+                    <ClockIcon size={16} color="#64748b" />
                   </>
                 )}
               </button>

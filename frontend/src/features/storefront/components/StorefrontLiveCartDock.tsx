@@ -2,8 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useState, useEffect, useRef } from 'react';
 import { CartItem, StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { StorefrontLiveCartItem } from './StorefrontLiveCartItem';
-import { StorefrontLiveCartPill } from './StorefrontLiveCartPill';
-import { Trash2Icon, XIcon, AlertTriangleIcon, TruckIcon } from '@/shared/components/icons/AppIcons';
+import { Trash2Icon, XIcon, AlertTriangleIcon } from '@/shared/components/icons/AppIcons';
 import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
 import { isThreeDecimalCurrency, getCurrencySymbol } from '@/lib/currencies';
 
@@ -28,18 +27,14 @@ export function StorefrontLiveCartDock({
   deliveryFee: deliveryFeeProp,
   minOrder: minOrderProp,
   isOpen,
-  onOpen,
   onClose,
   onUpdateQuantity,
   onClearCart,
   onProceedToCheckout,
 }: StorefrontLiveCartDockProps) {
   const { t } = useTranslation();
-  const [isDismissed, setIsDismissed] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const clearConfirmRef = useRef<HTMLDivElement>(null);
-  const prevItemsCount = useRef(cartItems.length);
-  const prevTotalQuantity = useRef(0);
 
   // Close clear confirmation on click outside
   useEffect(() => {
@@ -86,17 +81,13 @@ export function StorefrontLiveCartDock({
     return num.toFixed(2);
   };
 
-  const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const cartTotals = calculateCartSubtotal(cartItems, storeCurrency);
   const subtotal = cartTotals.subtotal;
+  const originalSubtotal = cartTotals.originalSubtotal;
   const totalSavings = cartTotals.totalSavings;
 
   const freeShippingThreshold = info?.freeShippingMinOrder || 500;
   const isFreeShippingQualified = Boolean(info?.freeShippingEnabled && subtotal >= freeShippingThreshold);
-  const freeShippingPercent = info?.freeShippingEnabled
-    ? Math.min(100, Math.round((subtotal / freeShippingThreshold) * 100))
-    : 0;
-  const freeShippingRemaining = Math.max(0, freeShippingThreshold - subtotal);
 
   const baseDeliveryFee = deliveryFeeProp ?? info?.deliveryFee ?? 0;
   const effectiveDeliveryFee = isFreeShippingQualified ? 0 : baseDeliveryFee;
@@ -104,62 +95,7 @@ export function StorefrontLiveCartDock({
   const total = subtotal + effectiveDeliveryFee;
   const isMinOrderMet = minOrder <= 0 || subtotal >= minOrder;
 
-  // Auto-restore visibility if items or quantities change
-  useEffect(() => {
-    if (cartItems.length !== prevItemsCount.current || totalQuantity !== prevTotalQuantity.current) {
-      setIsDismissed(false);
-      prevItemsCount.current = cartItems.length;
-      prevTotalQuantity.current = totalQuantity;
-    }
-  }, [cartItems.length, totalQuantity]);
-
-  if (cartItems.length === 0 || (isDismissed && !isOpen)) return null;
-
-  // Case 1: Collapsed State -> Sleek Floating Pill at Bottom
-  if (!isOpen) {
-    return (
-      <div
-        dir="rtl"
-        className="storefront-live-cart-dock"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '16px',
-          zIndex: 9990,
-          fontFamily: 'inherit',
-          maxWidth: 'min(94vw, 560px)',
-          width: 'max-content',
-        }}
-      >
-        <style>{`
-          @keyframes liveCartSlideIn {
-            from { opacity: 0; transform: translateY(20px) scale(0.96); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-          }
-          @media (max-width: 640px) {
-            .storefront-live-cart-dock {
-              left: 12px !important;
-              right: 12px !important;
-              bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
-              transform: none !important;
-              max-width: none !important;
-              width: auto !important;
-            }
-          }
-        `}</style>
-
-        <StorefrontLiveCartPill
-          itemsCount={cartItems.length}
-          totalQuantity={totalQuantity}
-          total={total}
-          isMinOrderMet={isMinOrderMet}
-          onExpand={onOpen}
-          onProceedToCheckout={onProceedToCheckout}
-          onDismiss={() => setIsDismissed(true)}
-        />
-      </div>
-    );
-  }
+  if (!isOpen || cartItems.length === 0) return null;
 
   // Case 2: Expanded State -> Brand New Modern Minimalist Cart Sheet (Nike / Apple Inspired)
   return (
@@ -358,55 +294,6 @@ export function StorefrontLiveCartDock({
           )}
         </div>
 
-        {/* Sleek Minimal Free Shipping Indicator */}
-        {info?.freeShippingEnabled && (
-          <div style={{ padding: '0 22px 10px', letterSpacing: '0px' }}>
-            <div
-              style={{
-                padding: '8px 14px',
-                borderRadius: '12px',
-                background: isFreeShippingQualified ? '#f0fdf4' : '#f8fafc',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '5px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <TruckIcon size={13} color={isFreeShippingQualified ? '#16a34a' : '#0f172a'} />
-                  {isFreeShippingQualified ? (
-                    <span style={{ fontWeight: 600, color: '#15803d', letterSpacing: '0px' }}>
-                      {t('storefront.storefront_live_cart_dock.s10', 'مبروك! حصلت على توصيل مجاني لطلبك!')}
-                    </span>
-                  ) : (
-                    <span style={{ color: '#475569', fontWeight: 500, letterSpacing: '0px' }}>
-                      {t('storefront.storefront_live_cart_dock.s11', 'أضف بـ')}{' '}
-                      <span style={{ color: '#0f172a', fontWeight: 600 }}>
-                        {formatPriceNumber(freeShippingRemaining)} {activeCurrencySymbol}
-                      </span>{' '}
-                      {t('storefront.storefront_live_cart_dock.s12', 'للشحن المجاني')}
-                    </span>
-                  )}
-                </div>
-                <span style={{ fontWeight: 600, color: isFreeShippingQualified ? '#15803d' : '#64748b', fontSize: '11px' }}>
-                  {freeShippingPercent}%
-                </span>
-              </div>
-              <div style={{ height: '3.5px', width: '100%', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden' }}>
-                <div
-                  style={{
-                    height: '100%',
-                    width: `${freeShippingPercent}%`,
-                    background: isFreeShippingQualified ? '#22c55e' : '#0f172a',
-                    borderRadius: '999px',
-                    transition: 'width 0.3s ease',
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Un-boxed Scrollable Items List */}
         <div
           className="live-cart-scroll"
@@ -441,60 +328,64 @@ export function StorefrontLiveCartDock({
             letterSpacing: '0px',
           }}
         >
-          {/* Un-boxed Pricing Breakdown (Subtotal, Delivery Fee, Discount, Total) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-              <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>
-                {t('storefront.storefront_live_cart_dock.subtotal_label', 'قيمة الأصناف :')}
+          {/* Price Calculations Card */}
+          <div
+            style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              boxShadow: '0 2px 6px rgba(15, 23, 42, 0.03)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#475569', fontWeight: 500, fontSize: '13.5px' }}>
+                {t('storefront.storefront_live_cart_dock.subtotal_label', 'قيمة الأصناف')}
               </span>
-              <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '13.5px', letterSpacing: '0px' }}>
-                {formatPriceNumber(subtotal)} {activeCurrencySymbol}
+              <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '14px' }}>
+                {formatPriceNumber(totalSavings > 0 ? originalSubtotal : subtotal)} {activeCurrencySymbol}
               </span>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-              <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>
-                {t('storefront.storefront_live_cart_dock.s16', 'مصاريف التوصيل :')}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: '#475569', fontWeight: 500, fontSize: '13.5px' }}>
+                {t('storefront.storefront_live_cart_dock.s16', 'مصاريف التوصيل')}
               </span>
-              <span style={{ fontWeight: 600, color: effectiveDeliveryFee > 0 ? '#0f172a' : '#16a34a', fontSize: '13.5px', letterSpacing: '0px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 {effectiveDeliveryFee === 0 && baseDeliveryFee > 0 && (
-                  <span style={{ textDecoration: 'line-through', color: '#cbd5e1', fontSize: '12px', marginLeft: '6px', fontWeight: 400 }}>
+                  <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '12px', fontWeight: 400 }}>
                     {formatPriceNumber(baseDeliveryFee)} {activeCurrencySymbol}
                   </span>
                 )}
-                <span>
+                <span style={{ fontWeight: 600, color: effectiveDeliveryFee > 0 ? '#0f172a' : '#16a34a', fontSize: '13.5px' }}>
                   {effectiveDeliveryFee > 0
                     ? `${formatPriceNumber(effectiveDeliveryFee)} ${activeCurrencySymbol}`
                     : t('storefront.storefront_live_cart_dock.s17', 'مجاني')}
                 </span>
-              </span>
+              </div>
             </div>
 
             {totalSavings > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
-                <span style={{ color: '#64748b', fontWeight: 500, letterSpacing: '0px' }}>
-                  {t('storefront.storefront_live_cart_dock.discount_label', 'الخصم :')}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#475569', fontWeight: 500, fontSize: '13.5px' }}>
+                  {t('storefront.storefront_live_cart_dock.discount_label', 'الخصم')}
                 </span>
-                <span style={{ fontWeight: 600, color: '#ef4444', fontSize: '13.5px', letterSpacing: '0px' }}>
+                <span style={{ fontWeight: 600, color: '#dc2626', fontSize: '14px' }}>
                   - {formatPriceNumber(totalSavings)} {activeCurrencySymbol}
                 </span>
               </div>
             )}
 
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingTop: '10px',
-                marginTop: '2px',
-                borderTop: '1px solid #f1f5f9',
-              }}
-            >
-              <span style={{ fontSize: '14.5px', fontWeight: 600, color: '#0f172a', letterSpacing: '0px' }}>
-                {t('storefront.storefront_live_cart_dock.s18', 'المبلغ الإجمالي :')}
+            <div style={{ height: '1px', background: '#e2e8f0', margin: '2px 0' }} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>
+                {t('storefront.storefront_live_cart_dock.s18', 'المبلغ الإجمالي')}
               </span>
-              <span style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a', letterSpacing: '0px' }}>
+              <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--storefront-primary-color, #2d68c4)' }}>
                 {formatPriceNumber(total)} {activeCurrencySymbol}
               </span>
             </div>
@@ -532,12 +423,12 @@ export function StorefrontLiveCartDock({
             disabled={!isMinOrderMet}
             style={{
               width: '100%',
-              height: '46px',
+              height: '48px',
               borderRadius: '12px',
-              background: isMinOrderMet ? 'var(--storefront-primary-color, #588cb3)' : '#cbd5e1',
+              background: isMinOrderMet ? 'var(--storefront-primary-color, #2d68c4)' : '#cbd5e1',
               color: '#ffffff',
               border: 'none',
-              fontSize: '14.5px',
+              fontSize: '15px',
               fontWeight: 600,
               letterSpacing: '0px',
               cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
@@ -545,7 +436,7 @@ export function StorefrontLiveCartDock({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              boxShadow: isMinOrderMet ? '0 4px 12px rgba(88, 140, 179, 0.22)' : 'none',
+              boxShadow: isMinOrderMet ? '0 4px 14px rgba(45, 104, 196, 0.25)' : 'none',
               transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
               fontFamily: 'inherit',
             }}

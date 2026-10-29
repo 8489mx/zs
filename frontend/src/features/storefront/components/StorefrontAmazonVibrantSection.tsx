@@ -607,7 +607,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     color: 'rgba(255, 255, 255, 0.92)',
                   }}
                 >
-                  توصيل سريع لباب البيت*
+                  توصيل سريع لباب البيت
                 </div>
               </div>
 
@@ -687,7 +687,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     color: '#0f172a',
                   }}
                 >
-                  خصم 10% مع الكوبون*
+                  خصم 10% مع الكوبون
                 </h3>
 
                 {/* Dark Navy Ribbon Badge — Clean single-line pill */}
@@ -985,7 +985,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                           background: meta.badgeBg,
                           color: meta.badgeColor,
                           fontSize: '10.5px',
-                          fontWeight: 700,
+                          fontWeight: 500,
                           lineHeight: 1.4,
                           padding: '2.5px 9px',
                           borderRadius: '8px',

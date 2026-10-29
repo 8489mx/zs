@@ -407,7 +407,7 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   <span
                     style={{
                       fontSize: '10.5px',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       color: theme.badgeColor,
                       background: theme.badgeBg,
                       padding: '2.5px 8.5px',
@@ -423,7 +423,7 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   <span
                     style={{
                       fontSize: '10.5px',
-                      fontWeight: 700,
+                      fontWeight: 500,
                       color: theme.badgeColor,
                       background: theme.badgeBg,
                       padding: '2.5px 8.5px',

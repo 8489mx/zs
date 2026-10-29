@@ -1429,10 +1429,16 @@ button.storefront-btn-pill,
 /* 10. Public Storefront Natural Window Scrolling & Unconstrained Sticky Header
    Safely overrides ERP shell's body { overflow: hidden } and #root { height: 100% }
    strictly while visiting the public storefront routes. */
-html.storefront-html,
-html.storefront-html body,
-body.storefront-body {
+html.storefront-html {
   overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100% !important;
+  scroll-behavior: smooth !important;
+}
+
+body.storefront-body {
+  overflow: visible !important;
   overflow-x: hidden !important;
   height: auto !important;
   min-height: 100vh !important;
