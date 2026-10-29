@@ -32,7 +32,7 @@ assert.equal(weightedReceiptCost(10, 10, 10, 200), 15);
 assert.equal(weightedReceiptCost(8, 20, 2, 20), 18);
 // Sold-unit multiplication must happen before the base-unit receipt is valued.
 assert.equal(weightedReceiptCost(0, 0, 12, 360), 30);
-assert.throws(() => weightedReceiptCost(-1, 10, 2, 40));
+assert.equal(weightedReceiptCost(-1, 10, 2, 40), 30);
 assert.throws(() => weightedReceiptCost(10, 10, 0, 0));
 
 // Settlement cannot be repeated or reversed by applying an unrelated action.

@@ -8,6 +8,7 @@ import { assertUntrackedStockMutation } from '../../inventory/helpers/inventory-
 import { reversePurchaseTrackedStock } from '../helpers/purchase-cancellation-trace.helper';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { purchaseReceiptBaseUnitCost } from '../engines/purchase-receipt-cost.engine';
+import { weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -481,15 +482,17 @@ export class PurchasesWriteService {
             accountId: scope.accountId,
           });
 
-          const oldQty = Math.max(0, stockChange.globalBefore);
+          const oldQty = stockChange.globalBefore;
           const currentProduct = await trx.selectFrom('products').select('cost_price')
             .where('id', '=', item.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
           const oldCost = Number(currentProduct.cost_price || 0);
-          const totalQty = oldQty + increasedQty;
           // Inventory cost is per base stock unit, not per purchased carton.
           const baseUnitCost = netPurchaseUnitCost / item.unitMultiplier;
-          const newCost = (increasedQty > 0 && totalQty > 0.00001) 
-            ? ((oldQty * oldCost) + (increasedQty * baseUnitCost)) / totalQty
+          // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
+          // balance algebraically instead of clamping it to zero. The quantity input stays
+          // the cached globalBefore; the cached-vs-location-sum divergence is a separate item.
+          const newCost = increasedQty > 0
+            ? weightedReceiptCost(oldQty, oldCost, increasedQty, increasedQty * baseUnitCost)
             : oldCost;
 
           await trx.updateTable('products')
@@ -850,14 +853,16 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
         });
 
-        const oldQty = Math.max(0, stockChange.globalBefore);
+        const oldQty = stockChange.globalBefore;
         const currentProduct = await trx.selectFrom('products').select('cost_price')
           .where('id', '=', normalizedItem.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
         const oldCost = Number(currentProduct.cost_price || 0);
-        const totalQty = oldQty + increaseQty;
         const baseUnitCost = netRepricedCost / normalizedItem.unitMultiplier;
-        const newCost = (increaseQty > 0 && totalQty > 0.00001) 
-          ? ((oldQty * oldCost) + (increaseQty * baseUnitCost)) / totalQty
+        // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
+        // balance algebraically instead of clamping it to zero. The quantity input stays
+        // the cached globalBefore; the cached-vs-location-sum divergence is a separate item.
+        const newCost = increaseQty > 0
+          ? weightedReceiptCost(oldQty, oldCost, increaseQty, increaseQty * baseUnitCost)
           : oldCost;
 
         await trx.updateTable('products')
@@ -1647,7 +1652,7 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
         });
 
-        const oldQty = Math.max(0, stockChange.globalBefore);
+        const oldQty = stockChange.globalBefore;
         const oldCostProduct = await trx
           .selectFrom('products')
           .select(['cost_price'])
@@ -1655,9 +1660,11 @@ export class PurchasesWriteService {
           .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
           .executeTakeFirst();
         const oldCost = Number(oldCostProduct?.cost_price || 0);
-        const totalQty = oldQty + increasedQty;
-        const newCost = (increasedQty > 0 && totalQty > 0.00001)
-          ? ((oldQty * oldCost) + (increasedQty * effectiveUnitCost)) / totalQty
+        // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
+        // balance algebraically instead of clamping it to zero. The quantity input stays
+        // the cached globalBefore; the cached-vs-location-sum divergence is a separate item.
+        const newCost = increasedQty > 0
+          ? weightedReceiptCost(oldQty, oldCost, increasedQty, increasedQty * effectiveUnitCost)
           : oldCost;
 
         await trx

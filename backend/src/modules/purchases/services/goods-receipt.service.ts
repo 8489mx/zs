@@ -10,6 +10,7 @@ import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from 
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
 import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { allocateGrnAccrual, allocateGrniBillPortion } from '../engines/grni-settlement.engine';
+import { weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
 import { tenantBaseCurrency } from '../../accounting/accounting-currency';
 import { currencyMoneyDigits, fromMinorUnits, roundMoney, toMinorUnits } from '../../accounting/engines/money-minor-units.engine';
 import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-period-lock';
@@ -498,12 +499,13 @@ export class GoodsReceiptService {
           if (prod && lineUnitCost > 0) {
             const qtyBefore = Number(stockChange.globalBefore || 0);
             const costBefore = Number(prod.cost_price || 0);
-            // V1: never average against a non-positive prior balance — that yields a negative or
-            // absurd unit cost. Fall back to the incoming cost.
-            const newCost =
-              qtyBefore > 0
-                ? Number((((qtyBefore * costBefore) + (accepted * lineUnitCost)) / (qtyBefore + accepted)).toFixed(6))
-                : lineUnitCost;
+            // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
+            // balance algebraically instead of falling back to the incoming cost. The old
+            // comment's fear (a negative or absurd unit cost) only holds for a zero or
+            // negative algebraic result, which the engine guards by falling back instead of
+            // storing a negative unit cost. accepted > 0 and lineUnitCost > 0 are already
+            // enforced above, so the engine's received-quantity guard cannot trip here.
+            const newCost = weightedReceiptCost(qtyBefore, costBefore, accepted, accepted * lineUnitCost);
 
             if (newCost >= 0) {
               await trx
