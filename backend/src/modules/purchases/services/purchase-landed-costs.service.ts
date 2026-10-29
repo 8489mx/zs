@@ -27,6 +27,33 @@ export class PurchaseLandedCostsService {
   }
 
   /**
+   * Resolve the COGS account for a landed-cost journal (INV-LANDED-COGS-ACCOUNT):
+   * the tenant's configured COGS account, never a hard-coded parallel account.
+   * The old code posted the sold portion to a hard-coded 5110 while every
+   * sale posts COGS to settings.cogs_account_id (5100 by foundation), so
+   * the same cost of goods sold was split across two accounts with
+   * different groups (5100: cogs, 5110: expenses) and any report summing
+   * 5100 alone understated COGS by the landed sold portion. A tenant
+   * that deliberately configured a different COGS account keeps it: the
+   * configured account wins whenever it exists and is active, and 5100
+   * is only the creation fallback, matching the posting service.
+   */
+  private async resolveCogsAccount(trx: any, scope: { tenantId: string; accountId: string }, settings: any): Promise<number | null> {
+    const configuredId = Number(settings?.cogs_account_id || 0);
+    if (configuredId > 0) {
+      const configured = await trx
+        .selectFrom('accounting_accounts')
+        .select('id')
+        .where('tenant_id', '=', scope.tenantId)
+        .where('id', '=', configuredId)
+        .where('is_active', '=', true)
+        .executeTakeFirst();
+      if (configured) return Number(configured.id);
+    }
+    return this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '5100');
+  }
+
+  /**
    * Resolve a system account by code, creating it when missing.
    * Guarding the journal with `if (account)` silently skipped posting while the perpetual cost had
    * already moved, leaving the ledger and inventory valuation permanently out of step.
@@ -42,7 +69,7 @@ export class PurchaseLandedCostsService {
 
     const known: Record<string, { ar: string; en: string; type: string; group: string; balance: string }> = {
       '1140': { ar: 'مخزون بضاعة ومواد خام', en: 'Inventory', type: 'asset', group: 'current_assets', balance: 'debit' },
-      '5110': { ar: 'تكلفة البضاعة المباعة', en: 'Cost of Goods Sold', type: 'expense', group: 'expenses', balance: 'debit' },
+      '5100': { ar: 'تكلفة بضاعة مباعة', en: 'COGS', type: 'expense', group: 'cogs', balance: 'debit' },
     };
     const spec = known[code];
     if (!spec) return null;
@@ -401,7 +428,7 @@ export class PurchaseLandedCostsService {
           .executeTakeFirst();
 
         const invAccount = await this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '1140');
-        const cogsAccount = await this.resolveAccountByCode(trx, scope.tenantId, scope.accountId, '5110');
+        const cogsAccount = await this.resolveCogsAccount(trx, scope, settings);
 
         const payableAccountId = Number(settings?.supplier_payable_account_id || 0);
         const payableAccount = payableAccountId > 0 ? await trx.selectFrom('accounting_accounts')
