@@ -44,9 +44,13 @@ assert.throws(() => assertPdcTransition('payable', 'bounced', 'clear'));
 for (const [status, action] of [['in_safe', 'deposit'], ['under_collection', 'bounce'], ['bounced', 'restore_to_safe'], ['in_safe', 'deposit']]) {
   assert.doesNotThrow(() => assertPdcTransition('receivable', status, action));
 }
-assert.equal(pdcBookAmount({ amount: 100, base_amount: 5000 }), 5000);
-assert.throws(() => pdcBookAmount({ amount: 100 }));
-assert.throws(() => pdcBookAmount({ amount: 100, base_amount: Infinity }));
+assert.equal(pdcBookAmount({ amount: 100, base_amount: 5000 }, 2), 5000);
+assert.throws(() => pdcBookAmount({ amount: 100 }, 2));
+assert.throws(() => pdcBookAmount({ amount: 100, base_amount: Infinity }, 2));
+// 3-decimal book amounts survive when digits = 3; the old hard-coded
+// *100 truncated 10.123 to 10.12 in every PDC journal.
+assert.equal(pdcBookAmount({ amount: 100, base_amount: 10.123 }, 3), 10.123);
+assert.equal(pdcBookAmount({ amount: 100, base_amount: 10.123 }, 2), 10.12);
 
 const bounce = [
   { accountId: 1, debit: 100, credit: 0, partnerType: 'customer', partnerId: 7 },

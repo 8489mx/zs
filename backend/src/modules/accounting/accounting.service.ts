@@ -1,4 +1,17 @@
 import { tenantBaseCurrency } from './accounting-currency';
+import { currencyMoneyDigits, roundMoney, type MoneyDigits } from './engines/money-minor-units.engine';
+
+/**
+ * Statement-vs-GL amount equality at book precision. Both sides are
+ * rounded to the tenant minor unit first (absorbing float noise such as
+ * 0.1 + 0.2 vs 0.3); any remaining difference is real money and must NOT
+ * auto-match. The old < 0.01 tolerance silently matched KWD differences
+ * of up to 9 fils as an "exact" match and then marked the line reconciled,
+ * hiding the gap from every later check.
+ */
+export function bankStatementAmountsEqual(a: number, b: number, digits: MoneyDigits): boolean {
+  return roundMoney(a, digits) === roundMoney(b, digits);
+}
 import { assertHierarchyParent } from './accounting-boundaries';
 import { assertAccountingCloseReady } from './accounting-close-readiness';
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException, Optional } from '@nestjs/common';
@@ -3167,6 +3180,8 @@ export class AccountingService {
   async getBankReconciliationWorkspace(statementId: number, auth: AuthContext): Promise<any> {
     this.assertAccountingAccess(auth);
     const statementData = await this.getBankStatement(statementId, auth);
+    const scope = requireTenantScope(auth);
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, scope.tenantId));
     const statement = statementData.statement;
     const statementLines = statementData.lines;
 
@@ -3217,8 +3232,8 @@ export class AccountingService {
 
       for (const glLine of formattedGlLines) {
         if (usedGlIds.has(glLine.id)) continue;
-        const matchesDeposit = targetAmount > 0 && Math.abs(glLine.debit - targetAmount) < 0.01;
-        const matchesWithdrawal = targetAmount < 0 && Math.abs(glLine.credit - Math.abs(targetAmount)) < 0.01;
+        const matchesDeposit = targetAmount > 0 && bankStatementAmountsEqual(glLine.debit, targetAmount, digits);
+        const matchesWithdrawal = targetAmount < 0 && bankStatementAmountsEqual(glLine.credit, Math.abs(targetAmount), digits);
 
         if (matchesDeposit || matchesWithdrawal) {
           const sDate = new Date(sLine.lineDate).getTime();
@@ -3229,7 +3244,7 @@ export class AccountingService {
             statementLineId: sLine.id,
             journalLineId: glLine.id,
             confidence: daysDiff <= 7 ? 'high' : 'medium',
-            reason: `تطابق تام في المبلغ (${Math.abs(targetAmount).toFixed(2)}) وفارق زمني ${Math.round(daysDiff)} يوم`,
+            reason: `تطابق تام في المبلغ (${Math.abs(targetAmount).toFixed(digits)}) وفارق زمني ${Math.round(daysDiff)} يوم`,
           });
           usedGlIds.add(glLine.id);
           break;
@@ -3244,6 +3259,9 @@ export class AccountingService {
 
     const calculatedEndingBalance = statement.startingBalance + totalReconciledLinesAmount;
     const difference = statement.endingBalance - calculatedEndingBalance;
+    // Rounded to book precision, then balanced ONLY at exactly zero: a
+    // 0.001 KWD difference is a real unexplained amount, not noise.
+    const roundedDifference = roundMoney(difference, digits);
 
     return {
       statement,
@@ -3255,8 +3273,8 @@ export class AccountingService {
         endingBalance: statement.endingBalance,
         reconciledAmount: totalReconciledLinesAmount,
         calculatedEndingBalance,
-        difference: Number(difference.toFixed(2)),
-        isBalanced: Math.abs(difference) < 0.01,
+        difference: roundedDifference,
+        isBalanced: roundedDifference === 0,
         totalLines: statementLines.length,
         reconciledLinesCount: statementLines.filter((l: any) => l.isReconciled).length,
       },
@@ -3270,6 +3288,8 @@ export class AccountingService {
 
   private async reconcileMatchInTransaction(trx: any, dto: ReconcileMatchDto, auth: AuthContext): Promise<any> {
       // 1. Lock and fetch statement line
+      const scope = requireTenantScope(auth);
+      const digits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const sLine = await trx
         .selectFrom('bank_statement_lines as bsl')
         .innerJoin('bank_statements as bs', (join: any) => join.onRef('bs.id', '=', 'bsl.statement_id').onRef('bs.tenant_id', '=', 'bsl.tenant_id'))
@@ -3324,12 +3344,12 @@ export class AccountingService {
         throw new BadRequestException('لا يمكن مطابقة سطر كشف الحساب مع قيد لحساب مالي مختلف.');
       }
 
-      // 4. Mathematical validation: net journal amount must match statement line amount within 0.01 tolerance
+      // 4. Mathematical validation: net journal amount must match statement line amount at book precision
       const netJournalAmount = Number(glLine.debit || 0) - Number(glLine.credit || 0);
       const statementAmount = Number(sLine.amount || 0);
-      if (Math.abs(statementAmount - netJournalAmount) > 0.01) {
+      if (!bankStatementAmountsEqual(statementAmount, netJournalAmount, digits)) {
         throw new BadRequestException(
-          `عدم تطابق في المبلغ: سطر كشف الحساب (${statementAmount.toFixed(2)}) لا يتطابق مع القيد المحاسبي (${netJournalAmount.toFixed(2)}).`
+          `عدم تطابق في المبلغ: سطر كشف الحساب (${statementAmount.toFixed(digits)}) لا يتطابق مع القيد المحاسبي (${netJournalAmount.toFixed(digits)}).`
         );
       }
 

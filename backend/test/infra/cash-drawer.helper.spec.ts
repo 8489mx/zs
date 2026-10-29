@@ -29,7 +29,7 @@ import { assertCashDrawerAmount, assertCashDrawerCountedCash, assertCashDrawerNo
   assert.equal(normalizeCashDrawerMovementType('other'), 'cash_in');
   assert.equal(toSignedCashDrawerAmount('cash_out', 10.5), -10.5);
   assert.equal(toSignedCashDrawerAmount('cash_in', 10.5), 10.5);
-  assert.equal(computeCashDrawerVariance(88.5, 100), -11.5);
+  assert.equal(computeCashDrawerVariance(88.5, 100, 2), -11.5);
   assert.throws(() => assertCashDrawerAmount(0), (error: any) => error?.code === 'AMOUNT_INVALID');
   assert.throws(() => assertCashDrawerCountedCash(-1), (error: any) => error?.code === 'COUNTED_CASH_INVALID');
   assert.throws(() => assertCashDrawerNote(''), (error: any) => error?.code === 'NOTE_REQUIRED');

@@ -1,4 +1,5 @@
 import { AppError } from '../../../common/errors/app-error';
+import { roundMoney, type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import { formatDailyDocumentNumber } from '../../../common/utils/document-number.util';
 
 type CashDrawerQuery = Record<string, unknown>;
@@ -302,7 +303,13 @@ export function assertCashDrawerNote(note: string, code = 'NOTE_REQUIRED', minLe
 }
 export function normalizeCashDrawerMovementType(type?: string): 'cash_in' | 'cash_out' { return String(type || '').trim() === 'cash_out' ? 'cash_out' : 'cash_in'; }
 export function toSignedCashDrawerAmount(type: 'cash_in' | 'cash_out', amount: number): number { return type === 'cash_out' ? -Math.abs(amount) : Math.abs(amount); }
-export function computeCashDrawerVariance(countedCash: number, expectedCash: number): number { return Number((countedCash - expectedCash).toFixed(2)); }
+/**
+ * Shift variance at the tenant's minor unit. digits is required: the old
+ * toFixed(2) turned a KWD 0.005 variance into 0.01 (overstating the GL
+ * charge) or 0.00 (dropping it entirely), and the stored variance then
+ * disagreed with both the GL gate and the note gate.
+ */
+export function computeCashDrawerVariance(countedCash: number, expectedCash: number, digits: MoneyDigits): number { return roundMoney(countedCash - expectedCash, digits); }
 
 
 /** Cash drawer movement amount is the posted cash tender leg, never the gross return. */

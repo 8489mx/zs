@@ -1682,7 +1682,7 @@ export class AccountingPostingService {
     const invoiceNo = sale?.doc_no || returnDocument.doc_no || `Z-${returnDocument.invoice_id || ''}`;
 
     if (netReturnAmount > 0) {
-      addBookLine( {
+      addBookLine({
         accountId: salesReturnsAccountId,
         description: `مردودات مبيعات للفاتورة رقم ${invoiceNo}`,
         debit: netReturnAmount,
@@ -1695,7 +1695,7 @@ export class AccountingPostingService {
     }
 
     if (taxAmount > 0) {
-      addBookLine( {
+      addBookLine({
         accountId: salesTaxAccountId,
         description: `تخفيض ضريبة مبيعات من مرتجع فاتورة رقم ${invoiceNo}`,
         debit: taxAmount,
@@ -1767,7 +1767,7 @@ export class AccountingPostingService {
     const inventoryReversalAmount = toBookMoney(calculateSalesReturnCost(returnItems, saleItems));
 
     if (inventoryReversalAmount > 0) {
-      addBookLine( {
+      addBookLine({
         accountId: inventoryAccountId,
         description: `إرجاع المخزون من مرتجع فاتورة رقم ${invoiceNo}`,
         debit: inventoryReversalAmount,
@@ -1777,7 +1777,7 @@ export class AccountingPostingService {
         branchId,
         locationId,
       });
-      addBookLine( {
+      addBookLine({
         accountId: cogsAccountId,
         description: `عكس تكلفة البضاعة المباعة لمرتجع فاتورة رقم ${invoiceNo}`,
         debit: 0,
@@ -2189,12 +2189,12 @@ export class AccountingPostingService {
     const priceVariance = toBookMoney(inventoryReturnCost - netReturnAmount);
     if (priceVariance !== 0) {
       const varianceAccount = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '5190');
-      addBookLine( { accountId: varianceAccount, description: 'فرق تكلفة مرتجع الشراء عن المتوسط المرجح', debit: Math.max(0, priceVariance), credit: Math.max(0, -priceVariance), partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: varianceAccount, description: 'فرق تكلفة مرتجع الشراء عن المتوسط المرجح', debit: Math.max(0, priceVariance), credit: Math.max(0, -priceVariance), partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     // Cr. Inventory Asset (1140)
     if (inventoryReturnCost > 0) {
-      addBookLine( {
+      addBookLine({
         accountId: inventoryAccountId,
         description: `تخفيض المخزون من مردودات مشتريات فاتورة رقم ${invoiceNo}`,
         debit: 0,
@@ -2208,7 +2208,7 @@ export class AccountingPostingService {
 
     // Cr. Purchase Tax (1150) (Reversing Input VAT)
     if (taxAmount > 0) {
-      addBookLine( {
+      addBookLine({
         accountId: purchaseTaxAccountId,
         description: `عكس ضريبة مشتريات من مردودات فاتورة رقم ${invoiceNo}`,
         debit: 0,
@@ -2382,7 +2382,7 @@ export class AccountingPostingService {
       await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
     const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
-    addBookLine( {
+    addBookLine({
       accountId: supplierPayableAccountId,
       description: 'سداد مستحقات مورد',
       debit: amount,
@@ -2392,7 +2392,7 @@ export class AccountingPostingService {
       branchId,
       locationId,
     });
-    addBookLine( {
+    addBookLine({
       accountId: paymentAccountId,
       description: (payment.payment_channel || 'cash') === 'cash' ? 'خروج نقدية لسداد مورد' : 'سداد مورد عبر البنك أو المدفوعات الإلكترونية',
       debit: 0,
@@ -2596,7 +2596,7 @@ export class AccountingPostingService {
       await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
     const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
-    addBookLine( {
+    addBookLine({
       accountId: paymentAccountId,
       description: (payment.payment_channel || 'cash') === 'cash' ? 'دخول نقدية من تحصيل عميل' : 'تحصيل عميل عبر البنك أو المدفوعات الإلكترونية',
       debit: amount,
@@ -2606,7 +2606,7 @@ export class AccountingPostingService {
       branchId,
       locationId,
     });
-    addBookLine( {
+    addBookLine({
       accountId: customerAccountId,
       description: 'تحصيل مستحقات عميل',
       debit: 0,
@@ -3336,17 +3336,22 @@ export class AccountingPostingService {
     const shift = await queryable.selectFrom('cashier_shifts').selectAll().where('id', '=', shiftId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
     if (!shift || shift.status !== 'closed') return { posted: false, journalEntryId: null };
 
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     const expected = Number(shift.expected_cash || 0);
     const counted = Number(shift.counted_cash || 0);
-    const variance = counted - expected;
-
-    if (Math.abs(variance) < 0.01) return { posted: false, journalEntryId: null };
+    // Any non-zero book variance posts. The old < 0.01 gate dropped every
+    // sub-cent variance from the GL while the shift stored it, so GL cash
+    // and physical cash diverged by one shift's worth of fils, invisibly.
+    const variance = toBookMoney(counted - expected);
+    if (variance === 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let cashAccountId = Number(settings?.cash_account_id || 0);
     if (!(cashAccountId > 0)) cashAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110');
 
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     const branchId = shift.branch_id ? Number(shift.branch_id) : null;
     const locationId = shift.location_id ? Number(shift.location_id) : null;
 
@@ -3364,21 +3369,21 @@ export class AccountingPostingService {
 
        if (chargeToCashier) {
          const receivableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1135');
-         this.addLine(lines, { accountId: receivableAccountId, description: `عجز وردية رقم #${shiftId} محمّل على أمين الصندوق`, debit: amount, credit: 0, partnerType: 'employee', partnerId: custodianId, branchId, locationId });
+         addBookLine({ accountId: receivableAccountId, description: `عجز وردية رقم #${shiftId} محمّل على أمين الصندوق`, debit: amount, credit: 0, partnerType: 'employee', partnerId: custodianId, branchId, locationId });
          resolution = 'charged_to_cashier';
          chargedToUserId = custodianId;
        } else {
          const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7210');
-         this.addLine(lines, { accountId: shortageAccountId, description: `عجز وردية رقم #${shiftId} ضمن حد التسامح`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+         addBookLine({ accountId: shortageAccountId, description: `عجز وردية رقم #${shiftId} ضمن حد التسامح`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
          resolution = 'within_tolerance';
        }
-       this.addLine(lines, { accountId: cashAccountId, description: `عجز وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+       addBookLine({ accountId: cashAccountId, description: `عجز وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
     } else {
        // Overage. Never netted against another shift's shortage: it lands on its own income account.
        const overageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7110');
        const amount = variance;
-       this.addLine(lines, { accountId: cashAccountId, description: `زيادة وردية رقم #${shiftId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
-       this.addLine(lines, { accountId: overageAccountId, description: `زيادة وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+       addBookLine({ accountId: cashAccountId, description: `زيادة وردية رقم #${shiftId}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+       addBookLine({ accountId: overageAccountId, description: `زيادة وردية نقدية`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
        resolution = 'surplus_recognized';
     }
 
@@ -4479,7 +4484,8 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesInSafeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
@@ -4488,7 +4494,8 @@ export class AccountingPostingService {
     if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
 
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: notesInSafeId,
       description: `ورقة قبض في الخزينة - شيك #${cheque.cheque_number} (${cheque.bank_name})`,
       debit: amount,
@@ -4498,7 +4505,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: customerArId,
       description: `استلام شيك قبض #${cheque.cheque_number} من ${cheque.partner_name}`,
       debit: 0,
@@ -4552,14 +4559,16 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesUnderCollId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121');
     const notesInSafeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
 
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: notesUnderCollId,
       description: `ورقة قبض برسم التحصيل - شيك #${cheque.cheque_number}`,
       debit: amount,
@@ -4569,7 +4578,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: notesInSafeId,
       description: `إيداع شيك قبض #${cheque.cheque_number} للتحصيل`,
       debit: 0,
@@ -4623,7 +4632,8 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     // Debit Bank account
@@ -4640,11 +4650,13 @@ export class AccountingPostingService {
       ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121')
       : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
 
-    const settlementAmount = this.toMoney((cheque as any).settlement_base_amount ?? amount);
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const settlementAmount = toBookMoney((cheque as any).settlement_base_amount ?? amount);
     const bank = await queryable.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', scope.tenantId).where('id', '=', debitBankId).where('is_active', '=', true).where('is_cash_bank', '=', true).executeTakeFirst();
     if (!bank) throw new AppError('Invalid cheque settlement bank', 'INVALID_CHEQUE_BANK', 400);
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: debitBankId,
       description: `تحصيل ورقة قبض #${cheque.cheque_number} في البنك`,
       debit: settlementAmount,
@@ -4654,7 +4666,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: creditAccountId,
       description: `إقفال ورقة قبض #${cheque.cheque_number} بعد التحصيل`,
       debit: 0,
@@ -4665,11 +4677,11 @@ export class AccountingPostingService {
       locationId: null,
     });
 
-    const cashDifference = this.toMoney(settlementAmount - amount);
+    const cashDifference = toBookMoney(settlementAmount - amount);
     const gain = cashDifference > 0;
     if (cashDifference !== 0) {
       const fxAccount = await this.resolveSystemAccountByCode(queryable, scope.tenantId, gain ? '7170' : '7270');
-      this.addLine(lines, { accountId: fxAccount, description: 'فرق صرف محقق عند تسوية الشيك', debit: gain ? 0 : Math.abs(cashDifference), credit: gain ? Math.abs(cashDifference) : 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+      addBookLine({ accountId: fxAccount, description: 'فرق صرف محقق عند تسوية الشيك', debit: gain ? 0 : Math.abs(cashDifference), credit: gain ? Math.abs(cashDifference) : 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
     }
 
     try {
@@ -4715,7 +4727,8 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -4728,8 +4741,9 @@ export class AccountingPostingService {
       : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
 
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     // Restore Customer balance
-    this.addLine(lines, {
+    addBookLine({
       accountId: customerArId,
       description: `ارتداد شيك #${cheque.cheque_number} - إعادة المديونية للعميل ${cheque.partner_name}`,
       debit: amount,
@@ -4739,7 +4753,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: creditAccountId,
       description: `إلغاء ورقة قبض مرتدة #${cheque.cheque_number}`,
       debit: 0,
@@ -4751,7 +4765,8 @@ export class AccountingPostingService {
     });
 
     // Bank fee for bounced cheque if any
-    const fee = this.toMoney(bouncedFee);
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const fee = toBookMoney(bouncedFee);
     if (fee > 0) {
       const bankFeeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6800');
       let bankId = bankAccountId && Number(bankAccountId) > 0 ? Number(bankAccountId) : Number(cheque.deposit_bank_id || 0);
@@ -4759,7 +4774,7 @@ export class AccountingPostingService {
         bankId = Number(settings?.bank_account_id || 0);
         if (!(bankId > 0)) bankId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
       }
-      this.addLine(lines, {
+      addBookLine({
         accountId: bankFeeId,
         description: `عمولة ومصاريف ارتداد شيك #${cheque.cheque_number}`,
         debit: fee,
@@ -4769,7 +4784,7 @@ export class AccountingPostingService {
         branchId: null,
         locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: bankId,
         description: `خصم مصاريف بنكية لشيك مرتد #${cheque.cheque_number}`,
         debit: 0,
@@ -4824,7 +4839,8 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -4835,7 +4851,8 @@ export class AccountingPostingService {
     const targetSupplierId = supplierId || cheque.endorsed_to_supplier_id;
 
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: supplierApId,
       description: `تظهير ورقة قبض #${cheque.cheque_number} سداداً لمستحقات المورد`,
       debit: amount,
@@ -4845,7 +4862,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: notesInSafeId,
       description: `خروج ورقة قبض #${cheque.cheque_number} من الخزينة بالتظهير`,
       debit: 0,
@@ -4899,7 +4916,8 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -4909,7 +4927,8 @@ export class AccountingPostingService {
     const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
 
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: supplierApId,
       description: `إصدار ورقة دفع #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
       debit: amount,
@@ -4919,7 +4938,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: notesPayableId,
       description: `ورقة دفع مصدرة #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
       debit: 0,
@@ -4973,7 +4992,8 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
@@ -4985,11 +5005,13 @@ export class AccountingPostingService {
       if (!(bankId > 0)) bankId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1120');
     }
 
-    const settlementAmount = this.toMoney((cheque as any).settlement_base_amount ?? amount);
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const settlementAmount = toBookMoney((cheque as any).settlement_base_amount ?? amount);
     const bank = await queryable.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', scope.tenantId).where('id', '=', bankId).where('is_active', '=', true).where('is_cash_bank', '=', true).executeTakeFirst();
     if (!bank) throw new AppError('Invalid cheque settlement bank', 'INVALID_CHEQUE_BANK', 400);
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: notesPayableId,
       description: `صرف وإقفال ورقة دفع #${cheque.cheque_number}`,
       debit: amount,
@@ -4999,7 +5021,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: bankId,
       description: `خصم ورقة دفع منصرفة #${cheque.cheque_number} من حساب البنك`,
       debit: 0,
@@ -5010,11 +5032,11 @@ export class AccountingPostingService {
       locationId: null,
     });
 
-    const cashDifference = this.toMoney(settlementAmount - amount);
+    const cashDifference = toBookMoney(settlementAmount - amount);
     const gain = cashDifference < 0;
     if (cashDifference !== 0) {
       const fxAccount = await this.resolveSystemAccountByCode(queryable, scope.tenantId, gain ? '7170' : '7270');
-      this.addLine(lines, { accountId: fxAccount, description: 'فرق صرف محقق عند تسوية الشيك', debit: gain ? 0 : Math.abs(cashDifference), credit: gain ? Math.abs(cashDifference) : 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+      addBookLine({ accountId: fxAccount, description: 'فرق صرف محقق عند تسوية الشيك', debit: gain ? 0 : Math.abs(cashDifference), credit: gain ? Math.abs(cashDifference) : 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
     }
 
     try {
@@ -5060,7 +5082,8 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
@@ -5070,7 +5093,8 @@ export class AccountingPostingService {
     if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
 
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+    addBookLine({
       accountId: notesPayableId,
       description: `إلغاء ورقة دفع مرتدة #${cheque.cheque_number}`,
       debit: amount,
@@ -5080,7 +5104,7 @@ export class AccountingPostingService {
       branchId: null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: supplierApId,
       description: `إعادة مديونية المورد ${cheque.partner_name} بسبب ارتداد شيك #${cheque.cheque_number}`,
       debit: 0,
@@ -5150,11 +5174,13 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque || !cheque.journal_entry_id) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
 
     if (cheque.type === 'receivable') {
       let customerArId = Number(settings?.customer_receivable_account_id || 0);
@@ -5164,7 +5190,7 @@ export class AccountingPostingService {
         ? await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121')
         : await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
 
-      this.addLine(lines, {
+      addBookLine({
         accountId: customerArId,
         description: `إلغاء/رد ورقة قبض #${cheque.cheque_number} - إعادة المديونية للعميل ${cheque.partner_name}`,
         debit: amount,
@@ -5174,7 +5200,7 @@ export class AccountingPostingService {
         branchId: null,
         locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: notesAccountId,
         description: `إلغاء/رد ورقة قبض #${cheque.cheque_number}`,
         debit: 0,
@@ -5189,7 +5215,7 @@ export class AccountingPostingService {
       if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
       const payablePdcId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
 
-      this.addLine(lines, {
+      addBookLine({
         accountId: payablePdcId,
         description: `إلغاء/رد ورقة دفع #${cheque.cheque_number}`,
         debit: amount,
@@ -5199,7 +5225,7 @@ export class AccountingPostingService {
         branchId: null,
         locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: supplierApId,
         description: `إلغاء/رد ورقة دفع #${cheque.cheque_number} - إعادة التزام المورد ${cheque.partner_name}`,
         debit: 0,
@@ -5248,23 +5274,25 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!cheque) return { posted: false, journalEntryId: null };
-    const amount = pdcBookAmount(cheque as any);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const amount = pdcBookAmount(cheque as any, bookDigits);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     let description = '';
 
     if (cheque.type === 'receivable' && previousStatus === 'bounced') {
       let customerArId = Number(settings?.customer_receivable_account_id || 0);
       if (!(customerArId > 0)) customerArId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
       const safeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
-      this.addLine(lines, {
+      addBookLine({
         accountId: safeAccountId,
         description: `إعادة إيداع شيك مرتد في الخزينة #${cheque.cheque_number}`,
         debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: customerArId,
         description: `تسوية مديونية العميل ${cheque.partner_name} بعد استعادة الشيك للخزينة #${cheque.cheque_number}`,
         debit: 0, credit: amount,
@@ -5276,12 +5304,12 @@ export class AccountingPostingService {
     } else if (cheque.type === 'receivable' && previousStatus === 'under_collection') {
       const safeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1122');
       const underCollectionId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1121');
-      this.addLine(lines, {
+      addBookLine({
         accountId: safeAccountId,
         description: `سحب شيك #${cheque.cheque_number} من التحصيل وإعادته للخزينة`,
         debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: underCollectionId,
         description: `إقفال ورقة قبض برسم التحصيل #${cheque.cheque_number}`,
         debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
@@ -5291,7 +5319,7 @@ export class AccountingPostingService {
       let supplierApId = Number(settings?.supplier_payable_account_id || 0);
       if (!(supplierApId > 0)) supplierApId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2110');
       const notesPayableId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2135');
-      this.addLine(lines, {
+      addBookLine({
         accountId: supplierApId,
         description: `إعادة إصدار ورقة دفع مرتدة #${cheque.cheque_number} للمورد ${cheque.partner_name}`,
         debit: amount, credit: 0,
@@ -5299,7 +5327,7 @@ export class AccountingPostingService {
         partnerId: cheque.partner_id ? Number(cheque.partner_id) : null,
         branchId: null, locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: notesPayableId,
         description: `ورقة دفع قائمة #${cheque.cheque_number}`,
         debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
@@ -5686,7 +5714,8 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
-    const moneyAmount = this.toMoney(amount);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const moneyAmount = this.toMoney(amount, bookDigits);
     if (moneyAmount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -5694,9 +5723,10 @@ export class AccountingPostingService {
     if (!(cashAccountId > 0)) cashAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1110');
 
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     if (movementType === 'cash_in') {
       const incomeAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
-      this.addLine(lines, {
+      addBookLine({
         accountId: cashAccountId,
         description: `توريد نقدية للدرج: ${note}`,
         debit: moneyAmount,
@@ -5706,7 +5736,7 @@ export class AccountingPostingService {
         branchId,
         locationId,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: incomeAccountId,
         description: `إيرادات / توريدات نقدية متفرقة: ${note}`,
         debit: 0,
@@ -5719,7 +5749,7 @@ export class AccountingPostingService {
     } else if (movementType === 'cash_out') {
       let expenseAccountId = Number(settings?.expenses_account_id || 0);
       if (!(expenseAccountId > 0)) expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6950');
-      this.addLine(lines, {
+      addBookLine({
         accountId: expenseAccountId,
         description: `صرف نقدية من الدرج: ${note}`,
         debit: moneyAmount,
@@ -5729,7 +5759,7 @@ export class AccountingPostingService {
         branchId,
         locationId,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: cashAccountId,
         description: `سحب نقدية من الدرج: ${note}`,
         debit: 0,

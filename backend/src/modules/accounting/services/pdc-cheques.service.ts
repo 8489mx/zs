@@ -1,6 +1,7 @@
 import { tenantBaseCurrency } from '../accounting-currency';
 import { assertPdcTransition, pdcBookAmount } from '../engines/pdc-transition.engine';
 import { pdcCurrencySnapshot } from '../pdc-currency';
+import { currencyMoneyDigits, toMinorUnits } from '../engines/money-minor-units.engine';
 import { lockAccountingPeriod } from '../accounting-period-lock';
 import { Inject, Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
@@ -372,9 +373,18 @@ export class PdcChequesService {
     if (!dto.partnerName || !dto.partnerName.trim()) {
       throw new BadRequestException('اسم العميل / المورد مطلوب');
     }
+    // Currency first: amount precision is judged in the CHEQUE's currency,
+    // not in hard-coded cents. A USD cheque is 2dp even for a KWD tenant;
+    // a KWD cheque is 3dp even when the old *100 check would have passed
+    // its face amount. pdcCurrencySnapshot re-validates the same rule
+    // inside the transaction; this fail-fast check keeps the error at the
+    // DTO boundary, before the period lock and the insert.
+    const requestedCurrency = String(dto.currency || await tenantBaseCurrency(this.db, tenantId)).trim().toUpperCase();
     const amount = Number(dto.amount);
-    if (!Number.isFinite(amount) || amount <= 0 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
-      throw new BadRequestException('مبلغ الشيك يجب أن يكون أكبر من الصفر');
+    let amountIsMinorExact = Number.isFinite(amount) && amount > 0;
+    try { if (amountIsMinorExact) toMinorUnits(amount, currencyMoneyDigits(requestedCurrency)); } catch { amountIsMinorExact = false; }
+    if (!amountIsMinorExact) {
+      throw new BadRequestException('مبلغ الشيك يجب أن يكون أكبر من صفر');
     }
     if (!dto.issueDate || !dto.dueDate) {
       throw new BadRequestException('تاريخ التحرير وتاريخ الاستحقاق مطلوبان');
@@ -400,7 +410,7 @@ export class PdcChequesService {
       }
       if (dto.partnerId && !await trx.selectFrom(type === 'receivable' ? 'customers' : 'suppliers').select('id').where('tenant_id', '=', tenantId).where('id', '=', Number(dto.partnerId)).executeTakeFirst()) throw new BadRequestException('الشريك لا يتبع المنشأة.');
       if (dto.depositBankId && !await trx.selectFrom('accounting_accounts').select('id').where('tenant_id', '=', tenantId).where('id', '=', dto.depositBankId).where('is_active', '=', true).where('is_cash_bank', '=', true).where('code', 'not in', ['1121', '1122']).executeTakeFirst()) throw new BadRequestException('حساب البنك لا يتبع المنشأة أو غير صالح.');
-      const currency = String(dto.currency || await tenantBaseCurrency(trx, tenantId)).trim().toUpperCase();
+      const currency = requestedCurrency;
       const snapshot = await pdcCurrencySnapshot(trx, tenantId, currency, amount, dto.exchangeRate);
       const inserted = await trx
         .insertInto('accounting_cheques')
@@ -549,12 +559,19 @@ export class PdcChequesService {
         existing.base_amount = Number(existing.amount);
         await trx.updateTable('accounting_cheques').set({ base_amount: existing.base_amount, exchange_rate: 1, base_currency: existing.currency }).where('tenant_id', '=', tenantId).where('id', '=', id).execute();
       }
-      const bookAmount = pdcBookAmount(existing);
+      const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, tenantId));
+      const bookAmount = pdcBookAmount(existing, bookDigits);
       const today = new Date().toISOString().substring(0, 10);
       const actionDate = actionDto.actionDate || today;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(actionDate) || !Number.isFinite(new Date(actionDate).getTime()) || new Date(actionDate).toISOString().slice(0, 10) !== actionDate) throw new BadRequestException('تاريخ إجراء الشيك غير صالح.');
       if (actionDate < this.formatDate(existing.last_action_date || existing.issue_date)) throw new BadRequestException('تاريخ الإجراء يسبق آخر حركة مثبتة للشيك.');
       if (actionDto.bouncedFee != null && (!Number.isFinite(Number(actionDto.bouncedFee)) || Number(actionDto.bouncedFee) < 0)) throw new BadRequestException('عمولة الارتداد غير صالحة.');
+      // The bounce fee is stored raw on the cheque row and posted as a
+      // book amount; a sub-minor fee would silently diverge the two.
+      // Strict, like treasury transfers and expenses: reject, don't round.
+      if (actionDto.bouncedFee != null) {
+        try { toMinorUnits(Number(actionDto.bouncedFee), bookDigits); } catch { throw new BadRequestException('عمولة الارتداد يجب أن تطابق دقة العملة.'); }
+      }
       let settlementBase = bookAmount;
       if (['collect', 'clear'].includes(actionDto.action)) {
         const snapshot = await pdcCurrencySnapshot(trx, tenantId, existing.currency, Number(existing.amount), actionDto.settlementExchangeRate);

@@ -9,6 +9,8 @@ import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { TransactionHelper } from '../../database/helpers/transaction.helper';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 
 type ShiftRow = {
@@ -911,9 +913,12 @@ export class CashDrawerService {
 
       // Compute on the transaction, not on the pool: reading via this.db uses a separate connection
       // that cannot see anything written in this transaction, and reads outside the row lock taken above.
+      const digits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const expectedCash = await this.computeShiftExpectedCashFromShift(lockedShift as ShiftRow, auth, undefined, undefined, trx);
-      const variance = computeCashDrawerVariance(countedCash, expectedCash);
-      if (!isBlindCloseCashier && Math.abs(variance) >= 0.01) assertCashDrawerNote(note);
+      const variance = computeCashDrawerVariance(countedCash, expectedCash, digits);
+      // Any real variance needs a note: the old 0.01 cutoff let a KWD
+      // cashier close a shift 9 fils short with no explanation at all.
+      if (!isBlindCloseCashier && variance !== 0) assertCashDrawerNote(note);
 
       await sql`update cashier_shifts set status = ${closeStatus}, expected_cash = ${expectedCash}, counted_cash = ${countedCash}, variance = ${variance}, close_note = ${closeNoteValue}, closed_by = ${auth.userId}, closed_at = now() where tenant_id = ${scope.tenantId} and id = ${shiftId}`.execute(trx);
       if (closeStatus === 'closed') {
