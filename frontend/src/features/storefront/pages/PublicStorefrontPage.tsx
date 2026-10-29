@@ -292,7 +292,7 @@ export function PublicStorefrontPage() {
       dir="rtl"
       style={{
         minHeight: '100vh',
-        background: info?.brandSurfaceColor && info.brandSurfaceColor !== '#f8fafc' ? info.brandSurfaceColor : '#ffffff',
+        background: info?.brandSurfaceColor && info.brandSurfaceColor !== '#f8fafc' ? info.brandSurfaceColor : '#f4f6fa',
         color: '#0f172a',
         display: 'flex',
         flexDirection: 'column',

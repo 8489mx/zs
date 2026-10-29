@@ -95,10 +95,10 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
   const arrowStyle: React.CSSProperties = {
     width: '34px',
     height: '34px',
-    borderRadius: '12px',
+    borderRadius: '10px',
     border: '1px solid #dadce0',
-    background: '#f0f4f9',
-    color: '#0f172a',
+    background: '#ffffff',
+    color: '#1f1f1f',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -117,10 +117,10 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
       className="storefront-section-card"
       style={{
         background: '#ffffff',
-        borderRadius: '26px',
-        border: '1px solid #e2e8f0',
-        padding: '20px',
-        boxShadow: '0 2px 8px rgba(15, 23, 42, 0.03)',
+        borderRadius: '36px',
+        border: '1px solid #edf1f7',
+        padding: '26px 24px 22px',
+        boxShadow: '0 10px 30px -6px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.02)',
         scrollMarginTop: '96px',
       }}
     >

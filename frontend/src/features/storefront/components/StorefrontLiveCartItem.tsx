@@ -120,8 +120,8 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
           display: 'flex',
           alignItems: 'center',
           background: '#ffffff',
-          border: '1px solid #cbd5e1',
-          borderRadius: '7px',
+          border: '1px solid #dadce0',
+          borderRadius: '9999px',
           overflow: 'hidden',
           flexShrink: 0,
         }}

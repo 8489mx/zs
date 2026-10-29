@@ -244,12 +244,12 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
                     }}
                     style={{
                       background: '#f1f5f9',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '6px',
-                      padding: '4px 10px',
+                      border: '1px solid #dadce0',
+                      borderRadius: '9999px',
+                      padding: '4px 12px',
                       fontSize: '12px',
-                      fontWeight: 700,
-                      color: '#1e293b',
+                      fontWeight: 600,
+                      color: '#1f1f1f',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
                     }}

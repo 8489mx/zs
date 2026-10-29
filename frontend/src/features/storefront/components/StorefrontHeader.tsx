@@ -186,21 +186,25 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
           }
           @media (max-width: 768px) {
             .storefront-sticky-header {
-              padding: 6px 8px !important;
+              padding: 6px 10px !important;
             }
             .storefront-navbar {
               display: grid !important;
-              grid-template-columns: auto auto !important;
+              grid-template-columns: minmax(0, 1fr) auto !important;
               justify-content: space-between !important;
               grid-template-rows: auto auto !important;
-              gap: 7px 8px !important;
-              padding: 7px 12px 9px !important;
+              gap: 8px 10px !important;
+              padding: 8px 12px 10px !important;
               align-items: center !important;
               border-radius: 14px !important;
+              background: rgba(255, 255, 255, 0.96) !important;
+              border: 1px solid rgba(226, 232, 240, 0.9) !important;
+              box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.06) !important;
             }
             .storefront-sticky-header.is-scrolled .storefront-navbar {
-              padding: 6px 12px 8px !important;
-              gap: 5px 8px !important;
+              padding: 7px 12px 9px !important;
+              gap: 6px 10px !important;
+              box-shadow: 0 10px 26px -6px rgba(15, 23, 42, 0.1), 0 2px 8px -2px rgba(15, 23, 42, 0.04) !important;
             }
             .storefront-brand-btn {
               grid-column: 1 / 2 !important;
@@ -213,48 +217,18 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               justify-content: flex-start !important;
             }
             .storefront-brand-avatar {
-              width: 34px !important;
-              height: 34px !important;
+              width: 32px !important;
+              height: 32px !important;
               border-radius: 9px !important;
               flex-shrink: 0 !important;
             }
-            .storefront-brand-title-row {
-              gap: 5px !important;
-              min-width: 0 !important;
-            }
             .storefront-brand-title {
-              font-size: clamp(12px, 3.4vw, 13.5px) !important;
+              font-size: 14px !important;
+              font-weight: 800 !important;
               white-space: nowrap !important;
               overflow: hidden !important;
               text-overflow: ellipsis !important;
-              max-width: calc(100vw - 175px) !important;
-            }
-            .storefront-brand-verified {
-              display: inline-flex !important;
-              width: 16px !important;
-              height: 16px !important;
-              min-width: 16px !important;
-              min-height: 16px !important;
-              max-width: 16px !important;
-              max-height: 16px !important;
-              aspect-ratio: 1 / 1 !important;
-              border-radius: 50% !important;
-              border-width: 1px !important;
-              padding: 0 !important;
-              box-sizing: border-box !important;
-              flex-shrink: 0 !important;
-            }
-            .storefront-brand-verified svg {
-              width: 10px !important;
-              height: 10px !important;
-              min-width: 10px !important;
-              min-height: 10px !important;
-              flex-shrink: 0 !important;
-              stroke-width: 2.8 !important;
-            }
-            .storefront-brand-subtitle,
-            .storefront-brand-address {
-              display: none !important;
+              max-width: calc(100vw - 165px) !important;
             }
             .storefront-nav-bottom-row {
               display: contents !important;
@@ -264,41 +238,36 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               grid-row: 1 !important;
               display: flex !important;
               align-items: center !important;
-              gap: 5px !important;
+              gap: 6px !important;
               flex-shrink: 0 !important;
               margin: 0 !important;
               justify-content: flex-end !important;
             }
-            .storefront-brand-btn {
-              grid-column: 1 / 2 !important;
-              grid-row: 1 !important;
-              gap: 8px !important;
-              min-width: 0 !important;
-              max-width: 100% !important;
-              overflow: hidden !important;
-              width: auto !important;
-              justify-content: flex-start !important;
-            }
             .storefront-action-label {
               display: none !important;
             }
-            .storefront-action-btn {
+            .storefront-action-btn,
+            .storefront-action-btn:not(.storefront-cart-btn) {
               padding: 0 !important;
-              width: 35px !important;
-              min-width: 35px !important;
-              max-width: 35px !important;
-              height: 35px !important;
-              border-radius: 12px !important;
+              width: 36px !important;
+              min-width: 36px !important;
+              max-width: 36px !important;
+              height: 36px !important;
+              min-height: 36px !important;
+              border-radius: 10px !important;
               background: #ffffff !important;
               border: 1px solid #E0E3E7 !important;
               justify-content: center !important;
+              align-items: center !important;
             }
             .storefront-cart-btn {
-              padding: 0 10px !important;
-              border-radius: 12px !important;
-              height: 35px !important;
+              padding: 0 14px !important;
+              min-width: 36px !important;
+              border-radius: 9999px !important;
+              height: 36px !important;
+              min-height: 36px !important;
               justify-content: center !important;
-              gap: 4px !important;
+              gap: 5px !important;
             }
             .storefront-search-wrapper {
               grid-column: 1 / -1 !important;
@@ -309,11 +278,11 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               flex: none !important;
             }
             .storefront-search-box {
-              padding: 0 6px 0 12px !important;
-              border-radius: 12px !important;
-              height: 35px !important;
+              padding: 0 10px !important;
+              border-radius: 10px !important;
+              height: 36px !important;
               border: 1px solid #E0E3E7 !important;
-              background: rgba(248, 250, 252, 0.95) !important;
+              background: #f8fafc !important;
             }
             .storefront-search-input {
               font-size: 13px !important;
@@ -346,10 +315,11 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               justifySelf: 'start',
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
+              gap: '10px',
               cursor: onGoHome ? 'pointer' : 'default',
               userSelect: 'none',
               outline: 'none',
+              minWidth: 0,
             }}
           >
             {info.logo_url || info.logoUrl ? (
@@ -359,8 +329,8 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                 className="storefront-brand-avatar"
                 decoding="async"
                 style={{
-                  width: '38px',
-                  height: '38px',
+                  width: '36px',
+                  height: '36px',
                   objectFit: 'contain',
                   background: 'transparent',
                   border: 'none',
@@ -375,8 +345,8 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               <div
                 className="storefront-brand-avatar"
                 style={{
-                  width: '38px',
-                  height: '38px',
+                  width: '36px',
+                  height: '36px',
                   borderRadius: '10px',
                   background: 'linear-gradient(135deg, var(--storefront-primary-color, #2d68c4) 0%, #2353a0 100%)',
                   color: '#ffffff',
@@ -384,7 +354,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 900,
-                  fontSize: '16px',
+                  fontSize: '15px',
                   boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))',
                   flexShrink: 0,
                   border: '1.5px solid rgba(255,255,255,0.25)',
@@ -394,6 +364,22 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                 {((brand.title || '').trim().replace(/^ال/, '').trim().charAt(0) || (brand.title || '').trim().charAt(0) || t('storefront.storefront_header.s1', 'م'))}
               </div>
             )}
+            <span
+              dir="auto"
+              className="storefront-brand-title"
+              style={{
+                fontSize: '15px',
+                fontWeight: 800,
+                color: '#0f172a',
+                letterSpacing: '-0.2px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                transition: 'color 0.16s ease',
+              }}
+            >
+              {brand.title}
+            </span>
           </div>
 
           {/* Unified Search & Actions Bottom Row on Mobile / Inline on Desktop */}
@@ -421,23 +407,25 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   gap: '6px',
-                  padding: '0 14px',
-                  height: '37px',
-                  borderRadius: '12px',
+                  padding: '0 16px',
+                  height: '36px',
+                  borderRadius: '9999px',
                   background: '#ffffff',
-                  border: '1px solid #E0E3E7',
-                  color: '#0f172a',
+                  border: '1px solid #dadce0',
+                  color: '#1f1f1f',
                   fontSize: '13px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   cursor: 'pointer',
                   boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                   transition: 'transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, border-color 0.16s ease',
                   boxSizing: 'border-box',
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
-                <PackageIcon size={17} />
+                <PackageIcon size={17} style={{ flexShrink: 0 }} />
                 <span className="storefront-action-label" style={{ fontSize: '12.5px', fontWeight: 700 }}>
                   {t('storefront.storefront_header.s6', 'طلباتي')}
                 </span>
@@ -454,9 +442,9 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '0 15px',
-                height: '37px',
-                borderRadius: '12px',
+                padding: '0 16px',
+                height: '36px',
+                borderRadius: '9999px',
                 background: 'var(--storefront-primary-color, #2d68c4)',
                 color: 'var(--storefront-primary-contrast, #ffffff)',
                 fontSize: '13px',

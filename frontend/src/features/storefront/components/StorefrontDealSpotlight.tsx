@@ -92,9 +92,9 @@ export function StorefrontDealSpotlight({
     <div
       className="storefront-deal-spotlight-card"
       style={{
-        background: '#fafbfc',
-        border: '1px solid #e2e8f0',
-        borderRadius: '24px',
+        background: '#ffffff',
+        border: '1px solid #edf1f7',
+        borderRadius: '30px',
         padding: '24px',
         display: 'grid',
         gridTemplateColumns: 'minmax(300px, 420px) minmax(0, 1fr)',
@@ -102,7 +102,7 @@ export function StorefrontDealSpotlight({
         alignItems: 'center',
         direction: 'rtl',
         position: 'relative',
-        boxShadow: '0 2px 12px rgba(15, 23, 42, 0.03)',
+        boxShadow: '0 4px 20px rgba(15, 23, 42, 0.04)',
       }}
     >
       <style>{`
@@ -111,9 +111,11 @@ export function StorefrontDealSpotlight({
             grid-template-columns: 1fr !important;
             gap: 16px !important;
             padding: 14px !important;
+            border-radius: 20px !important;
           }
           .storefront-deal-spotlight-photo-box {
             max-height: 280px !important;
+            border-radius: 18px !important;
           }
           .storefront-deal-spotlight-title {
             font-size: 17px !important;
@@ -133,10 +135,10 @@ export function StorefrontDealSpotlight({
           width: '100%',
           aspectRatio: '1 / 1',
           maxHeight: '400px',
-          borderRadius: '20px',
+          borderRadius: '24px',
           overflow: 'hidden',
-          background: '#ffffff',
-          border: '1px solid #e2e8f0',
+          background: '#f4f6fa',
+          border: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -438,8 +440,8 @@ export function StorefrontDealSpotlight({
               disabled={isOutOfStock}
               style={{
                 flex: '1 1 200px',
-                height: '42px',
-                borderRadius: '12px',
+                height: '38px',
+                borderRadius: '9999px',
                 background: isOutOfStock ? '#e2e8f0' : 'var(--storefront-primary-color, #170e5e)',
                 color: isOutOfStock ? '#64748b' : '#ffffff',
                 border: isOutOfStock ? '1px solid #cbd5e1' : 'none',
@@ -469,9 +471,9 @@ export function StorefrontDealSpotlight({
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                height: '42px',
-                padding: '0 14px',
-                borderRadius: '12px',
+                height: '38px',
+                padding: '0 16px',
+                borderRadius: '9999px',
                 background: '#f0fdf4',
                 border: '1.5px solid #bbf7d0',
                 color: '#166534',
@@ -504,30 +506,32 @@ export function StorefrontDealSpotlight({
           {onQuickView && (
             <button
               type="button"
+              className="storefront-btn-neutral"
               onClick={() => onQuickView(product)}
               style={{
-                height: '42px',
-                padding: '0 12px',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
+                height: '38px',
+                padding: '0 16px',
+                borderRadius: '9999px',
+                border: '1px solid #dadce0',
                 background: '#ffffff',
-                color: '#475569',
-                fontSize: '12px',
-                fontWeight: 700,
+                color: '#1f1f1f',
+                fontSize: '12.5px',
+                fontWeight: 500,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '6px',
                 whiteSpace: 'nowrap',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#cbd5e1';
-                e.currentTarget.style.color = '#0f172a';
+                e.currentTarget.style.background = '#f0f4f9';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.color = '#475569';
+                e.currentTarget.style.borderColor = '#dadce0';
+                e.currentTarget.style.background = '#ffffff';
               }}
             >
               <EyeIcon size={14} />

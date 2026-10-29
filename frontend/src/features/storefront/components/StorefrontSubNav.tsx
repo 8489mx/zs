@@ -81,12 +81,12 @@ export function StorefrontSubNav({
             flex-shrink: 0 !important;
           }
           .storefront-subnav-pill {
-            padding: 0 12px !important;
+            padding: 0 14px !important;
             font-size: clamp(10.5px, 2.7vw, 12px) !important;
             white-space: nowrap;
             height: 35px !important;
             min-height: 35px !important;
-            border-radius: 12px !important;
+            border-radius: 9999px !important;
           }
           .storefront-subnav-hint {
             display: none !important;
@@ -116,9 +116,9 @@ export function StorefrontSubNav({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '0 14px',
+              padding: '0 16px',
               height: '35px',
-              borderRadius: '12px',
+              borderRadius: '9999px',
               background: 'var(--storefront-primary-color, #170e5e)',
               color: '#ffffff',
               border: 'none',
@@ -137,8 +137,8 @@ export function StorefrontSubNav({
               style={{
                 fontSize: '11px',
                 background: 'rgba(255,255,255,0.22)',
-                padding: '2px 7px',
-                borderRadius: '8px',
+                padding: '2px 8px',
+                borderRadius: '9999px',
                 fontWeight: 800,
               }}
             >
@@ -156,14 +156,14 @@ export function StorefrontSubNav({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '0 14px',
+                padding: '0 16px',
                 height: '35px',
-                borderRadius: '12px',
-                border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #E0E3E7',
+                borderRadius: '9999px',
+                border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #dadce0',
                 background: onlyDeals ? '#fef2f2' : '#ffffff',
-                color: onlyDeals ? '#dc2626' : '#0f172a',
+                color: onlyDeals ? '#dc2626' : '#1f1f1f',
                 fontSize: '12.5px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                 transition: 'all 0.15s ease',
@@ -178,8 +178,8 @@ export function StorefrontSubNav({
                     fontSize: '10.5px',
                     background: onlyDeals ? '#ef4444' : '#fee2e2',
                     color: onlyDeals ? '#ffffff' : '#991b1b',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
                     fontWeight: 800,
                   }}
                 >
@@ -198,14 +198,14 @@ export function StorefrontSubNav({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '0 14px',
+              padding: '0 16px',
               height: '35px',
-              borderRadius: '12px',
-              border: inStockOnly ? '1.5px solid #16a34a' : '1px solid #E0E3E7',
+              borderRadius: '9999px',
+              border: inStockOnly ? '1.5px solid #16a34a' : '1px solid #dadce0',
               background: inStockOnly ? '#f0fdf4' : '#ffffff',
-              color: inStockOnly ? '#166534' : '#0f172a',
+              color: inStockOnly ? '#166534' : '#1f1f1f',
               fontSize: '12.5px',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
               transition: 'all 0.15s ease',
@@ -226,14 +226,14 @@ export function StorefrontSubNav({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '0 14px',
+                padding: '0 16px',
                 height: '35px',
-                borderRadius: '12px',
-                border: onlyFavorites ? '1.5px solid #ef4444' : '1px solid #E0E3E7',
+                borderRadius: '9999px',
+                border: onlyFavorites ? '1.5px solid #ef4444' : '1px solid #dadce0',
                 background: onlyFavorites ? '#fef2f2' : '#ffffff',
-                color: onlyFavorites ? '#dc2626' : '#0f172a',
+                color: onlyFavorites ? '#dc2626' : '#1f1f1f',
                 fontSize: '12.5px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                 transition: 'all 0.15s ease',
@@ -259,8 +259,8 @@ export function StorefrontSubNav({
                     fontSize: '10.5px',
                     background: onlyFavorites ? '#ef4444' : '#fee2e2',
                     color: onlyFavorites ? '#ffffff' : '#991b1b',
-                    padding: '2px 6px',
-                    borderRadius: '8px',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
                     fontWeight: 800,
                   }}
                 >
@@ -281,12 +281,12 @@ export function StorefrontSubNav({
               alignItems: 'center',
               gap: '4px',
               background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #dadce0',
               color: '#64748b',
               fontSize: '11.5px',
               fontWeight: 700,
-              padding: '5px 10px',
-              borderRadius: '7px',
+              padding: '5px 12px',
+              borderRadius: '9999px',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               transition: 'all 0.15s ease',
@@ -299,7 +299,7 @@ export function StorefrontSubNav({
             onMouseLeave={(e) => {
               e.currentTarget.style.background = '#f8fafc';
               e.currentTarget.style.color = '#64748b';
-              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.borderColor = '#dadce0';
             }}
           >
             <IconClose size={12} strokeWidth={2.5} />

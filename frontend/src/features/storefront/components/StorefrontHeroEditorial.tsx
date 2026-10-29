@@ -317,40 +317,123 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             padding: 84px 12px 18px !important;
           }
         }
+        @media (max-width: 768px) {
+          .storefront-pallet-hero {
+            margin-top: 0 !important;
+            padding: 12px 12px 14px !important;
+          }
+        }
         @media (max-width: 640px) {
           .storefront-pallet-hero {
-            margin-top: -96px !important;
-            padding: 112px 12px 18px !important;
+            margin-top: 0 !important;
+            padding: 10px 10px 12px !important;
+          }
+          .sf-hero-headline-wrap {
+            margin-bottom: 6px !important;
+            padding: 0 8px !important;
+            box-sizing: border-box !important;
+          }
+          .sf-hero-glass-headline {
+            font-size: clamp(18px, 5vw, 22px) !important;
+            white-space: normal !important;
+            line-height: 1.35 !important;
+            text-align: center !important;
+            max-width: 100% !important;
           }
           .storefront-fanned-deck {
+            direction: rtl !important;
             overflow-x: auto !important;
             height: auto !important;
-            min-height: 270px !important;
-            padding: 16px 12px 24px !important;
+            min-height: 244px !important;
+            padding: 6px 12px 12px !important;
             width: 100% !important;
             justify-content: flex-start !important;
-            gap: 12px !important;
+            gap: 10px !important;
             scrollbar-width: none !important;
             -webkit-overflow-scrolling: touch !important;
+            scroll-snap-type: x mandatory !important;
+            box-sizing: border-box !important;
           }
           .storefront-fanned-deck::-webkit-scrollbar {
             display: none !important;
           }
           .storefront-coverflow-card {
-            transform: translate3d(0, 0, 0) !important;
-            width: 185px !important;
-            min-width: 185px !important;
-            height: 255px !important;
+            transform: none !important;
+            width: 158px !important;
+            min-width: 158px !important;
+            max-width: 158px !important;
+            height: 228px !important;
             margin-top: 0 !important;
             margin-inline: 0 !important;
+            padding: 10px !important;
+            background: #ffffff !important;
+            border: 1.5px solid #dce3ec !important;
+            border-radius: 16px !important;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
             opacity: 1 !important;
             flex-shrink: 0 !important;
+            scroll-snap-align: start !important;
+          }
+          .storefront-coverflow-card.is-highlighted {
+            border-color: #93c5fd !important;
+            box-shadow: 0 6px 16px rgba(45, 104, 196, 0.12) !important;
+          }
+          .storefront-coverflow-card > .sf-coverflow-svg {
+            display: none !important;
+          }
+          .sf-coverflow-badge {
+            margin-top: 0 !important;
+            font-size: 9.5px !important;
+            padding: 3px 7px !important;
+            border-radius: 6px !important;
+          }
+          .sf-coverflow-footer {
+            margin-bottom: 0 !important;
+            padding-top: 6px !important;
+            gap: 5px !important;
+          }
+          .sf-coverflow-title {
+            font-size: 11px !important;
+            line-height: 1.3 !important;
+          }
+          .sf-coverflow-price {
+            font-size: 12.5px !important;
+          }
+          .sf-coverflow-oldprice {
+            font-size: 10px !important;
+          }
+          .sf-coverflow-cart-btn {
+            width: 26px !important;
+            height: 26px !important;
+            border-radius: 8px !important;
+          }
+          .sf-hero-cta-row {
+            margin-top: 8px !important;
+            width: 100% !important;
+            max-width: 360px !important;
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            gap: 8px !important;
+            padding: 0 4px !important;
+            box-sizing: border-box !important;
+          }
+          .sf-hero-cta-row button {
+            flex: 1 1 0% !important;
+            height: 38px !important;
+            padding: 0 10px !important;
+            font-size: 12.5px !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+          }
+          .sf-hero-ticker-viewport {
+            margin-top: 14px !important;
+            padding-top: 10px !important;
           }
         }
       `}</style>
 
       {/* Top Main Headline */}
-      <div style={{ maxWidth: '100%', marginBottom: '12px', position: 'relative', zIndex: 5 }}>
+      <div className="sf-hero-headline-wrap" style={{ maxWidth: '100%', marginBottom: '12px', position: 'relative', zIndex: 5 }}>
         <style>{`
           @keyframes sfHeadlineGlassSweep {
             0% {
@@ -370,16 +453,16 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             letter-spacing: -0.01em;
             white-space: nowrap;
             font-family: 'Alexandria', 'Inter', 'Tajawal', 'Cairo', sans-serif;
-            color: var(--storefront-primary-color, #2d68c4);
+            color: #132032;
             background-image: linear-gradient(
               112deg,
-              var(--storefront-primary-color, #2d68c4) 0%,
-              var(--storefront-primary-color, #2d68c4) 41%,
-              color-mix(in srgb, var(--storefront-primary-color, #2d68c4) 75%, #ffffff 25%) 46%,
-              color-mix(in srgb, var(--storefront-primary-color, #2d68c4) 52%, #ffffff 48%) 50%,
-              color-mix(in srgb, var(--storefront-primary-color, #2d68c4) 75%, #ffffff 25%) 54%,
-              var(--storefront-primary-color, #2d68c4) 59%,
-              var(--storefront-primary-color, #2d68c4) 100%
+              #132032 0%,
+              #132032 41%,
+              color-mix(in srgb, #132032 75%, #ffffff 25%) 46%,
+              color-mix(in srgb, #132032 52%, #ffffff 48%) 50%,
+              color-mix(in srgb, #132032 75%, #ffffff 25%) 54%,
+              #132032 59%,
+              #132032 100%
             );
             background-size: 240% 100%;
             -webkit-background-clip: text;
@@ -389,7 +472,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             will-change: background-position;
           }
         `}</style>
-        <h1 className="sf-hero-glass-headline">
+        <h1 className="sf-hero-glass-headline" style={{ color: '#132032' }}>
           أفضل المنتجات بأحسن سعر
         </h1>
       </div>
@@ -482,7 +565,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             <div
               key={`${product.id}-${slotIdx}`}
               dir="rtl"
-              className="storefront-coverflow-card"
+              className={`storefront-coverflow-card ${isHighlighted ? 'is-highlighted' : ''}`}
               onClick={() => {
                 if (offset !== 0 && orderedDeck.length >= 7) {
                   setCenterIdx(originalIdx);
@@ -509,6 +592,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             >
               {/* Analytical 2D Vector Perspective Card Frame & Multi-Layer Ambient Shadow (Zero pixelation) */}
               <svg
+                className="sf-coverflow-svg"
                 width={svgW}
                 height={svgH}
                 viewBox={`0 0 ${svgW} ${svgH}`}
@@ -549,6 +633,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
 
               {/* Card Header: Badge (Right in RTL) */}
               <div
+                className="sf-coverflow-header"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -558,6 +643,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 }}
               >
                 <span
+                  className="sf-coverflow-badge"
                   style={{
                     background: isOutOfStock
                       ? '#991b1b'
@@ -618,6 +704,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
 
               {/* Card Footer: Product Name on top, Price (before & after) opposite Cart button below */}
               <div
+                className="sf-coverflow-footer"
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -631,6 +718,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
               >
                 {/* Product Title (Above) */}
                 <span
+                  className="sf-coverflow-title"
                   style={{
                     fontSize: metrics.titleFontSize,
                     fontWeight: 700,
@@ -659,6 +747,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 >
                   <button
                     type="button"
+                    className="sf-coverflow-cart-btn"
                     onClick={(e) => handleInstantAdd(e, product)}
                     disabled={isOutOfStock}
                     style={{
@@ -709,6 +798,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                     }}
                   >
                     <span
+                      className="sf-coverflow-price"
                       style={{
                         fontSize: offset === 0 ? '13px' : Math.abs(offset) === 1 ? '12px' : '11px',
                         fontWeight: 600,
@@ -725,6 +815,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
 
                     {oldPrice > product.price && (
                       <span
+                        className="sf-coverflow-oldprice"
                         style={{
                           fontSize: offset === 0 ? '10.5px' : '9.5px',
                           fontWeight: 500,
@@ -747,6 +838,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
 
       {/* Bottom CTA Buttons */}
       <div
+        className="sf-hero-cta-row"
         style={{
           maxWidth: '640px',
           marginTop: '24px',
@@ -761,11 +853,12 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
       >
           <button
             type="button"
+            className="sf-hero-btn-primary"
             onClick={onSelectDeals}
             style={{
-              height: '35px',
-              padding: '0 18px',
-              borderRadius: '12px',
+              height: '38px',
+              padding: '0 20px',
+              borderRadius: '9999px',
               background: 'var(--storefront-primary-color, #2d68c4)',
               color: '#ffffff',
               border: '1px solid var(--storefront-primary-color, #2d68c4)',
@@ -775,7 +868,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 4px 12px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))',
+              boxShadow: '0 4px 14px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))',
               transition: 'all 0.2s ease',
             }}
           >
@@ -785,21 +878,22 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
 
           <button
             type="button"
+            className="sf-hero-btn-secondary"
             onClick={onOpenCategoriesModal}
             style={{
-              height: '35px',
-              padding: '0 16px',
-              borderRadius: '12px',
+              height: '38px',
+              padding: '0 18px',
+              borderRadius: '9999px',
               background: '#ffffff',
-              color: '#0f172a',
-              border: '1px solid #E0E3E7',
+              color: '#1f1f1f',
+              border: '1px solid #dadce0',
               fontSize: '13px',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
               transition: 'all 0.2s ease',
             }}
           >

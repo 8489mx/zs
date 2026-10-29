@@ -83,11 +83,11 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar({ info 
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: '12px',
-                padding: '14px 18px',
+                padding: '16px 20px',
                 background: '#ffffff',
-                border: '1px solid #E0E3E7',
-                borderRadius: '16px',
-                boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
+                border: '1px solid #edf1f7',
+                borderRadius: '24px',
+                boxShadow: '0 4px 14px rgba(15, 23, 42, 0.03)',
                 transition: 'border-color 0.15s ease, transform 0.15s ease',
               }}
             >

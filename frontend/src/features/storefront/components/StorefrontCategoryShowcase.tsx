@@ -68,33 +68,42 @@ export function StorefrontCategoryShowcase({
       style={{
         background: '#ffffff',
         borderBottom: 'none',
-        padding: '18px 24px 10px',
+        borderRadius: '26px',
+        border: '1px solid #edf1f7',
+        boxShadow: '0 4px 18px rgba(15, 23, 42, 0.03)',
+        padding: '16px 20px 10px',
         overflowX: 'auto',
         WebkitOverflowScrolling: 'touch',
         direction: 'rtl',
-        width: '100%',
+        maxWidth: 'var(--storefront-container, 1440px)',
+        margin: '0 auto 12px',
+        width: 'calc(100% - 32px)',
         boxSizing: 'border-box',
       }}
     >
       <style>{`
         @media (max-width: 640px) {
           .storefront-cat-showcase {
+            width: calc(100% - 16px) !important;
+            margin: 0 auto 8px !important;
+            border-radius: 18px !important;
             padding: 10px 12px 6px !important;
-            width: 100% !important;
-            max-width: 100vw !important;
             box-sizing: border-box !important;
           }
           .storefront-cat-showcase-inner {
-            gap: 16px !important;
+            justify-content: flex-start !important;
+            gap: 12px !important;
             width: max-content !important;
+            min-width: 100% !important;
+            padding-inline: 2px !important;
           }
           .storefront-cat-item {
-            min-width: 64px !important;
+            min-width: 60px !important;
           }
           .storefront-cat-avatar {
             width: 52px !important;
             height: 52px !important;
-            border-radius: 14px !important;
+            border-radius: 16px !important;
             margin-bottom: 5px !important;
           }
           .storefront-cat-label {

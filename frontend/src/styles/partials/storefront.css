@@ -278,13 +278,14 @@ body, button, input, select, textarea, [class*="storefront-"] {
 
 @media (max-width: 640px) {
   .storefront-shelf {
-    gap: 8px;
+    gap: 10px;
     scroll-snap-type: none !important;
     cursor: default !important;
   }
   .storefront-shelf-item {
-    flex: 0 0 43vw;
-    max-width: 43vw;
+    flex: 0 0 calc((100% - 10px) / 2.08);
+    max-width: calc((100% - 10px) / 2.08);
+    min-width: 148px;
   }
   .storefront-shelf-floating-arrow {
     display: none !important;
@@ -991,22 +992,50 @@ html, body {
     height: 110px !important;
   }
   .storefront-product-card {
-    padding: 9px !important;
-    border-radius: 18px !important;
+    padding: 8px !important;
+    border-radius: 16px !important;
   }
   .storefront-product-photo-box {
-    border-radius: 14px !important;
+    border-radius: 12px !important;
     margin-bottom: 6px !important;
-    padding: 12px !important;
+    padding: 22px 8px 6px !important;
     background: #ffffff !important;
     aspect-ratio: 1 / 1 !important;
   }
+  .storefront-product-badge-wrap {
+    top: 5px !important;
+    right: 5px !important;
+    height: 22px !important;
+  }
+  .storefront-product-badge {
+    font-size: 9.5px !important;
+    padding: 2px 6px !important;
+    border-radius: 5px !important;
+  }
+  .storefront-product-fav-btn {
+    top: 5px !important;
+    left: 5px !important;
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    min-height: 26px !important;
+    max-width: 26px !important;
+    max-height: 26px !important;
+    border-radius: 8px !important;
+  }
+  .storefront-product-fav-btn svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
   .storefront-product-title {
-    font-size: 12.5px !important;
+    font-size: 12px !important;
     line-height: 1.35 !important;
   }
   .storefront-product-price-main {
-    font-size: 16.5px !important;
+    font-size: 15.5px !important;
+  }
+  .storefront-shelf-title {
+    font-size: 15.5px !important;
   }
 }
 
@@ -1096,16 +1125,16 @@ html, body {
   }
 
   .storefront-main-content {
-    padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: 24px !important;
   }
 }
 
 /* ==========================================================================
-   Google AI Studio Universal Button & Pill Design System
-   Exact curvature, styling, and micro-elevation from Google AI Studio UI
+   Google AI Studio Universal Button, Pill & Badge Design System
+   Exact curvature, styling, border, height, and micro-elevation from Google AI Studio UI
    ========================================================================== */
 
-/* 1. All Action & CTA Text Buttons -> Google AI Studio Squircle (10px-12px) Curvature */
+/* 1. All Action & CTA Text Buttons -> Google AI Studio Capsule Pill (border-radius: 9999px) */
 .storefront-product-action-btn,
 .storefront-checkout-btn,
 .sf-quickview-cta-btn,
@@ -1113,162 +1142,259 @@ html, body {
 .storefront-action-btn,
 .storefront-subnav-pill,
 .storefront-hero-btn,
+.sf-hero-btn-primary,
+.sf-hero-btn-secondary,
 .storefront-live-cart-pill,
 .sf-footer-whatsapp-link,
+.sf-footer-contact-btn,
 .storefront-filter-chip,
-.storefront-pill-btn {
-  border-radius: 10px !important;
+.storefront-pill-btn,
+.storefront-deal-add-btn,
+.storefront-deal-wa-btn,
+.storefront-spotlight-breakaway button,
+.storefront-spotlight-breakaway a,
+button.storefront-btn-pill,
+.storefront-btn-neutral,
+.sf-cat-modal-chip {
+  border-radius: 9999px !important;
   font-family: inherit;
-  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease !important;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease !important;
 }
 
-/* 2. Secondary / Neutral Text Buttons (Like [Preview], [Default v], My Orders & Support) */
+/* 2. Google AI Studio Capsule Pill Neutral / Secondary Buttons (Like [👁 Preview] button) */
 .storefront-btn-neutral,
-.storefront-action-btn:not(.storefront-cart-btn) {
+.sf-hero-btn-secondary,
+.storefront-action-btn:not(.storefront-cart-btn),
+.storefront-product-action-btn.secondary,
+.sf-quickview-cta-btn.secondary {
   height: 36px !important;
   min-height: 36px !important;
-  max-height: 38px !important;
-  padding: 0 13px !important;
-  border-radius: 10px !important;
+  padding: 0 16px !important;
+  border-radius: 9999px !important;
   background: #ffffff !important;
-  border: 1px solid #E0E3E7 !important;
+  border: 1px solid #dadce0 !important;
   color: #1f1f1f !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
   display: inline-flex !important;
   align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
   box-sizing: border-box !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
 }
 
 .storefront-btn-neutral:hover,
+.sf-hero-btn-secondary:hover,
 .storefront-action-btn:not(.storefront-cart-btn):hover {
-  background: #f8fafc !important;
+  background: #f0f4f9 !important;
   border-color: #cbd5e1 !important;
   transform: translateY(-1px);
 }
 
-/* 3. Primary Cart Button & CTAs */
+@media (max-width: 768px) {
+  .storefront-action-btn:not(.storefront-cart-btn) {
+    padding: 0 !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    justify-content: center !important;
+  }
+}
+
+/* 3. Google AI Studio Capsule Pill Primary Buttons (Brand Blue) */
+.sf-hero-btn-primary,
+.storefront-deal-add-btn:not(:disabled),
+.storefront-product-action-btn:not([disabled]):not(.secondary),
+.storefront-cart-checkout-btn,
+.storefront-checkout-btn.primary {
+  border-radius: 9999px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 18px !important;
+  background: var(--storefront-primary-color, #2d68c4) !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22)) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+
+.sf-hero-btn-primary:hover,
+.storefront-deal-add-btn:not(:disabled):hover,
+.storefront-product-action-btn:not([disabled]):not(.secondary):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* 4. WhatsApp Capsule Pill Action Buttons */
+.storefront-deal-wa-btn,
+.sf-footer-whatsapp-link,
+.sf-footer-contact-btn,
+.storefront-product-action-btn.whatsapp {
+  border-radius: 9999px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 16px !important;
+  background: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
+  color: #15803d !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+
+.storefront-deal-wa-btn:hover,
+.sf-footer-whatsapp-link:hover,
+.sf-footer-contact-btn:hover {
+  background: #dcfce7 !important;
+  border-color: #86efac !important;
+}
+
+/* 5. Header Cart Button -> Google AI Studio Pill */
 .storefront-cart-btn {
   height: 36px !important;
   min-height: 36px !important;
   max-height: 38px !important;
-  padding: 0 14px !important;
-  border-radius: 10px !important;
+  padding: 0 16px !important;
+  border-radius: 9999px !important;
   border: 1px solid transparent !important;
   box-sizing: border-box !important;
 }
 
-/* 4. Icon Buttons -> Google AI Studio Squircle Box (10px, 1px solid #E0E3E7) */
+/* 6. All Badges & Micro-Pills -> Google AI Studio Full Capsule (border-radius: 9999px) */
+.storefront-product-badge,
+.sf-coverflow-badge,
+.sf-amz-quick-tile-badge,
+.storefront-deal-badge,
+.storefront-subnav-pill span,
+.storefront-filter-chip,
+.storefront-cart-badge,
+.storefront-badge-pill,
+.sf-cat-tile span {
+  border-radius: 9999px !important;
+}
+
+/* 7. Stepper Container & Plus/Minus Controls -> Google Studio Pill Stepper */
+.storefront-product-stepper,
+.sf-quickview-stepper,
+.storefront-stepper-control {
+  border-radius: 9999px !important;
+  height: 36px !important;
+  box-sizing: border-box !important;
+}
+
+.storefront-product-stepper-btn,
+.sf-quickview-stepper-btn {
+  border-radius: 9999px !important;
+}
+
+/* 8. Icon Buttons -> Google AI Studio Squircle Box (10px, 1px solid #dadce0) like [< >] and [📁] */
 .storefront-icon-btn,
 .storefront-product-fav-btn,
 .storefront-shelf-arrows button,
 .storefront-shelf-floating-arrow,
 .storefront-cat-modal-close-btn,
 .sf-quickview-close-btn,
-.storefront-modal-close-btn {
+.storefront-modal-close-btn,
+.sf-footer-social-btn {
   border-radius: 10px !important;
-  border: 1px solid #E0E3E7 !important;
+  border: 1px solid #dadce0 !important;
+  background: #ffffff !important;
   transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease !important;
 }
 
 .storefront-icon-btn:hover,
-.storefront-shelf-arrows button:hover {
-  background: #f1f5f9 !important;
+.storefront-shelf-arrows button:hover,
+.sf-footer-social-btn:hover {
+  background: #f0f4f9 !important;
   border-color: #cbd5e1 !important;
-  transform: scale(1.02);
+  transform: scale(1.03);
 }
 
-/* 5. Stepper Container & Plus/Minus Controls */
-.storefront-product-stepper,
-.sf-quickview-stepper,
-.storefront-stepper-control {
-  border-radius: 10px !important;
-}
-
-.storefront-product-stepper-btn,
-.sf-quickview-stepper-btn {
-  border-radius: 7px !important;
-}
-
-/* 6. Floating Chevrons on Shelf */
-.storefront-shelf-floating-arrow {
-  border-radius: 12px !important;
-  background: #ffffff !important;
-  border: 1px solid #E0E3E7 !important;
-}
-
-/* 7. Predictive Search Bar */
+/* 9. Predictive Search Bar */
 .storefront-search-box {
-  border-radius: 12px !important;
-  height: 37px !important;
-  border: 1px solid #E0E3E7 !important;
+  border-radius: 9999px !important;
+  height: 38px !important;
+  border: 1px solid #dadce0 !important;
 }
 
 .storefront-search-btn {
-  border-radius: 9px !important;
-  height: 27px !important;
-  padding: 0 12px !important;
-}
-
-/* 8. Zero-Pill Enforcement across ALL Buttons, Badges, and Action Pills */
-button,
-a.storefront-action-btn,
-.storefront-subnav-pill,
-.storefront-cat-shelf-header span,
-.storefront-deal-add-btn,
-.storefront-deal-wa-btn,
-.storefront-spotlight-breakaway button,
-.storefront-spotlight-breakaway a {
-  border-radius: 12px !important;
+  border-radius: 9999px !important;
+  height: 30px !important;
+  padding: 0 14px !important;
 }
 
 
 /* ==========================================================================
    Apple-Grade Universal Squircle Geometry System
-   Applied across all sections, shelves, cards, modals, and content boxes
+   Continuous curved sections, cards, and soft-studio photo containers
    ========================================================================== */
 
-/* 1. Main Sections, Shelves & Feature Containers -> 26px Squircle (desktop), 20px (mobile) */
+/* 1. Main Sections, Shelves & Feature Containers -> 36px Squircle (desktop), 22px (mobile) */
 .storefront-section-card,
 .storefront-customer-reviews-section,
 .storefront-deals-shelf-section {
-  border-radius: 26px !important;
+  border-radius: 36px !important;
+  border: 1px solid #edf1f7 !important;
+  box-shadow: 0 10px 30px -6px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.02) !important;
 }
 
-/* 2. Bento Grid Hero & Major Cards -> 24px Squircle */
+/* 2. Bento Grid Hero & Major Cards -> 32px Squircle */
 .storefront-bento-card-hero,
 .storefront-bento-card,
 .storefront-mid-banner-card,
-.storefront-trust-bar-grid,
+.storefront-trust-bar-grid > div,
 .storefront-featured-broadcast-grid > div {
-  border-radius: 24px !important;
+  border-radius: 32px !important;
 }
 
-/* 3. Product Cards -> 22px Continuous Apple Squircle */
+/* 3. Product Cards -> 26px Continuous Luxury Squircle (desktop), 18px (mobile) */
 .storefront-product-card {
-  border-radius: 22px !important;
+  border-radius: 26px !important;
+  border: 1px solid #edf1f7 !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.03) !important;
 }
 
-/* 4. Product Photo Boxes & Inner Card Media Windows -> 16px Squircle */
+/* 4. Product Photo Boxes & Inner Card Media Windows -> 22px Squircle with soft studio background */
 .storefront-product-photo-box {
-  border-radius: 16px !important;
+  border-radius: 22px !important;
+  background: #f4f6fa !important;
 }
 
-/* 5. Filter Headers & Control Bars -> 20px Squircle */
+/* 5. Filter Headers & Control Bars -> 24px Squircle */
 .storefront-filter-header {
-  border-radius: 20px !important;
+  border-radius: 24px !important;
+  border: 1px solid #edf1f7 !important;
 }
 
-/* 6. Modal Shells & Large Popovers -> 24px Squircle */
+/* 6. Modal Shells & Large Popovers -> 28px Squircle */
 .storefront-checkout-modal-container,
 .sf-quickview-shell,
 .storefront-cat-modal-shell,
 .storefront-modal-shell {
-  border-radius: 24px !important;
+  border-radius: 28px !important;
 }
 
-/* 7. Predictive Search Dropdown Popover -> 20px Squircle */
+/* 7. Predictive Search Dropdown Popover -> 22px Squircle */
 .storefront-predictive-popover {
-  border-radius: 20px !important;
+  border-radius: 22px !important;
 }
 
 /* 8. Free Shipping Milestone Bar -> 16px Squircle */
@@ -1283,4 +1409,5 @@ a.storefront-action-btn,
 .storefront-sticky-header.is-scrolled {
   border-radius: 14px !important;
 }
+
 

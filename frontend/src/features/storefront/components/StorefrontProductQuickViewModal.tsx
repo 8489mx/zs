@@ -381,12 +381,12 @@ export function StorefrontProductQuickViewModal({
                 fontWeight: 700,
                 color: '#1f1f1f',
                 background: '#f1f3f4',
-                border: '1px solid #E0E3E7',
-                padding: '0 13px',
+                border: '1px solid #dadce0',
+                padding: '0 14px',
                 height: '36px',
                 display: 'inline-flex',
                 alignItems: 'center',
-                borderRadius: '10px',
+                borderRadius: '9999px',
                 boxSizing: 'border-box',
               }}
             >
@@ -403,7 +403,7 @@ export function StorefrontProductQuickViewModal({
             aria-label={t('storefront.storefront_product_quick_view_modal.s2', "إغلاق النافذة")}
             style={{
               background: '#ffffff',
-              border: '1px solid #E0E3E7',
+              border: '1px solid #dadce0',
               width: '36px',
               height: '36px',
               borderRadius: '10px',
@@ -417,12 +417,12 @@ export function StorefrontProductQuickViewModal({
               transition: 'transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.background = '#f0f4f9';
               e.currentTarget.style.borderColor = '#cbd5e1';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.borderColor = '#E0E3E7';
+              e.currentTarget.style.borderColor = '#dadce0';
             }}
           >
             <XIcon size={16} strokeWidth={2.2} />
@@ -723,10 +723,10 @@ export function StorefrontProductQuickViewModal({
                   flex: 1,
                   minWidth: 0,
                   height: '40px',
-                  borderRadius: '10px',
+                  borderRadius: '9999px',
                   backgroundColor: inStock ? brandColor : '#f1f3f4',
                   color: inStock ? (brandColorContrast || '#ffffff') : '#64748b',
-                  border: inStock ? `1px solid ${brandColor}` : '1px solid #E0E3E7',
+                  border: inStock ? `1px solid ${brandColor}` : '1px solid #dadce0',
                   fontSize: '13.5px',
                   fontWeight: 800,
                   cursor: inStock ? 'pointer' : 'not-allowed',
@@ -762,7 +762,7 @@ export function StorefrontProductQuickViewModal({
                 )}
               </button>
 
-              {/* Quantity Stepper in Exact Google AI Studio Box Style (10px outer, 7px inner buttons) */}
+              {/* Quantity Stepper in Google AI Studio Pill Style */}
               <div
                 className="sf-quickview-stepper"
                 style={{
@@ -770,9 +770,9 @@ export function StorefrontProductQuickViewModal({
                   alignItems: 'center',
                   height: '40px',
                   backgroundColor: '#f8fafc',
-                  border: '1px solid #E0E3E7',
-                  borderRadius: '10px',
-                  padding: '3px',
+                  border: '1px solid #dadce0',
+                  borderRadius: '9999px',
+                  padding: '3px 4px',
                   gap: '2px',
                   flexShrink: 0,
                   boxSizing: 'border-box',
@@ -786,8 +786,8 @@ export function StorefrontProductQuickViewModal({
                   style={{
                     width: '32px',
                     height: '32px',
-                    borderRadius: '7px',
-                    border: '1px solid #E0E3E7',
+                    borderRadius: '9999px',
+                    border: '1px solid #dadce0',
                     backgroundColor: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
@@ -818,8 +818,8 @@ export function StorefrontProductQuickViewModal({
                   style={{
                     width: '32px',
                     height: '32px',
-                    borderRadius: '7px',
-                    border: '1px solid #E0E3E7',
+                    borderRadius: '9999px',
+                    border: '1px solid #dadce0',
                     backgroundColor: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',

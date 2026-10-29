@@ -141,20 +141,20 @@ export function StorefrontFooter({
         }
         .sf-footer-contact-btn {
           height: 36px;
-          padding: 0 14px;
-          border-radius: 10px !important;
+          padding: 0 16px;
+          border-radius: 9999px !important;
           background: #ffffff;
-          border: 1px solid #E0E3E7;
+          border: 1px solid #dadce0;
           color: #1f1f1f;
-          font-size: 12.5px;
-          font-weight: 700;
+          font-size: 13px;
+          font-weight: 600;
           text-decoration: none;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
           cursor: pointer;
-          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
           transition: all 0.16s ease;
           box-sizing: border-box;
         }
@@ -201,12 +201,12 @@ export function StorefrontFooter({
         }
         @media (max-width: 640px) {
           .sf-modern-footer-container {
-            padding: 28px 16px 18px;
+            padding: 24px 16px calc(80px + env(safe-area-inset-bottom, 0px)) !important;
           }
           .sf-footer-cols-grid {
             grid-template-columns: repeat(2, 1fr);
-            gap: 22px 16px;
-            margin-bottom: 24px;
+            gap: 20px 16px;
+            margin-bottom: 20px;
           }
           .sf-footer-brand-col {
             grid-column: 1 / -1;
@@ -214,10 +214,16 @@ export function StorefrontFooter({
           .sf-footer-contact-col {
             grid-column: 1 / -1;
           }
+          .sf-footer-contact-btn {
+            width: 100%;
+            max-width: 280px;
+            height: 38px;
+          }
           .sf-footer-bottom-bar-clean {
             flex-direction: column;
             text-align: center;
             gap: 10px;
+            padding-top: 14px;
           }
           .sf-footer-legal-links {
             justify-content: center;

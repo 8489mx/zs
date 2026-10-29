@@ -96,16 +96,16 @@ export function StorefrontFilteredGrid({
         className="storefront-filter-header"
         style={{
           background: '#ffffff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '20px',
-          padding: '8px 12px',
+          border: '1px solid #edf1f7',
+          borderRadius: '24px',
+          padding: '10px 16px',
           display: 'flex',
           flexWrap: 'nowrap',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '8px',
           marginBottom: '16px',
-          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.02)',
+          boxShadow: '0 4px 18px rgba(15, 23, 42, 0.03)',
         }}
       >
         {/* Home Return Button */}
