@@ -2208,8 +2208,8 @@ export class AccountingPostingService {
 
   async postSupplierPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const digits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
-    const toBookMoney = (value: unknown) => this.toMoney(value, digits);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingSupplierPaymentJournal(queryable, paymentId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -2258,7 +2258,7 @@ export class AccountingPostingService {
     const paymentAccountId = (payment.payment_channel || 'cash') === 'cash' ? cashAccountId :
       await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
-    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, digits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     addBookLine( {
       accountId: supplierPayableAccountId,
       description: 'سداد مستحقات مورد',
@@ -2424,8 +2424,8 @@ export class AccountingPostingService {
 
   async postCustomerPayment(queryable: DbOrTx, paymentId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
-    const digits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
-    const toBookMoney = (value: unknown) => this.toMoney(value, digits);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
     await this.ensureTenantFoundation(queryable, auth);
     const existing = await this.getExistingCustomerPaymentJournal(queryable, paymentId, scope.tenantId);
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
@@ -2472,7 +2472,7 @@ export class AccountingPostingService {
     const paymentAccountId = (payment.payment_channel || 'cash') === 'cash' ? cashAccountId :
       await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.bank_account_id, '1120');
     const lines: JournalLineDraft[] = [];
-    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, digits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
     addBookLine( {
       accountId: paymentAccountId,
       description: (payment.payment_channel || 'cash') === 'cash' ? 'دخول نقدية من تحصيل عميل' : 'تحصيل عميل عبر البنك أو المدفوعات الإلكترونية',

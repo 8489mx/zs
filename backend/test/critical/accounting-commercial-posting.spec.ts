@@ -11,6 +11,7 @@ import { accountingDateKey } from '../../src/modules/accounting/accounting-tax-l
 import { purchaseReceiptBaseUnitCost } from '../../src/modules/purchases/engines/purchase-receipt-cost.engine';
 import { calculateCarrierCreditBaseAmount } from '../../src/modules/maritime-freight/engines/carrier-credit.engine';
 import { assertAutomatedJournalPeriodOpen } from '../../src/modules/accounting/accounting-period-lock';
+import { inspectAccountingIntegrity } from '../../src/modules/accounting/accounting-integrity';
 import { PurchasesWriteService } from '../../src/modules/purchases/services/purchases-write.service';
 import { PurchasesFinanceService } from '../../src/modules/purchases/services/purchases-finance.service';
 import { AuthContext } from '../../src/core/auth/interfaces/auth-context.interface';
@@ -34,6 +35,7 @@ async function main() {
         bank_account_id bigint, customer_receivable_account_id bigint, supplier_payable_account_id bigint,
         inventory_account_id bigint, sales_revenue_account_id bigint, sales_discount_account_id bigint,
         cogs_account_id bigint, sales_tax_account_id bigint, purchase_tax_account_id bigint,
+        purchase_account_id bigint, expenses_account_id bigint, manufacturing_overhead_account_id bigint,
         lock_date_all date, lock_date_non_adviser date, lock_date_tax date);
       CREATE TABLE accounting_fiscal_periods (tenant_id text, status text, name text,
         period_number int, start_date date, end_date date);
@@ -49,6 +51,20 @@ async function main() {
       CREATE TABLE cost_centers (id bigint, tenant_id text, code text, name text);
       CREATE TABLE settings (tenant_id text, key text, value text);
       CREATE TABLE currency_exchange_rates (tenant_id text, currency_code text, is_base boolean, exchange_rate numeric);
+      CREATE TABLE tenants (id text PRIMARY KEY);
+      INSERT INTO tenants VALUES ('t1');
+      CREATE TABLE branches (id bigint PRIMARY KEY, tenant_id text, default_stock_location_id bigint);
+      CREATE TABLE stock_locations (id bigint PRIMARY KEY, tenant_id text, branch_id bigint);
+      CREATE TABLE users (id bigint PRIMARY KEY, tenant_id text, default_branch_id bigint);
+      CREATE TABLE user_branches (tenant_id text, user_id bigint, branch_id bigint);
+      CREATE TABLE customer_ledger (tenant_id text, customer_id bigint, amount numeric, reference_type text, reference_id bigint, entry_type text);
+      CREATE TABLE supplier_ledger (tenant_id text, account_id text, supplier_id bigint, entry_type text,
+        amount numeric, balance_after numeric, note text, reference_type text, reference_id bigint, branch_id bigint, location_id bigint, created_by bigint);
+      CREATE TABLE accounting_posting_failures (id bigserial PRIMARY KEY, tenant_id text, source_type text, source_id bigint, resolved_at timestamptz);
+      CREATE TABLE products (id bigint PRIMARY KEY,tenant_id text,account_id text,name text,
+        stock_qty numeric DEFAULT 0,reserved_qty numeric DEFAULT 0,cost_price numeric DEFAULT 0,updated_at timestamptz);
+      CREATE TABLE product_location_stock (id bigserial PRIMARY KEY,tenant_id text,account_id text,product_id bigint,
+        branch_id bigint,location_id bigint,qty numeric DEFAULT 0,reserved_qty numeric DEFAULT 0,updated_at timestamptz);
       CREATE TABLE customers (id bigint,tenant_id text,balance numeric DEFAULT 0);
       CREATE TABLE suppliers (id bigint,tenant_id text,balance numeric DEFAULT 0,updated_at timestamptz);
       INSERT INTO customers VALUES (25,'t1',0);
@@ -59,13 +75,13 @@ async function main() {
         branch_id bigint, location_id bigint, created_by bigint DEFAULT 1, created_at timestamptz DEFAULT '2026-10-01',
         delivery_fee numeric DEFAULT 0, delivery_fee_mode text, service_charge numeric DEFAULT 0,
         tip_amount numeric DEFAULT 0, prices_include_tax boolean DEFAULT false, sale_origin text,
-        payment_type text DEFAULT 'cash', collection_status text);
+        payment_type text DEFAULT 'cash', collection_status text, status text DEFAULT 'posted');
       CREATE TABLE sale_payments (tenant_id text, sale_id bigint, payment_channel text, amount numeric);
       CREATE TABLE sale_items (id bigint PRIMARY KEY, tenant_id text, sale_id bigint, product_id bigint, qty numeric, cost_price numeric);
       CREATE TABLE purchases (id bigint PRIMARY KEY, tenant_id text, doc_no text, supplier_id bigint,
         payment_type text, subtotal numeric, discount numeric DEFAULT 0, tax_amount numeric, total numeric,
         branch_id bigint, location_id bigint, created_by bigint DEFAULT 1, created_at timestamptz DEFAULT '2026-10-01',
-        grn_id bigint, po_id bigint, lifecycle_status text, three_way_match_status text);
+        grn_id bigint, po_id bigint, lifecycle_status text, three_way_match_status text, status text DEFAULT 'posted');
       CREATE TABLE purchase_items (tenant_id text, purchase_id bigint, qty numeric, unit_cost numeric,
         grn_line_id bigint, grni_amount numeric);
       CREATE TABLE return_documents (id bigint PRIMARY KEY, tenant_id text, doc_no text, return_type text,
@@ -74,7 +90,7 @@ async function main() {
       CREATE TABLE return_items (tenant_id text, return_document_id bigint, product_id bigint,
         sale_item_id bigint, qty numeric, cost_price numeric, allocated_tax numeric);
       INSERT INTO accounting_settings VALUES
-        (1,'t1',1110,1120,1130,2110,1140,4100,4300,5100,2120,1150,NULL,NULL,NULL);
+        (1,'t1',1110,1120,1130,2110,1140,4100,4300,5100,2120,1150,NULL,NULL,NULL,NULL,NULL,NULL);
       INSERT INTO cost_centers VALUES (7,'t1','CC7','Cost center');
     `);
     for (const code of [1110,1120,1130,1140,1150,2110,2120,2125,2150,4100,4300,4400,5100,5190,7290,9001]) {
@@ -149,6 +165,67 @@ async function main() {
       .having(db.fn.count('id'), '>', 1)
       .execute();
     assert.equal(duplicateSaleCheck.length, 0, 'SALE_EDIT_NET: zero double-counted unreversed sales');
+
+    // Second edit on Sale 3: edit-of-an-edit
+    await pg.exec(`
+      UPDATE sales SET subtotal=180, discount=18, tax_amount=22.68, total=184.68, paid_amount=184.68 WHERE id=3;
+      UPDATE sale_payments SET amount=184.68 WHERE sale_id=3;
+      UPDATE sale_items SET qty=4, cost_price=30 WHERE sale_id=3;
+    `);
+    const secondEditResult = await posting.postSaleEdit(db, 3, auth);
+    assert.equal(secondEditResult.posted, true);
+    const firstEditJournal = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(editResult.journalEntryId)).executeTakeFirstOrThrow();
+    assert.ok(firstEditJournal.reversed_by_entry_id != null, 'first edit journal must be marked reversed by second edit');
+    const activeJournalsSecond = await db.selectFrom('journal_entries')
+      .select('id')
+      .where('source_type', 'in', ['sale', 'sale_edit'])
+      .where('source_id', '=', 3)
+      .where('reversed_by_entry_id', 'is', null)
+      .execute();
+    assert.equal(activeJournalsSecond.length, 1, 'only exactly 1 active unreversed journal exists after second edit');
+    assert.equal(await amount(secondEditResult.journalEntryId, 1110, 'debit'), 184.68);
+    assert.equal(await amount(secondEditResult.journalEntryId, 4100, 'credit'), 180);
+    assert.equal(await amount(secondEditResult.journalEntryId, 4300, 'debit'), 18);
+    assert.equal(await amount(secondEditResult.journalEntryId, 5100, 'debit'), 120);
+    assert.equal(await amount(secondEditResult.journalEntryId, 2120, 'credit'), 22.68);
+
+    // Exercise van sale split and edit
+    await pg.exec(`
+      INSERT INTO sales(id,tenant_id,doc_no,customer_id,subtotal,discount,tax_amount,total,paid_amount,sale_origin,payment_type)
+        VALUES (4,'t1','S4-VAN',25,100,0,14,114,64,'van_sale','split');
+      INSERT INTO sale_payments VALUES ('t1',4,'cash',64);
+      INSERT INTO sale_items VALUES (4,'t1',4,10,1,50);
+      INSERT INTO customer_ledger(tenant_id,customer_id,entry_type,amount,reference_type,reference_id)
+        VALUES ('t1',25,'sale_credit',50,'sale',4);
+    `);
+    const vanSale = await posting.postSale(db, 4, auth);
+    assert.equal(vanSale.posted, true);
+    assert.equal(await amount(vanSale.journalEntryId, 1130, 'debit'), 50);
+    assert.equal(await amount(vanSale.journalEntryId, 1110, 'debit'), 64);
+    assert.equal(await amount(vanSale.journalEntryId, 4100, 'credit'), 100);
+    assert.equal(await amount(vanSale.journalEntryId, 2120, 'credit'), 14);
+
+    // Edit van sale
+    await pg.exec(`
+      UPDATE sales SET subtotal=120, tax_amount=16.8, total=136.8, paid_amount=76.8 WHERE id=4;
+      UPDATE sale_payments SET amount=76.8 WHERE sale_id=4;
+      UPDATE customer_ledger SET amount=60 WHERE reference_id=4 AND entry_type='sale_credit';
+    `);
+    const vanEditResult = await posting.postSaleEdit(db, 4, auth);
+    assert.equal(vanEditResult.posted, true);
+    const vanOrigJournal = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(vanSale.journalEntryId)).executeTakeFirstOrThrow();
+    assert.ok(vanOrigJournal.reversed_by_entry_id != null, 'van original journal must be reversed on edit');
+    assert.equal(await amount(vanEditResult.journalEntryId, 1130, 'debit'), 60);
+    assert.equal(await amount(vanEditResult.journalEntryId, 1110, 'debit'), 76.8);
+    assert.equal(await amount(vanEditResult.journalEntryId, 4100, 'credit'), 120);
+    assert.equal(await amount(vanEditResult.journalEntryId, 2120, 'credit'), 16.8);
+
+    // Direct inspectAccountingIntegrity test asserting SALE_EDIT_NET and overall report
+    const integrityReport = await inspectAccountingIntegrity(db, 't1');
+    const saleEditCheck = integrityReport.checks.find(c => c.code === 'SALE_EDIT_NET');
+    assert.ok(saleEditCheck != null, 'SALE_EDIT_NET check exists in integrity report');
+    assert.equal(saleEditCheck.count, 0, 'SALE_EDIT_NET must report 0 issues in inspectAccountingIntegrity');
+
     await assertBalanced();
     await pg.exec(`
       INSERT INTO purchases(id,tenant_id,doc_no,supplier_id,payment_type,subtotal,discount,tax_amount,total)
@@ -177,6 +254,19 @@ async function main() {
     assert.equal(await amount(purchaseReturn.journalEntryId!, 1120, 'debit'), 22.6);
     assert.equal((await posting.postPurchaseReturn(db, 2, auth)).posted, false);
 
+    // Exercise exchange return guard on edit: if exchange return already has its own independent journal
+    await pg.exec(`
+      INSERT INTO sales(id,tenant_id,doc_no,subtotal,discount,tax_amount,total,paid_amount,exchange_return_id)
+        VALUES (5,'t1','S5-EX',100,0,14,114,114,1);
+      INSERT INTO sale_payments VALUES ('t1',5,'cash',114);
+      INSERT INTO sale_items VALUES (5,'t1',5,10,1,50);
+    `);
+    await assert.rejects(
+      posting.postSaleEdit(db, 5, auth),
+      (err: any) => err.code === 'EXCHANGE_LEDGER_CONFLICT' || /مرتجع الاستبدال مرتبط بقيد مستقل/.test(err.message),
+      'Editing an exchange sale whose return already has an independent journal must throw EXCHANGE_LEDGER_CONFLICT'
+    );
+
     // Both invoice reversals must link and retain every original analytical dimension.
     for (const [id, reverse] of [
       [sale.journalEntryId, () => posting.reverseSaleJournal(db, 1, 'cancel', auth)],
@@ -192,6 +282,12 @@ async function main() {
       assert.ok(lines.every(line => Number(line.cost_center_id) === 7));
       assert.equal((await reverse()).reversed, false);
     }
+    // Attempting to post an edit for a fully reversed sale must throw SALE_ALREADY_REVERSED
+    await assert.rejects(
+      posting.postSaleEdit(db, 1, auth),
+      (err: any) => err.code === 'SALE_ALREADY_REVERSED' || /ملغاة ومعكوسة/.test(err.message),
+      'Editing a fully reversed sale must fail with SALE_ALREADY_REVERSED'
+    );
     for (const source of ['sale','purchase','sales_return','purchase_return','fiscal_year_closing','manual_reversal']) {
       const entry = await db.insertInto('journal_entries').values({
         tenant_id:'t1', entry_no:`BLOCK-${source}`, source_type:source, status:'posted',
@@ -214,18 +310,18 @@ async function main() {
 
     // Exercise delayed receipt end to end: cartons, recoverable VAT, WAC, AP and journal.
     await pg.exec(`
-      ALTER TABLE purchases ADD COLUMN status text DEFAULT 'posted', ADD COLUMN tax_rate numeric DEFAULT 14,
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS status text DEFAULT 'posted', ADD COLUMN tax_rate numeric DEFAULT 14,
         ADD COLUMN prices_include_tax boolean DEFAULT true, ADD COLUMN matched_status text, ADD COLUMN updated_at timestamptz;
       ALTER TABLE purchase_items ADD COLUMN id bigserial, ADD COLUMN product_id bigint,
         ADD COLUMN unit_multiplier numeric DEFAULT 1, ADD COLUMN received_qty numeric DEFAULT 0, ADD COLUMN location_id bigint;
-      CREATE TABLE products (id bigint PRIMARY KEY,tenant_id text,account_id text,name text,
+      CREATE TABLE IF NOT EXISTS products (id bigint PRIMARY KEY,tenant_id text,account_id text,name text,
         stock_qty numeric,reserved_qty numeric DEFAULT 0,cost_price numeric,updated_at timestamptz);
-      CREATE TABLE product_location_stock (id bigserial PRIMARY KEY,tenant_id text,account_id text,product_id bigint,
+      CREATE TABLE IF NOT EXISTS product_location_stock (id bigserial PRIMARY KEY,tenant_id text,account_id text,product_id bigint,
         branch_id bigint,location_id bigint,qty numeric,reserved_qty numeric DEFAULT 0,updated_at timestamptz);
       CREATE TABLE stock_movements (id bigserial PRIMARY KEY,tenant_id text,account_id text,product_id bigint,
         movement_type text,qty numeric,before_qty numeric,after_qty numeric,unit_cost numeric,total_cost numeric,
         reason text,note text,reference_type text,reference_id bigint,branch_id bigint,location_id bigint,created_by bigint);
-      CREATE TABLE supplier_ledger (tenant_id text,account_id text,supplier_id bigint,entry_type text,
+      CREATE TABLE IF NOT EXISTS supplier_ledger (tenant_id text,account_id text,supplier_id bigint,entry_type text,
         amount numeric,balance_after numeric,note text,reference_type text,reference_id bigint,branch_id bigint,location_id bigint,created_by bigint);
       INSERT INTO products VALUES (10,'t1','a1','Cartons',12,0,80,NULL);
       INSERT INTO purchases(id,tenant_id,doc_no,supplier_id,payment_type,subtotal,tax_amount,total,status)
