@@ -14,6 +14,69 @@ import { Database } from '../../../database/database.types';
  * - Preserves General Ledger Weighted Average Cost (WAC) intact.
  */
 
+/**
+ * Lot-allocation coverage, reported per sale item instead of silently
+ * skipped. A shortfall here is traceability-only for ordinary POS sales
+ * (their GL COGS comes from sale_items.cost_price, i.e. WAC), but it is a
+ * GL input for import preorder conversions, whose COGS is built from these
+ * allocations — so a shortfall must reach the caller, never vanish in a
+ * continue. Quantities use the file's existing 0.0001 epsilon: a
+ * remainder at or below it counts as covered, not as a shortfall.
+ */
+export type ImportLotAllocationReason =
+  | 'fully_covered'
+  | 'missing_location'
+  | 'no_active_lots'
+  | 'lots_exhausted'
+  | 'invalid_quantity';
+
+export interface ImportLotAllocationCoverage {
+  productId: number;
+  requestedQty: number;
+  allocatedQty: number;
+  shortfallQty: number;
+  fullyCovered: boolean;
+  reason: ImportLotAllocationReason;
+}
+
+export interface ImportLotAllocationResult {
+  items: ImportLotAllocationCoverage[];
+  fullyCovered: boolean;
+  totalShortfallQty: number;
+}
+
+/**
+ * Pure import-sale cost build-up (EGP-denominated by design: the import
+ * subsystem prices everything in EGP — unit_cost_egp / unit_price_egp).
+ * The total is rounded once to EGP minor units (2 digits); the unit cost
+ * keeps 6 digits, matching the sale_items.cost_price precision POS uses,
+ * so qty x unit cost reconciles to the journal total within rounding.
+ * The old service code was a special case of this function: it used the
+ * fallback for the whole quantity only when the allocation total was
+ * exactly zero, and dropped the uncovered units' cost otherwise.
+ */
+export function calculateImportSaleCost(params: {
+  qty: number;
+  allocatedQty: number;
+  allocCostEgp: number;
+  fallbackUnitCostEgp: number;
+}): { shortfallQty: number; shortfallCostEgp: number; totalCostEgp: number; unitCostEgp: number } {
+  const qty = Number(params.qty);
+  const allocatedQty = Number(params.allocatedQty);
+  const allocCostEgp = Number(params.allocCostEgp);
+  const fallbackUnitCostEgp = Number(params.fallbackUnitCostEgp);
+  if (!Number.isFinite(qty) || qty < 0) throw new Error('Import sale cost requires a finite non-negative quantity.');
+  if (!Number.isFinite(allocatedQty) || allocatedQty < 0) throw new Error('Import sale allocated quantity must be finite and non-negative.');
+  if (allocatedQty > qty + 0.0001) throw new Error('Import sale lot allocation exceeds the sale quantity.');
+  if (!Number.isFinite(allocCostEgp) || allocCostEgp < 0) throw new Error('Import sale allocation cost must be finite and non-negative.');
+  if (!Number.isFinite(fallbackUnitCostEgp) || fallbackUnitCostEgp < 0) throw new Error('Import sale fallback unit cost must be finite and non-negative.');
+  const shortfallQty = Number(Math.max(0, qty - allocatedQty).toFixed(4));
+  const shortfallCostEgp = shortfallQty * fallbackUnitCostEgp;
+  const totalCostEgp = Number((allocCostEgp + shortfallCostEgp).toFixed(2));
+  const unitCostEgp = qty > 0 ? Number((totalCostEgp / qty).toFixed(6)) : 0;
+  return { shortfallQty, shortfallCostEgp, totalCostEgp, unitCostEgp };
+}
+
 export async function allocateSaleFromImportLots(
   trx: Kysely<Database> | Transaction<Database>,
   params: {
@@ -28,11 +91,20 @@ export async function allocateSaleFromImportLots(
       locationId?: number | null;
     }>;
   }
-): Promise<void> {
+): Promise<ImportLotAllocationResult> {
+  const coverage: ImportLotAllocationCoverage[] = [];
   for (const item of params.items) {
     const pId = Number(item.productId);
-    let neededQty = Number(item.qty);
-    if (!Number.isFinite(neededQty) || neededQty <= 0) continue;
+    const requestedQty = Number(item.qty);
+    if (!Number.isFinite(requestedQty) || requestedQty <= 0) {
+      coverage.push({
+        productId: pId, requestedQty, allocatedQty: 0,
+        shortfallQty: requestedQty > 0 ? requestedQty : 0,
+        fullyCovered: false, reason: 'invalid_quantity',
+      });
+      continue;
+    }
+    let neededQty = requestedQty;
 
     // Check if any active import lots exist for this product and tenant
     let lotQuery = trx
@@ -45,7 +117,13 @@ export async function allocateSaleFromImportLots(
 
     const targetLocId = item.locationId !== undefined ? item.locationId : params.locationId;
     // Unlocated legacy lots cannot be assigned to a sale from an arbitrary store.
-    if (!Number.isSafeInteger(targetLocId) || Number(targetLocId) <= 0) continue;
+    if (!Number.isSafeInteger(targetLocId) || Number(targetLocId) <= 0) {
+      coverage.push({
+        productId: pId, requestedQty, allocatedQty: 0, shortfallQty: requestedQty,
+        fullyCovered: false, reason: 'missing_location',
+      });
+      continue;
+    }
     lotQuery = lotQuery.where('location_id', '=', Number(targetLocId));
 
     const lots = await lotQuery
@@ -54,8 +132,15 @@ export async function allocateSaleFromImportLots(
       .forUpdate()
       .execute();
 
-    if (!lots || lots.length === 0) continue;
+    if (!lots || lots.length === 0) {
+      coverage.push({
+        productId: pId, requestedQty, allocatedQty: 0, shortfallQty: requestedQty,
+        fullyCovered: false, reason: 'no_active_lots',
+      });
+      continue;
+    }
 
+    let allocatedQty = 0;
     for (const lot of lots) {
       if (neededQty <= 0.0001) break;
 
@@ -98,9 +183,19 @@ export async function allocateSaleFromImportLots(
         } as any)
         .execute();
 
+      allocatedQty = Number((allocatedQty + allocQty).toFixed(4));
       neededQty = Number((neededQty - allocQty).toFixed(4));
     }
+
+    const shortfallQty = Number(Math.max(0, requestedQty - allocatedQty).toFixed(4));
+    coverage.push({
+      productId: pId, requestedQty, allocatedQty, shortfallQty,
+      fullyCovered: shortfallQty <= 0.0001,
+      reason: shortfallQty <= 0.0001 ? 'fully_covered' : 'lots_exhausted',
+    });
   }
+  const totalShortfallQty = Number(coverage.reduce((sum, entry) => sum + entry.shortfallQty, 0).toFixed(4));
+  return { items: coverage, fullyCovered: coverage.every((entry) => entry.fullyCovered), totalShortfallQty };
 }
 
 export async function restoreImportLotsFromCancelledSale(

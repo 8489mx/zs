@@ -42,7 +42,7 @@ import {
   DecideApprovalRequestDto,
   ResolveExceptionDto,
 } from './dto/import-sales.dto';
-import { allocateSaleFromImportLots } from './helpers/import-lot-allocation.helper';
+import { allocateSaleFromImportLots, calculateImportSaleCost } from './helpers/import-lot-allocation.helper';
 import { applyStockDelta, lockStockProducts } from '../../common/utils/location-stock-ledger';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { calculateImportFeasibility, FeasibilityCalculationResult } from './engines/import-feasibility.engine';
@@ -5533,7 +5533,7 @@ export class ImportSalesService {
         .executeTakeFirstOrThrow();
 
       // Allocate from Import Lot to deplete remaining quantity and maintain project lineage
-      await allocateSaleFromImportLots(trx, {
+      const lotAllocation = await allocateSaleFromImportLots(trx, {
         tenantId,
         saleId,
         locationId,
@@ -5555,24 +5555,69 @@ export class ImportSalesService {
         .where('sale_id', '=', saleId)
         .execute();
 
+      // Cross-check: the helper's coverage must agree with the rows it just
+      // wrote. Any disagreement is an internal inconsistency, not a costing
+      // input to be averaged away — fail closed instead of posting a cost
+      // built from two different pictures of the same allocation.
+      const coverage = lotAllocation.items[0];
+      if (!coverage) {
+        throw new BadRequestException('IMPORT_SALE_ALLOCATION_MISSING: lot allocation returned no coverage for the converted sale item.');
+      }
+      const dbAllocatedQty = Number(saleAllocs.reduce((sum, a) => sum + Number(a.quantity || 0), 0).toFixed(4));
+      if (Math.abs(dbAllocatedQty - coverage.allocatedQty) > 0.0001) {
+        throw new BadRequestException(
+          `IMPORT_SALE_ALLOCATION_MISMATCH: helper coverage (${coverage.allocatedQty}) disagrees with stored allocations (${dbAllocatedQty}) for sale ${saleId}; conversion refused rather than posting a reconciled cost.`,
+        );
+      }
       const allocCostEgp = saleAllocs.reduce(
         (acc, a) => acc + Number(a.quantity || 0) * Number(a.unit_cost_egp || 0),
         0,
       );
-      const fallbackCostEgp = Number(
-        (qty * Number(lot?.unit_landed_cost_egp || (product as any)?.cost_price || 0)).toFixed(2),
-      );
-      const totalCostEgp = Number((allocCostEgp > 0 ? allocCostEgp : fallbackCostEgp).toFixed(2));
-      const unitCostEgp = qty > 0 ? Number((totalCostEgp / qty).toFixed(4)) : 0;
+      // Shortfall top-up: uncovered units are costed at the shipment lot's
+      // landed cost, else current WAC (products.cost_price). This preserves
+      // the old fully-uncovered behaviour exactly (shortfall == qty, so the
+      // total equals the old fallback) and generalises it to partial
+      // coverage, where the old code silently dropped the uncovered units'
+      // cost. The fallback lot here is shipment-scoped, not
+      // location-scoped (same as before); WAC remains the GL basis for
+      // ordinary POS sales and is the fallback of last resort here.
+      const fallbackUnitCostEgp = Number(lot?.unit_landed_cost_egp || (product as any)?.cost_price || 0);
+      const saleCost = calculateImportSaleCost({
+        qty,
+        allocatedQty: coverage.allocatedQty,
+        allocCostEgp,
+        fallbackUnitCostEgp,
+      });
+      const totalCostEgp = saleCost.totalCostEgp;
+      const unitCostEgp = saleCost.unitCostEgp;
 
-      if (unitCostEgp > 0) {
-        await trx
-          .updateTable('sale_items')
-          .set({ cost_price: unitCostEgp } as any)
-          .where('id', '=', saleItemInsert.id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
+      // Guarantee, part 1: a stock-reducing sale (qty > 0) never completes
+      // with stock decreased and no COGS/inventory pair. insertPostedJournal
+      // rejects 0/0 lines (INVALID_JOURNAL_LINE), so a zero-cost pair cannot
+      // be posted literally — the honest guarantee is fail-closed: when no
+      // cost is knowable at all (no lot cost and WAC is 0), the whole
+      // conversion rolls back and the preorder stays un-invoiced, instead
+      // of the books silently diverging. A genuine zero-cost stock policy
+      // needs an explicit, recorded override decision — not a silent
+      // omission (see the note after the journal block).
+      if (qty > 0 && totalCostEgp <= 0) {
+        throw new BadRequestException(
+          `IMPORT_SALE_ZERO_COST: cannot convert preorder ${preorder.id} — sale quantity ${qty} has no knowable cost ` +
+          `(allocated ${coverage.allocatedQty} via lots, shortfall ${saleCost.shortfallQty}, ` +
+          `fallback unit cost ${fallbackUnitCostEgp}). Set the lot landed cost or the product cost_price and retry.`,
+        );
       }
+
+      // The frozen unit cost is always recorded on the sale item, even when
+      // it rounds to zero — the gate above, not this write, decides whether
+      // the sale may complete. (Previously the write was skipped for a zero
+      // unit cost, leaving a stale/default cost_price on the item.)
+      await trx
+        .updateTable('sale_items')
+        .set({ cost_price: unitCostEgp } as any)
+        .where('id', '=', saleItemInsert.id)
+        .where('tenant_id', '=', tenantId)
+        .execute();
 
       if (product) {
         await trx
@@ -5605,7 +5650,16 @@ export class ImportSalesService {
           .execute();
       }
 
-      if (total > 0) {
+      // Guarantee, part 2: the COGS pair is decoupled from the revenue
+      // total. Previously the whole journal was gated on `total > 0`, so a
+      // free sale (unit price 0) with a positive cost posted NO journal at
+      // all — stock decreased, COGS never posted. Now the journal posts
+      // whenever revenue or cost is positive; the revenue line is added
+      // only when total > 0 (a 0/0 line would be rejected by
+      // insertPostedJournal), and the COGS/inventory pair is unconditional
+      // inside this block because the zero-cost throw above guarantees
+      // totalCostEgp > 0 whenever this block is reached with qty > 0.
+      if (total > 0 || totalCostEgp > 0) {
         const journalLines: Array<{
           accountId: number;
           debit: number;
@@ -5645,44 +5699,44 @@ export class ImportSalesService {
           });
         }
 
-        const revenueAccId = await this.resolveTenantAccount(trx, tenantId, 'sales_revenue');
-        journalLines.push({
-          accountId: revenueAccId,
-          debit: 0,
-          credit: total,
-          description: `إيراد مبيعات تحويل حجز حاوية #${docNo}`,
-          partnerType: preorder.customer_id ? 'customer' : 'none',
-          partnerId: preorder.customer_id ? Number(preorder.customer_id) : null,
-          branchId,
-          locationId,
-        });
-
-        if (totalCostEgp > 0) {
-          const cogsAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
-          const inventoryAccId = await this.resolveTenantAccount(trx, tenantId, 'inventory');
-          journalLines.push(
-            {
-              accountId: cogsAccId,
-              debit: totalCostEgp,
-              credit: 0,
-              description: `تكلفة البضاعة المباعة لحجز الحاوية #${docNo}`,
-              partnerType: 'none',
-              partnerId: null,
-              branchId,
-              locationId,
-            },
-            {
-              accountId: inventoryAccId,
-              debit: 0,
-              credit: totalCostEgp,
-              description: `تخفيض المخزون المستورد لحجز الحاوية #${docNo}`,
-              partnerType: 'none',
-              partnerId: null,
-              branchId,
-              locationId,
-            },
-          );
+        if (total > 0) {
+          const revenueAccId = await this.resolveTenantAccount(trx, tenantId, 'sales_revenue');
+          journalLines.push({
+            accountId: revenueAccId,
+            debit: 0,
+            credit: total,
+            description: `إيراد مبيعات تحويل حجز حاوية #${docNo}`,
+            partnerType: preorder.customer_id ? 'customer' : 'none',
+            partnerId: preorder.customer_id ? Number(preorder.customer_id) : null,
+            branchId,
+            locationId,
+          });
         }
+
+        const cogsAccId = await this.resolveTenantAccount(trx, tenantId, 'cogs');
+        const inventoryAccId = await this.resolveTenantAccount(trx, tenantId, 'inventory');
+        journalLines.push(
+          {
+            accountId: cogsAccId,
+            debit: totalCostEgp,
+            credit: 0,
+            description: `تكلفة البضاعة المباعة لحجز الحاوية #${docNo}`,
+            partnerType: 'none',
+            partnerId: null,
+            branchId,
+            locationId,
+          },
+          {
+            accountId: inventoryAccId,
+            debit: 0,
+            credit: totalCostEgp,
+            description: `تخفيض المخزون المستورد لحجز الحاوية #${docNo}`,
+            partnerType: 'none',
+            partnerId: null,
+            branchId,
+            locationId,
+          },
+        );
 
         const posting = this.accountingPosting ?? new AccountingPostingService(new AccountingTenantFoundationService());
         await posting.postDomainJournal(trx, {
@@ -5699,6 +5753,14 @@ export class ImportSalesService {
           lines: journalLines,
         });
       }
+
+      // NOTE (deliberate non-change): if you later need genuinely zero-cost
+      // stock to convert successfully, do NOT reintroduce a silent skip.
+      // Add an explicit `allowZeroCost` flag to ConvertPreorderToSaleDto,
+      // record the override on the sale note and the stock-movement note,
+      // and accept that the journal will still carry no COGS pair — because
+      // insertPostedJournal rejects 0/0 lines. The override must be a
+      // recorded business decision, not a default.
 
       // Update preorder status
       const updatedPreorder = await trx
