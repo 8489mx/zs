@@ -69,7 +69,9 @@ export async function loadOnlineOrderIntoPosCart(orderId: number, navigate?: (to
     quickCustomerAddress: data.customerAddress || existingDraft?.quickCustomerAddress || '',
     deliveryFee: Number(data.deliveryFee || 0),
     discount: finalDiscount,
-    orderType: data.orderType === 'dine_in' ? 'dine_in' : 'delivery',
+    orderType: data.orderType === 'dine_in'
+      ? 'dine_in'
+      : (data.orderType === 'takeaway' || data.orderType === 'pickup' ? 'takeaway' : 'delivery'),
     note: existingDraft?.note && existingDraft.note !== noteText ? `${existingDraft.note} • ${noteText}` : noteText,
     paymentType: 'cash',
     paymentChannel: data.paymentMethod === 'instapay_wallet' ? 'instapay' : 'cash',

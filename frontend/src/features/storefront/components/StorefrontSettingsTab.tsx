@@ -451,7 +451,7 @@ export function StorefrontSettingsTab() {
       });
       setCompressingMidBannerIdx(null);
     } catch (err: any) {
-      alert(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
+      toast.error(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
       setCompressingMidBannerIdx(null);
     }
   };

@@ -2927,6 +2927,15 @@ export class StorefrontService {
           .where('id', '=', id)
           .where(sql<boolean>`tenant_id = ${tenantId}`)
           .execute();
+
+        if (status === 'delivered' && current.sale_id) {
+          await trx.updateTable('sales')
+            .set({ delivery_status: 'delivered', updated_at: sql`NOW()` })
+            .where('id', '=', current.sale_id)
+            .where('delivery_status', 'in', ['pending', 'out_for_delivery', null])
+            .where(sql<boolean>`tenant_id = ${tenantId}`)
+            .execute();
+        }
       }
     });
 
@@ -3094,36 +3103,43 @@ export class StorefrontService {
     const branchId = targetBranchId;
     const locationId = order.reserved_location_id || branch?.default_stock_location_id || 1;
 
-    // 2.5 Resolve delivery representative
-    let repId = explicitRepId ? Number(explicitRepId) : 0;
-    let repName = 'توصيل المتجر';
-    if (!repId || Number.isNaN(repId) || repId <= 0) {
-      let activeRep = await this.db
-        .selectFrom('delivery_representatives')
-        .select(['id', 'name'])
-        .where(sql<boolean>`tenant_id = ${tenantId}`)
-        .where('is_active', '=', true)
-        .orderBy('id', 'asc')
-        .executeTakeFirst();
+    const isDineIn = order.order_type === 'dine_in' || order.fulfillment_type === 'dine_in';
+    const isPickup = order.fulfillment_type === 'pickup' || order.order_type === 'pickup';
+    const effectiveOrderType = isDineIn ? 'dine_in' : (isPickup ? 'takeaway' : 'delivery');
 
-      if (!activeRep) {
-        // Auto-create default delivery rep for the store
-        const insertedReps = await this.db
-          .insertInto('delivery_representatives')
-          .values({
-            name: 'توصيل المتجر',
-            phone: null,
-            is_active: true,
-            rep_type: 'store_fleet',
-            tenant_id: tenantId,
-            account_id: String(accountId || 1),
-          } as any)
-          .returning(['id', 'name'])
-          .execute();
-        activeRep = insertedReps[0];
+    // 2.5 Resolve delivery representative (only for delivery orders)
+    let repId: number | undefined = undefined;
+    let repName = isPickup ? 'استلام من الفرع' : (isDineIn ? 'صالة المطعم' : 'توصيل المتجر');
+    if (effectiveOrderType === 'delivery') {
+      repId = explicitRepId ? Number(explicitRepId) : 0;
+      if (!repId || Number.isNaN(repId) || repId <= 0) {
+        let activeRep = await this.db
+          .selectFrom('delivery_representatives')
+          .select(['id', 'name'])
+          .where(sql<boolean>`tenant_id = ${tenantId}`)
+          .where('is_active', '=', true)
+          .orderBy('id', 'asc')
+          .executeTakeFirst();
+
+        if (!activeRep) {
+          // Auto-create default delivery rep for the store
+          const insertedReps = await this.db
+            .insertInto('delivery_representatives')
+            .values({
+              name: 'توصيل المتجر',
+              phone: null,
+              is_active: true,
+              rep_type: 'store_fleet',
+              tenant_id: tenantId,
+              account_id: String(accountId || 1),
+            } as any)
+            .returning(['id', 'name'])
+            .execute();
+          activeRep = insertedReps[0];
+        }
+        repId = Number(activeRep.id);
+        repName = activeRep.name;
       }
-      repId = Number(activeRep.id);
-      repName = activeRep.name;
     }
 
     // 3. Call SalesService to create formal sale delivery invoice.
@@ -3142,14 +3158,15 @@ export class StorefrontService {
       customerAddress: order.customer_address,
       paymentType: 'cash',
       paymentChannel,
-      orderType: 'delivery',
+      orderType: effectiveOrderType,
+      tableNumber: isDineIn ? (order.table_number || undefined) : undefined,
       deliveryRepId: repId,
-      deliveryStatus: 'pending',
-      collectionStatus: isPaidOnline ? 'collected' : 'cod',
-      deliveryFeeMode: 'store_fleet',
+      deliveryStatus: effectiveOrderType === 'delivery' ? 'pending' : null,
+      collectionStatus: isPaidOnline ? 'collected' : (effectiveOrderType === 'delivery' ? 'cod' : null),
+      deliveryFeeMode: effectiveOrderType === 'delivery' ? 'store_fleet' : null,
       branchId,
       locationId,
-      deliveryFee: Number(order.deliveryFee || 0),
+      deliveryFee: effectiveOrderType === 'delivery' ? Number(order.deliveryFee || 0) : 0,
       discount: orderDiscount,
       items: lines,
       note: [
@@ -3191,12 +3208,12 @@ export class StorefrontService {
     }
     const saleId = Number((saleResult as any)?.id || (saleResult as any)?.sale?.id || (typeof saleResult === 'number' ? saleResult : 0));
 
-    // Update order with saleId and status 'shipped' (خرجت للتوصيل مع المندوب)
+    // Update order with saleId and status: 'shipped' for delivery, or 'delivered' for pickup/dine-in
     await this.db
       .updateTable('online_orders')
       .set({
         sale_id: saleId > 0 ? saleId : null,
-        status: 'shipped',
+        status: effectiveOrderType === 'delivery' ? 'shipped' : 'delivered',
         updated_at: new Date(),
       })
       .where('id', '=', id)
@@ -3345,7 +3362,9 @@ export class StorefrontService {
       couponCode: order.couponCode || null,
       // A QR table order is posted as dine-in for that table, so the kitchen ticket that replaces its
       // draft (retireKitchenDraft) keeps the right table and order type.
-      orderType: order.order_type === 'dine_in' ? 'dine_in' : 'delivery',
+      orderType: order.order_type === 'dine_in'
+        ? 'dine_in'
+        : (order.fulfillment_type === 'pickup' || order.order_type === 'pickup' ? 'takeaway' : 'delivery'),
       tableNumber: order.table_number || '',
       items: mappedItems,
       customerNotes: order.customer_notes || '',

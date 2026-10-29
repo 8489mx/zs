@@ -74,12 +74,35 @@ export function RestaurantDeliveryDispatcherModal({
   };
 
   const dispatchMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!selectedRepId) throw new Error('يرجى اختيار كابتن التوصيل أولاً');
       if (selectedOrderIds.length === 0) throw new Error('يرجى اختيار طلب واحد على الأقل للإسناد');
+
+      const saleIdsToDispatch: number[] = [];
+      const remainingOnlineOrderIds: number[] = [];
+
+      for (const orderId of selectedOrderIds) {
+        const order = pendingOrders.find((o) => o.id === orderId);
+        if (order?.saleId) {
+          saleIdsToDispatch.push(Number(order.saleId));
+        } else {
+          try {
+            const converted = await storefrontApi.convertToSale(orderId, selectedRepId);
+            if (converted?.saleId) {
+              saleIdsToDispatch.push(Number(converted.saleId));
+            } else {
+              remainingOnlineOrderIds.push(orderId);
+            }
+          } catch {
+            remainingOnlineOrderIds.push(orderId);
+          }
+        }
+      }
+
       return deliveryRepsApi.dispatchOrders({
         repId: selectedRepId,
-        onlineOrderIds: selectedOrderIds,
+        saleIds: saleIdsToDispatch.length > 0 ? saleIdsToDispatch : undefined,
+        onlineOrderIds: remainingOnlineOrderIds.length > 0 ? remainingOnlineOrderIds : undefined,
         notes: dispatchNotes.trim() || undefined,
       });
     },

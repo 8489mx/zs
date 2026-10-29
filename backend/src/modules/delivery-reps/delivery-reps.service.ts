@@ -491,6 +491,17 @@ export class DeliveryRepsService {
         .where('id', '=', saleId)
         .where(this.tenantPredicate(actor))
         .execute();
+
+      await trx
+        .updateTable('online_orders')
+        .set({
+          status: 'delivered',
+          updated_at: sql`NOW()`,
+        })
+        .where('sale_id', '=', saleId)
+        .where(this.tenantPredicate(actor))
+        .where('status', '!=', 'cancelled')
+        .execute();
     });
 
     await this.audit.log('تسوية طلب توصيل', `تمت تسوية الطلب #${saleId} بواسطة ${actor.username}`, actor);
@@ -603,6 +614,17 @@ export class DeliveryRepsService {
         })
         .where('id', 'in', saleIds)
         .where(this.tenantPredicate(actor))
+        .execute();
+
+      await trx
+        .updateTable('online_orders')
+        .set({
+          status: 'delivered',
+          updated_at: sql`NOW()`,
+        })
+        .where('sale_id', 'in', saleIds)
+        .where(this.tenantPredicate(actor))
+        .where('status', '!=', 'cancelled')
         .execute();
 
       return { settledCount: saleIds.length, totalAmount: actualTotal };
@@ -897,6 +919,17 @@ export class DeliveryRepsService {
         .where('id', '=', saleId)
         .where('tenant_id', '=', tenantId)
         .execute();
+
+      await trx
+        .updateTable('online_orders')
+        .set({
+          status: 'delivered',
+          updated_at: sql`NOW()`,
+        })
+        .where('sale_id', '=', saleId)
+        .where('tenant_id', '=', tenantId)
+        .where('status', '!=', 'cancelled')
+        .execute();
     });
 
     return { ok: true, message: 'تم إثبات تسليم الشحنة؛ عهدة التحصيل قيد التسوية' };
@@ -966,7 +999,7 @@ export class DeliveryRepsService {
 
       if (onlineOrderIds.length) {
         const orders = await trx.selectFrom('online_orders')
-          .select(['id','order_number','customer_phone','status'])
+          .select(['id','order_number','customer_phone','status','sale_id'])
           .where('id', 'in', onlineOrderIds).where(this.tenantPredicate(actor))
           .orderBy('id', 'asc').forUpdate().execute();
         if (orders.length !== onlineOrderIds.length ||
@@ -976,6 +1009,18 @@ export class DeliveryRepsService {
         await trx.updateTable('online_orders').set({
           status: 'shipped', dispatched_at: now,
         }).where('id','in',onlineOrderIds).where(this.tenantPredicate(actor)).execute();
+
+        const linkedSaleIds = orders.map(o => o.sale_id).filter((id): id is number => Boolean(id) && Number(id) > 0);
+        if (linkedSaleIds.length > 0) {
+          await trx.updateTable('sales').set({
+            order_type: 'delivery',
+            delivery_rep_id: rep.id,
+            delivery_status: 'out_for_delivery',
+            dispatched_at: now,
+            ...(payload.notes ? { note: sql`COALESCE(note, '') || ${' [' + payload.notes + ']'}` as any } : {}),
+          }).where('id', 'in', linkedSaleIds).where(this.tenantPredicate(actor)).execute();
+        }
+
         for (const order of orders) if (order.customer_phone) {
           notifications.push({
             recipientPhone: order.customer_phone,

@@ -9,6 +9,7 @@ import { DeliverySettlementModal } from '../components/DeliverySettlementModal';
 import { DeliveryOrderCard } from '../components/DeliveryOrderCard';
 import { DeliveryDriverHeader } from '../components/DeliveryDriverHeader';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
+import { toast } from '@/shared/components/system-alert';
 
 interface OfflineQueueItem {
   orderId: number;
@@ -96,7 +97,7 @@ export function DeliveryDriverMobilePage() {
         const updated = [...offlineQueue, item];
         setOfflineQueue(updated);
         localStorage.setItem('z_driver_offline_settlements', JSON.stringify(updated));
-        alert('تم حفظ إثبات التسليم بنجاح في وضع عدم الاتصال (Offline). ستتم المزامنة تلقائياً فور عودة الإنترنت.');
+        toast.success('تم حفظ إثبات التسليم بنجاح في وضع عدم الاتصال (Offline). ستتم المزامنة تلقائياً فور عودة الإنترنت.');
         setActiveSettleOrder(null);
       } else {
         alert(err?.response?.data?.message || 'تعذر تأكيد استلام الشحنة.');

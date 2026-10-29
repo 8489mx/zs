@@ -6,6 +6,7 @@ import { storefrontApi } from '../api/storefront.api';
 import { compressImage, CompressionResult } from '@/shared/utils/image-compressor';
 import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { XIcon } from '@/shared/components/icons/AppIcons';
+import { toast, systemConfirm } from '@/shared/components/system-alert';
 
 interface StorefrontProductStudioProps {
   slug: string;
@@ -36,7 +37,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
       setActiveUploadingId(null);
     },
     onError: (err: any) => {
-      alert(`حدث خطأ أثناء حفظ الصورة: ${err.message || 'خطأ غير متوقع'}`);
+      toast.error(`حدث خطأ أثناء حفظ الصورة: ${err.message || 'خطأ غير متوقع'}`);
       setActiveUploadingId(null);
     },
   });
@@ -49,7 +50,7 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
       setActiveUploadingCatId(null);
     },
     onError: (err: any) => {
-      alert(`حدث خطأ أثناء حفظ صورة القسم: ${err.message || 'خطأ غير متوقع'}`);
+      toast.error(`حدث خطأ أثناء حفظ صورة القسم: ${err.message || 'خطأ غير متوقع'}`);
       setActiveUploadingCatId(null);
     },
   });
@@ -81,13 +82,14 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
         });
       }, 3000);
     } catch (err: any) {
-      alert(`فشل ضغط الصورة: ${err.message || 'خطأ غير معروف'}`);
+      toast.error(`فشل ضغط الصورة: ${err.message || 'خطأ غير معروف'}`);
       setActiveUploadingId(null);
     }
   };
 
   const handleRemoveImage = async (productId: number) => {
-    if (!window.confirm('هل تريد حذف صورة هذا الصنف؟')) return;
+    const confirmed = await systemConfirm('هل تريد حذف صورة هذا الصنف والعودة للصورة التلقائية؟');
+    if (!confirmed) return;
     setActiveUploadingId(productId);
     await updateImageMutation.mutateAsync({ id: productId, imageUrl: '' });
   };
@@ -119,13 +121,14 @@ export function StorefrontProductStudio({ slug }: StorefrontProductStudioProps) 
         });
       }, 3000);
     } catch (err: any) {
-      alert(`فشل ضغط صورة القسم: ${err.message || 'خطأ غير معروف'}`);
+      toast.error(`فشل ضغط صورة القسم: ${err.message || 'خطأ غير معروف'}`);
       setActiveUploadingCatId(null);
     }
   };
 
   const handleRemoveCatImage = async (categoryId: number) => {
-    if (!window.confirm('هل تريد حذف صورة هذا القسم والعودة للصورة التلقائية؟')) return;
+    const confirmed = await systemConfirm('هل تريد حذف صورة هذا القسم والعودة للصورة التلقائية؟');
+    if (!confirmed) return;
     setActiveUploadingCatId(categoryId);
     await updateCatImageMutation.mutateAsync({ id: categoryId, imageUrl: '' });
   };
