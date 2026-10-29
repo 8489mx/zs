@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import React, { useRef } from 'react';
+import { IconShoppingCart } from './StorefrontIcons';
 
 interface StorefrontLiveCartPillProps {
   itemsCount: number;
@@ -42,8 +43,8 @@ export function StorefrontLiveCartPill({
       className="storefront-live-cart-pill"
       style={{
         background: '#ffffff',
-        borderRadius: '9999px',
-        border: '1px solid #cbd5e1',
+        borderRadius: '14px',
+        border: '1px solid #E0E3E7',
         boxShadow: '0 14px 34px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08)',
         padding: '8px 15px',
         display: 'flex',
@@ -72,7 +73,7 @@ export function StorefrontLiveCartPill({
         style={{
           width: '35px',
           height: '35px',
-          borderRadius: '50%',
+          borderRadius: '10px',
           background: 'var(--storefront-primary-color, #170e5e)',
           color: 'var(--storefront-primary-contrast, #ffffff)',
           display: 'flex',
@@ -83,11 +84,7 @@ export function StorefrontLiveCartPill({
           boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.25))',
         }}
       >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <path d="M16 10a4 4 0 0 1-8 0" />
-        </svg>
+        <IconShoppingCart size={17} strokeWidth={2.2} />
       </div>
 
       {/* Exactly 2 clean lines: Line 1 = Items & Pieces, Line 2 = Total */}
@@ -118,7 +115,7 @@ export function StorefrontLiveCartPill({
             fontSize: '12px',
             fontWeight: 800,
             padding: '7px 15px',
-            borderRadius: '999px',
+            borderRadius: '10px',
             cursor: isMinOrderMet ? 'pointer' : 'not-allowed',
             boxShadow: isMinOrderMet ? '0 2px 7px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.28))' : 'none',
             whiteSpace: 'nowrap',
@@ -158,10 +155,10 @@ export function StorefrontLiveCartPill({
               height: '26px',
               minWidth: '26px',
               minHeight: '26px',
-              borderRadius: '50%',
-              background: '#f1f5f9',
+              borderRadius: '9px',
+              background: '#ffffff',
               color: '#64748b',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #E0E3E7',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',

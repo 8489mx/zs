@@ -100,13 +100,16 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
           flex-direction: column;
           justify-content: space-between;
           cursor: pointer;
-          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
           box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
           user-select: none;
           box-sizing: border-box;
         }
         .sf-amz-promo-card:hover {
-          transform: translateY(-3px);
+          transform: translate3d(0, -4px, 0);
           box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
         }
         .sf-amz-hero-orange-card {
@@ -121,12 +124,15 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
           cursor: pointer;
           min-height: 542px;
           box-shadow: 0 6px 20px rgba(255, 98, 0, 0.22);
-          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
           user-select: none;
           box-sizing: border-box;
         }
         .sf-amz-hero-orange-card:hover {
-          transform: translateY(-3px);
+          transform: translate3d(0, -4px, 0);
           box-shadow: 0 12px 28px rgba(255, 98, 0, 0.3);
         }
         .sf-amz-quick-tiles-wrapper {
@@ -158,36 +164,39 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
           height: 186px;
           cursor: pointer;
           box-sizing: border-box;
-          transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          transition: border-color 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease;
         }
         .sf-amz-quick-tile:hover {
           border-color: #cbd5e1;
-          transform: translateY(-2px);
+          transform: translate3d(0, -3px, 0);
           box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
         }
         .sf-amz-floating-nav-btn {
           position: absolute;
           left: 6px;
           top: 50%;
-          transform: translateY(-50%);
+          transform: translate3d(0, -50%, 0);
           width: 34px;
           height: 34px;
-          background: rgba(255, 255, 255, 0.96) !important;
-          border: 1px solid #cbd5e1 !important;
-          border-radius: 999px !important;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+          background: #ffffff !important;
+          border: 1px solid #E0E3E7 !important;
+          border-radius: 10px !important;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           z-index: 10;
-          color: #1e293b;
-          transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+          color: #1f1f1f;
+          transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
         }
         .sf-amz-floating-nav-btn:hover {
           background: #ffffff !important;
           box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
-          transform: translateY(-50%) scale(1.05);
+          transform: translate3d(0, -50%, 0) scale3d(1.06, 1.06, 1);
         }
 
         @media (max-width: 1200px) {
@@ -337,11 +346,12 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
               }}
             >
               {/* Right Podium + Product */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateY(6px)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translate3d(0, 6px, 0)' }}>
                 <img
                   src={PERFUME_PHOTO}
                   alt="عرض مميز"
-                  style={{ width: '82px', height: '82px', objectFit: 'contain', filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.28))' }}
+                  decoding="async"
+                  style={{ width: '82px', height: '82px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)' }}
                 />
                 <div
                   style={{
@@ -359,7 +369,8 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                 <img
                   src={SMARTWATCH_PHOTO}
                   alt="عرض مميز"
-                  style={{ width: '104px', height: '104px', objectFit: 'contain', filter: 'drop-shadow(0 10px 16px rgba(0,0,0,0.32))' }}
+                  decoding="async"
+                  style={{ width: '104px', height: '104px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)' }}
                 />
                 <div
                   style={{
@@ -373,11 +384,12 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
               </div>
 
               {/* Left Podium + Product */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translateY(10px)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', transform: 'translate3d(0, 10px, 0)' }}>
                 <img
                   src={HEADPHONES_PHOTO}
                   alt="عرض مميز"
-                  style={{ width: '84px', height: '84px', objectFit: 'contain', filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.28))' }}
+                  decoding="async"
+                  style={{ width: '84px', height: '84px', objectFit: 'contain', transform: 'translate3d(0, 0, 0)' }}
                 />
                 <div
                   style={{
@@ -458,11 +470,12 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                 <img
                   src={LAPTOP_PHOTO}
                   alt="توصيل سريع"
+                  decoding="async"
                   style={{
                     width: '158px',
                     height: '158px',
                     objectFit: 'contain',
-                    filter: 'drop-shadow(0 14px 20px rgba(0, 0, 0, 0.28))',
+                    transform: 'translate3d(0, 0, 0)',
                   }}
                 />
               </div>
@@ -566,6 +579,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     <img
                       src={imgUrl}
                       alt=""
+                      decoding="async"
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   </div>
@@ -633,11 +647,12 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                 <img
                   src={SNEAKER_2_PHOTO}
                   alt="توصيل مجاني"
+                  decoding="async"
                   style={{
                     width: '150px',
                     height: '150px',
                     objectFit: 'contain',
-                    filter: 'drop-shadow(0 12px 18px rgba(0, 0, 0, 0.42))',
+                    transform: 'translate3d(0, 0, 0)',
                   }}
                 />
               </div>
@@ -705,11 +720,12 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                 <img
                   src={WATCH_CLASSIC_PHOTO}
                   alt="تشكيلة الموسم"
+                  decoding="async"
                   style={{
                     width: '136px',
                     height: '136px',
                     objectFit: 'contain',
-                    filter: 'drop-shadow(0 10px 18px rgba(0,0,0,0.45))',
+                    transform: 'translate3d(0, 0, 0)',
                   }}
                 />
               </div>
@@ -757,6 +773,8 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                       <img
                         src={photoUrl}
                         alt={item.name}
+                        loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           e.currentTarget.src = generatePremiumProductSvg(item.name, item.categoryName);
                         }}
@@ -764,7 +782,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                           maxWidth: '100%',
                           maxHeight: '94px',
                           objectFit: 'contain',
-                          filter: 'drop-shadow(0 4px 8px rgba(15, 23, 42, 0.08))',
+                          transform: 'translate3d(0, 0, 0)',
                         }}
                       />
                     </div>

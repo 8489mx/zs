@@ -47,22 +47,19 @@ interface CardSlotMetrics {
 
 /**
  * Pure 2D Integer-Pixel Perspective Geometry (Zero CSS rotateY / Zero CSS scale)
- * Preserves the exact inward-curved 3D coverflow silhouette via an analytical
- * geometricPrecision vector SVG frame while keeping DOM text, badges, and artwork
- * at 100% native 1:1 screen pixel resolution even when not hovered.
+ * Uses pure GPU translate3d for hover lift so moving the pointer across the 7-card deck
+ * triggers zero React re-renders and zero layout reflows (locked 120Hz ProMotion).
  */
-function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: number | null): CardSlotMetrics {
-  const isActiveHero = isHovered || (hoveredOffset === null && offset === 0);
-
+function getCardSlotMetrics(offset: number): CardSlotMetrics {
   if (offset === 0) {
     return {
       width: 208,
       height: 302,
       slantLeft: 0,
       slantRight: 0,
-      marginTop: isHovered ? -8 : 0,
-      zIndex: isActiveHero ? 40 : 25,
-      isHighlighted: isActiveHero,
+      marginTop: 0,
+      zIndex: 30,
+      isHighlighted: true,
       titleFontSize: '11px',
       badgeFontSize: '10.5px',
       priceFontSize: '11px',
@@ -83,9 +80,9 @@ function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: n
       height: 276,
       slantLeft: isLeft ? slant : 0,
       slantRight: isLeft ? 0 : slant,
-      marginTop: isHovered ? 2 : 10,
-      zIndex: isHovered ? 38 : 20,
-      isHighlighted: isHovered,
+      marginTop: 10,
+      zIndex: 20,
+      isHighlighted: false,
       titleFontSize: '10px',
       badgeFontSize: '10px',
       priceFontSize: '10.5px',
@@ -103,9 +100,9 @@ function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: n
       height: 256,
       slantLeft: isLeft ? slant : 0,
       slantRight: isLeft ? 0 : slant,
-      marginTop: isHovered ? 10 : 18,
-      zIndex: isHovered ? 36 : 12,
-      isHighlighted: isHovered,
+      marginTop: 18,
+      zIndex: 12,
+      isHighlighted: false,
       titleFontSize: '9.5px',
       badgeFontSize: '9.5px',
       priceFontSize: '10px',
@@ -123,9 +120,9 @@ function getCardSlotMetrics(offset: number, isHovered: boolean, hoveredOffset: n
     height: 238,
     slantLeft: isLeft ? slant : 0,
     slantRight: isLeft ? 0 : slant,
-    marginTop: isHovered ? 18 : 26,
-    zIndex: isHovered ? 34 : 6,
-    isHighlighted: isHovered,
+    marginTop: 26,
+    zIndex: 6,
+    isHighlighted: false,
     titleFontSize: '9px',
     badgeFontSize: '9px',
     priceFontSize: '9.5px',
@@ -191,7 +188,6 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
   onSelectDeals,
   onOpenCategoriesModal,
 }: StorefrontHeroEditorialProps) {
-  const [hoveredCardIdx, setHoveredCardIdx] = useState<number | null>(null);
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
 
   // Build a 7-card deck for the symmetrical 3D Coverflow (3 Left + 1 Center + 3 Right)
@@ -251,17 +247,31 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
         alignItems: 'center',
         textAlign: 'center',
         userSelect: 'none',
+        contain: 'layout style paint',
       }}
     >
       <style>{`
         .storefront-coverflow-card {
-          transition: margin-top 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+          transform: translate3d(0, 0, 0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
-          text-rendering: geometricPrecision;
-          transform: none !important;
-          filter: none !important;
-          will-change: auto !important;
+        }
+        @media (min-width: 641px) {
+          .storefront-coverflow-card:hover {
+            transform: translate3d(0, -8px, 0);
+            z-index: 45 !important;
+          }
+          .storefront-coverflow-card:hover .sf-coverflow-stroke {
+            stroke: #93c5fd;
+            stroke-width: 1.6;
+          }
+          .storefront-coverflow-card:active {
+            transform: translate3d(0, -2px, 0) scale3d(0.97, 0.97, 1);
+            transition: transform 0.1s cubic-bezier(0.32, 0.72, 0, 1);
+          }
         }
 
         @keyframes sfHeroTickerMove {
@@ -282,6 +292,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
           overflow: hidden;
           position: relative;
           z-index: 5;
+          contain: layout paint;
           mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
           -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
         }
@@ -291,6 +302,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
           align-items: center;
           width: max-content;
           will-change: transform;
+          backface-visibility: hidden;
           animation: sfHeroTickerMove 34s linear infinite;
         }
 
@@ -325,7 +337,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             display: none !important;
           }
           .storefront-coverflow-card {
-            transform: none !important;
+            transform: translate3d(0, 0, 0) !important;
             width: 185px !important;
             min-width: 185px !important;
             height: 255px !important;
@@ -339,18 +351,45 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
 
       {/* Top Main Headline */}
       <div style={{ maxWidth: '100%', marginBottom: '12px', position: 'relative', zIndex: 5 }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '25px',
-            fontWeight: 800,
-            lineHeight: 1.3,
-            color: '#0f172a',
-            letterSpacing: '-0.01em',
-            whiteSpace: 'nowrap',
-            fontFamily: "'Alexandria', 'Inter', 'Tajawal', 'Cairo', sans-serif",
-          }}
-        >
+        <style>{`
+          @keyframes sfHeadlineGlassSweep {
+            0% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+          .sf-hero-glass-headline {
+            margin: 0;
+            padding: 2px 6px;
+            display: inline-block;
+            font-size: 25px;
+            font-weight: 800;
+            line-height: 1.35;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            font-family: 'Alexandria', 'Inter', 'Tajawal', 'Cairo', sans-serif;
+            color: var(--storefront-primary-color, #2d68c4);
+            background-image: linear-gradient(
+              112deg,
+              var(--storefront-primary-color, #2d68c4) 0%,
+              var(--storefront-primary-color, #2d68c4) 41%,
+              color-mix(in srgb, var(--storefront-primary-color, #2d68c4) 75%, #ffffff 25%) 46%,
+              color-mix(in srgb, var(--storefront-primary-color, #2d68c4) 52%, #ffffff 48%) 50%,
+              color-mix(in srgb, var(--storefront-primary-color, #2d68c4) 75%, #ffffff 25%) 54%,
+              var(--storefront-primary-color, #2d68c4) 59%,
+              var(--storefront-primary-color, #2d68c4) 100%
+            );
+            background-size: 240% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: sfHeadlineGlassSweep 3.4s ease-in-out infinite alternate;
+            will-change: background-position;
+          }
+        `}</style>
+        <h1 className="sf-hero-glass-headline">
           أفضل المنتجات بأحسن سعر
         </h1>
       </div>
@@ -359,7 +398,6 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
       <div
         dir="ltr"
         className="storefront-fanned-deck"
-        onMouseLeave={() => setHoveredCardIdx(null)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -377,9 +415,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
           const { product, originalIdx } = item;
           const midSlot = Math.floor(orderedDeck.length / 2);
           const offset = slotIdx - midSlot;
-          const isHovered = hoveredCardIdx === slotIdx;
-          const hoveredOffset = hoveredCardIdx !== null ? hoveredCardIdx - midSlot : null;
-          const metrics = getCardSlotMetrics(offset, isHovered, hoveredOffset);
+          const metrics = getCardSlotMetrics(offset);
           const isHighlighted = metrics.isHighlighted;
 
           const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
@@ -447,7 +483,6 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
               key={`${product.id}-${slotIdx}`}
               dir="rtl"
               className="storefront-coverflow-card"
-              onMouseEnter={() => setHoveredCardIdx(slotIdx)}
               onClick={() => {
                 if (offset !== 0 && orderedDeck.length >= 7) {
                   setCenterIdx(originalIdx);
@@ -503,6 +538,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                   fill={isHighlighted ? 'rgba(15, 23, 42, 0.045)' : 'rgba(15, 23, 42, 0.028)'}
                 />
                 <path
+                  className="sf-coverflow-stroke"
                   d={mainCardPath}
                   fill="#ffffff"
                   stroke={isHighlighted ? '#93c5fd' : '#dce3ec'}
@@ -540,7 +576,6 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                     boxShadow: isHighlighted
                       ? '0 3px 8px rgba(220, 38, 38, 0.28)'
                       : '0 2px 5px rgba(239, 68, 68, 0.18)',
-                    transition: 'background-color 0.18s ease, box-shadow 0.18s ease',
                   }}
                 >
                   {badgeText}
@@ -566,7 +601,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                   src={photoUrl}
                   alt={product.name}
                   loading="eager"
-                  decoding="sync"
+                  decoding="async"
                   draggable={false}
                   onError={(e) => {
                     e.currentTarget.src = generatePremiumProductSvg(product.name, product.categoryName);
@@ -575,9 +610,8 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                     width: '100%',
                     height: '100%',
                     objectFit: 'contain',
-                    transform: 'none',
-                    filter: 'none',
-                    imageRendering: 'auto',
+                    transform: 'translate3d(0, 0, 0)',
+                    backfaceVisibility: 'hidden',
                   }}
                 />
               </div>
@@ -630,23 +664,25 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                     style={{
                       width: `${metrics.cartBtnSize}px`,
                       height: `${metrics.cartBtnSize}px`,
-                      borderRadius: '9999px',
+                      borderRadius: '9px',
                       background:
                         justAddedId === product.id
                           ? '#16a34a'
                           : isOutOfStock
-                          ? '#e2e8f0'
+                          ? '#f1f3f4'
                           : isHighlighted
                           ? 'var(--storefront-primary-color, #2d68c4)'
-                          : '#eff6ff',
+                          : '#ffffff',
                       color:
-                        justAddedId === product.id || isOutOfStock || isHighlighted
+                        justAddedId === product.id || isHighlighted
                           ? '#ffffff'
+                          : isOutOfStock
+                          ? '#94a3b8'
                           : 'var(--storefront-primary-color, #2d68c4)',
                       border:
-                        justAddedId === product.id || isOutOfStock || isHighlighted
+                        justAddedId === product.id || isHighlighted
                           ? 'none'
-                          : '1px solid #dbeafe',
+                          : '1px solid #E0E3E7',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

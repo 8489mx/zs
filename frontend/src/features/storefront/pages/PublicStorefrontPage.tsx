@@ -39,16 +39,6 @@ export function PublicStorefrontPage() {
   const [quickViewProduct, setQuickViewProduct] = useState<StorefrontProduct | null>(null);
   const [isTableBillOpen, setIsTableBillOpen] = useState(false);
 
-  // Free storefront completely from global ERP layout restrictions
-  useEffect(() => {
-    document.documentElement.classList.add('storefront-standalone-mode');
-    document.body.classList.add('storefront-standalone-mode');
-    return () => {
-      document.documentElement.classList.remove('storefront-standalone-mode');
-      document.body.classList.remove('storefront-standalone-mode');
-    };
-  }, []);
-
   /**
    * جذر المتجر الحالي (`/st/:slug` أو `/store/:slug` أو `/shop/:slug`).
    * يُشتق من المسار الفعلي حتى يبقى العميل على نفس البادئة التي دخل منها.
@@ -61,9 +51,10 @@ export function PublicStorefrontPage() {
   }, [location.pathname, cleanSlug, hostSlug]);
   const storeHomePath = storeBasePath || '/';
 
-  /** فتح منتج = تغيير الرابط؛ المودال يتبع الرابط لا العكس. */
+  /** فتح منتج = استجابة فورية 0ms + مزامنة الرابط للتاريخ والمشاركة. */
   const openProduct = useCallback(
     (product: StorefrontProduct) => {
+      setQuickViewProduct(product);
       navigate(`${storeBasePath}/p/${product.id}`);
     },
     [navigate, storeBasePath],
@@ -71,8 +62,8 @@ export function PublicStorefrontPage() {
 
   /** الإغلاق يرجع خطوة في التاريخ حتى يعمل زر الرجوع طبيعياً. */
   const closeProduct = useCallback(() => {
+    setQuickViewProduct(null);
     if (productId) navigate(storeHomePath, { replace: false });
-    else setQuickViewProduct(null);
   }, [navigate, productId, storeHomePath]);
 
   const {
@@ -135,6 +126,17 @@ export function PublicStorefrontPage() {
     handleRequestTableService,
     isCallingService,
   } = usePublicStorefront(cleanSlug);
+
+  const handleOpenCart = useCallback(() => setIsCartOpen(true), [setIsCartOpen]);
+  const handleOpenOrders = useCallback(() => setIsMyOrdersOpen(true), [setIsMyOrdersOpen]);
+  const handleHeaderSelectCategory = useCallback(
+    (id: number | 'all') => {
+      setSelectedCategory(id);
+      setOnlyDeals(false);
+      setOnlyFavorites(false);
+    },
+    [setSelectedCategory, setOnlyDeals, setOnlyFavorites],
+  );
 
   const handleCallWaiter = async () => {
     if (!tableParam || isCallingService) return;
@@ -288,17 +290,16 @@ export function PublicStorefrontPage() {
   return (
     <div
       dir="rtl"
-      className="storefront-page-root"
       style={{
         minHeight: '100vh',
         background: info?.brandSurfaceColor && info.brandSurfaceColor !== '#f8fafc' ? info.brandSurfaceColor : '#ffffff',
         color: '#0f172a',
-        display: 'block',
+        display: 'flex',
+        flexDirection: 'column',
         fontFamily: 'inherit',
         width: '100%',
-        maxWidth: '100%',
-        position: 'relative',
-        overflow: 'visible',
+        maxWidth: '100vw',
+        overflowX: 'clip',
         boxSizing: 'border-box',
       }}
     >
@@ -309,14 +310,10 @@ export function PublicStorefrontPage() {
         onSearchChange={setSearchTerm}
         cartCount={cartCount}
         cartTotal={cartSubtotal}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenOrders={() => setIsMyOrdersOpen(true)}
+        onOpenCart={handleOpenCart}
+        onOpenOrders={handleOpenOrders}
         onGoHome={handleGoHome}
-        onSelectCategory={(id) => {
-          setSelectedCategory(id);
-          setOnlyDeals(false);
-          setOnlyFavorites(false);
-        }}
+        onSelectCategory={handleHeaderSelectCategory}
         onSelectProduct={openProduct}
         onAddToCart={handleAddToCart}
       />

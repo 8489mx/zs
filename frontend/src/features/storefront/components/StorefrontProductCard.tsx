@@ -479,11 +479,11 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             disabled
             style={{
               width: '100%',
-              height: '40px',
+              height: '35px',
               padding: '0 14px',
-              borderRadius: '9999px',
-              border: '1px solid #cbd5e1',
-              background: '#e2e8f0',
+              borderRadius: '10px',
+              border: '1px solid #E0E3E7',
+              background: '#f1f3f4',
               color: '#64748b',
               fontSize: '12.5px',
               fontWeight: 800,

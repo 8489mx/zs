@@ -10,8 +10,8 @@ import {
   CopyIcon,
   CheckIcon,
   CheckShieldIcon,
-  ShoppingBagIcon,
 } from '@/shared/components/icons/AppIcons';
+import { IconShoppingCart } from './StorefrontIcons';
 
 interface StorefrontSuccessModalProps {
   order?: CreateOnlineOrderResponse | null;
@@ -566,7 +566,7 @@ export function StorefrontSuccessModal({
             fontFamily: 'inherit',
           }}
         >
-          <ShoppingBagIcon size={14} color="#64748b" strokeWidth={2} />
+          <IconShoppingCart size={14} color="#64748b" strokeWidth={2} />
           <span>{t('storefront.storefront_success_modal.s28', "متابعة التسوق في المتجر")}</span>
         </button>
       </div>

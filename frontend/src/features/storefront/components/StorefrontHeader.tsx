@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
+import { IconShoppingCart } from './StorefrontIcons';
 import { StorefrontPredictiveSearch } from './StorefrontPredictiveSearch';
 import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 
@@ -20,17 +21,27 @@ interface StorefrontHeaderProps {
 }
 
 export function resolveStorefrontBrand(info: { title?: string; businessName?: string; address?: string }) {
-  const business = String(info.businessName || '').trim();
+  let business = String(info.businessName || '').trim();
   let rawTitle = String(info.title || '').trim();
   const rawAddress = String(info.address || '').trim();
 
-  if (rawTitle === 'تسوق أونلاين بأفضل الأسعار وتوصيل سريع' || rawTitle.includes('تسوق أونلاين بأفضل الأسعار')) {
-    rawTitle = business && business !== 'متجرنا' ? business : 'المتجر';
+  if (business === 'متجرنا' || business === 'متجرنا الإلكتروني' || business === 'المتجر') {
+    business = 'Z-Systems ERP';
+  }
+
+  if (
+    rawTitle === 'تسوق أونلاين بأفضل الأسعار وتوصيل سريع' ||
+    rawTitle.includes('تسوق أونلاين بأفضل الأسعار') ||
+    rawTitle === 'متجرنا الإلكتروني' ||
+    rawTitle === 'متجرنا' ||
+    rawTitle === 'المتجر'
+  ) {
+    rawTitle = business || 'Z-Systems ERP';
   }
 
   if (rawAddress) {
     return {
-      title: rawTitle || business || 'المتجر',
+      title: rawTitle || business || 'Z-Systems ERP',
       address: rawAddress,
     };
   }
@@ -46,12 +57,12 @@ export function resolveStorefrontBrand(info: { title?: string; businessName?: st
   }
 
   return {
-    title: rawTitle || business || 'المتجر',
+    title: rawTitle || business || 'Z-Systems ERP',
     address: '',
   };
 }
 
-export function StorefrontHeader({
+export const StorefrontHeader = React.memo(function StorefrontHeader({
   info,
   searchTerm,
   onSearchChange,
@@ -65,32 +76,34 @@ export function StorefrontHeader({
   onAddToCart,
 }: StorefrontHeaderProps) {
   const { t } = useTranslation();
-  const [isScrolled, setIsScrolled] = useState(false);
+  const headerRef = React.useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let rafId = 0;
-    const onScroll = (e?: Event) => {
-      if (rafId) return;
-      rafId = window.requestAnimationFrame(() => {
-        const target = e?.target as HTMLElement | null;
-        const targetTop = target && typeof target.scrollTop === 'number' ? target.scrollTop : 0;
-        const docTop = document.documentElement?.scrollTop || document.body?.scrollTop || 0;
-        const winTop = window.scrollY || window.pageYOffset || 0;
-        const scrollDistance = Math.max(winTop, docTop, targetTop);
-        setIsScrolled(scrollDistance > 18);
-        rafId = 0;
-      });
+    let currentScrolled = false;
+
+    const updateScrollState = () => {
+      const y = window.scrollY;
+      // Hysteresis prevents rapid toggling jitter near the scroll threshold
+      const nextScrolled = currentScrolled ? y > 8 : y > 24;
+      if (nextScrolled !== currentScrolled) {
+        currentScrolled = nextScrolled;
+        if (headerRef.current) {
+          headerRef.current.classList.toggle('is-scrolled', nextScrolled);
+        }
+      }
+      rafId = 0;
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
-    document.addEventListener('scroll', onScroll, { passive: true, capture: true });
-    document.body?.addEventListener('scroll', onScroll, { passive: true, capture: true });
-    onScroll();
+    const onScroll = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(updateScrollState);
+    };
 
+    window.addEventListener('scroll', onScroll, { passive: true });
+    updateScrollState();
     return () => {
-      window.removeEventListener('scroll', onScroll, { capture: true } as any);
-      document.removeEventListener('scroll', onScroll, { capture: true } as any);
-      document.body?.removeEventListener('scroll', onScroll, { capture: true } as any);
+      window.removeEventListener('scroll', onScroll);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, []);
@@ -119,49 +132,61 @@ export function StorefrontHeader({
         </div>
       )}
 
-      {/* Sticky Luxury Header — full-width unboxed over Hero at top, morphs into floating island on scroll */}
+      {/* Sticky Luxury Header — Zero-layout-shift 120Hz GPU composited sticky bar */}
       <header
-        className={`storefront-sticky-header ${isScrolled ? 'is-scrolled' : ''}`}
+        ref={headerRef}
+        className="storefront-sticky-header"
         style={{
-          background: isScrolled ? 'rgba(255, 255, 255, 0.96)' : 'transparent',
-          backdropFilter: isScrolled ? 'blur(20px) saturate(180%)' : 'none',
-          WebkitBackdropFilter: isScrolled ? 'blur(20px) saturate(180%)' : 'none',
-          border: isScrolled ? '1px solid rgba(226, 232, 240, 0.92)' : '1px solid transparent',
-          borderRadius: isScrolled ? '14px' : '0px',
           position: 'sticky',
-          top: isScrolled ? '12px' : '0px',
-          width: isScrolled ? '48%' : '100%',
-          maxWidth: isScrolled ? '780px' : '100%',
+          top: 0,
+          width: '100%',
+          maxWidth: '100%',
           margin: '0 auto',
-          zIndex: 9999,
-          boxShadow: isScrolled
-            ? '0 10px 30px -4px rgba(15, 23, 42, 0.12), 0 3px 10px -2px rgba(15, 23, 42, 0.05)'
-            : 'none',
-          transition:
-            'top 0.32s cubic-bezier(0.16, 1, 0.3, 1), width 0.32s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.32s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.32s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
+          zIndex: 110,
+          padding: '8px 16px',
+          boxSizing: 'border-box',
+          pointerEvents: 'none',
+          transform: 'translate3d(0, 0, 0)',
+          backfaceVisibility: 'hidden',
         }}
       >
         <style>{`
-          .storefront-brand-btn:hover .storefront-brand-avatar { transform: scale(1.05); }
+          .storefront-brand-btn:hover .storefront-brand-avatar { transform: scale3d(1.05, 1.05, 1); }
           .storefront-brand-btn:hover .storefront-brand-title { color: var(--storefront-primary-color, #2d68c4); }
           .storefront-nav-bottom-row {
             display: contents;
           }
+          .storefront-navbar {
+            pointer-events: auto;
+            width: 100%;
+            max-width: var(--storefront-container, 1440px);
+            margin: 0 auto;
+            padding: 8px 18px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            align-items: center;
+            gap: 14px;
+            box-sizing: border-box;
+            border-radius: 14px;
+            background: transparent;
+            border: 1px solid transparent;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            transition: background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+          }
+          .storefront-sticky-header.is-scrolled .storefront-navbar {
+            background: rgba(255, 255, 255, 0.97);
+            border-color: rgba(226, 232, 240, 0.95);
+            box-shadow: 0 10px 26px -6px rgba(15, 23, 42, 0.1), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+          }
           @media (min-width: 769px) {
-            .storefront-sticky-header.is-scrolled {
-              width: 48% !important;
-              max-width: 780px !important;
-              min-width: 480px !important;
-              border-radius: 14px !important;
-              top: 12px !important;
+            .storefront-sticky-header.is-scrolled .storefront-navbar {
+              max-width: 820px;
             }
           }
           @media (max-width: 768px) {
-            .storefront-sticky-header.is-scrolled {
-              top: 8px !important;
-              width: calc(100% - 16px) !important;
-              max-width: calc(100% - 16px) !important;
-              border-radius: 14px !important;
+            .storefront-sticky-header {
+              padding: 6px 8px !important;
             }
             .storefront-navbar {
               display: grid !important;
@@ -171,6 +196,7 @@ export function StorefrontHeader({
               gap: 7px 8px !important;
               padding: 7px 12px 9px !important;
               align-items: center !important;
+              border-radius: 14px !important;
             }
             .storefront-sticky-header.is-scrolled .storefront-navbar {
               padding: 6px 12px 8px !important;
@@ -302,18 +328,6 @@ export function StorefrontHeader({
         {/* Main Navbar */}
         <div
           className="storefront-navbar storefront-header-shell"
-          style={{
-            width: '100%',
-            maxWidth: '100%',
-            margin: '0',
-            padding: isScrolled ? '9px 18px' : '12px 24px',
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
-            alignItems: 'center',
-            gap: isScrolled ? '12px' : '14px',
-            boxSizing: 'border-box',
-            transition: 'padding 0.25s cubic-bezier(0.16, 1, 0.3, 1), gap 0.25s ease',
-          }}
         >
           {/* Brand & Store Name (Clickable to go home / reset) — Right side in RTL */}
           <div
@@ -343,9 +357,10 @@ export function StorefrontHeader({
                 src={info.logo_url || info.logoUrl}
                 alt={info.title || info.businessName}
                 className="storefront-brand-avatar"
+                decoding="async"
                 style={{
-                  width: isScrolled ? '36px' : '42px',
-                  height: isScrolled ? '36px' : '42px',
+                  width: '38px',
+                  height: '38px',
                   objectFit: 'contain',
                   background: 'transparent',
                   border: 'none',
@@ -353,15 +368,15 @@ export function StorefrontHeader({
                   borderRadius: 0,
                   padding: 0,
                   flexShrink: 0,
-                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'transform 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
               />
             ) : (
               <div
                 className="storefront-brand-avatar"
                 style={{
-                  width: isScrolled ? '36px' : '42px',
-                  height: isScrolled ? '36px' : '42px',
+                  width: '38px',
+                  height: '38px',
                   borderRadius: '10px',
                   background: 'linear-gradient(135deg, var(--storefront-primary-color, #2d68c4) 0%, #2353a0 100%)',
                   color: '#ffffff',
@@ -369,11 +384,11 @@ export function StorefrontHeader({
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 900,
-                  fontSize: isScrolled ? '15px' : '17px',
+                  fontSize: '16px',
                   boxShadow: '0 2px 8px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))',
                   flexShrink: 0,
                   border: '1.5px solid rgba(255,255,255,0.25)',
-                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'transform 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
               >
                 {((brand.title || '').trim().replace(/^ال/, '').trim().charAt(0) || (brand.title || '').trim().charAt(0) || t('storefront.storefront_header.s1', 'م'))}
@@ -391,12 +406,11 @@ export function StorefrontHeader({
               onSelectCategory={onSelectCategory}
               onSelectProduct={onSelectProduct}
               onAddToCart={onAddToCart}
-              isScrolled={isScrolled}
             />
           </div>
 
-          {/* Quick Actions (WhatsApp, Orders & Cart) — Left side in RTL */}
-          <div className="storefront-actions" style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: isScrolled ? '8px' : '8px', flexShrink: 0 }}>
+          {/* Quick Actions (Orders & Cart) — Left side in RTL */}
+          <div className="storefront-actions" style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             {/* My Orders Trigger */}
             {onOpenOrders && (
               <button
@@ -408,31 +422,23 @@ export function StorefrontHeader({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: isScrolled ? '0 13px' : '0 14px',
-                  height: isScrolled ? '36px' : '37px',
-                  borderRadius: '9999px',
+                  padding: '0 14px',
+                  height: '37px',
+                  borderRadius: '12px',
                   background: '#ffffff',
                   border: '1px solid #E0E3E7',
                   color: '#0f172a',
-                  fontSize: isScrolled ? '12.5px' : '13px',
+                  fontSize: '13px',
                   fontWeight: 700,
                   cursor: 'pointer',
                   boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                  transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transition: 'transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.16s ease, border-color 0.16s ease',
                   boxSizing: 'border-box',
                   whiteSpace: 'nowrap',
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f8fafc';
-                  e.currentTarget.style.borderColor = '#cbd5e1';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#ffffff';
-                  e.currentTarget.style.borderColor = '#E0E3E7';
-                }}
               >
-                <PackageIcon size={isScrolled ? 16 : 18} />
-                <span className="storefront-action-label" style={{ fontSize: isScrolled ? '12.5px' : '12.5px', fontWeight: 700 }}>
+                <PackageIcon size={17} />
+                <span className="storefront-action-label" style={{ fontSize: '12.5px', fontWeight: 700 }}>
                   {t('storefront.storefront_header.s6', 'طلباتي')}
                 </span>
               </button>
@@ -448,12 +454,12 @@ export function StorefrontHeader({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: isScrolled ? '0 14px' : '0 15px',
-                height: isScrolled ? '36px' : '37px',
-                borderRadius: '9999px',
+                padding: '0 15px',
+                height: '37px',
+                borderRadius: '12px',
                 background: 'var(--storefront-primary-color, #2d68c4)',
                 color: 'var(--storefront-primary-contrast, #ffffff)',
-                fontSize: isScrolled ? '12.5px' : '13px',
+                fontSize: '13px',
                 fontWeight: 800,
                 border: 'none',
                 cursor: 'pointer',
@@ -461,17 +467,9 @@ export function StorefrontHeader({
                 boxSizing: 'border-box',
                 fontVariantNumeric: 'tabular-nums',
                 whiteSpace: 'nowrap',
-                transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
               }}
             >
-              <svg width={isScrolled ? 16 : 18} height={isScrolled ? 16 : 18} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.2"
-                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                />
-              </svg>
+              <IconShoppingCart size={17} strokeWidth={2.2} />
               <span className="storefront-action-label">{t('storefront.storefront_header.s7', 'السلة')}</span>
               {cartCount > 0 && (
                 <span
@@ -507,4 +505,4 @@ export function StorefrontHeader({
       </header>
     </>
   );
-}
+});

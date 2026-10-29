@@ -6,6 +6,7 @@ import { XIcon } from '@/shared/components/icons/AppIcons';
 import { CartItem, StorefrontInfo } from '../types/storefront.types';
 import { ProductIcon } from '@/shared/components/icons/product-svg-catalog';
 import { StorefrontFreeShippingBar } from './StorefrontFreeShippingBar';
+import { IconShoppingCart } from './StorefrontIcons';
 import { calculateCartSubtotal, calculateCartLinePricing } from '../lib/storefront-cart-pricing';
 import { resolveProductPhoto } from '../lib/storefront-photo-matcher';
 
@@ -204,14 +205,7 @@ export function StorefrontCartDrawer({
                   color: '#cbd5e1',
                 }}
               >
-                <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.5"
-                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-                  />
-                </svg>
+                <IconShoppingCart size={32} strokeWidth={1.6} />
               </div>
               <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#334155' }}>
                 {t('storefront.storefront_cart_drawer.s2', "سلة التسوق فارغة")}

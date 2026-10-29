@@ -1,5 +1,4 @@
 import { resolveRequestUrl } from '@/lib/http';
-import { generatePremiumProductSvg } from './storefront-photo-matcher';
 
 // Storefront images are served by the API at content-addressed paths (/api/storefront/media/<id>/<sha>,
 // invariant SF-9). In the cloud the page and the API share an origin, but the desktop build and the
@@ -36,20 +35,12 @@ export function withResolvedProductMedia<
 >(product: P): P {
   if (!product) return product;
   const cleanedUrl = resolveStorefrontMediaUrl(product.imageUrl);
-  const fallbackPhoto = generatePremiumProductSvg(product.name || '', product.categoryName || '');
-  const finalUrl =
-    cleanedUrl &&
-    (cleanedUrl.startsWith('data:image/webp;base64,') ||
-      cleanedUrl.startsWith('data:image/png;base64,') ||
-      /\/api\/storefront\/media\//.test(cleanedUrl))
-      ? cleanedUrl
-      : fallbackPhoto;
   const resolvedGallery = product.gallery !== undefined ? resolveStorefrontMediaList(product.gallery) : undefined;
   return {
     ...product,
-    imageUrl: finalUrl,
+    imageUrl: cleanedUrl,
     ...(resolvedGallery !== undefined
-      ? { gallery: resolvedGallery.length > 0 ? resolvedGallery : [finalUrl] }
+      ? { gallery: resolvedGallery.length > 0 ? resolvedGallery : (cleanedUrl ? [cleanedUrl] : []) }
       : {}),
   };
 }

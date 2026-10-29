@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IconSearch } from './StorefrontIcons';
 import { XIcon, TagIcon, PlusIcon, ArrowRightIcon } from '@/shared/components/icons/AppIcons';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
@@ -17,14 +17,13 @@ interface StorefrontPredictiveSearchProps {
   isScrolled?: boolean;
 }
 
-export function StorefrontPredictiveSearch({
+export const StorefrontPredictiveSearch = React.memo(function StorefrontPredictiveSearch({
   slug,
   searchTerm,
   onSearchChange,
   onSelectCategory,
   onSelectProduct,
   onAddToCart,
-  isScrolled = false,
 }: StorefrontPredictiveSearchProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -87,12 +86,11 @@ export function StorefrontPredictiveSearch({
       style={{
         flex: '1 1 auto',
         width: '100%',
-        maxWidth: isScrolled ? '320px' : '420px',
+        maxWidth: '380px',
         minWidth: '120px',
         margin: '0 auto',
         justifySelf: 'center',
         position: 'relative',
-        transition: 'max-width 0.25s ease',
       }}
     >
       <div
@@ -101,15 +99,15 @@ export function StorefrontPredictiveSearch({
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          gap: isScrolled ? '6px' : '8px',
+          gap: '8px',
           background: '#ffffff',
-          borderRadius: '9999px',
-          padding: isScrolled ? '0 12px' : '0 12px',
+          borderRadius: '12px',
+          padding: '0 12px',
           border: isOpen ? '1.5px solid var(--storefront-primary-color, #2d68c4)' : '1px solid #E0E3E7',
-          transition: 'all 0.2s ease',
+          transition: 'border-color 0.16s ease, box-shadow 0.16s ease',
           boxShadow: isOpen ? '0 4px 16px rgba(45, 104, 196, 0.14)' : '0 1px 2px rgba(15, 23, 42, 0.04)',
           boxSizing: 'border-box',
-          height: isScrolled ? '36px' : '37px',
+          height: '37px',
           position: 'relative',
         }}
       >
@@ -124,13 +122,13 @@ export function StorefrontPredictiveSearch({
               justifyContent: 'center',
               gap: '6px',
               color: '#94a3b8',
-              fontSize: isScrolled ? '12.5px' : '13px',
+              fontSize: '13px',
               fontWeight: 600,
               pointerEvents: 'none',
               userSelect: 'none',
             }}
           >
-            <IconSearch size={isScrolled ? 15 : 16} strokeWidth={2.2} />
+            <IconSearch size={16} strokeWidth={2.2} />
             <span>{t('storefront.storefront_predictive_search.s0', "البحث في Z")}</span>
           </div>
         )}
@@ -145,7 +143,7 @@ export function StorefrontPredictiveSearch({
             transition: 'opacity 0.15s ease',
           }}
         >
-          <IconSearch size={isScrolled ? 15 : 16} strokeWidth={2.2} />
+          <IconSearch size={16} strokeWidth={2.2} />
         </span>
         <input
           className="storefront-search-input"
@@ -164,11 +162,11 @@ export function StorefrontPredictiveSearch({
             flex: 1,
             border: 'none',
             outline: 'none',
-            fontSize: isScrolled ? '12.5px' : '13px',
+            fontSize: '13px',
             fontWeight: 600,
             color: '#0f172a',
             background: 'transparent',
-            padding: isScrolled ? '5px 2px' : '6px 2px',
+            padding: '6px 2px',
             fontFamily: 'inherit',
             minWidth: 0,
           }}
@@ -406,4 +404,4 @@ export function StorefrontPredictiveSearch({
       )}
     </div>
   );
-}
+});

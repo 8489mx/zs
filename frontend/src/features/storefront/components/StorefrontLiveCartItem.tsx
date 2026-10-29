@@ -38,10 +38,10 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        padding: '5px 8px',
-        borderRadius: '99px',
+        padding: '6px 8px',
+        borderRadius: '10px',
         background: '#f8fafc',
-        border: '1px solid #f1f5f9',
+        border: '1px solid #E0E3E7',
         transition: 'background 0.15s ease',
       }}
     >

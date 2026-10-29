@@ -69,7 +69,7 @@ export function StorefrontFloatingWhatsApp({
           box-sizing: border-box;
           background: #25D366;
           color: #ffffff;
-          border-radius: 50% !important;
+          border-radius: 12px !important;
           text-decoration: none;
           box-shadow: 0 10px 25px -3px rgba(37, 211, 102, 0.45), 0 4px 10px -2px rgba(15, 23, 42, 0.12);
           transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.15s ease;
@@ -90,7 +90,7 @@ export function StorefrontFloatingWhatsApp({
             right: 14px !important;
             width: 48px !important;
             height: 48px !important;
-            border-radius: 50% !important;
+            border-radius: 12px !important;
           }
         }
         @media print {

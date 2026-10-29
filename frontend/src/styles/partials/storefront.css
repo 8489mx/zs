@@ -21,22 +21,6 @@
   --storefront-surface-border: #e2e8f0;
 }
 
-/* تحرير واستقلال المتجر الإلكتروني بالكامل من قيود لوحات تحكم الـ ERP */
-html.storefront-standalone-mode,
-body.storefront-standalone-mode,
-body.storefront-standalone-mode #root,
-html:has(.storefront-page-root),
-body:has(.storefront-page-root),
-body:has(.storefront-page-root) #root {
-  height: auto !important;
-  min-height: 100% !important;
-  max-height: none !important;
-  overflow: visible !important;
-  overflow-x: clip !important;
-  overflow-y: visible !important;
-  position: static !important;
-}
-
 body, button, input, select, textarea, [class*="storefront-"] {
   font-family: 'Alexandria', 'Inter', 'Tajawal', 'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -460,9 +444,7 @@ body, button, input, select, textarea, [class*="storefront-"] {
    DialogShell Universal Overlay & Modal Container
    ========================================================================== */
 
-html.storefront-standalone-mode .dialog-overlay,
-body.storefront-standalone-mode .dialog-overlay,
-.storefront-dialog-overlay {
+.dialog-overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
@@ -478,9 +460,7 @@ body.storefront-standalone-mode .dialog-overlay,
   overscroll-behavior: contain;
 }
 
-html.storefront-standalone-mode .dialog-shell,
-body.storefront-standalone-mode .dialog-shell,
-.storefront-dialog-shell {
+.dialog-shell {
   position: relative;
   background: #ffffff;
   border-radius: 24px;
@@ -583,8 +563,8 @@ body.storefront-standalone-mode .dialog-shell,
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  border: 1px solid #E0E3E7;
   background: #ffffff;
   color: #334155;
   font-size: 12px;
@@ -594,7 +574,7 @@ body.storefront-standalone-mode .dialog-shell,
   flex-shrink: 0;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  transition: all 0.12s ease;
+  transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
 }
 
 .storefront-cat-modal-chip.active {
@@ -608,7 +588,7 @@ body.storefront-standalone-mode .dialog-shell,
   font-size: 10px;
   font-weight: 700;
   padding: 1px 5px;
-  border-radius: 999px;
+  border-radius: 6px;
   background: #f1f5f9;
   color: #475569;
 }
@@ -874,16 +854,14 @@ body.storefront-standalone-mode .dialog-shell,
 /* ==========================================================================
    120Hz ProMotion Compositor-Only Micro-interactions & Apple iOS Card Physics
    ========================================================================== */
-html.storefront-standalone-mode, body.storefront-standalone-mode {
+html, body {
   scroll-behavior: auto !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
 }
 
 .storefront-section-card {
-  contain: layout style paint;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 410px;
+  contain: layout style;
 }
 
 .sf-amz-vibrant-section {
@@ -1127,7 +1105,7 @@ html.storefront-standalone-mode, body.storefront-standalone-mode {
    Exact curvature, styling, and micro-elevation from Google AI Studio UI
    ========================================================================== */
 
-/* 1. All Action & CTA Text Buttons -> rounded-xl (12px) Curvature */
+/* 1. All Action & CTA Text Buttons -> Google AI Studio Squircle (10px-12px) Curvature */
 .storefront-product-action-btn,
 .storefront-checkout-btn,
 .sf-quickview-cta-btn,
@@ -1139,22 +1117,22 @@ html.storefront-standalone-mode, body.storefront-standalone-mode {
 .sf-footer-whatsapp-link,
 .storefront-filter-chip,
 .storefront-pill-btn {
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   font-family: inherit;
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease !important;
 }
 
 /* 2. Secondary / Neutral Text Buttons (Like [Preview], [Default v], My Orders & Support) */
 .storefront-btn-neutral,
 .storefront-action-btn:not(.storefront-cart-btn) {
-  height: 37px !important;
+  height: 36px !important;
   min-height: 36px !important;
   max-height: 38px !important;
   padding: 0 13px !important;
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   background: #ffffff !important;
   border: 1px solid #E0E3E7 !important;
-  color: #0f172a !important;
+  color: #1f1f1f !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -1170,16 +1148,16 @@ html.storefront-standalone-mode, body.storefront-standalone-mode {
 
 /* 3. Primary Cart Button & CTAs */
 .storefront-cart-btn {
-  height: 37px !important;
+  height: 36px !important;
   min-height: 36px !important;
   max-height: 38px !important;
   padding: 0 14px !important;
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   border: 1px solid transparent !important;
   box-sizing: border-box !important;
 }
 
-/* 4. Icon Buttons -> Squircle Curvature (12px) */
+/* 4. Icon Buttons -> Google AI Studio Squircle Box (10px, 1px solid #E0E3E7) */
 .storefront-icon-btn,
 .storefront-product-fav-btn,
 .storefront-shelf-arrows button,
@@ -1187,9 +1165,9 @@ html.storefront-standalone-mode, body.storefront-standalone-mode {
 .storefront-cat-modal-close-btn,
 .sf-quickview-close-btn,
 .storefront-modal-close-btn {
-  border-radius: 12px !important;
+  border-radius: 10px !important;
   border: 1px solid #E0E3E7 !important;
-  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease !important;
 }
 
 .storefront-icon-btn:hover,
@@ -1208,7 +1186,7 @@ html.storefront-standalone-mode, body.storefront-standalone-mode {
 
 .storefront-product-stepper-btn,
 .sf-quickview-stepper-btn {
-  border-radius: 8px !important;
+  border-radius: 7px !important;
 }
 
 /* 6. Floating Chevrons on Shelf */
