@@ -370,7 +370,7 @@ export const storefrontApi = {
       totalAmount: number;
       discountAmount?: number;
       couponCode?: string | null;
-      orderType?: 'dine_in' | 'delivery';
+      orderType?: 'dine_in' | 'delivery' | 'takeaway' | 'pickup';
       tableNumber?: string;
       items: Array<{
         productId: number;
