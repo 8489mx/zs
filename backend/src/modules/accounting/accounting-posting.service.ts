@@ -1051,9 +1051,9 @@ export class AccountingPostingService {
     return { posted: true, journalEntryId: entryId };
   }
 
-  async postSaleEdit(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+  async postSaleEdit(queryable: DbOrTx, saleId: number, auth: AuthContext, reason?: string): Promise<{ posted: boolean; journalEntryId: number }> {
     if (queryable && !queryable.isTransaction && typeof queryable.transaction === 'function') {
-      return queryable.transaction().execute((trx: any) => this.postSaleEdit(trx, saleId, auth));
+      return queryable.transaction().execute((trx: any) => this.postSaleEdit(trx, saleId, auth, reason));
     }
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
@@ -1080,7 +1080,8 @@ export class AccountingPostingService {
     }
 
     if (activePostings > 0) {
-      const reversal = await this.reverseSaleJournal(queryable, saleId, 'تعديل فاتورة مبيعات', auth);
+      const reversalReason = reason ? `تعديل فاتورة: ${reason}` : 'تعديل فاتورة مبيعات';
+      const reversal = await this.reverseSaleJournal(queryable, saleId, reversalReason, auth);
       if (!reversal.reversed && reversal.journalEntryId == null) {
         throw new AppError('تعذر عكس قيد المبيعات السابق للفاتورة المعدلة', 'SALE_EDIT_REVERSAL_FAILED', 409);
       }
@@ -1457,6 +1458,116 @@ export class AccountingPostingService {
     });
 
     this.logger.warn(`Posted sale reversal journal for sale ${saleId} as entry ${entryId}`);
+    return { reversed: true, journalEntryId: entryId };
+  }
+
+  /**
+   * Targeted sale reversal for P2 remediation.
+   * Unlike reverseSaleJournal(), which reverses the *latest* unreversed
+   * journal for a sale, this reverses the journal identified by
+   * journalId, even when it is not the latest. It reverses the full
+   * journal, including COGS / inventory, and returns
+   * { reversed: false, journalEntryId: <existing reversal id> } when
+   * the journal was already reversed, so the repair engine can record
+   * the sale as already_repaired instead of failing it.
+   */
+  async reverseSaleJournalById(
+    queryable: DbOrTx,
+    saleId: number,
+    journalId: number,
+    reason: string,
+    auth: AuthContext,
+  ): Promise<{ reversed: boolean; journalEntryId: number | null }> {
+    const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    await this.ensureTenantFoundation(queryable, auth);
+
+    // FOR UPDATE is essential, not optional: a concurrent repair that
+    // is already reversing this journal blocks here until it commits,
+    // and this load then sees reversed_by_entry_id set and returns
+    // already-reversed instead of attempting a second reversal.
+    const sourceJournal = await queryable
+      .selectFrom('journal_entries')
+      .select(['id', 'source_id', 'source_type', 'status', 'reversed_by_entry_id', 'branch_id', 'location_id', 'created_by'])
+      .where('id', '=', journalId)
+      .where('tenant_id', '=', scope.tenantId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!sourceJournal) {
+      return { reversed: false, journalEntryId: null };
+    }
+    if (Number(sourceJournal.source_id) !== saleId || !['sale', 'sale_edit'].includes(String(sourceJournal.source_type))) {
+      throw new AppError('Reversal journal does not belong to the requested sale', 'JOURNAL_REVERSAL_INVALID', 409);
+    }
+    if (sourceJournal.status !== 'posted') {
+      throw new AppError('Original journal is not posted', 'JOURNAL_REVERSAL_INVALID', 409);
+    }
+    if (sourceJournal.reversed_by_entry_id) {
+      const existingReversal = await queryable
+        .selectFrom('journal_entries')
+        .select(['id'])
+        .where('tenant_id', '=', scope.tenantId)
+        .where('reversal_of_entry_id', '=', journalId)
+        .where('source_type', '=', 'sale_reversal')
+        .where('status', '=', 'posted')
+        .executeTakeFirst();
+      return { reversed: false, journalEntryId: existingReversal ? Number(existingReversal.id) : null };
+    }
+
+    const sale = await queryable
+      .selectFrom('sales')
+      .select(['doc_no'])
+      .where('id', '=', saleId)
+      .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
+      .executeTakeFirst();
+    const docNo = sale?.doc_no || `Z-${saleId}`;
+
+    const sourceLines = await queryable
+      .selectFrom('journal_entry_lines')
+      .select(['account_id', 'cost_center_id', 'description', 'debit', 'credit', 'partner_type', 'partner_id', 'branch_id', 'location_id'])
+      .where('journal_entry_id', '=', journalId)
+      .where('tenant_id', '=', scope.tenantId)
+      .orderBy('id', 'asc')
+      .execute();
+
+    // Full mirror, exactly as reverseSaleJournal(): no isPreparedWaste
+    // exclusion here. A remediation reversal must reverse COGS and
+    // inventory as well, otherwise those accounts stay double-counted.
+    const reversalLines: JournalLineDraft[] = sourceLines.map((line) => ({
+      accountId: Number(line.account_id),
+      costCenterId: line.cost_center_id ? Number(line.cost_center_id) : null,
+      description: `عكس: ${line.description || 'قيد بيع'}`,
+      debit: toBookMoney(line.credit),
+      credit: toBookMoney(line.debit),
+      partnerType: (line.partner_type as 'none' | 'customer' | 'supplier') || 'none',
+      partnerId: line.partner_id ? Number(line.partner_id) : null,
+      branchId: line.branch_id ? Number(line.branch_id) : null,
+      locationId: line.location_id ? Number(line.location_id) : null,
+    })).filter((line) => line.debit > 0 || line.credit > 0);
+
+    const totalDebit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.debit, 0));
+    const totalCredit = toBookMoney(reversalLines.reduce((sum, line) => sum + line.credit, 0));
+    if (Math.abs(totalDebit - totalCredit) > this.maxAllowedDifference(bookDigits)) {
+      throw new Error(`Unbalanced sale reversal journal for sale ${saleId}: debit=${totalDebit} credit=${totalCredit}`);
+    }
+
+    const entryId = await this.insertPostedJournal(queryable, {
+      sourceType: 'sale_reversal',
+      sourceId: saleId,
+      tenantId: scope.tenantId,
+      accountId: scope.accountId,
+      entryDate: new Date(),
+      description: `قيد عكسي لإلغاء فاتورة بيع رقم ${docNo}${reason ? ` - ${reason}` : ''}`,
+      branchId: sourceJournal.branch_id ? Number(sourceJournal.branch_id) : null,
+      locationId: sourceJournal.location_id ? Number(sourceJournal.location_id) : null,
+      createdBy: sourceJournal.created_by ? Number(sourceJournal.created_by) : auth.userId,
+      postedBy: auth.userId,
+      lines: reversalLines,
+      reversalOfEntryId: journalId,
+    });
+
+    this.logger.warn(`Posted targeted sale reversal journal for sale ${saleId} (stale journal ${journalId}) as entry ${entryId}`);
     return { reversed: true, journalEntryId: entryId };
   }
 

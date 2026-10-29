@@ -2559,7 +2559,14 @@ export class SalesWriteService {
         }
       }
 
-      await this.accountingPosting.reverseSaleJournal(trx, saleId, `تعديل فاتورة: ${editReason}`, auth);
+      // NOTE (Risk #1 / Risk #2): do NOT reverse the sale journal here.
+      // postSaleEdit() at the end of this transaction is the sole reverser:
+      // it reverses the latest active journal and posts the new sale_edit
+      // journal atomically in this same transaction. An explicit reversal
+      // here would leave zero active journals, and postSaleEdit() would
+      // then throw SALE_ALREADY_REVERSED (it cannot distinguish a reversal
+      // made by this edit from one made by a cancellation, from counts alone).
+      // The edit reason is still recorded by the audit log after commit.
 
       await trx.deleteFrom('sale_payments').where('sale_id', '=', saleId).where(sql<boolean>`tenant_id = ${scope.tenantId}`).execute();
       await this.releaseSaleSerials(trx, saleId, scope.tenantId);
@@ -2979,7 +2986,7 @@ export class SalesWriteService {
         await this.finance.addTreasuryTransaction(trx, payment.amount, `تعديل فاتورة بيع S-${saleId}`, saleId, auth, normalized.branchId, normalized.locationId);
       }
 
-      await this.accountingPosting.postSaleEdit(trx, saleId, auth);
+      await this.accountingPosting.postSaleEdit(trx, saleId, auth, editReason);
     });
 
     await this.audit.log('تعديل فاتورة بيع', `تم تعديل الفاتورة S-${saleId} بواسطة ${auth.username} | السبب: ${editReason}`, auth);

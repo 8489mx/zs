@@ -166,6 +166,15 @@ function testForbiddenPatternsAreGone(): void {
       'a successful posting must still resolve a historical failure');
   }
 
+  const salesWriteSrc = read('modules/sales/services/sales-write.service.ts');
+  const updateSaleBody = salesWriteSrc.slice(
+    salesWriteSrc.indexOf('async updateSale('),
+    salesWriteSrc.indexOf('async cancelSale('));
+  assert.ok(/postSaleEdit\(trx,/.test(updateSaleBody),
+    'updateSale must post the edit via postSaleEdit in the same transaction');
+  assert.ok(!/reverseSaleJournal\(trx,/.test(updateSaleBody),
+    'updateSale must not reverse explicitly before postSaleEdit, or postSaleEdit throws SALE_ALREADY_REVERSED');
+
   const posting = read('modules/accounting/accounting-posting.service.ts');
   assert.ok(
     /INSERT INTO accounting_posting_failures/.test(posting) && /ON CONFLICT \(tenant_id, source_type, source_id\) DO UPDATE/.test(posting),

@@ -189,6 +189,51 @@ async function main() {
     assert.equal(await amount(secondEditResult.journalEntryId, 5100, 'debit'), 120);
     assert.equal(await amount(secondEditResult.journalEntryId, 2120, 'credit'), 22.68);
 
+    // Risk #1: updateSale must not reverse before postSaleEdit.
+    // OLD sequence (explicit reverse, then postSaleEdit) reproduces the bug:
+    await pg.exec(`
+      INSERT INTO sales(id,tenant_id,doc_no,subtotal,discount,tax_amount,total,paid_amount) VALUES (6,'t1','S6',100,10,12.6,102.6,102.6);
+      INSERT INTO sale_payments VALUES ('t1',6,'cash',102.6);
+      INSERT INTO sale_items VALUES (6,'t1',6,10,2,30);
+    `);
+    const sale6 = await posting.postSale(db, 6, auth);
+    assert.equal(sale6.posted, true);
+    const oldSeqReversal = await posting.reverseSaleJournal(db, 6, 'edit reason', auth);
+    assert.equal(oldSeqReversal.reversed, true);
+    await assert.rejects(
+      posting.postSaleEdit(db, 6, auth),
+      (err: any) => err.code === 'SALE_ALREADY_REVERSED',
+      'an explicit reversal before postSaleEdit must leave postSaleEdit with nothing active'
+    );
+    // NEW sequence (what fixed updateSale does: header/payments updated,
+    // then postSaleEdit alone reverses and reposts):
+    await pg.exec(`
+      INSERT INTO sales(id,tenant_id,doc_no,subtotal,discount,tax_amount,total,paid_amount) VALUES (7,'t1','S7',100,10,12.6,102.6,102.6);
+      INSERT INTO sale_payments VALUES ('t1',7,'cash',102.6);
+      INSERT INTO sale_items VALUES (7,'t1',7,10,2,30);
+    `);
+    const sale7 = await posting.postSale(db, 7, auth);
+    assert.equal(sale7.posted, true);
+    await pg.exec(`
+      UPDATE sales SET subtotal=150, discount=15, tax_amount=18.9, total=153.9, paid_amount=153.9 WHERE id=7;
+      UPDATE sale_payments SET amount=153.9 WHERE sale_id=7;
+      UPDATE sale_items SET qty=3, cost_price=30 WHERE sale_id=7;
+    `);
+    const edit7 = await posting.postSaleEdit(db, 7, auth);
+    assert.equal(edit7.posted, true);
+    const orig7 = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(sale7.journalEntryId)).executeTakeFirstOrThrow();
+    assert.ok(orig7.reversed_by_entry_id != null, 'original journal must be marked reversed by the edit');
+    assert.equal(await amount(edit7.journalEntryId, 1110, 'debit'), 153.9);
+    assert.equal(await amount(edit7.journalEntryId, 4100, 'credit'), 150);
+    assert.equal(await amount(edit7.journalEntryId, 4300, 'debit'), 15);
+    assert.equal(await amount(edit7.journalEntryId, 5100, 'debit'), 90);
+    assert.equal(await amount(edit7.journalEntryId, 2120, 'credit'), 18.9);
+    const active7 = await db.selectFrom('journal_entries').select('id')
+      .where('source_type', 'in', ['sale', 'sale_edit']).where('source_id', '=', 7)
+      .where('reversed_by_entry_id', 'is', null).execute();
+    assert.equal(active7.length, 1, 'only exactly 1 active unreversed journal exists after edit');
+    assert.equal(Number(active7[0].id), Number(edit7.journalEntryId), 'the active journal must be the new sale_edit journal');
+
     // Exercise van sale split and edit
     await pg.exec(`
       INSERT INTO sales(id,tenant_id,doc_no,customer_id,subtotal,discount,tax_amount,total,paid_amount,sale_origin,payment_type)
