@@ -41,7 +41,7 @@ export function withResolvedProductMedia<
     cleanedUrl &&
     (cleanedUrl.startsWith('data:image/webp;base64,') ||
       cleanedUrl.startsWith('data:image/png;base64,') ||
-      cleanedUrl.includes('/api/storefront/media/'))
+      /\/api\/storefront\/media\//.test(cleanedUrl))
       ? cleanedUrl
       : fallbackPhoto;
   const resolvedGallery = product.gallery !== undefined ? resolveStorefrontMediaList(product.gallery) : undefined;
