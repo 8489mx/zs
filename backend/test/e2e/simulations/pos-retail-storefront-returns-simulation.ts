@@ -286,7 +286,7 @@ async function runPosRetailStorefrontReturnsSimulation(): Promise<void> {
     `.execute(db);
 
     // ترحيل قيد الفاتورة
-    const postSale1 = await accountingPosting.postSale(db as any, sale1Id, cashierAuth);
+    const postSale1 = await db.transaction().execute(trx => accountingPosting.postSale(trx, sale1Id, cashierAuth));
     console.log(`✓ تم تسليم الطلب الإلكتروني وتحويله لفاتورة مبيعات (#${sale1Id}) وترحيل قيدها (#${postSale1.journalEntryId}).`);
 
     // -------------------------------------------------------------------------
@@ -349,7 +349,7 @@ async function runPosRetailStorefrontReturnsSimulation(): Promise<void> {
       VALUES (${testTenantId}, ${testAccountId}, ${sale2Id}, 'cash', 800.00, NOW())
     `.execute(db);
 
-    const postSale2 = await accountingPosting.postSale(db as any, sale2Id, cashierAuth);
+    const postSale2 = await db.transaction().execute(trx => accountingPosting.postSale(trx, sale2Id, cashierAuth));
     console.log(`✓ الفاتورة 2 (#${sale2Id}): بيع نقدي بخصم تجاري وترحيل قيدها (#${postSale2.journalEntryId}).`);
 
     // ب. فاتورة 3: سداد مجزأ (Split Tender: 2 كرتونة عصير @ 220 = 440 | 140 كاش + 200 كارت + 100 إنستاباي)
@@ -389,7 +389,7 @@ async function runPosRetailStorefrontReturnsSimulation(): Promise<void> {
         (${testTenantId}, ${testAccountId}, ${sale3Id}, 'instapay', 100.00, NOW())
     `.execute(db);
 
-    const postSale3 = await accountingPosting.postSale(db as any, sale3Id, cashierAuth);
+    const postSale3 = await db.transaction().execute(trx => accountingPosting.postSale(trx, sale3Id, cashierAuth));
     console.log(`✓ الفاتورة 3 (#${sale3Id}): سداد مجزأ (140 كاش + 200 فيزا + 100 إنستاباي) وترحيل قيدها (#${postSale3.journalEntryId}).`);
 
     // ج. فاتورة 4: بيع آجل لعميل (Credit Sale: 1 قميص @ 350)
@@ -433,7 +433,7 @@ async function runPosRetailStorefrontReturnsSimulation(): Promise<void> {
     `.execute(db);
     await sql`UPDATE customers SET balance = 350.00, updated_at = NOW() WHERE id = ${customerId}`.execute(db);
 
-    const postSale4 = await accountingPosting.postSale(db as any, sale4Id, cashierAuth);
+    const postSale4 = await db.transaction().execute(trx => accountingPosting.postSale(trx, sale4Id, cashierAuth));
     console.log(`✓ الفاتورة 4 (#${sale4Id}): بيع آجل لعميل (مديونية 350 جنيه) وترحيل قيدها (#${postSale4.journalEntryId}).`);
 
     // -------------------------------------------------------------------------

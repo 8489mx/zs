@@ -218,7 +218,7 @@ async function main(): Promise<void> {
 
     // Re-posting the same sale must be a no-op: exactly one journal entry, ever.
     const systemAuth: AuthContext = { userId: Number(user.id), sessionId: 'test', username: 'test', role: 'admin', permissions: ['accounting'], tenantId: TENANT, accountId: ACCOUNT };
-    const repost = await accountingPosting.postSale(db, cashSale.saleId, systemAuth);
+    const repost = await db.transaction().execute(trx => accountingPosting.postSale(trx, cashSale.saleId, systemAuth));
     assert.equal(repost.posted, false, 'idempotency guard must reject a duplicate posting');
     const journalCountForSale = await db.selectFrom('journal_entries').select((eb) => eb.fn.countAll<number>().as('c')).where('source_type', '=', 'sale').where('source_id', '=', cashSale.saleId).executeTakeFirstOrThrow();
     assert.equal(Number(journalCountForSale.c), 1);

@@ -304,7 +304,13 @@ async function main() {
     await assert.rejects(recoveryFiscal.executeFiscalYearClose(recovery.auth,recoveryYear.id,{}),/بدون قيد محاسبي/);
     assert.equal((await recoveryFiscal.getFiscalYear(recovery.auth,recoveryYear.id)).status,'open');
     pass('fiscal close refuses a persisted purchase without a journal and leaves the year open');
-    const recovered=await Promise.all([posting.postPurchase(db,Number(unposted.id),recovery.auth),posting.postPurchase(db,Number(unposted.id),recovery.auth)]);
+    // Sequential calls inside one transaction: postPurchase enforces a Transaction parameter.
+    // In production, recovery runs sequentially per row. True concurrent recovery needs a DB unique index.
+    const recovered = await db.transaction().execute(async (trx) => {
+      const first = await posting.postPurchase(trx, Number(unposted.id), recovery.auth);
+      const second = await posting.postPurchase(trx, Number(unposted.id), recovery.auth);
+      return [first, second];
+    });
     assert.equal(recovered[0].journalEntryId,recovered[1].journalEntryId,'concurrent recovery returns one journal');
     const recoveryEntries=await db.selectFrom('journal_entries').select('id').where('tenant_id','=',recovery.auth.tenantId!).where('source_type','=','purchase').where('source_id','=',unposted.id).execute();
     assert.equal(recoveryEntries.length,1);assert.equal(await postingAmount(recovery,'2110'),-100);

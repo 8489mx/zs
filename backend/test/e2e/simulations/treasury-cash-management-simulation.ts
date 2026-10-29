@@ -313,7 +313,7 @@ async function runSimulation() {
       )
     `.execute(db);
 
-    await accountingPosting.postSale(db, saleId, auth);
+    await db.transaction().execute(trx => accountingPosting.postSale(trx, saleId, auth));
     console.log(`✅ تم تسجيل وترحيل مبيعات نقدية بمبلغ 2500 بنجاح.`);
 
     // ═══ 11. End-to-End Cash Flow ═══

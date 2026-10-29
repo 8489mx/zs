@@ -3,7 +3,7 @@ import { exchangeStoreCreditAmount, hasUnpaidExchangeBalance } from './engines/e
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
 import { currencyMoneyDigits, roundMoney as roundBookMoney } from '../accounting/engines/money-minor-units.engine';
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { Kysely, sql } from '../../database/kysely';
+import { Kysely, Transaction, sql } from '../../database/kysely';
 import { AuditService } from '../../core/audit/audit.service';
 import { AuthContext } from '../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../core/auth/utils/tenant-boundary';
@@ -402,7 +402,7 @@ export class ReturnsService {
     return result;
   }
 
-  async prepareExchangeReturn(trx: Kysely<Database>, payload: CreateReturnDto, auth: AuthContext): Promise<ExchangeReturnContext> {
+  async prepareExchangeReturn(trx: Transaction<Database>, payload: CreateReturnDto, auth: AuthContext): Promise<ExchangeReturnContext> {
     const approved = await this.verifyManagerAuthorization(trx, payload.managerPin || '', auth);
     let context: ExchangeReturnContext | undefined;
     await this.createSaleReturn(trx, { ...payload, settlementMode: 'store_credit' }, normalizeReturnItems(payload), auth, approved,
@@ -411,7 +411,7 @@ export class ReturnsService {
     return context;
   }
 
-  async settleExchangeReturn(trx: Kysely<Database>, context: ExchangeReturnContext, saleTotal: number,
+  async settleExchangeReturn(trx: Transaction<Database>, context: ExchangeReturnContext, saleTotal: number,
     requested: 'cash' | 'card' | 'store_credit', auth: AuthContext): Promise<ReturnType<typeof settlePosExchange>> {
     const exchangeDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, this.scope(auth).tenantId));
     const settlement = settlePosExchange(context.total, saleTotal, exchangeDigits);
@@ -439,7 +439,7 @@ export class ReturnsService {
     return settlement;
   }
 
-  private async createSaleReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext, approvedByName?: string,
+  private async createSaleReturn(trx: Transaction<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext, approvedByName?: string,
     exchangePrepared?: (context: ExchangeReturnContext) => void): Promise<number[]> {
     const scope = this.scope(auth);
     const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
@@ -893,7 +893,7 @@ export class ReturnsService {
     return [returnDocumentId];
   }
 
-  private async createPurchaseReturn(trx: Kysely<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext): Promise<number[]> {
+  private async createPurchaseReturn(trx: Transaction<Database>, payload: CreateReturnDto, items: ReturnInputItem[], auth: AuthContext): Promise<number[]> {
     const scope = this.scope(auth);
     const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
     const purchase = await trx.selectFrom('purchases').selectAll().where('id', '=', Number(payload.invoiceId)).where('status', '=', 'posted').where(this.tenantPredicate(auth)).forUpdate().executeTakeFirst();

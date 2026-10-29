@@ -187,7 +187,7 @@ async function runCoreFoundationMasterSimulation() {
       )
     `.execute(db);
 
-    const purchasePostResult = await accountingPosting.postPurchase(db, purchaseId, auth);
+    const purchasePostResult = await db.transaction().execute(trx => accountingPosting.postPurchase(trx, purchaseId, auth));
     console.log(`✓ تم ترحيل قيد فاتورة المشتريات بنجاح إلى دفتر الأستاذ العام (#${purchasePostResult.journalEntryId}).`);
 
     // -------------------------------------------------------------------------
@@ -304,7 +304,7 @@ async function runCoreFoundationMasterSimulation() {
       )
     `.execute(db);
 
-    const salePostResult = await accountingPosting.postSale(db, saleId, auth);
+    const salePostResult = await db.transaction().execute(trx => accountingPosting.postSale(trx, saleId, auth));
     console.log(`✓ تم ترحيل قيد المبيعات النقدية وتكلفة البضاعة المباعة (#${salePostResult.journalEntryId}):`);
     console.log('   - مدين: الخزينة 1110 (1000) / دائن: المبيعات 4100 (1000)');
     console.log('   - مدين: تكلفة المبيعات 5110 (500) / دائن: المخزون 1140 (500)');

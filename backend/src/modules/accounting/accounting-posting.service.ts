@@ -767,7 +767,18 @@ export class AccountingPostingService {
     return entryId;
   }
 
-  async postSale(queryable: DbOrTx, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+  private assertTransaction(queryable: unknown, method: string): asserts queryable is Transaction<Database> {
+    if (!(queryable as any)?.isTransaction) {
+      throw new AppError(
+        `Document posting requires a transaction: call ${method} inside the document transaction so the document, stock and journal commit or roll back together`,
+        'POSTING_REQUIRES_TRANSACTION',
+        500,
+      );
+    }
+  }
+
+  async postSale(queryable: Transaction<Database>, saleId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+    this.assertTransaction(queryable, 'postSale');
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
@@ -1051,10 +1062,8 @@ export class AccountingPostingService {
     return { posted: true, journalEntryId: entryId };
   }
 
-  async postSaleEdit(queryable: DbOrTx, saleId: number, auth: AuthContext, reason?: string): Promise<{ posted: boolean; journalEntryId: number }> {
-    if (queryable && !queryable.isTransaction && typeof queryable.transaction === 'function') {
-      return queryable.transaction().execute((trx: any) => this.postSaleEdit(trx, saleId, auth, reason));
-    }
+  async postSaleEdit(queryable: Transaction<Database>, saleId: number, auth: AuthContext, reason?: string): Promise<{ posted: boolean; journalEntryId: number }> {
+    this.assertTransaction(queryable, 'postSaleEdit');
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
@@ -1571,8 +1580,9 @@ export class AccountingPostingService {
     return { reversed: true, journalEntryId: entryId };
   }
 
-  async postSalesReturn(queryable: DbOrTx, returnId: number, auth: AuthContext,
+  async postSalesReturn(queryable: Transaction<Database>, returnId: number, auth: AuthContext,
     collectExchangeLines?: (lines: JournalLineDraft[]) => void): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    this.assertTransaction(queryable, 'postSalesReturn');
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
@@ -1814,7 +1824,8 @@ export class AccountingPostingService {
     return { posted: true, journalEntryId: entryId };
   }
 
-  async postPurchase(queryable: DbOrTx, purchaseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+  async postPurchase(queryable: Transaction<Database>, purchaseId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number }> {
+    this.assertTransaction(queryable, 'postPurchase');
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
@@ -2051,7 +2062,8 @@ export class AccountingPostingService {
     return { posted: true, journalEntryId: entryId };
   }
 
-  async postPurchaseReturn(queryable: DbOrTx, returnId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+  async postPurchaseReturn(queryable: Transaction<Database>, returnId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
+    this.assertTransaction(queryable, 'postPurchaseReturn');
     const scope = requireTenantScope(auth);
     const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
     const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);

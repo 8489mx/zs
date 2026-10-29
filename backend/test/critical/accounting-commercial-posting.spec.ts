@@ -25,6 +25,7 @@ async function main() {
   const posting = new AccountingPostingService(foundation);
   const accounting = new AccountingService(db, foundation, posting);
   const auth = { tenantId: 't1', accountId: 'a1', role: 'admin', userId: 1, permissions: [] } as unknown as AuthContext;
+  const inTx = <T>(fn: (trx: any) => Promise<T>): Promise<T> => db.transaction().execute(fn);
   try {
     await pg.exec(`
       CREATE TABLE accounting_accounts (id bigint PRIMARY KEY, tenant_id text, code text,
@@ -114,14 +115,14 @@ async function main() {
         VALUES (2,'t1','S2',25,114,11.4,12.6,102.6,true,'credit');
       INSERT INTO sale_items VALUES (2,'t1',2,10,2,30);
     `);
-    const sale = await posting.postSale(db, 1, auth);
+    const sale = await inTx(trx => posting.postSale(trx, 1, auth));
     assert.equal(await amount(sale.journalEntryId, 1110, 'debit'), 102.6);
     assert.equal(await amount(sale.journalEntryId, 4100, 'credit'), 100);
     assert.equal(await amount(sale.journalEntryId, 4300, 'debit'), 10);
     assert.equal(await amount(sale.journalEntryId, 5100, 'debit'), 60);
     assert.equal(await amount(sale.journalEntryId, 2120, 'credit'), 12.6);
-    assert.equal((await posting.postSale(db, 1, auth)).posted, false, 'retry must not post twice');
-    const creditSale = await posting.postSale(db, 2, auth);
+    assert.equal((await inTx(trx => posting.postSale(trx, 1, auth))).posted, false, 'retry must not post twice');
+    const creditSale = await inTx(trx => posting.postSale(trx, 2, auth));
     assert.equal(await amount(creditSale.journalEntryId, 4100, 'credit'), 101.4);
     assert.equal(await amount(creditSale.journalEntryId, 1130, 'debit'), 102.6);
 
@@ -131,7 +132,7 @@ async function main() {
       INSERT INTO sale_payments VALUES ('t1',3,'cash',102.6);
       INSERT INTO sale_items VALUES (3,'t1',3,10,2,30);
     `);
-    const sale3 = await posting.postSale(db, 3, auth);
+    const sale3 = await inTx(trx => posting.postSale(trx, 3, auth));
     assert.equal(sale3.posted, true);
 
     await pg.exec(`
@@ -139,7 +140,7 @@ async function main() {
       UPDATE sale_payments SET amount=153.9 WHERE sale_id=3;
       UPDATE sale_items SET qty=3, cost_price=30 WHERE sale_id=3;
     `);
-    const editResult = await posting.postSaleEdit(db, 3, auth);
+    const editResult = await inTx(trx => posting.postSaleEdit(trx, 3, auth));
     assert.equal(editResult.posted, true);
     const origJournal = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(sale3.journalEntryId)).executeTakeFirstOrThrow();
     assert.ok(origJournal.reversed_by_entry_id != null, 'original journal must be marked reversed');
@@ -172,7 +173,7 @@ async function main() {
       UPDATE sale_payments SET amount=184.68 WHERE sale_id=3;
       UPDATE sale_items SET qty=4, cost_price=30 WHERE sale_id=3;
     `);
-    const secondEditResult = await posting.postSaleEdit(db, 3, auth);
+    const secondEditResult = await inTx(trx => posting.postSaleEdit(trx, 3, auth));
     assert.equal(secondEditResult.posted, true);
     const firstEditJournal = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(editResult.journalEntryId)).executeTakeFirstOrThrow();
     assert.ok(firstEditJournal.reversed_by_entry_id != null, 'first edit journal must be marked reversed by second edit');
@@ -196,12 +197,12 @@ async function main() {
       INSERT INTO sale_payments VALUES ('t1',6,'cash',102.6);
       INSERT INTO sale_items VALUES (6,'t1',6,10,2,30);
     `);
-    const sale6 = await posting.postSale(db, 6, auth);
+    const sale6 = await inTx(trx => posting.postSale(trx, 6, auth));
     assert.equal(sale6.posted, true);
     const oldSeqReversal = await posting.reverseSaleJournal(db, 6, 'edit reason', auth);
     assert.equal(oldSeqReversal.reversed, true);
     await assert.rejects(
-      posting.postSaleEdit(db, 6, auth),
+      inTx(trx => posting.postSaleEdit(trx, 6, auth)),
       (err: any) => err.code === 'SALE_ALREADY_REVERSED',
       'an explicit reversal before postSaleEdit must leave postSaleEdit with nothing active'
     );
@@ -212,14 +213,14 @@ async function main() {
       INSERT INTO sale_payments VALUES ('t1',7,'cash',102.6);
       INSERT INTO sale_items VALUES (7,'t1',7,10,2,30);
     `);
-    const sale7 = await posting.postSale(db, 7, auth);
+    const sale7 = await inTx(trx => posting.postSale(trx, 7, auth));
     assert.equal(sale7.posted, true);
     await pg.exec(`
       UPDATE sales SET subtotal=150, discount=15, tax_amount=18.9, total=153.9, paid_amount=153.9 WHERE id=7;
       UPDATE sale_payments SET amount=153.9 WHERE sale_id=7;
       UPDATE sale_items SET qty=3, cost_price=30 WHERE sale_id=7;
     `);
-    const edit7 = await posting.postSaleEdit(db, 7, auth);
+    const edit7 = await inTx(trx => posting.postSaleEdit(trx, 7, auth));
     assert.equal(edit7.posted, true);
     const orig7 = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(sale7.journalEntryId)).executeTakeFirstOrThrow();
     assert.ok(orig7.reversed_by_entry_id != null, 'original journal must be marked reversed by the edit');
@@ -243,7 +244,7 @@ async function main() {
       INSERT INTO customer_ledger(tenant_id,customer_id,entry_type,amount,reference_type,reference_id)
         VALUES ('t1',25,'sale_credit',50,'sale',4);
     `);
-    const vanSale = await posting.postSale(db, 4, auth);
+    const vanSale = await inTx(trx => posting.postSale(trx, 4, auth));
     assert.equal(vanSale.posted, true);
     assert.equal(await amount(vanSale.journalEntryId, 1130, 'debit'), 50);
     assert.equal(await amount(vanSale.journalEntryId, 1110, 'debit'), 64);
@@ -256,7 +257,7 @@ async function main() {
       UPDATE sale_payments SET amount=76.8 WHERE sale_id=4;
       UPDATE customer_ledger SET amount=60 WHERE reference_id=4 AND entry_type='sale_credit';
     `);
-    const vanEditResult = await posting.postSaleEdit(db, 4, auth);
+    const vanEditResult = await inTx(trx => posting.postSaleEdit(trx, 4, auth));
     assert.equal(vanEditResult.posted, true);
     const vanOrigJournal = await db.selectFrom('journal_entries').select(['id', 'reversed_by_entry_id']).where('id', '=', Number(vanSale.journalEntryId)).executeTakeFirstOrThrow();
     assert.ok(vanOrigJournal.reversed_by_entry_id != null, 'van original journal must be reversed on edit');
@@ -277,7 +278,7 @@ async function main() {
         VALUES (1,'t1','P1',9,'credit',228,22.8,25.2,205.2);
       INSERT INTO purchase_items VALUES ('t1',1,2,102.6,NULL,NULL);
     `);
-    const purchase = await posting.postPurchase(db, 1, auth);
+    const purchase = await inTx(trx => posting.postPurchase(trx, 1, auth));
     assert.equal(await amount(purchase.journalEntryId, 1140, 'debit'), 180);
     assert.equal(await amount(purchase.journalEntryId, 1150, 'debit'), 25.2);
     assert.equal(await amount(purchase.journalEntryId, 2110, 'credit'), 205.2);
@@ -287,17 +288,17 @@ async function main() {
         (2,'t1','PR1','purchase',1,'[{"tender":"payable","amount":80},{"tender":"card","amount":22.6}]',102.6);
       INSERT INTO return_items VALUES ('t1',1,10,1,1,30,6.3), ('t1',2,10,NULL,1,90,12.6);
     `);
-    const saleReturn = await posting.postSalesReturn(db, 1, auth);
+    const saleReturn = await inTx(trx => posting.postSalesReturn(trx, 1, auth));
     assert.equal(await amount(saleReturn.journalEntryId!, 4400, 'debit'), 45);
     assert.equal(await amount(saleReturn.journalEntryId!, 2120, 'debit'), 6.3);
     assert.equal(await amount(saleReturn.journalEntryId!, 1140, 'debit'), 30);
     assert.equal(await amount(saleReturn.journalEntryId!, 5100, 'credit'), 30);
-    const purchaseReturn = await posting.postPurchaseReturn(db, 2, auth);
+    const purchaseReturn = await inTx(trx => posting.postPurchaseReturn(trx, 2, auth));
     assert.equal(await amount(purchaseReturn.journalEntryId!, 1140, 'credit'), 90);
     assert.equal(await amount(purchaseReturn.journalEntryId!, 1150, 'credit'), 12.6);
     assert.equal(await amount(purchaseReturn.journalEntryId!, 2110, 'debit'), 80);
     assert.equal(await amount(purchaseReturn.journalEntryId!, 1120, 'debit'), 22.6);
-    assert.equal((await posting.postPurchaseReturn(db, 2, auth)).posted, false);
+    assert.equal((await inTx(trx => posting.postPurchaseReturn(trx, 2, auth))).posted, false);
 
     // Exercise exchange return guard on edit: if exchange return already has its own independent journal
     await pg.exec(`
@@ -307,7 +308,7 @@ async function main() {
       INSERT INTO sale_items VALUES (5,'t1',5,10,1,50);
     `);
     await assert.rejects(
-      posting.postSaleEdit(db, 5, auth),
+      inTx(trx => posting.postSaleEdit(trx, 5, auth)),
       (err: any) => err.code === 'EXCHANGE_LEDGER_CONFLICT' || /مرتجع الاستبدال مرتبط بقيد مستقل/.test(err.message),
       'Editing an exchange sale whose return already has an independent journal must throw EXCHANGE_LEDGER_CONFLICT'
     );
@@ -329,7 +330,7 @@ async function main() {
     }
     // Attempting to post an edit for a fully reversed sale must throw SALE_ALREADY_REVERSED
     await assert.rejects(
-      posting.postSaleEdit(db, 1, auth),
+      inTx(trx => posting.postSaleEdit(trx, 1, auth)),
       (err: any) => err.code === 'SALE_ALREADY_REVERSED' || /ملغاة ومعكوسة/.test(err.message),
       'Editing a fully reversed sale must fail with SALE_ALREADY_REVERSED'
     );
@@ -432,7 +433,7 @@ async function main() {
       INSERT INTO return_documents SELECT 3,tenant_id,'PR2',return_type,invoice_id,settlement_mode,refund_method,
         refund_allocations,total,branch_id,location_id,created_by,created_at FROM return_documents WHERE id=2;
       INSERT INTO return_items VALUES ('t1',3,10,NULL,1,90,12.6);`);
-    await assert.rejects(posting.postPurchaseReturn(db,3,auth), /الفترة الضريبية/);
+    await assert.rejects(inTx(trx => posting.postPurchaseReturn(trx, 3, auth)), /الفترة الضريبية/);
     const before = await db.selectFrom('journal_entries').select('id').execute();
     await assert.rejects(db.transaction().execute(async trx => {
       await trx.insertInto('settings').values({tenant_id:'t1',key:'rollback-proof',value:'1'} as any).execute();
