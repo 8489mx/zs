@@ -3645,6 +3645,10 @@ export class AccountingPostingService {
   async postPayrollPayment(queryable: DbOrTx, runId: number, paymentChannel: string, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
 
     const existing = await queryable
       .selectFrom('journal_entries')
@@ -3665,7 +3669,7 @@ export class AccountingPostingService {
       .where('status', '=', 'approved')
       .executeTakeFirst();
 
-    const netPay = this.toMoney(totals?.net_pay || 0);
+    const netPay = toBookMoney(totals?.net_pay || 0);
 
     if (netPay <= 0) {
        throw new AppError('Cannot pay payroll with zero net pay', 'HR_PAYROLL_PAYMENT_ZERO', 400);
@@ -3676,8 +3680,8 @@ export class AccountingPostingService {
 
     const lines: JournalLineDraft[] = [];
 
-    this.addLine(lines, { accountId: payableAccountId, description: `سداد رواتب مستحقة لمسير #${runId}`, debit: netPay, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
-    this.addLine(lines, { accountId: paymentAccountId, description: `دفع رواتب مسير #${runId}`, debit: 0, credit: netPay, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    addBookLine({ accountId: payableAccountId, description: `سداد رواتب مستحقة لمسير #${runId}`, debit: netPay, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
+    addBookLine({ accountId: paymentAccountId, description: `دفع رواتب مسير #${runId}`, debit: 0, credit: netPay, partnerType: 'none', partnerId: null, branchId: null, locationId: null });
 
     try {
       const entryId = await this.insertPostedJournal(queryable, {
@@ -3712,6 +3716,10 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
 
     const existing = await queryable
       .selectFrom('journal_entries')
@@ -3730,7 +3738,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!item) throw new AppError('بند الراتب غير موجود', 'HR_PAYROLL_ITEM_NOT_FOUND', 404);
-    const netPay = this.toMoney(item.net_pay || 0);
+    const netPay = toBookMoney(item.net_pay || 0);
     if (netPay <= 0) throw new AppError('صافي الأجر صفر أو سالب', 'HR_PAYROLL_PAYMENT_ZERO', 400);
 
     const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
@@ -3738,7 +3746,7 @@ export class AccountingPostingService {
 
     const empLabel = options?.employeeName ? ` - ${options.employeeName}` : '';
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    addBookLine({
       accountId: payableAccountId,
       description: `سداد مستحقات أجر الموظف #${item.employee_id}${empLabel} (مسير #${item.run_id})`,
       debit: netPay,
@@ -3748,7 +3756,7 @@ export class AccountingPostingService {
       branchId: options?.branchId ?? null,
       locationId: options?.locationId ?? null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: paymentAccountId,
       description: `صرف أجر الموظف #${item.employee_id}${empLabel} عبر ${paymentChannel === 'drawer' ? 'درج الكاشير' : paymentChannel === 'bank' ? 'البنك' : 'الخزينة'}`,
       debit: 0,
@@ -3786,6 +3794,9 @@ export class AccountingPostingService {
   async postEmployeeLoanDisbursement(queryable: DbOrTx, loanId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+
     const tenantId = scope.tenantId;
 
     const existing = await queryable
@@ -3810,7 +3821,7 @@ export class AccountingPostingService {
       throw new AppError('Loan must be disbursed to post accounting entry', 'HR_LOAN_NOT_DISBURSED', 400);
     }
 
-    const amount = this.toMoney(loanResult.principal_amount);
+    const amount = toBookMoney(loanResult.principal_amount);
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const cashAcct = await queryable
@@ -3879,6 +3890,9 @@ export class AccountingPostingService {
   async postEmployeeLoanManualRepayment(queryable: DbOrTx, ledgerId: number, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+
     const tenantId = scope.tenantId;
 
     const existing = await queryable
@@ -3903,7 +3917,7 @@ export class AccountingPostingService {
       throw new AppError('Invalid ledger entry for manual repayment posting', 'HR_LOAN_INVALID_REPAYMENT_LEDGER', 400);
     }
 
-    const amount = Math.abs(this.toMoney(ledger.amount));
+    const amount = Math.abs(toBookMoney(ledger.amount));
     if (amount <= 0) return { posted: false, journalEntryId: null };
 
     const cashAcct = await queryable
@@ -4067,6 +4081,10 @@ export class AccountingPostingService {
   }
   async postDeliveryRepSettlement(queryable: DbOrTx, saleId: number, amount: number, branchId: number | null, locationId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
     if (!Number.isFinite(amount) || amount < 0) throw new AppError('Invalid delivery settlement', 'DELIVERY_SETTLEMENT_INVALID', 400);
 
     const existing = await queryable.selectFrom('journal_entries')
@@ -4086,15 +4104,15 @@ export class AccountingPostingService {
     const cashAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.cash_account_id, '1110');
     const customerAccountId = await this.resolveAccountWithFallback(queryable, scope.tenantId, settings.customer_receivable_account_id, '1130');
 
-    const totalDebt = this.toMoney(sale.total);
-    const fee = this.toMoney(totalDebt - amount);
-    if (fee < 0 || (fee > 0 && Math.abs(fee - Number(sale.delivery_fee || 0)) > 0.01)) throw new AppError('Delivery settlement does not reconcile with courier fee', 'DELIVERY_SETTLEMENT_INVALID', 409);
+    const totalDebt = toBookMoney(sale.total);
+    const fee = toBookMoney(totalDebt - amount);
+    if (fee < 0 || (fee > 0 && Math.abs(fee - Number(sale.delivery_fee || 0)) > this.maxAllowedDifference(bookDigits))) throw new AppError('Delivery settlement does not reconcile with courier fee', 'DELIVERY_SETTLEMENT_INVALID', 409);
     const lines: JournalLineDraft[] = [];
     if (fee > 0) {
       const expenseId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6400');
-      this.addLine(lines, { accountId: expenseId, description: 'رسوم مندوب حر مخصومة من التحصيل', debit: fee, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: expenseId, description: 'رسوم مندوب حر مخصومة من التحصيل', debit: fee, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
     }
-    this.addLine(lines, {
+    addBookLine({
       accountId: cashAccountId,
       description: `تحصيل من مندوب عن فاتورة #${sale.doc_no || saleId}`,
       debit: amount,
@@ -4104,7 +4122,7 @@ export class AccountingPostingService {
       branchId,
       locationId,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: customerAccountId,
       description: `تسديد مديونية فاتورة #${sale.doc_no || saleId}`,
       debit: 0,
@@ -4156,6 +4174,10 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
 
     const existing = await queryable.selectFrom('journal_entries')
       .select('id')
@@ -4165,13 +4187,13 @@ export class AccountingPostingService {
       .executeTakeFirst();
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
-    const expected = this.toMoney(params.expectedCash);
-    const counted = this.toMoney(params.countedCash);
-    const tripExpenses = params.tripExpenses ? this.toMoney(params.tripExpenses) : 0;
-    const stockShortage = params.stockShortageAmount ? this.toMoney(params.stockShortageAmount) : 0;
+    const expected = toBookMoney(params.expectedCash);
+    const counted = toBookMoney(params.countedCash);
+    const tripExpenses = params.tripExpenses ? toBookMoney(params.tripExpenses) : 0;
+    const stockShortage = params.stockShortageAmount ? toBookMoney(params.stockShortageAmount) : 0;
 
     if (expected <= 0 && counted <= 0 && tripExpenses <= 0 && stockShortage <= 0) return { posted: false, journalEntryId: null };
-    const variance = this.toMoney(counted - expected);
+    const variance = toBookMoney(counted - expected);
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     if (!settings) throw new Error(`Accounting settings missing while posting van trip settlement ${tripId}`);
@@ -4185,26 +4207,26 @@ export class AccountingPostingService {
     const branchId = params.branchId;
     const locationId = params.locationId;
 
-    const grossReceivableToClear = this.toMoney(expected + tripExpenses);
+    const grossReceivableToClear = toBookMoney(expected + tripExpenses);
     if (grossReceivableToClear > 0) {
-      this.addLine(lines, { accountId: receivableAccountId, description: `تصفية عهدة نقدية مندوب - رحلة #${tripId}`, debit: 0, credit: grossReceivableToClear, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: receivableAccountId, description: `تصفية عهدة نقدية مندوب - رحلة #${tripId}`, debit: 0, credit: grossReceivableToClear, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     if (tripExpenses > 0) {
       const expenseAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6400');
-      this.addLine(lines, { accountId: expenseAccountId, description: `مصروفات تشغيلية ووقود رحلة توزيع #${tripId}`, debit: tripExpenses, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: expenseAccountId, description: `مصروفات تشغيلية ووقود رحلة توزيع #${tripId}`, debit: tripExpenses, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
-    if (variance < -0.01) {
+    if (variance < -this.maxAllowedDifference(bookDigits)) {
       const shortageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7200');
-      this.addLine(lines, { accountId: shortageAccountId, description: `عجز تصفية رحلة توزيع #${tripId}`, debit: Math.abs(variance), credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
-    } else if (variance > 0.01) {
+      addBookLine({ accountId: shortageAccountId, description: `عجز تصفية رحلة توزيع #${tripId}`, debit: Math.abs(variance), credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    } else if (variance > this.maxAllowedDifference(bookDigits)) {
       const overageAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '7100');
-      this.addLine(lines, { accountId: overageAccountId, description: `زيادة تصفية رحلة توزيع #${tripId}`, debit: 0, credit: variance, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: overageAccountId, description: `زيادة تصفية رحلة توزيع #${tripId}`, debit: 0, credit: variance, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     if (counted > 0) {
-      this.addLine(lines, { accountId: cashAccountId, description: `نقدية مسلَّمة من مندوب - رحلة #${tripId}`, debit: counted, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: cashAccountId, description: `نقدية مسلَّمة من مندوب - رحلة #${tripId}`, debit: counted, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     if (stockShortage > 0) {
@@ -4221,8 +4243,8 @@ export class AccountingPostingService {
         debitDesc = `خسائر عجز مخزني سيارة التوزيع - رحلة #${tripId}`;
       }
 
-      this.addLine(lines, { accountId: debitAccountId, description: debitDesc, debit: stockShortage, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
-      this.addLine(lines, { accountId: inventoryAccountId, description: `تسوية عجز مخزني سيارة التوزيع - رحلة #${tripId}`, debit: 0, credit: stockShortage, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: debitAccountId, description: debitDesc, debit: stockShortage, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: inventoryAccountId, description: `تسوية عجز مخزني سيارة التوزيع - رحلة #${tripId}`, debit: 0, credit: stockShortage, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     if (lines.length === 0) return { posted: false, journalEntryId: null };
@@ -4268,8 +4290,11 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
 
-    const cost = this.toMoney(params.totalCost);
+
+    const cost = toBookMoney(params.totalCost);
     if (!(cost > 0)) return { posted: false, journalEntryId: null };
 
     const sourceType = params.type === 'load' ? 'van_load_transfer' : 'van_unload_transfer';
@@ -4334,8 +4359,11 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
 
-    const amount = this.toMoney(params.amount);
+
+    const amount = toBookMoney(params.amount);
     if (!(amount > 0)) return { posted: false, journalEntryId: null };
 
     const existing = await queryable.selectFrom('journal_entries')
@@ -4408,8 +4436,12 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
 
-    const amount = this.toMoney(params.totalAmount);
+
+    const amount = toBookMoney(params.totalAmount);
     if (!(amount > 0)) return { posted: false, journalEntryId: null };
 
     const existing = await queryable.selectFrom('journal_entries')
@@ -4442,10 +4474,10 @@ export class AccountingPostingService {
         : { accountId: receivableAccountId, description: `تخفيض مديونية عميل - مرتجع ميداني #${returnId}`, debit: 0, credit: amount, partnerType: 'customer', partnerId: params.customerId, branchId, locationId },
     ];
 
-    const cogsAmount = this.toMoney(params.items.reduce((sum, it) => sum + (Number(it.qty || 0) * Number(it.costPrice || 0)), 0));
+    const cogsAmount = toBookMoney(params.items.reduce((sum, it) => sum + (Number(it.qty || 0) * Number(it.costPrice || 0)), 0));
     if (cogsAmount > 0) {
-      this.addLine(lines, { accountId: inventoryAccountId, description: `إعادة بضاعة للمخزون - مرتجع ميداني #${returnId}`, debit: cogsAmount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
-      this.addLine(lines, { accountId: cogsAccountId, description: `عكس تكلفة البضاعة المباعة - مرتجع ميداني #${returnId}`, debit: 0, credit: cogsAmount, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: inventoryAccountId, description: `إعادة بضاعة للمخزون - مرتجع ميداني #${returnId}`, debit: cogsAmount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      addBookLine({ accountId: cogsAccountId, description: `عكس تكلفة البضاعة المباعة - مرتجع ميداني #${returnId}`, debit: 0, credit: cogsAmount, partnerType: 'none', partnerId: null, branchId, locationId });
     }
 
     try {
@@ -5476,6 +5508,10 @@ export class AccountingPostingService {
   async postEndOfServiceSettlement(queryable: DbOrTx, settlementId: number, treasuryAccountId: number | null, auth: AuthContext): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
 
     const settlement = await queryable
       .selectFrom('hr_end_of_service_settlements')
@@ -5498,16 +5534,16 @@ export class AccountingPostingService {
       .executeTakeFirst();
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
-    const gratuity = this.toMoney(settlement.gratuity_amount || 0);
-    const leavePay = this.toMoney(settlement.leave_encashment_amount || 0);
-    const pendingSalary = this.toMoney(settlement.pending_salary_amount || 0);
-    const noticePeriod = this.toMoney(settlement.notice_period_amount || 0);
-    const otherEntitlements = this.toMoney(settlement.other_entitlements_amount || 0);
-    const totalEntitlements = this.toMoney(gratuity + leavePay + pendingSalary + noticePeriod + otherEntitlements);
+    const gratuity = toBookMoney(settlement.gratuity_amount || 0);
+    const leavePay = toBookMoney(settlement.leave_encashment_amount || 0);
+    const pendingSalary = toBookMoney(settlement.pending_salary_amount || 0);
+    const noticePeriod = toBookMoney(settlement.notice_period_amount || 0);
+    const otherEntitlements = toBookMoney(settlement.other_entitlements_amount || 0);
+    const totalEntitlements = toBookMoney(gratuity + leavePay + pendingSalary + noticePeriod + otherEntitlements);
 
-    const unpaidLoans = this.toMoney(settlement.unpaid_loans_deduction || 0);
-    const assetsDeduction = this.toMoney(settlement.assets_deduction || 0);
-    const otherDeductions = this.toMoney(settlement.other_deductions || 0);
+    const unpaidLoans = toBookMoney(settlement.unpaid_loans_deduction || 0);
+    const assetsDeduction = toBookMoney(settlement.assets_deduction || 0);
+    const otherDeductions = toBookMoney(settlement.other_deductions || 0);
 
     if (totalEntitlements <= 0) {
       throw new AppError('Cannot post end of service settlement with zero entitlements', 'HR_EOS_ZERO_VALUE', 400);
@@ -5518,13 +5554,13 @@ export class AccountingPostingService {
     let remainingPool = totalEntitlements;
 
     const appliedAssets = Math.min(assetsDeduction, remainingPool);
-    remainingPool = this.toMoney(remainingPool - appliedAssets);
+    remainingPool = toBookMoney(remainingPool - appliedAssets);
 
     const appliedOther = Math.min(otherDeductions, remainingPool);
-    remainingPool = this.toMoney(remainingPool - appliedOther);
+    remainingPool = toBookMoney(remainingPool - appliedOther);
 
     const appliedLoans = Math.min(unpaidLoans, remainingPool);
-    remainingPool = this.toMoney(remainingPool - appliedLoans);
+    remainingPool = toBookMoney(remainingPool - appliedLoans);
 
     const netPayable = remainingPool;
 
@@ -5546,7 +5582,7 @@ export class AccountingPostingService {
     const lines: JournalLineDraft[] = [];
 
     // 1. Debit: Total Entitlements
-    this.addLine(lines, {
+    addBookLine({
       accountId: expenseAccountId,
       description: `استحقاق مخالصة ومكافأة نهاية خدمة #${settlement.settlement_no}`,
       debit: totalEntitlements,
@@ -5559,7 +5595,7 @@ export class AccountingPostingService {
 
     // 2. Credit: Loan deduction (if any)
     if (appliedLoans > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: advancesAccountId,
         description: `تسوية سلف مستحقة للموظف بمخالصة #${settlement.settlement_no}`,
         debit: 0,
@@ -5573,7 +5609,7 @@ export class AccountingPostingService {
 
     // 3. Credit: Asset / Custody deduction (if any)
     if (appliedAssets > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: otherIncomeAccountId,
         description: `استرداد وتسوية عهدة بمخالصة #${settlement.settlement_no}`,
         debit: 0,
@@ -5587,7 +5623,7 @@ export class AccountingPostingService {
 
     // 4. Credit: Other deductions (if any)
     if (appliedOther > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: otherIncomeAccountId,
         description: `استقطاعات أخرى بمخالصة #${settlement.settlement_no}`,
         debit: 0,
@@ -5601,7 +5637,7 @@ export class AccountingPostingService {
 
     // 5. Credit: Net settlement payable / payout
     if (netPayable > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: paymentAccountId,
         description: `صرف مستحقات مخالصة نهاية الخدمة #${settlement.settlement_no}`,
         debit: 0,
@@ -5801,7 +5837,11 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
-    const absAmount = this.toMoney(Math.abs(amount));
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
+    const absAmount = toBookMoney(Math.abs(amount));
     if (absAmount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -5819,7 +5859,7 @@ export class AccountingPostingService {
 
     const lines: JournalLineDraft[] = [];
     if (amount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: arAccountId,
         description: `رصيد افتتاحي - مديونية على العميل ${custName}`,
         debit: absAmount,
@@ -5829,7 +5869,7 @@ export class AccountingPostingService {
         branchId: null,
         locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: openingEquityId,
         description: `رصيد افتتاحي حقوق ملكية - عميل ${custName}`,
         debit: 0,
@@ -5840,7 +5880,7 @@ export class AccountingPostingService {
         locationId: null,
       });
     } else {
-      this.addLine(lines, {
+      addBookLine({
         accountId: openingEquityId,
         description: `رصيد افتتاحي حقوق ملكية - دائنية للعميل ${custName}`,
         debit: absAmount,
@@ -5850,7 +5890,7 @@ export class AccountingPostingService {
         branchId: null,
         locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: arAccountId,
         description: `رصيد افتتاحي - دائنية للعميل ${custName}`,
         debit: 0,
@@ -5889,7 +5929,11 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
-    const absAmount = this.toMoney(Math.abs(amount));
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
+    const absAmount = toBookMoney(Math.abs(amount));
     if (absAmount <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -5907,7 +5951,7 @@ export class AccountingPostingService {
 
     const lines: JournalLineDraft[] = [];
     if (amount > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: openingEquityId,
         description: `رصيد افتتاحي حقوق ملكية - التزام للمورد ${supName}`,
         debit: absAmount,
@@ -5917,7 +5961,7 @@ export class AccountingPostingService {
         branchId: null,
         locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: apAccountId,
         description: `رصيد افتتاحي - التزام للمورد ${supName}`,
         debit: 0,
@@ -5928,7 +5972,7 @@ export class AccountingPostingService {
         locationId: null,
       });
     } else {
-      this.addLine(lines, {
+      addBookLine({
         accountId: apAccountId,
         description: `رصيد افتتاحي - دفعة مقدمة / مديونية على المورد ${supName}`,
         debit: absAmount,
@@ -5938,7 +5982,7 @@ export class AccountingPostingService {
         branchId: null,
         locationId: null,
       });
-      this.addLine(lines, {
+      addBookLine({
         accountId: openingEquityId,
         description: `رصيد افتتاحي حقوق ملكية - مورد ${supName}`,
         debit: 0,
@@ -5976,6 +6020,10 @@ export class AccountingPostingService {
   ): Promise<{ posted: boolean; journalEntryId: number | null }> {
     const scope = requireTenantScope(auth);
     await this.ensureTenantFoundation(queryable, auth);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, scope.tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
+
 
     const plan = await queryable
       .selectFrom('customer_installment_plans')
@@ -5985,7 +6033,7 @@ export class AccountingPostingService {
       .executeTakeFirst();
 
     if (!plan) return { posted: false, journalEntryId: null };
-    const interest = this.toMoney(plan.interest_amount);
+    const interest = toBookMoney(plan.interest_amount);
     if (interest <= 0) return { posted: false, journalEntryId: null };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
@@ -5994,7 +6042,7 @@ export class AccountingPostingService {
     const financeIncomeId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2155');
 
     const lines: JournalLineDraft[] = [];
-    this.addLine(lines, {
+    addBookLine({
       accountId: arAccountId,
       description: `فوائد تقسيط - خطة تقسيط #${plan.plan_number}`,
       debit: interest,
@@ -6004,7 +6052,7 @@ export class AccountingPostingService {
       branchId: plan.branch_id ? Number(plan.branch_id) : null,
       locationId: null,
     });
-    this.addLine(lines, {
+    addBookLine({
       accountId: financeIncomeId,
       description: `فوائد تمويل غير مكتسبة - خطة تقسيط #${plan.plan_number}`,
       debit: 0,
@@ -6047,6 +6095,9 @@ export class AccountingPostingService {
   async recognizeInstallmentInterest(queryable: DbOrTx, tenantId: string, throughDate: string, createdBy: number | null = null): Promise<void> {
     if (!queryable.isTransaction) return queryable.transaction().execute(trx => this.recognizeInstallmentInterest(trx, tenantId, throughDate, createdBy));
     await lockAccountingPeriod(queryable, tenantId);
+    const bookDigits = currencyMoneyDigits(await tenantBaseCurrency(queryable, tenantId));
+    const toBookMoney = (value: unknown) => this.toMoney(value, bookDigits);
+
     const pending = await sql<{ id: number; amount: number; recognition_date: string | Date; account_id: string; branch_id: number | null }>`
       select i.id, i.amount, i.recognition_date, i.account_id, p.branch_id from accounting_installment_interest i
       join customer_installment_plans p on p.id = i.plan_id and p.tenant_id = i.tenant_id
@@ -6057,7 +6108,7 @@ export class AccountingPostingService {
     const deferred = await this.resolveSystemAccountByCode(queryable, tenantId, '2155');
     const revenue = await this.resolveSystemAccountByCode(queryable, tenantId, '7100');
     for (const item of pending.rows) {
-      const amount = this.toMoney(item.amount);
+      const amount = toBookMoney(item.amount);
       const entryId = await this.postDomainJournal(queryable, { tenantId, accountId: item.account_id || tenantId, sourceType: 'installment_interest_accrual', sourceId: Number(item.id),
         entryDate: new Date(item.recognition_date), branchId: item.branch_id, description: 'استحقاق إيراد فوائد التمويل وفق العائد الفعلي', createdBy,
         lines: [
