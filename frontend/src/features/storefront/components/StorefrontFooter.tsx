@@ -83,7 +83,7 @@ export function StorefrontFooter({
           box-sizing: border-box;
         }
         .sf-footer-banner {
-          background: linear-gradient(135deg, var(--storefront-primary-color, #170e5e) 0%, #20137e 45%, #1e40af 100%);
+          background: linear-gradient(135deg, #2353a0 0%, var(--storefront-primary-color, #2d68c4) 50%, #3b76d8 100%);
           border-radius: 24px;
           padding: 44px 32px;
           color: #ffffff;
@@ -91,7 +91,7 @@ export function StorefrontFooter({
           margin-bottom: 56px;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 10px 30px var(--storefront-primary-subtle, rgba(23, 14, 94, 0.16));
+          box-shadow: 0 10px 30px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.2));
         }
         .sf-footer-banner::before {
           content: '';
@@ -123,11 +123,11 @@ export function StorefrontFooter({
           justify-content: center;
           gap: 8px;
           background: #ffffff;
-          color: var(--storefront-primary-color, #170e5e);
+          color: var(--storefront-primary-color, #2d68c4);
           font-size: 14px;
           font-weight: 700;
           padding: 12px 28px;
-          border-radius: 9999px;
+          border-radius: 9999px !important;
           border: none;
           cursor: pointer;
           box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
@@ -173,13 +173,16 @@ export function StorefrontFooter({
           gap: 6px;
         }
         .sf-footer-link-item:hover {
-          color: var(--storefront-primary-color, #170e5e);
+          color: var(--storefront-primary-color, #2d68c4);
           transform: translateX(-3px);
         }
         .sf-footer-social-btn {
           width: 36px;
           height: 36px;
-          border-radius: 50%;
+          padding: 0 !important;
+          box-sizing: border-box;
+          line-height: 0;
+          border-radius: 50% !important;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
           display: inline-flex;
@@ -189,49 +192,62 @@ export function StorefrontFooter({
           text-decoration: none;
           transition: all 0.2s ease;
         }
+        .sf-footer-social-btn svg {
+          display: block;
+          flex-shrink: 0;
+        }
         .sf-footer-social-btn:hover {
-          background: var(--storefront-primary-color, #170e5e);
+          background: var(--storefront-primary-color, #2d68c4);
           color: #ffffff;
-          border-color: var(--storefront-primary-color, #170e5e);
+          border-color: var(--storefront-primary-color, #2d68c4);
           transform: translateY(-2px);
         }
         .sf-newsletter-pill {
           display: flex;
           align-items: center;
+          height: 46px;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
-          border-radius: 9999px;
+          border-radius: 9999px !important;
           padding: 4px;
+          box-sizing: border-box;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .sf-newsletter-pill:focus-within {
-          border-color: var(--storefront-primary-color, #170e5e);
-          box-shadow: 0 0 0 3px rgba(23, 14, 94, 0.08);
+          border-color: var(--storefront-primary-color, #2d68c4);
+          box-shadow: 0 0 0 3px rgba(45, 104, 196, 0.12);
           background: #ffffff;
         }
         .sf-newsletter-input {
           flex: 1;
-          border: none;
-          background: transparent;
-          padding: 10px 16px;
+          height: 100%;
+          border: none !important;
+          background: transparent !important;
+          padding: 0 14px;
           font-size: 13px;
           color: #0f172a;
-          outline: none;
+          outline: none !important;
+          box-shadow: none !important;
           min-width: 0;
         }
         .sf-newsletter-input::placeholder {
           color: #94a3b8;
         }
         .sf-newsletter-submit-btn {
-          background: var(--storefront-primary-color, #170e5e);
+          height: 36px;
+          background: var(--storefront-primary-color, #2d68c4);
           color: #ffffff;
-          border: none;
-          border-radius: 9999px;
-          padding: 9px 20px;
+          border: none !important;
+          border-radius: 9999px !important;
+          padding: 0 20px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
           white-space: nowrap;
+          flex-shrink: 0;
           transition: opacity 0.15s ease;
         }
         .sf-newsletter-submit-btn:hover {
@@ -355,7 +371,7 @@ export function StorefrontFooter({
                     width: '34px',
                     height: '34px',
                     borderRadius: '10px',
-                    background: 'var(--storefront-primary-color, #170e5e)',
+                    background: 'var(--storefront-primary-color, #2d68c4)',
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
@@ -378,20 +394,30 @@ export function StorefrontFooter({
 
             {/* Social Icons Row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {cleanPhone && (
-                <a
-                  href={`https://wa.me/${cleanPhone}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="sf-footer-social-btn"
-                  title="واتساب"
-                  aria-label="WhatsApp"
+              <a
+                href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#whatsapp'}
+                onClick={!cleanPhone ? (e) => e.preventDefault() : undefined}
+                target={cleanPhone ? '_blank' : undefined}
+                rel={cleanPhone ? 'noopener noreferrer' : undefined}
+                className="sf-footer-social-btn"
+                title="واتساب"
+                aria-label="WhatsApp"
+              >
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.9"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  shapeRendering="geometricPrecision"
                 >
-                  <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.39-4.19-1.15l-.3-.17-3.12.82.83-3.04-.2-.31a8.216 8.216 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44s-.56-1.35-.77-1.85c-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.77 2.71 4.3 3.8 2.52 1.09 2.52.73 2.98.68.45-.04 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3" />
-                  </svg>
-                </a>
-              )}
+                  <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21" />
+                  <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1" />
+                </svg>
+              </a>
               <a
                 href="#facebook"
                 onClick={(e) => e.preventDefault()}
@@ -399,7 +425,7 @@ export function StorefrontFooter({
                 title="فيسبوك"
                 aria-label="Facebook"
               >
-                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H7.5v-3H10V9.5C10 7.01 11.49 5.63 13.77 5.63c1.09 0 2.23.19 2.23.19v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 3h-2.34v6.8c4.56-.93 8-4.96 8-9.8z" />
                 </svg>
               </a>
@@ -410,7 +436,7 @@ export function StorefrontFooter({
                 title="إنستغرام"
                 aria-label="Instagram"
               >
-                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
                   <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
                   <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
@@ -423,7 +449,7 @@ export function StorefrontFooter({
                 title="تليجرام"
                 aria-label="Telegram"
               >
-                <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
                 </svg>
               </a>
@@ -593,11 +619,11 @@ export function StorefrontFooter({
                 fontSize: '12px',
                 transition: 'color 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--storefront-primary-color, #170e5e)')}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--storefront-primary-color, #2d68c4)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
             >
               <span>Powered by</span>
-              <span style={{ fontWeight: 700, color: 'var(--storefront-primary-color, #170e5e)' }}>
+              <span style={{ fontWeight: 700, color: 'var(--storefront-primary-color, #2d68c4)' }}>
                 Z-Systems ERP
               </span>
             </a>

@@ -22,7 +22,7 @@ const CARD_BADGES = [
   'عرض محدود',
   'وصل حديثاً',
   'خصم خاص',
-  'أفضل تقييم',
+  'عرض حصري',
   'تخفيضات اليوم',
   'الأكثر مبيعاً',
   'مختاراتنا',
@@ -240,7 +240,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
       className="storefront-pallet-hero"
       style={{
         position: 'relative',
-        background: 'radial-gradient(ellipse 90% 75% at 50% 12%, #ffffff 0%, #f4f7fb 52%, #eaeff7 100%)',
+        background: 'radial-gradient(ellipse 90% 75% at 50% 12%, #ffffff 0%, #f8fafc 58%, #f1f5f9 100%)',
         color: '#0f172a',
         marginTop: '-64px',
         padding: '88px 16px 18px',
@@ -451,9 +451,8 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
               onClick={() => {
                 if (offset !== 0 && orderedDeck.length >= 7) {
                   setCenterIdx(originalIdx);
-                } else {
-                  onQuickView(product);
                 }
+                onQuickView(product);
               }}
               style={{
                 width: `${metrics.width}px`,
@@ -506,7 +505,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 <path
                   d={mainCardPath}
                   fill="#ffffff"
-                  stroke={isHighlighted ? '#cbd5e1' : '#dce3ec'}
+                  stroke={isHighlighted ? '#93c5fd' : '#dce3ec'}
                   strokeWidth={isHighlighted ? '1.6' : '1.25'}
                   strokeLinejoin="round"
                 />
@@ -524,15 +523,24 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
               >
                 <span
                   style={{
-                    background: isOutOfStock ? '#ef4444' : 'var(--storefront-primary-color, #588cb3)',
+                    background: isOutOfStock
+                      ? '#991b1b'
+                      : isHighlighted
+                      ? '#dc2626'
+                      : '#ef4444',
                     color: '#ffffff',
+                    border: 'none',
                     fontSize: metrics.badgeFontSize,
-                    fontWeight: 500,
-                    padding: offset === 0 ? '4px 9px' : '3px 7px',
+                    fontWeight: 700,
+                    padding: offset === 0 ? '4px 10px' : '3.5px 8px',
                     borderRadius: '8px',
                     whiteSpace: 'nowrap',
                     lineHeight: 1.2,
                     marginTop: `${rightSideSlantOffset}px`,
+                    boxShadow: isHighlighted
+                      ? '0 3px 8px rgba(220, 38, 38, 0.28)'
+                      : '0 2px 5px rgba(239, 68, 68, 0.18)',
+                    transition: 'background-color 0.18s ease, box-shadow 0.18s ease',
                   }}
                 >
                   {badgeText}
@@ -606,7 +614,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                   {product.name}
                 </span>
 
-                {/* Bottom Row: Price (After & Before) opposite Add to Cart Button */}
+                {/* Bottom Row: Add to Cart Button (Right) opposite Price (Left) */}
                 <div
                   style={{
                     display: 'flex',
@@ -615,6 +623,46 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                     gap: '4px',
                   }}
                 >
+                  <button
+                    type="button"
+                    onClick={(e) => handleInstantAdd(e, product)}
+                    disabled={isOutOfStock}
+                    style={{
+                      width: `${metrics.cartBtnSize}px`,
+                      height: `${metrics.cartBtnSize}px`,
+                      borderRadius: '9999px',
+                      background:
+                        justAddedId === product.id
+                          ? '#16a34a'
+                          : isOutOfStock
+                          ? '#e2e8f0'
+                          : isHighlighted
+                          ? 'var(--storefront-primary-color, #2d68c4)'
+                          : '#eff6ff',
+                      color:
+                        justAddedId === product.id || isOutOfStock || isHighlighted
+                          ? '#ffffff'
+                          : 'var(--storefront-primary-color, #2d68c4)',
+                      border:
+                        justAddedId === product.id || isOutOfStock || isHighlighted
+                          ? 'none'
+                          : '1px solid #dbeafe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                      flexShrink: 0,
+                      transition: 'background-color 0.16s ease, color 0.16s ease',
+                    }}
+                    title="أضف للسلة"
+                  >
+                    {justAddedId === product.id ? (
+                      <IconCheckCircle size={offset === 0 ? 14 : 13} />
+                    ) : (
+                      <IconShoppingCart size={offset === 0 ? 13 : 12} />
+                    )}
+                  </button>
+
                   <div
                     style={{
                       display: 'inline-flex',
@@ -654,38 +702,6 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                       </span>
                     )}
                   </div>
-
-                  <button
-                    type="button"
-                    onClick={(e) => handleInstantAdd(e, product)}
-                    disabled={isOutOfStock}
-                    style={{
-                      width: `${metrics.cartBtnSize}px`,
-                      height: `${metrics.cartBtnSize}px`,
-                      borderRadius: '9999px',
-                      background:
-                        justAddedId === product.id
-                          ? '#16a34a'
-                          : isOutOfStock
-                          ? '#e2e8f0'
-                          : 'var(--storefront-primary-color, #588cb3)',
-                      color: '#ffffff',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                      flexShrink: 0,
-                      transition: 'background-color 0.16s ease',
-                    }}
-                    title="أضف للسلة"
-                  >
-                    {justAddedId === product.id ? (
-                      <IconCheckCircle size={offset === 0 ? 14 : 13} />
-                    ) : (
-                      <IconShoppingCart size={offset === 0 ? 13 : 12} />
-                    )}
-                  </button>
                 </div>
               </div>
             </div>
@@ -714,16 +730,16 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
               height: '35px',
               padding: '0 18px',
               borderRadius: '12px',
-              background: 'var(--storefront-primary-color, #588cb3)',
+              background: 'var(--storefront-primary-color, #2d68c4)',
               color: '#ffffff',
-              border: '1px solid var(--storefront-primary-color, #588cb3)',
+              border: '1px solid var(--storefront-primary-color, #2d68c4)',
               fontSize: '13px',
               fontWeight: 700,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              boxShadow: '0 4px 12px var(--storefront-primary-subtle, rgba(88, 140, 179, 0.24))',
+              boxShadow: '0 4px 12px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))',
               transition: 'all 0.2s ease',
             }}
           >
@@ -811,7 +827,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                       <span
                         style={{
                           fontWeight: 800,
-                          color: 'var(--storefront-primary-color, #588cb3)',
+                          color: 'var(--storefront-primary-color, #2d68c4)',
                           fontSize: '13.5px',
                         }}
                       >

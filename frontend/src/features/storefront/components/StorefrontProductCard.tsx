@@ -132,6 +132,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
   return (
     <div
       className={`storefront-product-card ${isWide ? 'storefront-product-card-wide' : ''}`}
+      onClick={() => onQuickView?.(product)}
       style={{
         background: '#ffffff',
         borderRadius: '22px',
@@ -144,13 +145,13 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         height: '100%',
         boxSizing: 'border-box',
         position: 'relative',
+        cursor: onQuickView ? 'pointer' : 'default',
         boxShadow: '0 2px 10px rgba(15, 23, 42, 0.03)',
       }}
     >
       {/* Pure White Seamless Studio Product Image Box */}
       <div
         className="storefront-product-photo-box"
-        onClick={() => onQuickView?.(product)}
         style={{
           cursor: onQuickView ? 'pointer' : 'default',
           width: isWide ? '180px' : '100%',
@@ -258,7 +259,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </div>
           )}
 
-          {/* Top Left: Interactive Wishlist Heart Button */}
+          {/* Top Left: Interactive Wishlist Heart Button (Solid crisp surface for 120Hz zero-blur-lag scrolling) */}
           <button
             className="storefront-product-fav-btn"
             type="button"
@@ -280,8 +281,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               margin: 0,
               boxSizing: 'border-box',
               flexShrink: 0,
-              background: 'rgba(255, 255, 255, 0.94)',
-              backdropFilter: 'blur(8px)',
+              background: '#ffffff',
               borderRadius: '12px',
               border: '1px solid #e2e8f0',
               boxShadow: '0 2px 6px rgba(15, 23, 42, 0.06)',
@@ -539,10 +539,10 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: 'var(--storefront-primary-color, #170e5e)',
+              background: 'var(--storefront-primary-color, #2d68c4)',
               borderRadius: '12px',
               padding: '3px',
-              boxShadow: '0 3px 12px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.14))',
+              boxShadow: '0 3px 12px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.18))',
               boxSizing: 'border-box',
               fontVariantNumeric: 'tabular-nums',
             }}
@@ -629,7 +629,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               padding: '0 14px',
               borderRadius: '12px',
               border: 'none',
-              background: justAdded ? '#16a34a' : 'var(--storefront-primary-color, #170e5e)',
+              background: justAdded ? '#16a34a' : 'var(--storefront-primary-color, #2d68c4)',
               color: 'var(--storefront-primary-contrast, #ffffff)',
               fontSize: '13px',
               fontWeight: 800,
@@ -638,7 +638,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               alignItems: 'center',
               justifyContent: 'center',
               gap: '6px',
-              boxShadow: '0 3px 10px var(--storefront-primary-subtle, rgba(0, 0, 0, 0.1))',
+              boxShadow: '0 3px 10px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.18))',
               boxSizing: 'border-box',
               whiteSpace: 'nowrap',
             }}

@@ -60,7 +60,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
               width: compact ? 18 : 26,
               height: compact ? 18 : 26,
               borderRadius: '50%',
-              background: isUnlocked ? '#16a34a' : '#170e5e',
+              background: isUnlocked ? '#16a34a' : 'var(--storefront-primary-color, #2d68c4)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -116,7 +116,7 @@ export const StorefrontFreeShippingBar = React.memo(function StorefrontFreeShipp
             height: '100%',
             background: isUnlocked
               ? 'linear-gradient(90deg, #22c55e, #16a34a)'
-              : 'linear-gradient(90deg, #3b82f6, #170e5e)',
+              : 'linear-gradient(90deg, #3b76d8, var(--storefront-primary-color, #2d68c4))',
             borderRadius: '999px',
             transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
           }}

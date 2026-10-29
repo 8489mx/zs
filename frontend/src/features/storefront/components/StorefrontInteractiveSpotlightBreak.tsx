@@ -4,7 +4,7 @@ import type { StorefrontProduct } from '../types/storefront.types';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import { ShoppingCartIcon, CheckCircleIcon, EyeIcon } from '@/shared/components/icons/AppIcons';
 import { resolveProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
-import { IconStar, IconWhatsapp } from './StorefrontIcons';
+import { IconWhatsapp } from './StorefrontIcons';
 
 interface StorefrontInteractiveSpotlightBreakProps {
   product: StorefrontProduct;
@@ -233,12 +233,6 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
           {/* Unboxed Metadata Line */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#cbd5e1', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
             <span style={{ color: '#fbbf24' }}>{product.categoryName || 'أفضل العروض'}</span>
-            <span>·</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <IconStar size={13} fill="#fbbf24" color="#fbbf24" />
-              <strong style={{ color: '#ffffff' }}>{Number(product.rating || 4.9).toFixed(1)}</strong>
-              <span>({product.reviewCount || 120} تقييم)</span>
-            </span>
           </div>
 
           <h3

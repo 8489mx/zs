@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { StorefrontProduct, StorefrontCategory, StorefrontInfo } from '../types/storefront.types';
 import { StorefrontShelfSection } from './StorefrontShelfSection';
 import { StorefrontMidBannerCard } from './StorefrontMidBannerCard';
+import { StorefrontAmazonVibrantSection } from './StorefrontAmazonVibrantSection';
 
 interface TopHomepageSection {
   categoryId: number;
@@ -46,6 +47,14 @@ export function StorefrontMultiRowHome({
 }: StorefrontMultiRowHomeProps) {
   const { t } = useTranslation();
 
+  const vibrantProducts = React.useMemo(() => {
+    if (dealsProducts && dealsProducts.length > 0) return dealsProducts;
+    const all: StorefrontProduct[] = [];
+    for (const sec of topHomepageSections) {
+      all.push(...sec.products);
+    }
+    return all;
+  }, [dealsProducts, topHomepageSections]);
 
   const isMidBannersActive = info.midBannersEnabled !== false;
   const validMidBanners = isMidBannersActive && Array.isArray(info.midBanners)
@@ -66,6 +75,15 @@ export function StorefrontMultiRowHome({
 
   return (
     <div className="storefront-homepage-sections">
+      {/* Row 0: Vibrant Amazon-Style Campaign Cards & Quick Deal Tiles */}
+      <StorefrontAmazonVibrantSection
+        products={vibrantProducts}
+        categories={categories}
+        onSelectDeals={onSelectDeals}
+        onSelectCategory={onSelectCategory}
+        onQuickView={onQuickView}
+      />
+
       {/* Row 1: Deals Spotlight Shelf */}
       {dealsProducts.length > 0 && (
         <StorefrontShelfSection

@@ -18,7 +18,7 @@ const shimmer: React.CSSProperties = {
   borderRadius: '10px',
 };
 
-export function StorefrontSkeleton({ brandColor = '#170e5e', cards = 8 }: StorefrontSkeletonProps) {
+export function StorefrontSkeleton({ brandColor = '#2d68c4', cards = 8 }: StorefrontSkeletonProps) {
   const { t } = useTranslation();
   return (
     <div

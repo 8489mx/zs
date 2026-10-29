@@ -6,7 +6,7 @@ function svgDataUri(svgContent: string): string {
 }
 
 // Bespoke Multi-Layered Studio Vector Illustrations for Categories (Rich Cover Artwork for Bento & Category Circles)
-const CAT_FASHION_SVG = svgDataUri(`
+export const CAT_FASHION_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <rect width="400" height="400" fill="#ffffff"/>
   <path d="M125 95 L165 75 L235 75 L275 95 L335 145 L302 192 L265 168 L265 325 L135 325 L135 168 L98 192 L65 145 Z" fill="#1e293b" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>
@@ -18,7 +18,7 @@ const CAT_FASHION_SVG = svgDataUri(`
 </svg>
 `);
 
-const CAT_TECH_SVG = svgDataUri(`
+export const CAT_TECH_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <rect width="400" height="400" fill="#ffffff"/>
   <rect x="135" y="75" width="130" height="250" rx="26" fill="#0f172a" stroke="#475569" stroke-width="6"/>
@@ -29,7 +29,7 @@ const CAT_TECH_SVG = svgDataUri(`
 </svg>
 `);
 
-const CAT_SHOES_SVG = svgDataUri(`
+export const CAT_SHOES_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <rect width="400" height="400" fill="#ffffff"/>
   <path d="M75 245 Q90 185 155 180 L215 135 Q235 125 250 155 L285 160 Q325 180 330 245 Z" fill="#e11d48"/>
@@ -40,7 +40,7 @@ const CAT_SHOES_SVG = svgDataUri(`
 </svg>
 `);
 
-const CAT_PERFUME_SVG = svgDataUri(`
+export const CAT_PERFUME_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <rect width="400" height="400" fill="#ffffff"/>
   <rect x="176" y="76" width="48" height="28" rx="6" fill="#d97706"/>
@@ -52,7 +52,7 @@ const CAT_PERFUME_SVG = svgDataUri(`
 </svg>
 `);
 
-const CAT_WATCHES_SVG = svgDataUri(`
+export const CAT_WATCHES_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <rect width="400" height="400" fill="#ffffff"/>
   <rect x="168" y="60" width="64" height="280" rx="16" fill="#78350f"/>
@@ -65,7 +65,7 @@ const CAT_WATCHES_SVG = svgDataUri(`
 `);
 
 // Bespoke Studio Product Illustrations on Pure #ffffff Seamless Background (600x600, 100% Pure Vector — Zero Bitmap Filters)
-const PROD_LINEN_SHIRT_SVG = svgDataUri(`
+export const PROD_LINEN_SHIRT_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p1Fabric" x1="0" y1="0" x2="1" y2="1">
@@ -94,7 +94,7 @@ const PROD_LINEN_SHIRT_SVG = svgDataUri(`
 </svg>
 `);
 
-const PROD_SNEAKER_SVG = svgDataUri(`
+export const PROD_SNEAKER_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p2Upper" x1="0" y1="0" x2="1" y2="1">
@@ -118,7 +118,7 @@ const PROD_SNEAKER_SVG = svgDataUri(`
 </svg>
 `);
 
-const PROD_SMARTWATCH_SVG = svgDataUri(`
+export const PROD_SMARTWATCH_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p3Case" x1="0" y1="0" x2="1" y2="1">
@@ -147,7 +147,7 @@ const PROD_SMARTWATCH_SVG = svgDataUri(`
 </svg>
 `);
 
-const PROD_PERFUME_SVG = svgDataUri(`
+export const PROD_PERFUME_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p4Bottle" x1="0" y1="0" x2="1" y2="1">
@@ -177,7 +177,7 @@ const PROD_PERFUME_SVG = svgDataUri(`
 </svg>
 `);
 
-const PROD_HEADPHONES_SVG = svgDataUri(`
+export const PROD_HEADPHONES_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p5Metal" x1="0" y1="0" x2="1" y2="1">
@@ -200,7 +200,7 @@ const PROD_HEADPHONES_SVG = svgDataUri(`
 </svg>
 `);
 
-const PROD_BACKPACK_SVG = svgDataUri(`
+export const PROD_BACKPACK_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p6Bag" x1="0" y1="0" x2="1" y2="1">
@@ -221,7 +221,7 @@ const PROD_BACKPACK_SVG = svgDataUri(`
 </svg>
 `);
 
-const PROD_SUNGLASSES_SVG = svgDataUri(`
+export const PROD_SUNGLASSES_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p7Lens" x1="0" y1="0" x2="1" y2="1">
@@ -244,7 +244,7 @@ const PROD_SUNGLASSES_SVG = svgDataUri(`
 </svg>
 `);
 
-const PROD_JACKET_SVG = svgDataUri(`
+export const PROD_JACKET_SVG = svgDataUri(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
   <defs>
     <linearGradient id="p8Coat" x1="0" y1="0" x2="1" y2="1">
@@ -282,12 +282,25 @@ const HERO_BANNER_1_SVG = svgDataUri(`
 </svg>
 `);
 
+import {
+  SHIRT_PHOTO,
+  SNEAKER_PHOTO,
+  SMARTWATCH_PHOTO,
+  PERFUME_PHOTO,
+  HEADPHONES_PHOTO,
+  BACKPACK_PHOTO,
+  SUNGLASSES_PHOTO,
+  JACKET_PHOTO,
+  IPHONE_PHOTO,
+  WATCH_CLASSIC_PHOTO,
+} from './product-photos-registry';
+
 export const DEMO_STOREFRONT_CATEGORIES: StorefrontCategory[] = [
-  { id: 1, name: 'أزياء وملابس', imageUrl: CAT_FASHION_SVG },
-  { id: 2, name: 'إلكترونيات وهواتف', imageUrl: CAT_TECH_SVG },
-  { id: 3, name: 'أحذية وحقائب', imageUrl: CAT_SHOES_SVG },
-  { id: 4, name: 'عطور ومستحضرات', imageUrl: CAT_PERFUME_SVG },
-  { id: 5, name: 'ساعات وإكسسوارات', imageUrl: CAT_WATCHES_SVG },
+  { id: 1, name: 'أزياء وملابس', imageUrl: SHIRT_PHOTO },
+  { id: 2, name: 'إلكترونيات وهواتف', imageUrl: IPHONE_PHOTO },
+  { id: 3, name: 'أحذية وحقائب', imageUrl: SNEAKER_PHOTO },
+  { id: 4, name: 'عطور ومستحضرات', imageUrl: PERFUME_PHOTO },
+  { id: 5, name: 'ساعات وإكسسوارات', imageUrl: WATCH_CLASSIC_PHOTO },
 ];
 
 export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
@@ -305,8 +318,8 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 45,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_LINEN_SHIRT_SVG,
-    description: 'قميص كتان طبيعي ناعم ومريح مناسب لجميع الأوقات، خياطة متقونة وجودة فاخرة تمنحك حضوراً أنيقاً.',
+    imageUrl: SHIRT_PHOTO,
+    description: 'قميص كتان طبيعي ناعم ومريح مناسب لجميع الأوقات، خياطة متقنة وجودة فاخرة تمنحك حضوراً أنيقاً.',
     rating: 4.9,
     reviewCount: 142,
     variants: [
@@ -330,7 +343,7 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 28,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_SNEAKER_SVG,
+    imageUrl: SNEAKER_PHOTO,
     description: 'حذاء جري خفيف بنعل فوم مرن ديناميكي لتوفير أقصى درجات الراحة طوال اليوم وأثناء الحركة السريعة.',
     rating: 4.9,
     reviewCount: 96,
@@ -355,8 +368,8 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 18,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_SMARTWATCH_SVG,
-    description: 'ساعة ذكية بإطار تيتانيوم وشاشة AMOLED فائقة الوضوح، مستشعرات حيوية دقيقة، ومقاومة كاملة للماء.',
+    imageUrl: SMARTWATCH_PHOTO,
+    description: 'ساعة ذكية بإطار معدني وشاشة AMOLED فائقة الوضوح، مستشعرات حيوية دقيقة، ومقاومة كاملة للماء.',
     rating: 5.0,
     reviewCount: 215,
   },
@@ -374,7 +387,7 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 35,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_PERFUME_SVG,
+    imageUrl: PERFUME_PHOTO,
     description: 'مزيج فاخر من دهن العود المعتق والمسك الأبيض والعنبر الملكي، ثبات يدوم لأكثر من 48 ساعة.',
     rating: 4.8,
     reviewCount: 84,
@@ -393,7 +406,7 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 40,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_HEADPHONES_SVG,
+    imageUrl: HEADPHONES_PHOTO,
     description: 'صوت محيطي فائق النقاء مع تقنية إلغاء الضوضاء النشطة ANC وبطارية تدوم حتى 36 ساعة تشغيل متواصل.',
     rating: 4.9,
     reviewCount: 168,
@@ -412,7 +425,7 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 22,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_BACKPACK_SVG,
+    imageUrl: BACKPACK_PHOTO,
     description: 'حقيبة عملية مبطنة لحماية أجهزة اللابتوب حتى 16 بوصة مع جيوب ذكية متعددة ومنفذ شحن مدمج.',
     rating: 4.7,
     reviewCount: 52,
@@ -431,7 +444,7 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 50,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_SUNGLASSES_SVG,
+    imageUrl: SUNGLASSES_PHOTO,
     description: 'عدسات مستقطبة عالية الدقة لحماية العين من الأشعة فوق البنفسجية بإطار معدني مذهب خفيف الوزن.',
     rating: 4.8,
     reviewCount: 47,
@@ -450,13 +463,13 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
     stockQty: 5,
     inStock: true,
     icon: 'PackageIcon',
-    imageUrl: PROD_JACKET_SVG,
+    imageUrl: JACKET_PHOTO,
     description: 'جاكيت حراري دافئ بخامات معالجة مقاومة للماء والرياح لإطلالة شتوية عصرية وفخمة.',
     rating: 4.9,
     reviewCount: 89,
     variants: [
-      { name: 'أخضر زمردي - L', price: 1150 },
-      { name: 'أخضر زمردي - XL', price: 1150 },
+      { name: 'كحلي كلاسيكي - L', price: 1150 },
+      { name: 'كحلي كلاسيكي - XL', price: 1150 },
       { name: 'أسود مطفي - L', price: 1150 },
     ],
   },
@@ -476,8 +489,8 @@ export const DEMO_STOREFRONT_INFO: StorefrontInfo = {
   bannerFit: 'cover',
   logoUrl: '/logo.png',
   logo_url: '/logo.png',
-  brandColor: '#588cb3',
-  brandSecondaryColor: '#2d6c97',
+  brandColor: '#2d68c4',
+  brandSecondaryColor: '#2353a0',
   brandSurfaceColor: '#f8fafc',
   themePreset: 'modern-navy',
   currency: 'EGP',

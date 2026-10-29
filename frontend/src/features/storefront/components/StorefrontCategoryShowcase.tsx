@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useRef, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
-import { getAutoProductPhoto, generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
+import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 import { IconShoppingBag, IconFolder } from './StorefrontIcons';
 
 interface StorefrontCategoryShowcaseProps {
@@ -29,18 +29,6 @@ function formatSmartCategoryName(categoryName?: string): string {
   }
   return trimmed;
 }
-
-const CLEAN_FASHION_SQUARE_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
-    <rect width="400" height="400" fill="#ffffff"/>
-    <path d="M125 95 L165 75 L235 75 L275 95 L335 145 L302 192 L265 168 L265 325 L135 325 L135 168 L98 192 L65 145 Z" fill="#1e293b" stroke="#0f172a" stroke-width="4" stroke-linejoin="round"/>
-    <path d="M165 75 L200 125 L235 75" fill="#e2e8f0" stroke="#0f172a" stroke-width="3"/>
-    <circle cx="200" cy="155" r="4.5" fill="#f8fafc"/>
-    <circle cx="200" cy="195" r="4.5" fill="#f8fafc"/>
-    <circle cx="200" cy="235" r="4.5" fill="#f8fafc"/>
-    <circle cx="200" cy="275" r="4.5" fill="#f8fafc"/>
-  </svg>`.trim().replace(/\s+/g, ' ')
-)}`;
 
 export function StorefrontCategoryShowcase({
   categories,
@@ -150,9 +138,9 @@ export function StorefrontCategoryShowcase({
               width: '68px',
               height: '68px',
               borderRadius: '18px',
-              background: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #588cb3)' : '#ffffff',
-              color: selectedCategoryId === 'all' ? '#ffffff' : 'var(--storefront-primary-color, #588cb3)',
-              border: selectedCategoryId === 'all' ? '2px solid var(--storefront-primary-color, #588cb3)' : '1.5px solid #E0E3E7',
+              background: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #2d68c4)' : '#ffffff',
+              color: selectedCategoryId === 'all' ? '#ffffff' : 'var(--storefront-primary-color, #2d68c4)',
+              border: selectedCategoryId === 'all' ? '2px solid var(--storefront-primary-color, #2d68c4)' : '1.5px solid #E0E3E7',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -160,14 +148,14 @@ export function StorefrontCategoryShowcase({
               boxSizing: 'border-box',
               boxShadow:
                 selectedCategoryId === 'all'
-                  ? '0 6px 16px var(--storefront-primary-subtle, rgba(88, 140, 179, 0.24))'
+                  ? '0 6px 16px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))'
                   : '0 2px 6px rgba(15, 23, 42, 0.04)',
               transition: 'all 0.2s ease',
             }}
           >
             <IconShoppingBag
               size={24}
-              color={selectedCategoryId === 'all' ? '#ffffff' : '#588cb3'}
+              color={selectedCategoryId === 'all' ? '#ffffff' : '#2d68c4'}
               strokeWidth={2}
             />
           </div>
@@ -189,11 +177,10 @@ export function StorefrontCategoryShowcase({
         {/* Top 10 Curated Category Rounded-Square Cards */}
         {topCategories.map((cat) => {
           const isSelected = selectedCategoryId === cat.id;
-          const rawPhotoUrl = cat.imageUrl || getAutoProductPhoto(cat.name, cat.name);
           const photoUrl =
-            rawPhotoUrl && (rawPhotoUrl.includes('cfBg') || rawPhotoUrl.includes('600%20400') || rawPhotoUrl.includes('600 400'))
-              ? CLEAN_FASHION_SQUARE_SVG
-              : rawPhotoUrl;
+            cat.imageUrl && !cat.imageUrl.startsWith('data:image/svg+xml')
+              ? cat.imageUrl
+              : generatePremiumProductSvg(cat.name, cat.name);
 
           return (
             <div
@@ -221,10 +208,10 @@ export function StorefrontCategoryShowcase({
                   height: '68px',
                   borderRadius: '18px',
                   overflow: 'hidden',
-                  border: isSelected ? '2px solid var(--storefront-primary-color, #588cb3)' : '1.5px solid #E0E3E7',
+                  border: isSelected ? '2px solid var(--storefront-primary-color, #2d68c4)' : '1.5px solid #E0E3E7',
                   marginBottom: '8px',
                   boxShadow: isSelected
-                    ? '0 6px 16px var(--storefront-primary-subtle, rgba(88, 140, 179, 0.24))'
+                    ? '0 6px 16px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))'
                     : '0 2px 6px rgba(15, 23, 42, 0.04)',
                   position: 'relative',
                   background: '#ffffff',

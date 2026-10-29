@@ -1160,140 +1160,80 @@ export const SEMANTIC_PHOTO_RULES: SemanticPhotoRule[] = [
   },
 ];
 
+import {
+  SHIRT_PHOTO,
+  SNEAKER_PHOTO,
+  SMARTWATCH_PHOTO,
+  PERFUME_PHOTO,
+  HEADPHONES_PHOTO,
+  BACKPACK_PHOTO,
+  SUNGLASSES_PHOTO,
+  JACKET_PHOTO,
+  IPHONE_PHOTO,
+  LAPTOP_PHOTO,
+  WATCH_CLASSIC_PHOTO,
+  SNEAKER_2_PHOTO,
+} from './product-photos-registry';
+
 /**
- * Generates an ultra-clean, studio-quality vector SVG data URI placeholder
- * with an adaptive industry silhouette and elegant typography (Zero eye strain).
+ * Returns a real, studio-cutout transparent product photograph
+ * matched to the product name and category (Zero cartoon SVGs, zero external 404s).
  */
 export function generatePremiumProductSvg(productName: string, categoryName?: string): string {
   const cleanTitle = (productName || '').trim();
   const cleanCat = (categoryName || '').trim();
   const combined = `${cleanTitle} ${cleanCat}`.toLowerCase();
 
-  const isPhone = /ايفون|آيفون|iphone|سامسونج|samsung|جالكسي|galaxy|شاومي|xiaomi|ريدمي|redmi|ريلمي|realme|انفينكس|infinix|اوبو|oppo|هونر|honor|موبايل|هاتف|هواتف|phone|mobile|فلاجشيب|flagship/.test(combined);
-  const isPC = /لابتوب|laptop|كمبيوتر|ماكبوك|macbook|بي سي|كيس|شاش|monitor|ماوس|كيبورد|معالج|cpu|gpu|كارت شاش|رام|ram|ssd|هارد|راوتر|router|طابع|printer/.test(combined);
-  const isAudio = /سماع|سماعات|ايربودز|airpods|headphone|earbud|headset|صوت|صوتيات|ميكروفون|مايك|اسبيكر|speaker/.test(combined);
-  const isCharger = /شاحن|شواحن|باور بنك|power bank|بطاري|بطاريات|كابل|كيبل|cable|وصل|usb|type c|تايب سي|لايتنج|lightning/.test(combined);
-  const isSmartwatch = /ساع|ساعة|ساعات|smartwatch|watch|سوار|باند|band/.test(combined);
-  const isHerbal = /عطار|توابل|بهار|اعشاب|أعشاب|كمون|فلفل|قرف|قرفة|زنجبيل|كركم|كاري|زعتر|ينسون|كركديه|قرنفل|حبه البركه|حبة البركة|مكسرات|لوز|فستق|كاجو|عسل|زيوت طبيعي/.test(combined);
-  const isFood = /وجب|سندوتش|ساندوتش|صاروخ|برجر|شاورما|فرايز|بطاطس|بيتزا|كفتة|كفته|بانيه|بانية|استربس|ستربس|كريب|مشوي|مشويات|طاجن|طواجن|فطير|حواوشي|دجاج|فراخ|لحم|ناجتس/.test(combined);
-  const isFashion = /قميص|بنطلون|فستان|تيشيرت|حذاء|شنط|ملابس|كوتشي|جاكيت|سويت شيرت|عباي|طرح|نظار/.test(combined);
-  const isPerfume = /عطر|عطور|عطورات|مسك|عود|عودة|بخور|دخون|perfume|perfumes|fragrance|parfum|spray|بخاخ|معطر|معطرات|لوشن|تواليت|كولونيا|مبخر|amber|musk|oud|mist/.test(combined);
-
-  let theme = {
-    bg: '#f8fafc',
-    border: '#e2e8f0',
-    icon: `
-      <rect x="85" y="87" width="30" height="28" rx="6" fill="#475569" opacity="0.12" stroke="#475569" stroke-width="2" />
-      <path d="M92 87v-3a8 8 0 0 1 16 0v3" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" />
-      <circle cx="100" cy="101" r="3" fill="#475569" />
-    `,
-  };
-
-  if (isAudio) {
-    theme = {
-      bg: '#e0f2fe',
-      border: '#bae6fd',
-      icon: `
-        <path d="M85 103v-5a15 15 0 0 1 30 0v5" fill="none" stroke="#0284c7" stroke-width="2.6" stroke-linecap="round" />
-        <rect x="81" y="96" width="7" height="13" rx="3.5" fill="#0284c7" />
-        <rect x="112" y="96" width="7" height="13" rx="3.5" fill="#0284c7" />
-      `,
-    };
-  } else if (isPhone) {
-    theme = {
-      bg: '#f3e8ff',
-      border: '#e9d5ff',
-      icon: `
-        <rect x="88" y="83" width="24" height="38" rx="6" fill="#7e22ce" opacity="0.12" stroke="#7e22ce" stroke-width="2" />
-        <line x1="97" y1="87" x2="103" y2="87" stroke="#7e22ce" stroke-width="1.8" stroke-linecap="round" />
-        <circle cx="100" cy="115" r="1.5" fill="#7e22ce" />
-      `,
-    };
-  } else if (isPC) {
-    theme = {
-      bg: '#eef2ff',
-      border: '#c7d2fe',
-      icon: `
-        <rect x="84" y="85" width="32" height="21" rx="2.5" fill="#4338ca" opacity="0.12" stroke="#4338ca" stroke-width="2" />
-        <path d="M78 110h44a2 2 0 0 1 2 2v1H76v-1a2 2 0 0 1 2-2z" fill="#4338ca" />
-      `,
-    };
-  } else if (isCharger) {
-    theme = {
-      bg: '#ecfdf5',
-      border: '#a7f3d0',
-      icon: `
-        <rect x="87" y="89" width="26" height="25" rx="5" fill="#059669" opacity="0.12" stroke="#059669" stroke-width="2" />
-        <line x1="94" y1="83" x2="94" y2="89" stroke="#059669" stroke-width="2" stroke-linecap="round" />
-        <line x1="106" y1="83" x2="106" y2="89" stroke="#059669" stroke-width="2" stroke-linecap="round" />
-        <circle cx="100" cy="101" r="3" fill="#059669" />
-      `,
-    };
-  } else if (isSmartwatch) {
-    theme = {
-      bg: '#f0fdf4',
-      border: '#bbf7d0',
-      icon: `
-        <rect x="93" y="80" width="14" height="40" rx="3" fill="#16a34a" opacity="0.18" />
-        <rect x="87" y="87" width="26" height="26" rx="7" fill="#ffffff" stroke="#16a34a" stroke-width="2" />
-        <circle cx="100" cy="100" r="3.5" fill="#16a34a" />
-      `,
-    };
-  } else if (isHerbal) {
-    theme = {
-      bg: '#fef3c7',
-      border: '#fde68a',
-      icon: `
-        <rect x="87" y="91" width="26" height="25" rx="5" fill="#d97706" opacity="0.12" stroke="#d97706" stroke-width="2" />
-        <rect x="91" y="86" width="18" height="5" rx="1.5" fill="#b45309" />
-        <path d="M100 96c3.5 0 5.5 3 5.5 6.5-3.5 0-5.5-3-5.5-6.5z" fill="#059669" />
-        <path d="M100 96c-3.5 0-5.5 3-5.5 6.5 3.5 0 5.5-3 5.5-6.5z" fill="#047857" />
-      `,
-    };
-  } else if (isFood) {
-    theme = {
-      bg: '#fff7ed',
-      border: '#fed7aa',
-      icon: `
-        <path d="M84 104c0-9 7-16 16-16s16 7 16 16H84z" fill="#ea580c" opacity="0.15" stroke="#ea580c" stroke-width="2" />
-        <circle cx="100" cy="85" r="2.5" fill="#ea580c" />
-        <line x1="80" y1="107" x2="120" y2="107" stroke="#ea580c" stroke-width="2" stroke-linecap="round" />
-      `,
-    };
-  } else if (isFashion) {
-    theme = {
-      bg: '#fdf2f8',
-      border: '#fbcfe8',
-      icon: `
-        <path d="M100 87a4 4 0 0 1 4 4c0 3-3 4-4 4" fill="none" stroke="#db2777" stroke-width="2" stroke-linecap="round" />
-        <path d="M100 95l-19 12a1.5 1.5 0 0 0 .7 2.8h36.6a1.5 1.5 0 0 0 .7-2.8L100 95z" fill="#db2777" opacity="0.12" stroke="#db2777" stroke-width="2" />
-      `,
-    };
-  } else if (isPerfume) {
-    theme = {
-      bg: '#fdf4ff',
-      border: '#f5d0fe',
-      icon: `
-        <rect x="92" y="80" width="16" height="8" rx="2" fill="#a21caf" />
-        <rect x="95" y="76" width="10" height="4" rx="1" fill="#c026d3" opacity="0.6" />
-        <rect x="85" y="88" width="30" height="36" rx="6" fill="#a21caf" opacity="0.16" stroke="#a21caf" stroke-width="2" />
-        <rect x="91" y="96" width="18" height="18" rx="2" fill="#ffffff" stroke="#c026d3" stroke-width="1.2" opacity="0.9" />
-      `,
-    };
+  if (/نظار|sunglass|glasses|uv400/.test(combined)) {
+    return SUNGLASSES_PHOTO;
+  }
+  if (/حقيب|شنط|ظهر|backpack|bag/.test(combined)) {
+    return BACKPACK_PHOTO;
+  }
+  if (/حذاء|كوتشي|جزمة|رياضي|sneaker|shoe|أحذية/.test(combined)) {
+    return SNEAKER_PHOTO;
+  }
+  if (/عطر|عطور|مسك|عود|بخور|perfume|fragrance|parfum/.test(combined)) {
+    return PERFUME_PHOTO;
+  }
+  if (/سماع|ايربودز|airpods|headphone|earbud|headset|صوت/.test(combined)) {
+    return HEADPHONES_PHOTO;
+  }
+  if (/ذكية|smartwatch|ultra|سوار|باند/.test(combined)) {
+    return SMARTWATCH_PHOTO;
+  }
+  if (/ساع|ساعة|ساعات|watch|إكسسوارات/.test(combined)) {
+    return WATCH_CLASSIC_PHOTO;
+  }
+  if (/لابتوب|laptop|كمبيوتر|ماكبوك|macbook/.test(combined)) {
+    return LAPTOP_PHOTO;
+  }
+  if (/ايفون|آيفون|iphone|سامسونج|samsung|شاومي|موبايل|هاتف|هواتف|phone|إلكترونيات/.test(combined)) {
+    return IPHONE_PHOTO;
+  }
+  if (/جاكيت|شتوي|معطف|بلوفر|سويت شيرت|jacket|coat/.test(combined)) {
+    return JACKET_PHOTO;
+  }
+  if (/قميص|تيشيرت|بنطلون|ملابس|أزياء|shirt|fashion/.test(combined)) {
+    return SHIRT_PHOTO;
   }
 
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
-      <!-- Seamless 100% Pure White Studio Surface -->
-      <rect width="200" height="200" fill="#ffffff" />
-      <!-- Crisp Centered Vector Icon -->
-      <g transform="translate(-100, -100) scale(2)">
-        ${theme.icon}
-      </g>
-    </svg>
-  `.trim().replace(/\s+/g, ' ');
-
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  const fallbackPool = [
+    SHIRT_PHOTO,
+    SNEAKER_PHOTO,
+    SMARTWATCH_PHOTO,
+    PERFUME_PHOTO,
+    HEADPHONES_PHOTO,
+    BACKPACK_PHOTO,
+    SUNGLASSES_PHOTO,
+    JACKET_PHOTO,
+    SNEAKER_2_PHOTO,
+  ];
+  let hash = 0;
+  for (let i = 0; i < combined.length; i++) {
+    hash = (hash * 31 + combined.charCodeAt(i)) >>> 0;
+  }
+  return fallbackPool[hash % fallbackPool.length];
 }
 
 const photoCache = new Map<string, string>();

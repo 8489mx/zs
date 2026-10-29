@@ -9,13 +9,13 @@
   --storefront-container: 1440px;
   /* ارتفاع بار السلة السفلي — تقرؤه شبكة المنتجات لتترك مساحة أسفلها */
   --storefront-dock-height: 84px;
-  --storefront-primary-color: #588cb3;
-  --storefront-primary-hover: #477ba2;
+  --storefront-primary-color: #2d68c4;
+  --storefront-primary-hover: #2353a0;
   --storefront-primary-contrast: #ffffff;
-  --storefront-primary-subtle: rgba(88, 140, 179, 0.14);
-  --storefront-secondary-color: #2d6c97;
+  --storefront-primary-subtle: rgba(45, 104, 196, 0.14);
+  --storefront-secondary-color: #2353a0;
   --storefront-secondary-contrast: #ffffff;
-  --storefront-secondary-subtle: rgba(45, 108, 151, 0.12);
+  --storefront-secondary-subtle: rgba(35, 83, 160, 0.12);
   --storefront-surface-color: #f8fafc;
   --storefront-surface-contrast: #0f172a;
   --storefront-surface-border: #e2e8f0;
@@ -872,48 +872,79 @@ body.storefront-standalone-mode .dialog-shell,
 }
 
 /* ==========================================================================
-   60fps Compositor-Only Micro-interactions & Luxury Card Physics
+   120Hz ProMotion Compositor-Only Micro-interactions & Apple iOS Card Physics
    ========================================================================== */
+html.storefront-standalone-mode, body.storefront-standalone-mode {
+  scroll-behavior: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+.storefront-section-card {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 410px;
+}
+
+.sf-amz-vibrant-section {
+  contain: layout style;
+}
+
 .storefront-product-card {
-  will-change: transform;
-  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  contain: layout style paint;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .storefront-product-img {
-  will-change: transform, opacity;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
 }
 
 @media (min-width: 641px) {
   .storefront-product-card:hover {
-    transform: translateY(-4px);
+    will-change: transform;
+    transform: translate3d(0, -4px, 0);
     border-color: #cbd5e1 !important;
   }
   .storefront-product-card:hover .storefront-product-img {
-    transform: scale(1.045);
+    transform: scale3d(1.045, 1.045, 1);
   }
 }
 
+/* Apple iOS Tactile Press Feedback when tapping any product card */
+.storefront-product-card:active,
+.sf-amz-quick-tile:active,
+.sf-amz-promo-card:active,
+.sf-amz-hero-orange-card:active {
+  transform: scale3d(0.96, 0.96, 1) !important;
+  transition: transform 0.1s cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
 .storefront-gpu-btn {
-  will-change: transform, opacity;
-  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.18s ease !important;
+  backface-visibility: hidden;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.18s ease !important;
 }
 
 .storefront-gpu-btn:hover {
-  transform: translateY(-1px);
+  transform: translate3d(0, -1px, 0);
   opacity: 0.95;
 }
 
 .storefront-gpu-btn:active {
-  transform: scale(0.97);
+  transform: scale3d(0.96, 0.96, 1);
 }
 
 .storefront-product-fav-btn {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .storefront-product-fav-btn:hover {
-  transform: scale(1.12);
+  transform: scale3d(1.12, 1.12, 1);
 }
 
 /* ==========================================================================

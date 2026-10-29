@@ -11,7 +11,6 @@ import { StorefrontLiveCartDock } from './StorefrontLiveCartDock';
 import { StorefrontCheckoutModal } from './StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from './StorefrontSuccessModal';
 import { StorefrontMyOrdersModal } from './StorefrontMyOrdersModal';
-import { StorefrontReviewModal } from './StorefrontReviewModal';
 import { StorefrontProductQuickViewModal } from './StorefrontProductQuickViewModal';
 
 interface StorefrontModalsProps {
@@ -104,11 +103,6 @@ export function StorefrontModals({
   onCloseMyOrders,
   onEditOrder,
   onReorder,
-
-  isReviewModalOpen,
-  reviewProduct,
-  onCloseReviewModal,
-  onReviewSubmitted,
 }: StorefrontModalsProps) {
   return (
     <>
@@ -174,30 +168,22 @@ export function StorefrontModals({
         onReorder={onReorder}
       />
 
-      {/* Product Quick View & Share Modal */}
-      {quickViewProduct && onCloseQuickView && onAddToCart && (
+      {/* Product Quick View & Share Modal (Always mounted for iOS spring open/close transitions) */}
+      {onCloseQuickView && onAddToCart && (
         <StorefrontProductQuickViewModal
           isOpen={Boolean(quickViewProduct)}
-          product={quickViewProduct}
+          product={quickViewProduct || null}
           info={info}
           tenantSlug={cleanSlug}
           onClose={onCloseQuickView}
           onAddToCart={onAddToCart}
           cartLine={(() => {
+            if (!quickViewProduct) return null;
             const line = cartItems.find((i) => Number(i.product.id) === Number(quickViewProduct.id));
             return line ? { variantName: line.product.variantName, quantity: line.quantity } : null;
           })()}
         />
       )}
-
-      {/* Customer Product Review Modal */}
-      <StorefrontReviewModal
-        isOpen={isReviewModalOpen}
-        product={reviewProduct}
-        slug={cleanSlug}
-        onClose={onCloseReviewModal}
-        onReviewSubmitted={onReviewSubmitted}
-      />
     </>
   );
 }

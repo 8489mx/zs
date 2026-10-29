@@ -105,9 +105,9 @@ export function StorefrontPredictiveSearch({
           background: '#ffffff',
           borderRadius: '9999px',
           padding: isScrolled ? '0 12px' : '0 12px',
-          border: isOpen ? '1.5px solid var(--storefront-primary-color, #588cb3)' : '1px solid #E0E3E7',
+          border: isOpen ? '1.5px solid var(--storefront-primary-color, #2d68c4)' : '1px solid #E0E3E7',
           transition: 'all 0.2s ease',
-          boxShadow: isOpen ? '0 4px 16px rgba(88, 140, 179, 0.12)' : '0 1px 2px rgba(15, 23, 42, 0.04)',
+          boxShadow: isOpen ? '0 4px 16px rgba(45, 104, 196, 0.14)' : '0 1px 2px rgba(15, 23, 42, 0.04)',
           boxSizing: 'border-box',
           height: isScrolled ? '36px' : '37px',
           position: 'relative',
@@ -257,7 +257,7 @@ export function StorefrontPredictiveSearch({
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = '#e2e8f0';
-                      e.currentTarget.style.color = 'var(--storefront-primary-color, #170e5e)';
+                      e.currentTarget.style.color = 'var(--storefront-primary-color, #2d68c4)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = '#f1f5f9';
@@ -342,7 +342,7 @@ export function StorefrontPredictiveSearch({
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                       <div style={{ textAlign: 'left' }}>
-                        <span style={{ fontSize: '13.5px', fontWeight: 900, color: 'var(--storefront-primary-color, #170e5e)' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 900, color: 'var(--storefront-primary-color, #2d68c4)' }}>
                           {Number(prod.price || 0).toLocaleString()}
                         </span>
                         <span style={{ fontSize: '10px', color: '#64748b', marginRight: '2px' }}>
@@ -391,7 +391,7 @@ export function StorefrontPredictiveSearch({
               textAlign: 'center',
               fontSize: '12px',
               fontWeight: 800,
-              color: 'var(--storefront-primary-color, #170e5e)',
+              color: 'var(--storefront-primary-color, #2d68c4)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',

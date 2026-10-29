@@ -32,7 +32,7 @@ export function getContrastTextColor(hexColor?: string, darkText = '#0f172a', li
 }
 
 export function getHexAlpha(hexColor: string, alpha: number): string {
-  if (!hexColor) return `rgba(88, 140, 179, ${alpha})`;
+  if (!hexColor) return `rgba(45, 104, 196, ${alpha})`;
   const clean = hexColor.replace('#', '').trim();
   const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
   if (full.length !== 6) return hexColor;
@@ -44,14 +44,14 @@ export function getHexAlpha(hexColor: string, alpha: number): string {
 }
 
 export function darkenHexColor(hexColor: string, factor = 0.85): string {
-  if (!hexColor) return '#477ba2';
+  if (!hexColor) return '#2353a0';
   const clean = hexColor.replace('#', '').trim();
   const full = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean;
-  if (full.length !== 6) return '#477ba2';
+  if (full.length !== 6) return '#2353a0';
   const r = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(0, 2), 16) * factor)));
   const g = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(2, 4), 16) * factor)));
   const b = Math.max(0, Math.min(255, Math.round(parseInt(full.slice(4, 6), 16) * factor)));
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#477ba2';
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#2353a0';
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
@@ -64,9 +64,17 @@ export function applyStorefrontThemeVariables(info?: {
   const root = document.documentElement;
 
   const rawBrand = (info?.brandColor || '').trim().toLowerCase();
-  const primary = !rawBrand || rawBrand === '#170e5e' || rawBrand === '#0f172a' ? '#588cb3' : info!.brandColor!;
-  const primaryHover = darkenHexColor(primary, 0.85);
-  const secondary = info?.brandSecondaryColor || '#2d6c97';
+  const isLegacyDefault =
+    !rawBrand ||
+    rawBrand === '#170e5e' ||
+    rawBrand === '#0f172a' ||
+    rawBrand === '#588cb3' ||
+    rawBrand === '#2d6c97' ||
+    rawBrand === '#0066ff';
+  const primary = isLegacyDefault ? '#2d68c4' : info!.brandColor!;
+  const primaryHover = darkenHexColor(primary, 0.82);
+  const rawSecondary = (info?.brandSecondaryColor || '').trim().toLowerCase();
+  const secondary = !rawSecondary || rawSecondary === '#2d6c97' || rawSecondary === '#0052cc' ? '#2353a0' : info!.brandSecondaryColor!;
   const surface = info?.brandSurfaceColor || '#f8fafc';
 
   const primaryContrast = getContrastTextColor(primary);

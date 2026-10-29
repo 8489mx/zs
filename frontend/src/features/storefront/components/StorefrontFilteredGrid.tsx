@@ -123,7 +123,7 @@ export function StorefrontFilteredGrid({
             borderRadius: '8px',
             background: '#f8fafc',
             border: '1px solid #cbd5e1',
-            color: '#170e5e',
+            color: 'var(--storefront-primary-color, #2d68c4)',
             cursor: 'pointer',
             flexShrink: 0,
             transition: 'all 0.15s ease',
@@ -182,8 +182,8 @@ export function StorefrontFilteredGrid({
             style={{
               fontSize: '10.5px',
               fontWeight: 700,
-              background: onlyFavorites ? '#fef2f2' : '#f0f3ff',
-              color: onlyFavorites ? '#dc2626' : '#170e5e',
+              background: onlyFavorites ? '#fef2f2' : 'var(--storefront-primary-subtle, rgba(45, 104, 196, 0.12))',
+              color: onlyFavorites ? '#dc2626' : 'var(--storefront-primary-color, #2d68c4)',
               border: onlyFavorites ? '1px solid #fecaca' : 'none',
               padding: '2px 6px',
               borderRadius: '5px',
@@ -381,7 +381,7 @@ export function StorefrontFilteredGrid({
             style={{
               padding: '8px 18px',
               borderRadius: '8px',
-              background: '#170e5e',
+              background: 'var(--storefront-primary-color, #2d68c4)',
               color: '#ffffff',
               border: 'none',
               fontSize: '12.5px',

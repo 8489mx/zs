@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { buildStorePublicUrl } from '@/lib/store-public-url';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { StorefrontProduct, StorefrontInfo } from '../types/storefront.types';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import {
@@ -14,11 +14,58 @@ import {
   TagIcon,
   CheckCircleIcon,
 } from '@/shared/components/icons/AppIcons';
-import { IconStar, IconFlame } from './StorefrontIcons';
+import { IconFlame } from './StorefrontIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import { buildCartProduct, getProductVariants, resolveVariantUnitPrice } from '../lib/storefront-variant-pricing';
 import { generatePremiumProductSvg, resolveProductPhoto } from '../lib/storefront-photo-matcher';
 import { getContrastTextColor } from '../lib/storefront-theme-contrast';
+
+interface TapOriginMetrics {
+  dx: number;
+  dy: number;
+  scale: number;
+  timestamp: number;
+}
+
+// Tracks the exact screen coordinates & bounding rect of the last tapped product card for Apple iOS spring morphing
+let lastProductTapOrigin: TapOriginMetrics | null = null;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener(
+    'pointerdown',
+    (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const cardEl = target.closest(
+        '.storefront-product-card, .storefront-coverflow-card, .sf-amz-quick-tile, .sf-amz-promo-card, .sf-amz-hero-orange-card, .storefront-deal-spotlight'
+      ) as HTMLElement | null;
+
+      const vw = window.innerWidth || 1280;
+      const vh = window.innerHeight || 800;
+
+      if (cardEl) {
+        const rect = cardEl.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const ratio = Math.min(rect.width / 480, rect.height / 560);
+        lastProductTapOrigin = {
+          dx: Math.round(cx - vw / 2),
+          dy: Math.round(cy - vh / 2),
+          scale: Number(Math.max(0.28, Math.min(0.52, ratio)).toFixed(3)),
+          timestamp: performance.now(),
+        };
+      } else if (e.clientX && e.clientY) {
+        lastProductTapOrigin = {
+          dx: Math.round(e.clientX - vw / 2),
+          dy: Math.round(e.clientY - vh / 2),
+          scale: 0.36,
+          timestamp: performance.now(),
+        };
+      }
+    },
+    { capture: true, passive: true }
+  );
+}
 
 interface StorefrontProductQuickViewModalProps {
   product: StorefrontProduct | null;
@@ -33,7 +80,7 @@ interface StorefrontProductQuickViewModalProps {
 }
 
 export function StorefrontProductQuickViewModal({
-  product,
+  product: propProduct,
   isOpen,
   onClose,
   onAddToCart,
@@ -43,44 +90,94 @@ export function StorefrontProductQuickViewModal({
   cartLine,
 }: StorefrontProductQuickViewModalProps) {
   const { t } = useTranslation();
+  const [mountedProduct, setMountedProduct] = useState<StorefrontProduct | null>(propProduct);
+  const [isClosing, setIsClosing] = useState(false);
+  const [originMetrics, setOriginMetrics] = useState<TapOriginMetrics>({ dx: 0, dy: 48, scale: 0.38, timestamp: 0 });
+  const closeTimerRef = useRef<number | null>(null);
+
   const [qty, setQty] = useState(1);
   const [copied, setCopied] = useState(false);
   const [addedAnimation, setAddedAnimation] = useState(false);
   const [activePhoto, setActivePhoto] = useState('');
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
 
-  // Escape key closes the QuickView modal
+  // Sync open/close state with Apple iOS spring launch & dismiss lifecycle
+  useEffect(() => {
+    if (isOpen && propProduct) {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+      // Use captured card origin if tapped recently (within 1.5s), else subtle bottom-up iOS spring
+      const now = performance.now();
+      if (lastProductTapOrigin && now - lastProductTapOrigin.timestamp < 1500) {
+        setOriginMetrics(lastProductTapOrigin);
+      } else {
+        setOriginMetrics({ dx: 0, dy: 64, scale: 0.42, timestamp: now });
+      }
+      setMountedProduct(propProduct);
+      setIsClosing(false);
+    } else if (!isOpen && mountedProduct) {
+      setIsClosing(true);
+      closeTimerRef.current = window.setTimeout(() => {
+        setMountedProduct(null);
+        setIsClosing(false);
+        closeTimerRef.current = null;
+      }, 280);
+    }
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, [isOpen, propProduct]);
+
+  const handleAnimatedClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    if (closeTimerRef.current) window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => {
+      setMountedProduct(null);
+      setIsClosing(false);
+      closeTimerRef.current = null;
+      onClose();
+    }, 260);
+  }, [isClosing, onClose]);
+
+  // Escape key closes the QuickView modal with iOS spring collapse
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleAnimatedClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleAnimatedClose]);
+
+  const product = propProduct || mountedProduct;
 
   useEffect(() => {
-    if (product) {
+    if (propProduct) {
       setQty(1);
       setCopied(false);
       setAddedAnimation(false);
-      const gallery = (product as any).gallery || [];
-      const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
-      const defaultPhoto = gallery[0] || product.imageUrl || autoPhoto.url || '';
+      const gallery = (propProduct as any).gallery || [];
+      const autoPhoto = resolveProductPhoto(propProduct.name, propProduct.categoryName);
+      const defaultPhoto = gallery[0] || propProduct.imageUrl || autoPhoto.url || '';
       setActivePhoto(defaultPhoto);
-      const variants = (product as any).variants || [];
+      const variants = (propProduct as any).variants || [];
       setSelectedVariantIndex(variants.length > 0 ? 0 : null);
     }
-  }, [product]);
+  }, [propProduct]);
 
-  if (!isOpen || !product) return null;
+  if (!product || (!isOpen && !mountedProduct)) return null;
 
   const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
   const displayPrimaryPhoto = product.imageUrl || autoPhoto.url || '';
 
-  const brandColor = info?.brandColor || 'var(--storefront-primary-color, #170e5e)';
+  const brandColor = info?.brandColor || 'var(--storefront-primary-color, #2d68c4)';
   const brandSurfaceColor = info?.brandSurfaceColor || 'var(--storefront-surface-color, #f8fafc)';
   const brandColorContrast = getContrastTextColor(info?.brandColor);
   const inStock = product.inStock !== false;
@@ -101,13 +198,6 @@ export function StorefrontProductQuickViewModal({
   );
 
   const effectiveSlug = tenantSlug || slug;
-  /*
-   * رابط المنتج القابل للمشاركة.
-   *
-   * كان `#product-<id>` — جزء Hash لا يصل إلى الخادم إطلاقاً، فلا تراه زواحف
-   * واتساب/فيسبوك ولا جوجل، وبالتالي لا بطاقة معاينة ولا فهرسة. صار مساراً
-   * حقيقياً `/p/:id` يقرؤه الخادم ويرد عليه بوسوم OG.
-   */
   const productUrl = `${effectiveSlug ? buildStorePublicUrl(effectiveSlug) : `${window.location.origin}${window.location.pathname.replace(/\/p\/\d+$/, '')}`}/p/${product.id}`;
 
   const handleShareWhatsApp = () => {
@@ -137,14 +227,14 @@ export function StorefrontProductQuickViewModal({
     });
     setTimeout(() => {
       setAddedAnimation(false);
-      onClose();
-    }, 450);
+      handleAnimatedClose();
+    }, 360);
   };
 
   return (
     <div
       dir="rtl"
-      className="sf-quickview-backdrop"
+      className={`sf-quickview-backdrop ${isClosing ? 'is-closing' : 'is-opening'}`}
       style={{
         position: 'fixed',
         inset: 0,
@@ -152,13 +242,139 @@ export function StorefrontProductQuickViewModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(5px)',
         padding: 'min(16px, 3vw)',
-      }}
-      onClick={onClose}
+        '--ios-origin-x': `${originMetrics.dx}px`,
+        '--ios-origin-y': `${originMetrics.dy}px`,
+        '--ios-init-scale': `${originMetrics.scale}`,
+      } as React.CSSProperties}
+      onClick={handleAnimatedClose}
     >
       <style>{`
+        /* ============================================================================
+           Apple iOS 18 App-Launch / App-Store Card Spring Morph Physics
+           ============================================================================ */
+        @keyframes sfIosBackdropIn {
+          0% {
+            background-color: rgba(15, 23, 42, 0);
+            backdrop-filter: blur(0px) saturate(100%);
+            -webkit-backdrop-filter: blur(0px) saturate(100%);
+          }
+          100% {
+            background-color: rgba(15, 23, 42, 0.56);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+          }
+        }
+
+        @keyframes sfIosBackdropOut {
+          0% {
+            background-color: rgba(15, 23, 42, 0.56);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+          }
+          100% {
+            background-color: rgba(15, 23, 42, 0);
+            backdrop-filter: blur(0px) saturate(100%);
+            -webkit-backdrop-filter: blur(0px) saturate(100%);
+          }
+        }
+
+        @keyframes sfIosAppLaunchOpen {
+          0% {
+            opacity: 0;
+            transform: translate3d(var(--ios-origin-x, 0px), var(--ios-origin-y, 48px), 0) scale3d(var(--ios-init-scale, 0.36), var(--ios-init-scale, 0.36), 1);
+            border-radius: 44px;
+          }
+          16% {
+            opacity: 1;
+          }
+          68% {
+            opacity: 1;
+            transform: translate3d(calc(var(--ios-origin-x, 0px) * -0.018), calc(var(--ios-origin-y, 48px) * -0.018), 0) scale3d(1.018, 1.018, 1);
+            border-radius: 25px;
+          }
+          86% {
+            transform: translate3d(0, 0, 0) scale3d(0.996, 0.996, 1);
+          }
+          100% {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+            border-radius: 26px;
+          }
+        }
+
+        @keyframes sfIosAppLaunchClose {
+          0% {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+            border-radius: 26px;
+          }
+          100% {
+            opacity: 0;
+            transform: translate3d(var(--ios-origin-x, 0px), var(--ios-origin-y, 48px), 0) scale3d(var(--ios-init-scale, 0.34), var(--ios-init-scale, 0.34), 1);
+            border-radius: 42px;
+          }
+        }
+
+        @keyframes sfIosPhotoFloatIn {
+          0% {
+            opacity: 0.4;
+            transform: scale3d(0.78, 0.78, 1) translate3d(0, 14px, 0);
+          }
+          66% {
+            opacity: 1;
+            transform: scale3d(1.035, 1.035, 1) translate3d(0, -2px, 0);
+          }
+          100% {
+            opacity: 1;
+            transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
+          }
+        }
+
+        @keyframes sfIosContentCascadeIn {
+          0% {
+            opacity: 0;
+            transform: translate3d(0, 16px, 0);
+          }
+          100% {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
+        }
+
+        .sf-quickview-backdrop.is-opening {
+          animation: sfIosBackdropIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .sf-quickview-backdrop.is-closing {
+          animation: sfIosBackdropOut 0.26s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+          pointer-events: none;
+        }
+
+        .sf-quickview-shell {
+          will-change: transform, opacity, border-radius;
+          transform-origin: center center;
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+        }
+        .sf-quickview-backdrop.is-opening .sf-quickview-shell {
+          animation: sfIosAppLaunchOpen 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .sf-quickview-backdrop.is-closing .sf-quickview-shell {
+          animation: sfIosAppLaunchClose 0.26s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+        }
+
+        .sf-quickview-backdrop.is-opening .sf-quickview-photo-img {
+          animation: sfIosPhotoFloatIn 0.54s cubic-bezier(0.22, 1, 0.36, 1) 0.03s both;
+        }
+        .sf-quickview-backdrop.is-opening .sf-quickview-info-section,
+        .sf-quickview-backdrop.is-opening .sf-quickview-highlights-box,
+        .sf-quickview-backdrop.is-opening .sf-quickview-share-bar {
+          animation: sfIosContentCascadeIn 0.44s cubic-bezier(0.22, 1, 0.36, 1) 0.07s both;
+        }
+        .sf-quickview-backdrop.is-opening .sf-quickview-footer {
+          animation: sfIosContentCascadeIn 0.44s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+        }
+
         .sf-highlight-text-mobile {
           display: none;
         }
@@ -172,7 +388,7 @@ export function StorefrontProductQuickViewModal({
           }
           .sf-quickview-shell {
             max-height: 94vh !important;
-            border-radius: 20px !important;
+            border-radius: 24px !important;
             width: 100% !important;
             max-width: min(100%, 460px) !important;
           }
@@ -375,19 +591,42 @@ export function StorefrontProductQuickViewModal({
         className="sf-quickview-shell"
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '24px',
+          borderRadius: '26px',
           maxWidth: '540px',
           width: '100%',
           maxHeight: '90vh',
-          boxShadow: '0 24px 48px -12px rgba(15, 23, 42, 0.25)',
+          boxShadow: '0 32px 64px -12px rgba(15, 23, 42, 0.32), 0 0 0 1px rgba(255, 255, 255, 0.6) inset',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          border: '1px solid #e2e8f0',
+          border: '1px solid rgba(226, 232, 240, 0.95)',
           overflow: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Subtle Apple iOS Sheet Grabber Handle */}
+        <div
+          aria-hidden="true"
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            paddingTop: '7px',
+            background: '#ffffff',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              width: '38px',
+              height: '4.5px',
+              borderRadius: '999px',
+              background: '#cbd5e1',
+              opacity: 0.75,
+            }}
+          />
+        </div>
+
         {/* Header with Category and Close */}
         <div
           className="sf-quickview-header"
@@ -395,7 +634,7 @@ export function StorefrontProductQuickViewModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '12px 18px',
+            padding: '8px 18px 12px',
             borderBottom: '1px solid #f1f5f9',
             background: '#ffffff',
             flexShrink: 0,
@@ -412,38 +651,17 @@ export function StorefrontProductQuickViewModal({
                 background: brandSurfaceColor,
                 padding: '3px 10px',
                 borderRadius: '6px',
-                border: '1px solid rgba(23, 14, 94, 0.15)',
+                border: '1px solid rgba(45, 104, 196, 0.15)',
               }}
             >
               {product.categoryName || t('storefront.storefront_product_quick_view_modal.s0', "تفاصيل الصنف")}
             </span>
-            {Boolean(product.rating && product.rating >= 4.5) && (
-              <span
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '3px',
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  color: '#b45309',
-                  background: '#fef3c7',
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                }}
-              >
-                <IconStar size={12} fill="#f59e0b" color="#f59e0b" />
-                <span>{Number(product.rating).toFixed(1)}</span>
-                {product.reviewCount ? (
-                  <span style={{ color: '#92400e', fontSize: '10px' }}>({product.reviewCount} {t('storefront.storefront_product_quick_view_modal.s1', "تقييم)")}</span>
-                ) : null}
-              </span>
-            )}
           </div>
 
           <button
             type="button"
             className="sf-quickview-close-btn"
-            onClick={onClose}
+            onClick={handleAnimatedClose}
             aria-label={t('storefront.storefront_product_quick_view_modal.s2', "إغلاق النافذة")}
             style={{
               background: '#f8fafc',
