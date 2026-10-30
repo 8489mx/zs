@@ -7,6 +7,7 @@ import { planWebhookOrderLookup, selectUnambiguousOrder } from './engines/webhoo
 import { verifyOrderAccessToken, isSandboxPaymentAllowed, buildPaymentReturnUrl, buildGatewayWebhookUrl } from './engines/online-order-access.engine';
 import { platformNoReplyEmail } from './engines/store-public-url.engine';
 import { releaseLocationStock } from '../../common/utils/location-stock-ledger';
+import { resolveGatewayCurrency, toGatewayMajorAmount, toGatewayMinorAmount } from './engines/gateway-amount.engine';
 import { extractReservationItems } from './engines/storefront-reservation.engine';
 import * as crypto from 'crypto';
 
@@ -53,13 +54,11 @@ export class StorefrontPaymentService {
   ) {}
 
   private async expectedPaymentCurrency(trx: Transaction<Database>, tenantId: string, provider: string): Promise<string> {
-    if (provider === 'paymob' || provider === 'xpay') return 'EGP';
     const row = await trx.selectFrom('settings').select('value')
       .where(sql<boolean>`tenant_id = ${tenantId}`).where('key', '=', 'currency').executeTakeFirst();
     let value = String(row?.value || '');
     try { value = String(JSON.parse(value)); } catch {}
-    const currency = value.trim().toUpperCase();
-    return provider === 'tap' && (!currency || currency === 'EGP') ? 'SAR' : currency || 'USD';
+    return resolveGatewayCurrency(provider, value);
   }
 
   private paymentReviewReason(
@@ -73,7 +72,7 @@ export class StorefrontPaymentService {
     if (order.gateway_provider !== provider || !order.gateway_order_id ||
         !sessionId || String(order.gateway_order_id) !== sessionId) return 'payment_session_mismatch';
     const paidMinor = Number(amountMinor);
-    const expectedMinor = Math.round(Number(order.total_amount) * 100);
+    const expectedMinor = toGatewayMinorAmount(Number(order.total_amount), expectedCurrency);
     if (!Number.isSafeInteger(paidMinor) || paidMinor !== expectedMinor) return 'amount_mismatch';
     if (typeof currency !== 'string' || currency.toUpperCase() !== expectedCurrency) return 'currency_mismatch';
     return null;
@@ -490,18 +489,16 @@ export class StorefrontPaymentService {
             .where(sql<boolean>`tenant_id = ${tenant.id}`)
             .where('key', '=', 'currency')
             .executeTakeFirst();
-          let currency = 'SAR';
+          let rawCurrency = '';
           if (currencyRow?.value) {
             try {
               const parsed = JSON.parse(currencyRow.value);
-              currency = typeof parsed === 'string' ? parsed : String(parsed);
+              rawCurrency = typeof parsed === 'string' ? parsed : String(parsed);
             } catch {
-              currency = currencyRow.value;
+              rawCurrency = currencyRow.value;
             }
           }
-          if (!currency || currency === 'EGP') {
-            currency = 'SAR';
-          }
+          const currency = resolveGatewayCurrency('tap', rawCurrency);
 
           const rawPhone = (order.customer_phone || '500000000').replace(/[^0-9]/g, '');
           let countryCode = '966';
@@ -533,7 +530,7 @@ export class StorefrontPaymentService {
             throw new BadRequestException('تعذر تحديد رابط المتجر للرجوع بعد الدفع.');
           }
           const tapPayload = {
-            amount: Number(totalAmount.toFixed(2)),
+            amount: toGatewayMajorAmount(totalAmount, currency),
             currency: currency.toUpperCase(),
             threeDSecure: true,
             save_card: false,
@@ -666,7 +663,7 @@ export class StorefrontPaymentService {
           params.append('line_items[0][price_data][currency]', currency.toLowerCase());
           params.append('line_items[0][price_data][product_data][name]', `طلب رقم #${order.order_number}`);
           params.append('line_items[0][price_data][product_data][description]', `متجر ${tenant.business_name}`);
-          params.append('line_items[0][price_data][unit_amount]', String(Math.round(totalAmount * 100)));
+          params.append('line_items[0][price_data][unit_amount]', String(toGatewayMinorAmount(totalAmount, currency)));
           params.append('line_items[0][quantity]', '1');
           params.append('success_url', successUrl);
           params.append('cancel_url', cancelUrl);
@@ -1275,7 +1272,7 @@ export class StorefrontPaymentService {
 
       if (isSuccessful) {
         const currency = await this.expectedPaymentCurrency(trx, lockedOrder.tenant_id, 'tap');
-        const amountMinor = body?.amount === undefined ? undefined : Math.round(Number(body.amount) * 100);
+        const amountMinor = body?.amount === undefined ? undefined : toGatewayMinorAmount(Number(body.amount), currency);
         const reason = this.paymentReviewReason(lockedOrder, 'tap', chargeId, amountMinor, body?.currency, currency);
         if (reason) return this.markPaymentForReview(trx, lockedOrder, 'tap', chargeId, chargeId, body, reason);
 
