@@ -468,6 +468,7 @@ console.log('--- Section 5: Handover Certificate & 80mm Thermal Clearance Receip
 
 // Scenario 5.1: Cash Shortage & Stock Shortage Handover Reconciliation
 const shortageReconciliation = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 20000,
   salesAmount: 15000,
   cashSales: 10000,
@@ -495,7 +496,7 @@ const stockShortageAudit = reconcileVanStockAudit([
     costPrice: 15,
     retailPrice: 20,
   },
-]);
+], 2);
 assert.equal(stockShortageAudit.hasStockDiscrepancy, true);
 assert.equal(stockShortageAudit.totalStockShortageCost, 375); // 25 * 15
 
@@ -525,6 +526,7 @@ assert.ok(shortageSummaryText.includes('عجز بضاعة بالجرد: 375.00 �
 
 // Scenario 5.2: 100% Balanced Handover Clearance
 const balancedReconciliation = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 20000,
   salesAmount: 15000,
   cashSales: 10000,

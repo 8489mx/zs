@@ -299,6 +299,7 @@ console.log(`[PASS] Strike-Rate Metric: ${strikeMetrics.strikeRatePercentage}% (
 
 // 5.2 Trip Financials Reconciliation
 const tripFin = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 1200,
   salesAmount: 1140,
   cashSales: 0,
@@ -334,7 +335,7 @@ const stockAudit = reconcileVanStockAudit([
     costPrice: 15,
     retailPrice: 20,
   },
-]);
+], 2);
 
 assert.equal(stockAudit.hasStockDiscrepancy, false);
 assert.equal(stockAudit.totalStockShortageCost, 0);

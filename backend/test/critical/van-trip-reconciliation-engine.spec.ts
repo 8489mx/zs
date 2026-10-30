@@ -18,6 +18,7 @@ import {
 // Formula: [Loaded] = [Cash Sales] + [Credit Sales] + [Van Stock Remaining] - [Customer Returns]
 // 10,000 = (4,000 + 2,000) + 4,500 - 500 = 10,000
 const balancedTrip = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 10000,
   salesAmount: 6000,
   cashSales: 4000,
@@ -41,6 +42,7 @@ assert.equal(balancedTrip.cashOverageAmount, 0);
 
 // Test 1.2: Cash Shortage scenario
 const shortageTrip = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 10000,
   salesAmount: 6000,
   cashSales: 4000,
@@ -61,6 +63,7 @@ assert.equal(shortageTrip.cashOverageAmount, 0);
 
 // Test 1.3: Cash Overage scenario
 const overageTrip = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 5000,
   salesAmount: 3000,
   cashSales: 3000,
@@ -81,6 +84,7 @@ assert.equal(overageTrip.cashOverageAmount, 150);
 
 // Test 1.4: Goods equation discrepancy (unaccounted stock loss)
 const discrepancyTrip = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 10000,
   salesAmount: 6000,
   cashSales: 4000,
@@ -124,7 +128,7 @@ const stockAudit = reconcileVanStockAudit([
     costPrice: 30,
     retailPrice: 45,
   },
-]);
+], 2);
 
 assert.equal(stockAudit.totalSystemItems, 3);
 assert.equal(stockAudit.auditedItemsCount, 3);
@@ -153,7 +157,7 @@ const unAudited = reconcileVanStockAudit([
     costPrice: 10,
     retailPrice: 15,
   },
-]);
+], 2);
 assert.equal(unAudited.auditedItemsCount, 0);
 assert.equal(unAudited.hasStockDiscrepancy, false);
 assert.equal(unAudited.totalStockShortageCost, 0);
@@ -356,6 +360,7 @@ assert.equal(nightStockApproved.status, 'night_stock_approved');
 
 // Test 7.1: Trip with fuel and toll expenses correctly deducted from expected cash
 const expenseTrip = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 10000,
   salesAmount: 6000,
   cashSales: 4000,

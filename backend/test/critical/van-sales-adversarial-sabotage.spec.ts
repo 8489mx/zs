@@ -134,6 +134,7 @@ console.log('--- Test Suite 3: Cash Handover Reconciliation & Shortage Trapping 
 
 // Case 3.1: Rogue rep pockets 1,150 EGP and remits only 10,000 EGP
 const repTheftReconciliation = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 20000,
   salesAmount: 12000,
   cashSales: 8000,
@@ -155,6 +156,7 @@ assert.equal(repTheftReconciliation.cashOverageAmount, 0);
 
 // Case 3.2: Honest rep remits exact 11,150 EGP -> 100% matched clearance
 const honestReconciliation = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 20000,
   salesAmount: 12000,
   cashSales: 8000,
@@ -173,6 +175,7 @@ assert.equal(honestReconciliation.cashShortageAmount, 0);
 
 // Case 3.3: Extra cash overage handed over (11,400 EGP)
 const overageReconciliation = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 20000,
   salesAmount: 12000,
   cashSales: 8000,
@@ -223,7 +226,7 @@ const stockAudit = reconcileVanStockAudit([
     costPrice: 80,
     retailPrice: 100,
   },
-]);
+], 2);
 
 assert.equal(stockAudit.hasStockDiscrepancy, true);
 assert.equal(stockAudit.totalStockShortageCost, 775); // (25*15) + (10*40) = 375 + 400

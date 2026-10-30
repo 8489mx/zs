@@ -3593,7 +3593,8 @@ export class VanSalesService {
         };
       });
 
-      stockAuditResult = reconcileVanStockAudit(auditItems);
+      const stockAuditDigits = currencyMoneyDigits(await tenantBaseCurrency(trxAny, tenantId));
+      stockAuditResult = reconcileVanStockAudit(auditItems, stockAuditDigits);
       totalStockVarianceCost = stockAuditResult.totalStockShortageCost;
 
       // Deduct missing stock items if shortage was detected

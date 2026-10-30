@@ -117,6 +117,7 @@ console.log('--- Claude Audit 3: Exhaustive Trip Financial Equations & Fractiona
 // 18,250.75 (Cash Sales) + 6,850.50 (Collections) - 450.50 (Refunds) - 265.00 (Expenses) = 24,385.75 EGP!
 
 const fullTripReconciliation = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 45678.50,
   salesAmount: 29651.00, // 18,250.75 + 11,400.25
   cashSales: 18250.75,
@@ -138,6 +139,7 @@ assert.equal(fullTripReconciliation.cashOverageAmount, 0);
 
 // Audit Scenario: Rep pockets 385.75 EGP
 const shortTripReconciliation = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 45678.50,
   salesAmount: 29651.00,
   cashSales: 18250.75,

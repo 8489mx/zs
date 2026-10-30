@@ -29,6 +29,7 @@ console.log('--- Vector 1: InstaPay & Mobile Wallet Financial Segregation ---');
 // but segregated as expected bank transfers.
 
 const tripFin = reconcileTripFinancials({
+  moneyDigits: 2,
   loadedAmount: 10000,
   salesAmount: 6500,
   cashSales: 3000,

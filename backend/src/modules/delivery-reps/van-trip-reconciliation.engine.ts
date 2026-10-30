@@ -6,9 +6,17 @@
  * odometer distance tracking, and Maker-Checker segregation of duties.
  *
  * Strict Constitutional Invariant:
- * This module is pure (0 database access, 0 I/O side effects, 0 external imports).
+ * This module is pure (0 database access, 0 I/O side effects).
  * It is identically imported by the production service and unit test suites.
+ * The single permitted import is the canonical money engine
+ * (INV-TRIP-RECONCILIATION-DIGITS): it is pure computation with no
+ * I/O, and it is the only rounding the money functions here may use.
+ * The 0.05 goods-equation tolerance and the 0.01 cash-variance status
+ * band in reconcileTripFinancials are policy bands, not precision —
+ * they are deliberately unchanged (see the invariant entry).
  */
+
+import { type MoneyDigits, roundMoney as roundBookMoney } from '../accounting/engines/money-minor-units.engine';
 
 export interface TripFinancialSummaryInput {
   loadedAmount: number;
@@ -23,6 +31,11 @@ export interface TripFinancialSummaryInput {
   remainingVanStockValue: number;
   instapaySales?: number;
   instapayCollections?: number;
+  // REQUIRED (INV-TRIP-RECONCILIATION-DIGITS): every amount in the
+  // reconciliation rounds at the tenant's book digits. The 0.05 /
+  // 0.01 status bands below are policy, not precision, and do not
+  // take digits.
+  moneyDigits: MoneyDigits;
 }
 
 export interface TripFinancialReconciliationResult {
@@ -195,32 +208,30 @@ export interface NightStockEvaluationResult {
  * Equation: [قيمة البضاعة المحملة] = [المبيعات النقدية] + [المبيعات الآجلة] + [البضاعة المتبقية في السيارة] - [المرتجعات]
  */
 export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripFinancialReconciliationResult {
-  const toMoney = (val: number) => Number((Number(val) || 0).toFixed(2));
-
-  const totalLoaded = toMoney(input.loadedAmount);
-  const totalSales = toMoney(input.salesAmount);
-  const cashSales = toMoney(input.cashSales);
-  const creditSales = toMoney(input.creditSales);
-  const fieldCollections = toMoney(input.fieldCollections);
-  const returnsAmount = toMoney(input.returnsAmount);
-  const cashRefunds = toMoney(input.cashRefunds);
-  const totalTripExpenses = toMoney(input.tripExpenses || 0);
-  const countedCash = toMoney(input.countedCash);
-  const actualRemainingValue = toMoney(input.remainingVanStockValue);
+  const totalLoaded = roundBookMoney(input.loadedAmount, input.moneyDigits);
+  const totalSales = roundBookMoney(input.salesAmount, input.moneyDigits);
+  const cashSales = roundBookMoney(input.cashSales, input.moneyDigits);
+  const creditSales = roundBookMoney(input.creditSales, input.moneyDigits);
+  const fieldCollections = roundBookMoney(input.fieldCollections, input.moneyDigits);
+  const returnsAmount = roundBookMoney(input.returnsAmount, input.moneyDigits);
+  const cashRefunds = roundBookMoney(input.cashRefunds, input.moneyDigits);
+  const totalTripExpenses = roundBookMoney(input.tripExpenses || 0, input.moneyDigits);
+  const countedCash = roundBookMoney(input.countedCash, input.moneyDigits);
+  const actualRemainingValue = roundBookMoney(input.remainingVanStockValue, input.moneyDigits);
 
   // Expected remaining van stock value based on loading, sales, and returns
   // Remaining = Loaded - Sales + Returns
-  const expectedRemainingValue = toMoney(totalLoaded - totalSales + returnsAmount);
+  const expectedRemainingValue = roundBookMoney(totalLoaded - totalSales + returnsAmount, input.moneyDigits);
 
   // Verification of the canonical equation:
   // Accounted Goods Value = (Cash Sales + Credit Sales) + Remaining Van Stock - Customer Returns
-  const accountedGoodsValue = toMoney(totalSales + actualRemainingValue - returnsAmount);
-  const goodsEquationDiscrepancy = toMoney(totalLoaded - accountedGoodsValue);
+  const accountedGoodsValue = roundBookMoney(totalSales + actualRemainingValue - returnsAmount, input.moneyDigits);
+  const goodsEquationDiscrepancy = roundBookMoney(totalLoaded - accountedGoodsValue, input.moneyDigits);
   const isGoodsEquationBalanced = Math.abs(goodsEquationDiscrepancy) <= 0.05;
 
   // Expected Cash = Cash Sales + Collections - Cash Refunds for Returns - Approved Trip Expenses
-  const expectedCash = toMoney(cashSales + fieldCollections - cashRefunds - totalTripExpenses);
-  const cashVariance = toMoney(countedCash - expectedCash);
+  const expectedCash = roundBookMoney(cashSales + fieldCollections - cashRefunds - totalTripExpenses, input.moneyDigits);
+  const cashVariance = roundBookMoney(countedCash - expectedCash, input.moneyDigits);
 
   let cashVarianceStatus: 'balanced' | 'shortage' | 'overage' = 'balanced';
   let cashShortageAmount = 0;
@@ -228,15 +239,15 @@ export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripF
 
   if (cashVariance < -0.01) {
     cashVarianceStatus = 'shortage';
-    cashShortageAmount = toMoney(Math.abs(cashVariance));
+    cashShortageAmount = roundBookMoney(Math.abs(cashVariance), input.moneyDigits);
   } else if (cashVariance > 0.01) {
     cashVarianceStatus = 'overage';
-    cashOverageAmount = toMoney(cashVariance);
+    cashOverageAmount = roundBookMoney(cashVariance, input.moneyDigits);
   }
 
-  const instapaySales = toMoney(input.instapaySales || 0);
-  const instapayCollections = toMoney(input.instapayCollections || 0);
-  const expectedBankTransfers = toMoney(instapaySales + instapayCollections);
+  const instapaySales = roundBookMoney(input.instapaySales || 0, input.moneyDigits);
+  const instapayCollections = roundBookMoney(input.instapayCollections || 0, input.moneyDigits);
+  const expectedBankTransfers = roundBookMoney(instapaySales + instapayCollections, input.moneyDigits);
 
   return {
     totalLoaded,
@@ -261,9 +272,8 @@ export function reconcileTripFinancials(input: TripFinancialSummaryInput): TripF
 /**
  * Reconciles physical stock audit of items in the van against system stock balances.
  */
-export function reconcileVanStockAudit(items: VanStockAuditItem[]): VanStockAuditResult {
+export function reconcileVanStockAudit(items: VanStockAuditItem[], digits: MoneyDigits): VanStockAuditResult {
   const toQty = (val: number) => Number((Number(val) || 0).toFixed(4));
-  const toMoney = (val: number) => Number((Number(val) || 0).toFixed(2));
 
   let totalStockShortageCost = 0;
   let totalStockOverageCost = 0;
@@ -282,11 +292,11 @@ export function reconcileVanStockAudit(items: VanStockAuditItem[]): VanStockAudi
 
     if (varianceQty < -0.0001) {
       status = 'shortage';
-      shortageCost = toMoney(Math.abs(varianceQty) * costPrice);
+      shortageCost = roundBookMoney(Math.abs(varianceQty) * costPrice, digits);
       totalStockShortageCost += shortageCost;
     } else if (varianceQty > 0.0001) {
       status = 'overage';
-      overageCost = toMoney(varianceQty * costPrice);
+      overageCost = roundBookMoney(varianceQty * costPrice, digits);
       totalStockOverageCost += overageCost;
     }
 
@@ -304,9 +314,9 @@ export function reconcileVanStockAudit(items: VanStockAuditItem[]): VanStockAudi
     });
   }
 
-  totalStockShortageCost = toMoney(totalStockShortageCost);
-  totalStockOverageCost = toMoney(totalStockOverageCost);
-  const netStockVarianceCost = toMoney(totalStockOverageCost - totalStockShortageCost);
+  totalStockShortageCost = roundBookMoney(totalStockShortageCost, digits);
+  totalStockOverageCost = roundBookMoney(totalStockOverageCost, digits);
+  const netStockVarianceCost = roundBookMoney(totalStockOverageCost - totalStockShortageCost, digits);
   const varianceItemsCount = itemVariances.filter((iv) => iv.status !== 'balanced').length;
 
   return {
