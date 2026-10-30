@@ -3082,7 +3082,7 @@ export class AccountingPostingService {
       });
       return { posted: true, journalEntryId: entryId };
     } catch (e: any) {
-      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_race_window_uniq')) {
         const existing = await queryable
           .selectFrom('journal_entries')
           .select('id')
@@ -4072,7 +4072,7 @@ export class AccountingPostingService {
       });
       return { posted: true, journalEntryId: entryId };
     } catch (e: any) {
-      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_round1_uniq')) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_race_window_uniq')) {
          const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'manufacturing_work_order').where('source_id', '=', workOrderId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
          return { posted: false, journalEntryId: existing ? existing.id : null };
       }
@@ -4133,21 +4133,28 @@ export class AccountingPostingService {
       locationId,
     });
 
-    const entryId = await this.insertPostedJournal(queryable, {
-      sourceType: 'delivery_rep_settlement',
-      sourceId: saleId,
-      tenantId: scope.tenantId,
-      accountId: scope.accountId,
-      entryDate: new Date(),
-      description: `قيد تسوية مندوب لفاتورة #${sale.doc_no || saleId}`,
-      branchId,
-      locationId,
-      createdBy: auth.userId,
-      postedBy: auth.userId,
-      lines,
-    });
-
-    return { posted: true, journalEntryId: entryId };
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'delivery_rep_settlement',
+        sourceId: saleId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد تسوية مندوب لفاتورة #${sale.doc_no || saleId}`,
+        branchId,
+        locationId,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_race_window_uniq')) {
+        const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'delivery_rep_settlement').where('source_id', '=', saleId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: existing ? existing.id : null };
+      }
+      throw e;
+    }
   }
 
   /**
@@ -4496,7 +4503,7 @@ export class AccountingPostingService {
       });
       return { posted: true, journalEntryId: entryId };
     } catch (e: any) {
-      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_van_sales_uniq')) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_race_window_uniq')) {
         const existing2 = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'van_field_return').where('source_id', '=', returnId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
         return { posted: false, journalEntryId: Number(existing2?.id || 0) };
       }
@@ -5844,6 +5851,12 @@ export class AccountingPostingService {
     const absAmount = toBookMoney(Math.abs(amount));
     if (absAmount <= 0) return { posted: false, journalEntryId: null };
 
+    // One opening-balance journal per customer: the race-window index is
+    // the floor, this SELECT is the fast path (same shape as the other
+    // one-journal post methods).
+    const existingCustomerOpening = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'customer_opening_balance').where('source_id', '=', customerId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    if (existingCustomerOpening) return { posted: false, journalEntryId: Number(existingCustomerOpening.id) };
+
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let arAccountId = Number(settings?.customer_receivable_account_id || 0);
     if (!(arAccountId > 0)) arAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '1130');
@@ -5902,20 +5915,28 @@ export class AccountingPostingService {
       });
     }
 
-    const entryId = await this.insertPostedJournal(queryable, {
-      sourceType: 'customer_opening_balance',
-      sourceId: customerId,
-      tenantId: scope.tenantId,
-      accountId: scope.accountId,
-      entryDate: new Date(),
-      description: `قيد رصيد افتتاحي للعميل ${custName}`,
-      branchId: null,
-      locationId: null,
-      createdBy: auth.userId,
-      postedBy: auth.userId,
-      lines,
-    });
-    return { posted: true, journalEntryId: entryId };
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'customer_opening_balance',
+        sourceId: customerId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد رصيد افتتاحي للعميل ${custName}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_race_window_uniq')) {
+        const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'customer_opening_balance').where('source_id', '=', customerId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
   }
 
   /**
@@ -5935,6 +5956,11 @@ export class AccountingPostingService {
 
     const absAmount = toBookMoney(Math.abs(amount));
     if (absAmount <= 0) return { posted: false, journalEntryId: null };
+
+    // One opening-balance journal per supplier: same shape as the
+    // customer opening balance above.
+    const existingSupplierOpening = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'supplier_opening_balance').where('source_id', '=', supplierId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+    if (existingSupplierOpening) return { posted: false, journalEntryId: Number(existingSupplierOpening.id) };
 
     const settings = await this.getTenantAccountingSettings(queryable, scope.tenantId);
     let apAccountId = Number(settings?.supplier_payable_account_id || 0);
@@ -5994,20 +6020,28 @@ export class AccountingPostingService {
       });
     }
 
-    const entryId = await this.insertPostedJournal(queryable, {
-      sourceType: 'supplier_opening_balance',
-      sourceId: supplierId,
-      tenantId: scope.tenantId,
-      accountId: scope.accountId,
-      entryDate: new Date(),
-      description: `قيد رصيد افتتاحي للمورد ${supName}`,
-      branchId: null,
-      locationId: null,
-      createdBy: auth.userId,
-      postedBy: auth.userId,
-      lines,
-    });
-    return { posted: true, journalEntryId: entryId };
+    try {
+      const entryId = await this.insertPostedJournal(queryable, {
+        sourceType: 'supplier_opening_balance',
+        sourceId: supplierId,
+        tenantId: scope.tenantId,
+        accountId: scope.accountId,
+        entryDate: new Date(),
+        description: `قيد رصيد افتتاحي للمورد ${supName}`,
+        branchId: null,
+        locationId: null,
+        createdBy: auth.userId,
+        postedBy: auth.userId,
+        lines,
+      });
+      return { posted: true, journalEntryId: entryId };
+    } catch (e: any) {
+      if (e.code === '23505' && e.constraint?.includes('idx_journal_entries_race_window_uniq')) {
+        const existing = await queryable.selectFrom('journal_entries').select('id').where('source_type', '=', 'supplier_opening_balance').where('source_id', '=', supplierId).where('tenant_id', '=', scope.tenantId).executeTakeFirst();
+        return { posted: false, journalEntryId: Number(existing?.id || 0) };
+      }
+      throw e;
+    }
   }
 
   /**
