@@ -123,7 +123,11 @@ export function useCreateProductMutation(onSuccess?: (productId: string, name: s
       return result;
     },
     onSuccess: async (result, variables) => {
-      await invalidateCatalogDomain(queryClient, { includeProducts: true });
+      await invalidateCatalogDomain(queryClient, { includeProducts: true, includeCategories: true });
+      await queryClient.invalidateQueries({ queryKey: ['storefront-catalog'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['storefront-info'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['products', 'pos'], refetchType: 'all' });
       const productId = extractCreatedEntityId(result);
       if (productId) {
         onSuccess?.(productId, variables.name);

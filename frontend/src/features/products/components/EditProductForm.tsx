@@ -252,7 +252,11 @@ export function EditProductForm({
     },
     onSuccess: async (updatedProduct) => {
       if (!product) return;
-      await invalidateCatalogDomain(queryClient);
+      await invalidateCatalogDomain(queryClient, { includeProducts: true, includeCategories: true });
+      await queryClient.invalidateQueries({ queryKey: ['storefront-catalog'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['storefront-info'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'all' });
+      await queryClient.invalidateQueries({ queryKey: ['products', 'pos'], refetchType: 'all' });
       const refreshed = await refetchAndSelectProduct(queryClient, product.id);
       const finalProduct = refreshed || updatedProduct || product;
       if (onSuccess) {
