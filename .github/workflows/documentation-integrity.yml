@@ -30,7 +30,7 @@ concurrency:
   # Only superseded development-branch push runs may be cancelled.
   # Main pushes, PR checks and Oracle production deploys are never cancelled here.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' && github.ref != 'refs/heads/main' }}
+  cancel-in-progress: true
 
 jobs:
   verify-doc-structure:
