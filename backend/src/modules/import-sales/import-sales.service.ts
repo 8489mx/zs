@@ -5,6 +5,7 @@ import { AccountingTenantFoundationService } from '../accounting/accounting-tena
 import { Kysely, sql, Transaction, Selectable, Updateable } from 'kysely';
 import { Database, ImportShipmentTable, ImportShipmentItemTable } from '../../database/database.types';
 import { calculateImportLandedCosts, groupImportReceipts, importWeightedAverageCost, requireImportNumber } from './import-inventory-cost.engine';
+import { recoverWacBeforeQty } from '../accounting/engines/inventory-valuation.engine';
 import { KYSELY_DB } from '../../database/database.constants';
 import {
   CreateShipmentDto,
@@ -1876,7 +1877,9 @@ export class ImportSalesService {
         });
         // globalBefore is a cached product counter. globalAfter is reconciled by the ledger
         // from locked location balances (including its legacy unassigned-stock policy).
-        const oldQty = Number((stock.globalAfter - group.quantity).toFixed(3));
+        // One WAC quantity source: the same recovery the purchase and
+        // goods-receipt paths use (identical math, canonical helper).
+        const oldQty = recoverWacBeforeQty(stock.globalAfter, group.quantity);
         const cost = importWeightedAverageCost(oldQty, Number(product.cost_price ?? 0), group.quantity, group.value);
         await trx.updateTable('products').set({ cost_price: cost, updated_at: sql`NOW()` })
           .where('tenant_id', '=', tenantId).where('account_id', '=', accountId).where('id', '=', group.productId).execute();

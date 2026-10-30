@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { weightedReceiptCost } from '../accounting/engines/inventory-valuation.engine';
 
 export interface ImportCostLine {
   id: string;
@@ -87,13 +88,27 @@ export function groupImportReceipts(lines: Array<ImportCostLine & { landedCost: 
   return [...products.values()].sort((a, b) => a.productId - b.productId);
 }
 
-/** ZS receipt policy: moving average; non-positive prior stock takes incoming cost. */
+/**
+ * One WAC policy for every receipt path (INV-WAC-UNIFIED-BLEND): the import
+ * receipt blends exactly like a purchase receipt, through the canonical
+ * weightedReceiptCost — including its negative-stock policy (algebraic
+ * blend with a non-negative guard, INV-NEGATIVE-STOCK-WAC). The old
+ * formula took the incoming cost whenever the prior stock was zero or
+ * negative, erasing the booked shortfall value and valuing the same
+ * receipt differently from a purchase receipt of the same goods.
+ *
+ * Only the blend is delegated. The import-side validation and the
+ * BadRequestException contract are preserved: a corrupt stored cost or
+ * value still fails closed with the same Arabic 400 the import flow
+ * has always raised. A zero-quantity group keeps the old cost
+ * (weightedReceiptCost rejects zero receipts; the caller guards
+ * quantity > 0, but an empty group still reaches this function).
+ */
 export function importWeightedAverageCost(oldQty: number, oldCost: number, quantity: number, value: number): number {
   if (!Number.isFinite(oldQty)) throw new BadRequestException('رصيد المخزون غير صالح');
   requireImportNumber(oldCost, 'التكلفة السابقة');
   requireImportNumber(quantity, 'الكمية المستلمة');
   requireImportNumber(value, 'قيمة الاستلام');
   if (quantity === 0) return oldCost;
-  const cost = oldQty > 0 ? (oldQty * oldCost + value) / (oldQty + quantity) : value / quantity;
-  return Number(requireImportNumber(cost, 'متوسط التكلفة').toFixed(6));
+  return weightedReceiptCost(oldQty, oldCost, quantity, value);
 }
