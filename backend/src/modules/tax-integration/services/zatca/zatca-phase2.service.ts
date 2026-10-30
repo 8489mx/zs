@@ -4,6 +4,7 @@ import { KYSELY_DB } from '../../../../database/database.constants';
 import { Kysely, sql } from 'kysely';
 import { Database } from '../../../../database/database.types';
 import { TaxSettingsService } from '../tax-settings/tax-settings.service';
+import { buildDocumentTax } from '../../engines/document-tax.engine';
 
 export interface ZatcaInvoiceData {
   invoiceNumber: string;
@@ -265,30 +266,45 @@ export class ZatcaPhase2Service {
 
       const isB2B = Boolean(customer?.tax_number);
       const invoiceType = isB2B ? 'standard' : 'simplified';
-      const vatRate = 15; // KSA 15% standard VAT
+
+      // Unified document-tax engine (tax unification, package 1): the
+      // signed document attests the POSTED invoice — per-line stored
+      // allocations (net_line_total / allocated_tax) at document
+      // precision — never a recomputation at a hardcoded rate. The
+      // stored sale.tax_rate is the document rate; the posting gate
+      // (Tax F1) owns whether that rate was lawful, not the signer.
+      const documentTax = buildDocumentTax({
+        rate: sale.tax_rate,
+        pricesIncludeTax: Boolean(sale.prices_include_tax),
+        documentDigits: 2,
+        lines: items.map((item) => ({
+          lineTotal: Number(item.line_total || 0),
+          netLineTotal: item.net_line_total == null ? null : Number(item.net_line_total),
+          allocatedDiscount: item.allocated_discount == null ? null : Number(item.allocated_discount),
+          allocatedTax: item.allocated_tax == null ? null : Number(item.allocated_tax),
+        })),
+      });
 
       const lineItems = items.map((item, idx) => {
         const qty = Math.max(1, Number(item.qty || 1));
         const unitPrice = Number(item.unit_price || 0);
-        const subtotal = Number(item.line_total || qty * unitPrice);
-        const vatAmount = Number(((subtotal * vatRate) / 100).toFixed(2));
-        const total = Number((subtotal + vatAmount).toFixed(2));
+        const taxed = documentTax.lines[idx];
 
         return {
           id: idx + 1,
           name: item.product_name || `Item ${idx + 1}`,
           quantity: qty,
           unitPrice,
-          subtotal,
-          vatAmount,
-          vatRate,
-          total,
+          subtotal: taxed.base,
+          vatAmount: taxed.tax,
+          vatRate: documentTax.rate,
+          total: taxed.total,
         };
       });
 
-      const calculatedSubtotal = lineItems.reduce((acc, l) => acc + l.subtotal, 0);
-      const calculatedVat = lineItems.reduce((acc, l) => acc + l.vatAmount, 0);
-      const calculatedTotal = Number((calculatedSubtotal + calculatedVat).toFixed(2));
+      const calculatedSubtotal = documentTax.subtotal;
+      const calculatedVat = documentTax.vatTotal;
+      const calculatedTotal = documentTax.totalWithVat;
 
       const invoiceData: ZatcaInvoiceData = {
         invoiceNumber: sale.doc_no || `INV-${sale.id}`,
@@ -390,6 +406,10 @@ export class ZatcaPhase2Service {
    */
   buildUblXml(data: ZatcaInvoiceData): string {
     const typeCode = data.invoiceType === 'simplified' ? '0200000' : '0100000';
+    // Document-level rate comes from the lines themselves (a single-rate
+    // invoice): the old hardcoded 15.00 lied on every exempt or non-15%
+    // document. A line-less document has no rate to attest.
+    const documentVatRate = data.lineItems[0]?.vatRate ?? 0;
 
     const linesXml = data.lineItems.map(item => `
     <cac:InvoiceLine>
@@ -507,7 +527,7 @@ export class ZatcaPhase2Service {
             <cbc:TaxAmount currencyID="SAR">${data.vatTotal.toFixed(2)}</cbc:TaxAmount>
             <cac:TaxCategory>
                 <cbc:ID>S</cbc:ID>
-                <cbc:Percent>15.00</cbc:Percent>
+                <cbc:Percent>${documentVatRate.toFixed(2)}</cbc:Percent>
                 <cac:TaxScheme>
                     <cbc:ID>VAT</cbc:ID>
                 </cac:TaxScheme>
