@@ -1569,13 +1569,30 @@ export class VanSalesService {
         .executeTakeFirst();
 
       if (recentDbSale) {
-        const dbItemsCount = await this.anyDb
+        // The backstop must match the fingerprint, not just the line
+        // count: comparing only the count merged a genuinely different
+        // sale (different products, same number of lines) into the
+        // recent one and reported it as created with cashPaid 0. Compare
+        // the product/quantity multiset instead. Prices are deliberately
+        // excluded: the server may adjust stored unit prices (tiers,
+        // offers), so comparing stored prices against raw payload prices
+        // would miss true double-taps whose prices were adjusted on the
+        // first write; the in-process fingerprint layers already cover
+        // the price dimension.
+        const dbItems = await this.anyDb
           .selectFrom('sale_items')
-          .select((eb: any) => eb.fn.count('id').as('cnt'))
+          .select(['product_id', 'qty'])
           .where('sale_id', '=', Number(recentDbSale.id))
           .where('tenant_id', '=', tenantId)
-          .executeTakeFirst();
-        if (Number(dbItemsCount?.cnt || 0) === payload.items.length) {
+          .execute();
+        const dbItemsSig = [...dbItems]
+          .sort((a: any, b: any) => Number(a.product_id) - Number(b.product_id))
+          .map((row: any) => `${Number(row.product_id)}:${Number(row.qty)}`)
+          .join('|');
+        const payloadItemsSig = sortedItems
+          .map((it) => `${Number(it.productId)}:${Number(it.qty)}`)
+          .join('|');
+        if (dbItemsSig === payloadItemsSig) {
           return {
             ok: true,
             saleId: Number(recentDbSale.id),
