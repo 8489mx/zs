@@ -581,6 +581,22 @@ export class VanReturnsService {
         throw new AppError(`طلب المرتجع تمت معالجته بالفعل بحالة (${ret.status})`, 'RETURN_ALREADY_PROCESSED', 400);
       }
 
+      // Lock the trip row first: approval-time provenance re-validation
+      // below reads the rep's sales and other returns, and this lock
+      // serializes concurrent approvals for the same trip (and against
+      // settleTrip, which takes the same lock) so two approvals cannot
+      // both pay out against the same remaining quantity.
+      const lockedTrip = await trxAny
+        .selectFrom('van_sales_trips')
+        .select(['id', 'status'])
+        .where('id', '=', ret.trip_id)
+        .where('tenant_id', '=', tenantId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!lockedTrip || lockedTrip.status !== 'open') {
+        throw new AppError('رحلة التوزيع المحددة مغلقة أو غير صالحة', 'INVALID_TRIP', 400);
+      }
+
       const trip = await trxAny
         .selectFrom('van_sales_trips as vt')
         .leftJoin('stock_locations as van', 'van.id', 'vt.van_location_id')
@@ -602,6 +618,170 @@ export class VanReturnsService {
           'INSUFFICIENT_REP_CASH_FOR_REFUND',
           400,
         );
+      }
+
+      // APPROVAL-TIME PROVENANCE RE-VALIDATION (van F3): submit-time
+      // checks run outside any transaction, so the basis they verified
+      // can evaporate before approval — the sale edited down or
+      // cancelled, another return approved first, or the trip settled.
+      // Approval trusts nothing from submission: it re-reads the
+      // current sales/returns state inside this transaction (under
+      // the trip lock above) and fails closed, leaving the request
+      // pending_approval for a human to reject or re-examine. No
+      // fraud-radar event is recorded here: a changed basis is often
+      // a legitimate edit, not an attempted fraud.
+      const returnItems = (items || []).map((i: any) => ({ ...i, productId: Number(i.productId) }));
+      if (ret.sale_id) {
+        const sale = await trxAny
+          .selectFrom('sales as s')
+          .leftJoin('van_sales_trips as vt', (join: any) =>
+            join.onRef('vt.id', '=', 's.van_trip_id').onRef('vt.tenant_id', '=', 's.tenant_id'),
+          )
+          .select([
+            's.id',
+            's.status',
+            's.customer_id',
+            sql<number | null>`coalesce(s.delivery_rep_id, vt.rep_id)`.as('resolved_rep_id'),
+          ])
+          .where('s.id', '=', ret.sale_id)
+          .where('s.tenant_id', '=', tenantId)
+          .executeTakeFirst();
+        if (!sale) throw new AppError('الفاتورة الأصلية غير موجودة', 'SALE_NOT_FOUND', 404);
+        if (sale.status !== 'posted') {
+          throw new AppError('الفاتورة الأصلية غير مرحّلة أو تم إلغاؤها بعد تقديم المرتجع', 'RETURN_SALE_NOT_POSTED', 400);
+        }
+        if (Number(sale.customer_id) !== Number(ret.customer_id)) {
+          throw new AppError('الفاتورة المحددة لا تخص هذا العميل', 'SALE_CUSTOMER_MISMATCH', 400);
+        }
+        if (sale.resolved_rep_id != null && Number(sale.resolved_rep_id) !== Number(ret.rep_id)) {
+          throw new AppError(
+            'لا يمكن عمل مرتجع على فاتورة تخص مندوباً آخر — عهد وحسابات كل مندوب معزولة تماماً',
+            'SALE_REP_MISMATCH',
+            403,
+          );
+        }
+        const saleLines = await trxAny
+          .selectFrom('sale_items')
+          .selectAll()
+          .where('sale_id', '=', ret.sale_id)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+        const priorReturns = await trxAny
+          .selectFrom('van_field_returns')
+          .select(['id', 'items_json'])
+          .where('sale_id', '=', ret.sale_id)
+          .where('tenant_id', '=', tenantId)
+          .where(sql<boolean>`status in ('approved', 'pending_approval')`)
+          .execute();
+        const alreadyReturnedBySaleItem = new Map<number, number>();
+        for (const prior of priorReturns) {
+          // Exclude this return itself: it is pending_approval and
+          // would otherwise count its own quantity against itself.
+          if (Number(prior.id) === Number(returnId)) continue;
+          const parsed = typeof prior.items_json === 'string' ? JSON.parse(prior.items_json) : (prior.items_json || []);
+          for (const it of parsed) {
+            if (it.saleItemId) {
+              const sid = Number(it.saleItemId);
+              alreadyReturnedBySaleItem.set(sid, (alreadyReturnedBySaleItem.get(sid) || 0) + Number(it.qty || 0));
+            }
+          }
+        }
+        for (const item of returnItems) {
+          const line = item.saleItemId
+            ? saleLines.find((sl: any) => Number(sl.id) === Number(item.saleItemId))
+            : saleLines.find((sl: any) => Number(sl.product_id) === Number(item.productId));
+          if (!line) {
+            throw new AppError(`الصنف #${item.productId} لم يتم العثور عليه في الفاتورة الأصلية`, 'ITEM_NOT_IN_SALE', 400);
+          }
+          const soldQty = Number(line.qty || 0);
+          const lineTotal = Number(line.line_total || 0);
+          const netUnit = soldQty > 0 ? Number((lineTotal / soldQty).toFixed(2)) : 0;
+          if (Number(item.unitPrice) > netUnit + 0.05) {
+            throw new AppError(
+              `سعر المرتجع (${item.unitPrice}) يتجاوز السعر الصافي بعد الخصم بالفاتورة الأصلية (${netUnit})`,
+              'RETURN_PRICE_EXCEEDS_NET',
+              400,
+            );
+          }
+          const alreadyReturned = alreadyReturnedBySaleItem.get(Number(line.id)) || 0;
+          const remainingReturnableQty = Number((soldQty - alreadyReturned).toFixed(3));
+          if (Number(item.qty) > remainingReturnableQty + 0.001) {
+            throw new AppError(
+              `الكمية المطلوب ردها (${item.qty}) تتجاوز المتبقي القابل للرد من الفاتورة الأصلية (${Math.max(0, remainingReturnableQty)}) — بيع ${soldQty}، مرتجع سابقاً ${alreadyReturned}`,
+              'RETURN_QTY_EXCEEDS_SOLD',
+              400,
+            );
+          }
+        }
+      } else {
+        const repCustomerSales = await trxAny
+          .selectFrom('sales as s')
+          .leftJoin('van_sales_trips as vt', (join: any) =>
+            join.onRef('vt.id', '=', 's.van_trip_id').onRef('vt.tenant_id', '=', 's.tenant_id'),
+          )
+          .select(['s.id'])
+          .where('s.customer_id', '=', ret.customer_id)
+          .where('s.tenant_id', '=', tenantId)
+          .where('s.status', '=', 'posted')
+          .where(sql<boolean>`coalesce(s.delivery_rep_id, vt.rep_id) = ${Number(ret.rep_id)}`)
+          .execute();
+        const repSaleIds = repCustomerSales.map((s: any) => Number(s.id));
+        if (!repSaleIds.length) {
+          throw new AppError(
+            'لا يمكن تسجيل مرتجع بدون فاتورة لعميل لم يسبق لهذا المندوب البيع له',
+            'NO_REP_SALES_HISTORY_FOR_RETURN',
+            403,
+          );
+        }
+        const soldLines = await trxAny
+          .selectFrom('sale_items')
+          .select(['product_id', 'product_name', 'qty', 'line_total'])
+          .where('sale_id', 'in', repSaleIds)
+          .where('tenant_id', '=', tenantId)
+          .execute();
+        const existingCustomerReturns = await trxAny
+          .selectFrom('van_field_returns')
+          .select(['id', 'items_json'])
+          .where('customer_id', '=', ret.customer_id)
+          .where('rep_id', '=', ret.rep_id)
+          .where('tenant_id', '=', tenantId)
+          .where(sql<boolean>`status in ('approved', 'pending_approval')`)
+          .execute();
+        const returnedByProduct = new Map<number, number>();
+        for (const retRow of existingCustomerReturns) {
+          if (Number(retRow.id) === Number(returnId)) continue;
+          const parsed = typeof retRow.items_json === 'string' ? JSON.parse(retRow.items_json) : (retRow.items_json || []);
+          for (const it of parsed) {
+            const pid = Number(it.productId);
+            returnedByProduct.set(pid, (returnedByProduct.get(pid) || 0) + Number(it.qty || 0));
+          }
+        }
+        for (const item of returnItems) {
+          const pid = Number(item.productId);
+          const matchingLines = soldLines.filter((sl: any) => Number(sl.product_id) === pid);
+          const totalSoldQty = matchingLines.reduce((sum: number, sl: any) => sum + Number(sl.qty || 0), 0);
+          const maxNetUnitPrice = matchingLines.reduce((maxP: number, sl: any) => {
+            const q = Number(sl.qty || 0);
+            const netU = q > 0 ? Number((Number(sl.line_total || 0) / q).toFixed(2)) : 0;
+            return Math.max(maxP, netU);
+          }, 0);
+          const alreadyRet = returnedByProduct.get(pid) || 0;
+          const remainingQty = Number((totalSoldQty - alreadyRet).toFixed(3));
+          if (totalSoldQty <= 0 || Number(item.qty) > remainingQty + 0.001) {
+            throw new AppError(
+              `الكمية المطلوب ردها (${item.qty}) للصنف #${pid} تتجاوز إجمالي ما باعه هذا المندوب للعميل صافي المرتجعات السابقة (${Math.max(0, remainingQty)})`,
+              'RETURN_QTY_EXCEEDS_SOLD',
+              400,
+            );
+          }
+          if (Number(item.unitPrice) > maxNetUnitPrice + 0.05) {
+            throw new AppError(
+              `سعر المرتجع (${item.unitPrice}) يتجاوز السعر الصافي الذي بيع به الصنف للعميل (${maxNetUnitPrice})`,
+              'RETURN_PRICE_EXCEEDS_NET',
+              400,
+            );
+          }
+        }
       }
 
       let targetLocationId = Number(trip.van_location_id);
