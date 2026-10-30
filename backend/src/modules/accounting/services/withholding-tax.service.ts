@@ -5,6 +5,7 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AccountingPostingService } from '../accounting-posting.service';
+import { currencyMoneyDigits, roundMoney } from '../engines/money-minor-units.engine';
 
 export interface WithholdingTaxRecord {
   id: number;
@@ -318,6 +319,21 @@ export class WithholdingTaxService {
 
       if (!Number.isFinite(rate) || rate <= 0 || rate > 100) throw new BadRequestException('نسبة الخصم غير صالحة.');
 
+      // INV-WHT-BASE-EXCLUDES-VAT: the withholding base is the
+      // pre-VAT amount. A tax-inclusive bill stores its VAT inside
+      // subtotal, so the stored tax_amount is removed for inclusive
+      // bills; exclusive bills already store subtotal pre-VAT.
+      // Amounts round at the tenant's book digits, never a
+      // hard-coded 2 (a KWD 0.001 of withholding survives).
+      const currencyRow = await (trx as any)
+        .selectFrom('settings')
+        .select('value')
+        .where('tenant_id', '=', tenantId)
+        .where('key', '=', 'currency')
+        .executeTakeFirst();
+      const bookDigits = currencyMoneyDigits(currencyRow?.value ?? '');
+      const toBookMoney = (value: number): number => roundMoney(value, bookDigits);
+
       // Fetch purchases that exceed 300 EGP and are not cancelled
       const purchases = await (trx as any)
         .selectFrom('purchases as p')
@@ -331,6 +347,8 @@ export class WithholdingTaxService {
           'p.doc_no',
           'p.subtotal',
           'p.discount',
+          'p.tax_amount',
+          'p.prices_include_tax',
           'p.created_at',
           'p.supplier_id',
           's.id as owned_supplier_id',
@@ -365,10 +383,13 @@ export class WithholdingTaxService {
 
         const dateStr = this.formatDate(p.created_at);
         const period = this.determineQuarterAndYear(dateStr);
-        const baseAmount = this.toMoney(Number(p.subtotal || 0) - Number(p.discount || 0));
+        const storedTax = Number(p.tax_amount || 0);
+        const baseAmount = toBookMoney(
+          Number(p.subtotal || 0) - Number(p.discount || 0) - (p.prices_include_tax ? storedTax : 0),
+        );
         if (baseAmount < 300) continue;
 
-        const taxAmount = this.toMoney(baseAmount * (rate / 100));
+        const taxAmount = toBookMoney(baseAmount * (rate / 100));
         const partnerName = p.company_name || p.supplier_name || `مورد رقم ${p.supplier_id || ''}`;
 
         await (trx as any)
@@ -398,7 +419,7 @@ export class WithholdingTaxService {
           .execute();
 
         addedCount++;
-        addedTax = this.toMoney(addedTax + taxAmount);
+        addedTax = toBookMoney(addedTax + taxAmount);
       }
 
       return {
