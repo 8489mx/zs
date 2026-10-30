@@ -48,9 +48,9 @@ export function knockoutWhiteStudioBackground(
     featherThreshold = 45,
     shadowThreshold = 48,
     neutralTolerance = 12,
-    floorContactDepth = 0.85,
-    minFloorLum = 135,
-    maxFloorDist = 200,
+    floorContactDepth = 0.88,
+    minFloorLum = 165,
+    maxFloorDist = 85,
     decontaminateEdges = true,
   } = options;
 
@@ -177,7 +177,7 @@ export function knockoutWhiteStudioBackground(
         return true;
       }
       // 2. Ground contact floor shadow (relaxed to 85 at bottom 12% to eliminate white floor shelf)
-      if (y > height * 0.88 && chroma <= 10 && dist <= 85 && lum >= 165) {
+      if (y > height * floorContactDepth && chroma <= 10 && dist <= maxFloorDist && lum >= minFloorLum) {
         return true;
       }
     }
@@ -242,7 +242,7 @@ export function knockoutWhiteStudioBackground(
     const isContactShadow =
       chroma <= neutralTolerance &&
       ((dist <= shadowThreshold && lum >= 175) ||
-       (cy > height * 0.88 && chroma <= 10 && dist <= 85 && lum >= 165));
+       (cy > height * floorContactDepth && chroma <= 10 && dist <= maxFloorDist && lum >= minFloorLum));
 
     if (dist <= pureThreshold || isContactShadow) {
       // 100% Pure background or neutral floor shadow -> clear to alpha 0

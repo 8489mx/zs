@@ -13,7 +13,6 @@ interface StorefrontFooterProps {
 
 export function StorefrontFooter({
   info,
-  onOpenCart,
   onOpenOrders,
   onOpenCategories,
   onGoHome,

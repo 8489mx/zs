@@ -21,7 +21,8 @@ let isModelPreloaded = false;
 export async function getAiRemovalModule() {
   if (!aiModulePromise) {
     // Dynamic ESM import from CDN, zero impact on app shell startup bundle (PERFORMANCE_CONSTITUTION)
-    aiModulePromise = import(/* @vite-ignore */ 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.8/+esm');
+    const cdnUrl = 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.8/+esm';
+    aiModulePromise = (new Function('url', 'return import(url)')(cdnUrl) as Promise<any>);
   }
   return aiModulePromise;
 }

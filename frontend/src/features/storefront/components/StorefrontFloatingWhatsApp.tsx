@@ -106,6 +106,7 @@ export function StorefrontFloatingWhatsApp({
         target="_blank"
         rel="noopener noreferrer"
         className="sf-floating-whatsapp"
+        style={hasFloatingCart ? { bottom: '86px' } : undefined}
         title={t('storefront.floating_whatsapp.tooltip', 'تواصل مع خدمة العملاء عبر واتساب')}
         aria-label={t('storefront.floating_whatsapp.aria', 'محادثة واتساب فورية')}
       >
