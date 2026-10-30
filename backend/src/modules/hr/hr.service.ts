@@ -2799,7 +2799,14 @@ export class HrService {
         LIMIT 1
       `.execute(db);
       const existingItem = existing.rows[0];
-      if (clean(existingItem?.status) === 'approved') continue;
+      // INV-PAID-PAYROLL-ITEMS-NEVER-REBUILT: a paid item is final.
+      // Rebuilding must never recompute its amounts or reset its
+      // status — the paid state is guarded here, on the item
+      // itself, not only by the run-status gates on rebuild's
+      // callers. (Approved items were already skipped; paid items
+      // were recomputed and reset to the rebuild target status,
+      // which would resurrect them as payable.)
+      if (clean(existingItem?.status) === 'approved' || clean(existingItem?.status) === 'paid') continue;
       const excluded = clean(existingItem?.status) === 'excluded';
       if (excluded && !canReincludeAutoExcludedPayrollItem(
         clean(existingItem?.status), clean(existingItem?.notes))) continue;
