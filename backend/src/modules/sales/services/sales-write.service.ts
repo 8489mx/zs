@@ -25,6 +25,7 @@ import { normalizeSalePayload } from '../helpers/sales-payload.helper';
 import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, restoreFrozenSaleLineCosts } from '../helpers/sales-write.helper';
 import { allocateSaleTenders, type SaleTenderChannel } from '../engines/sale-tender.engine';
 import { allocateInvoiceDiscount } from '../engines/invoice-discount.engine';
+import { resolveSaleTaxRate } from '../engines/sale-tax-rate.engine';
 import { assertSaleNotZatcaSigned } from '../../tax-integration/services/zatca/zatca-invoice-status';
 import { diffContributions, negateContribution, tripSaleContribution, type TripSaleContribution } from '../../delivery-reps/van-trip-counters.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
@@ -227,7 +228,7 @@ export class SalesWriteService {
   // pool connection while every cashier holds a transaction can exhaust the whole pool.
   private static readonly SALE_SETTING_KEYS = [
     'posMaxDiscountThresholdEnabled', 'posMaxDiscountThresholdType', 'posMaxDiscountThresholdValue',
-    'allowNegativeStockSales', 'allowSellingBelowStock', 'loyaltyEnabled',
+    'taxRate', 'tax_rate', 'allowNegativeStockSales', 'allowSellingBelowStock', 'loyaltyEnabled',
     'loyaltyPointsPer100Egp', 'loyaltyPointRedeemValue', 'loyaltyMinRedeemPoints',
     'loyaltyMaxDiscountPercentage', 'requireCashierShiftForSales', 'deliveryFeeMode',
     'invoiceNumberingScheme',
@@ -1439,6 +1440,18 @@ export class SalesWriteService {
 
       // Fetch loyalty and cashier settings from high-speed in-memory cache
       const settingsMap = await this.getTenantSettingsMap(trx, scope.tenantId);
+
+      // Tax F1: the invoice tax rate is the tenant's configured rate or
+      // 0 (exempt) — never whatever the client sent. resolveSaleTaxRate
+      // throws SALE_TAX_RATE_MISMATCH before any totals, stock, or
+      // journal work; the resolved rate replaces the payload rate so
+      // the stored tax_rate and the computed totals agree exactly.
+      // The legacy `tax_rate` spelling falls back behind `taxRate`,
+      // mirroring the held-draft bill formatter's defensive read.
+      normalized.taxRate = resolveSaleTaxRate(
+        normalized.taxRate,
+        settingsMap.get('taxRate') ?? settingsMap.get('tax_rate'),
+      );
 
       const loyaltyEnabledVal = settingsMap.get('loyaltyEnabled');
       const loyaltyEnabled = loyaltyEnabledVal === true || loyaltyEnabledVal === 'true';
@@ -2774,6 +2787,15 @@ export class SalesWriteService {
 
       await this.assertDiscountChangeAllowed(trx, auth, normalized.discount, managerPin, subtotal);
       if (normalized.discount > subtotal) throw new AppError('Discount cannot exceed subtotal', 'INVALID_DISCOUNT', 400);
+      // Tax F1 (same rule as createSale): an edit re-derives the tax
+      // from the payload rate, so it must pass the same configured-or-0
+      // gate before the replacement totals are computed — otherwise an
+      // edit could rewrite a posted invoice's tax rate and history.
+      const taxSettingsMap = await this.getTenantSettingsMap(trx, scope.tenantId);
+      normalized.taxRate = resolveSaleTaxRate(
+        normalized.taxRate,
+        taxSettingsMap.get('taxRate') ?? taxSettingsMap.get('tax_rate'),
+      );
       const { taxAmount, total } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, normalized.deliveryFee, normalized.serviceCharge, Number((normalized as any).tipAmount || 0));
       const { taxAmount: itemOnlyTaxAmount } = computeInvoiceTotals(subtotal, normalized.discount, normalized.taxRate, normalized.pricesIncludeTax, 0, 0, 0);
       const allocatedLines = allocateInvoiceDiscount({
