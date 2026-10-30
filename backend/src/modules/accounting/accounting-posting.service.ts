@@ -3498,7 +3498,7 @@ export class AccountingPostingService {
       allocation = allocatePayrollAccrual({
         grossPay, netPay, loanDeductions, assetRecoveryDeductions, operationalDeductions,
         employeeInsurance, employerInsurance, incomeTax,
-      });
+      }, bookDigits);
     } catch (error) {
       throw new AppError(
         error instanceof Error ? error.message : 'Payroll totals cannot be reconciled',
@@ -3516,10 +3516,11 @@ export class AccountingPostingService {
     const totalGosiPayable = toBookMoney(employeeInsurance + employerInsurance);
 
     const lines: JournalLineDraft[] = [];
+    const addBookLine = (line: JournalLineDraft) => this.addLine(lines, line, bookDigits);
 
     // 1. Debit: actual salary expense after attendance/leave/other wage reductions.
     // Attendance deductions are NOT unrelated operating revenue.
-    this.addLine(lines, {
+    addBookLine({
       accountId: expenseAccountId,
       description: `استحقاق رواتب مسير #${runId} (خصومات الأجور ${allocation.wageReduction})`,
       debit: allocation.salaryExpense,
@@ -3533,7 +3534,7 @@ export class AccountingPostingService {
     // 2. Debit: Employer Social Insurance Contribution (if any)
     if (employerInsurance > 0) {
       const employerGosiAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '6210');
-      this.addLine(lines, {
+      addBookLine({
         accountId: employerGosiAccountId,
         description: `حصة المنشأة في التأمينات الاجتماعية لمسير #${runId}`,
         debit: employerInsurance,
@@ -3547,7 +3548,7 @@ export class AccountingPostingService {
 
     // 3. Credit: Net Payroll Payable
     if (netPay > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: payableAccountId,
         description: `رواتب مستحقة الدفع لمسير #${runId}`,
         debit: 0,
@@ -3562,7 +3563,7 @@ export class AccountingPostingService {
     // 4. Credit: Social Insurance Authority Payable (Employee + Employer shares)
     if (totalGosiPayable > 0) {
       const gosiPayableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2145');
-      this.addLine(lines, {
+      addBookLine({
         accountId: gosiPayableAccountId,
         description: `تأمينات اجتماعية مستحقة السداد (حصة الموظف + المنشأة) لمسير #${runId}`,
         debit: 0,
@@ -3577,7 +3578,7 @@ export class AccountingPostingService {
     // 5. Credit: Income Tax Withholding Payable
     if (incomeTax > 0) {
       const taxPayableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2146');
-      this.addLine(lines, {
+      addBookLine({
         accountId: taxPayableAccountId,
         description: `ضريبة كسب عمل مستحقة لمسير #${runId}`,
         debit: 0,
@@ -3591,7 +3592,7 @@ export class AccountingPostingService {
 
     // 6. Credit: Employee Advances (Loan installments)
     if (loanDeductions > 0) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: advancesAccountId,
         description: `استقطاع سلف موظفين لمسير #${runId}`,
         debit: 0,
@@ -3606,7 +3607,7 @@ export class AccountingPostingService {
     // 7. Credit: asset loss/custody recovery only; the wage reductions are
     // already reflected in the debit to the salary expense account above.
     if (assetRecoveryDeductions > 0 && recoveryAccountId) {
-      this.addLine(lines, {
+      addBookLine({
         accountId: recoveryAccountId,
         description: `تحصيل تعويضات عهد مفقودة / تالفة من الرواتب - مسير #${runId}`,
         debit: 0,
