@@ -2,7 +2,13 @@ import { AppError } from '../../../common/errors/app-error';
 import { NormalizedSalePayload } from '../dto/upsert-sale.dto';
 import { type MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
-function roundCurrency(value: number, digits: MoneyDigits = 2): number {
+// Book digits are REQUIRED (INV-POS-OFFER-DIGITS): this rounder is
+// used for every money amount the sale helper computes, so a silent
+// `= 2` default would cut a 3-decimal tenant's lines to cents
+// whenever a caller forgot the tenant's digits. The 2-decimal branch
+// keeps its exact historical formula (EPSILON half-up); only the
+// default is removed, so 2-decimal results are unchanged.
+function roundCurrency(value: number, digits: MoneyDigits): number {
   return digits === 2
     ? Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
     : roundMoney(value, digits);
@@ -59,7 +65,7 @@ export type PreparedSaleItem = {
 export function buildPreparedSaleItem(
   product: SaleProductRow,
   item: NormalizedSalePayload['items'][number],
-  options: { allowNegativeStockSales?: boolean; moneyDigits?: MoneyDigits } = {},
+  options: { allowNegativeStockSales?: boolean; moneyDigits: MoneyDigits },
 ): PreparedSaleItem {
   const productName = String(product.name || '').trim();
   const exactRequiredQty = Number(item.qty || 0) * Number(item.unitMultiplier || 1);
@@ -74,7 +80,7 @@ export function buildPreparedSaleItem(
   }
 
   const modifiersTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + (Number(mod.price || 0) * Number(mod.qty || 1)), 0);
-  const lineTotal = roundCurrency(Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal), options.moneyDigits ?? 2);
+  const lineTotal = roundCurrency(Number(item.qty || 0) * (Number(item.price || 0) + modifiersTotal), options.moneyDigits);
   const modifiersCostTotal = (item.modifiers || []).reduce((sum: number, mod: any) => sum + (Number(mod.costPrice || 0) * Number(mod.qty || 1)), 0);
 
   return {
@@ -91,7 +97,7 @@ export function buildPreparedSaleItem(
     unitMultiplier: Number(item.unitMultiplier || 1) || 1,
     priceType: item.priceType === 'wholesale' ? 'wholesale' : 'retail',
     // Stored as cost per sold unit on sale_items (not per base piece) so accounting COGS can use qty * cost_price.
-    costPrice: roundCurrency((Number(product.cost_price || 0) * Number(item.unitMultiplier || 1)) + modifiersCostTotal, options.moneyDigits ?? 2),
+    costPrice: roundCurrency((Number(product.cost_price || 0) * Number(item.unitMultiplier || 1)) + modifiersCostTotal, options.moneyDigits),
     requiredQty,
     beforeQty,
     afterQty: Number((beforeQty - requiredQty).toFixed(3)),
@@ -209,7 +215,7 @@ export function restoreFrozenSaleLineCosts(items: any[], oldLines: any[]): void 
   }
 }
 
-export function calculateCollectibleTotal(total: number, storeCreditUsed: number, digits: MoneyDigits = 2): number {
+export function calculateCollectibleTotal(total: number, storeCreditUsed: number, digits: MoneyDigits): number {
   return roundCurrency(Number(total || 0) - Number(storeCreditUsed || 0), digits);
 }
 
@@ -286,22 +292,22 @@ export function getOfferEffectiveMinQty(offer: SaleProductOfferRow): number {
 
 export const getOfferMinQty = getOfferEffectiveMinQty;
 
-export function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow, qty: number = 1): number {
+export function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProductOfferRow, qty: number = 1, digits: MoneyDigits): number {
   const offerValue = Number(offer.value || 0);
   if (!(offerValue > 0) && offer.offer_type !== 'price' && offer.offer_type !== 'bundle' && offer.offer_type !== 'bogo') {
-    return roundCurrency(basePrice);
+    return roundCurrency(basePrice, digits);
   }
-  if (offer.offer_type === 'percent') return roundCurrency(Math.max(0, basePrice - ((basePrice * offerValue) / 100)));
-  if (offer.offer_type === 'fixed') return roundCurrency(Math.max(0, basePrice - offerValue));
-  if (offer.offer_type === 'price') return roundCurrency(Math.max(0, offerValue));
+  if (offer.offer_type === 'percent') return roundCurrency(Math.max(0, basePrice - ((basePrice * offerValue) / 100)), digits);
+  if (offer.offer_type === 'fixed') return roundCurrency(Math.max(0, basePrice - offerValue), digits);
+  if (offer.offer_type === 'price') return roundCurrency(Math.max(0, offerValue), digits);
   if (offer.offer_type === 'bundle') {
     const minQty = Math.max(1, Number(offer.min_qty || 1));
     const normalizedQty = Math.max(1, Number(qty || 1));
-    if (normalizedQty < minQty) return roundCurrency(basePrice);
+    if (normalizedQty < minQty) return roundCurrency(basePrice, digits);
     const bundles = Math.floor(normalizedQty / minQty);
     const remainder = normalizedQty % minQty;
     const total = (bundles * offerValue) + (remainder * basePrice);
-    return roundCurrency(total / normalizedQty);
+    return roundCurrency(total / normalizedQty, digits);
   }
   if (offer.offer_type === 'bogo') {
     const buyQ = Math.max(1, Number(offer.bogo_buy_qty || 1));
@@ -309,7 +315,7 @@ export function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProduc
     const discPct = Math.min(100, Math.max(0, Number(offer.bogo_discount_percent ?? (offerValue || 100))));
     const normalizedQty = Math.max(1, Number(qty || 1));
     const cycle = buyQ + getQ;
-    if (normalizedQty < cycle) return roundCurrency(basePrice);
+    if (normalizedQty < cycle) return roundCurrency(basePrice, digits);
 
     const fullCycles = Math.floor(normalizedQty / cycle);
     const remainder = normalizedQty % cycle;
@@ -317,19 +323,19 @@ export function calculateOfferAdjustedPrice(basePrice: number, offer: SaleProduc
     const discountPerUnit = (basePrice * discPct) / 100;
     const totalDiscount = discountedUnits * discountPerUnit;
     const totalLinePrice = Math.max(0, (normalizedQty * basePrice) - totalDiscount);
-    return roundCurrency(totalLinePrice / normalizedQty);
+    return roundCurrency(totalLinePrice / normalizedQty, digits);
   }
-  return roundCurrency(basePrice);
+  return roundCurrency(basePrice, digits);
 }
 
-export function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string, qty: number, basePrice: number, now: Date = new Date()): SaleProductOfferRow | null {
+export function pickBestApplicableOffer(offers: SaleProductOfferRow[], todayIso: string, qty: number, basePrice: number, now: Date = new Date(), digits: MoneyDigits): SaleProductOfferRow | null {
   const normalizedQty = Math.max(1, Number(qty || 1));
   const applicableOffers = offers.filter((offer) => isOfferActive(offer, todayIso, now) && normalizedQty >= getOfferEffectiveMinQty(offer));
   if (!applicableOffers.length) return null;
 
   return [...applicableOffers].sort((left, right) => {
-    const leftPrice = calculateOfferAdjustedPrice(basePrice, left, normalizedQty);
-    const rightPrice = calculateOfferAdjustedPrice(basePrice, right, normalizedQty);
+    const leftPrice = calculateOfferAdjustedPrice(basePrice, left, normalizedQty, digits);
+    const rightPrice = calculateOfferAdjustedPrice(basePrice, right, normalizedQty, digits);
     if (leftPrice !== rightPrice) return leftPrice - rightPrice;
 
     // Compare actual savings first; minimum quantity is only a tie-breaker.
@@ -349,21 +355,22 @@ export function calculateAllowedSaleUnitPrice(params: {
   unitMultiplier?: number;
   todayIso?: string;
   now?: Date;
+  moneyDigits: MoneyDigits;
 }): number {
   const multiplier = Number(params.unitMultiplier || 1) > 0 ? Number(params.unitMultiplier || 1) : 1;
   if (params.priceType === 'wholesale') {
-    return roundCurrency(Number(params.wholesalePrice || params.retailPrice || 0) * multiplier);
+    return roundCurrency(Number(params.wholesalePrice || params.retailPrice || 0) * multiplier, params.moneyDigits);
   }
-  const basePrice = roundCurrency(Number(params.retailPrice || 0) * multiplier);
+  const basePrice = roundCurrency(Number(params.retailPrice || 0) * multiplier, params.moneyDigits);
   const todayIso = normalizeDateOnly(params.todayIso) || todayLocalIsoDate();
   const qty = Number(params.qty || 1);
-  const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, qty, basePrice, params.now || new Date());
+  const activeOffer = pickBestApplicableOffer(params.offers || [], todayIso, qty, basePrice, params.now || new Date(), params.moneyDigits);
 
   if (!activeOffer) {
-    return roundCurrency(basePrice);
+    return roundCurrency(basePrice, params.moneyDigits);
   }
 
-  return calculateOfferAdjustedPrice(basePrice, activeOffer, qty);
+  return calculateOfferAdjustedPrice(basePrice, activeOffer, qty, params.moneyDigits);
 }
 
 export function resolveSalePayments(
@@ -429,8 +436,12 @@ export function resolveSalePayments(
   return result;
 }
 
-export function calculatePaidAmount(payments: Array<{ amount: number }>): number {
-  return roundCurrency(payments.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
+// Digits are required for consistency with the rest of this file,
+// even though this helper has no live callers today (only the infra
+// spec drives it): a future caller must name the tenant's digits
+// instead of silently summing at cents.
+export function calculatePaidAmount(payments: Array<{ amount: number }>, digits: MoneyDigits): number {
+  return roundCurrency(payments.reduce((sum, entry) => sum + Number(entry.amount || 0), 0), digits);
 }
 
 export function resolvePostedSalePaymentChannel(

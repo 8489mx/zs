@@ -1353,6 +1353,7 @@ export class SalesWriteService {
           offers: activeOffers,
           qty: item.qty,
           unitMultiplier: item.unitMultiplier,
+          moneyDigits,
         });
         const approvedUnitPrice = effectiveTerms?.approvedUnitPrices?.[item.productId];
         const isApprovedPrice = approvedUnitPrice !== undefined && Math.abs(Number(item.price || 0) - Number(approvedUnitPrice)) <= 0.0001;
@@ -2728,6 +2729,7 @@ export class SalesWriteService {
           offers: activeOffers,
           qty: item.qty,
           unitMultiplier: item.unitMultiplier,
+          moneyDigits,
         });
         await this.assertUnitPriceChangeAllowed(trx, auth, Number(item.price || 0), allowedUnitPrice, item.productId, normalized.managerPin, saleId);
         
@@ -3550,6 +3552,7 @@ export class SalesWriteService {
   async saveHeldSale(payload: HeldSaleDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const scope = requireTenantScope(auth);
     const heldSaleId = await this.tx.runInTransaction(this.db, async (trx) => {
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, scope.tenantId));
       const items = (Array.isArray(payload.items) ? payload.items : [])
         .map((item) => ({
           productId: Number(item.productId || 0),
@@ -3601,6 +3604,7 @@ export class SalesWriteService {
           priceType: item.priceType,
           offers: activeOffers,
           qty: item.qty,
+          moneyDigits,
         });
         await this.assertUnitPriceChangeAllowed(trx, auth, item.unitPrice, allowedUnitPrice, item.productId, payload.managerPin);
       }

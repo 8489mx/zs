@@ -102,6 +102,7 @@ function createFakeStockDb(stockQty: number, locationQty?: number): { db: FakeSt
 const prepared = buildPreparedSaleItem(
   { id: 2, name: 'Tea', stock_qty: '10', cost_price: '3.5' },
   { productId: 2, qty: 2, price: 5, unitName: 'علبة', unitMultiplier: 1.5, priceType: 'retail', notes: '', modifiers: [] },
+  { moneyDigits: 2 },
 );
 assert.deepEqual(prepared, {
   productId: 2,
@@ -122,54 +123,54 @@ assert.deepEqual(prepared, {
   isService: false,
 });
 
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail' }), 100);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'wholesale' }), 80);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 90);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'fixed', value: 15, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 85);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'price', value: 72, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 72);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-14', end_date: null }], todayIso: '2026-04-14' }), 90);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: null, end_date: '2026-04-14' }], todayIso: '2026-04-14' }), 90);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-15', end_date: null }], todayIso: '2026-04-14' }), 100);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: null, end_date: '2026-04-13' }], todayIso: '2026-04-14' }), 100);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 25, min_qty: 3, start_date: '2026-04-14', end_date: '2026-04-14' }], qty: 2, todayIso: '2026-04-14' }), 100);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 25, min_qty: 3, start_date: '2026-04-14', end_date: '2026-04-14' }], qty: 3, todayIso: '2026-04-14' }), 75);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-14T23:30:00.000Z', end_date: '2026-04-14T01:30:00.000Z' }], todayIso: '2026-04-14' }), 90);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 5, todayIso: '2026-04-14' }), 100);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 7, todayIso: '2026-04-14' }), 105.71);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 3, todayIso: '2026-04-14' }), 120);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'wholesale' }), 80);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 90);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'fixed', value: 15, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 85);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'price', value: 72, start_date: '2026-01-01', end_date: '2026-12-31' }], todayIso: '2026-04-14' }), 72);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-14', end_date: null }], todayIso: '2026-04-14' }), 90);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: null, end_date: '2026-04-14' }], todayIso: '2026-04-14' }), 90);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-15', end_date: null }], todayIso: '2026-04-14' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: null, end_date: '2026-04-13' }], todayIso: '2026-04-14' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 25, min_qty: 3, start_date: '2026-04-14', end_date: '2026-04-14' }], qty: 2, todayIso: '2026-04-14' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 25, min_qty: 3, start_date: '2026-04-14', end_date: '2026-04-14' }], qty: 3, todayIso: '2026-04-14' }), 75);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, wholesalePrice: 80, priceType: 'retail', offers: [{ offer_type: 'percent', value: 10, start_date: '2026-04-14T23:30:00.000Z', end_date: '2026-04-14T01:30:00.000Z' }], todayIso: '2026-04-14' }), 90);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 5, todayIso: '2026-04-14' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 7, todayIso: '2026-04-14' }), 105.71);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 120, wholesalePrice: 90, priceType: 'retail', offers: [{ offer_type: 'bundle', value: 500, min_qty: 5, start_date: '2026-01-01', end_date: '2026-12-31' }], qty: 3, todayIso: '2026-04-14' }), 120);
 
 // BOGO Offers (Buy X Get Y Free / Discounted)
 // Buy 1 Get 1 Free (100% discount on 2nd item)
 const bogo1Plus1 = [{ offer_type: 'bogo', bogo_buy_qty: 1, bogo_get_qty: 1, bogo_discount_percent: 100, start_date: '2026-01-01', end_date: '2026-12-31' }];
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 1, todayIso: '2026-04-14' }), 100);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 2, todayIso: '2026-04-14' }), 50);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 3, todayIso: '2026-04-14' }), 66.67);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 4, todayIso: '2026-04-14' }), 50);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 1, todayIso: '2026-04-14' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 2, todayIso: '2026-04-14' }), 50);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 3, todayIso: '2026-04-14' }), 66.67);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: bogo1Plus1, qty: 4, todayIso: '2026-04-14' }), 50);
 
 // Buy 2 Get 1 at 50% discount
 const bogo2Plus1Half = [{ offer_type: 'bogo', bogo_buy_qty: 2, bogo_get_qty: 1, bogo_discount_percent: 50, start_date: '2026-01-01', end_date: '2026-12-31' }];
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: bogo2Plus1Half, qty: 2, todayIso: '2026-04-14' }), 100);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: bogo2Plus1Half, qty: 3, todayIso: '2026-04-14' }), 83.33);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: bogo2Plus1Half, qty: 2, todayIso: '2026-04-14' }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: bogo2Plus1Half, qty: 3, todayIso: '2026-04-14' }), 83.33);
 
 // Happy Hours & Days of Week Offers
 const happyHourOffer = [{ offer_type: 'percent', value: 20, happy_hour_start: '14:00', happy_hour_end: '18:00', start_date: '2026-01-01', end_date: '2026-12-31' }];
 const insideHappyHour = new Date('2026-04-14T15:30:00'); // 15:30
 const outsideHappyHour = new Date('2026-04-14T19:00:00'); // 19:00
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: happyHourOffer, qty: 1, todayIso: '2026-04-14', now: insideHappyHour }), 80);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: happyHourOffer, qty: 1, todayIso: '2026-04-14', now: outsideHappyHour }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: happyHourOffer, qty: 1, todayIso: '2026-04-14', now: insideHappyHour }), 80);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: happyHourOffer, qty: 1, todayIso: '2026-04-14', now: outsideHappyHour }), 100);
 
 // Specific days of week (e.g. Day 1 = Monday)
 const mondayOnlyOffer = [{ offer_type: 'percent', value: 30, days_of_week: '1', start_date: '2026-01-01', end_date: '2026-12-31' }];
 const mondayDate = new Date('2026-04-13T12:00:00'); // Monday
 const tuesdayDate = new Date('2026-04-14T12:00:00'); // Tuesday
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: mondayOnlyOffer, qty: 1, todayIso: '2026-04-13', now: mondayDate }), 70);
-assert.equal(calculateAllowedSaleUnitPrice({ retailPrice: 100, priceType: 'retail', offers: mondayOnlyOffer, qty: 1, todayIso: '2026-04-14', now: tuesdayDate }), 100);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: mondayOnlyOffer, qty: 1, todayIso: '2026-04-13', now: mondayDate }), 70);
+assert.equal(calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: 100, priceType: 'retail', offers: mondayOnlyOffer, qty: 1, todayIso: '2026-04-14', now: tuesdayDate }), 100);
 
-assert.equal(calculateCollectibleTotal(120, 20), 100);
+assert.equal(calculateCollectibleTotal(120, 20, 2), 100);
 assert.deepEqual(resolveSalePayments('credit', [{ paymentChannel: 'cash', amount: 10 }], 100), [{ paymentChannel: 'cash', amount: 10 }]);
 assert.deepEqual(resolveSalePayments('credit', [], 100), []);
 assert.deepEqual(resolveSalePayments('cash', [], 55), [{ paymentChannel: 'cash', amount: 55 }]);
-assert.equal(calculatePaidAmount([{ amount: 10 }, { amount: 5.255 }]), 15.26);
+assert.equal(calculatePaidAmount([{ amount: 10 }, { amount: 5.255 }], 2), 15.26);
 assert.equal(resolvePostedSalePaymentChannel('credit', []), 'credit');
 assert.equal(resolvePostedSalePaymentChannel('credit', [{ paymentChannel: 'cash' }]), 'cash');
 assert.equal(resolvePostedSalePaymentChannel('credit', [{ paymentChannel: 'cash' }, { paymentChannel: 'card' }]), 'mixed');
@@ -178,7 +179,7 @@ assert.equal(resolvePostedSalePaymentChannel('cash', [{ paymentChannel: 'cash' }
 assert.deepEqual(calculateRestoredStockQuantity('4', '2', '1.5'), { restoreQty: 3, beforeQty: 4, afterQty: 7 });
 
 assert.throws(
-  () => buildPreparedSaleItem({ id: 3, name: 'Sugar', stock_qty: '1', cost_price: '2' }, { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail', notes: '', modifiers: [] }),
+  () => buildPreparedSaleItem({ id: 3, name: 'Sugar', stock_qty: '1', cost_price: '2' }, { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail', notes: '', modifiers: [] }, { moneyDigits: 2 }),
   (error: unknown) => error instanceof AppError && error.code === 'INSUFFICIENT_STOCK',
 );
 
@@ -186,7 +187,7 @@ assert.deepEqual(
   buildPreparedSaleItem(
     { id: 3, name: 'Sugar', stock_qty: '1', cost_price: '2' },
     { productId: 3, qty: 2, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail', notes: '', modifiers: [] },
-    { allowNegativeStockSales: true },
+    { allowNegativeStockSales: true, moneyDigits: 2 },
   ),
   {
     productId: 3,
@@ -213,7 +214,7 @@ async function runStockDeltaChecks(): Promise<void> {
     buildPreparedSaleItem(
       { id: 3, name: 'Sugar', stock_qty: '0', cost_price: '2' },
       { productId: 3, qty: 1, price: 5, unitName: 'قطعة', unitMultiplier: 1, priceType: 'retail', notes: '', modifiers: [] },
-      { allowNegativeStockSales: true },
+      { allowNegativeStockSales: true, moneyDigits: 2 },
     ).afterQty,
     -1,
   );

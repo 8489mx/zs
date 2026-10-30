@@ -32,6 +32,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
       end_date: '2026-10-31',
     };
     const allowedPrice = calculateAllowedSaleUnitPrice({
+      moneyDigits: 2,
       retailPrice: baseRetail,
       priceType: 'retail',
       offers: [offer],
@@ -50,12 +51,12 @@ async function runComprehensiveOffersAudit(): Promise<void> {
       end_date: '2026-10-31',
     };
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [offerMinQty], qty: 2, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [offerMinQty], qty: 2, todayIso }),
       100,
       'Qty 2 is below minQty 3, should remain base retail price 100 EGP',
     );
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [offerMinQty], qty: 3, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [offerMinQty], qty: 3, todayIso }),
       75,
       'Qty 3 meets minQty 3, 25% discount should apply -> 75 EGP',
     );
@@ -74,6 +75,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
       end_date: '2026-10-31',
     };
     const allowedPrice = calculateAllowedSaleUnitPrice({
+      moneyDigits: 2,
       retailPrice: baseRetail,
       priceType: 'retail',
       offers: [offer],
@@ -91,6 +93,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
       end_date: '2026-10-31',
     };
     const clampedPrice = calculateAllowedSaleUnitPrice({
+      moneyDigits: 2,
       retailPrice: baseRetail,
       priceType: 'retail',
       offers: [hugeDiscountOffer],
@@ -113,6 +116,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
       end_date: '2026-10-31',
     };
     const allowedPrice = calculateAllowedSaleUnitPrice({
+      moneyDigits: 2,
       retailPrice: baseRetail,
       priceType: 'retail',
       offers: [offer],
@@ -139,14 +143,14 @@ async function runComprehensiveOffersAudit(): Promise<void> {
 
     // Below bundle threshold (3 pieces)
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bundleOffer], qty: 3, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bundleOffer], qty: 3, todayIso }),
       100,
       'Below bundle threshold (3 items): should remain 100 EGP each',
     );
 
     // Exactly 1 bundle (5 pieces) -> 350 / 5 = 70 EGP each
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bundleOffer], qty: 5, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bundleOffer], qty: 5, todayIso }),
       70,
       '1 bundle of 5 items for 350 EGP -> 70 EGP each',
     );
@@ -154,7 +158,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
     // 1 bundle + 2 remainder pieces (7 pieces total)
     // 1 bundle (5 * 70 = 350) + 2 regular (2 * 100 = 200) = 550 total / 7 = 78.57 EGP each
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bundleOffer], qty: 7, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bundleOffer], qty: 7, todayIso }),
       78.57,
       '7 items = 1 bundle (350) + 2 single items (200) = 550 / 7 = 78.57 EGP each',
     );
@@ -178,28 +182,28 @@ async function runComprehensiveOffersAudit(): Promise<void> {
 
     // 1 piece: not eligible yet
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 1, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 1, todayIso }),
       100,
       '1 item does not qualify for BOGO',
     );
 
     // 2 pieces: 1 paid, 1 free -> total 100 / 2 = 50 EGP each
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 2, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 2, todayIso }),
       50,
       '2 items in Buy 1 Get 1 Free -> 50 EGP each',
     );
 
     // 3 pieces: 1 paid + 1 free + 1 regular -> total 200 / 3 = 66.67 EGP each
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 3, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 3, todayIso }),
       66.67,
       '3 items in Buy 1 Get 1 Free -> 66.67 EGP each',
     );
 
     // 4 pieces: 2 paid + 2 free -> total 200 / 4 = 50 EGP each
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 4, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bogo1Plus1], qty: 4, todayIso }),
       50,
       '4 items in Buy 1 Get 1 Free (2 cycles) -> 50 EGP each',
     );
@@ -216,7 +220,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
     };
     // 3 pieces: 2 paid @ 100 + 1 paid @ 50 = 250 / 3 = 83.33 EGP each
     assert.equal(
-      calculateAllowedSaleUnitPrice({ retailPrice: baseRetail, priceType: 'retail', offers: [bogo2Plus1Half], qty: 3, todayIso }),
+      calculateAllowedSaleUnitPrice({ moneyDigits: 2, retailPrice: baseRetail, priceType: 'retail', offers: [bogo2Plus1Half], qty: 3, todayIso }),
       83.33,
       '3 items in Buy 2 Get 1 @ 50% -> 83.33 EGP each',
     );
@@ -242,6 +246,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
     const validTuesday = new Date('2026-10-13T17:30:00'); // Day 2 (Tue)
     assert.equal(
       calculateAllowedSaleUnitPrice({
+        moneyDigits: 2,
         retailPrice: baseRetail,
         priceType: 'retail',
         offers: [happyHourOffer],
@@ -257,6 +262,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
     const outsideHoursTuesday = new Date('2026-10-13T21:00:00');
     assert.equal(
       calculateAllowedSaleUnitPrice({
+        moneyDigits: 2,
         retailPrice: baseRetail,
         priceType: 'retail',
         offers: [happyHourOffer],
@@ -272,6 +278,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
     const fridayDate = new Date('2026-10-16T17:30:00'); // Day 5 (Fri)
     assert.equal(
       calculateAllowedSaleUnitPrice({
+        moneyDigits: 2,
         retailPrice: baseRetail,
         priceType: 'retail',
         offers: [happyHourOffer],
@@ -320,6 +327,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
     const offer3: SaleProductOfferRow = { offer_type: 'price', value: 80, start_date: '2026-10-01', end_date: '2026-10-31' };   // 80 EGP
 
     const bestPrice = calculateAllowedSaleUnitPrice({
+      moneyDigits: 2,
       retailPrice: baseRetail,
       priceType: 'retail',
       offers: [offer1, offer2, offer3],
