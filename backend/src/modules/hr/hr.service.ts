@@ -4423,6 +4423,27 @@ export class HrService {
       throw new AppError('لا يمكن تصدير مرتبات بنكية قبل اعتماد الكشف', 'HR_PAYROLL_EXPORT_NOT_APPROVED', 400);
     }
 
+    // INV-PAYROLL-EXPORT-REQUIRES-ACCRUAL: a bank review file may
+    // only be exported against a booked accrual. The export must
+    // never outrun the ledger — an approved run whose accrual
+    // journal is missing (or was reversed) exports nothing.
+    // "Active" is the posting service's own definition: status
+    // 'posted' with no reversal link.
+    const accrualJournals = await sql<{ status: string; reversed_by_entry_id: number | null }>`
+      SELECT status, reversed_by_entry_id FROM journal_entries
+      WHERE source_type = 'hr_payroll_accrual' AND source_id = ${id} AND tenant_id = ${auth.tenantId}
+    `.execute(this.db);
+    const hasActiveAccrual = accrualJournals.rows.some(
+      (row) => clean(row.status) === 'posted' && !row.reversed_by_entry_id,
+    );
+    if (!hasActiveAccrual) {
+      const wasReversed = accrualJournals.rows.some((row) => !!row.reversed_by_entry_id);
+      if (wasReversed) {
+        throw new AppError('قيد استحقاق الرواتب لهذا المسير تم عكسه، لا يمكن تصدير ملف بنكي', 'HR_PAYROLL_EXPORT_ACCRUAL_REVERSED', 409);
+      }
+      throw new AppError('لا يوجد قيد استحقاق مرحل لهذا المسير، لا يمكن تصدير ملف بنكي', 'HR_PAYROLL_EXPORT_ACCRUAL_MISSING', 409);
+    }
+
     const itemsResult = await sql<Record<string, unknown>>`
       SELECT
         i.*,
