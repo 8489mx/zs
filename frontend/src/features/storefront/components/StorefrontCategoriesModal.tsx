@@ -66,6 +66,8 @@ function getFamilyIcon(groupName: string, size = 16) {
   );
 }
 
+
+
 export function StorefrontCategoriesModal({
   isOpen,
   onClose,
@@ -118,7 +120,7 @@ export function StorefrontCategoriesModal({
     }
   }, [groupedFamilies, activeGroup]);
 
-  // Current items to show in the right detail panel
+  // Current items to show in the left detail panel
   const displayedCategories = useMemo(() => {
     if (modalSearch.trim()) {
       const q = modalSearch.trim().toLowerCase();
@@ -135,41 +137,50 @@ export function StorefrontCategoriesModal({
   const currentFamilyObj = groupedFamilies.find((f) => f.groupName === activeGroup);
   const hasMultipleFamilies = groupedFamilies.length > 1;
 
+  const getCategoryPhoto = (cat: StorefrontCategory) => {
+    const raw = cat.imageUrl || getAutoProductPhoto(cat.name, cat.name);
+    if (raw && !raw.startsWith('data:image/svg')) return raw;
+    return generatePremiumProductSvg(cat.name, cat.name);
+  };
+
+  const formatCountLabel = (count: number) => {
+    const unit =
+      count === 1
+        ? t('storefront.storefront_categories_modal.s15', 'صنف')
+        : count === 2
+          ? t('storefront.storefront_categories_modal.s16', 'صنفان')
+          : count <= 10
+            ? t('storefront.storefront_categories_modal.s17', 'أصناف')
+            : t('storefront.storefront_categories_modal.s18', 'صنف');
+    return `${count} ${unit}`;
+  };
+
   return (
     <DialogShell
       open={isOpen}
       onClose={onClose}
-      width="min(1240px, 95vw)"
-      maxHeight="min(88vh, 780px)"
+      width="min(1220px, 95vw)"
+      maxHeight="min(88vh, 800px)"
       shellClassName="storefront-cat-modal-shell"
-      ariaLabel={t('storefront.storefront_categories_modal.s0', "جميع أقسام وتصنيفات المتجر")}
+      ariaLabel={t('storefront.storefront_categories_modal.s0', 'جميع أقسام وتصنيفات المتجر')}
     >
       <div className="full-bleed storefront-cat-modal-root">
-        {/* Top Header Bar: Clean & Integrated */}
+        {/* Top Header Bar: Luxury Rounded & Integrated */}
         <div className="storefront-cat-modal-header">
           {/* Title Area */}
           <div className="storefront-cat-modal-header-brand">
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '8px',
-                background: 'var(--storefront-primary-subtle, #f0f3ff)',
-                color: 'var(--storefront-primary-color, #170e5e)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <IconFolder size={18} color="var(--storefront-primary-color, #170e5e)" strokeWidth={2.2} />
-            </div>
             <div>
-              <h2 style={{ margin: 0, fontSize: '14.5px', fontWeight: 900, color: '#0f172a', lineHeight: 1.2 }}>
-                {t('storefront.storefront_categories_modal.s1', "تصفح أقسام المتجر")}
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a', lineHeight: 1.25 }}>
+                {t('storefront.storefront_categories_modal.s1', 'تصفح أقسام المتجر')}
               </h2>
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                {categories.length} {t('storefront.storefront_categories_modal.s2', "قسماً وتصنيفاً معتمداً")}
+              <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
+                {categories.length === 1
+                  ? t('storefront.storefront_categories_modal.s2_single', 'قسم وتصنيف معتمد')
+                  : categories.length === 2
+                    ? t('storefront.storefront_categories_modal.s2_dual', 'قسمان وتصنيفان معتمدان')
+                    : categories.length <= 10
+                      ? `${categories.length} ${t('storefront.storefront_categories_modal.s2_few', 'أقسام وتصنيفات معتمدة')}`
+                      : `${categories.length} ${t('storefront.storefront_categories_modal.s2_many', 'قسماً وتصنيفاً معتمداً')}`}
               </span>
             </div>
           </div>
@@ -180,34 +191,45 @@ export function StorefrontCategoriesModal({
               type="text"
               value={modalSearch}
               onChange={(e) => setModalSearch(e.target.value)}
-              placeholder={t('storefront.storefront_categories_modal.s3', "ابحث عن اسم القسم أو الماركة...")}
+              placeholder={t('storefront.storefront_categories_modal.s3', 'ابحث عن اسم القسم أو الماركة...')}
               style={{
                 width: '100%',
-                padding: '8px 36px 8px 12px',
-                borderRadius: '8px',
-                border: '1.5px solid #cbd5e1',
-                fontSize: '12.5px',
-                background: '#f8fafc',
+                height: '40px',
+                padding: '8px 40px 8px 14px',
+                borderRadius: '14px',
+                border: '1px solid #e2e8f0',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#0f172a',
+                background: '#f4f6fa',
                 fontFamily: 'inherit',
                 outline: 'none',
                 boxSizing: 'border-box',
-                transition: 'border-color 0.15s ease',
+                transition: 'all 0.18s ease',
               }}
-              onFocus={(e) => (e.target.style.borderColor = 'var(--storefront-primary-color, #170e5e)')}
-              onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--storefront-primary-color, #2d68c4)';
+                e.target.style.background = '#ffffff';
+                e.target.style.boxShadow = '0 0 0 3px rgba(45, 104, 196, 0.12)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.background = '#f4f6fa';
+                e.target.style.boxShadow = 'none';
+              }}
             />
             <span
               style={{
                 position: 'absolute',
                 top: '50%',
-                right: '11px',
+                right: '14px',
                 transform: 'translateY(-50%)',
                 display: 'flex',
                 alignItems: 'center',
                 pointerEvents: 'none',
               }}
             >
-              <IconSearch size={15} color="#94a3b8" />
+              <IconSearch size={16} color="#64748b" />
             </span>
             {modalSearch.trim() && (
               <button
@@ -218,27 +240,29 @@ export function StorefrontCategoriesModal({
                   top: '50%',
                   left: '10px',
                   transform: 'translateY(-50%)',
-                  background: 'none',
+                  background: '#e2e8f0',
                   border: 'none',
-                  color: '#94a3b8',
+                  borderRadius: '8px',
+                  padding: '2px 8px',
+                  color: '#334155',
                   cursor: 'pointer',
                   fontSize: '11px',
                   fontWeight: 700,
                 }}
               >
-                {t('storefront.storefront_categories_modal.s4', "مسح")}
+                {t('storefront.storefront_categories_modal.s4', 'مسح')}
               </button>
             )}
           </div>
 
-          {/* Close Button: Circular, never squashed or oval */}
+          {/* Close Button: Soft Squircle */}
           <button
             type="button"
             onClick={onClose}
             className="storefront-cat-modal-close-btn"
-            title={t('storefront.storefront_categories_modal.s5', "إغلاق (Esc)")}
+            title={t('storefront.storefront_categories_modal.s5', 'إغلاق (Esc)')}
           >
-            <IconClose size={15} strokeWidth={2.2} />
+            <IconClose size={16} strokeWidth={2.2} />
           </button>
         </div>
 
@@ -251,72 +275,61 @@ export function StorefrontCategoriesModal({
               onSelectCategory('all');
               onClose();
             }}
-            style={{
-              borderStyle: 'dashed',
-              borderColor: '#cbd5e1',
-              background: '#ffffff',
-            }}
-            className="storefront-cat-modal-chip"
-            title={t('storefront.storefront_categories_modal.s6', "عرض جميع أصناف المتجر بدون فلترة")}
+            className={`storefront-cat-modal-chip ${selectedCategoryId === 'all' ? 'active' : ''}`}
+            title={t('storefront.storefront_categories_modal.s6', 'عرض جميع أصناف المتجر بدون فلترة')}
           >
-            <IconShoppingBag size={11} strokeWidth={2.2} />
-            <span>{t('storefront.storefront_categories_modal.s7', "الكل")}</span>
+            <IconShoppingBag size={12} strokeWidth={2.2} />
+            <span>{t('storefront.storefront_categories_modal.s7', 'الكل')}</span>
             <span className="storefront-cat-modal-chip-badge">{totalAllCount}</span>
           </button>
 
-          {hasMultipleFamilies ? (
-            groupedFamilies.map((fam) => {
-              const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
-              return (
-                <button
-                  key={fam.groupName}
-                  type="button"
-                  onClick={(e) => {
-                    e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-                    setModalSearch('');
-                    setActiveGroup(fam.groupName);
-                  }}
-                  className={`storefront-cat-modal-chip ${isActive ? 'active' : ''}`}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                    {getFamilyIcon(fam.groupName, 11)}
-                  </span>
-                  <span>{fam.groupName}</span>
-                  <span className="storefront-cat-modal-chip-badge">
-                    {fam.categories.length}
-                  </span>
-                </button>
-              );
-            })
-          ) : (
-            categories.map((cat) => {
-              const isActive = selectedCategoryId === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={(e) => {
-                    e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-                    onSelectCategory(cat.id);
-                    onClose();
-                  }}
-                  className={`storefront-cat-modal-chip ${isActive ? 'active' : ''}`}
-                >
-                  <span>{cat.name}</span>
-                  <span className="storefront-cat-modal-chip-badge">
-                    {categoryCounts.get(cat.id) || 0}
-                  </span>
-                </button>
-              );
-            })
-          )}
+          {hasMultipleFamilies
+            ? groupedFamilies.map((fam) => {
+                const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
+                return (
+                  <button
+                    key={fam.groupName}
+                    type="button"
+                    onClick={(e) => {
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                      setModalSearch('');
+                      setActiveGroup(fam.groupName);
+                    }}
+                    className={`storefront-cat-modal-chip ${isActive ? 'active' : ''}`}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                      {getFamilyIcon(fam.groupName, 12)}
+                    </span>
+                    <span>{fam.groupName}</span>
+                    <span className="storefront-cat-modal-chip-badge">{fam.categories.length}</span>
+                  </button>
+                );
+              })
+            : categories.map((cat) => {
+                const isActive = selectedCategoryId === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                      onSelectCategory(cat.id);
+                      onClose();
+                    }}
+                    className={`storefront-cat-modal-chip ${isActive ? 'active' : ''}`}
+                  >
+                    <span>{cat.name}</span>
+                    <span className="storefront-cat-modal-chip-badge">{categoryCounts.get(cat.id) || 0}</span>
+                  </button>
+                );
+              })}
         </div>
 
         {/* Main Two-Column Split Panel Body */}
         <div className="storefront-cat-modal-body">
-          {/* Right Sidebar: Master Category Families (260px) */}
+          {/* Right Sidebar: Master Category Navigation with Visual Thumbnails */}
           <div className="storefront-cat-modal-sidebar">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {/* Master Item: All Products Button */}
               <button
                 type="button"
@@ -329,57 +342,66 @@ export function StorefrontCategoriesModal({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: selectedCategoryId === 'all'
-                    ? '1.5px solid var(--storefront-primary-color, #170e5e)'
-                    : '1px solid #e2e8f0',
-                  background: selectedCategoryId === 'all'
-                    ? 'var(--storefront-primary-subtle, #f0f3ff)'
-                    : '#ffffff',
+                  borderRadius: '16px',
+                  border:
+                    selectedCategoryId === 'all'
+                      ? '1.5px solid var(--storefront-primary-color, #2d68c4)'
+                      : '1px solid #e2e8f0',
+                  background:
+                    selectedCategoryId === 'all'
+                      ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
+                      : '#ffffff',
                   color: '#0f172a',
                   cursor: 'pointer',
                   textAlign: 'right',
-                  transition: 'all 0.15s ease',
-                  marginBottom: '6px',
-                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                  transition: 'all 0.18s ease',
+                  marginBottom: '4px',
+                  boxShadow:
+                    selectedCategoryId === 'all'
+                      ? '0 4px 14px rgba(45, 104, 196, 0.14)'
+                      : '0 2px 6px rgba(15, 23, 42, 0.03)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--storefront-primary-color, #170e5e)';
+                  e.currentTarget.style.borderColor = 'var(--storefront-primary-color, #2d68c4)';
                   e.currentTarget.style.transform = 'translateX(-2px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #170e5e)' : '#e2e8f0';
+                  e.currentTarget.style.borderColor =
+                    selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #2d68c4)' : '#e2e8f0';
                   e.currentTarget.style.transform = 'translateX(0)';
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div
                     style={{
-                      width: '26px',
-                      height: '26px',
-                      borderRadius: '6px',
-                      background: 'var(--storefront-primary-color, #170e5e)',
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '11px',
+                      background: 'var(--storefront-primary-color, #2d68c4)',
                       color: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
+                      boxShadow: '0 3px 8px rgba(45, 104, 196, 0.28)',
                     }}
                   >
-                    <IconShoppingBag size={14} color="#ffffff" strokeWidth={2.2} />
+                    <IconShoppingBag size={16} color="#ffffff" strokeWidth={2.2} />
                   </div>
-                  <span style={{ fontSize: '12.5px', fontWeight: 800 }}>
-                    {t('storefront.storefront_categories_modal.s8', "جميع المنتجات")}
+                  <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
+                    {t('storefront.storefront_categories_modal.s8', 'جميع المنتجات')}
                   </span>
                 </div>
                 <span
                   style={{
-                    fontSize: '10.5px',
-                    fontWeight: 700,
-                    color: 'var(--storefront-primary-color, #170e5e)',
-                    background: '#f1f5f9',
-                    padding: '2px 6px',
-                    borderRadius: '5px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: 'var(--storefront-primary-color, #2d68c4)',
+                    background: '#ffffff',
+                    border: '1px solid #bfdbfe',
+                    padding: '2px 8px',
+                    borderRadius: '8px',
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
                   {totalAllCount}
@@ -389,165 +411,260 @@ export function StorefrontCategoriesModal({
               {/* Sidebar Section Divider */}
               <div
                 style={{
-                  fontSize: '11px',
+                  fontSize: '11.5px',
                   fontWeight: 800,
                   color: '#64748b',
-                  padding: '4px 6px',
+                  padding: '4px 8px 2px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '7px',
                 }}
               >
-                <span style={{ width: '3px', height: '10px', backgroundColor: '#94a3b8', borderRadius: '2px', display: 'inline-block' }} />
-                <span>{t('storefront.storefront_categories_modal.s9', "فئات وأقسام المتجر")}</span>
+                <span
+                  style={{
+                    width: '4px',
+                    height: '12px',
+                    backgroundColor: 'var(--storefront-primary-color, #2d68c4)',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                  }}
+                />
+                <span>{t('storefront.storefront_categories_modal.s9', 'فئات وأقسام المتجر')}</span>
               </div>
 
-              {/* Category Families or Categories List */}
-              {hasMultipleFamilies ? (
-                groupedFamilies.map((fam) => {
-                  const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
-                  return (
-                    <button
-                      key={fam.groupName}
-                      type="button"
-                      onClick={() => {
-                        setModalSearch('');
-                        setActiveGroup(fam.groupName);
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = '#ffffff';
-                          e.currentTarget.style.borderColor = '#e2e8f0';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.borderColor = 'transparent';
-                        }
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        border: isActive
-                          ? '1px solid var(--storefront-primary-color, #170e5e)'
-                          : '1px solid transparent',
-                        background: isActive ? 'var(--storefront-primary-color, #170e5e)' : 'transparent',
-                        color: isActive ? '#ffffff' : '#334155',
-                        cursor: 'pointer',
-                        textAlign: 'right',
-                        transition: 'all 0.12s ease',
-                        boxShadow: isActive ? '0 2px 8px rgba(23, 14, 94, 0.22)' : 'none',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', opacity: isActive ? 1 : 0.7 }}>
-                          {getFamilyIcon(fam.groupName)}
-                        </span>
-                        <span style={{ fontSize: '13px', fontWeight: isActive ? 800 : 600 }}>
-                          {fam.groupName}
-                        </span>
-                      </div>
-
-                      <span
+              {/* Category Families or Categories List with Real Mini Product Thumbnails */}
+              {hasMultipleFamilies
+                ? groupedFamilies.map((fam) => {
+                    const isActive = !modalSearch.trim() && activeGroup === fam.groupName;
+                    const repCat = fam.categories[0];
+                    const thumbUrl = repCat ? getCategoryPhoto(repCat) : '';
+                    return (
+                      <button
+                        key={fam.groupName}
+                        type="button"
+                        onClick={() => {
+                          setModalSearch('');
+                          setActiveGroup(fam.groupName);
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = '#ffffff';
+                            e.currentTarget.style.borderColor = '#e2e8f0';
+                            e.currentTarget.style.transform = 'translateX(-2px)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.transform = 'translateX(0)';
+                          }
+                        }}
                         style={{
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          borderRadius: '6px',
-                          background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
-                          color: isActive ? '#ffffff' : '#475569',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 10px',
+                          borderRadius: '14px',
+                          border: isActive
+                            ? '1.5px solid var(--storefront-primary-color, #2d68c4)'
+                            : '1px solid transparent',
+                          background: isActive ? '#ffffff' : 'transparent',
+                          color: isActive ? 'var(--storefront-primary-color, #2d68c4)' : '#1e293b',
+                          cursor: 'pointer',
+                          textAlign: 'right',
+                          transition: 'all 0.16s ease',
+                          boxShadow: isActive ? '0 4px 12px rgba(15, 23, 42, 0.06)' : 'none',
                         }}
                       >
-                        {fam.categories.length}
-                      </span>
-                    </button>
-                  );
-                })
-              ) : (
-                categories.map((cat) => {
-                  const count = categoryCounts.get(cat.id) || 0;
-                  const isActive = selectedCategoryId === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => {
-                        onSelectCategory(cat.id);
-                        onClose();
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = '#ffffff';
-                          e.currentTarget.style.borderColor = '#e2e8f0';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.borderColor = 'transparent';
-                        }
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        border: isActive
-                          ? '1px solid var(--storefront-primary-color, #170e5e)'
-                          : '1px solid transparent',
-                        background: isActive ? 'var(--storefront-primary-color, #170e5e)' : 'transparent',
-                        color: isActive ? '#ffffff' : '#334155',
-                        cursor: 'pointer',
-                        textAlign: 'right',
-                        transition: 'all 0.12s ease',
-                        boxShadow: isActive ? '0 2px 8px rgba(23, 14, 94, 0.22)' : 'none',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', opacity: isActive ? 1 : 0.7 }}>
-                          {getFamilyIcon(cat.name)}
-                        </span>
-                        <span style={{ fontSize: '13px', fontWeight: isActive ? 800 : 600 }}>
-                          {cat.name}
-                        </span>
-                      </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: '34px',
+                              height: '34px',
+                              borderRadius: '10px',
+                              background: '#f4f6fa',
+                              border: '1px solid #edf1f7',
+                              padding: '3px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            {thumbUrl ? (
+                              <img
+                                src={thumbUrl}
+                                alt={fam.groupName}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                              />
+                            ) : (
+                              getFamilyIcon(fam.groupName)
+                            )}
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: isActive ? 800 : 700,
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            {fam.groupName}
+                          </span>
+                        </div>
 
-                      <span
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: '8px',
+                            background: isActive ? '#eff6ff' : '#e2e8f0',
+                            color: isActive ? 'var(--storefront-primary-color, #2d68c4)' : '#475569',
+                            flexShrink: 0,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {fam.categories.length}
+                        </span>
+                      </button>
+                    );
+                  })
+                : categories.map((cat) => {
+                    const count = categoryCounts.get(cat.id) || 0;
+                    const isActive = selectedCategoryId === cat.id;
+                    const thumbUrl = getCategoryPhoto(cat);
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          onSelectCategory(cat.id);
+                          onClose();
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = '#ffffff';
+                            e.currentTarget.style.borderColor = '#e2e8f0';
+                            e.currentTarget.style.boxShadow = '0 3px 10px rgba(15, 23, 42, 0.04)';
+                            e.currentTarget.style.transform = 'translateX(-2px)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.boxShadow = 'none';
+                            e.currentTarget.style.transform = 'translateX(0)';
+                          }
+                        }}
                         style={{
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          borderRadius: '6px',
-                          background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#e2e8f0',
-                          color: isActive ? '#ffffff' : '#475569',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '7px 10px',
+                          borderRadius: '14px',
+                          border: isActive
+                            ? '1.5px solid var(--storefront-primary-color, #2d68c4)'
+                            : '1px solid transparent',
+                          background: isActive ? '#ffffff' : 'transparent',
+                          color: isActive ? 'var(--storefront-primary-color, #2d68c4)' : '#1e293b',
+                          cursor: 'pointer',
+                          textAlign: 'right',
+                          transition: 'all 0.16s ease',
+                          boxShadow: isActive ? '0 4px 12px rgba(45, 104, 196, 0.1)' : 'none',
+                          gap: '8px',
                         }}
                       >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '11px',
+                              background: '#ffffff',
+                              border: isActive ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                              padding: '3px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              boxSizing: 'border-box',
+                              boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+                            }}
+                          >
+                            <img
+                              src={thumbUrl}
+                              alt={cat.name}
+                              loading="lazy"
+                              decoding="async"
+                              onError={(e) => {
+                                e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                              }}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                              }}
+                            />
+                          </div>
+                          <span
+                            style={{
+                              fontSize: '12.5px',
+                              fontWeight: isActive ? 800 : 700,
+                              lineHeight: 1.35,
+                              color: isActive ? 'var(--storefront-primary-color, #2d68c4)' : '#1e293b',
+                            }}
+                          >
+                            {cat.name}
+                          </span>
+                        </div>
+
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: '8px',
+                            background: isActive ? '#eff6ff' : '#e2e8f0',
+                            color: isActive ? 'var(--storefront-primary-color, #2d68c4)' : '#475569',
+                            flexShrink: 0,
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
             </div>
           </div>
 
-          {/* Left Detail Panel: Dedicated Category Cards Grid */}
+          {/* Left Detail Panel: Luxury Squircle Category Cards Grid */}
           <div className="storefront-cat-modal-content">
             {/* Active Group Header Bar */}
             <div className="storefront-cat-modal-content-header">
               <div>
-                <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: '16px',
+                    fontWeight: 900,
+                    color: '#0f172a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
                   <span
                     style={{
-                      width: '3px',
-                      height: '14px',
-                      backgroundColor: 'var(--storefront-primary-color, #170e5e)',
-                      borderRadius: '2px',
+                      width: '4px',
+                      height: '16px',
+                      backgroundColor: 'var(--storefront-primary-color, #2d68c4)',
+                      borderRadius: '4px',
                       display: 'inline-block',
                     }}
                   />
@@ -556,16 +673,28 @@ export function StorefrontCategoriesModal({
                       ? `نتائج البحث عن «${modalSearch}»`
                       : hasMultipleFamilies
                         ? activeGroup
-                        : t('storefront.storefront_categories_modal.s10', "أقسام وتصنيفات المتجر")}
+                        : t('storefront.storefront_categories_modal.s10', 'أقسام وتصنيفات المتجر')}
                   </span>
                 </h3>
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, marginTop: '2px', display: 'block' }}>
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: '#64748b',
+                    fontWeight: 600,
+                    marginTop: '3px',
+                    display: 'block',
+                  }}
+                >
                   {modalSearch.trim() ? (
                     `تم العثور على ${displayedCategories.length} قسماً مطابقاً للبحث`
                   ) : (
                     <>
-                      <span>{t('storefront.storefront_categories_modal.s11', "اختر القسم لتصفح الأصناف المعروضة")}</span>{' '}
-                      <span style={{ whiteSpace: 'nowrap' }}>({displayedCategories.length} {t('storefront.storefront_categories_modal.s12', "متاح)")}</span>
+                      <span>
+                        {t('storefront.storefront_categories_modal.s11', 'اختر القسم لتصفح الأصناف المعروضة')}
+                      </span>{' '}
+                      <span style={{ whiteSpace: 'nowrap' }}>
+                        ({displayedCategories.length} {t('storefront.storefront_categories_modal.s12', 'متاح)')}
+                      </span>
                     </>
                   )}
                 </span>
@@ -574,31 +703,31 @@ export function StorefrontCategoriesModal({
               {!modalSearch.trim() && currentFamilyObj && (
                 <span
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: '#475569',
-                    background: '#f8fafc',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    color: '#1e293b',
+                    background: '#f4f6fa',
                     border: '1px solid #e2e8f0',
-                    padding: '3px 10px',
-                    borderRadius: '6px',
+                    padding: '5px 12px',
+                    borderRadius: '10px',
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
                   }}
                 >
-                  {t('storefront.storefront_categories_modal.s13', "إجمالي")} {currentFamilyObj.totalCount} {t('storefront.storefront_categories_modal.s14', "صنف")}
+                  {t('storefront.storefront_categories_modal.s13', 'إجمالي')} {currentFamilyObj.totalCount}{' '}
+                  {t('storefront.storefront_categories_modal.s14', 'صنف')}
                 </span>
               )}
             </div>
 
-            {/* Grid of Categories - 5 columns for 5 items, else 4 columns on desktop; 2 columns on mobile */}
+            {/* Grid of Categories - Matching Storefront Quick Tiles & Luxury Product Cards */}
             {displayedCategories.length > 0 ? (
               <div className={`storefront-cat-modal-grid ${displayedCategories.length === 5 ? 'five-cols' : ''}`}>
                 {displayedCategories.map((cat) => {
                   const count = categoryCounts.get(cat.id) || 0;
                   const isSelected = selectedCategoryId === cat.id;
                   const parsed = parseCategory(cat.name);
-                  const photoUrl = cat.imageUrl || getAutoProductPhoto(cat.name, cat.name);
-                  const hasRealPhoto = Boolean(cat.imageUrl || (photoUrl && !photoUrl.startsWith('data:image/svg')));
+                  const photoUrl = getCategoryPhoto(cat);
 
                   return (
                     <div
@@ -609,107 +738,88 @@ export function StorefrontCategoriesModal({
                       }}
                       className={`storefront-cat-modal-card ${isSelected ? 'selected' : ''}`}
                     >
-                      {/* Photo Container */}
-                      <div className="storefront-cat-modal-card-img-box">
-                        {hasRealPhoto ? (
-                          <img
-                            src={photoUrl}
-                            alt={cat.name}
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => {
-                              e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
-                            }}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                              display: 'block',
-                            }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'var(--storefront-primary-color, #170e5e)',
-                              background: '#f8fafc',
-                              width: '100%',
-                              height: '100%',
-                            }}
-                          >
-                            <IconFolder size={22} color="var(--storefront-primary-color, #170e5e)" strokeWidth={1.8} />
-                          </div>
-                        )}
-
-                        {/* Frosted Count Pill on Image */}
-                        <span
-                          style={{
-                            position: 'absolute',
-                            bottom: '4px',
-                            left: '4px',
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            color: '#0f172a',
-                            background: 'rgba(255, 255, 255, 0.94)',
-                            border: '1px solid rgba(226, 232, 240, 0.9)',
-                            backdropFilter: 'blur(4px)',
-                            padding: '1px 4px',
-                            borderRadius: '4px',
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
-                          }}
-                        >
-                          {count} {count === 1 ? t('storefront.storefront_categories_modal.s15', "صنف") : count === 2 ? t('storefront.storefront_categories_modal.s16', "صنفان") : count <= 10 ? t('storefront.storefront_categories_modal.s17', "أصناف") : t('storefront.storefront_categories_modal.s18', "صنف")}
-                        </span>
-                      </div>
-
-                      {/* Text Container */}
+                      {/* Category Title: 2-line auto-wrap with exact height to prevent layout jumps */}
                       <div
                         style={{
-                          padding: '4px 6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                          width: '100%',
                           textAlign: 'center',
-                          gap: '1px',
-                          flex: 1,
-                          minWidth: 0,
+                          paddingInline: '4px',
                         }}
                       >
-                        <span
+                        <div
                           style={{
-                            fontSize: '11.5px',
+                            fontSize: '13.5px',
                             fontWeight: 800,
-                            color: isSelected ? 'var(--storefront-primary-color, #170e5e)' : '#0f172a',
-                            lineHeight: 1.25,
-                            whiteSpace: 'nowrap',
+                            color: isSelected ? 'var(--storefront-primary-color, #2d68c4)' : '#0f172a',
+                            lineHeight: 1.35,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            maxWidth: '100%',
+                            height: '38px',
+                            minHeight: '38px',
+                            whiteSpace: 'normal',
+                            textAlign: 'center',
+                            wordBreak: 'break-word',
                           }}
                           title={cat.name}
                         >
                           {parsed.label}
-                        </span>
+                        </div>
 
                         {modalSearch.trim() && parsed.group && (
-                          <span
+                          <div
                             style={{
-                              fontSize: '10px',
+                              fontSize: '10.5px',
                               fontWeight: 600,
                               color: '#64748b',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
-                              maxWidth: '100%',
+                              marginTop: '2px',
                             }}
                           >
                             {parsed.group}
-                          </span>
+                          </div>
                         )}
+                      </div>
+
+                      {/* Soft Studio Rounded Image Container (Uncropped object-fit: contain) */}
+                      <div className="storefront-cat-modal-card-img-box">
+                        <img
+                          className="storefront-cat-modal-card-img"
+                          src={photoUrl}
+                          alt={cat.name}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                          }}
+                        />
+                      </div>
+
+                      {/* Bottom Clean Unified Count Badge */}
+                      <div style={{ textAlign: 'center', width: '100%' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            background: isSelected ? 'var(--storefront-primary-color, #2d68c4)' : '#f8fafc',
+                            color: isSelected ? '#ffffff' : '#475569',
+                            border: `1px solid ${isSelected ? 'var(--storefront-primary-color, #2d68c4)' : '#e2e8f0'}`,
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            lineHeight: 1.3,
+                            padding: '3px 12px',
+                            borderRadius: '8px',
+                            whiteSpace: 'nowrap',
+                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                          }}
+                        >
+                          <span>{formatCountLabel(count)}</span>
+                        </span>
                       </div>
                     </div>
                   );
@@ -730,10 +840,14 @@ export function StorefrontCategoriesModal({
               >
                 <IconFolder size={40} color="#cbd5e1" style={{ marginBottom: '10px' }} />
                 <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#334155' }}>
-                  {t('storefront.storefront_categories_modal.s19', "لا توجد أقسام تطابق «")}{modalSearch}»
+                  {t('storefront.storefront_categories_modal.s19', 'لا توجد أقسام تطابق «')}
+                  {modalSearch}»
                 </div>
                 <div style={{ fontSize: '12px', marginTop: '4px', color: '#94a3b8' }}>
-                  {t('storefront.storefront_categories_modal.s20', "تأكد من كتابة الكلمة بشكل صحيح أو اضغط على «مسح» للعودة.")}
+                  {t(
+                    'storefront.storefront_categories_modal.s20',
+                    'تأكد من كتابة الكلمة بشكل صحيح أو اضغط على «مسح» للعودة.'
+                  )}
                 </div>
               </div>
             )}

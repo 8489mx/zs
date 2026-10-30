@@ -8,6 +8,7 @@ import { StorefrontOnlinePaymentModal } from './StorefrontOnlinePaymentModal';
 import { UtensilsIcon, XIcon, CheckIcon, TagIcon, TruckIcon, PackageIcon } from '@/shared/components/icons/AppIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import { getCustomerOrderToken, saveCustomerOrderRef } from '../lib/customer-order-refs';
+import { saveLocalOrderRecord } from './StorefrontMyOrdersModal';
 import { calculateCartSubtotal } from '../lib/storefront-cart-pricing';
 import { getContrastTextColor } from '../lib/storefront-theme-contrast';
 
@@ -718,6 +719,35 @@ export function StorefrontCheckoutModal({
         });
 
         saveCustomerOrderRef(tenantSlug, res.orderNumber, res.accessToken);
+        saveLocalOrderRecord(tenantSlug, {
+          id: res.orderId || Date.now(),
+          orderNumber: res.orderNumber,
+          orderType: res.orderType || (isDineIn ? 'dine_in' : 'delivery'),
+          tableNumber: res.tableNumber || tableNumber || null,
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          customerAddress: trimmedAddress,
+          customerNotes: customerNotes.trim() || null,
+          deliveryZoneId: res.deliveryZoneId ?? (selectedZone ? selectedZone.id : null),
+          deliveryZoneName: res.deliveryZoneName ?? (selectedZone ? selectedZone.name : null),
+          subtotal: res.subtotal ?? subtotal,
+          deliveryFee: res.deliveryFee ?? effectiveDeliveryFee,
+          totalAmount: res.totalAmount ?? total,
+          discountAmount: res.discountAmount ?? discountAmount,
+          couponCode: res.couponCode ?? (appliedCoupon?.ok ? appliedCoupon.code : null),
+          status: 'pending',
+          paymentMethod,
+          paymentStatus: 'pending',
+          saleId: null,
+          createdAt: new Date().toISOString(),
+          items: res.items || cartItems.map((item) => ({
+            productId: Number(item.product.id),
+            name: item.product.name,
+            quantity: Number(item.quantity) || 1,
+            unitPrice: item.product.price,
+            total: item.product.price * (Number(item.quantity) || 1),
+          })),
+        });
 
         if (paymentMethod === 'credit_card') {
           try {

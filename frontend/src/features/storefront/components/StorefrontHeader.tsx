@@ -62,6 +62,229 @@ export function resolveStorefrontBrand(info: { title?: string; businessName?: st
   };
 }
 
+const processedLogoCache = new Map<string, string>();
+
+function stripWhiteBackgroundFromImage(src: string): Promise<{ url: string; fallbackMultiply: boolean }> {
+  const cached = processedLogoCache.get(src);
+  if (cached) {
+    return Promise.resolve({ url: cached, fallbackMultiply: false });
+  }
+
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      resolve({ url: src, fallbackMultiply: false });
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      try {
+        const naturalW = img.naturalWidth || img.width || 128;
+        const naturalH = img.naturalHeight || img.height || 128;
+        const maxDim = 256;
+        const scale = Math.min(1, maxDim / Math.max(naturalW, naturalH, 1));
+        const w = Math.max(1, Math.round(naturalW * scale));
+        const h = Math.max(1, Math.round(naturalH * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+          resolve({ url: src, fallbackMultiply: true });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, w, h);
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+
+        const isNearWhite = (idx: number) => {
+          const a = data[idx + 3];
+          if (a < 16) return true;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          return min >= 224 && max - min <= 28;
+        };
+
+        const totalPixels = w * h;
+        const visited = new Uint8Array(totalPixels);
+        const queue = new Int32Array(totalPixels);
+        let head = 0;
+        let tail = 0;
+        let opaqueWhiteBorderCount = 0;
+
+        const trySeed = (x: number, y: number) => {
+          const p = y * w + x;
+          if (visited[p]) return;
+          const idx = p * 4;
+          if (isNearWhite(idx)) {
+            if (data[idx + 3] >= 200) opaqueWhiteBorderCount++;
+            visited[p] = 1;
+            queue[tail++] = p;
+          }
+        };
+
+        for (let x = 0; x < w; x++) {
+          trySeed(x, 0);
+          trySeed(x, h - 1);
+        }
+        for (let y = 0; y < h; y++) {
+          trySeed(0, y);
+          trySeed(w - 1, y);
+        }
+
+        // If the image already has a transparent background (no opaque white border), keep original crisp asset
+        if (opaqueWhiteBorderCount === 0) {
+          processedLogoCache.set(src, src);
+          resolve({ url: src, fallbackMultiply: false });
+          return;
+        }
+
+        while (head < tail) {
+          const p = queue[head++];
+          const x = p % w;
+          const y = (p - x) / w;
+
+          if (x > 0) {
+            const np = p - 1;
+            if (!visited[np] && isNearWhite(np * 4)) {
+              visited[np] = 1;
+              queue[tail++] = np;
+            }
+          }
+          if (x + 1 < w) {
+            const np = p + 1;
+            if (!visited[np] && isNearWhite(np * 4)) {
+              visited[np] = 1;
+              queue[tail++] = np;
+            }
+          }
+          if (y > 0) {
+            const np = p - w;
+            if (!visited[np] && isNearWhite(np * 4)) {
+              visited[np] = 1;
+              queue[tail++] = np;
+            }
+          }
+          if (y + 1 < h) {
+            const np = p + w;
+            if (!visited[np] && isNearWhite(np * 4)) {
+              visited[np] = 1;
+              queue[tail++] = np;
+            }
+          }
+        }
+
+        // Clear all flood-filled white background pixels & softly feather anti-aliased boundary pixels
+        for (let p = 0; p < totalPixels; p++) {
+          const idx = p * 4;
+          if (visited[p]) {
+            data[idx + 3] = 0;
+            continue;
+          }
+          const x = p % w;
+          const y = (p - x) / w;
+          const touchesBg =
+            (x > 0 && visited[p - 1] === 1) ||
+            (x + 1 < w && visited[p + 1] === 1) ||
+            (y > 0 && visited[p - w] === 1) ||
+            (y + 1 < h && visited[p + w] === 1);
+
+          if (touchesBg) {
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const min = Math.min(r, g, b);
+            const max = Math.max(r, g, b);
+            if (min >= 195 && max - min <= 36) {
+              const factor = Math.max(0, Math.min(1, (228 - min) / 33));
+              data[idx + 3] = Math.round(data[idx + 3] * factor);
+            }
+          }
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+        const outputUrl = canvas.toDataURL('image/png');
+        processedLogoCache.set(src, outputUrl);
+        resolve({ url: outputUrl, fallbackMultiply: false });
+      } catch {
+        resolve({ url: src, fallbackMultiply: true });
+      }
+    };
+
+    img.onerror = () => {
+      resolve({ url: src, fallbackMultiply: true });
+    };
+
+    img.src = src;
+  });
+}
+
+export function StorefrontBrandLogo({
+  src,
+  alt,
+  size = 36,
+  className,
+  style,
+}: {
+  src: string;
+  alt?: string;
+  size?: number;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const [resolvedSrc, setResolvedSrc] = React.useState<string>(() => processedLogoCache.get(src) || src);
+  const [useMultiply, setUseMultiply] = React.useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const cached = processedLogoCache.get(src);
+    if (cached) {
+      setResolvedSrc(cached);
+      setUseMultiply(false);
+      return;
+    }
+    setResolvedSrc(src);
+    stripWhiteBackgroundFromImage(src).then((res) => {
+      if (!active) return;
+      setResolvedSrc(res.url);
+      setUseMultiply(res.fallbackMultiply);
+    });
+    return () => {
+      active = false;
+    };
+  }, [src]);
+
+  return (
+    <img
+      src={resolvedSrc}
+      alt={alt || ''}
+      className={className}
+      decoding="async"
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        objectFit: 'contain',
+        background: 'transparent',
+        backgroundColor: 'transparent',
+        border: 'none',
+        boxShadow: 'none',
+        borderRadius: 0,
+        padding: 0,
+        flexShrink: 0,
+        mixBlendMode: useMultiply ? 'multiply' : undefined,
+        ...style,
+      }}
+    />
+  );
+}
+
 export const StorefrontHeader = React.memo(function StorefrontHeader({
   info,
   searchTerm,
@@ -229,6 +452,13 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               border-radius: 9px !important;
               flex-shrink: 0 !important;
             }
+            img.storefront-brand-avatar {
+              border-radius: 0 !important;
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+            }
             .storefront-brand-title {
               font-size: 14px !important;
               font-weight: 800 !important;
@@ -332,21 +562,12 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             }}
           >
             {info.logo_url || info.logoUrl ? (
-              <img
-                src={info.logo_url || info.logoUrl}
+              <StorefrontBrandLogo
+                src={(info.logo_url || info.logoUrl)!}
                 alt={info.title || info.businessName}
+                size={36}
                 className="storefront-brand-avatar"
-                decoding="async"
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  objectFit: 'contain',
-                  background: 'transparent',
-                  border: 'none',
-                  boxShadow: 'none',
-                  borderRadius: 0,
-                  padding: 0,
-                  flexShrink: 0,
                   transition: 'transform 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                 }}
               />

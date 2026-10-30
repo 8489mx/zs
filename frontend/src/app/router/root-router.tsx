@@ -42,6 +42,8 @@ function storeHostRoutes() {
   const storefront = () => createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage })));
   return [
     { path: '/', element: storefront() },
+    { path: '/c/:categoryId', element: storefront() },
+    { path: '/category/:categoryId', element: storefront() },
     { path: '/table/:tableNo', element: storefront() },
     { path: '/p/:productId', element: storefront() },
     { path: '/track/:orderNumber', element: storefront() },
@@ -312,6 +314,30 @@ const router = storeHostSlug ? createRouter(storeHostRoutes()) : createRouter([
   },
   {
     path: '/shop/:slug/track/:orderNumber',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/st/:slug/c/:categoryId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/st/:slug/category/:categoryId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/store/:slug/c/:categoryId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/store/:slug/category/:categoryId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/shop/:slug/c/:categoryId',
+    element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
+  },
+  {
+    path: '/shop/:slug/category/:categoryId',
     element: createLazyRoute(() => import('@/features/storefront/pages/PublicStorefrontPage').then((module) => ({ default: module.PublicStorefrontPage }))),
   },
   {

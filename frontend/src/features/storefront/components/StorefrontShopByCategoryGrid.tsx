@@ -195,9 +195,9 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
         .sf-cat-tile {
           position: relative;
           overflow: hidden;
-          border-radius: 24px;
-          height: 122px;
-          padding: 14px 18px;
+          border-radius: 20px;
+          height: 118px;
+          padding: 12px 14px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -220,9 +220,17 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
           transform: scale3d(0.97, 0.97, 1);
         }
 
+        .sf-cat-tile-title {
+          font-size: 13.5px !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          line-height: 1.25 !important;
+        }
+
         .sf-cat-tile-img {
-          width: 78px;
-          height: 78px;
+          width: 72px;
+          height: 72px;
           object-fit: contain;
           transform: translate3d(0, 0, 0);
           transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
@@ -246,13 +254,13 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
             gap: 10px;
           }
           .sf-cat-tile {
-            height: 108px;
-            padding: 12px 14px;
+            height: 106px;
+            padding: 10px 12px;
             border-radius: 18px;
           }
           .sf-cat-tile-img {
-            width: 66px;
-            height: 66px;
+            width: 62px;
+            height: 62px;
           }
         }
 
@@ -262,16 +270,16 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
             gap: 8px;
           }
           .sf-cat-tile {
-            height: 100px;
-            padding: 10px 12px;
+            height: 98px;
+            padding: 9px 10px;
             border-radius: 16px;
           }
           .sf-cat-tile-img {
-            width: 56px;
-            height: 56px;
+            width: 52px;
+            height: 52px;
           }
           .sf-cat-tile-title {
-            font-size: 13.5px !important;
+            font-size: 12px !important;
           }
         }
       `}</style>
@@ -376,19 +384,23 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   minWidth: 0,
                   flex: '1 1 auto',
                   gap: '6px',
-                  paddingInlineEnd: '10px',
+                  paddingInlineEnd: '6px',
                 }}
               >
                 <h3
                   className="sf-cat-tile-title"
                   style={{
                     margin: 0,
-                    fontSize: '15px',
+                    fontSize: '13.5px',
                     fontWeight: 800,
                     color: theme.textColor,
-                    lineHeight: 1.3,
-                    wordBreak: 'break-word',
+                    lineHeight: 1.25,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    width: '100%',
                   }}
+                  title={item.name}
                 >
                   {item.name}
                 </h3>
@@ -423,8 +435,8 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '84px',
-                  height: '84px',
+                  width: '74px',
+                  height: '74px',
                   borderRadius: '50%',
                   background: 'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0) 72%)',
                 }}

@@ -12,6 +12,7 @@ import { StorefrontCheckoutModal } from './StorefrontCheckoutModal';
 import { StorefrontSuccessModal } from './StorefrontSuccessModal';
 import { StorefrontMyOrdersModal } from './StorefrontMyOrdersModal';
 import { StorefrontProductQuickViewModal } from './StorefrontProductQuickViewModal';
+import { StorefrontReviewModal } from './StorefrontReviewModal';
 
 interface StorefrontModalsProps {
   // Categories Modal
@@ -27,6 +28,10 @@ interface StorefrontModalsProps {
   onAddToCart?: (product: StorefrontProduct, quantity?: number) => void;
   quickViewProduct?: StorefrontProduct | null;
   onCloseQuickView?: () => void;
+  onSelectQuickViewProduct?: (product: StorefrontProduct) => void;
+  favoriteIds?: Set<number>;
+  onToggleFavorite?: (productId: number) => void;
+  onOpenReviewModal?: (product: StorefrontProduct) => void;
 
   // Cart Dock
   cartItems: CartItem[];
@@ -77,6 +82,10 @@ export function StorefrontModals({
   onAddToCart,
   quickViewProduct,
   onCloseQuickView,
+  onSelectQuickViewProduct,
+  favoriteIds,
+  onToggleFavorite,
+  onOpenReviewModal,
 
   cartItems,
   info,
@@ -103,6 +112,11 @@ export function StorefrontModals({
   onCloseMyOrders,
   onEditOrder,
   onReorder,
+
+  isReviewModalOpen,
+  reviewProduct,
+  onCloseReviewModal,
+  onReviewSubmitted,
 }: StorefrontModalsProps) {
   return (
     <>
@@ -177,6 +191,11 @@ export function StorefrontModals({
           tenantSlug={cleanSlug}
           onClose={onCloseQuickView}
           onAddToCart={onAddToCart}
+          allProducts={allProducts}
+          onSelectProduct={onSelectQuickViewProduct}
+          isFavorite={quickViewProduct && favoriteIds ? favoriteIds.has(Number(quickViewProduct.id)) : undefined}
+          onToggleFavorite={onToggleFavorite}
+          onOpenReviewModal={onOpenReviewModal}
           cartLine={(() => {
             if (!quickViewProduct) return null;
             const line = cartItems.find((i) => Number(i.product.id) === Number(quickViewProduct.id));
@@ -184,6 +203,15 @@ export function StorefrontModals({
           })()}
         />
       )}
+
+      {/* Customer Product Review Modal */}
+      <StorefrontReviewModal
+        isOpen={isReviewModalOpen}
+        product={reviewProduct}
+        slug={cleanSlug}
+        onClose={onCloseReviewModal}
+        onReviewSubmitted={onReviewSubmitted}
+      />
     </>
   );
 }

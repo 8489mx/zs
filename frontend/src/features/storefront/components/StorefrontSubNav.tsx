@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { StorefrontCategory } from '../types/storefront.types';
-import { IconGrid, IconFlame, IconCheckCircle, IconClose } from './StorefrontIcons';
+import { IconGrid, IconTag, IconCheckCircle, IconClose } from './StorefrontIcons';
 
 interface StorefrontSubNavProps {
   categories: StorefrontCategory[];
@@ -156,29 +156,29 @@ export function StorefrontSubNav({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '7px',
                 padding: '0 16px',
                 height: '35px',
                 borderRadius: '12px',
-                border: onlyDeals ? '1.5px solid #ef4444' : '1px solid #dadce0',
-                background: onlyDeals ? '#fef2f2' : '#ffffff',
-                color: onlyDeals ? '#dc2626' : '#1f1f1f',
+                border: onlyDeals ? '1.5px solid #e11d48' : '1px solid #dadce0',
+                background: onlyDeals ? '#fff1f2' : '#ffffff',
+                color: onlyDeals ? '#be123c' : '#1f2937',
                 fontSize: '12.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
+                boxShadow: onlyDeals ? '0 1px 3px rgba(225, 29, 72, 0.12)' : '0 1px 2px rgba(15, 23, 42, 0.05)',
                 transition: 'all 0.15s ease',
                 boxSizing: 'border-box',
               }}
             >
-              <IconFlame size={14} color={onlyDeals ? '#dc2626' : '#ef4444'} strokeWidth={2} />
+              <IconTag size={14} color={onlyDeals ? '#e11d48' : '#e11d48'} strokeWidth={2.2} />
               <span>{t('storefront.storefront_sub_nav.s1', "عروض وتخفيضات")}</span>
               {dealsCount > 0 && (
                 <span
                   style={{
-                    fontSize: '10.5px',
-                    background: onlyDeals ? '#ef4444' : '#fee2e2',
-                    color: onlyDeals ? '#ffffff' : '#991b1b',
+                    fontSize: '11px',
+                    background: onlyDeals ? '#e11d48' : '#ffe4e6',
+                    color: onlyDeals ? '#ffffff' : '#be123c',
                     padding: '2px 8px',
                     borderRadius: '6px',
                     fontWeight: 700,

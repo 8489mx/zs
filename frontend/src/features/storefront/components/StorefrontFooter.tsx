@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import type { StorefrontInfo } from '../types/storefront.types';
-import { resolveStorefrontBrand } from './StorefrontHeader';
+import { resolveStorefrontBrand, StorefrontBrandLogo } from './StorefrontHeader';
 
 interface StorefrontFooterProps {
   info: StorefrontInfo;
@@ -96,10 +96,12 @@ export function StorefrontFooter({
           margin: 0;
         }
         .sf-footer-links-grid-2 {
-          display: grid !important;
-          grid-template-columns: repeat(2, auto) !important;
-          gap: 10px 24px !important;
-          justify-content: start !important;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          flex-wrap: nowrap !important;
+          gap: 16px !important;
+          justify-content: flex-start !important;
         }
         .sf-footer-link-item {
           background: none;
@@ -246,18 +248,10 @@ export function StorefrontFooter({
           <div className="sf-footer-brand-col">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
               {info.logo_url || info.logoUrl ? (
-                <img
-                  src={info.logo_url || info.logoUrl}
+                <StorefrontBrandLogo
+                  src={(info.logo_url || info.logoUrl)!}
                   alt={brand.title}
-                  style={{
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
-                    objectFit: 'contain',
-                    background: '#ffffff',
-                    border: '1px solid #E0E3E7',
-                    padding: '2px',
-                  }}
+                  size={34}
                 />
               ) : (
                 <div

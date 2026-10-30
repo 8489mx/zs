@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
-import { IconShoppingBag, IconFolder } from './StorefrontIcons';
+import { IconFolder } from './StorefrontIcons';
 
 interface StorefrontCategoryShowcaseProps {
   categories: StorefrontCategory[];
@@ -61,9 +61,18 @@ export function StorefrontCategoryShowcase({
   const topCategories = populatedCategories.slice(0, 10);
   const remainingCount = populatedCategories.length - topCategories.length;
 
+  const scrollByDirection = (direction: 'right' | 'left') => {
+    const el = containerRef.current;
+    if (!el) return;
+    const scrollAmount = 320;
+    el.scrollBy({
+      left: direction === 'right' ? scrollAmount : -scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
   return (
     <div
-      ref={containerRef}
       className="storefront-cat-showcase"
       style={{
         background: '#ffffff',
@@ -71,17 +80,54 @@ export function StorefrontCategoryShowcase({
         borderRadius: '26px',
         border: '1px solid #edf1f7',
         boxShadow: '0 4px 18px rgba(15, 23, 42, 0.03)',
-        padding: '16px 20px 10px',
-        overflowX: 'auto',
-        WebkitOverflowScrolling: 'touch',
+        padding: '14px 14px',
         direction: 'rtl',
         maxWidth: 'var(--storefront-container, 1440px)',
         margin: '24px auto 14px',
         width: 'calc(100% - 32px)',
         boxSizing: 'border-box',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        position: 'relative',
       }}
     >
       <style>{`
+        .storefront-cat-scroll-viewport {
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .storefront-cat-scroll-viewport::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+        .storefront-cat-nav-btn {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border: 1px solid #e2e8f0;
+          background: #ffffff;
+          color: #1e293b;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          flex-shrink: 0;
+          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+          transition: all 0.2s ease;
+          padding: 0;
+        }
+        .storefront-cat-nav-btn:hover {
+          background: var(--storefront-primary-color, #2d68c4);
+          border-color: var(--storefront-primary-color, #2d68c4);
+          color: #ffffff;
+          box-shadow: 0 6px 14px rgba(45, 104, 196, 0.22);
+          transform: scale(1.05);
+        }
+        .storefront-cat-nav-btn:active {
+          transform: scale(0.96);
+        }
         @media (max-width: 920px) {
           .storefront-cat-showcase {
             margin: 20px auto 12px !important;
@@ -92,8 +138,13 @@ export function StorefrontCategoryShowcase({
             width: calc(100% - 16px) !important;
             margin: 16px auto 10px !important;
             border-radius: 18px !important;
-            padding: 10px 12px 6px !important;
+            padding: 10px 8px !important;
+            gap: 6px !important;
             box-sizing: border-box !important;
+          }
+          .storefront-cat-nav-btn {
+            width: 32px !important;
+            height: 32px !important;
           }
           .storefront-cat-showcase-inner {
             justify-content: flex-start !important;
@@ -116,92 +167,141 @@ export function StorefrontCategoryShowcase({
           }
         }
       `}</style>
+
+      {/* زر التمرير لليمين */}
+      <button
+        type="button"
+        aria-label="التمرير لليمين"
+        className="storefront-cat-nav-btn"
+        onClick={() => scrollByDirection('right')}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
+      {/* منطقة عرض الأقسام بدون شريط تمرير سفلي */}
       <div
-        className="storefront-cat-showcase-inner storefront-category-showcase"
+        ref={containerRef}
+        className="storefront-cat-scroll-viewport"
         style={{
-          maxWidth: 'var(--storefront-container, 1440px)',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          gap: '32px',
-          width: 'max-content',
-          minWidth: '100%',
+          flex: 1,
+          minWidth: 0,
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          padding: '4px 2px',
         }}
       >
-        {/* All Products Rounded-Square Avatar */}
         <div
-          className="storefront-cat-item"
-          onClick={() => onSelectCategory('all')}
+          className="storefront-cat-showcase-inner storefront-category-showcase"
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'flex-start',
-            cursor: 'pointer',
-            minWidth: '84px',
-            flexShrink: 0,
-            transition: 'transform 0.18s ease',
+            gap: '28px',
+            width: 'max-content',
+            minWidth: '100%',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          <div
-            className="storefront-cat-avatar"
-            style={{
-              width: '68px',
-              height: '68px',
-              borderRadius: '18px',
-              background: selectedCategoryId === 'all' ? 'var(--storefront-primary-color, #2d68c4)' : '#ffffff',
-              color: selectedCategoryId === 'all' ? '#ffffff' : 'var(--storefront-primary-color, #2d68c4)',
-              border: selectedCategoryId === 'all' ? '2px solid var(--storefront-primary-color, #2d68c4)' : '1.5px solid #E0E3E7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '8px',
-              boxSizing: 'border-box',
-              boxShadow:
-                selectedCategoryId === 'all'
-                  ? '0 6px 16px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))'
-                  : '0 2px 6px rgba(15, 23, 42, 0.04)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <IconShoppingBag
-              size={24}
-              color={selectedCategoryId === 'all' ? '#ffffff' : '#2d68c4'}
-              strokeWidth={2}
-            />
-          </div>
-          <span
-            className="storefront-cat-label"
-            style={{
-              fontSize: '12.5px',
-              fontWeight: 500,
-              lineHeight: 1.35,
-              color: '#0f172a',
-              textAlign: 'center',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            الكل
-          </span>
-        </div>
+          {/* Top 10 Curated Category Rounded-Square Cards */}
+          {topCategories.map((cat) => {
+            const isSelected = selectedCategoryId === cat.id;
+            const photoUrl =
+              cat.imageUrl && !cat.imageUrl.startsWith('data:image/svg+xml')
+                ? cat.imageUrl
+                : generatePremiumProductSvg(cat.name, cat.name);
 
-        {/* Top 10 Curated Category Rounded-Square Cards */}
-        {topCategories.map((cat) => {
-          const isSelected = selectedCategoryId === cat.id;
-          const photoUrl =
-            cat.imageUrl && !cat.imageUrl.startsWith('data:image/svg+xml')
-              ? cat.imageUrl
-              : generatePremiumProductSvg(cat.name, cat.name);
+            return (
+              <div
+                key={cat.id}
+                ref={isSelected ? selectedItemRef : undefined}
+                className="storefront-cat-item"
+                onClick={() => onSelectCategory(isSelected ? 'all' : cat.id)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  cursor: 'pointer',
+                  minWidth: '84px',
+                  flexShrink: 0,
+                  transition: 'transform 0.18s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+              >
+                <div
+                  className="storefront-cat-avatar"
+                  style={{
+                    width: '68px',
+                    height: '68px',
+                    borderRadius: '18px',
+                    overflow: 'hidden',
+                    border: isSelected ? '2px solid var(--storefront-primary-color, #2d68c4)' : '1.5px solid #E0E3E7',
+                    marginBottom: '8px',
+                    boxShadow: isSelected
+                      ? '0 6px 16px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))'
+                      : '0 2px 6px rgba(15, 23, 42, 0.04)',
+                    position: 'relative',
+                    background: '#ffffff',
+                    padding: '4px',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                  }}
+                >
+                  <img
+                    src={photoUrl}
+                    alt={cat.name}
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                    onError={(e) => {
+                      e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                    }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      borderRadius: '13px',
+                      pointerEvents: 'none',
+                      transition: 'transform 0.3s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                  />
+                </div>
+                <span
+                  className="storefront-cat-label"
+                  style={{
+                    fontSize: '12.5px',
+                    fontWeight: 500,
+                    lineHeight: 1.35,
+                    color: '#0f172a',
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={cat.name}
+                >
+                  {formatSmartCategoryName(cat.name)}
+                </span>
+              </div>
+            );
+          })}
 
-          return (
+          {/* "More Categories" Rounded-Square Avatar */}
+          {remainingCount > 0 && (
             <div
-              key={cat.id}
-              ref={isSelected ? selectedItemRef : undefined}
               className="storefront-cat-item"
-              onClick={() => onSelectCategory(cat.id)}
+              onClick={onOpenCategoriesModal}
               style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -221,39 +321,19 @@ export function StorefrontCategoryShowcase({
                   width: '68px',
                   height: '68px',
                   borderRadius: '18px',
-                  overflow: 'hidden',
-                  border: isSelected ? '2px solid var(--storefront-primary-color, #2d68c4)' : '1.5px solid #E0E3E7',
-                  marginBottom: '8px',
-                  boxShadow: isSelected
-                    ? '0 6px 16px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))'
-                    : '0 2px 6px rgba(15, 23, 42, 0.04)',
-                  position: 'relative',
                   background: '#ffffff',
-                  padding: '4px',
+                  color: '#0f172a',
+                  border: '1.5px dashed #cbd5e1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '8px',
                   boxSizing: 'border-box',
-                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
+                  transition: 'all 0.2s ease',
                 }}
               >
-                <img
-                  src={photoUrl}
-                  alt={cat.name}
-                  loading="lazy"
-                  decoding="async"
-                  draggable={false}
-                  onError={(e) => {
-                    e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
-                  }}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    borderRadius: '13px',
-                    pointerEvents: 'none',
-                    transition: 'transform 0.3s ease',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                />
+                <IconFolder size={22} color="#0f172a" strokeWidth={1.8} />
               </div>
               <span
                 className="storefront-cat-label"
@@ -265,68 +345,34 @@ export function StorefrontCategoryShowcase({
                   textAlign: 'center',
                   whiteSpace: 'nowrap',
                 }}
-                title={cat.name}
               >
-                {formatSmartCategoryName(cat.name)}
+                {t('storefront.storefront_category_showcase.s2', 'باقي الأقسام')}
               </span>
             </div>
-          );
-        })}
-
-        {/* "More Categories" Rounded-Square Avatar */}
-        {remainingCount > 0 && (
-          <div
-            className="storefront-cat-item"
-            onClick={onOpenCategoriesModal}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              cursor: 'pointer',
-              minWidth: '84px',
-              flexShrink: 0,
-              transition: 'transform 0.18s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <div
-              className="storefront-cat-avatar"
-              style={{
-                width: '68px',
-                height: '68px',
-                borderRadius: '18px',
-                background: '#ffffff',
-                color: '#0f172a',
-                border: '1.5px dashed #cbd5e1',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '8px',
-                boxSizing: 'border-box',
-                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <IconFolder size={22} color="#0f172a" strokeWidth={1.8} />
-            </div>
-            <span
-              className="storefront-cat-label"
-              style={{
-                fontSize: '12.5px',
-                fontWeight: 500,
-                lineHeight: 1.35,
-                color: '#0f172a',
-                textAlign: 'center',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {t('storefront.storefront_category_showcase.s2', 'باقي الأقسام')}
-            </span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* زر التمرير لليسار */}
+      <button
+        type="button"
+        aria-label="التمرير لليسار"
+        className="storefront-cat-nav-btn"
+        onClick={() => scrollByDirection('left')}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
     </div>
   );
 }

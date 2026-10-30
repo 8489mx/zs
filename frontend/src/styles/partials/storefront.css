@@ -480,9 +480,11 @@ body, button, input, select, textarea, [class*="storefront-"] {
    ========================================================================== */
 
 .storefront-cat-modal-shell {
-  width: min(1160px, 96vw) !important;
+  width: min(1200px, 96vw) !important;
   max-width: 96vw !important;
-  border-radius: 16px !important;
+  border-radius: 28px !important;
+  border: 1px solid #edf1f7 !important;
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.22), 0 4px 18px -2px rgba(15, 23, 42, 0.06) !important;
   overflow: hidden !important;
   padding: 0 !important;
 }
@@ -503,8 +505,8 @@ body, button, input, select, textarea, [class*="storefront-"] {
 }
 
 .storefront-cat-modal-header {
-  padding: 12px 20px;
-  border-bottom: 1.5px solid #e2e8f0;
+  padding: 16px 24px;
+  border-bottom: 1px solid #edf1f7;
   background: #ffffff;
   display: flex;
   align-items: center;
@@ -518,9 +520,9 @@ body, button, input, select, textarea, [class*="storefront-"] {
   order: 1;
   display: flex;
   align-items: center;
-  gap: 9px;
-  width: 240px;
-  min-width: 240px;
+  gap: 12px;
+  width: 245px;
+  min-width: 245px;
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -529,18 +531,18 @@ body, button, input, select, textarea, [class*="storefront-"] {
   order: 2;
   position: relative;
   flex: 1;
-  max-width: 440px;
+  max-width: 480px;
 }
 
 .storefront-cat-modal-close-btn {
   order: 3;
-  width: 32px;
-  height: 32px;
+  width: 36px !important;
+  height: 36px !important;
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
-  background: #f0f4f9;
-  border: 1px solid #dadce0;
-  color: #1f1f1f;
+  border-radius: 12px !important;
+  background: #f4f6fa !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -548,11 +550,12 @@ body, button, input, select, textarea, [class*="storefront-"] {
   flex-shrink: 0;
   padding: 0;
   box-sizing: border-box;
-  transition: background 0.15s ease;
+  transition: all 0.16s ease !important;
 }
 
 .storefront-cat-modal-close-btn:hover {
-  background: #e2e8f0;
+  background: #e2e8f0 !important;
+  transform: scale(1.04);
 }
 
 .storefront-cat-modal-mobile-tabs {
@@ -564,8 +567,8 @@ body, button, input, select, textarea, [class*="storefront-"] {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid #E0E3E7;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
   background: #ffffff;
   color: #334155;
   font-size: 12px;
@@ -579,16 +582,16 @@ body, button, input, select, textarea, [class*="storefront-"] {
 }
 
 .storefront-cat-modal-chip.active {
-  background: var(--storefront-primary-color, #170e5e) !important;
+  background: var(--storefront-primary-color, #2d68c4) !important;
   color: #ffffff !important;
-  border-color: var(--storefront-primary-color, #170e5e) !important;
-  box-shadow: 0 2px 6px rgba(23, 14, 94, 0.22) !important;
+  border-color: var(--storefront-primary-color, #2d68c4) !important;
+  box-shadow: 0 4px 10px rgba(45, 104, 196, 0.22) !important;
 }
 
 .storefront-cat-modal-chip-badge {
   font-size: 10px;
-  font-weight: 700;
-  padding: 1px 5px;
+  font-weight: 800;
+  padding: 1px 6px;
   border-radius: 6px;
   background: #f1f5f9;
   color: #475569;
@@ -606,11 +609,11 @@ body, button, input, select, textarea, [class*="storefront-"] {
 }
 
 .storefront-cat-modal-sidebar {
-  width: 260px;
+  width: 275px;
   flex-shrink: 0;
   background: #f8fafc;
-  border-left: 1.5px solid #e2e8f0;
-  padding: 14px 12px;
+  border-left: 1px solid #edf1f7;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -621,7 +624,7 @@ body, button, input, select, textarea, [class*="storefront-"] {
 
 .storefront-cat-modal-content {
   flex: 1;
-  padding: 18px 22px;
+  padding: 20px 24px 24px;
   background: #ffffff;
   display: flex;
   flex-direction: column;
@@ -636,60 +639,96 @@ body, button, input, select, textarea, [class*="storefront-"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
   border-bottom: 1px solid #f1f5f9;
   flex-shrink: 0;
 }
 
 .storefront-cat-modal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
   flex: 1;
   align-content: start;
 }
 
 .storefront-cat-modal-grid.five-cols {
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .storefront-cat-modal-grid,
+  .storefront-cat-modal-grid.five-cols {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .storefront-cat-modal-card {
-  border-radius: 11px;
-  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  border: 1px solid #edf1f7;
   background: #ffffff;
+  padding: 14px 12px 12px;
   overflow: hidden;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  transition: all 0.16s ease;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.02);
+  justify-content: space-between;
+  gap: 8px;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
   position: relative;
-  height: 136px;
+  height: 228px;
   box-sizing: border-box;
+  user-select: none;
 }
 
 .storefront-cat-modal-card.selected {
-  border: 2px solid var(--storefront-primary-color, #170e5e) !important;
-  background: var(--storefront-primary-subtle, #f0f3ff) !important;
+  border: 2px solid var(--storefront-primary-color, #2d68c4) !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 24px rgba(45, 104, 196, 0.14) !important;
 }
 
 .storefront-cat-modal-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
   border-color: #cbd5e1;
+}
+
+.storefront-cat-modal-card:active {
+  transform: scale(0.98);
 }
 
 .storefront-cat-modal-card-img-box {
   width: 100%;
-  height: 84px;
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
   position: relative;
   overflow: hidden;
   background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.storefront-cat-modal-card-img {
+  max-width: 100%;
+  max-height: 98px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.08));
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-cat-modal-card:hover .storefront-cat-modal-card-img {
+  transform: scale(1.06);
 }
 
 /* Mobile Breakpoint (< 640px) */
@@ -714,8 +753,8 @@ body, button, input, select, textarea, [class*="storefront-"] {
     flex-wrap: wrap !important;
     align-items: center !important;
     justify-content: space-between !important;
-    padding: 8px 12px 6px !important;
-    gap: 6px !important;
+    padding: 12px 14px 10px !important;
+    gap: 8px !important;
     touch-action: none !important;
   }
 
@@ -728,8 +767,8 @@ body, button, input, select, textarea, [class*="storefront-"] {
 
   .storefront-cat-modal-close-btn {
     order: 2 !important;
-    width: 28px !important;
-    height: 28px !important;
+    width: 32px !important;
+    height: 32px !important;
     aspect-ratio: 1 / 1 !important;
     border-radius: 10px !important;
     flex-shrink: 0 !important;
@@ -743,10 +782,10 @@ body, button, input, select, textarea, [class*="storefront-"] {
   }
 
   .storefront-cat-modal-search-box input {
-    height: 30px !important;
-    padding: 4px 28px 4px 10px !important;
-    font-size: 11px !important;
-    border-radius: 7px !important;
+    height: 36px !important;
+    padding: 6px 34px 6px 12px !important;
+    font-size: 12px !important;
+    border-radius: 12px !important;
   }
 
   .storefront-cat-modal-sidebar {
@@ -756,10 +795,10 @@ body, button, input, select, textarea, [class*="storefront-"] {
   .storefront-cat-modal-mobile-tabs {
     display: flex !important;
     overflow-x: auto !important;
-    gap: 4px !important;
-    padding: 4px 8px !important;
+    gap: 6px !important;
+    padding: 8px 12px !important;
     background: #f8fafc !important;
-    border-bottom: 1px solid #e2e8f0 !important;
+    border-bottom: 1px solid #edf1f7 !important;
     scrollbar-width: none !important;
     touch-action: pan-x !important;
     overscroll-behavior: contain !important;
@@ -772,56 +811,63 @@ body, button, input, select, textarea, [class*="storefront-"] {
   }
 
   .storefront-cat-modal-chip {
-    padding: 2px 7px !important;
-    gap: 3.5px !important;
-    font-size: 10.5px !important;
+    padding: 4px 10px !important;
+    gap: 5px !important;
+    font-size: 11.5px !important;
     font-weight: 700 !important;
-    height: 26px !important;
+    height: 30px !important;
     box-sizing: border-box !important;
-    border-radius: 6px !important;
+    border-radius: 10px !important;
   }
 
   .storefront-cat-modal-chip svg {
-    width: 11px !important;
-    height: 11px !important;
+    width: 12px !important;
+    height: 12px !important;
     stroke-width: 2.2 !important;
     flex-shrink: 0 !important;
   }
 
   .storefront-cat-modal-chip-badge {
-    font-size: 8.5px !important;
+    font-size: 9.5px !important;
     font-weight: 800 !important;
-    padding: 1px 3.5px !important;
-    min-width: 12px !important;
+    padding: 1px 5px !important;
+    min-width: 14px !important;
     text-align: center !important;
-    border-radius: 3px !important;
-    line-height: 1 !important;
+    border-radius: 5px !important;
+    line-height: 1.1 !important;
   }
 
   .storefront-cat-modal-content {
-    padding: 8px 10px 12px !important;
+    padding: 12px 12px 16px !important;
     flex: 1 1 auto !important;
     min-height: 0 !important;
   }
 
   .storefront-cat-modal-content-header {
-    padding-bottom: 6px !important;
-    margin-bottom: 8px !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 12px !important;
   }
 
   .storefront-cat-modal-grid,
   .storefront-cat-modal-grid.five-cols {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
+    gap: 10px !important;
   }
 
   .storefront-cat-modal-card {
-    height: 112px !important;
-    border-radius: 10px !important;
+    height: 176px !important;
+    border-radius: 18px !important;
+    padding: 10px 8px 9px !important;
+    gap: 6px !important;
   }
 
   .storefront-cat-modal-card-img-box {
-    height: 72px !important;
+    border-radius: 13px !important;
+    padding: 6px !important;
+  }
+
+  .storefront-cat-modal-card-img {
+    max-height: 82px !important;
   }
 }
 
@@ -1247,6 +1293,7 @@ button.storefront-btn-pill,
 .sf-floating-whatsapp {
   border-radius: 50% !important;
 }
+
 .storefront-deal-wa-btn,
 .sf-footer-whatsapp-link,
 .sf-footer-contact-btn,
@@ -1291,7 +1338,7 @@ button.storefront-btn-pill,
   box-sizing: border-box !important;
 }
 
-/* 6. All Badges & Micro-Pills -> Google AI Studio Soft Squircle (border-radius: 8px) */
+/* 6. All Badges & Micro-Pills -> Google AI Studio Soft Squircle (border-radius: 8px) & Non-Bold */
 .storefront-product-badge,
 .sf-coverflow-badge,
 .sf-amz-quick-tile-badge,
@@ -1303,6 +1350,7 @@ button.storefront-btn-pill,
 .sf-cat-tile span {
   border-radius: 8px !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  font-weight: 500 !important;
 }
 
 /* 7. Stepper Container & Plus/Minus Controls -> Soft Squircle Stepper */
@@ -1403,12 +1451,12 @@ button.storefront-btn-pill,
   border: 1px solid #edf1f7 !important;
 }
 
-/* 6. Modal Shells & Large Popovers -> 28px Squircle */
+/* 6. Modal Shells & Large Popovers -> 18px Squircle */
 .storefront-checkout-modal-container,
 .sf-quickview-shell,
 .storefront-cat-modal-shell,
 .storefront-modal-shell {
-  border-radius: 28px !important;
+  border-radius: 18px !important;
 }
 
 /* 7. Predictive Search Dropdown Popover -> 22px Squircle */
@@ -1473,19 +1521,20 @@ html.storefront-html::-webkit-scrollbar-thumb:hover {
   background-color: #64748b !important;
 }
 
-/* 11. Seamless Studio Image Blending on Vibrant & Colored Surfaces
-   Dissolves solid white photo backgrounds on podium stages, colored promotional cards,
-   gradient category tiles, and product cards so legacy and live products look natively cut out. */
+/* 11. Seamless Studio Image Blending
+   Only applied to podium stages when knocking out solid white photo backgrounds.
+   Promotional cards, category tiles, and product grids stay in 100% natural render mode
+   so dark and vibrant card backgrounds never bleed into or cover product colors. */
 .sf-amz-podium-side-img,
 .sf-amz-podium-center-img,
+.sf-studio-blend {
+  mix-blend-mode: multiply;
+}
+
 .sf-amz-promo-card img,
 .sf-cat-tile-img,
 .sf-amz-quick-tile-img,
 .storefront-product-img,
-.sf-quickview-img,
-.sf-studio-blend {
-  mix-blend-mode: multiply !important;
+.sf-quickview-img {
+  mix-blend-mode: normal !important;
 }
-
-
-

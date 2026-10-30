@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import type { StorefrontProduct } from '../types/storefront.types';
 import { resolveProductPhoto } from '../lib/storefront-photo-matcher';
 import {
@@ -183,132 +183,49 @@ export function StorefrontFlashSaleCountdown({
           />
         </svg>
 
-        {/* Right Side (in RTL): 3 Feature Badges + Title + 4 Countdown Boxes */}
+        {/* Right Side (in RTL): Title + 4 Countdown Boxes */}
         <div
           style={{
             position: 'relative',
             zIndex: 3,
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: '26px',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: 'translateY(-14px)',
           }}
         >
-          {/* Top 3 Feature Badges Row with Circular Coral/Orange Icons & Vertical Dividers */}
+          {/* Hurry! Limited Deals Heading + 4 Calm Light Countdown Boxes */}
           <div
-            className="storefront-flash-badges-row"
             style={{
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '16px',
+              textAlign: 'center',
             }}
           >
-            {/* Feature 1: Latest Technology */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  border: '1.2px solid #f97316',
-                  background: 'rgba(255, 255, 255, 0.55)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ea580c',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b' }}>أحدث</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>الإصدارات</span>
-              </div>
-            </div>
-
-            <div style={{ width: '1px', height: '26px', background: '#cbd5e1' }} />
-
-            {/* Feature 2: Premium Quality */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  border: '1.2px solid #f97316',
-                  background: 'rgba(255, 255, 255, 0.55)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ea580c',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  <polyline points="9 12 11 14 15 10" />
-                </svg>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b' }}>جودة</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>فائقة 100%</span>
-              </div>
-            </div>
-
-            <div style={{ width: '1px', height: '26px', background: '#cbd5e1' }} />
-
-            {/* Feature 3: Perfect Compatibility / Guarantee */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '50%',
-                  border: '1.2px solid #f97316',
-                  background: 'rgba(255, 255, 255, 0.55)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#ea580c',
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#1e293b' }}>ضمان</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>وأفضل سعر</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Hurry! Limited Deals Heading + 4 Countdown Boxes */}
-          <div>
             <h3
               style={{
-                fontSize: 'clamp(20px, 2.2vw, 26px)',
+                fontSize: 'clamp(21px, 2.2vw, 26px)',
                 fontWeight: 800,
                 color: '#0f172a',
-                margin: '0 0 14px 0',
+                margin: '0 0 12px 0',
                 letterSpacing: '-0.3px',
+                lineHeight: 1.3,
+                textAlign: 'center',
+                width: '100%',
               }}
             >
               سارع الآن! عروض محدودة
             </h3>
 
-            {/* 4 Tinted Frosted Countdown Squares */}
+            {/* 4 Calm & Uniform Light Countdown Cards */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                justifyContent: 'center',
+                gap: '6px',
                 direction: 'rtl',
               }}
             >
@@ -317,46 +234,85 @@ export function StorefrontFlashSaleCountdown({
                 { label: 'ساعة', value: padZero(timeLeft.hours) },
                 { label: 'دقيقة', value: padZero(timeLeft.minutes) },
                 { label: 'ثانية', value: padZero(timeLeft.seconds) },
-              ].map((box, index) => (
-                <div
-                  key={index}
-                  style={{
-                    width: '62px',
-                    height: '64px',
-                    borderRadius: '10px',
-                    background: 'rgba(226, 224, 232, 0.65)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255, 255, 255, 0.7)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '2px',
-                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
-                  }}
-                >
-                  <span
+              ].map((box, index, arr) => (
+                <Fragment key={index}>
+                  <div
                     style={{
-                      fontSize: '10.5px',
-                      fontWeight: 600,
-                      color: '#64748b',
-                      lineHeight: 1.1,
+                      position: 'relative',
+                      width: '58px',
+                      height: '62px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.88)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.95)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '3px',
+                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04), inset 0 1px 0 #ffffff',
+                      overflow: 'hidden',
                     }}
                   >
-                    {box.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '19px',
-                      fontWeight: 800,
-                      color: '#0f172a',
-                      fontVariantNumeric: 'tabular-nums',
-                      lineHeight: 1.15,
-                    }}
-                  >
-                    {box.value}
-                  </span>
-                </div>
+                    {/* Number Value */}
+                    <span
+                      style={{
+                        fontSize: '19px',
+                        fontWeight: 800,
+                        color: '#1e293b',
+                        fontVariantNumeric: 'tabular-nums',
+                        lineHeight: 1.05,
+                        letterSpacing: '-0.3px',
+                      }}
+                    >
+                      {box.value}
+                    </span>
+
+                    {/* Unit Label */}
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 600,
+                        color: '#64748b',
+                        lineHeight: 1.15,
+                      }}
+                    >
+                      {box.label}
+                    </span>
+                  </div>
+
+                  {/* Subtle Separator Colon Dots between cards */}
+                  {index < arr.length - 1 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '5px',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 1px',
+                        opacity: 0.28,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: '3.5px',
+                          height: '3.5px',
+                          borderRadius: '50%',
+                          background: '#334155',
+                        }}
+                      />
+                      <span
+                        style={{
+                          width: '3.5px',
+                          height: '3.5px',
+                          borderRadius: '50%',
+                          background: '#334155',
+                        }}
+                      />
+                    </div>
+                  )}
+                </Fragment>
               ))}
             </div>
           </div>

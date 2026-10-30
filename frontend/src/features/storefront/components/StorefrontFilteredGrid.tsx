@@ -97,98 +97,133 @@ export function StorefrontFilteredGrid({
         style={{
           background: '#ffffff',
           border: '1px solid #edf1f7',
-          borderRadius: '24px',
+          borderRadius: '14px',
           padding: '10px 16px',
           display: 'flex',
           flexWrap: 'nowrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '8px',
+          gap: '10px',
           marginBottom: '16px',
-          boxShadow: '0 4px 18px rgba(15, 23, 42, 0.03)',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
         }}
       >
-        {/* Home Return Button */}
-        <button
-          type="button"
-          onClick={onGoHome}
-          title={t('storefront.storefront_filtered_grid.s0', "العودة للصفحة الرئيسية")}
-          aria-label={t('storefront.storefront_filtered_grid.s1', "العودة للصفحة الرئيسية")}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            background: '#f8fafc',
-            border: '1px solid #cbd5e1',
-            color: 'var(--storefront-primary-color, #2d68c4)',
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'all 0.15s ease',
-            padding: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#e2e8f0';
-            e.currentTarget.style.borderColor = '#94a3b8';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f8fafc';
-            e.currentTarget.style.borderColor = '#cbd5e1';
-          }}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-        </button>
-
-        {/* Title & Count */}
+        {/* Breadcrumb Navigation: Home > Category */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '8px',
             minWidth: 0,
             flex: 1,
             overflow: 'hidden',
           }}
         >
-          <h2
+          {/* Home Return Button */}
+          <button
+            type="button"
+            onClick={onGoHome}
+            title={t('storefront.storefront_filtered_grid.s0', "العودة للصفحة الرئيسية")}
+            aria-label={t('storefront.storefront_filtered_grid.s1', "العودة للصفحة الرئيسية")}
             style={{
-              margin: 0,
-              fontSize: '13px',
-              fontWeight: 800,
-              color: '#0f172a',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: 'var(--storefront-primary-color, #2d68c4)',
+              cursor: 'pointer',
+              flexShrink: 0,
+              transition: 'all 0.15s ease',
+              padding: 0,
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
             }}
-            title={title}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#eff6ff';
+              e.currentTarget.style.borderColor = '#bfdbfe';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
           >
-            {title}
-          </h2>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </button>
+
+          {/* Breadcrumb text */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              minWidth: 0,
+              overflow: 'hidden',
+            }}
+          >
+            <span
+              onClick={onGoHome}
+              style={{
+                fontSize: '12.5px',
+                color: '#64748b',
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--storefront-primary-color, #2d68c4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#64748b';
+              }}
+            >
+              الرئيسية
+            </span>
+            <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700 }}>/</span>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '14.5px',
+                fontWeight: 900,
+                color: '#0f172a',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+              title={title}
+            >
+              {title}
+            </h2>
+          </div>
+
+          {/* Count Badge */}
           <span
             style={{
-              fontSize: '10.5px',
-              fontWeight: 700,
+              fontSize: '11px',
+              fontWeight: 800,
               background: onlyFavorites ? '#fef2f2' : 'var(--storefront-primary-subtle, rgba(45, 104, 196, 0.12))',
               color: onlyFavorites ? '#dc2626' : 'var(--storefront-primary-color, #2d68c4)',
               border: onlyFavorites ? '1px solid #fecaca' : 'none',
-              padding: '2px 6px',
-              borderRadius: '5px',
+              padding: '2.5px 8px',
+              borderRadius: '7px',
               flexShrink: 0,
               whiteSpace: 'nowrap',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             {filteredProducts.length} {t('storefront.storefront_filtered_grid.s2', "صنف")}
