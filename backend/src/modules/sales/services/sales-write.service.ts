@@ -25,6 +25,7 @@ import { normalizeSalePayload } from '../helpers/sales-payload.helper';
 import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollectibleTotal, calculateRestoredStockQuantity, resolvePostedSalePaymentChannel, restoreFrozenSaleLineCosts } from '../helpers/sales-write.helper';
 import { allocateSaleTenders, type SaleTenderChannel } from '../engines/sale-tender.engine';
 import { allocateInvoiceDiscount } from '../engines/invoice-discount.engine';
+import { assertSaleNotZatcaSigned } from '../../tax-integration/services/zatca/zatca-invoice-status';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { SalesAuthorizationService } from './sales-authorization.service';
 import { SalesFinanceService } from './sales-finance.service';
@@ -2198,6 +2199,10 @@ export class SalesWriteService {
       if (!sale) throw new AppError('الفاتورة غير موجودة.', 'SALE_NOT_FOUND', 404);
       if (sale.exchange_return_id) throw new AppError('فاتورة استبدال مترابطة؛ استخدم مرتجعاً بدلاً من تعديلها', 'EXCHANGE_IMMUTABLE', 422);
       if (sale.status !== 'posted') throw new AppError('لا يمكن تعديل فاتورة غير مرحّلة أو ملغاة.', 'SALE_EDIT_STATUS_FORBIDDEN', 400);
+      // A signed ZATCA invoice attests to these exact amounts and has
+      // consumed an ICV; editing it would leave the attestation stale
+      // and burn a second ICV on the replacement. Correct via credit note.
+      assertSaleNotZatcaSigned((sale as any).zatca_status);
 
       // A cashier shift is a historical cash accountability period. A sale
       // belonging to a closed shift cannot be edited in place: doing so would
@@ -3068,6 +3073,9 @@ export class SalesWriteService {
       if (sale.exchange_return_id) throw new AppError('فاتورة استبدال مترابطة؛ استخدم مرتجعاً بدلاً من إلغائها', 'EXCHANGE_IMMUTABLE', 422);
       if (sale.status === 'cancelled') throw new AppError('Sale already cancelled', 'SALE_ALREADY_CANCELLED', 400);
       if (sale.status !== 'posted') throw new AppError('Only posted sales can be cancelled', 'SALE_CANCEL_STATUS_FORBIDDEN', 400);
+      // Same immutability as the edit path: cancelling a signed invoice
+      // would reverse books the signed attestation still describes.
+      assertSaleNotZatcaSigned((sale as any).zatca_status);
       const existingReturn = await trx.selectFrom('return_documents').select('id')
         .where('return_type', '=', 'sale').where('invoice_id', '=', saleId)
         .where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
