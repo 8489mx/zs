@@ -236,6 +236,7 @@ const allocated = allocateInvoiceDiscount({
   invoiceDiscount: 10,
   invoiceTax: 0,
   pricesIncludeTax: false,
+  digits: 2,
 });
 assert.equal(allocated.length, 3);
 const totalAllocatedDiscount = allocated.reduce((sum, l) => sum + l.allocatedDiscount, 0);
@@ -250,6 +251,7 @@ assert.throws(() => allocateInvoiceDiscount({
   invoiceDiscount: 350,
   invoiceTax: 0,
   pricesIncludeTax: false,
+  digits: 2,
 }), /INVALID_INVOICE_ALLOCATION/);
 
 console.log('✓ 4. اختبارات التوزيع الرياضي العادل للخصومات والضرائب (allocateInvoiceDiscount) اجتازت بنجاح');

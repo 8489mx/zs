@@ -13,20 +13,29 @@ function toCents(value: number, digits: MoneyDigits): number {
   const scale = 10 ** digits;
   const cents = Math.round(Number(value) * scale);
   if (!Number.isSafeInteger(cents) || cents < 0 || Math.abs(Number(value) * scale - cents) > 0.001) {
-    throw new AppError('Invoice line amounts require cent precision', 'INVALID_INVOICE_ALLOCATION', 400);
+    throw new AppError('Invoice line amounts require book precision', 'INVALID_INVOICE_ALLOCATION', 400);
   }
   return cents;
 }
 
-/** Allocates every cent of invoice discount and tax; the final line absorbs rounding. */
+/**
+ * Allocates every minor unit of invoice discount and tax; the final line absorbs rounding.
+ * digits is required — the tenant's book precision, never a silent default: a 2dp default
+ * rejects stored 3-decimal amounts (a KWD tax of 10.005 fails the cents conversion) and
+ * blocks the whole document, which is how the sales-return path failed until it passed
+ * its book digits explicitly.
+ */
 export function allocateInvoiceDiscount(input: {
   lines: InvoiceDiscountLine[];
   invoiceDiscount: number;
   invoiceTax: number;
   pricesIncludeTax: boolean;
-  digits?: MoneyDigits;
+  digits: MoneyDigits;
 }): AllocatedInvoiceLine[] {
-  const digits = input.digits ?? 2;
+  const digits = input.digits;
+  if (digits !== 2 && digits !== 3) {
+    throw new AppError('Invoice allocation requires the tenant book precision', 'INVALID_INVOICE_ALLOCATION', 400);
+  }
   const scale = 10 ** digits;
   const lineCents = input.lines.map((line) => toCents(line.lineTotal, digits));
   if (lineCents.length === 0) throw new AppError('Invoice requires a line', 'INVALID_INVOICE_ALLOCATION', 400);

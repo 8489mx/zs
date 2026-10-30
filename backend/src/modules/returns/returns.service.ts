@@ -541,7 +541,7 @@ export class ReturnsService {
       const allocations = allocateInvoiceDiscount({
         lines: saleItems.map((line) => ({ lineTotal: Number(line.line_total || 0), qty: Number(line.qty || 0) })),
         invoiceDiscount: Number(sale.discount || 0), invoiceTax: Number(sale.tax_amount || 0),
-        pricesIncludeTax: Boolean(sale.prices_include_tax),
+        pricesIncludeTax: Boolean(sale.prices_include_tax), digits: moneyDigits,
       });
       for (let index = 0; index < saleItems.length; index += 1) {
         const line = saleItems[index];

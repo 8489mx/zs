@@ -317,6 +317,7 @@ async function runPosRetailStorefrontReturnsSimulation(): Promise<void> {
       invoiceDiscount: 20,
       invoiceTax: 0,
       pricesIncludeTax: false,
+      digits: 2,
     });
 
     const s2Item1 = await sql<{ id: number }>`
