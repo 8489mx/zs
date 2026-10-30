@@ -1,8 +1,18 @@
+import { type MoneyDigits, roundMoney as roundBookMoney } from '../../accounting/engines/money-minor-units.engine';
+
 /**
  * Storefront Offers & Promotions Calculation Engine
- * 
+ *
  * Invariant: All offer pricing calculations are strictly pure, deterministic,
  * and shared between catalog projection and checkout order validation.
+ *
+ * Book digits are REQUIRED (INV-STOREFRONT-PRICING-DIGITS): every price
+ * this engine returns is shown to the shopper or charged at checkout,
+ * so rounding at an assumed 2 decimals would silently cut a 3-decimal
+ * tenant's offer prices. The old file-private 2-decimal rounder is
+ * gone; rounding goes through the canonical engine at the caller's
+ * digits. Discount PERCENTS stay plain integers (Math.round) — they
+ * are not money.
  */
 
 export interface RawStorefrontOffer {
@@ -31,10 +41,6 @@ export interface StorefrontOfferResult {
   offerType?: string;
   offerValue?: number;
   offerId?: number;
-}
-
-function roundMoney(val: number): number {
-  return Math.round((Number(val || 0) + Number.EPSILON) * 100) / 100;
 }
 
 export function normalizeDateOnly(value: unknown): string {
@@ -120,6 +126,7 @@ export function calculateOfferAdjustedPrice(
   basePrice: number,
   offer: RawStorefrontOffer,
   qty: number = 1,
+  digits: MoneyDigits,
 ): number {
   const offerValue = Number(offer.value || 0);
   const type = offer.offer_type;
@@ -127,27 +134,27 @@ export function calculateOfferAdjustedPrice(
   if (type === 'percent') {
     if (offerValue <= 0) return basePrice;
     const discount = (basePrice * offerValue) / 100;
-    return roundMoney(Math.max(0, basePrice - discount));
+    return roundBookMoney(Math.max(0, basePrice - discount), digits);
   }
 
   if (type === 'fixed') {
     if (offerValue <= 0) return basePrice;
-    return roundMoney(Math.max(0, basePrice - offerValue));
+    return roundBookMoney(Math.max(0, basePrice - offerValue), digits);
   }
 
   if (type === 'price') {
     if (offerValue <= 0) return basePrice;
-    return roundMoney(Math.max(0, Math.min(basePrice, offerValue)));
+    return roundBookMoney(Math.max(0, Math.min(basePrice, offerValue)), digits);
   }
 
   if (type === 'bundle') {
     const minQty = Math.max(1, Number(offer.min_qty || 1));
     const normalizedQty = Math.max(1, Number(qty || 1));
-    if (normalizedQty < minQty) return roundMoney(basePrice);
+    if (normalizedQty < minQty) return roundBookMoney(basePrice, digits);
     const bundles = Math.floor(normalizedQty / minQty);
     const remainder = normalizedQty % minQty;
     const total = (bundles * offerValue) + (remainder * basePrice);
-    return roundMoney(total / normalizedQty);
+    return roundBookMoney(total / normalizedQty, digits);
   }
 
   if (type === 'bogo') {
@@ -156,23 +163,26 @@ export function calculateOfferAdjustedPrice(
     const discPct = Math.min(100, Math.max(0, Number(offer.bogo_discount_percent ?? 100)));
     const normalizedQty = Math.max(1, Math.trunc(Number(qty || 1)));
     const freeUnits = Math.floor(normalizedQty / (buyQ + getQ)) * getQ;
-    if (!freeUnits) return roundMoney(basePrice);
+    if (!freeUnits) return roundBookMoney(basePrice, digits);
     const total = (normalizedQty * basePrice) - (freeUnits * basePrice * discPct / 100);
-    return roundMoney(Math.max(0, total) / normalizedQty);
+    return roundBookMoney(Math.max(0, total) / normalizedQty, digits);
   }
 
-  return roundMoney(basePrice);
+  return roundBookMoney(basePrice, digits);
 }
 
 export function resolveBestStorefrontOffer(
   basePrice: number,
   offers: RawStorefrontOffer[] | undefined,
   qty: number = 1,
-  todayIso?: string,
+  // Defaulted (not `?`) so the required `digits` may follow it: a
+  // required parameter cannot follow an optional one (TS1016).
+  todayIso: string | undefined = undefined,
   now: Date = new Date(),
   timezone = 'Africa/Cairo',
+  digits: MoneyDigits,
 ): StorefrontOfferResult {
-  const roundedBase = roundMoney(basePrice);
+  const roundedBase = roundBookMoney(basePrice, digits);
   if (!offers || offers.length === 0 || roundedBase <= 0) {
     return {
       hasDiscount: false,
@@ -215,7 +225,7 @@ export function resolveBestStorefrontOffer(
       continue;
     }
 
-    const discountedPrice = calculateOfferAdjustedPrice(roundedBase, offer, qty);
+    const discountedPrice = calculateOfferAdjustedPrice(roundedBase, offer, qty, digits);
     if (discountedPrice < roundedBase) {
       const discountAmount = roundedBase - discountedPrice;
       const discountPercent = Math.round((discountAmount / roundedBase) * 100);
@@ -233,7 +243,7 @@ export function resolveBestStorefrontOffer(
             ? `اشتري ${buyQ} واكسب ${getQ}`
             : `اشتري ${buyQ} و${getQ} بخصم ${discPct}%`;
         } else if (offer.offer_type === 'fixed') {
-          badge = `وفر ${roundMoney(Number(offer.value))} ج`;
+          badge = `وفر ${roundBookMoney(Number(offer.value), digits)} ج`;
         } else if (offer.offer_type === 'price') {
           badge = `سعر خاص`;
         }

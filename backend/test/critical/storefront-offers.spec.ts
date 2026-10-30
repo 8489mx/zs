@@ -21,7 +21,7 @@ async function testStorefrontOffersEngine(): Promise<void> {
       start_date: '2026-10-01',
       end_date: '2026-10-10',
     };
-    const res = resolveBestStorefrontOffer(250, [offer], 1, todayIso, fakeNow);
+    const res = resolveBestStorefrontOffer(250, [offer], 1, todayIso, fakeNow, 'Africa/Cairo', 2);
     assert.equal(res.hasDiscount, true);
     assert.equal(res.originalPrice, 250);
     assert.equal(res.price, 200); // 250 - 50 = 200
@@ -39,7 +39,7 @@ async function testStorefrontOffersEngine(): Promise<void> {
       start_date: '2026-10-01',
       end_date: '2026-10-10',
     };
-    const res = resolveBestStorefrontOffer(100, [offer], 1, todayIso, fakeNow);
+    const res = resolveBestStorefrontOffer(100, [offer], 1, todayIso, fakeNow, 'Africa/Cairo', 2);
     assert.equal(res.hasDiscount, true);
     assert.equal(res.originalPrice, 100);
     assert.equal(res.price, 70);
@@ -54,7 +54,7 @@ async function testStorefrontOffersEngine(): Promise<void> {
       value: 149.99,
       is_active: true,
     };
-    const res = resolveBestStorefrontOffer(200, [offer], 1, todayIso, fakeNow);
+    const res = resolveBestStorefrontOffer(200, [offer], 1, todayIso, fakeNow, 'Africa/Cairo', 2);
     assert.equal(res.hasDiscount, true);
     assert.equal(res.originalPrice, 200);
     assert.equal(res.price, 149.99);
@@ -71,7 +71,7 @@ async function testStorefrontOffersEngine(): Promise<void> {
       start_date: '2026-09-01',
       end_date: '2026-09-30', // expired
     };
-    const res = resolveBestStorefrontOffer(100, [offer], 1, todayIso, fakeNow);
+    const res = resolveBestStorefrontOffer(100, [offer], 1, todayIso, fakeNow, 'Africa/Cairo', 2);
     assert.equal(res.hasDiscount, false);
     assert.equal(res.price, 100);
     console.log('[Test 4 Passed] Expired offer is safely ignored.');
@@ -91,7 +91,7 @@ async function testStorefrontOffersEngine(): Promise<void> {
       value: 25, // 25% off 200 = 150 (better!)
       is_active: true,
     };
-    const res = resolveBestStorefrontOffer(200, [offer1, offer2], 1, todayIso, fakeNow);
+    const res = resolveBestStorefrontOffer(200, [offer1, offer2], 1, todayIso, fakeNow, 'Africa/Cairo', 2);
     assert.equal(res.hasDiscount, true);
     assert.equal(res.price, 150);
     assert.equal(res.discountPercent, 25);
@@ -106,7 +106,7 @@ async function testStorefrontOffersEngine(): Promise<void> {
       value: 40,
       is_active: false,
     };
-    const res = resolveBestStorefrontOffer(100, [offer], 1, todayIso, fakeNow);
+    const res = resolveBestStorefrontOffer(100, [offer], 1, todayIso, fakeNow, 'Africa/Cairo', 2);
     assert.equal(res.hasDiscount, false);
     assert.equal(res.price, 100);
     console.log('[Test 6 Passed] Inactive offer (is_active: false) safely ignored.');

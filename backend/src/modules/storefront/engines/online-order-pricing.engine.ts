@@ -1,7 +1,15 @@
+import { type MoneyDigits, roundMoney as roundBookMoney } from '../../accounting/engines/money-minor-units.engine';
+
 // Invariant SF-4 (ARCHITECTURE_INVARIANTS.md section 4): the price of an online order line is decided
 // by the server from the merchant's catalog — including the chosen variant — never taken from the
 // client. The frontend mirror (features/storefront/lib/storefront-variant-pricing.ts) exists only to
 // show the same number before checkout; if the two ever disagree, this one wins.
+//
+// Book digits are REQUIRED (INV-STOREFRONT-PRICING-DIGITS): the unit
+// price this function returns is charged to the customer, so rounding
+// it at an assumed 2 decimals would silently cut a 3-decimal tenant's
+// prices. The old file-private 2-decimal rounder is gone; rounding
+// goes through the canonical engine at the caller's digits.
 //
 // O54: the storefront showed and charged the customer the variant price in the cart, but the order DTO
 // had no variant field and the server billed `retail_price` and dropped the variant name. The merchant
@@ -63,11 +71,11 @@ export type OrderLinePriceResult =
  * else base + extraPrice. Unknown variant names are rejected rather than silently priced at base,
  * which is exactly how the old path under-billed.
  */
-export function resolveOrderLinePrice(basePrice: number, metadata: unknown, requestedVariant?: string | null): OrderLinePriceResult {
+export function resolveOrderLinePrice(basePrice: number, metadata: unknown, requestedVariant: string | null = null, digits: MoneyDigits): OrderLinePriceResult {
   const base = Number(basePrice || 0);
   const wanted = String(requestedVariant ?? '').trim();
   if (!wanted) {
-    return base >= 0 ? { ok: true, unitPrice: roundMoney(base), variantName: null } : { ok: false, reason: 'INVALID_PRICE' };
+    return base >= 0 ? { ok: true, unitPrice: roundBookMoney(base, digits), variantName: null } : { ok: false, reason: 'INVALID_PRICE' };
   }
 
   const variant = readProductVariants(metadata).find((v) => v.name === wanted);
@@ -75,13 +83,9 @@ export function resolveOrderLinePrice(basePrice: number, metadata: unknown, requ
 
   const unitPrice = variant.price !== undefined ? variant.price : base + (variant.extraPrice ?? 0);
   if (!Number.isFinite(unitPrice) || unitPrice < 0) return { ok: false, reason: 'INVALID_PRICE' };
-  return { ok: true, unitPrice: roundMoney(unitPrice), variantName: variant.name };
+  return { ok: true, unitPrice: roundBookMoney(unitPrice, digits), variantName: variant.name };
 }
 
 export function formatVariantLineName(productName: string, variantName: string | null): string {
   return variantName ? `${productName} (${variantName})` : productName;
-}
-
-function roundMoney(n: number): number {
-  return Math.round(n * 100) / 100;
 }

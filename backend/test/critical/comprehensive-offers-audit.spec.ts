@@ -303,7 +303,7 @@ async function runComprehensiveOffersAudit(): Promise<void> {
         end_date: '2026-10-31',
       },
     ];
-    const sfResult = resolveBestStorefrontOffer(100, storefrontOffers, 2, todayIso);
+    const sfResult = resolveBestStorefrontOffer(100, storefrontOffers, 2, todayIso, undefined, 'Africa/Cairo', 2);
     assert.equal(sfResult.hasDiscount, true);
     assert.equal(sfResult.price, 50);
     assert.equal(sfResult.discountPercent, 50);

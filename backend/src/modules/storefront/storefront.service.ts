@@ -48,6 +48,7 @@ import {
   resolveBestStorefrontOffer,
   RawStorefrontOffer,
 } from './engines/storefront-offers.engine';
+import { currencyMoneyDigits, type MoneyDigits } from '../accounting/engines/money-minor-units.engine';
 
 /** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
 function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: string): void {
@@ -65,6 +66,25 @@ function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: str
 function offerTimezone(settings: Map<string, string>): string {
   const configured = settings.get('timezone') || process.env.BUSINESS_TIMEZONE || 'Africa/Cairo';
   return isValidTimezone(configured) ? configured : 'Africa/Cairo';
+}
+
+/**
+ * Book digits for storefront display and checkout pricing
+ * (INV-STOREFRONT-PRICING-DIGITS), from the same currency source the
+ * order functions already read (settings currency, then the tenant's
+ * currency, then EGP). An unreadable currency string keeps the
+ * historical 2-decimal display instead of failing a public catalog
+ * read; the posting path (tenantBaseCurrency) still throws on it, so
+ * no order can post on a misconfigured currency.
+ */
+function storefrontMoneyDigits(settings: Map<string, string>, tenant?: unknown): MoneyDigits {
+  const tenantCurrency = (tenant as { currency?: unknown } | null | undefined)?.currency;
+  const code = String(settings.get('currency') || tenantCurrency || 'EGP').trim().toUpperCase();
+  try {
+    return currencyMoneyDigits(code);
+  } catch {
+    return 2;
+  }
 }
 
 function catalogImageRef(value: unknown): string {
@@ -710,7 +730,7 @@ export class StorefrontService {
         const available = allowOutOfStock || rawStock > 0;
         const retailPrice = Number(p.retail_price || 0);
         const pOffers = offersMap.get(productId) || [];
-        const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers, 1, undefined, new Date(), offerTimezone(settings));
+        const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers, 1, undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
         const finalPrice = bestOffer.hasDiscount ? bestOffer.price : retailPrice;
         const bogoOffer = pOffers.find((o) => o.offer_type === 'bogo');
         const bundleOffer = pOffers.find((o) => o.offer_type === 'bundle');
@@ -918,7 +938,7 @@ export class StorefrontService {
           const isLowStock = !allowOutOfStock && rawStock > 0 && rawStock <= 5;
           const retailPrice = Number(p.retail_price ?? 0);
           const pOffers = offersByProductId.get(Number(p.id)) || [];
-          const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers, 1, undefined, new Date(), offerTimezone(settings));
+          const bestOffer = resolveBestStorefrontOffer(retailPrice, pOffers, 1, undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
           const finalPrice = bestOffer.hasDiscount ? bestOffer.price : retailPrice;
           const bogoOffer = pOffers.find((o) => o.offer_type === 'bogo');
           const bundleOffer = pOffers.find((o) => o.offer_type === 'bundle');
@@ -1298,12 +1318,12 @@ export class StorefrontService {
       const prod = productMap.get(item.productId) ?? productMap.get(Number(item.productId)) ?? productMap.get(String(item.productId));
       if (!prod) continue;
 
-      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName);
+      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName, storefrontMoneyDigits(settings, tenant));
       const baseUnitPrice = priced.ok ? priced.unitPrice : Number(prod.retail_price || 0);
       const resolvedVariantName = priced.ok ? priced.variantName : (item.variantName || null);
       const quantity = Math.max(1, Number(item.quantity || 1));
       const pOffers = offersByProductId.get(Number(prod.id)) || [];
-      const bestOffer = resolveBestStorefrontOffer(baseUnitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings));
+      const bestOffer = resolveBestStorefrontOffer(baseUnitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
       const unitPrice = bestOffer.hasDiscount ? bestOffer.price : baseUnitPrice;
       const lineTotal = Math.round(unitPrice * quantity * roundFactor) / roundFactor;
       const originalLineTotal = Math.round(baseUnitPrice * quantity * roundFactor) / roundFactor;
@@ -1541,13 +1561,13 @@ export class StorefrontService {
       const availableStock = Math.max(0, Number(prod.stock_qty ?? 0) - Number(prod.reserved_qty ?? 0));
       assertOnlineStockAvailable(prod.name, availableStock, Math.max(1, Number(item.quantity || 1)), allowOutOfStock);
       // SF-4 / O54: the chosen variant is priced here, from the product's own metadata.
-      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName);
+      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName, storefrontMoneyDigits(settings, tenant));
       if (!priced.ok) {
         throw new BadRequestException(`عفواً، المقاس المختار للصنف "${prod.name}" لم يعد متاحاً، يرجى تحديث السلة.`);
       }
       const quantity = Math.max(1, Number(item.quantity || 1));
       const pOffers = offersByProductId.get(Number(prod.id)) || [];
-      const bestOffer = resolveBestStorefrontOffer(priced.unitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings));
+      const bestOffer = resolveBestStorefrontOffer(priced.unitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
       const unitPrice = bestOffer.hasDiscount ? bestOffer.price : priced.unitPrice;
       const lineTotal = Math.round(unitPrice * quantity * roundFactor) / roundFactor;
       subtotal += lineTotal;
@@ -2250,13 +2270,13 @@ export class StorefrontService {
       seenProductIds.add(Number(p.id));
       assertOnlineStockAvailable(p.name, Number(p.stock_qty ?? 0), Math.max(1, Number(item.quantity || 1)), updateAllowsOutOfStock);
 
-      const priced = resolveOrderLinePrice(Number(p.retail_price || 0), p.metadata, item.variantName);
+      const priced = resolveOrderLinePrice(Number(p.retail_price || 0), p.metadata, item.variantName, storefrontMoneyDigits(settings, tenant));
       if (!priced.ok) {
         throw new BadRequestException(`عفواً، المقاس المختار للصنف "${p.name}" لم يعد متاحاً، يرجى تحديث السلة.`);
       }
       const qty = Math.max(1, Number(item.quantity || 1));
       const bestOffer = resolveBestStorefrontOffer(priced.unitPrice, offersByProductId.get(Number(p.id)), qty,
-        undefined, new Date(), offerTimezone(settings));
+        undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
       const price = bestOffer.hasDiscount ? bestOffer.price : priced.unitPrice;
       const lineTotal = Math.round(price * qty * 100) / 100;
 
