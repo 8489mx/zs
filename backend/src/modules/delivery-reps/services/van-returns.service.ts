@@ -5,6 +5,8 @@ import { Database } from '../../../database/database.types';
 import { AppError } from '../../../common/errors/app-error';
 import { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import { moveVanStock, sortItemsByProductId, generateDailySequenceNumber } from './van-common.util';
 import { VanFraudRadarService } from './van-fraud-radar.service';
 
@@ -612,12 +614,27 @@ export class VanReturnsService {
       const branchId = trip.vanBranchId ? Number(trip.vanBranchId) : null;
       const refundMethod: 'credit' | 'cash' = (ret as any).refund_method === 'cash' ? 'cash' : 'credit';
 
-      if (refundMethod === 'cash' && totalAmount > Number(trip.cash_collected || 0) + 0.01) {
-        throw new AppError(
-          `رصيد النقدية المحصلة بعهدة المندوب بالرحلة (${Number(trip.cash_collected || 0)} ج.م) لا يكفي لاعتماد مرتجع نقدي بقيمة (${totalAmount} ج.م)`,
-          'INSUFFICIENT_REP_CASH_FOR_REFUND',
-          400,
-        );
+      if (refundMethod === 'cash') {
+        // Custody guard (van F5): this check runs inside the transaction
+        // on the trip row freshly re-read AFTER the FOR UPDATE lock
+        // above, so a concurrent approval waits for the lock and then
+        // sees the first approval's committed deduction — two cash
+        // refunds can never both pay out against the same balance
+        // (the deduction below is a relative SQL update, exact under
+        // the lock). The tolerance is one minor unit of the tenant's
+        // book currency, never a hardcoded 0.01 — 0.01 is ten minor
+        // units on a 3-decimal tenant and let a refund overdraw the
+        // rep's custody by up to that much, even sequentially.
+        const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trx, tenantId));
+        const tolerance = 1 / 10 ** moneyDigits;
+        const repCash = Number(trip.cash_collected || 0);
+        if (totalAmount > repCash + tolerance) {
+          throw new AppError(
+            `رصيد النقدية المحصلة بعهدة المندوب بالرحلة (${repCash} ج.م) لا يكفي لاعتماد مرتجع نقدي بقيمة (${totalAmount} ج.م)`,
+            'INSUFFICIENT_REP_CASH_FOR_REFUND',
+            400,
+          );
+        }
       }
 
       // APPROVAL-TIME PROVENANCE RE-VALIDATION (van F3): submit-time
