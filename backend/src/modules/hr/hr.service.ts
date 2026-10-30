@@ -6729,9 +6729,14 @@ export class HrService {
     const { tenantId, accountId } = requireTenantScope(auth);
     const employeeId = Number(payload.employeeId);
     const amount = Number(payload.amount);
+    // INV-WAGE-PAYOUT-PAYROLL-JOURNAL: the amount gate runs at the
+    // tenant's book precision, not a hard-coded 2 decimals — a KWD
+    // wage payout of 5000.125 is a lawful amount on a 3-decimal
+    // tenant and must not be rejected here.
+    const bookDigits = await tenantBookDigits(this.db, tenantId);
     if (!employeeId || employeeId <= 0) throw new AppError('Employee ID is required', 'HR_EMPLOYEE_ID_REQUIRED', 400);
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001) {
-      throw new AppError('مبلغ السلفة يجب أن يكون موجبًا وبحد أقصى خانتين عشريتين', 'HR_AMOUNT_INVALID', 400);
+    if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000 || Math.abs(roundMoney(amount, bookDigits) - amount) > 0.000001) {
+      throw new AppError('مبلغ السلفة يجب أن يكون موجبًا وبدقة عملة المنشأة', 'HR_AMOUNT_INVALID', 400);
     }
 
     const reason = clean(payload.notes);
@@ -6836,6 +6841,8 @@ export class HrService {
     const baseNotes = payload.shiftId ? `${reason} [وردية كاشير #${Number(payload.shiftId)}]` : reason;
     const notes = `${baseNotes} ${managerApprovalTag}`.trim();
     let createdLoanId = 0;
+    let paidRunItemId = 0;
+    let wageJournalEntryId: number | null = null;
     
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
@@ -6848,6 +6855,37 @@ export class HrService {
         .executeTakeFirst();
       if (!employee) throw new AppError('الموظف غير موجود أو لا يتبع المنشأة الحالية', 'HR_EMPLOYEE_NOT_FOUND', 404);
       if (employee.status !== 'active') throw new AppError('لا يمكن صرف سلفة لموظف غير نشط', 'HR_EMPLOYEE_INACTIVE', 400);
+
+      // Wage payout only (INV-WAGE-PAYOUT-PAYROLL-JOURNAL): resolve
+      // the latest approved run item BEFORE any cash moves. A wage
+      // payout settles that item in full — no loan row, no
+      // installments — so the amount must equal the item's net pay
+      // at book precision, and an approved item must exist at all.
+      // Both failures are fail-closed here, inside the transaction,
+      // before the drawer is touched.
+      let wageItem: { id: number; run_id: number; net_pay: number } | null = null;
+      if (isWagePayout) {
+        const approvedItem = await sql<{ id: number; run_id: number; net_pay: number }>`
+          SELECT i.id, i.run_id, i.net_pay
+          FROM hr_payroll_run_items i
+          JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
+          WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
+            AND r.status IN ('approved', 'partially_paid') AND i.status = 'approved'
+          ORDER BY r.id DESC LIMIT 1
+        `.execute(trx);
+        if (!approvedItem.rows.length) {
+          throw new AppError('لا يوجد بند أجر معتمد لصرف مستحقاته', 'HR_WAGE_PAYOUT_NO_APPROVED_ITEM', 400);
+        }
+        wageItem = approvedItem.rows[0];
+        paidRunItemId = wageItem.id;
+        const itemNetPay = roundMoney(Number(wageItem.net_pay || 0), bookDigits);
+        if (itemNetPay <= 0) {
+          throw new AppError('صافي أجر الموظف صفر أو سالب', 'HR_PAYROLL_AMOUNT_ZERO', 400);
+        }
+        if (Math.abs(roundMoney(amount, bookDigits) - itemNetPay) > 0.000001) {
+          throw new AppError('مبلغ صرف الأجر يجب أن يساوي صافي الأجر المعتمد بالكامل', 'HR_WAGE_PAYOUT_AMOUNT_MISMATCH', 400);
+        }
+      }
 
       // 2. Check cumulative active debt
       const activeRes = await sql<{ total_debt: string }>`
@@ -6877,7 +6915,7 @@ export class HrService {
       }
       const quickCap = baseSalary > 0 ? baseSalary : 5000;
 
-      if (activeDebt + amount > quickCap) {
+      if (!isWagePayout && activeDebt + amount > quickCap) {
         throw new AppError(
           `قيمة السلفة السريعة تتجاوز سقف الراتب الشهري المسموح (${quickCap} - القائم: ${activeDebt})`,
           'HR_QUICK_ADVANCE_EXCEEDS_CAP',
@@ -6885,52 +6923,62 @@ export class HrService {
         );
       }
 
-      const tempNo = `LOAN-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const loanRes = await sql<{ id: number }>`
-        INSERT INTO hr_employee_loans (
-          tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, remaining_amount, 
-          installment_count, installment_amount, repayment_mode,
-          issue_date, disbursed_at, status, notes, created_by, updated_by
-        )
-        VALUES (
-          ${tenantId}, ${accountId}, ${employeeId}, ${tempNo}, 'advance', ${amount}, ${amount}, 
-          1, ${amount}, 'deduct_next_salary',
-          ${localLoanDate}::date, NOW(), 'paid', ${notes}, ${auth.userId}, ${auth.userId}
-        )
-        RETURNING id
-      `.execute(trx);
-      const loanId = Number(loanRes.rows[0]?.id || 0);
-      createdLoanId = loanId;
+      let loanId = 0;
+      if (!isWagePayout) {
+        const tempNo = `LOAN-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const loanRes = await sql<{ id: number }>`
+          INSERT INTO hr_employee_loans (
+            tenant_id, account_id, employee_id, loan_no, loan_type, principal_amount, remaining_amount, 
+            installment_count, installment_amount, repayment_mode,
+            issue_date, disbursed_at, status, notes, created_by, updated_by
+          )
+          VALUES (
+            ${tenantId}, ${accountId}, ${employeeId}, ${tempNo}, 'advance', ${amount}, ${amount}, 
+            1, ${amount}, 'deduct_next_salary',
+            ${localLoanDate}::date, NOW(), 'paid', ${notes}, ${auth.userId}, ${auth.userId}
+          )
+          RETURNING id
+        `.execute(trx);
+        loanId = Number(loanRes.rows[0]?.id || 0);
+        createdLoanId = loanId;
 
-      const canonicalNo = formatDailyDocumentNumber('LOAN', loanId);
-      await sql`UPDATE hr_employee_loans SET loan_no = ${canonicalNo} WHERE id = ${loanId} AND tenant_id = ${tenantId}`.execute(trx);
+        const canonicalNo = formatDailyDocumentNumber('LOAN', loanId);
+        await sql`UPDATE hr_employee_loans SET loan_no = ${canonicalNo} WHERE id = ${loanId} AND tenant_id = ${tenantId}`.execute(trx);
       
-      const dueStr = localLoanDate;
+        const dueStr = localLoanDate;
       
-      await sql`
-        INSERT INTO hr_employee_loan_installments (
-          tenant_id, account_id, loan_id, installment_no, due_date, 
-          amount, status
-        )
-        VALUES (
-          ${tenantId}, ${accountId}, ${loanId}, 1, ${dueStr}, 
-          ${amount}, 'pending'
-        )
-      `.execute(trx);
+        await sql`
+          INSERT INTO hr_employee_loan_installments (
+            tenant_id, account_id, loan_id, installment_no, due_date, 
+            amount, status
+          )
+          VALUES (
+            ${tenantId}, ${accountId}, ${loanId}, 1, ${dueStr}, 
+            ${amount}, 'pending'
+          )
+        `.execute(trx);
+      }
 
-      // 3. Record in employee ledger
-      await sql`
-        INSERT INTO hr_employee_ledger (
-          employee_id, entry_type, amount, balance_after, note, reference_type, reference_id,
-          created_by, tenant_id, account_id
-        )
-        VALUES (
-          ${employeeId}, ${isWagePayout ? 'wage_payout' : 'loan_disbursement'}, ${amount}, ${activeDebt + amount},
-          ${notes}, 'hr_employee_loan', ${loanId}, ${auth.userId}, ${tenantId}, ${accountId}
-        )
-      `.execute(trx);
+      if (!isWagePayout) {
+        // 3. Record in employee ledger
+        await sql`
+          INSERT INTO hr_employee_ledger (
+            employee_id, entry_type, amount, balance_after, note, reference_type, reference_id,
+            created_by, tenant_id, account_id
+          )
+          VALUES (
+            ${employeeId}, 'loan_disbursement', ${amount}, ${activeDebt + amount},
+            ${notes}, 'hr_employee_loan', ${loanId}, ${auth.userId}, ${tenantId}, ${accountId}
+          )
+        `.execute(trx);
+      }
 
       // 4. Handle shift cash deduction if shift ID is provided
+      // (Captured for the wage-payout journal below: the cash source
+      // is always a drawer — a missing shift throws in this block.)
+      let payoutShiftId: number | null = null;
+      let payoutBranchId: number | null = null;
+      let payoutLocationId: number | null = null;
       if (payload.shiftId) {
         const shiftId = Number(payload.shiftId);
         const eligibleShift = await sql<{ id: number; branch_id: number | null; location_id: number | null; opened_by: number; expected_cash: string | number }>`
@@ -6941,6 +6989,9 @@ export class HrService {
         `.execute(trx);
         if (!eligibleShift.rows.length) throw new AppError('وردية الكاشير غير مفتوحة أو لا تخص المستخدم الحالي', 'HR_CASHIER_SHIFT_INVALID', 400);
         const shift = eligibleShift.rows[0];
+        payoutShiftId = shiftId;
+        payoutBranchId = shift.branch_id;
+        payoutLocationId = shift.location_id;
         const drawerCash = this.cashDrawer
           ? await this.cashDrawer.computeShiftExpectedCash(shiftId, auth, trx)
           : Number(shift.expected_cash || 0);
@@ -6983,56 +7034,82 @@ export class HrService {
         throw new AppError('حدد وردية كاشير مفتوحة أو خزينة لصرف السلفة', 'HR_ADVANCE_CASH_SOURCE_REQUIRED', 400);
       }
 
-      // If paying a wage payout against a previously approved run, mark the run item as paid
-      if (isWagePayout) {
-        const approvedItem = await sql<{ id: number; run_id: number }>`
-          SELECT i.id, i.run_id
-          FROM hr_payroll_run_items i
-          JOIN hr_payroll_runs r ON r.id = i.run_id AND r.tenant_id = i.tenant_id
-          WHERE i.employee_id = ${employeeId} AND i.tenant_id = ${tenantId}
-            AND r.status = 'approved' AND i.status = 'approved'
-          ORDER BY r.id DESC LIMIT 1
+      // Wage payout (INV-WAGE-PAYOUT-PAYROLL-JOURNAL): settle the
+      // approved run item through the per-item payroll payment
+      // journal (Dr 2140 / Cr 1110) — never a loan, never
+      // installments. The item was resolved and the amount checked
+      // against its net pay before any cash moved, above.
+      if (isWagePayout && wageItem) {
+        const { journalEntryId } = await this.accountingPosting.postPayrollItemPayment(
+          trx,
+          wageItem.id,
+          'drawer',
+          auth,
+          { employeeName: employee.display_name, branchId: payoutBranchId, locationId: payoutLocationId },
+        );
+        wageJournalEntryId = journalEntryId;
+        await sql`
+          UPDATE hr_payroll_run_items
+          SET status = 'paid', paid_at = NOW(), paid_by = ${auth.userId},
+            payment_channel = 'drawer', payment_reference = NULL,
+            shift_id = ${payoutShiftId}, journal_entry_id = ${journalEntryId || null},
+            updated_at = NOW()
+          WHERE id = ${wageItem.id} AND tenant_id = ${tenantId}
         `.execute(trx);
-        if (approvedItem.rows.length) {
-          const runItemId = Number(approvedItem.rows[0].id);
-          await sql`
-            UPDATE hr_payroll_run_items
-            SET status = 'paid', updated_at = NOW()
-            WHERE id = ${runItemId} AND tenant_id = ${tenantId}
-          `.execute(trx);
-        }
+        await sql`
+          INSERT INTO hr_employee_ledger (
+            employee_id, entry_type, amount, balance_after, note, reference_type, reference_id,
+            created_by, tenant_id, account_id
+          )
+          VALUES (
+            ${employeeId}, 'wage_payout', ${amount}, 0,
+            ${notes}, 'hr_payroll_run_item', ${wageItem.id}, ${auth.userId}, ${tenantId}, ${accountId}
+          )
+        `.execute(trx);
       }
 
-      // 5. Record GL journal: Dr. 1160 (Advances) / Cr. 1110 (Cash)
-      await this.accountingPosting.postEmployeeLoanDisbursement(trx, loanId, auth);
+      // 5. Record GL journal for an advance: Dr. 1160 (Advances) /
+      // Cr. 1110 (Cash). Wage payouts post their own 2140 journal
+      // above and never reach this call.
+      if (!isWagePayout) {
+        await this.accountingPosting.postEmployeeLoanDisbursement(trx, loanId, auth);
+      }
 
-      // 6. Auto-rebuild active draft/reviewed payroll runs so the advance reflects in payroll immediately
-      const activeRuns = await sql<{ id: number; status: string }>`
-        SELECT id, status
-        FROM hr_payroll_runs
-        WHERE tenant_id = ${tenantId}
-          AND status IN ('draft', 'reviewed')
-          AND end_date >= ${localLoanDate}::date
-          AND EXISTS (
-            SELECT 1 FROM hr_payroll_run_items item
-            WHERE item.run_id = hr_payroll_runs.id
-              AND item.tenant_id = ${tenantId}
-              AND item.employee_id = ${employeeId}
-              AND item.status <> 'excluded'
-          )
-        ORDER BY id DESC
-      `.execute(trx);
-      for (const run of activeRuns.rows) {
-        const runId = Number(run.id);
-        await this.rebuildPayrollRunItems(trx, runId, 'draft', auth.tenantId || tenantId);
-        if (run.status === 'reviewed') {
-          await this.invalidatePayrollRunReview(trx, runId, tenantId);
+      if (!isWagePayout) {
+        // 6. Auto-rebuild active draft/reviewed payroll runs so the advance reflects in payroll immediately
+        const activeRuns = await sql<{ id: number; status: string }>`
+          SELECT id, status
+          FROM hr_payroll_runs
+          WHERE tenant_id = ${tenantId}
+            AND status IN ('draft', 'reviewed')
+            AND end_date >= ${localLoanDate}::date
+            AND EXISTS (
+              SELECT 1 FROM hr_payroll_run_items item
+              WHERE item.run_id = hr_payroll_runs.id
+                AND item.tenant_id = ${tenantId}
+                AND item.employee_id = ${employeeId}
+                AND item.status <> 'excluded'
+            )
+          ORDER BY id DESC
+        `.execute(trx);
+        for (const run of activeRuns.rows) {
+          const runId = Number(run.id);
+          await this.rebuildPayrollRunItems(trx, runId, 'draft', auth.tenantId || tenantId);
+          if (run.status === 'reviewed') {
+            await this.invalidatePayrollRunReview(trx, runId, tenantId);
+          }
         }
       }
     });
 
-    await this.audit.log('Create Quick Cash Advance', `Cash advance #${createdLoanId} of ${amount} for employee #${employeeId} by ${auth.username}`, auth);
-    return { success: true, loanId: createdLoanId, isDirectDisbursement };
+    await this.audit.log(
+      'Create Quick Cash Advance',
+      isWagePayout
+        ? `Wage payout for run item #${paidRunItemId} of ${amount} for employee #${employeeId} by ${auth.username}`
+        : `Cash advance #${createdLoanId} of ${amount} for employee #${employeeId} by ${auth.username}`,
+      auth,
+    );
+    return { success: true, loanId: createdLoanId || null, isDirectDisbursement, payrollRunItemId: paidRunItemId || null, journalEntryId: wageJournalEntryId };
   }
 }
 
