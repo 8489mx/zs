@@ -251,6 +251,7 @@ const isolated = resolveIsolatedRepCustomerBalance({
       { repId: 20, repName: 'مندوب التوزيع 2', balance: 2500, totalDebit: 2500, totalCredit: 0 },
     ],
   },
+  moneyDigits: 2,
 });
 
 assert.equal(isolated.repBalance, 1000);
@@ -263,6 +264,7 @@ const collectionValidation = validateIsolatedRepCollection({
   repBalance: isolated.repBalance,
   otherRepsBalance: isolated.otherRepsBalance,
   totalCustomerBalance: isolated.totalCustomerBalance,
+  moneyDigits: 2,
 });
 assert.equal(collectionValidation.allowed, true);
 
@@ -273,6 +275,7 @@ const invalidCollection = validateIsolatedRepCollection({
   repBalance: isolated.repBalance,
   otherRepsBalance: isolated.otherRepsBalance,
   totalCustomerBalance: isolated.totalCustomerBalance,
+  moneyDigits: 2,
 });
 assert.equal(invalidCollection.allowed, false);
 console.log('[PASS] Isolated rep debt balances strictly protected against cross-rep encroachment');

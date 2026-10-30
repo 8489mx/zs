@@ -10,6 +10,8 @@ import { UpsertCustomerDto } from './dto/upsert-customer.dto';
 import { UpsertSupplierDto } from './dto/upsert-supplier.dto';
 import { buildCustomerSearchPredicate, buildSupplierSearchPredicate, calculatePagination, mapCustomerRow, mapSupplierRow, parsePartnersListQuery } from './helpers/partners-listing.helper';
 import { generatePhoneSearchVariants } from '../../core/utils/phone-utils';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
 import { getCustomerRepBalancesMap } from '../delivery-reps/services/van-common.util';
 import { extractCustomerVisitDays } from '../delivery-reps/van-routes-schedule.util';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
@@ -148,9 +150,11 @@ export class PartnersService {
       const customerIds = rows.map((r) => Number(r.id));
       const customerTotalBalances: Record<number, number> = {};
       for (const r of rows) customerTotalBalances[Number(r.id)] = Number(r.balance || 0);
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, this.tenantId(actor)));
       const repBalancesMap = await getCustomerRepBalancesMap(this.db as any, this.tenantId(actor), {
         customerIds,
         customerTotalBalances,
+        moneyDigits,
       });
       return {
         customers: rows.map((row) => mapCustomerRow(row, repBalancesMap.get(Number(row.id))?.repBalances)),
@@ -166,9 +170,11 @@ export class PartnersService {
     const customerIds = rows.map((r) => Number(r.id));
     const customerTotalBalances: Record<number, number> = {};
     for (const r of rows) customerTotalBalances[Number(r.id)] = Number(r.balance || 0);
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, this.tenantId(actor)));
     const repBalancesMap = await getCustomerRepBalancesMap(this.db as any, this.tenantId(actor), {
       customerIds,
       customerTotalBalances,
+      moneyDigits,
     });
 
     const totalItems = Number(countRow.count || 0);

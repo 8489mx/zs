@@ -170,6 +170,7 @@ const commissionResult = calculateRepCommissionMetrics({
   salesCommissionRatePercent: 1.5,
   collectionCommissionRatePercent: 0.5,
   targetBonusRatePercent: 1.0,
+  moneyDigits: 2,
 });
 
 assert.equal(commissionResult.salesCommissionRatePercent, 1.5);

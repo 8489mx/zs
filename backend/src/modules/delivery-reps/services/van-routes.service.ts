@@ -4,6 +4,8 @@ import { KYSELY_DB } from '../../../database/database.constants';
 import { Database } from '../../../database/database.types';
 import { AppError } from '../../../common/errors/app-error';
 import { VanFleetService } from './van-fleet.service';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import { normalizeCustomerCode, getCustomerRepBalancesMap } from './van-common.util';
 import {
   extractCoordinatesFromCustomerLocation,
@@ -62,9 +64,11 @@ export class VanRoutesService {
       customerIds.push(cid);
       customerTotalBalances[cid] = Number(c.balance || 0);
     }
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.anyDb, tenantId));
     const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
       customerIds,
       customerTotalBalances,
+      moneyDigits,
     });
 
     // 1. Calculate today's Arabic & English day names based on business timezone (Africa/Cairo)
@@ -145,6 +149,7 @@ export class VanRoutesService {
         breakdown: repBalancesMap.get(cId),
         assignedRepIds,
         fallbackTotalBalance: Number(c.balance || 0),
+        moneyDigits,
       });
       const todayVisit = visitMap.get(cId);
       const totalNegatives = negativeMap.get(cId) || 0;
@@ -869,9 +874,11 @@ export class VanRoutesService {
       customerTotalBalances[cid] = Number(r.balance || 0);
     }
 
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.anyDb, tenantId));
     const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
       customerIds,
       customerTotalBalances,
+      moneyDigits,
     });
 
     let results = rows.map((r: any) => {

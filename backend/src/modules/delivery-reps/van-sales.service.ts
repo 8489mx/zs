@@ -45,6 +45,8 @@ import {
   type RepTargetCalculationResult,
 } from './rep-target.engine';
 import { VanFleetService } from './services/van-fleet.service';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
 import { VanRequisitionsService } from './services/van-requisitions.service';
 import { DAY_KEY_TO_ARABIC, normalizeDayKey } from './van-routes-schedule.util';
 import { VanReturnsService } from './services/van-returns.service';
@@ -762,9 +764,11 @@ export class VanSalesService {
       customerTotalBalances[cid] = Number(c.balance || 0);
     }
 
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.anyDb, tenantId));
     const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
       customerIds,
       customerTotalBalances,
+      moneyDigits,
     });
 
     const customers = customerRows.map((c: any) => {
@@ -781,6 +785,7 @@ export class VanSalesService {
         breakdown: repBalancesMap.get(cid),
         assignedRepIds,
         fallbackTotalBalance: Number(c.balance || 0),
+        moneyDigits,
       });
       return {
         id: cid,
@@ -2800,9 +2805,11 @@ export class VanSalesService {
       }
 
       const currentCompanyBalance = Number(lockedCust.balance || 0);
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(trxAny, tenantId));
       const repBalancesMap = await getCustomerRepBalancesMap(trxAny, tenantId, {
         customerIds: [payload.customerId],
         customerTotalBalances: { [payload.customerId]: currentCompanyBalance },
+        moneyDigits,
       });
 
       const assignedRepIds = extractAssignedRepIds(lockedCust.metadata);
@@ -2811,6 +2818,7 @@ export class VanSalesService {
         breakdown: repBalancesMap.get(payload.customerId),
         assignedRepIds,
         fallbackTotalBalance: currentCompanyBalance,
+        moneyDigits,
       });
 
       const validation = validateIsolatedRepCollection({
@@ -2819,6 +2827,7 @@ export class VanSalesService {
         repBalance: isolated.repBalance,
         otherRepsBalance: isolated.otherRepsBalance,
         totalCustomerBalance: isolated.totalCustomerBalance,
+        moneyDigits,
       });
 
       if (!validation.allowed) {
@@ -5284,15 +5293,18 @@ export class VanSalesService {
         .execute();
 
       const existingId = Number(existing.id);
+      const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.anyDb, tenantId));
       const repBalancesMap = await getCustomerRepBalancesMap(this.anyDb, tenantId, {
         customerIds: [existingId],
         customerTotalBalances: { [existingId]: Number(existing.balance || 0) },
+        moneyDigits,
       });
       const isolated = resolveIsolatedRepCustomerBalance({
         repId: Number(repId),
         breakdown: repBalancesMap.get(existingId),
         assignedRepIds,
         fallbackTotalBalance: Number(existing.balance || 0),
+        moneyDigits,
       });
 
       return {

@@ -253,6 +253,7 @@ import {
   CustomerRepBalanceBreakdown,
   CustomerRepLedgerEntryInput,
 } from '../rep-target.engine';
+import { type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 
 /**
  * Format customer code consistently as C-XXXX (e.g. C-0001, C-04185).
@@ -285,14 +286,20 @@ export function normalizeCustomerCode(code: string | undefined | null, fallbackI
 export async function getCustomerRepBalancesMap(
   anyDb: any,
   tenantId: string,
-  options?: {
+  options: {
     customerIds?: number[];
     customerTotalBalances?: Record<number, number>;
+    // REQUIRED (INV-REP-COMMISSION-DIGITS): balances are money, so the
+    // aggregation must round at the tenant's book digits, never at an
+    // assumed 2 decimals. Callers derive it from the tenant's base
+    // currency and reuse the same value for the isolated-balance
+    // calls that read this map.
+    moneyDigits: MoneyDigits;
   },
 ): Promise<Map<number, CustomerRepBalanceBreakdown>> {
   const customerIds = (options?.customerIds || []).filter((id) => Number.isInteger(Number(id)) && Number(id) > 0);
   if (options?.customerIds && customerIds.length === 0) {
-    return aggregateCustomerBalancesByRep([], options?.customerTotalBalances);
+    return aggregateCustomerBalancesByRep([], options?.customerTotalBalances, options.moneyDigits);
   }
 
   let query = anyDb
@@ -354,7 +361,7 @@ export async function getCustomerRepBalancesMap(
     }
   }
 
-  return aggregateCustomerBalancesByRep(entries, options?.customerTotalBalances);
+  return aggregateCustomerBalancesByRep(entries, options?.customerTotalBalances, options.moneyDigits);
 }
 
 /**

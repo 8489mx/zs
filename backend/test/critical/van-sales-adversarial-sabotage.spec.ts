@@ -487,6 +487,7 @@ const commMetrics = calculateRepCommissionMetrics({
   collectionCommissionRatePercent: 0.5,
   targetBonusRatePercent: 1.0,
   alreadyPaidAmount: 500,
+  moneyDigits: 2,
 });
 
 assert.equal(commMetrics.salesCommissionAmount, 1800); // 120,000 * 1.5%

@@ -9,6 +9,8 @@ import {
 } from '../rep-target.engine';
 import { getMonthlyOfficialHolidayDates } from './van-common.util';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { tenantBaseCurrency } from '../../accounting/accounting-currency';
+import { currencyMoneyDigits } from '../../accounting/engines/money-minor-units.engine';
 import type { AuthContext } from '../../../core/auth/interfaces/auth-context.interface';
 
 export interface VanRepCommissionConfig {
@@ -385,6 +387,7 @@ export class VanTargetsService {
       collectionCommissionRatePercent: rates.collectionCommissionRatePercent,
       targetBonusRatePercent: rates.targetBonusRatePercent,
       alreadyPaidAmount: paidMap.get(repId) || 0,
+      moneyDigits: currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId)),
     });
 
     return {
@@ -509,6 +512,9 @@ export class VanTargetsService {
       this.getCommissionConfig(tenantId),
       this.getPaidCommissionsMapForMonth(tenantId, month),
     ]);
+    // Derived here (not inside the sync map below) because the
+    // commission call needs the tenant's book digits.
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId));
 
     return reps.map((r: any) => {
       const repId = Number(r.id);
@@ -542,6 +548,7 @@ export class VanTargetsService {
         collectionCommissionRatePercent: rates.collectionCommissionRatePercent,
         targetBonusRatePercent: rates.targetBonusRatePercent,
         alreadyPaidAmount: paidMap.get(repId) || 0,
+        moneyDigits,
       });
 
       return {

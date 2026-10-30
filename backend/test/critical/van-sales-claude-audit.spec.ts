@@ -246,6 +246,7 @@ const commSubTarget = calculateRepCommissionMetrics({
   salesCommissionRatePercent: 1.0,
   collectionCommissionRatePercent: 0.5,
   targetBonusRatePercent: 1.0,
+  moneyDigits: 2,
 });
 
 assert.equal(commSubTarget.isTargetBonusEligible, false);
@@ -260,6 +261,7 @@ const commExactTarget = calculateRepCommissionMetrics({
   salesCommissionRatePercent: 1.0,
   collectionCommissionRatePercent: 0.5,
   targetBonusRatePercent: 1.0,
+  moneyDigits: 2,
 });
 
 assert.equal(commExactTarget.isTargetBonusEligible, true);

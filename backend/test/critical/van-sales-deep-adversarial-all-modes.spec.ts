@@ -245,6 +245,7 @@ const partialCol = validateIsolatedRepCollection({
   repBalance: 2500,
   otherRepsBalance: 0,
   totalCustomerBalance: 2500,
+  moneyDigits: 2,
 });
 assert.equal(partialCol.allowed, true);
 assert.equal(partialCol.repPreviousBalance, 2500);
@@ -259,6 +260,7 @@ const fullCol = validateIsolatedRepCollection({
   repBalance: 1500,
   otherRepsBalance: 0,
   totalCustomerBalance: 1500,
+  moneyDigits: 2,
 });
 assert.equal(fullCol.allowed, true);
 assert.equal(fullCol.repNewBalance, 0);
@@ -273,6 +275,7 @@ const crossRepEncroachment = validateIsolatedRepCollection({
   repBalance: 500,
   otherRepsBalance: 2000,
   totalCustomerBalance: 2500,
+  moneyDigits: 2,
 });
 assert.equal(crossRepEncroachment.allowed, false);
 assert.equal(crossRepEncroachment.errorCode, 'REP_ISOLATED_BALANCE_EXCEEDED');
@@ -286,6 +289,7 @@ const zeroBalanceRepAttack = validateIsolatedRepCollection({
   repBalance: 0,
   otherRepsBalance: 3000,
   totalCustomerBalance: 3000,
+  moneyDigits: 2,
 });
 assert.equal(zeroBalanceRepAttack.allowed, false);
 assert.equal(zeroBalanceRepAttack.errorCode, 'REP_ISOLATED_BALANCE_EXCEEDED');
@@ -301,6 +305,7 @@ const aggregatedLedger = aggregateCustomerBalancesByRep(
     { customerId: 50, repId: null, amount: 300 }, // Unassigned: 300
   ],
   { 50: 4000 }, // Total company balance: 1,200 + 2,500 + 300 = 4,000
+  2,
 );
 
 const cust50Breakdown = aggregatedLedger.get(50)!;
@@ -315,6 +320,7 @@ const rep1View = resolveIsolatedRepCustomerBalance({
   breakdown: cust50Breakdown,
   assignedRepIds: [1, 2],
   fallbackTotalBalance: 4000,
+  moneyDigits: 2,
 });
 assert.equal(rep1View.repBalance, 1200);
 assert.equal(rep1View.otherRepsBalance, 2500);
@@ -326,6 +332,7 @@ const rep3View = resolveIsolatedRepCustomerBalance({
   breakdown: cust50Breakdown,
   assignedRepIds: [1, 2],
   fallbackTotalBalance: 4000,
+  moneyDigits: 2,
 });
 assert.equal(rep3View.repBalance, 0); // Never leaks another rep's debt!
 assert.equal(rep3View.otherRepsBalance, 3700);

@@ -1,9 +1,21 @@
+import { type MoneyDigits, roundMoney as roundBookMoney } from '../accounting/engines/money-minor-units.engine';
+
 /**
  * Pure Calculation Engine for Representative Monthly Sales Targets.
- * 
+ *
  * Complies with Rule 13 (Strict Financial & Operational Audit Protocol:
  * Tests Must Import Production Code). Both the backend service and unit
  * tests must import this exact file.
+ *
+ * Book digits are REQUIRED for the money functions in this file
+ * (INV-REP-COMMISSION-DIGITS): commissions and rep-isolated customer
+ * balances are money owed to people, so rounding them at an assumed 2
+ * decimals would silently cut a 3-decimal tenant's payouts. The old
+ * file-private 2-decimal rounder (which also swallowed non-finite
+ * values to 0) is gone; rounding goes through the canonical engine
+ * at the caller's digits and fails closed on non-finite input.
+ * calculateRepTargetMetrics still rounds its target tracking at 2
+ * decimals via toFixed(2) — a separate package, not this one.
  */
 
 export interface RepTargetCalculationInput {
@@ -188,6 +200,7 @@ export interface RepCommissionInput {
   collectionCommissionRatePercent?: number | null;
   targetBonusRatePercent?: number | null;
   alreadyPaidAmount?: number | null;
+  moneyDigits: MoneyDigits;
 }
 
 export interface RepCommissionMetricsResult {
@@ -201,11 +214,6 @@ export interface RepCommissionMetricsResult {
   totalEarnedCommission: number;
   alreadyPaidAmount: number;
   remainingPayableCommission: number;
-}
-
-function roundMoney(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Number(Math.round((value + Number.EPSILON) * 100) / 100);
 }
 
 /**
@@ -228,17 +236,19 @@ export function calculateRepCommissionMetrics(input: RepCommissionInput): RepCom
     ? Math.max(0, Number(input.targetBonusRatePercent))
     : 0.5;
 
-  const salesCommissionAmount = roundMoney((actualSales * salesRate) / 100);
-  const collectionCommissionAmount = roundMoney((actualCollections * collectionRate) / 100);
+  const salesCommissionAmount = roundBookMoney((actualSales * salesRate) / 100, input.moneyDigits);
+  const collectionCommissionAmount = roundBookMoney((actualCollections * collectionRate) / 100, input.moneyDigits);
   const isTargetBonusEligible = salesTarget > 0 && actualSales >= salesTarget;
-  const targetBonusAmount = isTargetBonusEligible ? roundMoney((actualSales * bonusRate) / 100) : 0;
+  const targetBonusAmount = isTargetBonusEligible ? roundBookMoney((actualSales * bonusRate) / 100, input.moneyDigits) : 0;
 
-  const totalEarnedCommission = roundMoney(
+  const totalEarnedCommission = roundBookMoney(
     salesCommissionAmount + collectionCommissionAmount + targetBonusAmount,
+    input.moneyDigits,
   );
-  const alreadyPaidAmount = roundMoney(Math.max(0, Number(input.alreadyPaidAmount || 0)));
-  const remainingPayableCommission = roundMoney(
+  const alreadyPaidAmount = roundBookMoney(Math.max(0, Number(input.alreadyPaidAmount || 0)), input.moneyDigits);
+  const remainingPayableCommission = roundBookMoney(
     Math.max(0, totalEarnedCommission - alreadyPaidAmount),
+    input.moneyDigits,
   );
 
   return {
@@ -521,7 +531,10 @@ export function extractAssignedRepIds(
  */
 export function aggregateCustomerBalancesByRep(
   entries: CustomerRepLedgerEntryInput[],
-  customerTotalBalances?: Record<number, number>,
+  // Defaulted (not `?`) so the required `digits` may follow it: a
+  // required parameter cannot follow an optional one (TS1016).
+  customerTotalBalances: Record<number, number> | undefined = undefined,
+  digits: MoneyDigits,
 ): Map<number, CustomerRepBalanceBreakdown> {
   const result = new Map<number, CustomerRepBalanceBreakdown>();
 
@@ -546,7 +559,7 @@ export function aggregateCustomerBalancesByRep(
       const cid = Number(cidKey);
       if (Number.isInteger(cid) && cid > 0) {
         const item = ensureCustomer(cid);
-        item.totalCustomerBalance = roundMoney(Number(bal || 0));
+        item.totalCustomerBalance = roundBookMoney(Number(bal || 0), digits);
       }
     }
   }
@@ -554,7 +567,7 @@ export function aggregateCustomerBalancesByRep(
   for (const row of entries || []) {
     const cid = Number(row.customerId);
     if (!Number.isInteger(cid) || cid <= 0) continue;
-    const amt = roundMoney(Number(row.amount || 0));
+    const amt = roundBookMoney(Number(row.amount || 0), digits);
     if (amt === 0) continue;
 
     const item = ensureCustomer(cid);
@@ -575,14 +588,14 @@ export function aggregateCustomerBalancesByRep(
         repItem.repName = String(row.repName).trim();
       }
 
-      repItem.balance = roundMoney(repItem.balance + amt);
+      repItem.balance = roundBookMoney(repItem.balance + amt, digits);
       if (amt > 0) {
-        repItem.totalDebit = roundMoney(repItem.totalDebit + amt);
+        repItem.totalDebit = roundBookMoney(repItem.totalDebit + amt, digits);
       } else {
-        repItem.totalCredit = roundMoney(repItem.totalCredit + Math.abs(amt));
+        repItem.totalCredit = roundBookMoney(repItem.totalCredit + Math.abs(amt), digits);
       }
     } else {
-      item.unassignedBalance = roundMoney(item.unassignedBalance + amt);
+      item.unassignedBalance = roundBookMoney(item.unassignedBalance + amt, digits);
     }
   }
 
@@ -592,18 +605,18 @@ export function aggregateCustomerBalancesByRep(
       return a.repId - b.repId;
     });
     item.repBalances = repList;
-    item.totalRepBalance = roundMoney(repList.reduce((sum, r) => sum + r.balance, 0));
+    item.totalRepBalance = roundBookMoney(repList.reduce((sum, r) => sum + r.balance, 0), digits);
 
     const hasExplicitCustomerTotal =
       customerTotalBalances !== undefined &&
       Object.prototype.hasOwnProperty.call(customerTotalBalances, cid);
 
     if (hasExplicitCustomerTotal) {
-      const explicitTotal = roundMoney(Number(customerTotalBalances![cid] || 0));
+      const explicitTotal = roundBookMoney(Number(customerTotalBalances![cid] || 0), digits);
       item.totalCustomerBalance = explicitTotal;
-      item.unassignedBalance = roundMoney(explicitTotal - item.totalRepBalance);
+      item.unassignedBalance = roundBookMoney(explicitTotal - item.totalRepBalance, digits);
     } else {
-      item.totalCustomerBalance = roundMoney(item.totalRepBalance + item.unassignedBalance);
+      item.totalCustomerBalance = roundBookMoney(item.totalRepBalance + item.unassignedBalance, digits);
     }
   }
 
@@ -624,6 +637,7 @@ export function resolveIsolatedRepCustomerBalance(params: {
   breakdown?: CustomerRepBalanceBreakdown | null;
   assignedRepIds?: number[];
   fallbackTotalBalance?: number;
+  moneyDigits: MoneyDigits;
 }): {
   repBalance: number;
   otherRepsBalance: number;
@@ -634,22 +648,23 @@ export function resolveIsolatedRepCustomerBalance(params: {
   const assignedIds = params.assignedRepIds || [];
 
   if (!breakdown) {
-    const total = roundMoney(Number(params.fallbackTotalBalance || 0));
+    const total = roundBookMoney(Number(params.fallbackTotalBalance || 0), params.moneyDigits);
     const isExclusivelyAssignedToRep = assignedIds.length === 1 && Number(assignedIds[0]) === repId;
     const repBal = isExclusivelyAssignedToRep ? total : 0;
     return {
       repBalance: repBal,
-      otherRepsBalance: roundMoney(Math.max(0, total - repBal)),
+      otherRepsBalance: roundBookMoney(Math.max(0, total - repBal), params.moneyDigits),
       totalCustomerBalance: total,
     };
   }
 
   const ownEntry = breakdown.byRepId[repId];
-  const ownLedgerBalance = ownEntry ? roundMoney(ownEntry.balance) : 0;
-  const otherRepsLedgerBalance = roundMoney(
+  const ownLedgerBalance = ownEntry ? roundBookMoney(ownEntry.balance, params.moneyDigits) : 0;
+  const otherRepsLedgerBalance = roundBookMoney(
     breakdown.repBalances
       .filter((r) => r.repId !== repId && r.balance > 0)
       .reduce((sum, r) => sum + r.balance, 0),
+    params.moneyDigits,
   );
 
   const isExclusivelyAssignedToRep =
@@ -659,7 +674,7 @@ export function resolveIsolatedRepCustomerBalance(params: {
 
   const effectiveRepBalance =
     isExclusivelyAssignedToRep && breakdown.unassignedBalance > 0
-      ? roundMoney(ownLedgerBalance + breakdown.unassignedBalance)
+      ? roundBookMoney(ownLedgerBalance + breakdown.unassignedBalance, params.moneyDigits)
       : ownLedgerBalance;
 
   return {
@@ -679,6 +694,7 @@ export function validateIsolatedRepCollection(params: {
   repBalance: number;
   otherRepsBalance: number;
   totalCustomerBalance: number;
+  moneyDigits: MoneyDigits;
 }): {
   allowed: boolean;
   errorCode?: string;
@@ -688,10 +704,10 @@ export function validateIsolatedRepCollection(params: {
   companyPreviousBalance: number;
   companyNewBalance: number;
 } {
-  const amount = roundMoney(Number(params.collectionAmount || 0));
-  const repPreviousBalance = roundMoney(Number(params.repBalance || 0));
-  const otherRepsBalance = roundMoney(Number(params.otherRepsBalance || 0));
-  const companyPreviousBalance = roundMoney(Number(params.totalCustomerBalance || 0));
+  const amount = roundBookMoney(Number(params.collectionAmount || 0), params.moneyDigits);
+  const repPreviousBalance = roundBookMoney(Number(params.repBalance || 0), params.moneyDigits);
+  const otherRepsBalance = roundBookMoney(Number(params.otherRepsBalance || 0), params.moneyDigits);
+  const companyPreviousBalance = roundBookMoney(Number(params.totalCustomerBalance || 0), params.moneyDigits);
 
   if (amount <= 0) {
     return {
@@ -725,9 +741,9 @@ export function validateIsolatedRepCollection(params: {
   return {
     allowed: true,
     repPreviousBalance,
-    repNewBalance: roundMoney(repPreviousBalance - amount),
+    repNewBalance: roundBookMoney(repPreviousBalance - amount, params.moneyDigits),
     companyPreviousBalance,
-    companyNewBalance: roundMoney(companyPreviousBalance - amount),
+    companyNewBalance: roundBookMoney(companyPreviousBalance - amount, params.moneyDigits),
   };
 }
 

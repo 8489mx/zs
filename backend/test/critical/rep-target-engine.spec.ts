@@ -82,6 +82,7 @@ const comm1 = calculateRepCommissionMetrics({
   collectionCommissionRatePercent: 1.0,
   targetBonusRatePercent: 0.5,
   alreadyPaidAmount: 1000,
+  moneyDigits: 2,
 });
 
 assert.equal(comm1.salesCommissionAmount, 1800); // 120,000 * 1.5%
@@ -101,6 +102,7 @@ const comm2 = calculateRepCommissionMetrics({
   collectionCommissionRatePercent: 0.5,
   targetBonusRatePercent: 0.5,
   alreadyPaidAmount: 0,
+  moneyDigits: 2,
 });
 
 assert.equal(comm2.salesCommissionAmount, 800);
@@ -177,6 +179,7 @@ const barakaLedgerMap = aggregateCustomerBalancesByRep(
     { customerId: 2, repId: 102, repName: 'مندوب 2', amount: -500 },
   ],
   { 2: 2500 },
+  2,
 );
 
 const barakaBreakdown = barakaLedgerMap.get(2)!;
@@ -199,6 +202,7 @@ const rep1View = resolveIsolatedRepCustomerBalance({
   breakdown: barakaBreakdown,
   assignedRepIds: [101, 102],
   fallbackTotalBalance: 2500,
+  moneyDigits: 2,
 });
 assert.equal(rep1View.repBalance, 500);
 assert.equal(rep1View.otherRepsBalance, 2000);
@@ -210,6 +214,7 @@ const rep2View = resolveIsolatedRepCustomerBalance({
   breakdown: barakaBreakdown,
   assignedRepIds: [101, 102],
   fallbackTotalBalance: 2500,
+  moneyDigits: 2,
 });
 assert.equal(rep2View.repBalance, 2000);
 assert.equal(rep2View.otherRepsBalance, 500);
@@ -221,6 +226,7 @@ const rep3View = resolveIsolatedRepCustomerBalance({
   breakdown: barakaBreakdown,
   assignedRepIds: [101, 102],
   fallbackTotalBalance: 2500,
+  moneyDigits: 2,
 });
 assert.equal(rep3View.repBalance, 0);
 assert.equal(rep3View.otherRepsBalance, 2500);
@@ -233,6 +239,7 @@ const colValid = validateIsolatedRepCollection({
   repBalance: rep1View.repBalance,
   otherRepsBalance: rep1View.otherRepsBalance,
   totalCustomerBalance: rep1View.totalCustomerBalance,
+  moneyDigits: 2,
 });
 assert.equal(colValid.allowed, true);
 assert.equal(colValid.repPreviousBalance, 500);
@@ -247,6 +254,7 @@ const colCrossRepBlocked = validateIsolatedRepCollection({
   repBalance: rep1View.repBalance,
   otherRepsBalance: rep1View.otherRepsBalance,
   totalCustomerBalance: rep1View.totalCustomerBalance,
+  moneyDigits: 2,
 });
 assert.equal(colCrossRepBlocked.allowed, false);
 assert.equal(colCrossRepBlocked.errorCode, 'REP_ISOLATED_BALANCE_EXCEEDED');
@@ -259,6 +267,7 @@ const legacySingleRepView = resolveIsolatedRepCustomerBalance({
   breakdown: null,
   assignedRepIds: [101],
   fallbackTotalBalance: 1200,
+  moneyDigits: 2,
 });
 assert.equal(legacySingleRepView.repBalance, 1200);
 assert.equal(legacySingleRepView.otherRepsBalance, 0);
