@@ -48,7 +48,7 @@ import {
   resolveBestStorefrontOffer,
   RawStorefrontOffer,
 } from './engines/storefront-offers.engine';
-import { currencyMoneyDigits, type MoneyDigits } from '../accounting/engines/money-minor-units.engine';
+import { currencyMoneyDigits, roundMoney, type MoneyDigits } from '../accounting/engines/money-minor-units.engine';
 
 /** Country-aware phone rule shared by order creation and edit (O56: edit used to accept Egypt only). */
 function assertValidCustomerPhone(rawPhone: string | undefined, countryCode: string): void {
@@ -1183,7 +1183,13 @@ export class StorefrontService {
           }
           // Strictly bound discount amount by subtotal so it can never exceed goods value
           discountAmount = Math.min(subtotal, Math.max(0, discountAmount));
-          discountAmount = Math.round(discountAmount * 100) / 100;
+          // Same canonical digits as the quote/create/update totals
+          // (INV-STOREFRONT-LINE-TOTAL-DIGITS): the coupon discount
+          // feeds those totals, so cutting it to cents here would
+          // reintroduce the 2-decimal cut one step upstream. Only
+          // the settings currency is available in this helper; it
+          // is the primary source storefrontMoneyDigits reads.
+          discountAmount = roundMoney(discountAmount, storefrontMoneyDigits(settings));
           // The use is claimed inside the caller's transaction (O57), never here.
           couponId = alreadyClaimed ? null : Number(coupon.id);
         }
@@ -1306,9 +1312,10 @@ export class StorefrontService {
       if (!isNaN(numId)) productMap.set(numId, p);
     }
 
-    const currency = String(settings.get('currency') || (tenant as any).currency || 'EGP').trim().toUpperCase();
-    const isThreeDec = currency === 'KWD' || currency === 'BHD' || currency === 'OMR';
-    const roundFactor = isThreeDec ? 1000 : 100;
+    // One derivation for the whole quote: the line totals, the
+    // subtotals, and the per-line engine calls all round at the
+    // tenant's canonical book digits (INV-STOREFRONT-LINE-TOTAL-DIGITS).
+    const moneyDigits = storefrontMoneyDigits(settings, tenant);
 
     let subtotal = 0;
     let originalSubtotal = 0;
@@ -1318,15 +1325,15 @@ export class StorefrontService {
       const prod = productMap.get(item.productId) ?? productMap.get(Number(item.productId)) ?? productMap.get(String(item.productId));
       if (!prod) continue;
 
-      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName, storefrontMoneyDigits(settings, tenant));
+      const priced = resolveOrderLinePrice(Number(prod.retail_price || 0), prod.metadata, item.variantName, moneyDigits);
       const baseUnitPrice = priced.ok ? priced.unitPrice : Number(prod.retail_price || 0);
       const resolvedVariantName = priced.ok ? priced.variantName : (item.variantName || null);
       const quantity = Math.max(1, Number(item.quantity || 1));
       const pOffers = offersByProductId.get(Number(prod.id)) || [];
-      const bestOffer = resolveBestStorefrontOffer(baseUnitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
+      const bestOffer = resolveBestStorefrontOffer(baseUnitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings), moneyDigits);
       const unitPrice = bestOffer.hasDiscount ? bestOffer.price : baseUnitPrice;
-      const lineTotal = Math.round(unitPrice * quantity * roundFactor) / roundFactor;
-      const originalLineTotal = Math.round(baseUnitPrice * quantity * roundFactor) / roundFactor;
+      const lineTotal = roundMoney(unitPrice * quantity, moneyDigits);
+      const originalLineTotal = roundMoney(baseUnitPrice * quantity, moneyDigits);
 
       subtotal += lineTotal;
       originalSubtotal += originalLineTotal;
@@ -1363,20 +1370,20 @@ export class StorefrontService {
       couponCode: dto.couponCode,
     });
 
-    const bogoSavings = Math.max(0, Math.round((originalSubtotal - subtotal) * roundFactor) / roundFactor);
+    const bogoSavings = Math.max(0, roundMoney(originalSubtotal - subtotal, moneyDigits));
     const totalAmount = Math.max(0, subtotal - discountAmount) + deliveryFee;
 
     return {
       ok: true,
-      subtotal: Math.round(subtotal * roundFactor) / roundFactor,
-      originalSubtotal: Math.round(originalSubtotal * roundFactor) / roundFactor,
+      subtotal: roundMoney(subtotal, moneyDigits),
+      originalSubtotal: roundMoney(originalSubtotal, moneyDigits),
       bogoSavings,
-      discountAmount: Math.round(discountAmount * roundFactor) / roundFactor,
-      deliveryFee: Math.round(deliveryFee * roundFactor) / roundFactor,
+      discountAmount: roundMoney(discountAmount, moneyDigits),
+      deliveryFee: roundMoney(deliveryFee, moneyDigits),
       deliveryZoneId,
       deliveryZoneName,
       appliedCouponCode,
-      totalAmount: Math.round(totalAmount * roundFactor) / roundFactor,
+      totalAmount: roundMoney(totalAmount, moneyDigits),
       items: validatedItems,
     };
   }
@@ -1541,8 +1548,8 @@ export class StorefrontService {
     const allowOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type);
 
     const orderCurrency = String(settings.get('currency') || (tenant as any).currency || 'EGP').trim().toUpperCase();
-    const isThreeDec = orderCurrency === 'KWD' || orderCurrency === 'BHD' || orderCurrency === 'OMR';
-    const roundFactor = isThreeDec ? 1000 : 100;
+    // Same canonical digits as the quote (INV-STOREFRONT-LINE-TOTAL-DIGITS).
+    const moneyDigits = storefrontMoneyDigits(settings, tenant);
 
     let subtotal = 0;
     // One line per product: the sales engine that will invoice this order rejects two rows of the
@@ -1569,7 +1576,7 @@ export class StorefrontService {
       const pOffers = offersByProductId.get(Number(prod.id)) || [];
       const bestOffer = resolveBestStorefrontOffer(priced.unitPrice, pOffers, quantity, undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
       const unitPrice = bestOffer.hasDiscount ? bestOffer.price : priced.unitPrice;
-      const lineTotal = Math.round(unitPrice * quantity * roundFactor) / roundFactor;
+      const lineTotal = roundMoney(unitPrice * quantity, moneyDigits);
       subtotal += lineTotal;
 
       return {
@@ -1913,7 +1920,7 @@ export class StorefrontService {
     const targetPhone = cleanPhone.startsWith('01') ? `2${cleanPhone}` : cleanPhone;
 
     const currencySymbol = orderCurrency === 'KWD' ? 'د.ك' : orderCurrency === 'SAR' ? 'ر.س' : orderCurrency === 'AED' ? 'د.إ' : orderCurrency === 'QAR' ? 'ر.ق' : orderCurrency === 'BHD' ? 'د.ب' : orderCurrency === 'OMR' ? 'ر.ع' : 'ج';
-    const formatMoney = (n: number) => isThreeDec ? n.toFixed(3) : (orderCurrency === 'EGP' && n % 1 === 0 ? n.toFixed(0) : n.toFixed(2));
+    const formatMoney = (n: number) => moneyDigits === 3 ? n.toFixed(3) : (orderCurrency === 'EGP' && n % 1 === 0 ? n.toFixed(0) : n.toFixed(2));
 
     const itemsSummary = validatedItems
       .map((i) => `- ${i.name} (×${i.quantity}) = ${formatMoney(i.total)} ${currencySymbol}`)
@@ -2258,6 +2265,8 @@ export class StorefrontService {
     }> = [];
 
     const updateAllowsOutOfStock = isOutOfStockOrderingAllowed(settings, tenant.slug, tenant.activity_type);
+    // Same canonical digits as quote/create (INV-STOREFRONT-LINE-TOTAL-DIGITS).
+    const moneyDigits = storefrontMoneyDigits(settings, tenant);
     const seenProductIds = new Set<number>();
     for (const item of dto.items) {
       const p = productMap.get(Number(item.productId));
@@ -2270,15 +2279,15 @@ export class StorefrontService {
       seenProductIds.add(Number(p.id));
       assertOnlineStockAvailable(p.name, Number(p.stock_qty ?? 0), Math.max(1, Number(item.quantity || 1)), updateAllowsOutOfStock);
 
-      const priced = resolveOrderLinePrice(Number(p.retail_price || 0), p.metadata, item.variantName, storefrontMoneyDigits(settings, tenant));
+      const priced = resolveOrderLinePrice(Number(p.retail_price || 0), p.metadata, item.variantName, moneyDigits);
       if (!priced.ok) {
         throw new BadRequestException(`عفواً، المقاس المختار للصنف "${p.name}" لم يعد متاحاً، يرجى تحديث السلة.`);
       }
       const qty = Math.max(1, Number(item.quantity || 1));
       const bestOffer = resolveBestStorefrontOffer(priced.unitPrice, offersByProductId.get(Number(p.id)), qty,
-        undefined, new Date(), offerTimezone(settings), storefrontMoneyDigits(settings, tenant));
+        undefined, new Date(), offerTimezone(settings), moneyDigits);
       const price = bestOffer.hasDiscount ? bestOffer.price : priced.unitPrice;
-      const lineTotal = Math.round(price * qty * 100) / 100;
+      const lineTotal = roundMoney(price * qty, moneyDigits);
 
       subtotal += lineTotal;
       validatedItems.push({
