@@ -9,7 +9,7 @@ import { TreasuryService } from '../../../src/modules/treasury/treasury.service'
 import { AuditService } from '../../../src/core/audit/audit.service';
 import { TransactionHelper } from '../../../src/database/helpers/transaction.helper';
 import { AuthContext } from '../../../src/core/auth/interfaces/auth-context.interface';
-import { roundMoney } from '../../../src/common/utils/financial-integrity';
+import { roundMoneyToTwoDecimals } from '../../../src/common/utils/financial-integrity';
 
 /**
  * ══════════════════════════════════════════════════════════════════════════════════════

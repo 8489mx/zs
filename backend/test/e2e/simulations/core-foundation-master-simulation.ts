@@ -9,7 +9,7 @@ import { AuditService } from '../../../src/core/audit/audit.service';
 import { TransactionHelper } from '../../../src/database/helpers/transaction.helper';
 import { AuthContext } from '../../../src/core/auth/interfaces/auth-context.interface';
 import { applyStockDelta, relocateStockBetweenLocations, previewConsumableStockQty } from '../../../src/common/utils/location-stock-ledger';
-import { roundMoney } from '../../../src/common/utils/financial-integrity';
+import { roundMoneyToTwoDecimals } from '../../../src/common/utils/financial-integrity';
 
 async function runCoreFoundationMasterSimulation() {
   console.log('\n================================================================');
@@ -408,9 +408,9 @@ async function runCoreFoundationMasterSimulation() {
     `.execute(db);
 
     const totalEntries = Number(journalAudit.rows[0].total_entries);
-    const sumDebit = roundMoney(Number(journalAudit.rows[0].sum_debit));
-    const sumCredit = roundMoney(Number(journalAudit.rows[0].sum_credit));
-    const delta = roundMoney(Math.abs(sumDebit - sumCredit));
+    const sumDebit = roundMoneyToTwoDecimals(Number(journalAudit.rows[0].sum_debit));
+    const sumCredit = roundMoneyToTwoDecimals(Number(journalAudit.rows[0].sum_credit));
+    const delta = roundMoneyToTwoDecimals(Math.abs(sumDebit - sumCredit));
 
     console.log(`📊 إجمالي القيود المُنشأة: ${totalEntries} قيود محاسبية.`);
     console.log(`📊 إجمالي المدين: ${sumDebit.toLocaleString()} جنيه | إجمالي الدائن: ${sumCredit.toLocaleString()} جنيه | الفارق: ${delta}`);

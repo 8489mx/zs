@@ -12,7 +12,17 @@ export type PaymentEntry = {
   amount: number;
 };
 
-export function roundMoney(value: number): number {
+/**
+ * Legacy two-decimal rounding ONLY (INV-ROUND-MONEY-COLLISION-RESOLVED).
+ * This is deliberately NOT the canonical money rounder: the canonical
+ * roundMoney lives in the money-minor-units engine and takes the
+ * tenant's book digits (2 or 3). This function hard-codes 2 decimals
+ * and swallows non-finite input to 0, and is kept under this explicit
+ * name only for the sale-payment validation below, which has no
+ * tenant-digits context today. Never import this for a posting or a
+ * stored amount — that is what the canonical engine is for.
+ */
+export function roundMoneyToTwoDecimals(value: number): number {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return 0;
   const sign = n < 0 ? -1 : 1;
@@ -58,7 +68,7 @@ export function validateSalePayments(params: {
   collectibleTotal: number;
   payments: PaymentEntry[];
 }): { paidAmount: number } {
-  const collectibleTotal = roundMoney(params.collectibleTotal);
+  const collectibleTotal = roundMoneyToTwoDecimals(params.collectibleTotal);
   const payments = params.payments || [];
 
   if (params.paymentType === 'credit') {
@@ -69,12 +79,12 @@ export function validateSalePayments(params: {
   }
 
   for (const payment of payments) {
-    if (roundMoney(payment.amount) <= 0) {
+    if (roundMoneyToTwoDecimals(payment.amount) <= 0) {
       throw new AppError('Payment amount must be greater than zero', 'PAYMENT_AMOUNT_INVALID', 400);
     }
   }
 
-  const paidAmount = roundMoney(payments.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
+  const paidAmount = roundMoneyToTwoDecimals(payments.reduce((sum, entry) => sum + Number(entry.amount || 0), 0));
   if (paidAmount + 0.0001 < collectibleTotal) {
     throw new AppError('Cash/card payments must cover the collectible total', 'PAYMENT_AMOUNT_INSUFFICIENT', 400);
   }

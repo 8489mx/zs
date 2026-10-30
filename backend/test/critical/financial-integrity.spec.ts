@@ -4,7 +4,7 @@ import {
   ensureNonNegativeStock,
   ensureReturnQtyWithinLimit,
   ensureUniqueFlowItems,
-  roundMoney,
+  roundMoneyToTwoDecimals,
   roundQty,
   validateSalePayments,
 } from '../../src/common/utils/financial-integrity';
@@ -26,11 +26,11 @@ console.log('=== بدء اختبارات الثوابت المالية والح�
 // 1. اختبارات سلامة التقريب المالي والمخزني (Round Money & Qty)
 // -----------------------------------------------------------------------------
 {
-  assert.equal(roundMoney(10.555), 10.56);
-  assert.equal(roundMoney(10.554), 10.55);
-  assert.equal(roundMoney(0.0001), 0.00);
-  assert.equal(roundMoney(0), 0);
-  assert.equal(roundMoney(-0.0001), -0.00);
+  assert.equal(roundMoneyToTwoDecimals(10.555), 10.56);
+  assert.equal(roundMoneyToTwoDecimals(10.554), 10.55);
+  assert.equal(roundMoneyToTwoDecimals(0.0001), 0.00);
+  assert.equal(roundMoneyToTwoDecimals(0), 0);
+  assert.equal(roundMoneyToTwoDecimals(-0.0001), -0.00);
 
   assert.equal(roundQty(10.5554), 10.555);
   assert.equal(roundQty(10.5556), 10.556);
