@@ -3,6 +3,8 @@ import { KYSELY_DB } from '../../../../database/database.constants';
 import { Kysely } from 'kysely';
 import { Database } from '../../../../database/database.types';
 import { TaxSettingsService } from '../tax-settings/tax-settings.service';
+import { buildDocumentTax } from '../../engines/document-tax.engine';
+import { roundMoney } from '../../../accounting/engines/money-minor-units.engine';
 
 @Injectable()
 export class EtaSerializerService {
@@ -38,14 +40,29 @@ export class EtaSerializerService {
       : null;
 
     const isBusinessCustomer = Boolean(customer?.tax_number);
-    const vatRate = 14; // Egypt standard VAT rate 14%
+
+    // Unified document-tax engine (tax unification, package 2): the ETA
+    // document attests the POSTED invoice — per-line stored allocations
+    // at document precision — never a recomputation at a hardcoded 14%.
+    // The stored sale.tax_rate is the document rate; the posting gate
+    // (Tax F1) owns whether that rate was lawful, not the serializer.
+    const documentTax = buildDocumentTax({
+      rate: sale.tax_rate,
+      pricesIncludeTax: Boolean(sale.prices_include_tax),
+      documentDigits: 2,
+      lines: items.map((item) => ({
+        lineTotal: Number(item.line_total || Math.max(1, Number(item.qty || 1)) * Number(item.unit_price || 0)),
+        netLineTotal: item.net_line_total == null ? null : Number(item.net_line_total),
+        allocatedDiscount: item.allocated_discount == null ? null : Number(item.allocated_discount),
+        allocatedTax: item.allocated_tax == null ? null : Number(item.allocated_tax),
+      })),
+    });
 
     const invoiceLines = items.map((item, index) => {
       const qty = Math.max(1, Number(item.qty || 1));
       const unitPrice = Number(item.unit_price || 0);
       const lineTotal = Number(item.line_total || qty * unitPrice);
-      const vatAmount = Number(((lineTotal * vatRate) / 100).toFixed(2));
-      const totalWithVat = Number((lineTotal + vatAmount).toFixed(2));
+      const taxed = documentTax.lines[index];
 
       return {
         description: item.product_name || `Item ${index + 1}`,
@@ -55,11 +72,11 @@ export class EtaSerializerService {
         quantity: qty,
         internalCode: String(item.product_id || index + 1),
         salesTotal: lineTotal,
-        total: totalWithVat,
+        total: taxed.total,
         valueDifference: 0,
         totalTaxableFees: 0,
-        netTotal: lineTotal,
-        itemsDiscount: 0,
+        netTotal: taxed.base,
+        itemsDiscount: roundMoney(Number(item.allocated_discount ?? 0), 2),
         unitValue: {
           currencySold: 'EGP',
           amountEGP: unitPrice,
@@ -69,17 +86,17 @@ export class EtaSerializerService {
         taxableItems: [
           {
             taxType: 'T1',
-            amount: vatAmount,
+            amount: taxed.tax,
             subType: 'V009',
-            rate: vatRate
+            rate: taxed.rate
           }
         ]
       };
     });
 
-    const netAmount = invoiceLines.reduce((acc, l) => acc + l.netTotal, 0);
-    const totalTax = invoiceLines.reduce((acc, l) => acc + (l.taxableItems[0]?.amount || 0), 0);
-    const totalAmount = Number((netAmount + totalTax).toFixed(2));
+    const netAmount = documentTax.subtotal;
+    const totalTax = documentTax.vatTotal;
+    const totalAmount = documentTax.totalWithVat;
 
     const etaDocument = {
       issuer: {
