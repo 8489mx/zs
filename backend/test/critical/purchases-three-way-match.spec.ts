@@ -15,6 +15,7 @@ const grnLines = [{ id: 1, grnId: 1, poItemId: 1, productId: 100, receivedQty: 1
 // --- MATCH-1: prior invoices consume the receipt -----------------------------
 const r1 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   poItems,
   grnLines,
   invoiceItems: [{ productId: 100, poItemId: 1, qty: 100, unitCost: 10 }],
@@ -24,6 +25,7 @@ assert.equal(r1.isValidForPosting, true, 'أول فاتورة بكامل الك�
 
 const r2 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   poItems,
   grnLines,
   invoiceItems: [{ productId: 100, poItemId: 1, qty: 100, unitCost: 10 }],
@@ -37,6 +39,7 @@ console.log('✔ MATCH-1: منع ازدواج فوترة نفس الشحنة');
 // --- MATCH-1: split lines inside ONE invoice cannot bypass the receipt -------
 const r3 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   poItems,
   grnLines,
   invoiceItems: [
@@ -51,6 +54,7 @@ console.log('✔ MATCH-1: تقسيم السطور داخل الفاتورة ال
 // --- MATCH-2: overcharging blocked, undercharging allowed -------------------
 const r4 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   poItems,
   grnLines,
   invoiceItems: [{ productId: 100, poItemId: 1, qty: 100, unitCost: 11 }], // +10%
@@ -61,6 +65,7 @@ assert.ok(r4.blockingCodes.includes('PRICE_TOLERANCE_EXCEEDED'));
 
 const r5 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   poItems,
   grnLines,
   invoiceItems: [{ productId: 100, poItemId: 1, qty: 100, unitCost: 9 }], // -10%, in our favour
@@ -78,6 +83,7 @@ const qtyBlocked = {
 
 const r6 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   ...qtyBlocked,
   allowOverride: true,
   overrideReason: 'اعتماد تجاوز من مدير المشتريات بعد المراجعة',
@@ -87,6 +93,7 @@ assert.equal(r6.isValidForPosting, false, 'تجاوز السعر لا يجوز �
 
 const r7 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   ...qtyBlocked,
   allowOverride: true,
   overrideReason: 'اعتماد إداري موثق لاستلام لاحق مؤكد',
@@ -96,6 +103,7 @@ assert.equal(r7.isValidForPosting, true, 'التجاوز الكامل بصلاح
 
 const r8 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   ...qtyBlocked,
   allowOverride: true,
   overrideReason: '.', // too short
@@ -129,6 +137,7 @@ console.log('✔ ضريبة القيمة المضافة على مستوى الس
 // --- Reconciliation is enforced, not merely reported ------------------------
 const r10 = computeThreeWayMatch({
   minorUnits: 2,
+  vatRate: 0.14,
   poItems,
   grnLines,
   invoiceItems: [{ productId: 100, poItemId: 1, qty: 100, unitCost: 10 }],

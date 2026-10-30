@@ -1042,6 +1042,14 @@ export class GoodsReceiptService {
         unitCost: Number(pi.unit_cost || 0),
       })),
       tolerancePercentage: dto.tolerancePercentage ?? tolerance,
+      // The gate verifies the BILL's own VAT: its stored tax_rate
+      // (percent) converted to the engine's fraction, and its
+      // prices_include_tax flag so tax-inclusive lines extract VAT
+      // instead of stacking a second VAT on top. The old call passed
+      // no rate at all, so every bill was verified at the engine's
+      // hardcoded 14% default.
+      vatRate: Number(purchase.tax_rate || 0) / 100,
+      pricesIncludeTax: Boolean(purchase.prices_include_tax),
       // The verification gate rounds to book precision; defaulting to 2 here
       // would reintroduce the GRNI loss inside the check that is supposed to
       // catch it. The engine throws on any other value.

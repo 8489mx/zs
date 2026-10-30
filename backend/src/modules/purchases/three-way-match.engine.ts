@@ -96,7 +96,21 @@ export interface ThreeWayMatchInput {
   minorUnits: MoneyDigits;
   /** Per-line VAT rates keyed by productId; falls back to vatRate. Mixed-rate invoices are common. */
   vatRateByProduct?: Record<number, number>;
-  vatRate?: number; // e.g. 0.14 for 14%
+  /**
+   * The invoice's own VAT rate as a fraction (e.g. 0.14 for 14%).
+   * REQUIRED — no default: the old 0.14 default silently verified
+   * every bill at 14%, so an exempt or 15% bill's VAT and payable
+   * totals were misreported by the gate meant to catch exactly that.
+   * The caller passes the bill's stored tax_rate.
+   */
+  vatRate: number;
+  /**
+   * When true, invoice line totals already include VAT, so the VAT leg
+   * extracts it (lineTotal - lineTotal / (1 + rate)) instead of adding
+   * it. The GRNI/PPV legs are basis-consistent either way and are
+   * untouched. Defaults to false (exclusive prices).
+   */
+  pricesIncludeTax?: boolean;
   allowOverride?: boolean;
   overrideReason?: string;
   overrideScope?: OverrideScope;
@@ -142,7 +156,10 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
   const tolerance = Number(input.tolerancePercentage ?? 2); // Default 2% tolerance
   const minorUnits = input.minorUnits;
   if (minorUnits !== 2 && minorUnits !== 3) throw new Error('Three-way match requires tenant minor units (2 or 3)');
-  const vatRate = Number(input.vatRate ?? 0.14);
+  const vatRate = Number(input.vatRate);
+  if (!Number.isFinite(vatRate) || vatRate < 0) {
+    throw new Error('Three-way match requires the invoice VAT rate as a finite fraction (0 or greater)');
+  }
   const isService = Boolean(input.isServiceItem);
   const serviceRef = String(input.serviceCompletionRef || '').trim();
 
@@ -316,7 +333,11 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
     // Per-line VAT: a single flat rate on the invoice total mis-taxes mixed-rate invoices
     // (standard / zero-rated / exempt all coexist under both Egyptian and Saudi VAT law).
     const lineVatRate = Number(input.vatRateByProduct?.[invItem.productId] ?? vatRate);
-    totalVat += lineTotal * lineVatRate;
+    // Tax-inclusive lines already carry the VAT inside lineTotal: extract
+    // it instead of adding a second VAT on top of the tax.
+    totalVat += input.pricesIncludeTax
+      ? lineTotal - lineTotal / (1 + lineVatRate)
+      : lineTotal * lineVatRate;
 
     totalGrniClearing += lineGrni;
     totalPpv += linePpv;
@@ -347,7 +368,12 @@ export function computeThreeWayMatch(input: ThreeWayMatchInput): ThreeWayMatchRe
   const roundedGrniClearing = roundMoney(totalGrniClearing, minorUnits);
   const roundedPpv = roundMoney(totalPpv, minorUnits);
   const roundedVat = roundMoney(totalVat, minorUnits);
-  const totalAccountsPayable = roundMoney(roundedTotalInvoiced + roundedVat, minorUnits);
+  // Payable is what the supplier is owed: the invoiced total already
+  // carries the VAT when prices include tax, so adding the extracted
+  // VAT again would double-count the payable.
+  const totalAccountsPayable = input.pricesIncludeTax
+    ? roundedTotalInvoiced
+    : roundMoney(roundedTotalInvoiced + roundedVat, minorUnits);
 
   // Reconciliation: Invoiced Subtotal MUST equal GRNI Clearing + PPV.
   // This was previously computed, returned, and then ignored — "strict penny reconciliation"

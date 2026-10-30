@@ -44,6 +44,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     ],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 120, unitCost: 10.0 }],
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
@@ -65,6 +66,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     historicalInvoicedLines: [{ poItemId: 1, productId: 101, qty: 60 }],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 50, unitCost: 10.0 }], // 60 + 50 = 110 > 100
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
@@ -84,6 +86,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     ],
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 90, unitCost: 10.0 }], // Invoiced 90 vs Accepted 80
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
@@ -104,6 +107,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 100, unitCost: 10.15 }], // 1.5% delta <= 2% tolerance
     tolerancePercentage: 2,
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
@@ -128,6 +132,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     invoiceItems: [{ poItemId: 1, productId: 101, qty: 100, unitCost: 10.5 }], // 5% delta > 2% tolerance
     tolerancePercentage: 2,
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
@@ -147,6 +152,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     isServiceItem: true,
     serviceCompletionRef: 'CERT-260919-001',
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
@@ -166,6 +172,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     isServiceItem: true,
     serviceCompletionRef: '', // Missing certificate!
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
@@ -219,6 +226,7 @@ console.log('=== بدء اختبارات محرك المطابقة الثلاث�
     allowOverride: true,
     overrideReason: 'Approved by CFO per contract amendment #4',
       minorUnits: 2,
+      vatRate: 0.14,
   };
 
   const result = computeThreeWayMatch(input);
