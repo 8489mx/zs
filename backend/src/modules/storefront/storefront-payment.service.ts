@@ -8,6 +8,7 @@ import { verifyOrderAccessToken, isSandboxPaymentAllowed, buildPaymentReturnUrl,
 import { platformNoReplyEmail } from './engines/store-public-url.engine';
 import { releaseLocationStock } from '../../common/utils/location-stock-ledger';
 import { resolveGatewayCurrency, toGatewayMajorAmount, toGatewayMinorAmount } from './engines/gateway-amount.engine';
+import { classifyPaymobTransaction } from './engines/paymob-notification.engine';
 import { extractReservationItems } from './engines/storefront-reservation.engine';
 import * as crypto from 'crypto';
 
@@ -903,6 +904,16 @@ export class StorefrontPaymentService {
       throw new UnauthorizedException('توقيع HMAC غير صحيح.');
     }
 
+    // success + not pending does NOT prove capture: Paymob notifies
+    // authorization-only holds, voids, and refunds with the same shape.
+    // An authorization-only notification changes nothing — the order
+    // stays pending until the capture callback arrives.
+    const transactionKind = classifyPaymobTransaction(obj);
+    if (transactionKind === 'authorization_only') {
+      this.logger.log(`Paymob authorization-only notification for order ${order.order_number}; awaiting capture, no state change.`);
+      return { ok: true, received: true };
+    }
+
     const isSuccessful = obj.success === true && obj.pending === false;
     let shouldNotifyWhatsApp = false;
 
@@ -928,6 +939,24 @@ export class StorefrontPaymentService {
 
       if (isSuccessful) {
         const sessionId = String(obj.order?.id || '');
+        // A void or refund proves the attempt produced no money. The
+        // failure branch below only handles definitive failures
+        // (success=false), so void/refund needs its own explicit path:
+        // fail the pending order and release its reservation instead of
+        // leaving it pending on a dead authorization.
+        if (transactionKind === 'void_or_refund') {
+          if (!this.isCurrentPaymentSession(lockedOrder, 'paymob', sessionId) || lockedOrder.status !== 'pending') {
+            return { ok: true, received: true };
+          }
+          await this.compensateFailedOrderPayment(trx, lockedOrder, body);
+          this.logger.warn(`Order ${lockedOrder.order_number} marked as FAILED via Paymob Webhook (void/refund); stock reservation released.`);
+          return { ok: true, status: 'failed', orderNumber: lockedOrder.order_number };
+        }
+        // A successful callback carrying none of Paymob's capture flags
+        // proves nothing; route it to a human instead of marking paid.
+        if (transactionKind === 'unclassified') {
+          return this.markPaymentForReview(trx, lockedOrder, 'paymob', String(obj.id || ''), sessionId, body, 'non_capture_transaction');
+        }
         const reason = this.paymentReviewReason(lockedOrder, 'paymob', sessionId, obj.amount_cents, obj.currency, 'EGP');
         if (reason) return this.markPaymentForReview(trx, lockedOrder, 'paymob', String(obj.id || ''), sessionId, body, reason);
 
