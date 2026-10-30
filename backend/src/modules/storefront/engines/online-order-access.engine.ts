@@ -76,6 +76,21 @@ export function isSandboxPaymentAllowed(config: SandboxGatewayFlags): boolean {
 /** Providers whose `paid` status is backed by a verified webhook or a merchant's confirmation. */
 export const COLLECTING_PAYMENT_PROVIDERS = ['paymob', 'xpay', 'tap', 'stripe', 'manual'] as const;
 
+/**
+ * Marketplaces that collect the customer's payment themselves, before the
+ * merchant ships. A synced marketplace order is born `paid` with the
+ * marketplace as its gateway provider, and the money reaches the merchant
+ * through the marketplace's bulk settlement — never through the courier.
+ * Treating such an order as cash-on-delivery makes the courier collect a
+ * second time. The settlement itself is a separate bulk reconciliation
+ * (accounting_marketplace_settlements, unlinked to individual sales);
+ * this list only decides the delivery invoice's collection side.
+ */
+export const MARKETPLACE_PROVIDERS = ['amazon', 'noon', 'jumia', 'trendyol'] as const;
+
+/** Checkout method the marketplace sync writes for orders the marketplace already collected. */
+export const MARKETPLACE_PREPAID_PAYMENT_METHOD = 'marketplace_prepaid';
+
 export interface OnlineOrderPaymentState {
   payment_status?: string | null;
   payment_method?: string | null;
@@ -97,9 +112,12 @@ export interface OnlineOrderCollection {
 /** SF-3: decides whether the delivery invoice is already paid or is cash-on-delivery. */
 export function resolveOnlineOrderCollection(order: OnlineOrderPaymentState): OnlineOrderCollection {
   const provider = String(order.gateway_provider || '').trim().toLowerCase();
+  const isMarketplace =
+    (MARKETPLACE_PROVIDERS as readonly string[]).includes(provider) ||
+    String(order.payment_method || '').trim().toLowerCase() === MARKETPLACE_PREPAID_PAYMENT_METHOD;
   const collected =
     order.payment_status === 'paid' &&
-    (COLLECTING_PAYMENT_PROVIDERS as readonly string[]).includes(provider);
+    ((COLLECTING_PAYMENT_PROVIDERS as readonly string[]).includes(provider) || isMarketplace);
 
   if (!collected) {
     return { collected: false, paymentChannel: 'cash', provider: null };
@@ -107,7 +125,12 @@ export function resolveOnlineOrderCollection(order: OnlineOrderPaymentState): On
   if (provider === 'manual') {
     return { collected: true, paymentChannel: 'instapay', provider };
   }
-  return { collected: true, paymentChannel: 'card', provider };
+  // 'card' is the only non-cash channel the sale engine understands for a
+  // receipt that is not cash in the drawer (postSale books every non-cash
+  // payment to the bank side, as it does for gateway-paid orders). A new
+  // 'marketplace' channel value would be silently mapped back to 'cash' by
+  // normalizeSalePayload — the exact failure this resolver exists to prevent.
+  return { collected: true, paymentChannel: 'card', provider: provider || (isMarketplace ? 'marketplace' : null) };
 }
 
 /** Payment methods whose money arrives outside any gateway and must be confirmed by a merchant user. */
