@@ -3441,6 +3441,24 @@ export class AccountingPostingService {
       .executeTakeFirst();
     if (existing) return { posted: false, journalEntryId: Number(existing.id) };
 
+    // INV-PAYROLL-ACCRUAL-PERIOD-END-DATE: the accrual belongs to
+    // the wage period the work was performed in, so the journal is
+    // dated at the run's period end — never at the approval date.
+    // A missing or unreadable period end fails closed instead of
+    // inventing a date (the manufacturing-date precedent). The
+    // period-lock check in insertPostedJournal then rejects an
+    // approval whose period is already closed, as it must.
+    const runRow = await queryable
+      .selectFrom('hr_payroll_runs')
+      .select('end_date')
+      .where('id', '=', runId)
+      .where('tenant_id', '=', scope.tenantId)
+      .executeTakeFirst();
+    const accrualDate = runRow?.end_date ? new Date(runRow.end_date as unknown as string) : null;
+    if (!accrualDate || Number.isNaN(accrualDate.getTime())) {
+      throw new AppError('تاريخ نهاية فترة المسير غير موجود، لا يمكن ترحيل قيد الاستحقاق', 'HR_PAYROLL_ACCRUAL_PERIOD_END_MISSING', 409);
+    }
+
     // Aggregate totals alone can hide offsetting corrupt payslips. Reject any
     // individual employee whose persisted wages/deductions do not reconcile.
     const invalidLine = await sql<{ employee_id: number }>`
@@ -3625,7 +3643,7 @@ export class AccountingPostingService {
         sourceId: runId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
-        entryDate: new Date(),
+        entryDate: accrualDate,
         description: `قيد استحقاق رواتب - مسير #${runId}`,
         branchId: null,
         locationId: null,
@@ -3690,6 +3708,8 @@ export class AccountingPostingService {
         sourceId: runId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
+        // Payment journals stay dated at the payment date: cash
+        // leaves on the day of payment, never at the period end.
         entryDate: new Date(),
         description: `قيد سداد رواتب - مسير #${runId}`,
         branchId: null,
@@ -3774,6 +3794,7 @@ export class AccountingPostingService {
         sourceId: itemId,
         tenantId: scope.tenantId,
         accountId: scope.accountId,
+        // Same as the run payment: dated at the payment date.
         entryDate: new Date(),
         description: `قيد صرف أجر موظف #${item.employee_id}${empLabel} - مسير #${item.run_id}`,
         branchId: options?.branchId ?? null,

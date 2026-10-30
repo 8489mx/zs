@@ -127,6 +127,8 @@ async function main() {
       CREATE TABLE users (id bigint PRIMARY KEY, tenant_id text, default_branch_id bigint);
       CREATE TABLE user_branches (tenant_id text, user_id bigint, branch_id bigint);
       CREATE TABLE accounting_posting_failures (id bigserial PRIMARY KEY, tenant_id text, source_type text, source_id bigint, resolved_at timestamptz);
+      CREATE TABLE hr_payroll_runs (id bigint PRIMARY KEY, tenant_id text, end_date date);
+      INSERT INTO hr_payroll_runs VALUES (7,'t1','2026-10-31'), (8,'t1','2026-10-31');
       CREATE TABLE hr_payroll_run_items (id bigint PRIMARY KEY, tenant_id text, run_id bigint, employee_id bigint,
         gross_pay numeric, net_pay numeric, deduction_amount numeric, loan_deduction_amount numeric,
         asset_recovery_deduction_amount numeric, employee_social_insurance numeric,
