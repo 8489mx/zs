@@ -15,7 +15,10 @@
  * Tested via executable unit tests in backend/test/critical.
  */
 
+import { MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
+
 export interface DailyRateParams {
+  minorUnits: MoneyDigits;
   baseSalary?: number;
   allowanceAmount?: number;
   isHourly?: boolean;
@@ -25,12 +28,14 @@ export interface DailyRateParams {
 }
 
 export interface OvertimeParams {
+  minorUnits: MoneyDigits;
   calculatedHourlyRate: number;
   overtimeMinutes: number;
   overtimeMultiplier?: number; // default 1.5
 }
 
 export interface ProgressiveDelayParams {
+  minorUnits: MoneyDigits;
   dailyRate: number;
   calculatedHourlyRate: number;
   totalIncidents: number;
@@ -45,6 +50,7 @@ export interface ProgressiveDelayParams {
 }
 
 export interface SocialInsuranceParams {
+  minorUnits: MoneyDigits;
   isEnabled: boolean;
   hasEmployeeInsurance: boolean;
   insuranceSalary: number;
@@ -54,6 +60,7 @@ export interface SocialInsuranceParams {
 }
 
 export interface IncomeTaxParams {
+  minorUnits: MoneyDigits;
   isEnabled: boolean;
   hasIncomeTax: boolean;
   taxableIncome: number;
@@ -61,6 +68,7 @@ export interface IncomeTaxParams {
 }
 
 export interface PayrollLineItemInput {
+  minorUnits: MoneyDigits;
   employeeId: number;
   baseSalary: number;
   allowanceAmount: number;
@@ -115,12 +123,19 @@ export interface PayrollJournalTotals {
   discrepancy: number;
 }
 
-export const toMoney = (val: number): number => Number((Number(val || 0)).toFixed(2));
+/**
+ * INV-HR-PAYROLL-BOOK-PRECISION: every payroll amount is rounded at the
+ * tenant's book precision, passed as a required parameter. There is no
+ * silent 2-decimal default: a caller that does not know the tenant's
+ * currency cannot compute payroll money.
+ */
+export const toMoney = (val: number, minorUnits: MoneyDigits): number => roundMoney(Number(val || 0), minorUnits);
 
 /**
  * Calculates daily rate and hourly rate based on salary structure and standard 30-day labor law basis.
  */
 export function calculateDailyRate(params: DailyRateParams): { dailyRate: number; hourlyRate: number } {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), params.minorUnits);
   const isHourly = Boolean(params.isHourly);
   const expectedHours = Math.max(1, Number(params.expectedDailyHours || 8));
   const basisDays = Math.max(1, Number(params.basisDays || 30));
@@ -141,6 +156,7 @@ export function calculateDailyRate(params: DailyRateParams): { dailyRate: number
  * Calculates overtime allowance with statutory multiplier (default 1.5x).
  */
 export function calculateOvertime(params: OvertimeParams): number {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), params.minorUnits);
   const hours = Math.max(0, Number(params.overtimeMinutes || 0)) / 60;
   const rate = Math.max(0, Number(params.calculatedHourlyRate || 0));
   const multiplier = Math.max(1, Number(params.overtimeMultiplier ?? 1.5));
@@ -152,6 +168,7 @@ export function calculateOvertime(params: OvertimeParams): number {
  * punched minutes. The incremental payroll allowance is ONLY (multiplier - 1)x.
  */
 export function calculateHourlyOvertimePremium(params: OvertimeParams): number {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), params.minorUnits);
   const hours = Math.max(0, Number(params.overtimeMinutes || 0)) / 60;
   const rate = Math.max(0, Number(params.calculatedHourlyRate || 0));
   const multiplier = Math.max(1, Number(params.overtimeMultiplier ?? 1.5));
@@ -162,6 +179,7 @@ export function calculateHourlyOvertimePremium(params: OvertimeParams): number {
  * Calculates progressive penalty deduction for attendance delays / early leaves.
  */
 export function calculateProgressiveDelayDeduction(params: ProgressiveDelayParams): number {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), params.minorUnits);
   if (params.policyMode === 'disabled') return 0;
 
   if (params.policyMode === 'standard') {
@@ -192,6 +210,7 @@ export function calculateProgressiveDelayDeduction(params: ProgressiveDelayParam
  * Calculates statutory Social Insurance (e.g., GOSI) for both employee and employer.
  */
 export function calculateSocialInsurance(params: SocialInsuranceParams): { employeeShare: number; employerShare: number; insurableWage: number } {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), params.minorUnits);
   if (!params.isEnabled || !params.hasEmployeeInsurance) {
     return { employeeShare: 0, employerShare: 0, insurableWage: 0 };
   }
@@ -211,6 +230,7 @@ export function calculateSocialInsurance(params: SocialInsuranceParams): { emplo
  * Calculates progressive income withholding tax.
  */
 export function calculateIncomeTax(params: IncomeTaxParams): number {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), params.minorUnits);
   if (!params.isEnabled || !params.hasIncomeTax || params.taxableIncome <= 0) {
     return 0;
   }
@@ -262,6 +282,7 @@ export function calculateIncomeTax(params: IncomeTaxParams): number {
  * 5. netPay is guaranteed >= 0.
  */
 export function calculateEmployeePayrollLine(input: PayrollLineItemInput): PayrollLineItemOutput {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), input.minorUnits);
   const baseSalary = toMoney(input.baseSalary);
   const allowanceAmount = toMoney(input.allowanceAmount);
   const overtimeAmount = toMoney(input.overtimeAmount);
@@ -377,7 +398,8 @@ export function calculateEmployeePayrollLine(input: PayrollLineItemInput): Payro
  *
  * Assert: Total Debit == Total Credit (down to 0.01 precision).
  */
-export function reconcilePayrollRunJournalTotals(items: PayrollLineItemOutput[]): PayrollJournalTotals {
+export function reconcilePayrollRunJournalTotals(items: PayrollLineItemOutput[], minorUnits: MoneyDigits): PayrollJournalTotals {
+  const toMoney = (val: number): number => roundMoney(Number(val || 0), minorUnits);
   let grossSalariesExpense = 0;
   let employerInsuranceExpense = 0;
   let netPayable = 0;
@@ -406,7 +428,7 @@ export function reconcilePayrollRunJournalTotals(items: PayrollLineItemOutput[])
   );
 
   const discrepancy = toMoney(Math.abs(totalDebit - totalCredit));
-  const isBalanced = discrepancy <= 0.01;
+  const isBalanced = discrepancy <= 1 / (10 ** minorUnits);
 
   return {
     grossSalariesExpense,

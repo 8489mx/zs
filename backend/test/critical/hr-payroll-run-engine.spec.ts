@@ -3,11 +3,11 @@ import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireStore
 import type { HrPayrollRunLineInput } from '../../src/modules/hr/engines/hr-payroll-run.engine';
 
 // No financial record may be silently rounded on salary contract storage.
-assert.equal(requireStoredHrMoney(0), 0);
-assert.equal(requireStoredHrMoney(1250.45), 1250.45);
-assert.throws(() => requireStoredHrMoney(1250.456), /two-decimal/);
-assert.throws(() => requireStoredHrMoney(-1), /two-decimal/);
-assert.throws(() => requireStoredHrMoney(Number.POSITIVE_INFINITY), /two-decimal/);
+assert.equal(requireStoredHrMoney(0, 2), 0);
+assert.equal(requireStoredHrMoney(1250.45, 2), 1250.45);
+assert.throws(() => requireStoredHrMoney(1250.456, 2), /book precision/);
+assert.throws(() => requireStoredHrMoney(-1, 2), /book precision/);
+assert.throws(() => requireStoredHrMoney(Number.POSITIVE_INFINITY, 2), /book precision/);
 
 assert.equal(canReincludeAutoExcludedPayrollItem('excluded', AUTO_PAYROLL_EXCLUSION_NOTE), true);
 assert.equal(canReincludeAutoExcludedPayrollItem('excluded', AUTO_PAYROLL_EXCLUSION_NOTE + ' | ' + MANUAL_PAYROLL_EXCLUSION_NOTE), false);
@@ -21,6 +21,7 @@ assert.throws(() => requireBankPayrollPaymentReference('other', 'x'), /Invalid/)
 
 // Deliberately synthetic rates, NOT the legislation of Egypt or any GCC country.
 const base: HrPayrollRunLineInput = {
+  minorUnits: 2,
   period: { from: '2026-10-01', to: '2026-10-31' },
   policy: {
     statutoryCountry: 'EG', statutoryEffectiveFrom: '2026-01-01',
@@ -46,8 +47,8 @@ const base: HrPayrollRunLineInput = {
 };
 assert.doesNotThrow(() => requirePayrollMonetaryCurrency('EGP', 'EGP'));
 assert.throws(() => requirePayrollMonetaryCurrency('EGP', 'SAR'), /لا تطابق/);
-assert.throws(() => requirePayrollMonetaryCurrency('KWD', 'KWD'), /3 منازل/);
-assert.throws(() => requirePayrollMonetaryCurrency('OMR', 'OMR'), /3 منازل/);
+assert.doesNotThrow(() => requirePayrollMonetaryCurrency('KWD', 'KWD')); // INV-HR-PAYROLL-BOOK-PRECISION: KWD runs are enabled by storage + engines
+assert.doesNotThrow(() => requirePayrollMonetaryCurrency('OMR', 'OMR'));
 const result = calculateHrPayrollRunLine(base);
 assert.equal(result.grossPay, 12000);
 assert.equal(result.employeeSocialInsurance, 800);

@@ -1,4 +1,7 @@
 import { calculateOvertime } from './payroll-calculation.engine';
+import { MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
+
+const money = (v: number, minorUnits: MoneyDigits): number => roundMoney(v, minorUnits);
 
 /**
  * HR payment calculations: hourly staff are paid for completed, valid recorded
@@ -12,7 +15,7 @@ export type WorkPunch = {
   checkOut?: unknown;
   workDate?: unknown;
 };
-export function summarizeHourlyAttendance(punches: WorkPunch[], hourlyRate: number) {
+export function summarizeHourlyAttendance(punches: WorkPunch[], hourlyRate: number, minorUnits: MoneyDigits) {
   let workedMinutes = 0;
   let completedDays = 0;
   let incompleteCount = 0;
@@ -40,12 +43,12 @@ export function summarizeHourlyAttendance(punches: WorkPunch[], hourlyRate: numb
   const rate = Number(hourlyRate);
   return {
     workedMinutes, completedDays, incompleteCount, invalidCount,
-    baseWage: Number(((workedMinutes / 60) * (Number.isFinite(rate) ? Math.max(0, rate) : 0)).toFixed(2)),
+    baseWage: money((workedMinutes / 60) * (Number.isFinite(rate) ? Math.max(0, rate) : 0), minorUnits),
   };
 }
 
 /** Fraction of every calendar month inside a non-monthly payroll period. */
-export function prorateMonthlyWage(monthlySalary: number, from: string, to: string): number {
+export function prorateMonthlyWage(monthlySalary: number, from: string, to: string, minorUnits: MoneyDigits): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return 0;
   const start = new Date(from + 'T00:00:00Z');
   const end = new Date(to + 'T00:00:00Z');
@@ -56,7 +59,7 @@ export function prorateMonthlyWage(monthlySalary: number, from: string, to: stri
     const daysInMonth = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + 1, 0)).getUTCDate();
     portion += 1 / daysInMonth;
   }
-  return Number((Math.max(0, monthlySalary) * portion).toFixed(2));
+  return money(Math.max(0, monthlySalary) * portion, minorUnits);
 }
 
 /**
@@ -88,6 +91,7 @@ export function calculateEffectiveContractPay(
   contracts: EffectiveSalaryContract[],
   from: string,
   to: string,
+  minorUnits: MoneyDigits,
 ): { baseWage: number; referenceMonthlySalary: number; latestContractId: number; serviceFraction: number } {
   if (from > to) return { baseWage: 0, referenceMonthlySalary: 0, latestContractId: 0, serviceFraction: 0 };
   const serviceFraction = payrollCalendarMonthFraction(from, to);
@@ -108,7 +112,7 @@ export function calculateEffectiveContractPay(
         ? 'Overlapping salary contracts in payroll period'
         : 'Uncovered employment days between salary contracts');
     }
-    earned += prorateMonthlyWage(contract.baseSalary, begin, end);
+    earned += prorateMonthlyWage(contract.baseSalary, begin, end, minorUnits);
     latestContractId = contract.id;
     const next = new Date(end + 'T00:00:00Z');
     next.setUTCDate(next.getUTCDate() + 1);
@@ -117,10 +121,10 @@ export function calculateEffectiveContractPay(
   if (nextUncoveredDay <= to) {
     throw new RangeError('Employee has no salary contract covering all worked days');
   }
-  const baseWage = Number(earned.toFixed(2));
+  const baseWage = money(earned, minorUnits);
   return {
     baseWage,
-    referenceMonthlySalary: Number((baseWage / serviceFraction).toFixed(2)),
+    referenceMonthlySalary: money(baseWage / serviceFraction, minorUnits),
     latestContractId,
     serviceFraction,
   };
@@ -140,7 +144,7 @@ export interface EffectiveCompensationPackage {
 }
 
 export function calculateEffectiveCompensationPay(
-  packages: EffectiveCompensationPackage[], from: string, to: string,
+  packages: EffectiveCompensationPackage[], from: string, to: string, minorUnits: MoneyDigits,
 ): { allowance: number; deduction: number } {
   if (from > to) return { allowance: 0, deduction: 0 };
   const sorted = [...packages].sort(
@@ -158,11 +162,11 @@ export function calculateEffectiveCompensationPay(
       || !Number.isFinite(item.deductionAmount) || item.deductionAmount < 0) {
       throw new RangeError('Invalid compensation package amounts');
     }
-    allowance += prorateMonthlyWage(item.allowanceAmount, begin, end);
-    deduction += prorateMonthlyWage(item.deductionAmount, begin, end);
+    allowance += prorateMonthlyWage(item.allowanceAmount, begin, end, minorUnits);
+    deduction += prorateMonthlyWage(item.deductionAmount, begin, end, minorUnits);
     lastEnd = end;
   }
-  return { allowance: Number(allowance.toFixed(2)), deduction: Number(deduction.toFixed(2)) };
+  return { allowance: money(allowance, minorUnits), deduction: money(deduction, minorUnits) };
 }
 
 /** Converts a dated day/hour adjustment using the salary contract actually
@@ -170,6 +174,7 @@ export function calculateEffectiveCompensationPay(
  * period need an explicit reviewed monetary amount, not a guessed blended rate.
  */
 export function calculateDatedPayrollAdjustment(params: {
+  minorUnits: MoneyDigits;
   amount: number;
   amountType: 'money' | 'days' | 'hours';
   date: string;
@@ -181,7 +186,7 @@ export function calculateDatedPayrollAdjustment(params: {
 }): number {
   const { amount, amountType, date, period, contracts, isHourly, hourlyRate, expectedDailyHours } = params;
   if (!Number.isFinite(amount) || amount <= 0) throw new RangeError('Invalid employee adjustment amount');
-  if (amountType === 'money') return Number(amount.toFixed(2));
+  if (amountType === 'money') return money(amount, params.minorUnits);
   if (amountType !== 'days' && amountType !== 'hours') throw new RangeError('Invalid employee adjustment unit');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < period.from || date > period.to) {
     throw new RangeError('Time-unit adjustment date must be inside this payroll period');
@@ -200,7 +205,7 @@ export function calculateDatedPayrollAdjustment(params: {
     }
     dailyWage = effective[0].baseSalary / 30;
   }
-  return Number((amount * (amountType === 'hours' ? dailyWage / expectedDailyHours : dailyWage)).toFixed(2));
+  return money(amount * (amountType === 'hours' ? dailyWage / expectedDailyHours : dailyWage), params.minorUnits);
 }
 
 export interface ApprovedOvertimeDay {
@@ -214,6 +219,7 @@ export function calculateHistoricalOvertimePay(
   contracts: EffectiveSalaryContract[],
   expectedDailyHours: number,
   multiplier: number,
+  minorUnits: MoneyDigits,
 ): number {
   if (!Number.isFinite(expectedDailyHours) || expectedDailyHours <= 0 || expectedDailyHours > 24
     || !Number.isFinite(multiplier) || multiplier < 1 || multiplier > 5) {
@@ -231,12 +237,13 @@ export function calculateHistoricalOvertimePay(
       throw new RangeError('Overtime date must match exactly one valid salary contract');
     }
     total += calculateOvertime({
+      minorUnits,
       calculatedHourlyRate: matches[0].baseSalary / 30 / expectedDailyHours,
       overtimeMinutes: day.minutes,
       overtimeMultiplier: multiplier,
     });
   }
-  return Number(total.toFixed(2));
+  return money(total, minorUnits);
 }
 
 export function resolveExpectedDailyMinutes(params: {

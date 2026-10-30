@@ -9,11 +9,14 @@
  */
 import { calculateEmployeePayrollLine, type PayrollLineItemInput } from './payroll-calculation.engine';
 import { calculateHrStatutoryAmounts, type HrStatutoryPolicy } from './hr-statutory-policy.engine';
+import { MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
 export interface HrPayrollRunLineInput {
+  /** Tenant book precision. Required: payroll money must never default to 2 decimals. */
+  minorUnits: MoneyDigits;
   policy: HrStatutoryPolicy;
   period: { from: string; to: string };
-  line: Omit<PayrollLineItemInput, 'employeeSocialInsurance' | 'employerSocialInsurance' | 'incomeTax'>;
+  line: Omit<PayrollLineItemInput, 'employeeSocialInsurance' | 'employerSocialInsurance' | 'incomeTax' | 'minorUnits'>;
   eligibility: { insured: boolean; taxable: boolean };
   /** Employee's explicit insured salary; 0 is valid when the selected wage basis is 'earned_base'. */
   configuredInsuranceSalary: number;
@@ -21,40 +24,41 @@ export interface HrPayrollRunLineInput {
   employmentMonthFraction?: number;
 }
 
-const money = (n: number) => Number(n.toFixed(2));
-const nonnegative = (n: unknown, label: string): number => {
+const money = (n: number, minorUnits: MoneyDigits) => roundMoney(n, minorUnits);
+const nonnegative = (n: unknown, label: string, minorUnits: MoneyDigits): number => {
   if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) {
     throw new RangeError(`Invalid HR payroll amount: ${label}`);
   }
-  return money(n);
+  return money(n, minorUnits);
 };
 
 /** All financial elements returned by the canonical line engine, including statutory amounts. */
 export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
+  const minorUnits = input.minorUnits;
   const line = input.line;
   // Never silently accept refunds or negative deductions as negative payroll
   // amounts. Refunds must be entered as explicit positive allowances.
-  nonnegative(line.otherDeductions, 'otherDeductions');
-  nonnegative(line.assetRecoveryDeduction, 'assetRecoveryDeduction');
-  nonnegative(line.scheduledLoanDeduction, 'scheduledLoanDeduction');
+  nonnegative(line.otherDeductions, 'otherDeductions', minorUnits);
+  nonnegative(line.assetRecoveryDeduction, 'assetRecoveryDeduction', minorUnits);
+  nonnegative(line.scheduledLoanDeduction, 'scheduledLoanDeduction', minorUnits);
   const ceiling = line.maxDeductionPct ?? 1;
   if (!Number.isFinite(ceiling) || ceiling < 0 || ceiling > 1) {
     throw new RangeError('Payroll deduction ceiling must be between zero and one');
   }
   const gross = money(
-    nonnegative(line.baseSalary, 'baseSalary') +
-    nonnegative(line.allowanceAmount, 'allowanceAmount') +
-    nonnegative(line.overtimeAmount, 'overtimeAmount') +
-    nonnegative(line.commissionAmount, 'commissionAmount'),
+    nonnegative(line.baseSalary, 'baseSalary', minorUnits) +
+    nonnegative(line.allowanceAmount, 'allowanceAmount', minorUnits) +
+    nonnegative(line.overtimeAmount, 'overtimeAmount', minorUnits) +
+    nonnegative(line.commissionAmount, 'commissionAmount', minorUnits), minorUnits,
   );
-  const attendance = nonnegative(line.attendanceDeduction, 'attendanceDeduction');
-  const unpaidLeave = nonnegative(line.leaveDeduction, 'leaveDeduction');
-  const wageAfterAbsence = Math.max(0, money(gross - attendance - unpaidLeave));
+  const attendance = nonnegative(line.attendanceDeduction, 'attendanceDeduction', minorUnits);
+  const unpaidLeave = nonnegative(line.leaveDeduction, 'leaveDeduction', minorUnits);
+  const wageAfterAbsence = Math.max(0, money(gross - attendance - unpaidLeave, minorUnits));
 
   let insuranceSalary: number;
   if (input.policy.hrSocialInsuranceEnabled && input.eligibility.insured
       && input.policy.insuranceWageBasis === 'employee_insurance_salary') {
-    insuranceSalary = nonnegative(input.configuredInsuranceSalary, 'configuredInsuranceSalary');
+    insuranceSalary = nonnegative(input.configuredInsuranceSalary, 'configuredInsuranceSalary', minorUnits);
     if (insuranceSalary === 0) {
       throw new RangeError('أجر التأمينات الخاص بالموظف غير محدد وفق سياسة المنشأة');
     }
@@ -63,7 +67,7 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
     // excluding allowances/overtime/commission silently underwithholds.
     insuranceSalary = input.policy.insuranceWageBasis === 'earned_base'
       ? wageAfterAbsence
-      : nonnegative(line.baseSalary, 'baseSalary');
+      : nonnegative(line.baseSalary, 'baseSalary', minorUnits);
   }
   // First pass calculates insurance; second pass calculates tax against the
   // explicitly selected tax base (with or without the employee insurance share).
@@ -74,38 +78,48 @@ export function calculateHrPayrollRunLine(input: HrPayrollRunLineInput) {
       insuranceWage: insuranceSalary, taxableMonthlyWage: 0,
       insurancePeriodFraction: input.policy.insuranceProratePartialEmployment
         ? (input.employmentMonthFraction ?? 1) : 1 },
+    minorUnits,
   );
   const taxableBeforeInsurance = input.policy.taxableEarningsBasis === 'gross_after_attendance_leave'
     ? wageAfterAbsence : gross;
   const taxableWage = Math.max(0, money(
-    taxableBeforeInsurance - (input.policy.taxDeductEmployeeInsurance ? insurance.employeeInsurance : 0),
+    taxableBeforeInsurance - (input.policy.taxDeductEmployeeInsurance ? insurance.employeeInsurance : 0), minorUnits,
   ));
   const tax = calculateHrStatutoryAmounts(
     { ...input.policy, hrSocialInsuranceEnabled: false },
     input.period,
     { insured: false, taxable: input.eligibility.taxable,
       insuranceWage: 0, taxableMonthlyWage: taxableWage },
+    minorUnits,
   );
 
   return calculateEmployeePayrollLine({
     ...line,
+    minorUnits,
     employeeSocialInsurance: insurance.employeeInsurance,
     employerSocialInsurance: insurance.employerInsurance,
     incomeTax: tax.incomeTax,
   });
 }
 
-/** All HR contract/compensation persistence currently uses two-decimal money.
- * Do not silently round a third fractional digit. Kuwait/Oman require a full
- * three-decimal storage, payroll, GL and export migration before enabling fils.
+/** Stored HR money must be exact at the tenant's book precision.
+ * INV-HR-PAYROLL-BOOK-PRECISION: the widening migration (2040000000265)
+ * stores payroll inputs at scale 3, so a 3-decimal value is exact on a
+ * KWD/OMR tenant and a value with any finer fraction still throws
+ * instead of being silently rounded. Callers pass the tenant's digits;
+ * there is no 2-decimal default.
  */
-export function requireStoredHrMoney(value: number): number {
-  const cents = Math.round(value * 100);
-  if (!Number.isFinite(value) || value < 0 || !Number.isSafeInteger(cents)
-      || Math.abs(value - cents / 100) > 0.000001) {
-    throw new RangeError('HR monetary amount requires non-negative exact two-decimal precision');
+export function requireStoredHrMoney(value: number, minorUnits: MoneyDigits): number {
+  // Validate precision explicitly: toMinorUnits throws its own generic
+  // error for finer fractions, which would hide this gate's contract.
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError('HR monetary amount requires non-negative exact book precision');
   }
-  return cents / 100;
+  const rounded = roundMoney(value, minorUnits);
+  if (Math.abs(value - rounded) > 0.000001) {
+    throw new RangeError('HR monetary amount requires non-negative exact book precision');
+  }
+  return rounded;
 }
 
 /** Preserve the distinction between system and user exclusions on rebuild. */
@@ -128,9 +142,11 @@ export function requireBankPayrollPaymentReference(channel: string, reference?: 
   return ref;
 }
 
-// Payroll line storage and GL posting currently round to 2 decimals.
-// KWD and OMR are 3-decimal currencies; accepting them here would silently
-// lose fils/baisa. Extend ALL posting/storage paths before enabling them.
+// INV-HR-PAYROLL-BOOK-PRECISION: storage (migration 2040000000265),
+// the payroll engines and GL posting all run at book precision, and the
+// WPS review export formats at book precision, so KWD/OMR payroll runs
+// are no longer blocked here. EOS settlements and attendance-penalty
+// previews keep their own guards/precision and are separate packages.
 export function requirePayrollMonetaryCurrency(tenantCurrency: string, contractCurrency: string): void {
   const tenant = String(tenantCurrency || '').trim().toUpperCase();
   const contract = String(contractCurrency || '').trim().toUpperCase();
@@ -139,8 +155,5 @@ export function requirePayrollMonetaryCurrency(tenantCurrency: string, contractC
   }
   if (tenant !== contract) {
     throw new RangeError(`عملة عقد الموظف ${contract} لا تطابق عملة المنشأة ${tenant}`);
-  }
-  if (['KWD', 'OMR'].includes(tenant)) {
-    throw new RangeError(`عملة ${tenant} تتطلب 3 منازل عشرية؛ يجب تطوير دقة القيود والرواتب قبل اعتماد مسيراتها`);
   }
 }

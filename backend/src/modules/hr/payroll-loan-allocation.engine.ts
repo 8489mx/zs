@@ -20,16 +20,20 @@
 
 /** Sum scheduled installments without ever exceeding each loan's live outstanding principal.
  * Input rows must already be filtered to the payroll period's DUE installments.
- * Using cents avoids false surplus when two installments share a nearly repaid loan.
+ * Using minor units avoids false surplus when two installments share a nearly repaid loan.
+ * INV-HR-PAYROLL-BOOK-PRECISION: amounts run at the tenant's book precision.
  */
+import { MoneyDigits, toMinorUnits, fromMinorUnits, roundMoney } from '../accounting/engines/money-minor-units.engine';
+
 export function calculatePayrollLoanDueTotal(rows: Array<{
   loanId: number; installmentAmount: number; installmentPaid: number; loanRemaining: number;
-}>): number {
+}>, minorUnits: MoneyDigits): number {
   const balances = new Map<number, number>();
-  let dueCents = 0;
+  let dueMinor = 0;
   const toCents = (value: number): number => {
-    if (!Number.isFinite(value) || value < 0) throw new RangeError('Invalid payroll loan balance or installment');
-    const result = Math.round(value * 100);
+    if (!Number.isFinite(value) || value < 0
+        || Math.abs(value - roundMoney(value, minorUnits)) > 0.000001) throw new RangeError('Invalid payroll loan balance or installment');
+    const result = toMinorUnits(value, minorUnits);
     if (!Number.isSafeInteger(result)) throw new RangeError('Payroll loan balance exceeds safe currency precision');
     return result;
   };
@@ -43,10 +47,10 @@ export function calculatePayrollLoanDueTotal(rows: Array<{
     if (paid > amount) throw new RangeError('Payroll installment paid amount exceeds original amount');
     const available = balances.get(row.loanId) ?? outstanding;
     const applied = Math.min(amount - paid, available);
-    dueCents += applied;
+    dueMinor += applied;
     balances.set(row.loanId, available - applied);
   }
-  return dueCents / 100;
+  return fromMinorUnits(dueMinor, minorUnits);
 }
 
 /** Clamp due dates to target month's last calendar day (31 Jan -> 28/29 Feb). */
@@ -61,34 +65,46 @@ export function addLoanInstallmentMonths(dateOnly: string, offset: number): stri
   return new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), Math.min(day, maxDay))).toISOString().slice(0, 10);
 }
 
-/** Persisted manual loan money must use the same two-decimal units as the GL. */
-export function requireTwoDecimalLoanMoney(value: number): number {
-  const cents = Math.round(value * 100);
-  if (!Number.isFinite(value) || value <= 0 || !Number.isSafeInteger(cents)
-    || Math.abs(value - cents / 100) > 0.000001) {
-    throw new RangeError('Loan repayment requires a positive two-decimal monetary amount');
+/** Persisted manual loan money must be exact at the tenant's book precision.
+ * Renamed from requireTwoDecimalLoanMoney: loan storage is widened by
+ * migration 2040000000265, so a KWD loan amount of 100.125 is exact
+ * instead of throwing, and any finer fraction still throws.
+ */
+export function requireLoanMoney(value: number, minorUnits: MoneyDigits): number {
+  // Validate precision explicitly, as in requireStoredHrMoney: toMinorUnits
+  // throws its own generic error for finer fractions.
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new RangeError('Loan repayment requires a positive monetary amount at book precision');
   }
-  return cents / 100;
+  const rounded = roundMoney(value, minorUnits);
+  if (Math.abs(value - rounded) > 0.000001) {
+    throw new RangeError('Loan repayment requires a positive monetary amount at book precision');
+  }
+  return rounded;
 }
 
-/** Strictly positive, bounded, cent-accurate installments with exact principal reconciliation. */
-export function calculateLoanInstallmentSchedule(principal: number, countRequested: number, monthly?: number) {
-  const total = Math.round(principal * 100);
-  if (!Number.isFinite(principal) || principal <= 0 || !Number.isSafeInteger(total)
-      || Math.abs(principal - total / 100) > 0.000001) throw new RangeError('Loan principal requires two decimal places');
-  const installment = monthly === undefined ? 0 : Math.round(monthly * 100);
+/** Strictly positive, bounded, minor-unit-accurate installments with exact principal reconciliation.
+ * The last installment absorbs the remainder so values sum exactly to the principal.
+ */
+export function calculateLoanInstallmentSchedule(principal: number, countRequested: number, minorUnits: MoneyDigits, monthly?: number) {
+  // Validate precision explicitly before toMinorUnits: it throws its own
+  // generic error for finer fractions, hiding this engine's contract.
+  if (!Number.isFinite(principal) || principal <= 0
+      || Math.abs(principal - roundMoney(principal, minorUnits)) > 0.000001) throw new RangeError('Loan principal requires book precision');
+  const total = toMinorUnits(principal, minorUnits);
   if (monthly !== undefined && (!Number.isFinite(monthly) || monthly <= 0
-      || !Number.isSafeInteger(installment) || Math.abs(monthly - installment / 100) > 0.000001)) {
-    throw new RangeError('Monthly installment requires two decimal places');
+      || Math.abs(monthly - roundMoney(monthly, minorUnits)) > 0.000001)) {
+    throw new RangeError('Monthly installment requires book precision');
   }
+  const installment = monthly === undefined ? 0 : toMinorUnits(monthly, minorUnits);
   const count = monthly === undefined ? countRequested : Math.ceil(total / Math.min(total, installment));
   if (!Number.isSafeInteger(count) || count < 1 || count > 360 || count > total) {
-    throw new RangeError('Invalid installment count (maximum 360 and at least one cent each)');
+    throw new RangeError('Invalid installment count (maximum 360 and at least one minor unit each)');
   }
   const per = monthly === undefined ? Math.floor(total / count) : Math.min(total, installment);
-  const values = Array.from({length: count}, (_, i) => (i === count - 1 ? total - per * (count - 1) : per) / 100);
+  const values = Array.from({length: count}, (_, i) => fromMinorUnits(i === count - 1 ? total - per * (count - 1) : per, minorUnits));
   if (values.some(x => x <= 0)) throw new RangeError('Invalid non-positive installment');
-  return { installmentCount: count, installmentAmount: per / 100, installmentValues: values };
+  return { installmentCount: count, installmentAmount: fromMinorUnits(per, minorUnits), installmentValues: values };
 }
 
 export type LoanAllocationInput = {
@@ -115,38 +131,39 @@ export type LoanAllocationResult = {
   remainingToDeductAfter: number;
 };
 
-function round2(value: number): number {
-  return Number(Number(value).toFixed(2));
+function round2(value: number, minorUnits: MoneyDigits): number {
+  return roundMoney(Number(value), minorUnits);
 }
 
 /**
  * يحسب دورة توزيع واحدة. يعيد `null` إذا لم يكن هناك ما يُخصم
  * (قسط مسدَّد، أو قرض بلا رصيد، أو لا يتبقى من الخصم شيء).
  */
-export function allocateLoanDeduction(input: LoanAllocationInput): LoanAllocationResult | null {
-  const remainingToDeduct = round2(Math.max(0, Number(input.remainingToDeduct) || 0));
-  const installmentAmount = round2(Math.max(0, Number(input.installmentAmount) || 0));
-  const installmentPaid = round2(Math.max(0, Number(input.installmentPaid) || 0));
-  const loanRemaining = round2(Math.max(0, Number(input.loanRemaining) || 0));
-  const loanPaid = round2(Math.max(0, Number(input.loanPaid) || 0));
+export function allocateLoanDeduction(input: LoanAllocationInput & { minorUnits: MoneyDigits }): LoanAllocationResult | null {
+  const minorUnits = input.minorUnits;
+  const remainingToDeduct = round2(Math.max(0, Number(input.remainingToDeduct) || 0), minorUnits);
+  const installmentAmount = round2(Math.max(0, Number(input.installmentAmount) || 0), minorUnits);
+  const installmentPaid = round2(Math.max(0, Number(input.installmentPaid) || 0), minorUnits);
+  const loanRemaining = round2(Math.max(0, Number(input.loanRemaining) || 0), minorUnits);
+  const loanPaid = round2(Math.max(0, Number(input.loanPaid) || 0), minorUnits);
 
-  const installmentRemaining = round2(installmentAmount - installmentPaid);
+  const installmentRemaining = round2(installmentAmount - installmentPaid, minorUnits);
   if (installmentRemaining <= 0) return null;
 
-  const deductAmount = round2(Math.min(remainingToDeduct, installmentRemaining, loanRemaining));
+  const deductAmount = round2(Math.min(remainingToDeduct, installmentRemaining, loanRemaining), minorUnits);
   if (deductAmount <= 0) return null;
 
-  const newInstallmentPaid = round2(installmentPaid + deductAmount);
+  const newInstallmentPaid = round2(installmentPaid + deductAmount, minorUnits);
   // `Math.max(0, ...)` حارس: رصيد القرض لا يصير سالباً مهما كانت البيانات التاريخية
-  const newLoanRemaining = round2(Math.max(0, loanRemaining - deductAmount));
+  const newLoanRemaining = round2(Math.max(0, loanRemaining - deductAmount), minorUnits);
 
   return {
     deductAmount,
     newInstallmentPaid,
     newInstallmentStatus: newInstallmentPaid >= installmentAmount ? 'paid' : 'partial',
     newLoanRemaining,
-    newLoanPaid: round2(loanPaid + deductAmount),
+    newLoanPaid: round2(loanPaid + deductAmount, minorUnits),
     newLoanStatus: newLoanRemaining <= 0 ? 'repaid' : 'partially_repaid',
-    remainingToDeductAfter: round2(remainingToDeduct - deductAmount),
+    remainingToDeductAfter: round2(remainingToDeduct - deductAmount, minorUnits),
   };
 }

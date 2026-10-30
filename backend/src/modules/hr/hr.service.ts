@@ -48,7 +48,8 @@ import {
   startsNewSession,
   type AttendancePunchResolution,
 } from './attendance-punch.engine';
-import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
+import { allocateLoanDeduction, calculatePayrollLoanDueTotal, calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireLoanMoney } from './payroll-loan-allocation.engine';
+import { MoneyDigits, currencyMoneyDigits, roundMoney } from '../accounting/engines/money-minor-units.engine';
 import { calculateOvertime, calculateHourlyOvertimePremium } from './engines/payroll-calculation.engine';
 import { calculateHrPayrollRunLine, requirePayrollMonetaryCurrency, requireStoredHrMoney, requireBankPayrollPaymentReference, canReincludeAutoExcludedPayrollItem, AUTO_PAYROLL_EXCLUSION_NOTE, MANUAL_PAYROLL_EXCLUSION_NOTE } from './engines/hr-payroll-run.engine';
 import { validateHrStatutoryPolicy, requireHrPayrollJurisdictionCurrency, inferStatutoryCountry, STATUTORY_COUNTRIES, type HrStatutoryPolicy } from './engines/hr-statutory-policy.engine';
@@ -152,10 +153,26 @@ function monthRange(periodMonth: string): { from: string; to: string } {
   };
 }
 
-function money(value: unknown): number {
+function money(value: unknown, minorUnits: MoneyDigits): number {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount) || amount <= 0) return 0;
-  return Number(amount.toFixed(2));
+  return roundMoney(amount, minorUnits);
+}
+
+/**
+ * INV-HR-PAYROLL-BOOK-PRECISION: payroll gates and rounding need the
+ * tenant's book precision. Settings currency is the single source; a
+ * missing or malformed currency fails closed instead of defaulting to 2.
+ */
+async function tenantBookDigits(db: Kysely<Database>, tenantId: string): Promise<MoneyDigits> {
+  const setting = await sql<{ value: string }>`
+    SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
+  `.execute(db);
+  const currency = clean(setting.rows[0]?.value).replace(/^"|"$/g, '').toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new AppError('حدد عملة منشأتك قبل حساب المرتبات', 'HR_TENANT_CURRENCY_REQUIRED', 400);
+  }
+  return currencyMoneyDigits(currency);
 }
 
 function combineNotes(...notes: Array<string | null | undefined>): string {
@@ -450,7 +467,7 @@ export class HrService {
     }
   }
 
-  private normalizeRepaymentPlan(payload: UpsertEmployeeLoanDto, amount: number): {
+  private normalizeRepaymentPlan(payload: UpsertEmployeeLoanDto, amount: number, minorUnits: MoneyDigits): {
     repaymentMode: string; installmentCount: number; installmentAmount: number;
     installmentValues: number[]; monthlyInstallmentAmount: number | null;
     firstDueDate: string | null; salaryDueDate: string | null;
@@ -468,10 +485,10 @@ export class HrService {
     let plan: ReturnType<typeof calculateLoanInstallmentSchedule>;
     try {
       plan = repaymentMode === 'deduct_next_salary'
-        ? calculateLoanInstallmentSchedule(amount, 1)
+        ? calculateLoanInstallmentSchedule(amount, 1, minorUnits)
         : repaymentMode === 'monthly_salary_installment' && Number(payload.monthlyInstallmentAmount || 0) > 0
-          ? calculateLoanInstallmentSchedule(amount, 1, Number(payload.monthlyInstallmentAmount))
-          : calculateLoanInstallmentSchedule(amount, Number(payload.installmentCount || 1));
+          ? calculateLoanInstallmentSchedule(amount, 1, minorUnits, Number(payload.monthlyInstallmentAmount))
+          : calculateLoanInstallmentSchedule(amount, Number(payload.installmentCount || 1), minorUnits);
     } catch (error) {
       throw new AppError(error instanceof Error ? error.message : 'خطة تقسيط غير صحيحة', 'HR_LOAN_INSTALLMENT_PLAN_INVALID', 400);
     }
@@ -916,7 +933,7 @@ export class HrService {
     if (!Number.isFinite(salary) || salary <= 0) {
       throw new AppError('يجب تحديد راتب أساسي صحيح أكبر من صفر قبل تعيين المرشح', 'HR_RECRUITMENT_SALARY_REQUIRED', 400);
     }
-    try { requireStoredHrMoney(salary); } catch {
+    try { requireStoredHrMoney(salary, 2); } catch {
       throw new AppError('راتب المرشح يجب أن يكون بدقة منزلتين دون تقريب', 'HR_RECRUITMENT_SALARY_PRECISION_INVALID', 400);
     }
     const firstName = clean(input.firstName);
@@ -1023,14 +1040,15 @@ export class HrService {
     if (!['daily', 'weekly', 'biweekly', 'monthly'].includes(payFrequency)) {
       throw new AppError('دورية صرف المرتب غير صحيحة', 'HR_EMPLOYEE_PAY_FREQUENCY_INVALID', 400);
     }
+    const bookDigits = await tenantBookDigits(this.db, auth.tenantId || '');
     if (compensationType === 'hourly') {
       if (hourlyRate == null || !Number.isFinite(hourlyRate) || hourlyRate <= 0
         || expectedDailyHours == null || !Number.isFinite(expectedDailyHours)
         || expectedDailyHours <= 0 || expectedDailyHours > 24) {
         throw new AppError('موظف الساعة يحتاج أجر ساعة موجبًا وساعات عمل يومية بين صفر و24 (غير شاملة الصفر)', 'HR_HOURLY_WAGE_SCHEDULE_INVALID', 400);
       }
-      try { requireStoredHrMoney(hourlyRate); } catch {
-        throw new AppError('أجر الساعة يجب أن يكون بدقة منزلتين دون تقريب', 'HR_HOURLY_MONEY_PRECISION_INVALID', 400);
+      try { requireStoredHrMoney(hourlyRate, bookDigits); } catch {
+        throw new AppError('أجر الساعة يجب أن يكون بدقة دفاتر المنشأة دون تقريب', 'HR_HOURLY_MONEY_PRECISION_INVALID', 400);
       }
     }
     if (![commissionValue, commissionTarget, insuranceSalary].every(x => x == null || (Number.isFinite(x) && x >= 0))) {
@@ -1041,13 +1059,13 @@ export class HrService {
       throw new AppError('نسبة العمولة يجب أن تكون من صفر إلى 100', 'HR_COMMISSION_PERCENT_INVALID', 400);
     }
     if (commissionValue !== null && clean(payload.commissionType) === 'fixed') {
-      try { requireStoredHrMoney(commissionValue); } catch {
-        throw new AppError('العمولة الثابتة يجب أن تكون بدقة منزلتين دون تقريب', 'HR_COMMISSION_MONEY_PRECISION_INVALID', 400);
+      try { requireStoredHrMoney(commissionValue, bookDigits); } catch {
+        throw new AppError('العمولة الثابتة يجب أن تكون بدقة دفاتر المنشأة دون تقريب', 'HR_COMMISSION_MONEY_PRECISION_INVALID', 400);
       }
     }
     if (insuranceSalary !== null) {
-      try { requireStoredHrMoney(insuranceSalary); } catch {
-        throw new AppError('الأجر التأميني يجب أن يكون بدقة منزلتين دون تقريب', 'HR_INSURANCE_WAGE_PRECISION_INVALID', 400);
+      try { requireStoredHrMoney(insuranceSalary, bookDigits); } catch {
+        throw new AppError('الأجر التأميني يجب أن يكون بدقة دفاتر المنشأة دون تقريب', 'HR_INSURANCE_WAGE_PRECISION_INVALID', 400);
       }
     }
     if (!Number.isFinite(graceMinutes) || graceMinutes > 1440) {
@@ -1183,8 +1201,8 @@ export class HrService {
               if (!currencySetting || currencySetting !== contractCurrency) {
                 throw new AppError('عملة العقد يجب أن تطابق عملة المنشأة المحددة في الإعدادات', 'HR_INITIAL_CONTRACT_CURRENCY_MISMATCH', 400);
               }
-              try { requireStoredHrMoney(contractSalary); } catch {
-                throw new AppError('راتب العقد الأولي يجب أن يكون بدقة منزلتين دون تقريب', 'HR_INITIAL_CONTRACT_MONEY_PRECISION_INVALID', 400);
+              try { requireStoredHrMoney(contractSalary, currencyMoneyDigits(currencySetting)); } catch {
+                throw new AppError('راتب العقد الأولي يجب أن يكون بدقة دفاتر المنشأة دون تقريب', 'HR_INITIAL_CONTRACT_MONEY_PRECISION_INVALID', 400);
               }
               const insertedContract = await sql<{ id: number }>`
                 INSERT INTO hr_employment_contracts (
@@ -1415,8 +1433,8 @@ export class HrService {
       if (contractCurrency !== tenantCurrency) {
         throw new AppError('عملة عقد الموظف يجب أن تطابق عملة المنشأة', 'HR_CONTRACT_CURRENCY_MISMATCH', 400);
       }
-      try { requireStoredHrMoney(baseSalary); } catch {
-        throw new AppError('قيمة الراتب يجب أن تكون غير سالبة وبدقة منزلتين دون تقريب؛ عملات الثلاث منازل تنتظر تحديث التخزين', 'HR_CONTRACT_MONEY_PRECISION_INVALID', 400);
+      try { requireStoredHrMoney(baseSalary, currencyMoneyDigits(tenantCurrency)); } catch {
+        throw new AppError('قيمة الراتب يجب أن تكون غير سالبة وبدقة دفاتر المنشأة دون تقريب', 'HR_CONTRACT_MONEY_PRECISION_INVALID', 400);
       }
       const oldContract = id ? await sql<{
         start_date: string; end_date: string | null; base_salary: string;
@@ -1520,8 +1538,9 @@ export class HrService {
       || !Number.isFinite(deduction) || deduction < 0) {
       throw new AppError('تواريخ أو مبالغ البدلات الثابتة غير صحيحة', 'HR_COMPENSATION_INVALID', 400);
     }
-    try { requireStoredHrMoney(allowance); requireStoredHrMoney(deduction); } catch {
-      throw new AppError('البدلات والخصومات الثابتة يجب أن تكون بدقة منزلتين دون تقريب', 'HR_COMPENSATION_MONEY_PRECISION_INVALID', 400);
+    const bookDigits = await tenantBookDigits(this.db, tenantId);
+    try { requireStoredHrMoney(allowance, bookDigits); requireStoredHrMoney(deduction, bookDigits); } catch {
+      throw new AppError('البدلات والخصومات الثابتة يجب أن تكون بدقة دفاتر المنشأة دون تقريب', 'HR_COMPENSATION_MONEY_PRECISION_INVALID', 400);
     }
     await this.tx.runInTransaction(this.db, async trx => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
@@ -1617,8 +1636,9 @@ export class HrService {
     // Days/hours may be fractional units; monetary adjustments must be exact
     // cents to avoid silently converting an entered amount during GL posting.
     if (clean(payload.amountType) === 'money') {
-      try { requireTwoDecimalLoanMoney(Number(payload.amount)); } catch {
-        throw new AppError('التسوية النقدية يجب أن تكون بدقة منزلتين عشريتين دون تقريب', 'HR_EMPLOYEE_ADJUSTMENT_MONEY_PRECISION_INVALID', 400);
+      const adjustmentBookDigits = await tenantBookDigits(this.db, tenantId);
+      try { requireLoanMoney(Number(payload.amount), adjustmentBookDigits); } catch {
+        throw new AppError('التسوية النقدية يجب أن تكون بدقة دفاتر المنشأة دون تقريب', 'HR_EMPLOYEE_ADJUSTMENT_MONEY_PRECISION_INVALID', 400);
       }
     }
     await this.tx.runInTransaction(this.db, async trx => {
@@ -1664,6 +1684,7 @@ export class HrService {
 
   async listLoans(query: Record<string, unknown>, auth: AuthContext): Promise<Record<string, unknown>> {
     const { tenantId } = requireTenantScope(auth);
+    const listBookDigits = await tenantBookDigits(this.db, tenantId);
     const employeeId = toId(query.employeeId);
     const periodMonth = normalizePayrollMonth(query.month || query.periodMonth);
     const result = await sql<Record<string, unknown>>`
@@ -1743,7 +1764,7 @@ export class HrService {
         const bucket = acc.get(key) || [];
         const amount = Number(row.amount || 0);
         const paidAmount = Number(row.paid_amount || 0);
-        const remainingAmount = Math.max(0, Number((amount - paidAmount).toFixed(2)));
+        const remainingAmount = Math.max(0, roundMoney(amount - paidAmount, listBookDigits));
         bucket.push({
           id: String(row.id),
           loanId: String(row.loan_id),
@@ -1858,7 +1879,7 @@ export class HrService {
       pagination: paged.pagination,
       summary: {
         totalItems: rows.length,
-        outstandingAmount: Number(rows.reduce((sum, row) => sum + row.remainingAmount, 0).toFixed(2)),
+        outstandingAmount: roundMoney(rows.reduce((sum, row) => sum + row.remainingAmount, 0), listBookDigits),
       },
     };
   }
@@ -1922,7 +1943,8 @@ export class HrService {
         );
       }
 
-      const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount);
+      const loanBookDigits = await tenantBookDigits(trx, auth.tenantId || '');
+      const plan = this.normalizeRepaymentPlan({ ...payload, employeeId, principalAmount: amount, issueDate, repaymentMode }, amount, loanBookDigits);
       const requestedLoanNo = clean(payload.loanNo);
       const tempLoanNo = requestedLoanNo || `LOAN-TMP-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const insert = await sql<{ id: number }>`
@@ -1976,7 +1998,8 @@ export class HrService {
     const issueDate = normalizeDateOnly(payload.issueDate);
     if (!issueDate) throw new AppError('Loan issue date is required', 'HR_LOAN_ISSUE_DATE_REQUIRED', 400);
     if (!Number.isFinite(amount) || amount <= 0) throw new AppError('مبلغ السلفة غير صحيح', 'HR_LOAN_AMOUNT_INVALID', 400);
-    const plan = this.normalizeRepaymentPlan({ ...payload, issueDate }, amount);
+    const loanBookDigits = await tenantBookDigits(this.db, auth.tenantId || '');
+    const plan = this.normalizeRepaymentPlan({ ...payload, issueDate }, amount, loanBookDigits);
 
     await this.tx.runInTransaction(this.db, async (trx) => {
       // Never mutate loan balances/installments concurrently with payroll review
@@ -2130,11 +2153,12 @@ export class HrService {
       const loan = result.rows[0];
       if (!loan) throw new AppError('Loan not found', 'HR_LOAN_NOT_FOUND', 404);
       if (!['paid', 'partially_repaid'].includes(clean(loan.status))) throw new AppError('Loan must be disbursed before repayment', 'HR_LOAN_REPAYMENT_STATUS_INVALID', 400);
+      const repayBookDigits = await tenantBookDigits(trx, auth.tenantId || '');
       let requestedAmount: number;
       try {
-        requestedAmount = requireTwoDecimalLoanMoney(Number(payload.amount));
+        requestedAmount = requireLoanMoney(Number(payload.amount), await tenantBookDigits(trx, auth.tenantId || ''));
       } catch {
-        throw new AppError('مبلغ سداد السلفة يجب أن يكون موجبًا وبدقة منزلتين', 'HR_LOAN_REPAYMENT_PRECISION_INVALID', 400);
+        throw new AppError('مبلغ سداد السلفة يجب أن يكون موجبًا وبدقة دفاتر المنشأة', 'HR_LOAN_REPAYMENT_PRECISION_INVALID', 400);
       }
       const remainingBalance = Number(loan.remaining_amount || 0);
       if (requestedAmount > remainingBalance) {
@@ -2164,14 +2188,14 @@ export class HrService {
         const due = Math.max(0, installmentAmount - alreadyPaid);
         if (!(installmentId > 0) || !(due > 0)) continue;
         const applied = Math.min(due, remainingRepayment);
-        const newPaid = Number((alreadyPaid + applied).toFixed(2));
-        const status = newPaid + 0.005 >= installmentAmount ? 'paid' : 'partial';
+        const newPaid = roundMoney(alreadyPaid + applied, repayBookDigits);
+        const status = newPaid + 1 / (2 * (10 ** repayBookDigits)) >= installmentAmount ? 'paid' : 'partial';
         await sql`
           UPDATE hr_employee_loan_installments
           SET paid_amount = ${newPaid}, status = ${status}, paid_at = CASE WHEN ${status} = 'paid' THEN NOW() ELSE paid_at END, updated_at = NOW()
           WHERE id = ${installmentId} AND tenant_id = ${auth.tenantId}
         `.execute(trx);
-        remainingRepayment = Number((remainingRepayment - applied).toFixed(2));
+        remainingRepayment = roundMoney(remainingRepayment - applied, repayBookDigits);
       }
       // A loan repayment must settle EXACTLY into its installment subledger.
       // Posting only the parent loan and treasury amount would leave the
@@ -2457,7 +2481,7 @@ export class HrService {
     return { runId: Number(row.run_id), runStatus: clean(row.run_status), itemStatus: clean(row.item_status) };
   }
 
-  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number, periodEndDate: string, tenantId: string): Promise<{ amount: number; notes: string[] }> {
+  private async calculateLoanDeduction(db: Kysely<Database>, employeeId: number, periodEndDate: string, tenantId: string, minorUnits: MoneyDigits): Promise<{ amount: number; notes: string[] }> {
     const dueCutoff = normalizeDateOnly(periodEndDate);
     if (!dueCutoff) throw new AppError('تاريخ نهاية فترة المسير غير صحيح', 'HR_PAYROLL_PERIOD_END_INVALID', 400);
     const result = await sql<Record<string, unknown>>`
@@ -2491,7 +2515,7 @@ export class HrService {
     }));
     let total: number;
     try {
-      total = calculatePayrollLoanDueTotal(eligible);
+      total = calculatePayrollLoanDueTotal(eligible, minorUnits);
     } catch (error) {
       throw new AppError(
         error instanceof Error ? error.message : 'أرصدة السلف والأقساط غير متطابقة',
@@ -2501,7 +2525,7 @@ export class HrService {
     return { amount: total, notes };
   }
 
-  private async adjustmentTotals(db: Kysely<Database>, itemId: number, tenantId: string): Promise<{ allowance: number; deduction: number }> {
+  private async adjustmentTotals(db: Kysely<Database>, itemId: number, tenantId: string, minorUnits: MoneyDigits): Promise<{ allowance: number; deduction: number }> {
     const result = await sql<{ allowance: string; deduction: string }>`
       SELECT
         COALESCE(SUM(CASE WHEN adjustment_type = 'allowance' THEN amount ELSE 0 END), 0) AS allowance,
@@ -2510,8 +2534,8 @@ export class HrService {
       WHERE payroll_item_id = ${itemId} AND tenant_id = ${tenantId}
     `.execute(db);
     return {
-      allowance: money(result.rows[0]?.allowance),
-      deduction: money(result.rows[0]?.deduction),
+      allowance: money(result.rows[0]?.allowance, minorUnits),
+      deduction: money(result.rows[0]?.deduction, minorUnits),
     };
   }
 
@@ -2623,6 +2647,7 @@ export class HrService {
         'HR_PAYROLL_CURRENCY_UNSUPPORTED', 409,
       );
     }
+    const bookDigits = currencyMoneyDigits(payrollCurrency);
     const contractRows = empIds.length
       ? await sql<Record<string, unknown>>`
           SELECT employee_id, id, base_salary, currency,
@@ -2726,7 +2751,7 @@ export class HrService {
       const to = [range.to, employmentEnd].sort()[0];
       payRangeByEmployee.set(id, { from, to });
       try {
-        compensationByEmployee.set(id, calculateEffectiveCompensationPay(packageHistory.get(id) || [], from, to));
+        compensationByEmployee.set(id, calculateEffectiveCompensationPay(packageHistory.get(id) || [], from, to, bookDigits));
       } catch (error) {
         throw new AppError(
           `البدلات والاستقطاعات الثابتة للموظف #${id} متداخلة أو غير صحيحة: ${error instanceof Error ? error.message : 'راجع الباقات'}`,
@@ -2741,14 +2766,14 @@ export class HrService {
         const eligiblePunches = (punchesByEmployee.get(employeeId) || []).filter(
           punch => String(punch.work_date_text) >= earned.from && String(punch.work_date_text) <= earned.to,
         );
-        const work = summarizeHourlyAttendance(eligiblePunches, Number(e.hourly_rate || 0));
+        const work = summarizeHourlyAttendance(eligiblePunches, Number(e.hourly_rate || 0), bookDigits);
         hourlyWorkByEmployee.set(employeeId, work);
         baseSalMap.set(employeeId, work.baseWage);
       } else {
         const payRange = payRangeByEmployee.get(employeeId)!;
         try {
           const result = calculateEffectiveContractPay(
-            contractHistory.get(employeeId) || [], payRange.from, payRange.to,
+            contractHistory.get(employeeId) || [], payRange.from, payRange.to, bookDigits,
           );
           contractualMonthlySalary.set(employeeId, result.referenceMonthlySalary);
           baseSalMap.set(employeeId, result.baseWage);
@@ -2760,7 +2785,7 @@ export class HrService {
         }
       }
     }
-    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary, contractHistory);
+    const autoReviews = await this.calculatePayrollOperationalReview(db, range, empIds, baseSalMap, tenantId, contractualMonthlySalary, contractHistory, bookDigits);
     const policies = await this.getPayrollPolicies(db, tenantId);
     const maxDeductionPct = policies.maxDeductionPct !== undefined ? Number(policies.maxDeductionPct) : 1.0;
 
@@ -2779,7 +2804,7 @@ export class HrService {
       if (excluded && !canReincludeAutoExcludedPayrollItem(
         clean(existingItem?.status), clean(existingItem?.notes))) continue;
       const itemId = Number(existingItem?.id || 0);
-      const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId, tenantId) : { allowance: 0, deduction: 0 };
+      const adjustments = itemId > 0 ? await this.adjustmentTotals(db, itemId, tenantId, bookDigits) : { allowance: 0, deduction: 0 };
       const isHourly = clean(employee.compensation_type) === 'hourly';
       // The base wage was computed across ALL valid historical contract segments.
       // Never re-prorate using just the latest contract, which drops earned days
@@ -2791,7 +2816,7 @@ export class HrService {
       const fixedCompensation = compensationByEmployee.get(employeeId) || { allowance: 0, deduction: 0 };
       const compensationAllowance = fixedCompensation.allowance;
       const compensationDeduction = fixedCompensation.deduction;
-      const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId);
+      const loanDeduction = await this.calculateLoanDeduction(db, employeeId, range.to, tenantId, bookDigits);
 
       const empAdjustmentsResult = await sql<Record<string, unknown>>`
         SELECT id, adjustment_type, amount_type, amount, accounting_category,
@@ -2809,6 +2834,7 @@ export class HrService {
         let val: number;
         try {
           val = calculateDatedPayrollAdjustment({
+            minorUnits: bookDigits,
             amount: Number(adj.amount),
             amountType: clean(adj.amount_type) as 'money' | 'days' | 'hours',
             date: clean(adj.adjustment_date),
@@ -2855,6 +2881,7 @@ export class HrService {
       const leaveDeduction = isHourly ? 0 : Number(review?.suggestedLeaveDeductionAmount || 0);
       const overtimeAllowance = isHourly
         ? calculateHourlyOvertimePremium({
+            minorUnits: bookDigits,
             calculatedHourlyRate: Number(employee.hourly_rate || 0),
             overtimeMinutes: Number(review?.approvedOvertimeMinutes || 0),
             overtimeMultiplier: Number(policies.overtimeMultiplier ?? 1.5),
@@ -2867,6 +2894,7 @@ export class HrService {
       let lineOutput: ReturnType<typeof calculateHrPayrollRunLine>;
       try {
         lineOutput = calculateHrPayrollRunLine({
+          minorUnits: bookDigits,
           policy: (policies as unknown) as HrStatutoryPolicy,
           period: range,
           eligibility: {
@@ -2881,13 +2909,13 @@ export class HrService {
           line: {
             employeeId,
             baseSalary,
-            allowanceAmount: Number((compensationAllowance + adjustments.allowance + empAdjAllowance).toFixed(2)),
+            allowanceAmount: roundMoney(compensationAllowance + adjustments.allowance + empAdjAllowance, bookDigits),
             overtimeAmount: overtimeAllowance,
             commissionAmount: commissionAllowance,
             attendanceDeduction,
             leaveDeduction,
-            assetRecoveryDeduction: Number(empAdjAssetRecoveryDeduction.toFixed(2)),
-            otherDeductions: Number((compensationDeduction + adjustments.deduction + empAdjDeduction).toFixed(2)),
+            assetRecoveryDeduction: roundMoney(empAdjAssetRecoveryDeduction, bookDigits),
+            otherDeductions: roundMoney(compensationDeduction + adjustments.deduction + empAdjDeduction, bookDigits),
             scheduledLoanDeduction: Number(loanDeduction.amount || 0),
             maxDeductionPct,
           },
@@ -2899,9 +2927,9 @@ export class HrService {
         );
       }
 
-      const totalAllowance = Number((lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount).toFixed(2));
-      const penaltyDeduction = Number((lineOutput.attendanceDeduction + lineOutput.leaveDeduction).toFixed(2));
-      const operationalDeduction = Number((lineOutput.totalDeductions - lineOutput.appliedLoanDeduction - lineOutput.assetRecoveryDeduction).toFixed(2));
+      const totalAllowance = roundMoney(lineOutput.allowanceAmount + lineOutput.overtimeAmount + lineOutput.commissionAmount, bookDigits);
+      const penaltyDeduction = roundMoney(lineOutput.attendanceDeduction + lineOutput.leaveDeduction, bookDigits);
+      const operationalDeduction = roundMoney(lineOutput.totalDeductions - lineOutput.appliedLoanDeduction - lineOutput.assetRecoveryDeduction, bookDigits);
 
       const generatedNotes = [
         baseSalary > 0 ? '' : (isHourly ? 'لم تُسجل ساعات حضور مكتملة في الفترة أو أجر الساعة غير محدد' : 'Missing salary data'),
@@ -2978,7 +3006,9 @@ export class HrService {
     tenantId: string,
     contractualMonthlySalary?: Map<number, number>,
     effectiveContracts?: Map<number, EffectiveSalaryContract[]>,
+    minorUnits?: MoneyDigits,
   ): Promise<Map<number, any>> {
+    const reviewDigits: MoneyDigits = minorUnits ?? (await tenantBookDigits(db, tenantId));
     const reviewByEmployeeId = new Map<number, any>();
     if (!employeeIds.length) return reviewByEmployeeId;
 
@@ -3207,7 +3237,7 @@ export class HrService {
       
       const baseSalary = Number(baseSalaryByEmployeeId.get(employeeId) || 0);
       const contractedBase = Number(contractualMonthlySalary?.get(employeeId) ?? baseSalary);
-      const dailyRate = isHourly ? (hourlyRate * expectedHours) : (contractedBase > 0 ? Number((contractedBase / 30).toFixed(2)) : 0);
+      const dailyRate = isHourly ? (hourlyRate * expectedHours) : (contractedBase > 0 ? roundMoney(contractedBase / 30, reviewDigits) : 0);
       const calculatedHourlyRate = isHourly ? hourlyRate : (dailyRate / expectedHours);
 
       // Determine Delay Policy Deduction
@@ -3227,20 +3257,20 @@ export class HrService {
           else if (i === 3) totalPenaltyDays += hrDelayPolicyThirdTime;
           else totalPenaltyDays += hrDelayPolicyFourthTime;
         }
-        delayDeduction = Number((dailyRate * totalPenaltyDays).toFixed(2));
+        delayDeduction = roundMoney(dailyRate * totalPenaltyDays, reviewDigits);
       } else if (delayPolicyMode === 'standard') {
         // Standard: just exact minutes translated to money
-        delayDeduction = Number(((calculatedHourlyRate * (lateMinutes + earlyLeaveMinutes) / 60)).toFixed(2));
+        delayDeduction = roundMoney((calculatedHourlyRate * (lateMinutes + earlyLeaveMinutes) / 60), reviewDigits);
       } else if (delayPolicyMode === 'strict') {
         // Strict: half-day deduction per incident
-        delayDeduction = Number((dailyRate * 0.5 * totalIncidents).toFixed(2));
+        delayDeduction = roundMoney(dailyRate * 0.5 * totalIncidents, reviewDigits);
       } else {
         // disabled
         delayDeduction = 0;
       }
 
-      const suggestedAttendanceDeductionAmount = Number(((dailyRate * attendanceAbsentDays) + delayDeduction).toFixed(2));
-      const suggestedLeaveDeductionAmount = Number((dailyRate * unpaidLeaveDays).toFixed(2));
+      const suggestedAttendanceDeductionAmount = roundMoney((dailyRate * attendanceAbsentDays) + delayDeduction, reviewDigits);
+      const suggestedLeaveDeductionAmount = roundMoney(dailyRate * unpaidLeaveDays, reviewDigits);
       let suggestedOvertimeAllowanceAmount: number;
       try {
         suggestedOvertimeAllowanceAmount = !isHourly && effectiveContracts
@@ -3249,8 +3279,10 @@ export class HrService {
               effectiveContracts.get(employeeId) || [],
               expectedHours,
               overtimeMultiplier,
+              reviewDigits,
             )
           : calculateOvertime({
+              minorUnits: reviewDigits,
               calculatedHourlyRate, overtimeMinutes, overtimeMultiplier,
             });
       } catch (error) {
@@ -3274,10 +3306,10 @@ export class HrService {
 
       const totalSales = salesByUser.get(Number(emp.user_id)) || 0;
       if (cType === 'percentage') {
-        commissionValue = Number((totalSales * (cVal / 100)).toFixed(2));
+        commissionValue = roundMoney(totalSales * (cVal / 100), reviewDigits);
       } else if (cType === 'target_percentage') {
         if (totalSales >= cTarget) {
-          commissionValue = Number((totalSales * (cVal / 100)).toFixed(2));
+          commissionValue = roundMoney(totalSales * (cVal / 100), reviewDigits);
         }
       } else if (cType === 'fixed') {
         commissionValue = cVal;
@@ -3654,6 +3686,7 @@ export class HrService {
       .where('loan_deduction_amount', '>', 0)
       .execute();
 
+    const settleBookDigits = await tenantBookDigits(trx, tenantId);
     for (const item of items) {
       let remainingToDeduct = Number(item.loan_deduction_amount);
       if (remainingToDeduct <= 0) continue;
@@ -3700,6 +3733,7 @@ export class HrService {
           installmentPaid: Number(row.paid_amount),
           loanRemaining: Number(loanState?.remaining_amount ?? 0),
           loanPaid: Number(loanState?.paid_amount ?? 0),
+          minorUnits: settleBookDigits,
         });
         if (!allocation) continue;
 
@@ -4427,9 +4461,13 @@ export class HrService {
 
     const configuredCurrency = clean(tenantSettings.currency).toUpperCase();
     const currency = clean(payload.currency || configuredCurrency).toUpperCase();
-    if (!/^[A-Z]{3}$/.test(configuredCurrency) || configuredCurrency !== currency || ['KWD', 'OMR'].includes(currency)) {
-      throw new AppError('عملة كشف التحويل غير مدعومة أو لا تطابق عملة المنشأة؛ ملفات العملات ذات 3 منازل موقوفة حتى تطوير الدقة', 'HR_PAYROLL_EXPORT_CURRENCY_MISMATCH', 409);
+    if (!/^[A-Z]{3}$/.test(configuredCurrency) || configuredCurrency !== currency) {
+      throw new AppError('عملة كشف التحويل غير مدعومة أو لا تطابق عملة المنشأة', 'HR_PAYROLL_EXPORT_CURRENCY_MISMATCH', 409);
     }
+    // INV-HR-PAYROLL-BOOK-PRECISION: the review CSV formats stored run
+    // amounts at book precision; KWD/OMR runs are no longer blocked here.
+    // Certified WPS/SIF generation stays deliberately disabled above.
+    const exportDigits = currencyMoneyDigits(currency);
 
     let totalNetPay = 0;
     let totalBaseSalary = 0;
@@ -4487,10 +4525,10 @@ export class HrService {
       csvCell(r.bankName),
       csvCell(r.iban || r.bankAccountNumber),
       csvCell(r.bankSwiftCode),
-      r.baseSalary.toFixed(2),
-      r.allowances.toFixed(2),
-      r.deductions.toFixed(2),
-      r.netPay.toFixed(2),
+      r.baseSalary.toFixed(exportDigits),
+      r.allowances.toFixed(exportDigits),
+      r.deductions.toFixed(exportDigits),
+      r.netPay.toFixed(exportDigits),
     ].join(','));
     const csvContent = [csvHeaders.join(','), ...csvLines].join('\r\n');
 
@@ -4555,10 +4593,11 @@ export class HrService {
   async createPayrollAdjustment(id: number, payload: CreatePayrollAdjustmentDto, auth: AuthContext): Promise<Record<string, unknown>> {
     const item = await this.getPayrollItemRun(this.db, id, auth.tenantId || '');
     if (item.runStatus !== 'draft') throw new AppError('Payroll adjustments can only be edited while the run is draft', 'HR_PAYROLL_ADJUSTMENT_LOCKED', 400);
+    const adjustmentBookDigits = await tenantBookDigits(this.db, auth.tenantId || '');
     try {
-      requireTwoDecimalLoanMoney(Number(payload.amount));
+      requireLoanMoney(Number(payload.amount), adjustmentBookDigits);
     } catch {
-      throw new AppError('مبلغ تعديل المرتب يجب أن يكون موجبًا وبدقة منزلتين عشريتين دون تقريب', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
+      throw new AppError('مبلغ تعديل المرتب يجب أن يكون موجبًا وبدقة دفاتر المنشأة دون تقريب', 'HR_PAYROLL_ADJUSTMENT_AMOUNT_INVALID', 400);
     }
     await this.tx.runInTransaction(this.db, async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + auth.tenantId}))`.execute(trx);
@@ -4574,7 +4613,7 @@ export class HrService {
       }
       await sql`
         INSERT INTO hr_payroll_item_adjustments (tenant_id, account_id, payroll_item_id, adjustment_type, label, amount, notes)
-        VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount)}, ${clean(payload.notes)})
+        VALUES (${auth.tenantId}, ${auth.accountId}, ${id}, ${clean(payload.adjustmentType)}, ${clean(payload.label)}, ${money(payload.amount, adjustmentBookDigits)}, ${clean(payload.notes)})
       `.execute(trx);
       await this.recalculatePayrollItemTotals(trx, id, requireTenantScope(auth).tenantId);
       await sql`UPDATE hr_payroll_runs SET updated_at = NOW() WHERE id = ${item.runId} AND tenant_id = ${auth.tenantId}`.execute(trx);
@@ -6106,8 +6145,9 @@ export class HrService {
       if (!['lost', 'damaged'].includes(status)) {
         throw new AppError('خصم العهدة متاح للمفقود والتالف فقط', 'HR_ASSET_DEDUCTION_STATUS_INVALID', 400);
       }
-      try { requireStoredHrMoney(Number(payload.deductionAmount)); } catch {
-        throw new AppError('خصم العهدة غير صحيح أو يتضمن جزءًا من قرش', 'HR_ASSET_DEDUCTION_AMOUNT_INVALID', 400);
+      const bookDigits = await tenantBookDigits(this.db, tenantId);
+      try { requireStoredHrMoney(Number(payload.deductionAmount), bookDigits); } catch {
+        throw new AppError('خصم العهدة غير صحيح أو يتضمن جزءًا أدق من دقة دفاتر المنشأة', 'HR_ASSET_DEDUCTION_AMOUNT_INVALID', 400);
       }
     }
     if (payload.returnedAt && !normalizeDateOnly(payload.returnedAt)) {

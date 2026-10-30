@@ -3,7 +3,8 @@ import { Kysely, sql } from '../../database/kysely';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Database } from '../../database/database.types';
 import { AppError } from '../../common/errors/app-error';
-import { calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireTwoDecimalLoanMoney } from './payroll-loan-allocation.engine';
+import { calculateLoanInstallmentSchedule, addLoanInstallmentMonths, requireLoanMoney } from './payroll-loan-allocation.engine';
+import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
 import { formatDailyDocumentNumber } from '../../common/utils/document-number.util';
 import { getTenantTimezone, todayTenantDate } from '../../common/utils/tenant-timezone.util';
 import { LoginAttemptLimiter } from '../../common/utils/login-attempt-limiter';
@@ -807,9 +808,15 @@ export class EmployeePortalService {
     let amount: number;
     let schedule: ReturnType<typeof calculateLoanInstallmentSchedule>;
     try {
-      amount = requireTwoDecimalLoanMoney(Number(body.amount));
+      const currencySetting = await sql<{ value: string }>`
+        SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
+      `.execute(this.db);
+      const currency = String(currencySetting.rows[0]?.value || '').replace(/^"|"$/g, '').trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(currency)) throw new AppError('حدد عملة منشأتك قبل طلب السلفة', 'HR_TENANT_CURRENCY_REQUIRED', 400);
+      const bookDigits = currencyMoneyDigits(currency);
+      amount = requireLoanMoney(Number(body.amount), bookDigits);
       const count = body.repaymentMonths == null ? 1 : Number(body.repaymentMonths);
-      schedule = calculateLoanInstallmentSchedule(amount, count);
+      schedule = calculateLoanInstallmentSchedule(amount, count, bookDigits);
     } catch (error) {
       throw new AppError(error instanceof Error ? error.message : 'مبلغ السلفة أو عدد الأقساط غير صحيح',
         'HR_PORTAL_ADVANCE_INVALID', 400);

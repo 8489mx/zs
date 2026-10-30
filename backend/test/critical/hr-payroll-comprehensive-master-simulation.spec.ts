@@ -109,6 +109,7 @@ function testEmployeeAdvanceAndPayrollSettlement() {
     installmentPaid: 0,
     loanRemaining: 1000,
     loanPaid: 0,
+    minorUnits: 2,
   });
   assert.ok(loanAllocation, 'تم تخصيص خصم السلفة بنجاح');
   assert.equal(loanAllocation.deductAmount, 1000);
@@ -439,6 +440,7 @@ function testMonteCarlo50000Cases() {
 
     // 2. احتساب سطر المرتب عبر محرك احتساب الرواتب الرسمي
     const payrollLine = calculateEmployeePayrollLine({
+      minorUnits: 2,
       employeeId: i,
       baseSalary,
       allowanceAmount: allowance,
@@ -558,6 +560,7 @@ function testDoubleEntryReconciliation() {
   console.log('--- 5. اختبار القيود المحاسبية المزدوجة (تطابق المدين والدائن 100%) ---');
 
   const line1 = calculateEmployeePayrollLine({
+      minorUnits: 2,
     employeeId: 1,
     baseSalary: 10000,
     allowanceAmount: 0,
@@ -574,6 +577,7 @@ function testDoubleEntryReconciliation() {
   });
 
   const line2 = calculateEmployeePayrollLine({
+      minorUnits: 2,
     employeeId: 2,
     baseSalary: 8000,
     allowanceAmount: 0,
@@ -589,7 +593,7 @@ function testDoubleEntryReconciliation() {
     scheduledLoanDeduction: 1000,
   });
 
-  const journal = reconcilePayrollRunJournalTotals([line1, line2]);
+  const journal = reconcilePayrollRunJournalTotals([line1, line2], 2);
 
   // تطابق القيد المزدوج: إجمالي المدين = إجمالي الدائن
   assert.equal(journal.isBalanced, true, 'القيد المحاسبي متوازن تماماً');

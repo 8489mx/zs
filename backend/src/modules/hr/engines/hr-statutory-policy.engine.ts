@@ -2,6 +2,8 @@
  * Verifiable configuration input for payroll, NOT a statement of any country's
  * laws. Authorised payroll staff must review the applicable effective-dated rules.
  */
+import { MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
+
 export interface HrStatutoryPolicy {
   hrSocialInsuranceEnabled?: boolean;
   hrIncomeTaxEnabled?: boolean;
@@ -67,7 +69,7 @@ export function requireHrPayrollJurisdictionCurrency(
   }
 }
 
-const money = (v: number): number => Number(v.toFixed(2));
+const money = (v: number, minorUnits: MoneyDigits): number => roundMoney(v, minorUnits);
 function validDate(d: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(d)
     && Number.isFinite(Date.parse(d + 'T00:00:00Z'))
@@ -135,6 +137,7 @@ export function calculateHrStatutoryAmounts(
   p: HrStatutoryPolicy,
   period: { from: string; to: string },
   employee: { insured: boolean; taxable: boolean; insuranceWage: number; taxableMonthlyWage: number; insurancePeriodFraction?: number },
+  minorUnits: MoneyDigits,
 ) {
   validateHrStatutoryPolicy(p, period);
   let employeeInsurance = 0, employerInsurance = 0, incomeTax = 0;
@@ -162,8 +165,8 @@ export function calculateHrStatutoryAmounts(
     const maximum = Number(ins.maxSalary || 0) * fraction;
     wage = Math.max(minimum, wage);
     if (Number(ins.maxSalary || 0) > 0) wage = Math.min(maximum, wage);
-    employeeInsurance = money(wage * Number(ins.employeePct) / 100);
-    employerInsurance = money(wage * Number(ins.employerPct) / 100);
+    employeeInsurance = money(wage * Number(ins.employeePct) / 100, minorUnits);
+    employerInsurance = money(wage * Number(ins.employerPct) / 100, minorUnits);
   }
   if (p.hrIncomeTaxEnabled && employee.taxable) {
     const monthly = Number(employee.taxableMonthlyWage);
@@ -176,7 +179,7 @@ export function calculateHrStatutoryAmounts(
       if (taxableAnnual <= upper) break;
       lower = upper;
     }
-    incomeTax = money(annualTax / 12);
+    incomeTax = money(annualTax / 12, minorUnits);
   }
   return { employeeInsurance, employerInsurance, incomeTax };
 }

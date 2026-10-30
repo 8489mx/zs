@@ -38,14 +38,14 @@ assert.doesNotThrow(() => validateHrStatutoryPolicy({
 }, month, true));
 const amount = calculateHrStatutoryAmounts(policy, month, {
   insured: true, taxable: true, insuranceWage: 14000, taxableMonthlyWage: 20000,
-});
+}, 2);
 assert.equal(amount.employeeInsurance, 1000);
 assert.equal(amount.employerInsurance, 1500);
 assert.equal(amount.incomeTax, 1400); // 228k taxable annual => 6000 + 10800 / 12
 
 assert.deepEqual(calculateHrStatutoryAmounts(policy, month, {
   insured: false, taxable: false, insuranceWage: 0, taxableMonthlyWage: 0,
-}), { employeeInsurance: 0, employerInsurance: 0, incomeTax: 0 });
+}, 2), { employeeInsurance: 0, employerInsurance: 0, incomeTax: 0 });
 
 assert.throws(() => validateHrStatutoryPolicy({ ...policy, statutoryReviewed: false }), /تاريخ السريان|المراجعة/);
 assert.throws(() => validateHrStatutoryPolicy({ ...policy, statutoryCountry: undefined }), /الدولة/);
@@ -58,13 +58,13 @@ assert.throws(() => validateHrStatutoryPolicy({
 }), /نسبة/);
 assert.throws(() => calculateHrStatutoryAmounts(policy, { from: '2026-10-08', to: '2026-10-14' }, {
   insured: true, taxable: true, insuranceWage: 10000, taxableMonthlyWage: 10000,
-}), /شهرًا ميلاديًا كاملًا/);
+}, 2), /شهرًا ميلاديًا كاملًا/);
 assert.throws(() => calculateHrStatutoryAmounts({ ...policy, hrIncomeTaxEnabled: false },
   { from: '2026-10-08', to: '2026-10-14' }, {
     insured: true, taxable: false, insuranceWage: 10000, taxableMonthlyWage: 0,
-  }), /شهرًا ميلاديًا كاملًا/);
+  }, 2), /شهرًا ميلاديًا كاملًا/);
 assert.deepEqual(calculateHrStatutoryAmounts({
   hrSocialInsuranceEnabled: false, hrIncomeTaxEnabled: false,
 }, { from: '2026-10-08', to: '2026-10-14' }, {
   insured: true, taxable: true, insuranceWage: 10000, taxableMonthlyWage: 10000,
-}), { employeeInsurance: 0, employerInsurance: 0, incomeTax: 0 });
+}, 2), { employeeInsurance: 0, employerInsurance: 0, incomeTax: 0 });

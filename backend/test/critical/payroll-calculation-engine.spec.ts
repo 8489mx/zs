@@ -18,6 +18,7 @@ function testOvertimeAndDailyRates() {
 
   // 1.1 Monthly employee daily rate & hourly rate
   const monthlyRate = calculateDailyRate({
+    minorUnits: 2,
     isHourly: false,
     baseSalary: 12000,
     expectedDailyHours: 8,
@@ -27,6 +28,7 @@ function testOvertimeAndDailyRates() {
 
   // 1.2 Overtime 120 minutes (2 hours) at 1.5x
   const overtimePay = calculateOvertime({
+    minorUnits: 2,
     overtimeMinutes: 120,
     calculatedHourlyRate: 50,
     overtimeMultiplier: 1.5,
@@ -35,17 +37,21 @@ function testOvertimeAndDailyRates() {
   assert.equal(overtimePay, 150.0, 'أجر الإضافي لساعتين بمعدل 1.5x هو 150.00');
   // Hourly base includes 2h * 50 = 100 already; only the additional 50 is owed.
   assert.equal(calculateHourlyOvertimePremium({
+    minorUnits: 2,
     overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 1.5,
   }), 50);
   assert.equal(calculateHourlyOvertimePremium({
+    minorUnits: 2,
     overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 2,
   }), 100);
   assert.equal(calculateHourlyOvertimePremium({
+    minorUnits: 2,
     overtimeMinutes: 120, calculatedHourlyRate: 50, overtimeMultiplier: 1,
   }), 0);
 
   // 1.3 Hourly employee daily rate
   const hourlyRateCalc = calculateDailyRate({
+    minorUnits: 2,
     isHourly: true,
     hourlyRate: 35,
     expectedDailyHours: 8,
@@ -60,6 +66,7 @@ function testProgressiveDelayDeductions() {
 
   // 2.1 Standard exact minutes deduction
   const standardDeduction = calculateProgressiveDelayDeduction({
+    minorUnits: 2,
     policyMode: 'standard',
     totalIncidents: 2,
     totalLateMinutes: 90,
@@ -72,6 +79,7 @@ function testProgressiveDelayDeductions() {
   // 2.2 Progressive tier policy: 4 incidents
   // 1st: 0.25 day, 2nd: 0.5 day, 3rd: 1 day, 4th: 1 day -> Total 2.75 days
   const progressiveDeduction = calculateProgressiveDelayDeduction({
+    minorUnits: 2,
     policyMode: 'progressive',
     totalIncidents: 4,
     totalLateMinutes: 120,
@@ -94,6 +102,7 @@ function testSocialInsuranceCalculations() {
 
   // 3.1 Standard GOSI (Employee 11%, Employer 18.75%)
   const gosi = calculateSocialInsurance({
+    minorUnits: 2,
     isEnabled: true,
     hasEmployeeInsurance: true,
     insuranceSalary: 8000,
@@ -105,6 +114,7 @@ function testSocialInsuranceCalculations() {
 
   // 3.2 GOSI with statutory wage cap
   const cappedGosi = calculateSocialInsurance({
+    minorUnits: 2,
     isEnabled: true,
     hasEmployeeInsurance: true,
     insuranceSalary: 55000,
@@ -132,9 +142,11 @@ function testIncomeTaxCalculations() {
     { min: 16666, max: null, rate: 0.225 },
   ];
   assert.throws(() => calculateIncomeTax({
+    minorUnits: 2,
     isEnabled: true, hasIncomeTax: true, taxableIncome: 10000,
   }), /Explicit tax brackets/);
   const exempt = calculateIncomeTax({
+    minorUnits: 2,
     isEnabled: true,
     hasIncomeTax: true,
     taxableIncome: 3000,
@@ -145,6 +157,7 @@ function testIncomeTaxCalculations() {
   // 4.2 Income in 10% bracket (e.g. 4000)
   // (4000 - 3333) * 10% = 66.70
   const taxTier1 = calculateIncomeTax({
+    minorUnits: 2,
     isEnabled: true,
     hasIncomeTax: true,
     taxableIncome: 4000,
@@ -158,6 +171,7 @@ function testIncomeTaxCalculations() {
   // Tier 3 (6250 - 10000): 3750 * 20% = 750
   // Total = 125 + 250.05 + 750 = 1125.05
   const taxTier3 = calculateIncomeTax({
+    minorUnits: 2,
     isEnabled: true,
     hasIncomeTax: true,
     taxableIncome: 10000,
@@ -173,6 +187,7 @@ function testPayrollLinePriorityAndCaps() {
   // 5.1 Normal case: Total deductions well below 50% cap
   {
     const line = calculateEmployeePayrollLine({
+    minorUnits: 2,
       employeeId: 101,
       baseSalary: 10000,
       allowanceAmount: 2000,
@@ -210,6 +225,7 @@ function testPayrollLinePriorityAndCaps() {
   // Net Pay: 6000 - (600 + 1000 + 1400) = 3000 (exactly 50% preserved!).
   {
     const line = calculateEmployeePayrollLine({
+    minorUnits: 2,
       employeeId: 102,
       baseSalary: 6000,
       allowanceAmount: 0,
@@ -245,6 +261,7 @@ function testPayrollLinePriorityAndCaps() {
   // Net Pay: 4000 - (400 + 1600) = 2000.
   {
     const line = calculateEmployeePayrollLine({
+    minorUnits: 2,
       employeeId: 103,
       baseSalary: 4000,
       allowanceAmount: 0,
@@ -277,6 +294,7 @@ function testDoubleEntryPayrollRunReconciliation() {
 
   // Create 3 diverse payroll line items:
   const line1: PayrollLineItemOutput = calculateEmployeePayrollLine({
+    minorUnits: 2,
     employeeId: 1,
     baseSalary: 15000,
     allowanceAmount: 3000,
@@ -294,6 +312,7 @@ function testDoubleEntryPayrollRunReconciliation() {
   });
 
   const line2: PayrollLineItemOutput = calculateEmployeePayrollLine({
+    minorUnits: 2,
     employeeId: 2,
     baseSalary: 8000,
     allowanceAmount: 1000,
@@ -311,6 +330,7 @@ function testDoubleEntryPayrollRunReconciliation() {
   });
 
   const line3: PayrollLineItemOutput = calculateEmployeePayrollLine({
+    minorUnits: 2,
     employeeId: 3,
     baseSalary: 5000,
     allowanceAmount: 500,
@@ -327,7 +347,7 @@ function testDoubleEntryPayrollRunReconciliation() {
     maxDeductionPct: 0.50,
   });
 
-  const reconciliation = reconcilePayrollRunJournalTotals([line1, line2, line3]);
+  const reconciliation = reconcilePayrollRunJournalTotals([line1, line2, line3], 2);
 
   console.log(`- إجمالي مصاريف الرواتب (مدين 6200): ${reconciliation.grossSalariesExpense}`);
   console.log(`- إجمالي حصة المنشأة في التأمينات (مدين 6210): ${reconciliation.employerInsuranceExpense}`);

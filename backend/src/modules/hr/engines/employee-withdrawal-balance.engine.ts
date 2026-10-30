@@ -136,7 +136,7 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
   // 1. Accrual Calculation
   if (isHourly) {
     accrualSource = 'attendance_records';
-    const work = summarizeHourlyAttendance(ctx.punches, hourlyRate);
+    const work = summarizeHourlyAttendance(ctx.punches, hourlyRate, 2); // Withdrawal previews stay 2dp: separate package
     workedHours = round2(work.workedMinutes / 60);
     completedDays = work.completedDays;
     accruedEarnings = round2(work.baseWage);
@@ -180,7 +180,7 @@ export function calculateEmployeeWithdrawalBalance(ctx: EmployeeWithdrawalContex
     }
   } else {
     accrualSource = 'contract_prorated';
-    accruedEarnings = round2(prorateMonthlyWage(baseSalary, cycleStart, ctx.todayDate));
+    accruedEarnings = round2(prorateMonthlyWage(baseSalary, cycleStart, ctx.todayDate, 2)); // Withdrawal previews stay 2dp: separate package
     completedDays = daysElapsed;
     calculationText = `استحقاق نسبي عن ${completedDays} يوم (من راتب ${baseSalary} ج.م)`;
     isProrated = true;
