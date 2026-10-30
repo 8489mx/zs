@@ -964,6 +964,7 @@ export class VanSalesService {
 
     const officialHolidays = await getMonthlyOfficialHolidayDates(this.anyDb, tenantId, startOfMonth, endOfMonth);
 
+    const metricsMoneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.anyDb, tenantId));
     const baseMetrics = calculateRepTargetMetrics({
       targetAmount,
       actualSalesMTD: actualSalesMtd,
@@ -974,6 +975,7 @@ export class VanSalesService {
       currentDate: now,
       weekendDays: [5], // Friday
       officialHolidays,
+      moneyDigits: metricsMoneyDigits,
     });
 
     const todaySales = Number(tripRow?.salesAmount || 0);

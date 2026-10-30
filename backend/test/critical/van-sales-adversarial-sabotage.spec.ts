@@ -470,6 +470,7 @@ const targetMetrics = calculateRepTargetMetrics({
   actualVisitsMTD: 50,
   currentDate: new Date('2026-10-15T12:00:00Z'),
   officialHolidays: [],
+  moneyDigits: 2,
 });
 
 assert.equal(targetMetrics.achievementRate, 40.0);

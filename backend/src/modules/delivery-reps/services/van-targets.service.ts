@@ -365,6 +365,8 @@ export class VanTargetsService {
       this.getPaidCommissionsMapForMonth(tenantId, month),
     ]);
 
+    // Book digits for the target-tracking inputs (INV-REP-TARGET-METRICS-DIGITS).
+    const metricsMoneyDigits = currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId));
     const metrics = calculateRepTargetMetrics({
       targetAmount,
       actualSalesMTD: actualSalesMtd,
@@ -375,6 +377,7 @@ export class VanTargetsService {
       currentDate: now,
       weekendDays: [5], // Friday
       officialHolidays,
+      moneyDigits: metricsMoneyDigits,
     });
 
     const rates = this.resolveRepCommissionRates(commissionConfig, repId);
@@ -536,6 +539,7 @@ export class VanTargetsService {
         currentDate: now,
         weekendDays: [5],
         officialHolidays,
+        moneyDigits,
       });
 
       const rates = this.resolveRepCommissionRates(commissionConfig, repId);

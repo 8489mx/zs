@@ -14,8 +14,15 @@ import { type MoneyDigits, roundMoney as roundBookMoney } from '../accounting/en
  * file-private 2-decimal rounder (which also swallowed non-finite
  * values to 0) is gone; rounding goes through the canonical engine
  * at the caller's digits and fails closed on non-finite input.
- * calculateRepTargetMetrics still rounds its target tracking at 2
- * decimals via toFixed(2) — a separate package, not this one.
+ * calculateRepTargetMetrics normalizes its money INPUTS at the
+ * caller's book digits (INV-REP-TARGET-METRICS-DIGITS): the old
+ * toFixed(2) normalization misstated a 3-decimal tenant's target
+ * and actuals by up to half a minor unit and could even flip the
+ * achieved comparison for a rep 0.001 short of target. Its
+ * remaining/required-daily OUTPUTS deliberately stay whole
+ * currency units (Math.round / Math.ceil) — a display convention
+ * the frontend duplicates when it renders them — so only the
+ * three input normalizations take digits, never the outputs.
  */
 
 export interface RepTargetCalculationInput {
@@ -28,6 +35,10 @@ export interface RepTargetCalculationInput {
   currentDate?: Date | string;
   weekendDays?: number[]; // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat (Default [5] for Friday)
   officialHolidays?: string[]; // Array of 'YYYY-MM-DD' strings
+  // REQUIRED (INV-REP-TARGET-METRICS-DIGITS): normalizes the money
+  // inputs at the tenant's book digits. The remaining/required-daily
+  // outputs deliberately stay whole units and do not take digits.
+  moneyDigits: MoneyDigits;
 }
 
 export interface RepTargetCalculationResult {
@@ -60,8 +71,8 @@ export interface RepTargetCalculationResult {
 }
 
 export function calculateRepTargetMetrics(input: RepTargetCalculationInput): RepTargetCalculationResult {
-  const target = Math.max(0, Number(Number(input.targetAmount || 0).toFixed(2)));
-  const actual = Math.max(0, Number(Number(input.actualSalesMTD || 0).toFixed(2)));
+  const target = Math.max(0, roundBookMoney(Number(input.targetAmount || 0), input.moneyDigits));
+  const actual = Math.max(0, roundBookMoney(Number(input.actualSalesMTD || 0), input.moneyDigits));
 
   // Date parsing in local/UTC context
   let dateObj: Date;
@@ -135,7 +146,7 @@ export function calculateRepTargetMetrics(input: RepTargetCalculationInput): Rep
     ? Math.max(0, Math.round(Number(input.collectionTarget)))
     : null;
   const colActual = input.actualCollectionsMTD !== undefined && input.actualCollectionsMTD !== null
-    ? Math.max(0, Number(Number(input.actualCollectionsMTD).toFixed(2)))
+    ? Math.max(0, roundBookMoney(Number(input.actualCollectionsMTD), input.moneyDigits))
     : 0;
 
   const collectionAchievementRate = colTarget && colTarget > 0 ? Number(((colActual / colTarget) * 100).toFixed(1)) : null;

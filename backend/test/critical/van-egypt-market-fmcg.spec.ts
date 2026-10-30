@@ -155,6 +155,7 @@ const targetResult = calculateRepTargetMetrics({
   targetAmount: 50000,
   actualSalesMTD: 42000, // 38,000 + 4,000 today
   currentDate: new Date('2026-10-14'),
+  moneyDigits: 2,
 });
 
 assert.equal(targetResult.achievementRate, 84.0); // 84% achieved

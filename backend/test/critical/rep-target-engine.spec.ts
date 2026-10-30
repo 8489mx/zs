@@ -19,6 +19,7 @@ const result1 = calculateRepTargetMetrics({
   currentDate: '2026-09-24',
   weekendDays: [5], // Friday
   officialHolidays: ['2026-09-28'],
+  moneyDigits: 2,
 });
 
 assert.equal(result1.periodMonth, '2026-09');
@@ -41,6 +42,7 @@ const result2 = calculateRepTargetMetrics({
   actualSalesMTD: 95000,
   currentDate: '2026-09-26',
   weekendDays: [5],
+  moneyDigits: 2,
 });
 
 assert.equal(result2.achievementRate, 118.8);
@@ -53,6 +55,7 @@ const result3 = calculateRepTargetMetrics({
   targetAmount: 0,
   actualSalesMTD: 5000,
   currentDate: '2026-09-26',
+  moneyDigits: 2,
 });
 
 assert.equal(result3.achievementRate, 0);
@@ -66,6 +69,7 @@ const result4 = calculateRepTargetMetrics({
   actualSalesMTD: 40000,
   currentDate: '2026-09-30',
   weekendDays: [5],
+  moneyDigits: 2,
 });
 
 assert.equal(result4.remainingDaysTotal, 1);
