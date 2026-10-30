@@ -90,6 +90,7 @@ async function main() {
         branch_id bigint, location_id bigint, created_by bigint DEFAULT 1, created_at timestamptz DEFAULT '2026-10-02');
       CREATE TABLE return_items (tenant_id text, return_document_id bigint, product_id bigint,
         sale_item_id bigint, qty numeric, cost_price numeric, allocated_tax numeric);
+      CREATE TABLE accounting_cheques (id bigint PRIMARY KEY, tenant_id text, type text, status text, journal_entry_id bigint);
       INSERT INTO accounting_settings VALUES
         (1,'t1',1110,1120,1130,2110,1140,4100,4300,5100,2120,1150,NULL,NULL,NULL,NULL,NULL,NULL);
       INSERT INTO cost_centers VALUES (7,'t1','CC7','Cost center');

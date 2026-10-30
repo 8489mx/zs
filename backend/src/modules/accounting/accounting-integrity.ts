@@ -1,6 +1,30 @@
 import type { RawBuilder } from 'kysely';
 import { Kysely, sql } from '../../database/kysely';
 import { Database } from '../../database/database.types';
+import { currencyMoneyDigits, type MoneyDigits } from './engines/money-minor-units.engine';
+
+/**
+ * Half a minor unit at the tenant's book precision: the house tolerance
+ * for ledger/subledger drift (0.005 for 2-decimal tenants, 0.0005 for
+ * KWD/OMR-style 3-decimal tenants). A tenant with no readable currency
+ * setting keeps the old 0.005 behaviour instead of failing the whole
+ * report: a read-only audit must never go blind over configuration.
+ * INVENTORY_GL_VALUATION keeps its separate 0.05 aggregate slack
+ * deliberately (see the check below); it is not a per-line tolerance.
+ */
+async function integrityTolerance(db: Kysely<Database>, tenantId: string): Promise<number> {
+  let digits: MoneyDigits = 2;
+  try {
+    const setting = await db.selectFrom('settings').select('value')
+      .where('tenant_id', '=', tenantId).where('key', '=', 'currency').executeTakeFirst();
+    let value: unknown = (setting as any)?.value;
+    try { value = JSON.parse(String(value)); } catch { /* Legacy unquoted setting. */ }
+    digits = currencyMoneyDigits(String(value ?? ''));
+  } catch {
+    digits = 2;
+  }
+  return 1 / (2 * 10 ** digits);
+}
 
 export interface AccountingIntegrityCheck {
   code: string;
@@ -35,6 +59,7 @@ export async function inspectAccountingIntegrity(db: Kysely<Database>, tenantId:
   if (!tenantId?.trim()) throw new Error('An explicit tenant is required for accounting reconciliation');
   const tenant = await db.selectFrom('tenants').select('id').where('id','=',tenantId).executeTakeFirst();
   if (!tenant) throw new Error('Accounting reconciliation tenant does not exist');
+  const tolerance = await integrityTolerance(db, tenantId);
   const checks: AccountingIntegrityCheck[] = [];
   async function check(code: string, query: RawBuilder<unknown>) {
     const result = await sql<Record<string, unknown>>`WITH issues AS (${query})
@@ -89,10 +114,10 @@ export async function inspectAccountingIntegrity(db: Kysely<Database>, tenantId:
     WHERE l.tenant_id=${tenantId} AND ((l.partner_type='customer' AND c.id IS NULL) OR (l.partner_type='supplier' AND s.id IS NULL))`);
   await check('CUSTOMER_LEDGER_CACHE',sql`SELECT c.id,c.balance,coalesce(l.amount,0) AS ledger_balance FROM customers c
     LEFT JOIN (SELECT customer_id,sum(amount) AS amount FROM customer_ledger WHERE tenant_id=${tenantId} GROUP BY customer_id) l ON l.customer_id=c.id
-    WHERE c.tenant_id=${tenantId} AND abs(coalesce(c.balance,0)-coalesce(l.amount,0))>0.005`);
+    WHERE c.tenant_id=${tenantId} AND abs(coalesce(c.balance,0)-coalesce(l.amount,0))>${tolerance}`);
   await check('SUPPLIER_LEDGER_CACHE',sql`SELECT s.id,s.balance,coalesce(l.amount,0) AS ledger_balance FROM suppliers s
     LEFT JOIN (SELECT supplier_id,sum(amount) AS amount FROM supplier_ledger WHERE tenant_id=${tenantId} GROUP BY supplier_id) l ON l.supplier_id=s.id
-    WHERE s.tenant_id=${tenantId} AND abs(coalesce(s.balance,0)-coalesce(l.amount,0))>0.005`);
+    WHERE s.tenant_id=${tenantId} AND abs(coalesce(s.balance,0)-coalesce(l.amount,0))>${tolerance}`);
   await check('CUSTOMER_GL_SUBLEDGER',sql`WITH gl AS (
     SELECT l.partner_id,sum(l.debit-l.credit) AS amount FROM journal_entry_lines l
     JOIN journal_entries j ON j.id=l.journal_entry_id AND j.tenant_id=l.tenant_id
@@ -101,7 +126,7 @@ export async function inspectAccountingIntegrity(db: Kysely<Database>, tenantId:
     WHERE l.tenant_id=${tenantId} AND j.status='posted' AND l.partner_type='customer'
       AND (a.is_receivable OR a.code='1130' OR a.id=s.customer_receivable_account_id) GROUP BY l.partner_id)
     SELECT c.id,c.balance,coalesce(gl.amount,0) AS gl_balance FROM customers c LEFT JOIN gl ON gl.partner_id=c.id
-    WHERE c.tenant_id=${tenantId} AND abs(coalesce(c.balance,0)-coalesce(gl.amount,0))>0.005`);
+    WHERE c.tenant_id=${tenantId} AND abs(coalesce(c.balance,0)-coalesce(gl.amount,0))>${tolerance}`);
   await check('SUPPLIER_GL_SUBLEDGER',sql`WITH gl AS (
     SELECT l.partner_id,sum(l.credit-l.debit) AS amount FROM journal_entry_lines l
     JOIN journal_entries j ON j.id=l.journal_entry_id AND j.tenant_id=l.tenant_id
@@ -110,7 +135,7 @@ export async function inspectAccountingIntegrity(db: Kysely<Database>, tenantId:
     WHERE l.tenant_id=${tenantId} AND j.status='posted' AND l.partner_type='supplier'
       AND (a.is_payable OR a.code='2110' OR a.id=s.supplier_payable_account_id) GROUP BY l.partner_id)
     SELECT p.id,p.balance,coalesce(gl.amount,0) AS gl_balance FROM suppliers p LEFT JOIN gl ON gl.partner_id=p.id
-    WHERE p.tenant_id=${tenantId} AND abs(coalesce(p.balance,0)-coalesce(gl.amount,0))>0.005`);
+    WHERE p.tenant_id=${tenantId} AND abs(coalesce(p.balance,0)-coalesce(gl.amount,0))>${tolerance}`);
   await check('STOCK_LOCATION_QUANTITIES',sql`SELECT p.id,p.stock_qty,coalesce(s.qty,0) AS location_qty FROM products p
     LEFT JOIN (SELECT product_id,sum(qty) AS qty FROM product_location_stock WHERE tenant_id=${tenantId} GROUP BY product_id) s ON s.product_id=p.id
     WHERE p.tenant_id=${tenantId} AND abs(coalesce(p.stock_qty,0)-coalesce(s.qty,0))>0.0005`);
@@ -123,9 +148,30 @@ export async function inspectAccountingIntegrity(db: Kysely<Database>, tenantId:
     WHERE l.tenant_id=${tenantId} AND j.status='posted' AND (a.is_inventory OR a.code IN ('1140','1145') OR a.id=s.inventory_account_id))
     SELECT stock.amount AS stock_value,book.amount AS gl_value FROM stock,book WHERE abs(stock.amount-book.amount)>0.05`);
   await check('UNRESOLVED_POSTINGS',sql`SELECT id,source_type,source_id FROM accounting_posting_failures WHERE tenant_id=${tenantId} AND resolved_at IS NULL`);
+  // One ACTIVE journal per source: a reversed original plus its
+  // replacement is legitimate and must not flag. The list mirrors every
+  // source type with a one-journal guarantee at write time — the
+  // dedup_key types in postDomainJournal, the partial-unique-index
+  // types, and the SELECT-guard post methods (manufacturing, delivery
+  // settlement, van field return, payroll item payment, food waste).
+  // sale_edit is excluded: sale + sale_edit share a source_id space
+  // and are audited together by SALE_EDIT_NET. pdc_cheque_* events are
+  // excluded: one active journal per (cheque, event) is audited by
+  // PDC_CHEQUE_ACTIVE_DUPLICATES below. Reversal entries, fiscal
+  // transitions and stock_count_chunk are excluded: their multiplicity
+  // is legitimate by construction.
   await check('DUPLICATE_SOURCE_POSTINGS',sql`SELECT source_type,source_id,count(*) AS journal_count FROM journal_entries
-    WHERE tenant_id=${tenantId} AND status='posted' AND source_id IS NOT NULL
-      AND source_type IN ('sale','purchase','sales_return','purchase_return','customer_payment','supplier_payment','expense')
+    WHERE tenant_id=${tenantId} AND status='posted' AND reversed_by_entry_id IS NULL AND source_id IS NOT NULL
+      AND source_type IN ('sale','purchase','sales_return','purchase_return','customer_payment','supplier_payment',
+        'supplier_payment_schedule_settlement','expense','trade_in','maintenance_advance','maintenance_advance_refund',
+        'maintenance_delivery','maintenance_part_issue','maintenance_part_return','pharmacy_clinical_service',
+        'pharmacy_prescription_cash','contracting_ipc','contracting_subcontract_ipc','contracting_subcontractor_payment',
+        'marketplace_settlement','maritime_carrier_credit_note','customer_installment_interest','installment_interest_accrual',
+        'manufacturing_work_order','delivery_rep_settlement','van_trip_settlement','van_field_collection','van_field_return',
+        'hr_payroll_item_payment','food_waste','hr_payroll_accrual','hr_payroll_payment','hr_employee_loan_disbursement',
+        'hr_employee_loan_repayment','hr_end_of_service_settlement','customer_opening_balance','supplier_opening_balance',
+        'inventory_adjustment','damaged_stock','stock_count','service','service_reversal','cashier_shift_variance',
+        'withholding_tax_remittance')
     GROUP BY source_type,source_id HAVING count(*)>1`);
   await check('SALE_EDIT_NET',sql`SELECT source_id AS sale_id, count(*) AS active_journal_count FROM journal_entries
     WHERE tenant_id=${tenantId} AND status='posted' AND source_id IS NOT NULL
@@ -137,5 +183,22 @@ export async function inspectAccountingIntegrity(db: Kysely<Database>, tenantId:
     LEFT JOIN journal_entries o ON o.tenant_id=j.tenant_id AND o.id=j.reversal_of_entry_id
     WHERE j.tenant_id=${tenantId} AND ((j.reversed_by_entry_id IS NOT NULL AND (r.id IS NULL OR r.reversal_of_entry_id IS DISTINCT FROM j.id))
       OR (j.reversal_of_entry_id IS NOT NULL AND (o.id IS NULL OR o.reversed_by_entry_id IS DISTINCT FROM j.id)))`);
+  // Per-cheque PDC chain: write-time transitions are guarded, but no
+  // check ever verified the chain afterwards. These three checks pin
+  // the invariants the unique index and the transition engine assume:
+  // at most one active journal per (cheque, event), the cheque's
+  // latest-journal pointer is a live PDC journal for that cheque, and
+  // no PDC journal is orphaned from its cheque row.
+  await check('PDC_CHEQUE_ACTIVE_DUPLICATES',sql`SELECT source_type,source_id AS cheque_id,count(*) AS journal_count FROM journal_entries
+    WHERE tenant_id=${tenantId} AND status='posted' AND reversed_by_entry_id IS NULL AND source_type LIKE 'pdc_cheque_%'
+    GROUP BY source_type,source_id HAVING count(*)>1`);
+  await check('PDC_CHEQUE_JOURNAL_LINK',sql`SELECT c.id AS cheque_id,c.status,c.journal_entry_id FROM accounting_cheques c
+    LEFT JOIN journal_entries j ON j.id=c.journal_entry_id AND j.tenant_id=c.tenant_id
+    WHERE c.tenant_id=${tenantId} AND c.journal_entry_id IS NOT NULL
+      AND (j.id IS NULL OR j.status<>'posted' OR j.reversed_by_entry_id IS NOT NULL
+        OR j.source_id<>c.id OR j.source_type NOT LIKE 'pdc_cheque_%')`);
+  await check('PDC_CHEQUE_ORPHAN_JOURNALS',sql`SELECT j.id,j.source_type,j.source_id AS cheque_id FROM journal_entries j
+    LEFT JOIN accounting_cheques c ON c.id=j.source_id AND c.tenant_id=j.tenant_id
+    WHERE j.tenant_id=${tenantId} AND j.source_type LIKE 'pdc_cheque_%' AND c.id IS NULL`);
   return {tenantId,passed:checks.every(check=>check.count===0),checks};
 }
