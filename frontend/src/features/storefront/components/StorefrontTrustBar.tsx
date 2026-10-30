@@ -182,7 +182,7 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar(_props:
         .storefront-trust-icon-wrap {
           width: 44px;
           height: 44px;
-          border-radius: 50%;
+          border-radius: 12px;
           border: 1.5px solid rgba(255, 255, 255, 0.55);
           background: rgba(255, 255, 255, 0.1);
           box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
@@ -236,37 +236,57 @@ export const StorefrontTrustBar = React.memo(function StorefrontTrustBar(_props:
 
         @media (max-width: 640px) {
           .storefront-trust-bar-wrapper {
-            margin: 16px auto 0 !important;
-            padding: 0 !important;
+            margin: 14px auto 0 !important;
+            padding: 0 12px !important;
+            box-sizing: border-box !important;
           }
           .storefront-trust-banner {
-            border-radius: 14px !important;
-            padding: 18px 12px !important;
+            border-radius: 16px !important;
+            padding: 14px 12px !important;
           }
           .storefront-trust-bar-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 16px 10px !important;
+            align-items: stretch !important;
+            gap: 10px !important;
           }
           .storefront-trust-feature-item {
-            gap: 9px !important;
+            flex-direction: column !important;
             align-items: center !important;
+            justify-content: flex-start !important;
+            text-align: center !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            gap: 8px !important;
+            padding: 12px 8px !important;
+            background: rgba(255, 255, 255, 0.08) !important;
+            border: 1px solid rgba(255, 255, 255, 0.16) !important;
+            border-radius: 12px !important;
+            box-sizing: border-box !important;
+          }
+          .storefront-trust-text-col {
+            width: 100% !important;
+            max-width: 100% !important;
           }
           .storefront-trust-icon-wrap {
-            width: 34px !important;
-            height: 34px !important;
+            width: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
             border-width: 1.25px !important;
           }
           .storefront-trust-icon-wrap svg {
-            width: 17px !important;
-            height: 17px !important;
+            width: 18px !important;
+            height: 18px !important;
           }
           .storefront-trust-title {
-            font-size: 12px !important;
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+            white-space: normal !important;
             margin-bottom: 3px !important;
+            line-height: 1.3 !important;
           }
           .storefront-trust-subtitle {
-            font-size: 10px !important;
-            line-height: 1.45 !important;
+            font-size: 10.5px !important;
+            line-height: 1.42 !important;
           }
         }
       `}</style>

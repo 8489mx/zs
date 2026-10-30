@@ -30,6 +30,19 @@ function formatSmartCategoryName(categoryName?: string): string {
   return trimmed;
 }
 
+function formatConciseMobileCategoryName(categoryName?: string): string {
+  const base = formatSmartCategoryName(categoryName);
+  return base
+    .replace('العطور ومستحضرات التجميل', 'العطور والتجميل')
+    .replace('الهواتف والصوتيات الذكية', 'الهواتف والصوتيات')
+    .replace('الساعات الفاخرة والذكية', 'الساعات الفاخرة')
+    .replace('الحقائب والنظارات الفاخرة', 'الحقائب والنظارات')
+    .replace('الحقائب والنظارات الشمسية', 'الحقائب والنظارات')
+    .replace('الأحذية الرياضية والكاجوال', 'الأحذية الرياضية')
+    .replace('الأزياء والملابس الرجالية', 'الأزياء الرجالية')
+    .replace('الأزياء والملابس النسائية', 'الأزياء النسائية');
+}
+
 export function StorefrontCategoryShowcase({
   categories,
   selectedCategoryId,
@@ -168,7 +181,7 @@ export function StorefrontCategoryShowcase({
           .sf-mobile-cat-pills-row {
             display: flex !important;
             align-items: flex-start !important;
-            gap: 14px !important;
+            gap: 10px !important;
             overflow-x: auto !important;
             scrollbar-width: none !important;
             -ms-overflow-style: none !important;
@@ -188,10 +201,10 @@ export function StorefrontCategoryShowcase({
             flex-direction: column !important;
             align-items: center !important;
             justify-content: flex-start !important;
-            gap: 7px !important;
-            width: 68px !important;
-            min-width: 68px !important;
-            max-width: 72px !important;
+            gap: 6px !important;
+            width: 74px !important;
+            min-width: 74px !important;
+            max-width: 78px !important;
             flex-shrink: 0 !important;
             background: transparent !important;
             border: none !important;
@@ -205,19 +218,19 @@ export function StorefrontCategoryShowcase({
             transform: scale(0.95) !important;
           }
           .sf-mobile-cat-circle-avatar {
-            width: 60px !important;
-            height: 60px !important;
-            border-radius: 50% !important;
+            width: 62px !important;
+            height: 62px !important;
+            border-radius: 14px !important;
             background: #ffffff !important;
             border: 1.5px solid #e8edf4 !important;
             box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            padding: 10px !important;
+            padding: 9px !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
-            transition: all 0.18s ease !important;
+            transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1) !important;
           }
           .sf-mobile-cat-circle-item.is-active .sf-mobile-cat-circle-avatar {
             border: 2px solid var(--storefront-primary-color, #2d68c4) !important;
@@ -225,10 +238,10 @@ export function StorefrontCategoryShowcase({
             box-shadow: 0 6px 14px rgba(45, 104, 196, 0.18) !important;
           }
           .sf-mobile-cat-circle-label {
-            font-size: 11.5px !important;
-            font-weight: 600 !important;
+            font-size: 10.5px !important;
+            font-weight: 500 !important;
             color: #0f172a !important;
-            line-height: 1.25 !important;
+            line-height: 1.48 !important;
             text-align: center !important;
             width: 100% !important;
             display: -webkit-box !important;
@@ -241,7 +254,7 @@ export function StorefrontCategoryShowcase({
           }
           .sf-mobile-cat-circle-item.is-active .sf-mobile-cat-circle-label {
             color: var(--storefront-primary-color, #2d68c4) !important;
-            font-weight: 700 !important;
+            font-weight: 600 !important;
           }
         }
       `}</style>
@@ -250,7 +263,7 @@ export function StorefrontCategoryShowcase({
       <div className="sf-mobile-cat-header">
         <span
           style={{
-            fontSize: '14.5px',
+            fontSize: '13.5px',
             fontWeight: 700,
             color: '#0f172a',
             letterSpacing: '-0.1px',
@@ -266,20 +279,20 @@ export function StorefrontCategoryShowcase({
             background: 'none',
             border: 'none',
             padding: 0,
-            fontSize: '12.5px',
-            fontWeight: 700,
+            fontSize: '11.5px',
+            fontWeight: 600,
             color: 'var(--storefront-primary-color, #2d68c4)',
             cursor: 'pointer',
             fontFamily: 'inherit',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '4px',
+            gap: '3px',
             whiteSpace: 'nowrap',
             flexShrink: 0,
           }}
         >
           <span>عرض الكل</span>
-          <IconArrowUpRight size={14} strokeWidth={2.2} />
+          <IconArrowUpRight size={13} strokeWidth={2.2} />
         </button>
       </div>
 
@@ -330,11 +343,11 @@ export function StorefrontCategoryShowcase({
                     width: '100%',
                     height: '100%',
                     objectFit: 'contain',
-                    borderRadius: '50%',
+                    borderRadius: '10px',
                   }}
                 />
               </span>
-              <span className="sf-mobile-cat-circle-label">{formatSmartCategoryName(cat.name)}</span>
+              <span className="sf-mobile-cat-circle-label">{formatConciseMobileCategoryName(cat.name)}</span>
             </button>
           );
         })}

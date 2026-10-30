@@ -25,7 +25,13 @@ export function StorefrontMidBannerCard({
       window.scrollTo({ top: 120, behavior: 'smooth' });
     } else if (banner.linkType === 'url' && banner.customUrl) {
       if (banner.customUrl.startsWith('http://') || banner.customUrl.startsWith('https://')) {
-        window.open(banner.customUrl, '_blank', 'noopener,noreferrer');
+        const link = document.createElement('a');
+        link.href = banner.customUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       } else {
         window.location.href = banner.customUrl;
       }

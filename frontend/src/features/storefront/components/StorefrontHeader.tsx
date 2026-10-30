@@ -421,24 +421,49 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               position: sticky !important;
               top: 0 !important;
               z-index: 120 !important;
-              padding: 8px 14px 6px !important;
-              pointer-events: none !important;
+              padding: 8px 12px !important;
+              pointer-events: auto !important;
               transform: translate3d(0, 0, 0) !important;
-              background: transparent !important;
+              background: rgba(255, 255, 255, 0.96) !important;
+              backdrop-filter: blur(16px) !important;
+              -webkit-backdrop-filter: blur(16px) !important;
+              border-bottom: 1px solid #e8edf4 !important;
+              border-radius: 0 !important;
+              box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05) !important;
             }
             .storefront-navbar,
             .storefront-sticky-header.is-scrolled .storefront-navbar,
             .storefront-header-shell {
               pointer-events: auto !important;
-              display: block !important;
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: center !important;
+              gap: 7px !important;
               padding: 0 !important;
               margin: 0 !important;
               border-radius: 0 !important;
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
+              position: relative !important;
             }
-            .storefront-brand-btn,
+            .storefront-brand-btn {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              margin: 0 auto !important;
+              gap: 8px !important;
+            }
+            .storefront-brand-btn .storefront-brand-avatar {
+              width: 28px !important;
+              height: 28px !important;
+              border-radius: 8px !important;
+              font-size: 13px !important;
+            }
+            .storefront-brand-btn .storefront-brand-title {
+              font-size: 15px !important;
+              font-weight: 800 !important;
+            }
             .storefront-actions,
             .storefront-mobile-search-trigger {
               display: none !important;
@@ -455,24 +480,22 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               flex: none !important;
             }
             .storefront-search-box {
-              padding: 0 14px !important;
-              border-radius: 14px !important;
-              height: 44px !important;
-              border: 1px solid #e8edf4 !important;
-              background: rgba(255, 255, 255, 0.96) !important;
-              backdrop-filter: blur(14px);
-              -webkit-backdrop-filter: blur(14px);
-              box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03) !important;
+              padding: 0 12px !important;
+              border-radius: 11px !important;
+              height: 38px !important;
+              border: 1px solid #e2e8f0 !important;
+              background: #f8fafc !important;
+              box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02) !important;
               transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease !important;
             }
-            .storefront-sticky-header.is-scrolled .storefront-search-box {
-              background: rgba(255, 255, 255, 0.98) !important;
-              border-color: #dbe3ef !important;
-              box-shadow: 0 10px 26px -4px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05) !important;
+            .storefront-search-box:focus-within {
+              background: #ffffff !important;
+              border-color: var(--storefront-primary-color, #2d68c4) !important;
+              box-shadow: 0 0 0 3px rgba(45, 104, 196, 0.12) !important;
             }
             .storefront-search-input {
-              font-size: 13.5px !important;
-              padding: 6px 4px !important;
+              font-size: 12.5px !important;
+              padding: 5px 4px !important;
             }
             .storefront-search-btn {
               display: none !important;

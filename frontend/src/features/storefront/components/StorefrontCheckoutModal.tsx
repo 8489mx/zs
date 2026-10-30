@@ -799,15 +799,16 @@ export function StorefrontCheckoutModal({
         position: 'fixed',
         inset: 0,
         zIndex: 10000,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(4px)',
+        background: 'rgba(15, 23, 42, 0.48)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '12px',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
-        animation: 'fadeIn 0.2s ease',
+        animation: 'sfAppleBackdropIn 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards',
       }}
       onClick={handleModalClose}
     >
@@ -826,6 +827,8 @@ export function StorefrontCheckoutModal({
           flexDirection: 'column',
           margin: 'auto',
           border: '1px solid #e2e8f0',
+          willChange: 'transform, opacity',
+          animation: 'sfAppleSpringOpen 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         }}
         onClick={(e) => e.stopPropagation()}
       >

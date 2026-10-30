@@ -204,17 +204,19 @@ export function StorefrontCustomerOrderCard({
           </div>
         </div>
 
-        {/* Status Pill & Actions on Left */}
+        {/* Status Badge & Actions on Left */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <span
             style={{
               fontSize: '12px',
-              fontWeight: 500,
-              padding: '4px 12px',
-              borderRadius: '999px',
+              fontWeight: 600,
+              padding: '3px 10px',
+              borderRadius: '8px',
               background: badge.bg,
               color: badge.text,
+              border: `1px solid ${badge.text}25`,
               whiteSpace: 'nowrap',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
             }}
           >
             {badge.label}
@@ -628,11 +630,12 @@ export function StorefrontCustomerOrderCard({
               <span
                 style={{
                   fontSize: '11px',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   padding: '2px 8px',
-                  borderRadius: '999px',
+                  borderRadius: '6px',
                   background: '#22c55e',
                   color: '#ffffff',
+                  boxShadow: '0 1px 2px rgba(34, 197, 94, 0.25)',
                 }}
               >
                 مدفوع

@@ -170,10 +170,10 @@ export function StorefrontCategoriesModal({
           {/* Title Area */}
           <div className="storefront-cat-modal-header-brand">
             <div>
-              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0f172a', lineHeight: 1.25 }}>
+              <h2 style={{ margin: 0, fontSize: '14.5px', fontWeight: 700, color: '#0f172a', lineHeight: 1.3, letterSpacing: '-0.1px' }}>
                 {t('storefront.storefront_categories_modal.s1', 'تصفح أقسام المتجر')}
               </h2>
-              <span style={{ fontSize: '11.5px', color: '#64748b', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>
                 {categories.length === 1
                   ? t('storefront.storefront_categories_modal.s2_single', 'قسم وتصنيف معتمد')
                   : categories.length === 2
@@ -194,14 +194,14 @@ export function StorefrontCategoriesModal({
               placeholder={t('storefront.storefront_categories_modal.s3', 'ابحث عن اسم القسم أو الماركة...')}
               style={{
                 width: '100%',
-                height: '40px',
-                padding: '8px 40px 8px 14px',
-                borderRadius: '14px',
+                height: '36px',
+                padding: '6px 36px 6px 12px',
+                borderRadius: '11px',
                 border: '1px solid #e2e8f0',
-                fontSize: '13px',
-                fontWeight: 600,
+                fontSize: '12px',
+                fontWeight: 500,
                 color: '#0f172a',
-                background: '#f4f6fa',
+                background: '#f8fafc',
                 fontFamily: 'inherit',
                 outline: 'none',
                 boxSizing: 'border-box',
@@ -210,11 +210,11 @@ export function StorefrontCategoriesModal({
               onFocus={(e) => {
                 e.target.style.borderColor = 'var(--storefront-primary-color, #2d68c4)';
                 e.target.style.background = '#ffffff';
-                e.target.style.boxShadow = '0 0 0 3px rgba(45, 104, 196, 0.12)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(45, 104, 196, 0.1)';
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = '#e2e8f0';
-                e.target.style.background = '#f4f6fa';
+                e.target.style.background = '#f8fafc';
                 e.target.style.boxShadow = 'none';
               }}
             />
@@ -222,14 +222,14 @@ export function StorefrontCategoriesModal({
               style={{
                 position: 'absolute',
                 top: '50%',
-                right: '14px',
+                right: '12px',
                 transform: 'translateY(-50%)',
                 display: 'flex',
                 alignItems: 'center',
                 pointerEvents: 'none',
               }}
             >
-              <IconSearch size={16} color="#64748b" />
+              <IconSearch size={14} color="#64748b" />
             </span>
             {modalSearch.trim() && (
               <button
@@ -238,16 +238,16 @@ export function StorefrontCategoriesModal({
                 style={{
                   position: 'absolute',
                   top: '50%',
-                  left: '10px',
+                  left: '8px',
                   transform: 'translateY(-50%)',
                   background: '#e2e8f0',
                   border: 'none',
-                  borderRadius: '8px',
-                  padding: '2px 8px',
+                  borderRadius: '7px',
+                  padding: '2px 7px',
                   color: '#334155',
                   cursor: 'pointer',
-                  fontSize: '11px',
-                  fontWeight: 700,
+                  fontSize: '10.5px',
+                  fontWeight: 600,
                 }}
               >
                 {t('storefront.storefront_categories_modal.s4', 'مسح')}
@@ -262,7 +262,7 @@ export function StorefrontCategoriesModal({
             className="storefront-cat-modal-close-btn"
             title={t('storefront.storefront_categories_modal.s5', 'إغلاق (Esc)')}
           >
-            <IconClose size={16} strokeWidth={2.2} />
+            <IconClose size={15} strokeWidth={2.1} />
           </button>
         </div>
 
@@ -646,29 +646,31 @@ export function StorefrontCategoriesModal({
           {/* Left Detail Panel: Luxury Squircle Category Cards Grid */}
           <div className="storefront-cat-modal-content">
             {/* Active Group Header Bar */}
-            <div className="storefront-cat-modal-content-header">
-              <div>
+            <div className={`storefront-cat-modal-content-header ${!modalSearch.trim() ? 'is-default-header' : ''}`}>
+              <div style={{ minWidth: 0 }}>
                 <h3
                   style={{
                     margin: 0,
-                    fontSize: '16px',
-                    fontWeight: 900,
+                    fontSize: '14px',
+                    fontWeight: 700,
                     color: '#0f172a',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '7px',
+                    lineHeight: 1.3,
                   }}
                 >
                   <span
                     style={{
-                      width: '4px',
-                      height: '16px',
+                      width: '3.5px',
+                      height: '14px',
                       backgroundColor: 'var(--storefront-primary-color, #2d68c4)',
                       borderRadius: '4px',
                       display: 'inline-block',
+                      flexShrink: 0,
                     }}
                   />
-                  <span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {modalSearch.trim()
                       ? `نتائج البحث عن «${modalSearch}»`
                       : hasMultipleFamilies
@@ -678,10 +680,10 @@ export function StorefrontCategoriesModal({
                 </h3>
                 <span
                   style={{
-                    fontSize: '12px',
+                    fontSize: '11px',
                     color: '#64748b',
-                    fontWeight: 600,
-                    marginTop: '3px',
+                    fontWeight: 500,
+                    marginTop: '2px',
                     display: 'block',
                   }}
                 >
@@ -703,13 +705,13 @@ export function StorefrontCategoriesModal({
               {!modalSearch.trim() && currentFamilyObj && (
                 <span
                   style={{
-                    fontSize: '12px',
-                    fontWeight: 800,
-                    color: '#1e293b',
-                    background: '#f4f6fa',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#334155',
+                    background: '#f8fafc',
                     border: '1px solid #e2e8f0',
-                    padding: '5px 12px',
-                    borderRadius: '10px',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
                   }}
@@ -738,26 +740,27 @@ export function StorefrontCategoriesModal({
                       }}
                       className={`storefront-cat-modal-card ${isSelected ? 'selected' : ''}`}
                     >
-                      {/* Category Title: 2-line auto-wrap with exact height to prevent layout jumps */}
+                      {/* Category Title: Clean, refined 2-line wrap */}
                       <div
                         style={{
                           width: '100%',
                           textAlign: 'center',
-                          paddingInline: '4px',
+                          paddingInline: '2px',
                         }}
                       >
                         <div
+                          className="storefront-cat-modal-card-title"
                           style={{
-                            fontSize: '13.5px',
-                            fontWeight: 800,
+                            fontSize: '12px',
+                            fontWeight: 600,
                             color: isSelected ? 'var(--storefront-primary-color, #2d68c4)' : '#0f172a',
-                            lineHeight: 1.35,
+                            lineHeight: 1.32,
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
                             WebkitBoxOrient: 'vertical',
                             overflow: 'hidden',
-                            height: '38px',
-                            minHeight: '38px',
+                            height: '32px',
+                            minHeight: '32px',
                             whiteSpace: 'normal',
                             textAlign: 'center',
                             wordBreak: 'break-word',
@@ -770,8 +773,8 @@ export function StorefrontCategoriesModal({
                         {modalSearch.trim() && parsed.group && (
                           <div
                             style={{
-                              fontSize: '10.5px',
-                              fontWeight: 600,
+                              fontSize: '10px',
+                              fontWeight: 500,
                               color: '#64748b',
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
@@ -798,9 +801,10 @@ export function StorefrontCategoriesModal({
                         />
                       </div>
 
-                      {/* Bottom Clean Unified Count Badge */}
+                      {/* Bottom Clean Unified Count Badge (Soft Squircle) */}
                       <div style={{ textAlign: 'center', width: '100%' }}>
                         <span
+                          className="storefront-cat-modal-card-count"
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -809,13 +813,13 @@ export function StorefrontCategoriesModal({
                             background: isSelected ? 'var(--storefront-primary-color, #2d68c4)' : '#f8fafc',
                             color: isSelected ? '#ffffff' : '#475569',
                             border: `1px solid ${isSelected ? 'var(--storefront-primary-color, #2d68c4)' : '#e2e8f0'}`,
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            lineHeight: 1.3,
-                            padding: '3px 12px',
-                            borderRadius: '8px',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            lineHeight: 1.25,
+                            padding: '2.5px 10px',
+                            borderRadius: '7px',
                             whiteSpace: 'nowrap',
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.02)',
                           }}
                         >
                           <span>{formatCountLabel(count)}</span>

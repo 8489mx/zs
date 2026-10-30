@@ -306,7 +306,8 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
       }}
     >
       <style>{`
-        .sf-mobile-editorial-carousel {
+        .sf-mobile-editorial-carousel,
+        .sf-mobile-editorial-dots {
           display: none;
         }
         .storefront-coverflow-card {
@@ -385,7 +386,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
         @media (max-width: 640px) {
           .storefront-pallet-hero {
             margin-top: 0 !important;
-            padding: 6px 0 4px !important;
+            padding: 10px 0 4px !important;
             background: transparent !important;
             border-bottom: none !important;
           }
@@ -400,7 +401,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             direction: rtl !important;
             width: 100% !important;
             overflow-x: auto !important;
-            gap: 10px !important;
+            gap: 12px !important;
             padding: 2px 14px 6px !important;
             box-sizing: border-box !important;
             scroll-snap-type: x mandatory !important;
@@ -411,26 +412,34 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             display: none !important;
           }
           .sf-mobile-editorial-slide {
-            flex: 0 0 88% !important;
-            max-width: 88% !important;
-            height: 148px !important;
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+            height: 154px !important;
             border-radius: 16px !important;
-            padding: 14px 16px !important;
+            padding: 15px 16px !important;
             box-sizing: border-box !important;
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
-            gap: 12px !important;
+            gap: 14px !important;
             scroll-snap-align: center !important;
             position: relative !important;
             overflow: hidden !important;
-            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05) !important;
+            box-shadow: 0 6px 20px -4px rgba(15, 23, 42, 0.06) !important;
             cursor: pointer !important;
+          }
+          .sf-mobile-editorial-dots {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            margin-top: 4px !important;
+            padding-bottom: 2px !important;
           }
         }
       `}</style>
 
-      {/* Mobile-Only Apple/Pinterest Swipeable Hero Promo Cards (0:00-0:03 of video) */}
+      {/* Mobile-Only Full-Width Swipeable Hero Promo Cards */}
       <div className="sf-mobile-editorial-carousel" dir="rtl">
         {mobileHeroSlides.map((slide, idx) => (
           <div
@@ -464,10 +473,10 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             >
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: '10.5px',
                   fontWeight: 600,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
+                  padding: '3.5px 9px',
+                  borderRadius: '7px',
                   background: slide.kickerBg,
                   color: slide.kickerColor,
                   lineHeight: 1.2,
@@ -476,10 +485,10 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 {slide.kicker}
               </span>
 
-              <div style={{ margin: '4px 0' }}>
+              <div style={{ margin: '4px 0', width: '100%' }}>
                 <div
                   style={{
-                    fontSize: '14.5px',
+                    fontSize: '13px',
                     fontWeight: 700,
                     color: slide.textDark ? '#0f172a' : '#ffffff',
                     lineHeight: 1.32,
@@ -493,10 +502,10 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 </div>
                 <div
                   style={{
-                    fontSize: '11px',
-                    fontWeight: 400,
+                    fontSize: '10.5px',
+                    fontWeight: 500,
                     color: slide.textDark ? '#64748b' : '#cbd5e1',
-                    marginTop: '2px',
+                    marginTop: '3px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -510,11 +519,13 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  fontSize: '11px',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  height: '32px',
+                  fontSize: '11.5px',
                   fontWeight: 600,
-                  padding: '5px 12px',
-                  borderRadius: '8px',
+                  padding: '0 14px',
+                  borderRadius: '10px',
                   background: slide.accentBg,
                   color: slide.accentText,
                   boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
@@ -530,10 +541,10 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
               <div
                 style={{
                   width: '108px',
-                  height: '116px',
+                  height: '120px',
                   flexShrink: 0,
                   borderRadius: '12px',
-                  background: slide.textDark ? '#ffffff' : 'rgba(255, 255, 255, 0.95)',
+                  background: slide.textDark ? '#ffffff' : 'rgba(255, 255, 255, 0.96)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -565,6 +576,22 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
         ))}
       </div>
 
+      {/* Subtle Soft Squircle Indicator Bars for Mobile Hero Carousel */}
+      <div className="sf-mobile-editorial-dots" aria-hidden="true">
+        {mobileHeroSlides.map((_, idx) => (
+          <span
+            key={idx}
+            style={{
+              width: idx === 0 ? '18px' : '6px',
+              height: '5px',
+              borderRadius: '3px',
+              background: idx === 0 ? 'var(--storefront-primary-color, #2d68c4)' : '#cbd5e1',
+              transition: 'width 0.2s ease, background-color 0.2s ease',
+            }}
+          />
+        ))}
+      </div>
+
       {/* Top Main Headline */}
       <div className="sf-hero-headline-wrap" style={{ maxWidth: '100%', marginBottom: '12px', position: 'relative', zIndex: 5 }}>
         <style>{`
@@ -580,8 +607,8 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
             margin: 0;
             padding: 2px 6px;
             display: inline-block;
-            font-size: 25px;
-            font-weight: 800;
+            font-size: 20px;
+            font-weight: 700;
             line-height: 1.35;
             letter-spacing: -0.01em;
             white-space: nowrap;

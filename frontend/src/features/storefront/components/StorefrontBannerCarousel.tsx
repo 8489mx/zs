@@ -346,34 +346,34 @@ export function StorefrontBannerCarousel({
                 top: '50%',
                 right: '12px',
                 transform: 'translateY(-50%)',
-                width: '38px',
-                height: '38px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.88)',
+                width: '36px',
+                height: '36px',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.92)',
                 backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.95)',
+                border: '1px solid rgba(226, 232, 240, 0.95)',
                 color: '#0f172a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
                 opacity: isHovered ? 1 : 0,
                 pointerEvents: isHovered ? 'auto' : 'none',
-                transition: 'all 0.25s ease',
+                transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                 zIndex: 3,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1.06)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.92)';
                 e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
               }}
             >
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M9 5l7 7-7 7" />
+              <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" d="M9 5l7 7-7 7" />
               </svg>
             </button>
 
@@ -391,34 +391,34 @@ export function StorefrontBannerCarousel({
                 top: '50%',
                 left: '12px',
                 transform: 'translateY(-50%)',
-                width: '38px',
-                height: '38px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.88)',
+                width: '36px',
+                height: '36px',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.92)',
                 backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.95)',
+                border: '1px solid rgba(226, 232, 240, 0.95)',
                 color: '#0f172a',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
                 opacity: isHovered ? 1 : 0,
                 pointerEvents: isHovered ? 'auto' : 'none',
-                transition: 'all 0.25s ease',
+                transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
                 zIndex: 3,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+                e.currentTarget.style.transform = 'translateY(-50%) scale(1.06)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.88)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.92)';
                 e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
               }}
             >
-              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.8" d="M15 19l-7-7 7-7" />
+              <svg width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" d="M15 19l-7-7 7-7" />
               </svg>
             </button>
           </>

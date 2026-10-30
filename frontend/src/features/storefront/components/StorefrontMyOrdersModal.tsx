@@ -368,15 +368,17 @@ export function StorefrontMyOrdersModal({
             title="إغلاق"
             style={{
               background: '#f8fafc',
-              border: 'none',
-              borderRadius: '50%',
-              width: '32px',
-              height: '32px',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              width: '34px',
+              height: '34px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              color: '#475569',
+              color: '#334155',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+              transition: 'all 0.15s ease',
             }}
           >
             <XIcon size={15} strokeWidth={2} />

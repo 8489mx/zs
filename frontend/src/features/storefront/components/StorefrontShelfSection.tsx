@@ -144,14 +144,15 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
             className="storefront-shelf-title"
             style={{
               margin: 0,
-              fontSize: '17px',
-              fontWeight: 800,
+              fontSize: '15px',
+              fontWeight: 700,
               color: '#0f172a',
               display: 'inline-flex',
               alignItems: 'center',
               flexShrink: 0,
               whiteSpace: 'nowrap',
               lineHeight: 1.25,
+              letterSpacing: '-0.15px',
             }}
           >
             {badge}
@@ -160,9 +161,9 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
             <span
               className="storefront-shelf-subtitle"
               style={{
-                fontSize: '12px',
+                fontSize: '11.5px',
                 color: '#64748b',
-                fontWeight: 600,
+                fontWeight: 500,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
@@ -214,8 +215,8 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               background: 'none',
               border: 'none',
               color: 'var(--storefront-primary-color, #2d68c4)',
-              fontSize: '12.5px',
-              fontWeight: 700,
+              fontSize: '12px',
+              fontWeight: 600,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
@@ -227,7 +228,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
             }}
           >
             <span className="storefront-shelf-viewall-label">{viewAllLabel}</span>
-            <IconArrowUpRight size={14} strokeWidth={2.2} />
+            <IconArrowUpRight size={13} strokeWidth={2.2} />
           </button>
         </div>
       </div>

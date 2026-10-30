@@ -239,9 +239,10 @@ export function StorefrontOnlinePaymentModal({
                     </>
                   )}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => window.open(session.iframeUrl, '_blank')}
+                <a
+                  href={session.iframeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
                     background: '#f8fafc',
                     color: '#170e5e',
@@ -252,10 +253,14 @@ export function StorefrontOnlinePaymentModal({
                     fontWeight: 700,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
                   {t('storefront.storefront_online_payment_modal.s4', "فتح بنافذة مستقلة ↗")}
-                </button>
+                </a>
               </div>
             </div>
           ) : (

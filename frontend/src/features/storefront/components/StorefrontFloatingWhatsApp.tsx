@@ -69,29 +69,34 @@ export function StorefrontFloatingWhatsApp({
           box-sizing: border-box;
           background: #25D366;
           color: #ffffff;
-          border-radius: 50% !important;
+          border-radius: 14px !important;
           text-decoration: none;
           box-shadow: 0 10px 25px -3px rgba(37, 211, 102, 0.45), 0 4px 10px -2px rgba(15, 23, 42, 0.12);
-          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.15s ease;
+          transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, background 0.15s ease;
           font-family: inherit;
           user-select: none;
         }
         .sf-floating-whatsapp:hover {
           background: #22c55e;
-          transform: translateY(-2px) scale(1.05);
+          transform: translateY(-2px) scale(1.04);
           box-shadow: 0 14px 32px -3px rgba(37, 211, 102, 0.55), 0 6px 14px -2px rgba(15, 23, 42, 0.15);
         }
         .sf-floating-whatsapp:active {
-          transform: translateY(0) scale(0.96);
+          transform: translateY(0) scale(0.95);
         }
         @media (max-width: 640px) {
           .sf-floating-whatsapp {
             bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
             left: 12px !important;
             right: auto !important;
-            width: 42px !important;
-            height: 42px !important;
-            border-radius: 50% !important;
+            width: 40px !important;
+            height: 40px !important;
+            border-radius: 11px !important;
+            box-shadow: 0 6px 18px -2px rgba(37, 211, 102, 0.4), 0 2px 6px -1px rgba(15, 23, 42, 0.1) !important;
+          }
+          .sf-floating-whatsapp svg {
+            width: 21px !important;
+            height: 21px !important;
           }
         }
         @media print {

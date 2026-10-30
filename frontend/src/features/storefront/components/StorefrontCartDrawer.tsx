@@ -87,9 +87,9 @@ export function StorefrontCartDrawer({
         display: 'flex',
         justifyContent: 'flex-start',
         background: 'rgba(15, 23, 42, 0.38)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        animation: 'fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        animation: 'sfAppleBackdropIn 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards',
       }}
       onClick={onClose}
     >
@@ -105,6 +105,8 @@ export function StorefrontCartDrawer({
           flexDirection: 'column',
           position: 'relative',
           cursor: 'default',
+          willChange: 'transform, opacity',
+          animation: 'sfAppleSlideInRight 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -124,15 +126,16 @@ export function StorefrontCartDrawer({
             title={t('common.close', 'إغلاق')}
             style={{
               background: '#f8fafc',
-              border: '1px solid #f1f5f9',
-              borderRadius: '999px',
-              width: '38px',
-              height: '38px',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              width: '36px',
+              height: '36px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
               color: '#0f172a',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
               transition: 'all 0.16s ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = '#f1f5f9')}
@@ -220,8 +223,9 @@ export function StorefrontCartDrawer({
                 style={{
                   width: '68px',
                   height: '68px',
-                  borderRadius: '999px',
+                  borderRadius: '18px',
                   background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -370,15 +374,15 @@ export function StorefrontCartDrawer({
                           flexShrink: 0,
                         }}
                       >
-                        {/* [+] Filled Dark Circle on RIGHT in RTL */}
+                        {/* [+] Filled Dark Squircle on RIGHT in RTL */}
                         <button
                           type="button"
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
                           title={t('storefront.storefront_cart_drawer.s4', 'زيادة الكمية')}
                           style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '999px',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '8px',
                             border: 'none',
                             background: '#0f172a',
                             color: '#ffffff',
@@ -387,8 +391,9 @@ export function StorefrontCartDrawer({
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontSize: '14px',
-                            fontWeight: 500,
+                            fontWeight: 600,
                             padding: 0,
+                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06)',
                           }}
                         >
                           +
@@ -397,7 +402,7 @@ export function StorefrontCartDrawer({
                         {/* Quantity in CENTER */}
                         <span
                           style={{
-                            minWidth: '16px',
+                            minWidth: '18px',
                             textAlign: 'center',
                             fontSize: '13px',
                             fontWeight: 600,
@@ -408,15 +413,15 @@ export function StorefrontCartDrawer({
                           {item.quantity}
                         </span>
 
-                        {/* [-] Outlined Circle on LEFT in RTL */}
+                        {/* [-] Outlined Squircle on LEFT in RTL */}
                         <button
                           type="button"
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
                           title={t('storefront.storefront_cart_drawer.s5', 'تقليل الكمية')}
                           style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '999px',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '8px',
                             border: item.quantity === 1 ? '1px solid #fecaca' : '1px solid #cbd5e1',
                             background: item.quantity === 1 ? '#fef2f2' : '#ffffff',
                             color: item.quantity === 1 ? '#ef4444' : '#0f172a',
@@ -425,8 +430,9 @@ export function StorefrontCartDrawer({
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontSize: '14px',
-                            fontWeight: 500,
+                            fontWeight: 600,
                             padding: 0,
+                            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                           }}
                         >
                           {item.quantity === 1 ? <Trash2Icon size={12.5} /> : '−'}

@@ -110,11 +110,11 @@ export function StorefrontFlashSaleCountdown({
       <h2
         style={{
           textAlign: 'center',
-          fontSize: 'clamp(22px, 2.5vw, 30px)',
-          fontWeight: 800,
+          fontSize: 'clamp(16px, 1.8vw, 20px)',
+          fontWeight: 700,
           color: '#111827',
-          margin: '0 0 18px 0',
-          letterSpacing: '-0.3px',
+          margin: '0 0 14px 0',
+          letterSpacing: '-0.2px',
         }}
       >
         عروض وتخفيضات اليوم
@@ -206,11 +206,11 @@ export function StorefrontFlashSaleCountdown({
           >
             <h3
               style={{
-                fontSize: 'clamp(21px, 2.2vw, 26px)',
-                fontWeight: 800,
+                fontSize: 'clamp(15px, 1.6vw, 18px)',
+                fontWeight: 700,
                 color: '#0f172a',
-                margin: '0 0 12px 0',
-                letterSpacing: '-0.3px',
+                margin: '0 0 10px 0',
+                letterSpacing: '-0.2px',
                 lineHeight: 1.3,
                 textAlign: 'center',
                 width: '100%',
@@ -333,6 +333,7 @@ export function StorefrontFlashSaleCountdown({
           {/* Floating Item 4: Far Right/Back Watch */}
           {showcaseItems[2] && (
             <div
+              className="sf-flash-collage-item sf-flash-item-right-outer"
               onClick={(e) => {
                 if (showcaseItems[2].product && onQuickView) {
                   e.stopPropagation();
@@ -369,6 +370,7 @@ export function StorefrontFlashSaleCountdown({
           {/* Floating Item 2: Fanned Smartphone / Secondary Item */}
           {showcaseItems[1] && (
             <div
+              className="sf-flash-collage-item sf-flash-item-right-inner"
               onClick={(e) => {
                 if (showcaseItems[1].product && onQuickView) {
                   e.stopPropagation();
@@ -405,6 +407,7 @@ export function StorefrontFlashSaleCountdown({
           {/* Main Centerpiece Hero Product (Laptop / Main Deal) */}
           {showcaseItems[0] && (
             <div
+              className="sf-flash-collage-item sf-flash-item-center"
               onClick={(e) => {
                 if (showcaseItems[0].product && onQuickView) {
                   e.stopPropagation();
@@ -418,7 +421,7 @@ export function StorefrontFlashSaleCountdown({
                 transform: 'rotate(-4deg)',
                 transition: 'transform 0.35s ease',
                 cursor: 'pointer',
-                zIndex: 4,
+                zIndex: 5,
                 filter: 'drop-shadow(0 20px 28px rgba(15, 23, 42, 0.22))',
               }}
               onMouseEnter={(e) => {
@@ -439,6 +442,7 @@ export function StorefrontFlashSaleCountdown({
           {/* Floating Top-Left Earbuds / Headphones */}
           {showcaseItems[3] && (
             <div
+              className="sf-flash-collage-item sf-flash-item-left-inner"
               onClick={(e) => {
                 if (showcaseItems[3].product && onQuickView) {
                   e.stopPropagation();
@@ -475,6 +479,7 @@ export function StorefrontFlashSaleCountdown({
           {/* Floating Bottom-Left Secondary Device / Classic Watch */}
           {showcaseItems[4] && (
             <div
+              className="sf-flash-collage-item sf-flash-item-left-outer"
               onClick={(e) => {
                 if (showcaseItems[4].product && onQuickView) {
                   e.stopPropagation();
@@ -490,7 +495,7 @@ export function StorefrontFlashSaleCountdown({
                 transform: 'rotate(-12deg)',
                 transition: 'transform 0.3s ease',
                 cursor: 'pointer',
-                zIndex: 5,
+                zIndex: 4,
                 filter: 'drop-shadow(0 16px 22px rgba(15, 23, 42, 0.2))',
               }}
               onMouseEnter={(e) => {
@@ -523,34 +528,100 @@ export function StorefrontFlashSaleCountdown({
             transform: none !important;
           }
           .storefront-flash-collage {
-            height: 190px !important;
+            width: 100% !important;
+            height: 200px !important;
             margin-top: 0 !important;
+          }
+          .storefront-flash-collage .sf-flash-item-center {
+            width: 175px !important;
+            height: 168px !important;
+            z-index: 5 !important;
+          }
+          .storefront-flash-collage .sf-flash-item-right-inner {
+            width: 90px !important;
+            height: 102px !important;
+            right: 17% !important;
+            top: 6% !important;
+          }
+          .storefront-flash-collage .sf-flash-item-right-outer {
+            width: 74px !important;
+            height: 74px !important;
+            right: 2% !important;
+            bottom: 12% !important;
+          }
+          .storefront-flash-collage .sf-flash-item-left-inner {
+            width: 72px !important;
+            height: 72px !important;
+            left: 17% !important;
+            top: 6% !important;
+          }
+          .storefront-flash-collage .sf-flash-item-left-outer {
+            width: 84px !important;
+            height: 84px !important;
+            left: 2% !important;
+            bottom: 10% !important;
           }
         }
         @media (max-width: 640px) {
           .storefront-deals-of-the-day-section {
-            margin: 14px 0 !important;
+            margin: 12px 0 !important;
             padding: 0 !important;
           }
           .storefront-deals-of-the-day-section > h2 {
-            font-size: 16px !important;
+            font-size: 14px !important;
             font-weight: 700 !important;
-            margin: 0 0 10px 0 !important;
+            margin: 0 0 8px 0 !important;
           }
           .storefront-flash-banner-card {
-            border-radius: 14px !important;
-            padding: 16px 12px 12px !important;
-            gap: 10px !important;
+            border-radius: 16px !important;
+            padding: 15px 12px 12px !important;
+            gap: 6px !important;
           }
           .storefront-flash-banner-card h3 {
-            font-size: 16.5px !important;
+            font-size: 14px !important;
             font-weight: 700 !important;
-            margin: 0 0 10px 0 !important;
+            margin: 0 0 8px 0 !important;
           }
           .storefront-flash-collage {
-            height: 148px !important;
-            transform: scale(0.72) !important;
-            transform-origin: center center !important;
+            width: 100% !important;
+            max-width: 340px !important;
+            height: 146px !important;
+            margin: 2px auto 0 !important;
+            transform: none !important;
+          }
+          .storefront-flash-collage .sf-flash-item-center {
+            width: 118px !important;
+            height: 112px !important;
+            margin-top: 14px !important;
+            z-index: 5 !important;
+          }
+          .storefront-flash-collage .sf-flash-item-right-inner {
+            width: 56px !important;
+            height: 64px !important;
+            right: 17% !important;
+            top: 4% !important;
+            z-index: 3 !important;
+          }
+          .storefront-flash-collage .sf-flash-item-right-outer {
+            width: 54px !important;
+            height: 54px !important;
+            right: 1% !important;
+            bottom: 12% !important;
+            z-index: 4 !important;
+          }
+          .storefront-flash-collage .sf-flash-item-left-inner {
+            width: 52px !important;
+            height: 52px !important;
+            left: 17% !important;
+            top: 4% !important;
+            z-index: 3 !important;
+          }
+          .storefront-flash-collage .sf-flash-item-left-outer {
+            width: 58px !important;
+            height: 58px !important;
+            left: 1% !important;
+            bottom: 10% !important;
+            z-index: 4 !important;
           }
         }
       `}</style>

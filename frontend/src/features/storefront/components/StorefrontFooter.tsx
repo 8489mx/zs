@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import type { StorefrontInfo } from '../types/storefront.types';
 import { resolveStorefrontBrand, StorefrontBrandLogo } from './StorefrontHeader';
 
@@ -40,8 +40,6 @@ export function StorefrontFooter({
   const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
   const currentYear = new Date().getFullYear();
 
-  const [emailInput, setEmailInput] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
   const [activePolicy, setActivePolicy] = useState<{ title: string; content: string } | null>(null);
 
   const supportEmail =
@@ -85,14 +83,6 @@ export function StorefrontFooter({
   const storeDescription =
     (safeInfo.bio || safeInfo.description || '').trim() ||
     'وجهتك المفضلة للأناقة المختارة بعناية وتجربة تسوق سلسة. اكتشف الجودة، الأناقة، والراحة في مكان واحد.';
-
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!emailInput.trim()) return;
-    setSubscribed(true);
-    setEmailInput('');
-    setTimeout(() => setSubscribed(false), 3500);
-  };
 
   const scrollTopAndRun = (fn?: () => void) => {
     if (fn) fn();
@@ -315,37 +305,6 @@ export function StorefrontFooter({
           {/* Column 4: Stay Connected (ابقَ على تواصل) */}
           <div className="sf-stylehub-col-connect">
             <h4 className="sf-stylehub-col-heading">ابقَ على تواصل</h4>
-
-            <form className="sf-stylehub-newsletter-form" onSubmit={handleNewsletterSubmit}>
-              <input
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder={subscribed ? 'تم الاشتراك بنجاح ✓' : 'بريدك الإلكتروني'}
-                className="sf-stylehub-newsletter-input"
-                aria-label="بريدك الإلكتروني"
-              />
-              <button
-                type="submit"
-                className="sf-stylehub-newsletter-submit"
-                aria-label="إرسال"
-                title="اشترك"
-              >
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
-            </form>
 
             <a
               href={cleanPhone ? `https://wa.me/${cleanPhone}` : `mailto:${supportEmail}`}

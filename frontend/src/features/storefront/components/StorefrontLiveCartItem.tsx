@@ -143,7 +143,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
               flexShrink: 0,
             }}
           >
-            {/* [+] Filled Dark Circle on the RIGHT in RTL */}
+            {/* [+] Filled Dark Squircle on the RIGHT in RTL */}
             <button
               type="button"
               onClick={(e) => {
@@ -152,9 +152,9 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
               }}
               title={t('storefront.storefront_live_cart_item.s1', 'زيادة الكمية')}
               style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '999px',
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
                 border: 'none',
                 background: '#0f172a',
                 color: '#ffffff',
@@ -163,11 +163,12 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '14px',
-                fontWeight: 500,
+                fontWeight: 600,
                 padding: 0,
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.06)',
                 transition: 'transform 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
               onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
             >
               +
@@ -176,7 +177,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
             {/* Quantity in CENTER */}
             <span
               style={{
-                minWidth: '16px',
+                minWidth: '18px',
                 textAlign: 'center',
                 fontSize: '13px',
                 fontWeight: 600,
@@ -187,7 +188,7 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
               {item.quantity}
             </span>
 
-            {/* [-] Outlined Circle on the LEFT in RTL */}
+            {/* [-] Outlined Squircle on the LEFT in RTL */}
             <button
               type="button"
               onClick={(e) => {
@@ -200,9 +201,9 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
                   : t('storefront.storefront_live_cart_item.s3', 'تقليل الكمية')
               }
               style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '999px',
+                width: '28px',
+                height: '28px',
+                borderRadius: '8px',
                 border: item.quantity === 1 ? '1px solid #fecaca' : '1px solid #cbd5e1',
                 background: item.quantity === 1 ? '#fef2f2' : '#ffffff',
                 color: item.quantity === 1 ? '#ef4444' : '#0f172a',
@@ -211,8 +212,9 @@ export function StorefrontLiveCartItem({ item, onUpdateQuantity }: StorefrontLiv
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '14px',
-                fontWeight: 500,
+                fontWeight: 600,
                 padding: 0,
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {

@@ -106,20 +106,20 @@ export function StorefrontLiveCartDock({
         inset: 0,
         zIndex: 9999,
         background: 'rgba(15, 23, 42, 0.38)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         justifyContent: 'flex-start',
         alignItems: 'stretch',
-        animation: 'fadeIn 0.2s ease',
+        animation: 'sfAppleBackdropIn 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         fontFamily: 'inherit',
       }}
       onClick={onClose}
     >
       <style>{`
         @keyframes liveCartSlideInRight {
-          from { opacity: 0; transform: translateX(40px); }
-          to { opacity: 1; transform: translateX(0); }
+          from { opacity: 0; transform: translate3d(32px, 0, 0); }
+          to { opacity: 1; transform: translate3d(0, 0, 0); }
         }
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -145,11 +145,12 @@ export function StorefrontLiveCartDock({
           display: 'flex',
           flexDirection: 'column',
           position: 'relative',
-          animation: 'liveCartSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+          willChange: 'transform, opacity',
+          animation: 'liveCartSlideInRight 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards',
           overflow: 'hidden',
         }}
       >
-        {/* Minimalist Centered Top Bar (Circular Back/Close Button, Centered Title, Circular Clear Button) */}
+        {/* Minimalist Centered Top Bar (Soft Squircle Back/Close Button, Centered Title, Squircle Clear Button) */}
         <div
           style={{
             padding: '20px 22px 14px',
@@ -160,22 +161,23 @@ export function StorefrontLiveCartDock({
             position: 'relative',
           }}
         >
-          {/* Right Circular Button: Close / Back */}
+          {/* Right Soft Squircle Button: Close / Back */}
           <button
             type="button"
             onClick={onClose}
             title={t('storefront.storefront_live_cart_dock.s3', 'تصغير ومتابعة التسوق')}
             style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '999px',
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
               background: '#f8fafc',
-              border: '1px solid #f1f5f9',
+              border: '1px solid #e2e8f0',
               color: '#0f172a',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
               transition: 'all 0.15s ease',
               padding: 0,
             }}

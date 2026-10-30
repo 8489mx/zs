@@ -123,19 +123,21 @@ export function StorefrontReviewModal({
         position: 'fixed',
         inset: 0,
         zIndex: 9999,
-        background: 'rgba(15, 23, 42, 0.65)',
-        backdropFilter: 'blur(5px)',
+        background: 'rgba(15, 23, 42, 0.48)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '16px',
+        animation: 'sfAppleBackdropIn 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards',
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: '#ffffff',
-          borderRadius: '16px',
+          borderRadius: '20px',
           width: '100%',
           maxWidth: '480px',
           maxHeight: '90vh',
@@ -143,6 +145,8 @@ export function StorefrontReviewModal({
           boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
           border: '1px solid #e2e8f0',
           position: 'relative',
+          willChange: 'transform, opacity',
+          animation: 'sfAppleSpringOpen 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -166,16 +170,17 @@ export function StorefrontReviewModal({
             type="button"
             onClick={onClose}
             style={{
-              background: '#f1f5f9',
-              border: 'none',
-              borderRadius: '8px',
-              width: '30px',
-              height: '30px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              width: '34px',
+              height: '34px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#64748b',
+              color: '#475569',
               cursor: 'pointer',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={(e) => {
@@ -183,8 +188,8 @@ export function StorefrontReviewModal({
               e.currentTarget.style.color = '#dc2626';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f1f5f9';
-              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.color = '#475569';
             }}
           >
             <IconClose size={15} />

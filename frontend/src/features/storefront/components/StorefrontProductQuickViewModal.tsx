@@ -124,7 +124,7 @@ export function StorefrontProductQuickViewModal({
         setMountedProduct(null);
         setIsClosing(false);
         closeTimerRef.current = null;
-      }, 240);
+      }, 150);
     }
     return () => {
       if (closeTimerRef.current) {
@@ -142,7 +142,7 @@ export function StorefrontProductQuickViewModal({
       setIsClosing(false);
       closeTimerRef.current = null;
       onClose();
-    }, 230);
+    }, 145);
   }, [isClosing, onClose]);
 
   useEffect(() => {
@@ -335,10 +335,10 @@ export function StorefrontProductQuickViewModal({
           -webkit-backdrop-filter: blur(8px);
         }
         .sf-quickview-backdrop.is-opening {
-          animation: sfIosBackdropIn 0.26s ease forwards;
+          animation: sfIosBackdropIn 0.15s ease forwards;
         }
         .sf-quickview-backdrop.is-closing {
-          animation: sfIosBackdropOut 0.2s ease forwards;
+          animation: sfIosBackdropOut 0.14s ease forwards;
           pointer-events: none;
         }
         .sf-quickview-shell {
@@ -346,10 +346,10 @@ export function StorefrontProductQuickViewModal({
           transform-origin: center center;
         }
         .sf-quickview-backdrop.is-opening .sf-quickview-shell {
-          animation: sfIosAppLaunchOpen 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          animation: sfIosAppLaunchOpen 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         .sf-quickview-backdrop.is-closing .sf-quickview-shell {
-          animation: sfIosAppLaunchClose 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+          animation: sfIosAppLaunchClose 0.14s cubic-bezier(0.32, 0.72, 0, 1) forwards;
         }
         .sf-quickview-ai-btn:active {
           transform: scale(0.96);
