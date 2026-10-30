@@ -124,6 +124,46 @@ export class AccountingRecoveryService implements OnApplicationBootstrap, OnModu
         const auth = this.systemAuthFor(String(row.tenant_id), String(row.account_id));
         try {
           await this.db.transaction().execute(async (trx) => {
+            // Recheck first: a 23505 inside this transaction aborts it,
+            // so a handler's own catch-and-look-up-existing cannot run
+            // here — the look-up would die with "current transaction
+            // is aborted". The worker must therefore establish that no
+            // ACTIVE journal exists before calling the handler; the
+            // handler's catch stays only as a backstop for a race
+            // against a poster on another connection, and a lost race
+            // converges on the next pass when this check finds the
+            // journal. An active journal is the ground truth that the
+            // failure is moot, for every source type alike.
+            const alreadyPosted = await trx
+              .selectFrom('journal_entries')
+              .select('id')
+              .where('tenant_id', '=', String(row.tenant_id))
+              .where('source_type', '=', String(row.source_type))
+              .where('source_id', '=', Number(row.source_id))
+              .where('status', '=', 'posted')
+              .where('reversed_by_entry_id', 'is', null)
+              .executeTakeFirst();
+            if (alreadyPosted) {
+              await sql`
+                UPDATE accounting_posting_failures
+                SET resolved_at = NOW(), last_attempt_at = NOW()
+                WHERE id = ${Number(row.id)}
+              `.execute(trx);
+              return;
+            }
+            // A retry handler may only replay a post method that takes
+            // (queryable, sourceId, auth) and is idempotent on replay
+            // (SELECT guard, dedup_key, or a 23505 catch returning the
+            // existing journal). Methods that need a payload the
+            // failure row does not store — an amount, a payment
+            // channel, a revision, a return-items list — are
+            // deliberately NOT here: replaying them from the id alone
+            // would invent the missing payload. Neither are stateful
+            // replays (sale_edit, whose reverse-then-repost belongs
+            // to the remediation engine). An excluded type keeps
+            // failing loudly in the default branch below; that is the
+            // signal to add a real handler, not to widen this switch
+            // with a guessed call.
             switch (row.source_type) {
               case 'sale':
                 await this.posting.postSale(trx, Number(row.source_id), auth);
@@ -159,6 +199,47 @@ export class AccountingRecoveryService implements OnApplicationBootstrap, OnModu
               case 'shift_variance':
               case 'cashier_shift_variance':
                 await this.posting.postCashierShiftVariance(trx, Number(row.source_id), auth);
+                break;
+              case 'food_waste':
+                await this.posting.postFoodWaste(trx, Number(row.source_id), auth);
+                break;
+              case 'hr_payroll_accrual':
+                await this.posting.postPayrollAccrual(trx, Number(row.source_id), auth);
+                break;
+              case 'hr_employee_loan_disbursement':
+                await this.posting.postEmployeeLoanDisbursement(trx, Number(row.source_id), auth);
+                break;
+              case 'hr_employee_loan_repayment':
+                await this.posting.postEmployeeLoanManualRepayment(trx, Number(row.source_id), auth);
+                break;
+              case 'manufacturing_work_order':
+                await this.posting.postManufacturingWorkOrder(trx, Number(row.source_id), auth);
+                break;
+              case 'supplier_payment_schedule_settlement':
+                await this.posting.postSupplierPaymentScheduleSettlement(trx, Number(row.source_id), auth);
+                break;
+              case 'trade_in':
+                await this.posting.postTradeInCashPurchase(trx, Number(row.source_id), auth);
+                break;
+              case 'customer_installment_interest':
+                await this.posting.postCustomerInstallmentInterest(trx, Number(row.source_id), auth);
+                break;
+              case 'hr_end_of_service_settlement':
+                // No treasury account is stored on the failure row;
+                // null lets the method resolve its own fallback.
+                await this.posting.postEndOfServiceSettlement(trx, Number(row.source_id), null, auth);
+                break;
+              case 'pdc_cheque_receive':
+                await this.posting.postPdcChequeReceive(trx, Number(row.source_id), auth);
+                break;
+              case 'pdc_cheque_deposit':
+                await this.posting.postPdcChequeDeposit(trx, Number(row.source_id), auth);
+                break;
+              case 'pdc_cheque_issue':
+                await this.posting.postPdcChequeIssue(trx, Number(row.source_id), auth);
+                break;
+              case 'pdc_cheque_payable_bounce':
+                await this.posting.postPdcChequePayableBounce(trx, Number(row.source_id), auth);
                 break;
               default:
                 throw new Error(`No retry handler for source type "${row.source_type}"`);
