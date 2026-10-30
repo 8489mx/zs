@@ -23,7 +23,8 @@ function testGratuityCalculations() {
       dailyWage,
       lawType: 'saudi',
       reason: 'resignation',
-    });
+      minorUnits: 2,
+    })
     assert.equal(res.gratuityPercentage, 0, 'استقالة أقل من سنتين: النسبة 0%');
     assert.equal(res.gratuityAmount, 0, 'استقالة أقل من سنتين: المكافأة صفر');
     console.log('✔ قانون العمل السعودي: استقالة أقل من سنتين -> استحقاق 0% (ناجح)');
@@ -37,7 +38,8 @@ function testGratuityCalculations() {
       dailyWage,
       lawType: 'saudi',
       reason: 'resignation',
-    });
+      minorUnits: 2,
+    })
     // Base: 3 * 0.5 * 10000 = 15000. 15000 * 33.333% = 4999.95
     assert.equal(res.baseGratuity, 15000, 'الأساس لـ 3 سنوات هو 15000');
     assert.equal(res.gratuityPercentage, 33.333, 'النسبة ثلث');
@@ -53,7 +55,8 @@ function testGratuityCalculations() {
       dailyWage,
       lawType: 'saudi',
       reason: 'resignation',
-    });
+      minorUnits: 2,
+    })
     // Base: (5 * 0.5 * 10000) + (2 * 1.0 * 10000) = 25000 + 20000 = 45000.
     // Amount: 45000 * 66.667% = 30000.15
     assert.equal(res.baseGratuity, 45000, 'الأساس لـ 7 سنوات هو 45000');
@@ -70,7 +73,8 @@ function testGratuityCalculations() {
       dailyWage,
       lawType: 'saudi',
       reason: 'resignation',
-    });
+      minorUnits: 2,
+    })
     // Base: (5 * 0.5 * 10000) + (7 * 1.0 * 10000) = 25000 + 70000 = 95000.
     assert.equal(res.baseGratuity, 95000, 'الأساس لـ 12 سنة هو 95000');
     assert.equal(res.gratuityPercentage, 100, 'النسبة 100%');
@@ -86,7 +90,8 @@ function testGratuityCalculations() {
       dailyWage,
       lawType: 'saudi',
       reason: 'termination_by_employer',
-    });
+      minorUnits: 2,
+    })
     assert.equal(res.gratuityPercentage, 100, 'إنهاء من صاحب العمل يستحق كامل المكافأة');
     assert.equal(res.gratuityAmount, 15000, 'المكافأة كاملة لـ 3 سنوات 15000');
     console.log('✔ قانون العمل السعودي: إنهاء من صاحب العمل -> استحقاق 100% بغض النظر عن المدة (ناجح)');
@@ -100,7 +105,8 @@ function testGratuityCalculations() {
       dailyWage,
       lawType: 'saudi',
       reason: 'termination_article_80',
-    });
+      minorUnits: 2,
+    })
     assert.equal(res.gratuityPercentage, 0, 'فصل بموجب المادة 80 لا يستحق مكافأة');
     assert.equal(res.gratuityAmount, 0, 'المكافأة صفر');
     console.log('✔ قانون العمل السعودي: فصل بموجب المادة 80 -> استحقاق 0% (ناجح)');
@@ -114,7 +120,8 @@ function testGratuityCalculations() {
       dailyWage: 8000 / 30,
       lawType: 'egyptian',
       reason: 'resignation',
-    });
+      minorUnits: 2,
+    })
     // First 5 yrs: 5 * 0.5 * 8000 = 20000. Next 1 yr: 1 * 1.0 * 8000 = 8000. Total = 28000.
     assert.equal(res.baseGratuity, 28000, 'مكافأة 6 سنوات بمصر: 28000');
     assert.equal(res.gratuityAmount, 28000, 'استحقاق كامل 28000');
@@ -481,7 +488,7 @@ function testLoanRepaymentAllocation() {
 function testRejectsInvalidSettlementAmounts() {
   const base = { gratuityAmount: 1000, leaveEncashmentAmount: 0, pendingSalaryAmount: 0,
     noticePeriodAmount: 0, otherEntitlementsAmount: 0, unpaidLoansDeduction: 100,
-    assetsDeduction: 0, otherDeductions: 0 };
+    assetsDeduction: 0, otherDeductions: 0, minorUnits: 2 as const };
   assert.equal(calculateSettlementAbsorption(base).netPayable, 900);
   assert.throws(() => calculateSettlementAbsorption({ ...base, assetsDeduction: -1 }), /negative/);
   assert.throws(() => calculateSettlementAbsorption({ ...base, pendingSalaryAmount: Infinity }), /Invalid/);

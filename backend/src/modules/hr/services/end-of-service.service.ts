@@ -12,6 +12,8 @@ import {
   calculateLeaveEncashment,
   calculateSettlementAbsorption,
 } from '../engines/eos-calculation.engine';
+import { currencyMoneyDigits, roundMoney, type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
+import { requireStoredHrMoney } from '../engines/hr-payroll-run.engine';
 
 export interface SettlementCalculateInput {
   employeeId: number;
@@ -36,6 +38,17 @@ export interface CreateSettlementDto extends SettlementCalculateInput {
   confirmTermination?: boolean;
 }
 
+async function eosBookDigits(db: Kysely<Database>, tenantId: string): Promise<MoneyDigits> {
+  const setting = await sql<{ value: string }>`
+    SELECT value FROM settings WHERE tenant_id = ${tenantId} AND key = 'currency' LIMIT 1
+  `.execute(db);
+  const currency = String(setting.rows[0]?.value ?? '').replace(/^"|"$/g, '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(currency)) {
+    throw new BadRequestException('حدد عملة منشأتك قبل احتساب المخالصة');
+  }
+  return currencyMoneyDigits(currency);
+}
+
 @Injectable()
 export class EndOfServiceService {
   constructor(
@@ -49,6 +62,7 @@ export class EndOfServiceService {
    */
   async calculateSettlementPreview(input: SettlementCalculateInput, auth: AuthContext) {
     const { tenantId } = requireTenantScope(auth);
+    const bookDigits = await eosBookDigits(this.db, tenantId);
 
     const employee = await this.db
       .selectFrom('hr_employees')
@@ -133,6 +147,7 @@ export class EndOfServiceService {
       lawType,
       reason,
       customGratuityDaysPerYear: input.customGratuityDaysPerYear,
+      minorUnits: bookDigits,
     });
 
     // Leave Encashment: reconcile live used annual leaves from approved requests if not yet synced
@@ -157,7 +172,7 @@ export class EndOfServiceService {
     }
 
     const remainingLeaveDays = Math.max(0, annualBalance - usedLeaves);
-    const leaveEncashmentAmount = calculateLeaveEncashment(remainingLeaveDays, dailyWage);
+    const leaveEncashmentAmount = calculateLeaveEncashment(remainingLeaveDays, dailyWage, bookDigits);
 
     // Never guess unpaid wages from the termination calendar day: the employee
     // may already have been paid through the normal payroll. HR must reconcile
@@ -166,7 +181,12 @@ export class EndOfServiceService {
       || Number(input.pendingSalaryAmount) < 0) {
       throw new BadRequestException('حدد قيمة المرتب المتبقي بعد مراجعة ما تم صرفه في كشوف المرتبات');
     }
-    const pendingSalaryAmount = Number(Number(input.pendingSalaryAmount).toFixed(2));
+    let pendingSalaryAmount: number;
+    try {
+      pendingSalaryAmount = requireStoredHrMoney(Number(input.pendingSalaryAmount), bookDigits);
+    } catch {
+      throw new BadRequestException('قيمة المرتب المتبقي يجب أن تكون بدقة دفاتر المنشأة دون كسر أدق');
+    }
 
     // Unpaid loans
     const loansRes = await sql<Record<string, unknown>>`
@@ -187,10 +207,17 @@ export class EndOfServiceService {
       .where('status', 'not in', ['returned', 'cancelled'])
       .execute();
 
-    const noticePeriodAmount = Number(input.noticePeriodAmount || 0);
-    const customEntitlements = Number(input.customEntitlements || 0);
-    const assetsDeduction = Number(input.assetsDeduction || 0);
-    const otherDeductions = Number(input.otherDeductions || 0);
+    const validateEosAmount = (value: unknown): number => {
+      try {
+        return requireStoredHrMoney(Number(value || 0), bookDigits);
+      } catch {
+        throw new BadRequestException('مبالغ المخالصة يجب أن تكون بدقة دفاتر المنشأة دون كسر أدق');
+      }
+    };
+    const noticePeriodAmount = validateEosAmount(input.noticePeriodAmount);
+    const customEntitlements = validateEosAmount(input.customEntitlements);
+    const assetsDeduction = validateEosAmount(input.assetsDeduction);
+    const otherDeductions = validateEosAmount(input.otherDeductions);
 
     // Entitlement absorption via pure engine
     let absorption: ReturnType<typeof calculateSettlementAbsorption>;
@@ -204,6 +231,7 @@ export class EndOfServiceService {
         unpaidLoansDeduction,
         assetsDeduction,
         otherDeductions,
+        minorUnits: bookDigits,
       });
     } catch (error) {
       throw new BadRequestException(error instanceof Error ? error.message : 'مبالغ المخالصة غير صحيحة');
@@ -232,12 +260,12 @@ export class EndOfServiceService {
       salaries: {
         basicSalary,
         totalSalary,
-        dailyWage: Number(dailyWage.toFixed(2)),
+        dailyWage: roundMoney(dailyWage, bookDigits),
       },
       gratuity: {
         lawType,
         reason,
-        baseGratuity: Number(gratuity.baseGratuity.toFixed(2)),
+        baseGratuity: roundMoney(gratuity.baseGratuity, bookDigits),
         gratuityPercentage: gratuity.gratuityPercentage,
         gratuityAmount: gratuity.gratuityAmount,
       },
@@ -255,8 +283,8 @@ export class EndOfServiceService {
       unabsorbedAssets: absorption.unabsorbedAssets,
       otherDeductions: absorption.appliedOther,
       unabsorbedOther: absorption.unabsorbedOther,
-      totalEntitlements: Number(totalEntitlements.toFixed(2)),
-      totalDeductions: Number(totalDeductions.toFixed(2)),
+      totalEntitlements: roundMoney(totalEntitlements, bookDigits),
+      totalDeductions: roundMoney(totalDeductions, bookDigits),
       netSettlementAmount,
       unreturnedAssets: assetsRes.map((a: any) => ({
         id: a.id,
@@ -465,6 +493,8 @@ export class EndOfServiceService {
     const { tenantId } = requireTenantScope(auth);
 
     return await this.db.transaction().execute(async (trx) => {
+      const bookDigits = await eosBookDigits(trx as Kysely<Database>, tenantId);
+      const halfMinor = 1 / (2 * 10 ** bookDigits);
       // Use the same lock order as payroll approval, loan disbursement and
       // manual repayments. An EOS journal may settle the very same loan.
       await sql`SELECT pg_advisory_xact_lock(hashtext(${'hr-payroll:' + tenantId}))`.execute(trx);
@@ -562,10 +592,10 @@ export class EndOfServiceService {
         ORDER BY id ASC
         FOR UPDATE
       `.execute(trx) : { rows: [] as Record<string, unknown>[] };
-      const availableLoanBalance = Number(activeLoans.rows.reduce(
+      const availableLoanBalance = roundMoney(activeLoans.rows.reduce(
         (sum, loan) => sum + Number(loan.remaining_amount || 0), 0,
-      ).toFixed(2));
-      if (loansDeduction < 0 || loansDeduction > availableLoanBalance + 0.005) {
+      ), bookDigits);
+      if (loansDeduction < 0 || loansDeduction > availableLoanBalance + halfMinor) {
         throw new BadRequestException('رصيد السلف تغير منذ إنشاء المخالصة؛ احذف المسودة وأعد احتسابها قبل الترحيل');
       }
 
@@ -589,8 +619,8 @@ export class EndOfServiceService {
           const loanId = Number(loan.id);
           const remainingBalance = Number(loan.remaining_amount || 0);
           const toDeduct = Math.min(remainingBalance, remainingLoanDeduction);
-          const newPaid = Number((Number(loan.paid_amount || 0) + toDeduct).toFixed(2));
-          const newRemaining = Number((remainingBalance - toDeduct).toFixed(2));
+          const newPaid = roundMoney(Number(loan.paid_amount || 0) + toDeduct, bookDigits);
+          const newRemaining = roundMoney(remainingBalance - toDeduct, bookDigits);
           const newStatus = newRemaining <= 0 ? 'repaid' : 'partially_repaid';
 
           await sql`
@@ -620,8 +650,8 @@ export class EndOfServiceService {
             const due = Math.max(0, instAmount - alreadyPaid);
             if (due <= 0) continue;
             const applied = Math.min(due, remainingInstallmentDeduction);
-            const updatedPaid = Number((alreadyPaid + applied).toFixed(2));
-            const instStatus = updatedPaid + 0.005 >= instAmount ? 'paid' : 'partial';
+            const updatedPaid = roundMoney(alreadyPaid + applied, bookDigits);
+            const instStatus = updatedPaid + halfMinor >= instAmount ? 'paid' : 'partial';
 
             await sql`
               UPDATE hr_employee_loan_installments
@@ -632,12 +662,12 @@ export class EndOfServiceService {
               WHERE id = ${instId} AND tenant_id = ${tenantId}
             `.execute(trx);
 
-            remainingInstallmentDeduction = Number((remainingInstallmentDeduction - applied).toFixed(2));
+            remainingInstallmentDeduction = roundMoney(remainingInstallmentDeduction - applied, bookDigits);
           }
           // Loan principal, detailed installments and EOS GL have to reconcile
           // in the same transaction. Historic missing installments must not
           // silently disappear from the employee repayment subledger.
-          if (remainingInstallmentDeduction > 0.005) {
+          if (remainingInstallmentDeduction > halfMinor) {
             throw new BadRequestException(
               'أقساط السلفة لا تغطي كامل الخصم من المخالصة؛ أصلح جدول الأقساط قبل الترحيل',
             );
@@ -656,9 +686,9 @@ export class EndOfServiceService {
             )
           `.execute(trx);
 
-          remainingLoanDeduction = Number((remainingLoanDeduction - toDeduct).toFixed(2));
+          remainingLoanDeduction = roundMoney(remainingLoanDeduction - toDeduct, bookDigits);
         }
-        if (remainingLoanDeduction > 0.005) {
+        if (remainingLoanDeduction > halfMinor) {
           throw new BadRequestException('تعذر توزيع إجمالي خصومات السلف بالكامل؛ تم إلغاء ترحيل المخالصة');
         }
       }

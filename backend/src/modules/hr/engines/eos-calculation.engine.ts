@@ -12,6 +12,8 @@
  * Imported identically by production services and critical spec tests.
  */
 
+import { roundMoney, type MoneyDigits } from '../../accounting/engines/money-minor-units.engine';
+
 export type LawType = 'saudi' | 'egyptian' | 'custom';
 
 export type TerminationReason =
@@ -30,6 +32,8 @@ export interface GratuityCalculationParams {
   lawType: LawType;
   reason: TerminationReason | string;
   customGratuityDaysPerYear?: number;
+  /** Tenant book precision, required: never default to 2 decimals. */
+  minorUnits: MoneyDigits;
 }
 
 export interface GratuityCalculationResult {
@@ -47,6 +51,8 @@ export interface SettlementAbsorptionParams {
   unpaidLoansDeduction: number;
   assetsDeduction: number;
   otherDeductions: number;
+  /** Tenant book precision, required: never default to 2 decimals. */
+  minorUnits: MoneyDigits;
 }
 
 export interface SettlementAbsorptionResult {
@@ -61,7 +67,7 @@ export interface SettlementAbsorptionResult {
   netPayable: number;
 }
 
-const toMoney = (v: number): number => Number((Number(v || 0)).toFixed(2));
+const toMoney = (v: number, minorUnits: MoneyDigits): number => roundMoney(Number(v || 0), minorUnits);
 
 /**
  * Calculates end-of-service gratuity according to the applicable labor law.
@@ -119,23 +125,24 @@ export function calculateGratuity(params: GratuityCalculationParams): GratuityCa
     throw new RangeError('Unsupported end-of-service jurisdiction');
   }
 
+  const minorUnits = params.minorUnits;
   let gratuityAmount = 0;
   if (lawType === 'saudi' && reason === 'resignation') {
     if (serviceYears >= 2 && serviceYears < 5) {
-      gratuityAmount = toMoney(baseGratuity / 3);
+      gratuityAmount = toMoney(baseGratuity / 3, minorUnits);
     } else if (serviceYears >= 5 && serviceYears < 10) {
-      gratuityAmount = toMoney((baseGratuity * 2) / 3);
+      gratuityAmount = toMoney((baseGratuity * 2) / 3, minorUnits);
     } else if (serviceYears >= 10) {
-      gratuityAmount = toMoney(baseGratuity);
+      gratuityAmount = toMoney(baseGratuity, minorUnits);
     } else {
       gratuityAmount = 0;
     }
   } else {
-    gratuityAmount = toMoney((baseGratuity * gratuityPercentage) / 100);
+    gratuityAmount = toMoney((baseGratuity * gratuityPercentage) / 100, minorUnits);
   }
 
   return {
-    baseGratuity: toMoney(baseGratuity),
+    baseGratuity: toMoney(baseGratuity, minorUnits),
     gratuityPercentage,
     gratuityAmount,
   };
@@ -144,10 +151,10 @@ export function calculateGratuity(params: GratuityCalculationParams): GratuityCa
 /**
  * Calculates leave encashment compensation for remaining unused annual leave days.
  */
-export function calculateLeaveEncashment(remainingLeaveDays: number, dailyWage: number): number {
+export function calculateLeaveEncashment(remainingLeaveDays: number, dailyWage: number, minorUnits: MoneyDigits): number {
   const days = Math.max(0, Number(remainingLeaveDays || 0));
   const rate = Math.max(0, Number(dailyWage || 0));
-  return toMoney(days * rate);
+  return toMoney(days * rate, minorUnits);
 }
 
 /**
@@ -156,10 +163,11 @@ export function calculateLeaveEncashment(remainingLeaveDays: number, dailyWage: 
  * Any remaining excess deductions are tracked as unabsorbed employee debts.
  */
 export function calculateSettlementAbsorption(params: SettlementAbsorptionParams): SettlementAbsorptionResult {
+  const minorUnits = params.minorUnits;
   const nonNegative = (value: number, label: string): number => {
     const num = Number(value);
     if (!Number.isFinite(num) || num < 0) throw new RangeError(`Invalid or negative EOS amount: ${label}`);
-    return toMoney(num);
+    return toMoney(num, minorUnits);
   };
   const gratuity = nonNegative(params.gratuityAmount, 'gratuityAmount');
   const leavePay = nonNegative(params.leaveEncashmentAmount, 'leaveEncashmentAmount');
@@ -167,7 +175,7 @@ export function calculateSettlementAbsorption(params: SettlementAbsorptionParams
   const noticePeriod = nonNegative(params.noticePeriodAmount, 'noticePeriodAmount');
   const otherEntitlements = nonNegative(params.otherEntitlementsAmount, 'otherEntitlementsAmount');
 
-  const totalEntitlements = toMoney(gratuity + leavePay + pendingSalary + noticePeriod + otherEntitlements);
+  const totalEntitlements = toMoney(gratuity + leavePay + pendingSalary + noticePeriod + otherEntitlements, minorUnits);
 
   let pool = totalEntitlements;
 
@@ -175,23 +183,23 @@ export function calculateSettlementAbsorption(params: SettlementAbsorptionParams
   // 1. Assets / Custody recovery
   const requestedAssets = nonNegative(params.assetsDeduction, 'assetsDeduction');
   const appliedAssets = Math.min(requestedAssets, pool);
-  pool = toMoney(pool - appliedAssets);
-  const unabsorbedAssets = toMoney(requestedAssets - appliedAssets);
+  pool = toMoney(pool - appliedAssets, minorUnits);
+  const unabsorbedAssets = toMoney(requestedAssets - appliedAssets, minorUnits);
 
   // 2. Disciplinary / other deductions
   const requestedOther = nonNegative(params.otherDeductions, 'otherDeductions');
   const appliedOther = Math.min(requestedOther, pool);
-  pool = toMoney(pool - appliedOther);
-  const unabsorbedOther = toMoney(requestedOther - appliedOther);
+  pool = toMoney(pool - appliedOther, minorUnits);
+  const unabsorbedOther = toMoney(requestedOther - appliedOther, minorUnits);
 
   // 3. Outstanding loans / advances
   const requestedLoans = nonNegative(params.unpaidLoansDeduction, 'unpaidLoansDeduction');
   const appliedLoans = Math.min(requestedLoans, pool);
-  pool = toMoney(pool - appliedLoans);
-  const unabsorbedLoans = toMoney(requestedLoans - appliedLoans);
+  pool = toMoney(pool - appliedLoans, minorUnits);
+  const unabsorbedLoans = toMoney(requestedLoans - appliedLoans, minorUnits);
 
   const netPayable = pool;
-  const totalDeductions = toMoney(appliedAssets + appliedOther + appliedLoans);
+  const totalDeductions = toMoney(appliedAssets + appliedOther + appliedLoans, minorUnits);
 
   return {
     totalEntitlements,
