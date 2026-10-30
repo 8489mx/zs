@@ -357,4 +357,51 @@ export async function getCustomerRepBalancesMap(
   return aggregateCustomerBalancesByRep(entries, options?.customerTotalBalances);
 }
 
+/**
+ * Field-collection twin scope (INV-FIELD-COLLECTION-TWIN-SCOPE): the
+ * columns that identify one field collection on customer_payments.
+ * The pre-0268 rapid-fire backstop matched customer + amount only, so
+ * a second legitimate collection — another trip, another rep, another
+ * channel — inside 4 seconds was swallowed and reported as the first.
+ * The scope narrows the match to the same trip, rep, and channel, and
+ * carries the client transaction id in its own column (migration
+ * 2040000000268) instead of only inside the free-text note tag.
+ *
+ * Channel mapping: the collection payload vocabulary
+ * (cash/instapay/vodafone_cash/bank_transfer) is mapped onto the
+ * customer_payments.payment_channel check constraint
+ * (cash/bank/card/wallet/instapay, migration 0251). An omitted method
+ * is cash, matching the collection posting's own default
+ * (paymentMethod || 'cash').
+ */
+export type FieldCollectionChannel = 'cash' | 'bank' | 'wallet' | 'instapay';
+
+export function resolveFieldCollectionChannel(
+  paymentMethod?: 'cash' | 'instapay' | 'vodafone_cash' | 'bank_transfer' | string,
+): FieldCollectionChannel {
+  if (paymentMethod === 'instapay') return 'instapay';
+  if (paymentMethod === 'vodafone_cash') return 'wallet';
+  if (paymentMethod === 'bank_transfer') return 'bank';
+  return 'cash';
+}
+
+export function fieldCollectionPaymentScope(input: {
+  tripId: number;
+  repId: number;
+  paymentMethod?: 'cash' | 'instapay' | 'vodafone_cash' | 'bank_transfer' | string;
+  clientTxId?: string;
+}): {
+  van_trip_id: number;
+  rep_id: number;
+  client_tx_id: string | null;
+  payment_channel: FieldCollectionChannel;
+} {
+  return {
+    van_trip_id: input.tripId,
+    rep_id: input.repId,
+    client_tx_id: input.clientTxId ?? null,
+    payment_channel: resolveFieldCollectionChannel(input.paymentMethod),
+  };
+}
+
 

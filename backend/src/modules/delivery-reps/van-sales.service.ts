@@ -31,6 +31,7 @@ import {
   normalizeCustomerCode,
   formatCustomerCode,
   getCustomerRepBalancesMap,
+  fieldCollectionPaymentScope,
 } from './services/van-common.util';
 import {
   calculateRepTargetMetrics,
@@ -2602,9 +2603,18 @@ export class VanSalesService {
 
     // Register collection promise IMMEDIATELY (synchronously) before any await
     const colPromise = (async () => {
-      // 3. Database Idempotency Check via [tx:clientTxId]
+      // 3. Database Idempotency Check via client_tx_id, falling back to
+      // the legacy [tx:clientTxId] note tag for rows written before
+      // migration 2040000000268 (whose backfill could not parse a tag).
       if (payload.clientTxId) {
-        const existingPayment = await this.anyDb
+        const existingByColumn = await this.anyDb
+          .selectFrom('customer_payments')
+          .select(['id', 'amount', 'note'])
+          .where('tenant_id', '=', tenantId)
+          .where('customer_id', '=', payload.customerId)
+          .where('client_tx_id', '=', payload.clientTxId)
+          .executeTakeFirst();
+        const existingPayment = existingByColumn ?? await this.anyDb
           .selectFrom('customer_payments')
           .select(['id', 'amount', 'note'])
           .where('tenant_id', '=', tenantId)
@@ -2625,13 +2635,26 @@ export class VanSalesService {
         }
       }
 
-      // 4. Database Rapid-Fire Duplicate Check (within last 4 seconds for identical customer and amount)
+      // 4. Database Rapid-Fire Duplicate Check (within last 4 seconds for
+      // the same trip, rep, customer, channel, and amount). The pre-0268
+      // check matched customer + amount only, so a second legitimate
+      // collection — another trip, another rep, another channel — inside
+      // the window was swallowed and reported as the first collection.
+      const twinScope = fieldCollectionPaymentScope({
+        tripId: payload.tripId,
+        repId,
+        paymentMethod: payload.paymentMethod,
+        clientTxId: payload.clientTxId,
+      });
       const fourSecondsAgo = new Date(Date.now() - 4000);
       const recentDbPayment = await this.anyDb
         .selectFrom('customer_payments')
         .select(['id', 'amount', 'note'])
         .where('tenant_id', '=', tenantId)
         .where('customer_id', '=', payload.customerId)
+        .where('van_trip_id', '=', twinScope.van_trip_id)
+        .where('rep_id', '=', twinScope.rep_id)
+        .where('payment_channel', '=', twinScope.payment_channel)
         .where('amount', '=', amount)
         .where('created_at', '>=', fourSecondsAgo)
         .orderBy('id', 'desc')
@@ -2854,6 +2877,12 @@ export class VanSalesService {
           transfer_receipt_url: payload.transferReceiptUrl || null,
           tenant_id: tenantId,
           account_id: accountId,
+          ...fieldCollectionPaymentScope({
+            tripId: payload.tripId,
+            repId,
+            paymentMethod: payload.paymentMethod,
+            clientTxId: payload.clientTxId,
+          }),
         })
         .returning(['id'])
         .executeTakeFirstOrThrow();

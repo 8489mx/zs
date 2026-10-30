@@ -1254,6 +1254,9 @@ export interface CustomerPaymentTable {
   created_by: number | null;
   transfer_reference?: string | null;
   transfer_receipt_url?: string | null;
+  van_trip_id?: number | null;
+  rep_id?: number | null;
+  client_tx_id?: string | null;
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
