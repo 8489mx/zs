@@ -4462,10 +4462,17 @@ export class ImportSalesService {
       }
 
       if (!Array.isArray(raw) || !raw.length) throw new BadRequestException('الفاتورة المبدئية لا تحتوي على أصناف قابلة للشراء.');
-      let exchangeRate = (pi.currency || 'USD').toUpperCase() === 'EGP'
+      // No invented rate: a foreign-currency proforma without a usable
+      // contract rate must not be costed at a silent default (the old
+      // fallback of 50 lived only in the draft PO's free-text notes, so
+      // approving the draft posted costs nobody chose). The merchant
+      // sets the contract rate on the proforma and converts again.
+      const exchangeRate = (pi.currency || 'USD').toUpperCase() === 'EGP'
         ? 1 : Number(pi.exchange_rate_contract);
       if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
-        exchangeRate = 50;
+        throw new BadRequestException(
+          `لا يمكن إصدار أمر شراء من الفاتورة المبدئية ${pi.pi_number} بلا سعر صرف تعاقدي صالح؛ حدد سعر الصرف التعاقدي (${pi.currency || 'USD'}) على الفاتورة المبدئية قبل التحويل. [IMPORT_EXCHANGE_RATE_REQUIRED]`,
+        );
       }
       const supplier = await trx.selectFrom('suppliers')
         .select(['id', 'name', 'account_id']).where('tenant_id', '=', tenantId)
