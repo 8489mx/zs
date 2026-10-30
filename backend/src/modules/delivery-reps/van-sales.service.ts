@@ -3481,6 +3481,30 @@ export class VanSalesService {
     await this.db.transaction().execute(async (trx) => {
       const trxAny = trx as any;
 
+      // 0. Re-read the trip row under lock and re-check its status inside
+      // the transaction. The pre-check above runs on an unlocked read
+      // outside any transaction, so two concurrent settles both pass it;
+      // without this locked re-check both would run the stock deductions,
+      // unload transfers, and trip update, while only the journal was
+      // saved (postVanTripSettlement skips a duplicate by its SELECT
+      // guard) — duplicated stock effects with no journal. The lock
+      // serializes concurrent settlers: the second waits, then sees
+      // 'settled' and fails closed instead of repeating the effects.
+      const lockedTrip = await trxAny
+        .selectFrom('van_sales_trips')
+        .select(['id', 'status'])
+        .where('id', '=', payload.tripId)
+        .where('tenant_id', '=', tenantId)
+        .where('rep_id', '=', repId)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!lockedTrip) {
+        throw new AppError('الرحلة غير موجودة أو تم تصفيتها واعتمادها بالفعل', 'TRIP_NOT_FOUND', 404);
+      }
+      if (lockedTrip.status === 'settled') {
+        throw new AppError('تم تصفية هذه الرحلة بالفعل؛ لا يمكن تصفيتها مرة أخرى', 'TRIP_ALREADY_SETTLED', 409);
+      }
+
       // 1. Fetch current remaining van stock
       const vanLocationId = Number(trip.van_location_id);
       const remainingStocks = await trxAny
