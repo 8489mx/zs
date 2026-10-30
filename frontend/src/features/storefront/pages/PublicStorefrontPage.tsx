@@ -136,64 +136,6 @@ export function PublicStorefrontPage() {
     isCallingService,
   } = usePublicStorefront(cleanSlug);
 
-
-  // SF-Sticky: Unlock natural browser window scrolling while inside the public storefront
-  useEffect(() => {
-    const origBodyOverflow = document.body.style.overflow;
-    const origBodyOverflowX = document.body.style.overflowX;
-    const origBodyOverflowY = document.body.style.overflowY;
-    const origBodyHeight = document.body.style.height;
-    const origHtmlOverflow = document.documentElement.style.overflow;
-    const origHtmlOverflowY = document.documentElement.style.overflowY;
-    const origHtmlOverflowX = document.documentElement.style.overflowX;
-    const origHtmlHeight = document.documentElement.style.height;
-
-    const rootEl = document.getElementById('root');
-    const origRootOverflow = rootEl ? rootEl.style.overflow : '';
-    const origRootOverflowX = rootEl ? rootEl.style.overflowX : '';
-    const origRootOverflowY = rootEl ? rootEl.style.overflowY : '';
-    const origRootHeight = rootEl ? rootEl.style.height : '';
-
-    document.documentElement.classList.add('storefront-html');
-    document.body.classList.add('storefront-body');
-
-    // Force browser window scrolling and neutralize app-shell traps
-    document.documentElement.style.overflowY = 'scroll';
-    document.documentElement.style.overflowX = 'hidden';
-    document.documentElement.style.height = 'auto';
-
-    document.body.style.overflow = 'visible';
-    document.body.style.overflowX = 'visible';
-    document.body.style.overflowY = 'visible';
-    document.body.style.height = 'auto';
-
-    if (rootEl) {
-      rootEl.style.overflow = 'visible';
-      rootEl.style.overflowX = 'visible';
-      rootEl.style.overflowY = 'visible';
-      rootEl.style.height = 'auto';
-    }
-
-    return () => {
-      document.documentElement.classList.remove('storefront-html');
-      document.body.classList.remove('storefront-body');
-      document.body.style.overflow = origBodyOverflow;
-      document.body.style.overflowX = origBodyOverflowX;
-      document.body.style.overflowY = origBodyOverflowY;
-      document.body.style.height = origBodyHeight;
-      document.documentElement.style.overflow = origHtmlOverflow;
-      document.documentElement.style.overflowY = origHtmlOverflowY;
-      document.documentElement.style.overflowX = origHtmlOverflowX;
-      document.documentElement.style.height = origHtmlHeight;
-      if (rootEl) {
-        rootEl.style.overflow = origRootOverflow;
-        rootEl.style.overflowX = origRootOverflowX;
-        rootEl.style.overflowY = origRootOverflowY;
-        rootEl.style.height = origRootHeight;
-      }
-    };
-  }, []);
-
   const handleOpenCart = useCallback(() => setIsCartOpen(true), [setIsCartOpen]);
   const handleOpenOrders = useCallback(() => setIsMyOrdersOpen(true), [setIsMyOrdersOpen]);
   // Handle Category Selection with full Browser History & URL sync (Amazon-grade UX)
@@ -592,7 +534,7 @@ export function PublicStorefrontPage() {
           maxWidth: 'var(--storefront-container, 1440px)',
           width: '100%',
           margin: '0 auto',
-          padding: '20px 20px 36px',
+          padding: '20px 20px 0',
         }}
       >
         {isHomepageMultiRow ? (

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { StorefrontProduct, StorefrontInfo } from '../types/storefront.types';
 import { CurrencySymbol } from '@/shared/ui/currency-symbol';
 import {
@@ -8,17 +8,10 @@ import {
   CheckIcon,
   ClockIcon,
   Share2Icon,
-  CopyIcon,
-  TruckIcon,
-  ShieldCheckIcon,
-  BarcodeIcon,
 } from '@/shared/components/icons/AppIcons';
 import {
-  IconFlame,
-  IconShoppingCart,
-  IconStar,
+  IconShoppingBag,
   IconWhatsapp,
-  IconCheckCircle,
 } from './StorefrontIcons';
 import { trackStorefrontEvent } from '../lib/storefront-pixel-tracker';
 import { buildCartProduct, getProductVariants, resolveVariantUnitPrice } from '../lib/storefront-variant-pricing';
@@ -32,7 +25,6 @@ interface TapOriginMetrics {
   timestamp: number;
 }
 
-// Tracks the exact screen coordinates & bounding rect of the last tapped product card for Apple iOS spring morphing
 let lastProductTapOrigin: TapOriginMetrics | null = null;
 
 if (typeof window !== 'undefined') {
@@ -52,7 +44,7 @@ if (typeof window !== 'undefined') {
         const rect = cardEl.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
-        const ratio = Math.min(rect.width / 460, rect.height / 520);
+        const ratio = Math.min(rect.width / 490, rect.height / 500);
         lastProductTapOrigin = {
           dx: Math.round(cx - vw / 2),
           dy: Math.round(cy - vh / 2),
@@ -80,9 +72,7 @@ export interface StorefrontProductQuickViewModalProps {
   info?: StorefrontInfo;
   tenantSlug?: string;
   slug?: string;
-  /** This product's line already in the cart, if any (the cart holds one variant per product). */
   cartLine?: { variantName?: string | null; quantity: number } | null;
-  /** Related / recommended products from the store catalog */
   allProducts?: StorefrontProduct[];
   onSelectProduct?: (product: StorefrontProduct) => void;
   isFavorite?: boolean;
@@ -98,12 +88,8 @@ export function StorefrontProductQuickViewModal({
   info,
   tenantSlug,
   slug,
-  cartLine,
-  allProducts = [],
-  onSelectProduct,
   isFavorite: isFavoriteProp,
   onToggleFavorite,
-  onOpenReviewModal,
 }: StorefrontProductQuickViewModalProps) {
   const { t } = useTranslation();
   const [mountedProduct, setMountedProduct] = useState<StorefrontProduct | null>(propProduct);
@@ -113,12 +99,11 @@ export function StorefrontProductQuickViewModal({
 
   const [qty, setQty] = useState(1);
   const [addedAnimation, setAddedAnimation] = useState(false);
-  const [activePhoto, setActivePhoto] = useState('');
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [localFavorite, setLocalFavorite] = useState(false);
 
-  // Sync open/close state with Apple iOS spring launch & dismiss lifecycle
   useEffect(() => {
     if (isOpen && propProduct) {
       if (closeTimerRef.current) {
@@ -139,7 +124,7 @@ export function StorefrontProductQuickViewModal({
         setMountedProduct(null);
         setIsClosing(false);
         closeTimerRef.current = null;
-      }, 250);
+      }, 240);
     }
     return () => {
       if (closeTimerRef.current) {
@@ -157,7 +142,7 @@ export function StorefrontProductQuickViewModal({
       setIsClosing(false);
       closeTimerRef.current = null;
       onClose();
-    }, 240);
+    }, 230);
   }, [isClosing, onClose]);
 
   useEffect(() => {
@@ -178,10 +163,7 @@ export function StorefrontProductQuickViewModal({
       setQty(1);
       setAddedAnimation(false);
       setCopiedLink(false);
-      const gallery = (propProduct as any).gallery || [];
-      const autoPhoto = resolveProductPhoto(propProduct.name, propProduct.categoryName);
-      const defaultPhoto = gallery[0] || propProduct.imageUrl || autoPhoto.url || '';
-      setActivePhoto(defaultPhoto);
+      setActivePhotoIndex(0);
       const variants = (propProduct as any).variants || [];
       setSelectedVariantIndex(variants.length > 0 ? 0 : null);
       try {
@@ -191,18 +173,6 @@ export function StorefrontProductQuickViewModal({
       }
     }
   }, [propProduct]);
-
-  const relatedProducts = useMemo(() => {
-    if (!product || !allProducts || allProducts.length === 0) return [];
-    const sameCat = allProducts.filter(
-      (p) => Number(p.id) !== Number(product.id) && p.inStock !== false && p.categoryName === product.categoryName
-    );
-    if (sameCat.length >= 3) return sameCat.slice(0, 4);
-    const others = allProducts.filter(
-      (p) => Number(p.id) !== Number(product.id) && p.inStock !== false && p.categoryName !== product.categoryName
-    );
-    return [...sameCat, ...others].slice(0, 4);
-  }, [product, allProducts]);
 
   if (!product || (!isOpen && !mountedProduct)) return null;
 
@@ -231,7 +201,7 @@ export function StorefrontProductQuickViewModal({
     return `${origin}${basePath}/p/${product.id}`;
   };
 
-  const handleCopyProductLink = async () => {
+  const handleShareClick = async () => {
     const shareUrl = getProductDirectUrl();
     try {
       if (navigator.share) {
@@ -246,17 +216,16 @@ export function StorefrontProductQuickViewModal({
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopiedLink(true);
-      window.setTimeout(() => setCopiedLink(false), 2200);
+      window.setTimeout(() => setCopiedLink(false), 2000);
     } catch {}
   };
 
   const autoPhoto = resolveProductPhoto(product.name, product.categoryName);
   const displayPrimaryPhoto = product.imageUrl || autoPhoto.url || '';
 
-  const brandColor = info?.brandColor || 'var(--storefront-primary-color, #2d68c4)';
+  const brandColor = info?.brandColor || 'var(--storefront-primary-color, #2563eb)';
   const brandColorContrast = getContrastTextColor(info?.brandColor);
   const inStock = product.inStock !== false;
-  const isLowStock = inStock && product.stockQty > 0 && product.stockQty <= 5;
 
   const gallery: string[] =
     (product as any).gallery && (product as any).gallery.length > 0
@@ -265,25 +234,21 @@ export function StorefrontProductQuickViewModal({
       ? [displayPrimaryPhoto]
       : [];
 
+  const activePhotoUrl =
+    gallery[activePhotoIndex] || displayPrimaryPhoto || generatePremiumProductSvg(product.name, product.categoryName);
+
   const variants = getProductVariants(product);
   const selectedVariant = selectedVariantIndex !== null ? variants[selectedVariantIndex] || null : null;
 
   const basePrice = resolveVariantUnitPrice(product.price, selectedVariant) ?? product.price;
   const isZeroPrice = Number(basePrice || 0) <= 0;
-  const cartHasOtherVariant = Boolean(
-    cartLine && (cartLine.variantName || null) !== (selectedVariant?.name || null)
-  );
 
   const hasOriginalDiscount = Boolean(product.hasDiscount && product.originalPrice && product.originalPrice > basePrice);
-  const savingsAmount = hasOriginalDiscount && product.originalPrice ? Math.max(0, product.originalPrice - basePrice) : 0;
   const discountPercentage =
     product.discountPercent ||
     (hasOriginalDiscount && product.originalPrice
       ? Math.round(((product.originalPrice - basePrice) / product.originalPrice) * 100)
       : 0);
-
-  const ratingValue = Number(product.rating || 4.9);
-  const reviewCountValue = Number(product.reviewCount || 24);
 
   const cleanWhatsappPhone = ((info?.whatsappPhone || (info as any)?.whatsapp) || '').replace(/[^0-9]/g, '');
   const whatsappInquiryUrl = cleanWhatsappPhone
@@ -308,7 +273,7 @@ export function StorefrontProductQuickViewModal({
     setTimeout(() => {
       setAddedAnimation(false);
       handleAnimatedClose();
-    }, 320);
+    }, 300);
   };
 
   return (
@@ -323,7 +288,7 @@ export function StorefrontProductQuickViewModal({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: 'min(16px, 3.5vw)',
+          padding: '16px',
           '--ios-origin-x': `${originMetrics.dx}px`,
           '--ios-origin-y': `${originMetrics.dy}px`,
           '--ios-init-scale': `${originMetrics.scale}`,
@@ -332,40 +297,28 @@ export function StorefrontProductQuickViewModal({
       onClick={handleAnimatedClose}
     >
       <style>{`
-        /* ============================================================================
-           Apple iOS 18 App-Launch / App-Store Card Spring Morph Physics (120Hz GPU)
-           ============================================================================ */
         @keyframes sfIosBackdropIn {
           0% { opacity: 0; }
           100% { opacity: 1; }
         }
-
         @keyframes sfIosBackdropOut {
           0% { opacity: 1; }
           100% { opacity: 0; }
         }
-
         @keyframes sfIosAppLaunchOpen {
           0% {
             opacity: 0;
             transform: translate3d(var(--ios-origin-x, 0px), var(--ios-origin-y, 48px), 0) scale3d(var(--ios-init-scale, 0.36), var(--ios-init-scale, 0.36), 1);
           }
-          14% {
-            opacity: 1;
-          }
           66% {
             opacity: 1;
-            transform: translate3d(calc(var(--ios-origin-x, 0px) * -0.016), calc(var(--ios-origin-y, 48px) * -0.016), 0) scale3d(1.016, 1.016, 1);
-          }
-          86% {
-            transform: translate3d(0, 0, 0) scale3d(0.997, 0.997, 1);
+            transform: translate3d(0, 0, 0) scale3d(1.012, 1.012, 1);
           }
           100% {
             opacity: 1;
             transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
           }
         }
-
         @keyframes sfIosAppLaunchClose {
           0% {
             opacity: 1;
@@ -376,91 +329,43 @@ export function StorefrontProductQuickViewModal({
             transform: translate3d(var(--ios-origin-x, 0px), var(--ios-origin-y, 48px), 0) scale3d(var(--ios-init-scale, 0.34), var(--ios-init-scale, 0.34), 1);
           }
         }
-
-        @keyframes sfIosPhotoFloatIn {
-          0% {
-            opacity: 0.4;
-            transform: scale3d(0.84, 0.84, 1) translate3d(0, 10px, 0);
-          }
-          66% {
-            opacity: 1;
-            transform: scale3d(1.024, 1.024, 1) translate3d(0, -2px, 0);
-          }
-          100% {
-            opacity: 1;
-            transform: scale3d(1, 1, 1) translate3d(0, 0, 0);
-          }
-        }
-
-        @keyframes sfIosContentCascadeIn {
-          0% {
-            opacity: 0;
-            transform: translate3d(0, 10px, 0);
-          }
-          100% {
-            opacity: 1;
-            transform: translate3d(0, 0, 0);
-          }
-        }
-
         .sf-quickview-backdrop {
-          background-color: rgba(15, 23, 42, 0.52);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          will-change: opacity;
+          background-color: rgba(15, 23, 42, 0.45);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
         .sf-quickview-backdrop.is-opening {
-          animation: sfIosBackdropIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          animation: sfIosBackdropIn 0.26s ease forwards;
         }
         .sf-quickview-backdrop.is-closing {
-          animation: sfIosBackdropOut 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+          animation: sfIosBackdropOut 0.2s ease forwards;
           pointer-events: none;
         }
-
         .sf-quickview-shell {
           will-change: transform, opacity;
           transform-origin: center center;
-          backface-visibility: hidden;
-          -webkit-backface-visibility: hidden;
         }
         .sf-quickview-backdrop.is-opening .sf-quickview-shell {
-          animation: sfIosAppLaunchOpen 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          animation: sfIosAppLaunchOpen 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         .sf-quickview-backdrop.is-closing .sf-quickview-shell {
-          animation: sfIosAppLaunchClose 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+          animation: sfIosAppLaunchClose 0.2s cubic-bezier(0.32, 0.72, 0, 1) forwards;
         }
-
-        .sf-quickview-backdrop.is-opening .sf-quickview-photo-img {
-          animation: sfIosPhotoFloatIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) 0.02s both;
-        }
-        .sf-quickview-backdrop.is-opening .sf-quickview-info-section {
-          animation: sfIosContentCascadeIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
-        }
-        .sf-quickview-backdrop.is-opening .sf-quickview-footer {
-          animation: sfIosContentCascadeIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
-        }
-
         .sf-quickview-ai-btn:active {
-          transform: scale3d(0.96, 0.96, 1) !important;
+          transform: scale(0.96);
         }
-
-        .sf-quickview-related-card:hover {
-          border-color: #cbd5e1 !important;
-          transform: translateY(-2px);
-        }
-
         @media (max-width: 640px) {
+          .sf-quickview-backdrop {
+            padding: 10px !important;
+            align-items: flex-end !important;
+          }
           .sf-quickview-shell {
-            max-width: min(100%, 440px) !important;
-            border-radius: 24px !important;
-            padding: 14px 15px 16px !important;
-          }
-          .sf-quickview-photo-box {
-            height: 215px !important;
-          }
-          .sf-quickview-trust-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 6px !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            border-radius: 20px !important;
+            padding: 16px 16px 18px !important;
+            gap: 12px !important;
+            max-height: 88vh !important;
           }
         }
       `}</style>
@@ -469,252 +374,118 @@ export function StorefrontProductQuickViewModal({
         className="sf-quickview-shell"
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '28px',
+          borderRadius: '22px',
           border: '1px solid #edf1f7',
-          maxWidth: '500px',
+          maxWidth: '490px',
           width: '100%',
-          maxHeight: '91vh',
-          boxShadow: '0 28px 60px -12px rgba(15, 23, 42, 0.26), 0 4px 16px -2px rgba(15, 23, 42, 0.08)',
+          maxHeight: '90vh',
+          boxShadow: '0 24px 48px -12px rgba(15, 23, 42, 0.18)',
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          padding: '16px 20px 18px',
-          gap: '12px',
+          padding: '18px 22px 20px',
+          gap: '14px',
           boxSizing: 'border-box',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Row: Category Pill + Stock Status on Right | Share + Wishlist + Close on Left */}
+        {/* 1. Minimal Top Bar with Storefront Border-Radius (10px) */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '8px',
             flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', minWidth: 0 }}>
-            {product.categoryName && (
-              <span
-                className="sf-quickview-cat-badge"
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  color: '#1e293b',
-                  background: '#f4f6fa',
-                  border: '1px solid #e2e8f0',
-                  padding: '0 12px',
-                  height: '34px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  borderRadius: '11px',
-                  boxSizing: 'border-box',
-                  whiteSpace: 'nowrap',
-                  maxWidth: '210px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {product.categoryName}
-              </span>
-            )}
+          <button
+            type="button"
+            onClick={handleAnimatedClose}
+            className="sf-quickview-ai-btn"
+            aria-label="إغلاق"
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#334155',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <XIcon size={15} strokeWidth={2} />
+          </button>
 
-            {/* Availability Status Badge */}
-            {inStock ? (
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: isLowStock ? '#c2410c' : '#15803d',
-                  background: isLowStock ? '#fff7ed' : '#f0fdf4',
-                  border: `1px solid ${isLowStock ? '#fed7aa' : '#bbf7d0'}`,
-                  padding: '0 9px',
-                  height: '34px',
-                  borderRadius: '11px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {isLowStock ? (
-                  <>
-                    <IconFlame size={12} color="#c2410c" strokeWidth={2.2} />
-                    <span>
-                      {t('storefront.storefront_product_quick_view_modal.s3', 'متبقي')} {product.stockQty}{' '}
-                      {t('storefront.storefront_product_quick_view_modal.s4', 'فقط')}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <IconCheckCircle size={12} color="#16a34a" strokeWidth={2.3} />
-                    <span>متوفر في المخزون</span>
-                  </>
-                )}
-              </span>
-            ) : (
-              <span
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: '#b91c1c',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  padding: '0 9px',
-                  height: '34px',
-                  borderRadius: '11px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <ClockIcon size={12} color="#b91c1c" />
-                <span>نفدت الكمية</span>
-              </span>
-            )}
-          </div>
+          <span
+            style={{
+              fontSize: '15px',
+              fontWeight: 600,
+              color: '#0f172a',
+            }}
+          >
+            تفاصيل المنتج
+          </span>
 
-          {/* Left Action Controls: Share / Copy Link + Favorite Heart + Close */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={handleCopyProductLink}
-              className="sf-quickview-ai-btn"
-              title={copiedLink ? 'تم نسخ رابط المنتج' : 'مشاركة / نسخ رابط المنتج'}
-              style={{
-                background: copiedLink ? '#f0fdf4' : '#ffffff',
-                border: `1px solid ${copiedLink ? '#86efac' : '#dadce0'}`,
-                height: '34px',
-                padding: copiedLink ? '0 10px' : '0',
-                width: copiedLink ? 'auto' : '34px',
-                borderRadius: '10px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '4px',
-                cursor: 'pointer',
-                color: copiedLink ? '#15803d' : '#475569',
-                fontSize: '11px',
-                fontWeight: 700,
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                transition: 'all 0.16s ease',
-              }}
-            >
-              {copiedLink ? (
-                <>
-                  <CheckIcon size={14} color="#16a34a" strokeWidth={2.4} />
-                  <span>تم النسخ</span>
-                </>
-              ) : (
-                <Share2Icon size={15} color="#475569" strokeWidth={2.1} />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleFavoriteClick}
-              className="sf-quickview-ai-btn"
-              aria-label="إضافة إلى المفضلة"
-              title={isFavorite ? 'محفوظ في المفضلة' : 'إضافة إلى المفضلة'}
-              style={{
-                background: isFavorite ? '#fff1f2' : '#ffffff',
-                border: `1px solid ${isFavorite ? '#fecdd3' : '#dadce0'}`,
-                width: '34px',
-                height: '34px',
-                borderRadius: '10px',
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                transition: 'all 0.16s ease',
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill={isFavorite ? '#e11d48' : 'none'}
-                stroke={isFavorite ? '#e11d48' : '#475569'}
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </button>
-
-            <button
-              type="button"
-              className="sf-quickview-close-btn sf-quickview-ai-btn"
-              onClick={handleAnimatedClose}
-              aria-label={t('storefront.storefront_product_quick_view_modal.s2', 'إغلاق النافذة')}
-              style={{
-                background: '#ffffff',
-                border: '1px solid #dadce0',
-                width: '34px',
-                height: '34px',
-                borderRadius: '10px',
-                padding: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#3c4043',
-                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
-                transition: 'transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f0f4f9';
-                e.currentTarget.style.borderColor = '#cbd5e1';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#ffffff';
-                e.currentTarget.style.borderColor = '#dadce0';
-              }}
-            >
-              <XIcon size={16} strokeWidth={2.2} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleShareClick}
+            className="sf-quickview-ai-btn"
+            title={copiedLink ? 'تم نسخ الرابط' : 'مشاركة المنتج'}
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '10px',
+              background: copiedLink ? '#ecfdf5' : '#ffffff',
+              border: `1px solid ${copiedLink ? '#a7f3d0' : '#e2e8f0'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: copiedLink ? '#059669' : '#334155',
+              boxShadow: '0 1px 2px rgba(15, 23, 42, 0.03)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {copiedLink ? <CheckIcon size={15} color="#059669" /> : <Share2Icon size={15} color="#334155" strokeWidth={1.9} />}
+          </button>
         </div>
 
-        {/* Scrollable Content Area */}
+        {/* Scrollable Content */}
         <div
-          className="sf-quickview-body thin-scrollbar"
+          className="thin-scrollbar"
           style={{
             flex: 1,
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
             gap: '14px',
-            paddingLeft: '2px',
           }}
         >
-          {/* Product Image Stage */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* 2. Product Image Box with Storefront Radius (14px) + Pagination Dots */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
             <div
-              className="sf-quickview-photo-box"
               style={{
                 width: '100%',
-                height: '240px',
-                borderRadius: '20px',
-                backgroundColor: '#f4f6fa',
-                border: '1px solid #edf1f7',
+                height: '245px',
+                borderRadius: '14px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #f1f5f9',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
-                padding: '18px',
+                padding: '22px',
                 boxSizing: 'border-box',
               }}
             >
               <img
-                className="sf-quickview-photo-img"
-                src={activePhoto || displayPrimaryPhoto || generatePremiumProductSvg(product.name, product.categoryName)}
+                src={activePhotoUrl}
                 alt={product.name}
                 decoding="async"
                 onError={(e) => {
@@ -726,713 +497,415 @@ export function StorefrontProductQuickViewModal({
                   width: 'auto',
                   height: 'auto',
                   objectFit: 'contain',
-                  filter: 'drop-shadow(0 8px 20px rgba(15, 23, 42, 0.08))',
+                  mixBlendMode: 'multiply',
                 }}
               />
 
-              {/* Discount % Corner Pill on Image */}
               {discountPercentage > 0 && (
-                <div
+                <span
                   style={{
                     position: 'absolute',
-                    top: '10px',
-                    right: '10px',
-                    background: '#CC0C39',
+                    top: '12px',
+                    right: '12px',
+                    background: '#e11d48',
                     color: '#ffffff',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '4px 10px',
+                    fontSize: '11.5px',
+                    fontWeight: 600,
+                    padding: '3px 10px',
                     borderRadius: '8px',
-                    boxShadow: '0 2px 6px rgba(204, 12, 57, 0.25)',
                   }}
                 >
                   خصم {discountPercentage}%
-                </div>
-              )}
-
-              {/* SKU / Barcode Pill on Bottom Left of Image */}
-              {product.barcode && (
-                <div
-                  dir="ltr"
-                  style={{
-                    position: 'absolute',
-                    bottom: '10px',
-                    left: '10px',
-                    background: 'rgba(255, 255, 255, 0.9)',
-                    backdropFilter: 'blur(4px)',
-                    color: '#64748b',
-                    border: '1px solid #e2e8f0',
-                    fontSize: '10.5px',
-                    fontWeight: 600,
-                    padding: '2px 8px',
-                    borderRadius: '7px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <BarcodeIcon size={11} color="#64748b" />
-                  <span>{product.barcode}</span>
-                </div>
+                </span>
               )}
             </div>
 
-            {/* Gallery Thumbnails (if multiple images) */}
-            {gallery.length > 1 && (
-              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', justifyContent: 'center' }}>
-                {gallery.map((imgUrl, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setActivePhoto(imgUrl)}
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '12px',
-                      border: activePhoto === imgUrl ? `2px solid ${brandColor}` : '1px solid #e2e8f0',
-                      padding: '3px',
-                      background: '#ffffff',
-                      cursor: 'pointer',
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <img
-                      src={imgUrl}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }}
+            {/* Minimal Dot Indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+              {gallery.length > 1 ? (
+                gallery.map((_, idx) => {
+                  const isCurrent = idx === activePhotoIndex;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActivePhotoIndex(idx)}
+                      style={{
+                        width: isCurrent ? '20px' : '6px',
+                        height: '6px',
+                        borderRadius: '6px',
+                        background: isCurrent ? '#0f172a' : '#cbd5e1',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
                     />
-                  </button>
-                ))}
-              </div>
-            )}
+                  );
+                })
+              ) : (
+                <>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '5px', background: '#e2e8f0' }} />
+                  <span style={{ width: '20px', height: '5px', borderRadius: '5px', background: '#0f172a' }} />
+                  <span style={{ width: '5px', height: '5px', borderRadius: '5px', background: '#e2e8f0' }} />
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Product Info: Title + Rating + Price + Description + Variants + Trust Highlights */}
-          <div className="sf-quickview-info-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* Title & Interactive Rating Row */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-                {/* Star Rating & Review Trigger */}
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      background: '#fefce8',
-                      border: '1px solid #fef08a',
-                      padding: '2px 8px',
-                      borderRadius: '8px',
-                      fontSize: '11.5px',
-                      fontWeight: 800,
-                      color: '#b45309',
-                    }}
-                  >
-                    <IconStar size={12} fill="#f59e0b" color="#f59e0b" />
-                    <span>{ratingValue.toFixed(1)}</span>
-                    <span style={{ color: '#92400e', fontWeight: 600, fontSize: '10.5px' }}>
-                      ({reviewCountValue} تقييم)
-                    </span>
-                  </div>
-
-                  {onOpenReviewModal && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onOpenReviewModal(product);
-                      }}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        padding: '2px 4px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        color: brandColor,
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      أضف تقييمك
-                    </button>
-                  )}
-                </div>
-
-                {/* Copy Direct Link Text Action */}
-                <button
-                  type="button"
-                  onClick={handleCopyProductLink}
+          {/* 3. Category Label + Title + Favorite Button (No Star Ratings) */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              {product.categoryName && (
+                <div
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    padding: '2px 4px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    color: '#64748b',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontFamily: 'inherit',
+                    fontSize: '12px',
+                    fontWeight: 400,
+                    color: '#94a3b8',
+                    marginBottom: '4px',
                   }}
                 >
-                  <CopyIcon size={11} color="#64748b" />
-                  <span>{copiedLink ? 'تم نسخ الرابط!' : 'نسخ رابط المنتج'}</span>
-                </button>
-              </div>
+                  {product.categoryName}
+                </div>
+              )}
 
               <h2
                 style={{
-                  fontSize: '19px',
-                  fontWeight: 800,
+                  fontSize: '18px',
+                  fontWeight: 600,
                   color: '#0f172a',
                   margin: 0,
-                  lineHeight: 1.35,
+                  lineHeight: 1.4,
                 }}
               >
                 {product.name}
               </h2>
-
-              {/* Price Row with Original Price, Offer Badge, and Savings Pill */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                  marginTop: '2px',
-                }}
-              >
-                {isZeroPrice ? (
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#475569' }}>
-                    {t('storefront.storefront_product_quick_view_modal.s5', 'السعر عند التواصل')}
-                  </span>
-                ) : (
-                  <>
-                    <span
-                      style={{
-                        fontSize: '24px',
-                        fontWeight: 900,
-                        color: brandColor,
-                        letterSpacing: '-0.4px',
-                        lineHeight: 1.1,
-                      }}
-                    >
-                      {basePrice.toLocaleString()}{' '}
-                      <span style={{ fontSize: '13.5px', fontWeight: 800 }}>
-                        <CurrencySymbol />
-                      </span>
-                    </span>
-
-                    {hasOriginalDiscount && product.originalPrice && (
-                      <span
-                        style={{
-                          fontSize: '13.5px',
-                          color: '#94a3b8',
-                          textDecoration: 'line-through',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {product.originalPrice.toLocaleString()} <CurrencySymbol />
-                      </span>
-                    )}
-
-                    {(product.hasDiscount || product.offerType === 'bogo') && product.offerBadge && (
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          background: '#CC0C39',
-                          color: '#ffffff',
-                          padding: '3px 9px',
-                          borderRadius: '8px',
-                        }}
-                      >
-                        {product.offerBadge}
-                      </span>
-                    )}
-
-                    {savingsAmount > 0 && (
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          background: '#ecfdf5',
-                          color: '#047857',
-                          border: '1px solid #a7f3d0',
-                          padding: '2.5px 8px',
-                          borderRadius: '8px',
-                        }}
-                      >
-                        وفر {savingsAmount.toLocaleString()} <CurrencySymbol />
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
             </div>
 
-            {/* Clean Description Box */}
-            {product.description && (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: '13px',
-                  lineHeight: 1.65,
-                  color: '#475569',
-                  fontWeight: 500,
-                  background: '#f8fafc',
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  border: '1px solid #edf1f7',
-                }}
+            {/* Favorite Button with Storefront Border-Radius (11px) */}
+            <button
+              type="button"
+              onClick={handleFavoriteClick}
+              className="sf-quickview-ai-btn"
+              aria-label="المفضلة"
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '11px',
+                background: isFavorite ? '#fff1f2' : '#ffffff',
+                border: `1px solid ${isFavorite ? '#fecdd3' : '#e2e8f0'}`,
+                boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                marginTop: '2px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill={isFavorite ? '#e11d48' : 'none'}
+                stroke={isFavorite ? '#e11d48' : '#64748b'}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                {product.description}
-              </p>
-            )}
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </button>
+          </div>
 
-            {/* Variant Selector Buttons */}
-            {variants.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>
-                  اختر المواصفات / المقاس المتاح:
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {/* 4. Options / Status & Quantity Stepper Row (Storefront 10px-12px Radius) */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            {/* Right side: Variants (or Stock status if no variants) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, minWidth: '150px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 400, color: '#94a3b8' }}>
+                {variants.length > 0 ? 'اختر الخيار' : 'الحالة'}
+              </span>
+
+              {variants.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {variants.map((v, idx) => {
                     const isSelected = selectedVariantIndex === idx;
-                    const vPrice = resolveVariantUnitPrice(product.price, v);
                     return (
                       <button
                         key={idx}
                         type="button"
-                        className="sf-quickview-ai-btn"
                         onClick={() => setSelectedVariantIndex(idx)}
                         style={{
                           height: '36px',
                           padding: '0 14px',
-                          borderRadius: '11px',
-                          border: isSelected ? `1.5px solid ${brandColor}` : '1px solid #dadce0',
+                          borderRadius: '10px',
+                          border: isSelected ? `1px solid ${brandColor}` : '1px solid #e2e8f0',
                           background: isSelected ? brandColor : '#ffffff',
-                          color: isSelected ? '#ffffff' : '#1f1f1f',
+                          color: isSelected ? '#ffffff' : '#334155',
                           fontSize: '12.5px',
-                          fontWeight: 700,
+                          fontWeight: 500,
                           cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '5px',
-                          boxShadow: isSelected ? '0 3px 8px rgba(45, 104, 196, 0.2)' : '0 1px 2px rgba(15, 23, 42, 0.03)',
+                          fontFamily: 'inherit',
                           transition: 'all 0.15s ease',
                         }}
                       >
-                        <span>{v.name}</span>
-                        {vPrice !== null && vPrice !== product.price && (
-                          <span style={{ opacity: 0.9 }}>
-                            ({vPrice.toLocaleString()} {t('storefront.storefront_product_quick_view_modal.s11', 'ج')})
-                          </span>
-                        )}
+                        {v.name}
                       </button>
                     );
                   })}
                 </div>
-
-                {cartHasOtherVariant && cartLine && (
-                  <div
+              ) : (
+                <div>
+                  <span
                     style={{
-                      fontSize: '11.5px',
-                      color: '#92400e',
-                      background: '#fffbeb',
-                      border: '1px solid #fde68a',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      height: '36px',
+                      padding: '0 13px',
                       borderRadius: '10px',
-                      padding: '5px 10px',
-                      fontWeight: 600,
-                      alignSelf: 'flex-start',
+                      background: inStock ? '#f0fdf4' : '#fef2f2',
+                      border: `1px solid ${inStock ? '#dcfce7' : '#fee2e2'}`,
+                      color: inStock ? '#15803d' : '#dc2626',
+                      fontSize: '12.5px',
+                      fontWeight: 500,
                     }}
                   >
-                    {t('storefront.storefront_product_quick_view_modal.s12', 'في سلتك الآن')}{' '}
-                    {cartLine.variantName
-                      ? `«${cartLine.variantName}»`
-                      : t('storefront.storefront_product_quick_view_modal.s13', 'هذا الصنف')}{' '}
-                    ({cartLine.quantity})
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Store Trust & Delivery Highlights Strip */}
-            <div
-              className="sf-quickview-trust-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '8px',
-                marginTop: '2px',
-              }}
-            >
-              <div
-                style={{
-                  background: '#f8fafc',
-                  border: '1px solid #edf1f7',
-                  borderRadius: '12px',
-                  padding: '8px 6px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '4px',
-                }}
-              >
-                <TruckIcon size={15} color={brandColor} strokeWidth={2.1} />
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b', lineHeight: 1.25 }}>
-                  {info?.freeShippingEnabled && info?.freeShippingMinOrder
-                    ? `شحن مجاني فوق ${info.freeShippingMinOrder}`
-                    : 'توصيل سريع لباب البيت'}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  background: '#f8fafc',
-                  border: '1px solid #edf1f7',
-                  borderRadius: '12px',
-                  padding: '8px 6px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '4px',
-                }}
-              >
-                <ShieldCheckIcon size={15} color="#16a34a" strokeWidth={2.1} />
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b', lineHeight: 1.25 }}>
-                  منتج أصلي مضمون 100%
-                </span>
-              </div>
-
-              <div
-                style={{
-                  background: '#f8fafc',
-                  border: '1px solid #edf1f7',
-                  borderRadius: '12px',
-                  padding: '8px 6px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  gap: '4px',
-                }}
-              >
-                <IconCheckCircle size={15} color="#d97706" strokeWidth={2.1} />
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#1e293b', lineHeight: 1.25 }}>
-                  دفع آمن عند الاستلام
-                </span>
-              </div>
+                    {inStock ? 'متوفر وجاهز للشحن' : 'نفدت الكمية حالياً'}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Related Products Mini Carousel (If available) */}
-            {relatedProducts.length > 0 && onSelectProduct && (
-              <div
-                style={{
-                  marginTop: '4px',
-                  paddingTop: '10px',
-                  borderTop: '1px solid #edf1f7',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155' }}>
-                    منتجات مشابهة قد تعجبك
-                  </span>
-                  <span style={{ fontSize: '10.5px', color: '#64748b', fontWeight: 600 }}>
-                    اضغط للعرض السريع
-                  </span>
-                </div>
+            {/* Left side: QTY Stepper [ + ] 1 [ - ] (RTL Standard with 10px Radius) */}
+            {!isZeroPrice && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', flexShrink: 0 }}>
+                <span style={{ fontSize: '12px', fontWeight: 400, color: '#94a3b8' }}>
+                  الكمية
+                </span>
 
                 <div
-                  className="thin-scrollbar"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                    gap: '8px',
-                  }}
-                >
-                  {relatedProducts.map((rel) => {
-                    const relPhoto =
-                      rel.imageUrl ||
-                      resolveProductPhoto(rel.name, rel.categoryName).url ||
-                      generatePremiumProductSvg(rel.name, rel.categoryName);
-                    return (
-                      <button
-                        key={rel.id}
-                        type="button"
-                        className="sf-quickview-related-card"
-                        onClick={() => onSelectProduct(rel)}
-                        style={{
-                          background: '#ffffff',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '12px',
-                          padding: '6px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          textAlign: 'center',
-                          gap: '4px',
-                          cursor: 'pointer',
-                          transition: 'all 0.16s ease',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '46px',
-                            borderRadius: '8px',
-                            background: '#f4f6fa',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '4px',
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          <img
-                            src={relPhoto}
-                            alt={rel.name}
-                            onError={(e) => {
-                              e.currentTarget.src = generatePremiumProductSvg(rel.name, rel.categoryName);
-                            }}
-                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                          />
-                        </div>
-                        <span
-                          style={{
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            color: '#1e293b',
-                            width: '100%',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {rel.name}
-                        </span>
-                        <span style={{ fontSize: '11px', fontWeight: 800, color: brandColor }}>
-                          {rel.price.toLocaleString()} <CurrencySymbol />
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom Action Footer: Add to Cart + RTL Stepper [ + ] (qty) [ - ] + WhatsApp Direct Inquiry */}
-        <div
-          className="sf-quickview-footer"
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            paddingTop: '8px',
-            borderTop: '1px solid #f1f5f9',
-            width: '100%',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-            {isZeroPrice ? (
-              <a
-                className="sf-quickview-cta-btn sf-quickview-ai-btn"
-                href={whatsappInquiryUrl || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  width: '100%',
-                  height: '40px',
-                  borderRadius: '12px',
-                  backgroundColor: '#25d366',
-                  color: '#ffffff',
-                  border: '1px solid #22c55e',
-                  fontSize: '13.5px',
-                  fontWeight: 800,
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  transition: 'transform 0.16s ease, opacity 0.16s ease',
-                }}
-              >
-                <IconWhatsapp size={17} color="#ffffff" />
-                <span>{t('storefront.storefront_product_quick_view_modal.s23', 'استفسر عن السعر عبر واتساب')}</span>
-              </a>
-            ) : (
-              <>
-                {/* Add to Cart Button */}
-                <button
-                  type="button"
-                  className="sf-quickview-cta-btn sf-quickview-ai-btn"
-                  disabled={!inStock}
-                  onClick={handleAdd}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    height: '38px',
-                    borderRadius: '12px',
-                    backgroundColor: inStock ? brandColor : '#f1f3f4',
-                    color: inStock ? brandColorContrast || '#ffffff' : '#64748b',
-                    border: inStock ? `1px solid ${brandColor}` : '1px solid #dadce0',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    cursor: inStock ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 2px 6px rgba(45, 104, 196, 0.18)',
-                    transition: 'transform 0.16s ease, background-color 0.16s ease, opacity 0.16s ease',
-                    whiteSpace: 'nowrap',
-                    padding: '0 16px',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {addedAnimation ? (
-                    <>
-                      <span>{t('storefront.storefront_product_quick_view_modal.s24', 'تمت الإضافة بنجاح')}</span>
-                      <CheckIcon size={16} color="#ffffff" />
-                    </>
-                  ) : inStock ? (
-                    <>
-                      <span>
-                        {t('storefront.storefront_product_quick_view_modal.s25', 'إضافة إلى السلة (')}
-                        {(basePrice * qty).toLocaleString()} <CurrencySymbol />)
-                      </span>
-                      <IconShoppingCart size={16} color="#ffffff" strokeWidth={2.2} />
-                    </>
-                  ) : (
-                    <>
-                      <span>{t('storefront.storefront_product_quick_view_modal.s26', 'ستتوفر قريباً')}</span>
-                      <ClockIcon size={16} color="#64748b" />
-                    </>
-                  )}
-                </button>
-
-                {/* Quantity Stepper in RTL Order: [ + ] (qty) [ - ] */}
-                <div
-                  className="sf-quickview-stepper"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    height: '38px',
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #dadce0',
-                    borderRadius: '12px',
-                    padding: '2px 4px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    padding: '0 3px',
                     gap: '2px',
-                    flexShrink: 0,
-                    boxSizing: 'border-box',
-                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                   }}
                 >
                   <button
                     type="button"
-                    className="sf-quickview-stepper-btn sf-quickview-ai-btn"
                     disabled={!inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)}
                     onClick={() => setQty((prev) => prev + 1)}
-                    title="زيادة الكمية"
                     style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '9px',
-                      border: '1px solid #dadce0',
-                      backgroundColor: '#ffffff',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      background: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor:
-                        !inStock || (product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty)
-                          ? 'not-allowed'
-                          : 'pointer',
-                      opacity: product.stockQty > 0 && product.stockQty < 999 && qty >= product.stockQty ? 0.4 : 1,
-                      color: '#1f1f1f',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                      cursor: 'pointer',
+                      color: '#1e293b',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
                     }}
                   >
-                    <PlusIcon size={14} color="#1f1f1f" />
+                    <PlusIcon size={13} color="#1e293b" />
                   </button>
+
                   <span
                     style={{
                       minWidth: '28px',
                       textAlign: 'center',
                       fontSize: '13.5px',
-                      fontWeight: 800,
+                      fontWeight: 600,
                       color: '#0f172a',
                     }}
                   >
                     {qty}
                   </span>
+
                   <button
                     type="button"
-                    className="sf-quickview-stepper-btn sf-quickview-ai-btn"
                     disabled={qty <= 1 || !inStock}
                     onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-                    title="تقليل الكمية"
                     style={{
-                      width: '30px',
-                      height: '30px',
-                      borderRadius: '9px',
-                      border: '1px solid #dadce0',
-                      backgroundColor: '#ffffff',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      background: '#ffffff',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      cursor: qty <= 1 || !inStock ? 'not-allowed' : 'pointer',
+                      cursor: qty <= 1 ? 'not-allowed' : 'pointer',
                       opacity: qty <= 1 ? 0.4 : 1,
-                      fontWeight: 800,
+                      color: '#1e293b',
                       fontSize: '15px',
-                      color: '#1f1f1f',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
                     }}
                   >
-                    -
+                    −
                   </button>
                 </div>
-
-                {/* WhatsApp Direct Product Inquiry Button */}
-                {whatsappInquiryUrl && (
-                  <a
-                    href={whatsappInquiryUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="استفسر عن هذا المنتج عبر واتساب"
-                    className="sf-quickview-ai-btn"
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '12px',
-                      background: '#f0fdf4',
-                      border: '1px solid #bbf7d0',
-                      color: '#16a34a',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      textDecoration: 'none',
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
-                    }}
-                  >
-                    <IconWhatsapp size={18} color="#16a34a" />
-                  </a>
-                )}
-              </>
+              </div>
             )}
           </div>
+
+          {/* 5. Clean Description */}
+          {product.description && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingTop: '2px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 400, color: '#94a3b8' }}>
+                الوصف
+              </span>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '13.5px',
+                  lineHeight: 1.6,
+                  color: '#475569',
+                  fontWeight: 400,
+                }}
+              >
+                {product.description}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* 6. Bottom Bar with Storefront Border-Radius (14px container, 12px button) */}
+        <div
+          style={{
+            flexShrink: 0,
+            background: '#f8fafc',
+            border: '1px solid #f1f5f9',
+            borderRadius: '14px',
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '14px',
+          }}
+        >
+          {isZeroPrice ? (
+            <a
+              href={whatsappInquiryUrl || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                width: '100%',
+                height: '42px',
+                borderRadius: '12px',
+                backgroundColor: '#25d366',
+                color: '#ffffff',
+                fontSize: '13.5px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <IconWhatsapp size={17} color="#ffffff" />
+              <span>{t('storefront.storefront_product_quick_view_modal.s23', 'استفسر عن السعر عبر واتساب')}</span>
+            </a>
+          ) : (
+            <>
+              {/* Storefront-styled Add to Cart Button (Right side in RTL) */}
+              <button
+                type="button"
+                className="sf-quickview-ai-btn"
+                disabled={!inStock}
+                onClick={handleAdd}
+                style={{
+                  height: '42px',
+                  padding: '0 24px',
+                  borderRadius: '12px',
+                  backgroundColor: inStock ? brandColor : '#e2e8f0',
+                  color: inStock ? brandColorContrast || '#ffffff' : '#64748b',
+                  border: 'none',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: inStock ? 'pointer' : 'not-allowed',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontFamily: 'inherit',
+                  boxShadow: inStock ? '0 3px 10px rgba(37, 99, 235, 0.18)' : 'none',
+                  transition: 'all 0.16s ease',
+                  flexShrink: 0,
+                }}
+              >
+                {addedAnimation ? (
+                  <>
+                    <CheckIcon size={16} color="#ffffff" />
+                    <span>تمت الإضافة</span>
+                  </>
+                ) : inStock ? (
+                  <>
+                    <IconShoppingBag size={16} color="#ffffff" strokeWidth={2} />
+                    <span>إضافة إلى السلة</span>
+                  </>
+                ) : (
+                  <>
+                    <ClockIcon size={15} color="#64748b" />
+                    <span>غير متوفر</span>
+                  </>
+                )}
+              </button>
+
+              {/* Total Price Column (Left side in RTL) */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', textAlign: 'left', minWidth: 0 }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 400, color: '#94a3b8' }}>
+                  السعر الإجمالي
+                </span>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '6px', marginTop: '2px' }}>
+                  <span
+                    style={{
+                      fontSize: '20px',
+                      fontWeight: 700,
+                      color: '#0f172a',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                    }}
+                  >
+                    <span>{(basePrice * qty).toLocaleString()}</span>
+                    <span style={{ fontSize: '13px', fontWeight: 500 }}>
+                      <CurrencySymbol />
+                    </span>
+                  </span>
+
+                  {hasOriginalDiscount && product.originalPrice && (
+                    <span
+                      style={{
+                        fontSize: '12.5px',
+                        color: '#94a3b8',
+                        textDecoration: 'line-through',
+                        fontWeight: 400,
+                      }}
+                    >
+                      {(product.originalPrice * qty).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

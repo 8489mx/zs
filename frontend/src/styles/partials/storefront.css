@@ -69,20 +69,19 @@ body, button, input, select, textarea, [class*="storefront-"] {
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   scroll-padding-inline: 4px;
-  padding-bottom: 6px;
-  scrollbar-width: thin;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-top: -4px;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   -webkit-overflow-scrolling: touch;
 }
 
 .storefront-shelf::-webkit-scrollbar {
-  height: 6px;
-}
-.storefront-shelf::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-.storefront-shelf::-webkit-scrollbar-track {
-  background: transparent;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 .storefront-shelf-item {
@@ -154,7 +153,9 @@ body, button, input, select, textarea, [class*="storefront-"] {
     overflow-y: visible;
     scrollbar-width: none; /* Hide scrollbar on desktop */
     -ms-overflow-style: none;
-    padding-bottom: 2px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    margin-top: -4px;
     scroll-behavior: smooth;
   }
   .storefront-shelf::-webkit-scrollbar {
@@ -279,22 +280,32 @@ body, button, input, select, textarea, [class*="storefront-"] {
 @media (max-width: 640px) {
   .storefront-shelf {
     gap: 10px;
-    scroll-snap-type: none !important;
+    scroll-snap-type: x proximity !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
     cursor: default !important;
+  }
+  .storefront-shelf::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
   }
   .storefront-shelf-item {
     flex: 0 0 calc((100% - 10px) / 2.08);
     max-width: calc((100% - 10px) / 2.08);
     min-width: 148px;
+    scroll-snap-align: start;
   }
-  .storefront-shelf-floating-arrow {
+  .storefront-shelf-floating-arrow,
+  .storefront-shelf-arrows {
     display: none !important;
   }
 }
 
 @media (max-width: 640px) {
   .storefront-main-content {
-    padding: 8px 10px 18px !important;
+    padding: 8px 10px 0 !important;
   }
   .storefront-main-content .storefront-section-card {
     padding: 10px !important;
@@ -334,7 +345,7 @@ body, button, input, select, textarea, [class*="storefront-"] {
  * المساحة الآن مشتقّة من ارتفاع البار + المنطقة الآمنة في أجهزة iPhone.
  */
 .storefront-main-content {
-  padding-bottom: calc(var(--storefront-dock-height) + env(safe-area-inset-bottom, 0px) + 24px) !important;
+  padding-bottom: 0 !important;
 }
 
 @media (max-width: 640px) {
@@ -348,9 +359,8 @@ body, button, input, select, textarea, [class*="storefront-"] {
    * أقسام). تقليص الحشو والفجوات يرفع أول منتج فوق الطيّة.
    */
   .storefront-header-shell {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-    gap: 8px !important;
+    padding: 0 !important;
+    gap: 0 !important;
   }
   .storefront-subnav-shell {
     padding-top: 6px !important;
@@ -402,7 +412,7 @@ body, button, input, select, textarea, [class*="storefront-"] {
     border-color: #e2e8f0 !important;
   }
   .storefront-main-content {
-    padding-bottom: 18px !important;
+    padding-bottom: 0 !important;
   }
   .storefront-explore-banner {
     padding: 18px 14px !important;
@@ -916,7 +926,7 @@ html, body {
 }
 
 .storefront-product-card {
-  contain: layout style paint;
+  contain: layout style;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transform: translate3d(0, 0, 0);
@@ -1092,28 +1102,34 @@ html, body {
   display: none;
 }
 
+.sf-product-mobile-bottom-bar {
+  display: none;
+}
+
 @media (max-width: 640px) {
   .storefront-mobile-bottom-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    height: calc(56px + env(safe-area-inset-bottom, 0px));
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid #e2e8f0;
-    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 8px env(safe-area-inset-bottom, 0px);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(226, 232, 240, 0.85);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -6px 24px rgba(15, 23, 42, 0.06);
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     align-items: center;
     z-index: 9985;
     user-select: none;
+    box-sizing: border-box;
   }
 
   .storefront-mobile-nav-item {
-    height: 56px;
+    height: 52px;
     background: transparent;
     border: none;
     color: #64748b;
@@ -1123,17 +1139,31 @@ html, body {
     justify-content: center;
     gap: 3px;
     font-family: inherit;
-    font-size: 10.5px;
-    font-weight: 700;
+    font-size: 10px;
+    font-weight: 600;
     cursor: pointer;
-    padding: 0 4px;
+    padding: 0 2px;
     white-space: nowrap;
     transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease;
   }
 
+  .storefront-mobile-nav-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 26px;
+    border-radius: 9px;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
+
   .storefront-mobile-nav-item.active {
-    color: var(--storefront-primary-color, #170e5e);
-    font-weight: 900;
+    color: var(--storefront-primary-color, #2d68c4);
+    font-weight: 700;
+  }
+
+  .storefront-mobile-nav-item.active .storefront-mobile-nav-icon-wrap {
+    background: rgba(45, 104, 196, 0.1);
   }
 
   .storefront-mobile-nav-item:active {
@@ -1142,14 +1172,14 @@ html, body {
 
   .storefront-mobile-nav-badge {
     position: absolute;
-    top: -5px;
-    right: -9px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    border-radius: 5px;
-    font-size: 9.5px;
-    font-weight: 800;
+    top: -4px;
+    right: -6px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3.5px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1160,7 +1190,7 @@ html, body {
   }
 
   .storefront-mobile-nav-badge.cart {
-    background: var(--storefront-primary-color, #170e5e);
+    background: #0f172a;
   }
 
   .storefront-mobile-nav-badge.fav {
@@ -1168,11 +1198,11 @@ html, body {
   }
 
   .storefront-mobile-nav-badge.deals {
-    background: #d97706;
+    background: var(--storefront-primary-color, #2d68c4);
   }
 
   .storefront-main-content {
-    padding-bottom: 24px !important;
+    padding: 6px 14px 0 !important;
   }
 }
 
@@ -1402,6 +1432,15 @@ button.storefront-btn-pill,
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
 
+@media (max-width: 768px) {
+  .storefront-search-box {
+    border-radius: 14px !important;
+    height: 44px !important;
+    border: 1px solid #e8edf4 !important;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04) !important;
+  }
+}
+
 .storefront-search-btn {
   border-radius: 10px !important;
   height: 32px !important;
@@ -1414,59 +1453,58 @@ button.storefront-btn-pill,
    Continuous curved sections, cards, and soft-studio photo containers
    ========================================================================== */
 
-/* 1. Main Sections, Shelves & Feature Containers -> 36px Squircle (desktop), 22px (mobile) */
+/* 1. Main Sections, Shelves & Feature Containers -> 24px (desktop) */
 .storefront-section-card,
 .storefront-customer-reviews-section,
 .storefront-deals-shelf-section {
-  border-radius: 36px !important;
+  border-radius: 24px !important;
   border: 1px solid #edf1f7 !important;
   box-shadow: 0 10px 30px -6px rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.02) !important;
 }
 
-/* 2. Bento Grid Hero & Major Cards -> 32px Squircle */
+/* 2. Bento Grid Hero & Major Cards -> 24px Squircle */
 .storefront-bento-card-hero,
 .storefront-bento-card,
 .storefront-mid-banner-card,
-.storefront-trust-bar-grid > div,
 .storefront-featured-broadcast-grid > div {
-  border-radius: 32px !important;
+  border-radius: 24px !important;
 }
 
-/* 3. Product Cards -> 26px Continuous Luxury Squircle (desktop), 18px (mobile) */
+/* 3. Product Cards -> 16px Continuous Luxury Squircle (desktop), 14px (mobile) */
 .storefront-product-card {
-  border-radius: 26px !important;
+  border-radius: 16px !important;
   border: 1px solid #edf1f7 !important;
   box-shadow: 0 4px 18px rgba(15, 23, 42, 0.03) !important;
 }
 
-/* 4. Product Photo Boxes & Inner Card Media Windows -> 22px Squircle with soft studio background */
+/* 4. Product Photo Boxes & Inner Card Media Windows -> 12px Squircle with soft studio background */
 .storefront-product-photo-box {
-  border-radius: 22px !important;
+  border-radius: 12px !important;
   background: #f4f6fa !important;
 }
 
-/* 5. Filter Headers & Control Bars -> 24px Squircle */
+/* 5. Filter Headers & Control Bars -> 14px Squircle */
 .storefront-filter-header {
-  border-radius: 24px !important;
+  border-radius: 14px !important;
   border: 1px solid #edf1f7 !important;
 }
 
-/* 6. Modal Shells & Large Popovers -> 18px Squircle */
+/* 6. Modal Shells & Large Popovers -> 16px Squircle */
 .storefront-checkout-modal-container,
 .sf-quickview-shell,
 .storefront-cat-modal-shell,
 .storefront-modal-shell {
-  border-radius: 18px !important;
-}
-
-/* 7. Predictive Search Dropdown Popover -> 22px Squircle */
-.storefront-predictive-popover {
-  border-radius: 22px !important;
-}
-
-/* 8. Free Shipping Milestone Bar -> 16px Squircle */
-.storefront-free-shipping-bar {
   border-radius: 16px !important;
+}
+
+/* 7. Predictive Search Dropdown Popover -> 16px Squircle */
+.storefront-predictive-popover {
+  border-radius: 16px !important;
+}
+
+/* 8. Free Shipping Milestone Bar -> 14px Squircle */
+.storefront-free-shipping-bar {
+  border-radius: 14px !important;
 }
 .storefront-free-shipping-bar.compact {
   border-radius: 10px !important;
@@ -1477,64 +1515,242 @@ button.storefront-btn-pill,
   border-radius: 14px !important;
 }
 
-/* 10. Public Storefront Natural Window Scrolling & Unconstrained Sticky Header
-   Safely overrides ERP shell's body { overflow: hidden } and #root { height: 100% }
-   strictly while visiting the public storefront routes. */
-html.storefront-html {
-  overflow-y: scroll !important;
-  overflow-x: hidden !important;
-  height: auto !important;
-  min-height: 100% !important;
-  scroll-behavior: smooth !important;
+/* 10. Mobile Storefront Apple/Pinterest Luxury Polish (max-width: 640px) — Desktop Untouched */
+@media (max-width: 640px) {
+  .storefront-homepage-sections {
+    gap: 14px !important;
+  }
+
+  /* Unboxed sections on mobile so white product cards float directly on the soft studio canvas */
+  .storefront-main-content .storefront-section-card,
+  .storefront-section-card,
+  .storefront-deals-shelf-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 2px 0 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .storefront-customer-reviews-section {
+    border-radius: 14px !important;
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  /* Clean unboxed section header row (Right: 14.5px title, Left: 12px "عرض الكل") */
+  .storefront-cat-shelf-header,
+  .storefront-deals-header {
+    margin-bottom: 8px !important;
+    padding: 0 2px 2px !important;
+    border-bottom: none !important;
+  }
+
+  .storefront-shelf-title {
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    letter-spacing: -0.1px !important;
+  }
+
+  .storefront-view-all-btn {
+    color: var(--storefront-primary-color, #2d68c4) !important;
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    gap: 4px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  .storefront-shelf-viewall-label {
+    font-size: 0 !important;
+  }
+
+  .storefront-shelf-viewall-label::after {
+    content: 'عرض الكل';
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    color: var(--storefront-primary-color, #2d68c4) !important;
+  }
+
+  /* Shelf horizontal spacing & card width on mobile (pure touch-swipe, zero scrollbar or arrows) */
+  .storefront-shelf,
+  .sf-mobile-editorial-carousel,
+  .sf-mobile-cat-pills-row,
+  .storefront-subnav,
+  .storefront-cat-modal-mobile-tabs,
+  .storefront-cat-scroll-viewport,
+  .sf-amz-quick-tiles-row {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .storefront-shelf::-webkit-scrollbar,
+  .sf-mobile-editorial-carousel::-webkit-scrollbar,
+  .sf-mobile-cat-pills-row::-webkit-scrollbar,
+  .storefront-subnav::-webkit-scrollbar,
+  .storefront-cat-modal-mobile-tabs::-webkit-scrollbar,
+  .storefront-cat-scroll-viewport::-webkit-scrollbar,
+  .sf-amz-quick-tiles-row::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
+  .storefront-shelf-floating-arrow,
+  .storefront-shelf-arrows,
+  .storefront-cat-nav-btn,
+  .sf-amz-floating-nav-btn {
+    display: none !important;
+  }
+
+  .storefront-shelf {
+    gap: 10px !important;
+    padding-top: 2px !important;
+    padding-bottom: 6px !important;
+    margin-top: 0 !important;
+  }
+
+  .storefront-shelf-item {
+    flex: 0 0 calc((100% - 10px) / 2.08) !important;
+    max-width: calc((100% - 10px) / 2.08) !important;
+    min-width: 152px !important;
+  }
+
+  .storefront-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* Pure White Studio Product Card matching the video */
+  .storefront-product-card {
+    background: #ffffff !important;
+    border-radius: 14px !important;
+    border: 1px solid #edf1f7 !important;
+    padding: 10px 10px 11px !important;
+    gap: 4px !important;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.035) !important;
+  }
+
+  .storefront-product-photo-box {
+    border-radius: 10px !important;
+    height: 124px !important;
+    aspect-ratio: auto !important;
+    padding: 20px 8px 6px !important;
+    margin-bottom: 6px !important;
+    background: #f8fafc !important;
+  }
+
+  .storefront-product-badge-wrap {
+    top: 6px !important;
+    right: 6px !important;
+    height: auto !important;
+  }
+
+  .storefront-product-badge {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    padding: 2.5px 6.5px !important;
+    border-radius: 6px !important;
+    background: #0f172a !important;
+    color: #ffffff !important;
+  }
+
+  .storefront-product-fav-btn {
+    width: 27px !important;
+    height: 27px !important;
+    min-width: 27px !important;
+    min-height: 27px !important;
+    max-width: 27px !important;
+    max-height: 27px !important;
+    border-radius: 8px !important;
+    top: 6px !important;
+    left: 6px !important;
+    background: #ffffff !important;
+    border: 1px solid #e8edf4 !important;
+  }
+
+  .storefront-product-meta-row {
+    height: 15px !important;
+    min-height: 15px !important;
+    max-height: 15px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .storefront-product-cat-tag {
+    font-size: 10px !important;
+    color: #94a3b8 !important;
+    font-weight: 500 !important;
+  }
+
+  /* Full 2-line readable product name — never eaten or oversized */
+  .storefront-product-title {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+    line-height: 1.38 !important;
+    height: 33px !important;
+    min-height: 33px !important;
+    max-height: 33px !important;
+    margin: 0 0 2px !important;
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Hide desktop full-width CTA and show sleek [+] + [Price on Left] row on mobile */
+  .sf-desktop-only-price,
+  .sf-desktop-only-action {
+    display: none !important;
+  }
+
+  .sf-product-mobile-bottom-bar {
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    margin-top: 6px !important;
+    padding-top: 6px !important;
+    border-top: 1px solid #f1f5f9 !important;
+    min-height: 34px !important;
+  }
+
+  .sf-product-mobile-price-col {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    text-align: left !important;
+    gap: 1px !important;
+    min-width: 0 !important;
+  }
+
+  .sf-product-mobile-cta-col {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex-shrink: 0 !important;
+  }
+
+  .storefront-filter-header {
+    border-radius: 12px !important;
+    padding: 8px 10px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .sf-filter-breadcrumb-home {
+    display: none !important;
+  }
 }
 
-html.storefront-html body,
-body.storefront-body {
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
-  height: auto !important;
-  min-height: 100vh !important;
-}
-
-html.storefront-html body #root,
-body.storefront-body #root {
-  height: auto !important;
-  min-height: 100vh !important;
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
-}
-
-html.storefront-html::-webkit-scrollbar {
-  width: 10px !important;
-}
-html.storefront-html::-webkit-scrollbar-track {
-  background: #f1f5f9 !important;
-}
-html.storefront-html::-webkit-scrollbar-thumb {
-  background-color: #94a3b8 !important;
-  border-radius: 9999px !important;
-  border: 2px solid #f1f5f9 !important;
-}
-html.storefront-html::-webkit-scrollbar-thumb:hover {
-  background-color: #64748b !important;
-}
-
-/* 11. Seamless Studio Image Blending
-   Only applied to podium stages when knocking out solid white photo backgrounds.
-   Promotional cards, category tiles, and product grids stay in 100% natural render mode
-   so dark and vibrant card backgrounds never bleed into or cover product colors. */
-.sf-amz-podium-side-img,
-.sf-amz-podium-center-img,
-.sf-studio-blend {
-  mix-blend-mode: multiply;
-}
-
-.sf-amz-promo-card img,
-.sf-cat-tile-img,
-.sf-amz-quick-tile-img,
-.storefront-product-img,
-.sf-quickview-img {
-  mix-blend-mode: normal !important;
+.storefront-product-price-row {
+  justify-content: flex-end !important;
+  text-align: left !important;
+  width: 100% !important;
 }

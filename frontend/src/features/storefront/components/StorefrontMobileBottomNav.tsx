@@ -36,10 +36,12 @@ export const StorefrontMobileBottomNav = React.memo(function StorefrontMobileBot
         onClick={onGoHome}
         className={`storefront-mobile-nav-item ${activeTab === 'home' ? 'active' : ''}`}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
+        <div className="storefront-mobile-nav-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={activeTab === 'home' ? '2.2' : '1.85'} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9.5L12 3l9 6.5V20a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 20V9.5z" />
+            <path d="M9 21.5V13h6v8.5" />
+          </svg>
+        </div>
         <span>الرئيسية</span>
       </button>
 
@@ -49,12 +51,14 @@ export const StorefrontMobileBottomNav = React.memo(function StorefrontMobileBot
         onClick={onOpenCategories}
         className={`storefront-mobile-nav-item ${activeTab === 'categories' ? 'active' : ''}`}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-        </svg>
+        <div className="storefront-mobile-nav-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={activeTab === 'categories' ? '2.2' : '1.85'} strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+            <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+            <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+            <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+          </svg>
+        </div>
         <span>الأقسام</span>
       </button>
 
@@ -64,8 +68,8 @@ export const StorefrontMobileBottomNav = React.memo(function StorefrontMobileBot
         onClick={onToggleDeals}
         className={`storefront-mobile-nav-item ${activeTab === 'deals' ? 'active' : ''}`}
       >
-        <div style={{ position: 'relative', display: 'inline-flex' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="storefront-mobile-nav-icon-wrap" style={{ position: 'relative' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={activeTab === 'deals' ? '2.2' : '1.85'} strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
             <line x1="7" y1="7" x2="7.01" y2="7" />
           </svg>
@@ -84,8 +88,8 @@ export const StorefrontMobileBottomNav = React.memo(function StorefrontMobileBot
         onClick={onToggleFavorites}
         className={`storefront-mobile-nav-item ${activeTab === 'favorites' ? 'active' : ''}`}
       >
-        <div style={{ position: 'relative', display: 'inline-flex' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill={activeTab === 'favorites' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="storefront-mobile-nav-icon-wrap" style={{ position: 'relative' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill={activeTab === 'favorites' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={activeTab === 'favorites' ? '2.2' : '1.85'} strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
           {favoritesCount > 0 && (
@@ -103,8 +107,8 @@ export const StorefrontMobileBottomNav = React.memo(function StorefrontMobileBot
         onClick={onOpenCart}
         className={`storefront-mobile-nav-item ${activeTab === 'cart' ? 'active' : ''}`}
       >
-        <div style={{ position: 'relative', display: 'inline-flex' }}>
-          <IconShoppingCart size={20} strokeWidth={2.2} />
+        <div className="storefront-mobile-nav-icon-wrap" style={{ position: 'relative' }}>
+          <IconShoppingCart size={20} strokeWidth={activeTab === 'cart' ? 2.2 : 1.85} />
           {cartCount > 0 && (
             <span className="storefront-mobile-nav-badge cart">
               {cartCount}

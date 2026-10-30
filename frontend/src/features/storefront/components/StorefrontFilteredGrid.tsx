@@ -176,11 +176,12 @@ export function StorefrontFilteredGrid({
             }}
           >
             <span
+              className="sf-filter-breadcrumb-home"
               onClick={onGoHome}
               style={{
                 fontSize: '12.5px',
                 color: '#64748b',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 whiteSpace: 'nowrap',
                 transition: 'color 0.15s ease',
@@ -194,12 +195,12 @@ export function StorefrontFilteredGrid({
             >
               الرئيسية
             </span>
-            <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700 }}>/</span>
+            <span className="sf-filter-breadcrumb-home" style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 600 }}>/</span>
             <h2
               style={{
                 margin: 0,
-                fontSize: '14.5px',
-                fontWeight: 900,
+                fontSize: '14px',
+                fontWeight: 700,
                 color: '#0f172a',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',

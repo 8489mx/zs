@@ -1286,8 +1286,8 @@ export const DEMO_STOREFRONT_PRODUCTS: StorefrontProduct[] = [
 export const DEMO_STOREFRONT_INFO: StorefrontInfo = {
   tenantId: 'demo-tenant',
   slug: 'demo',
-  businessName: 'Z-Systems ERP',
-  title: 'Z-Systems ERP',
+  businessName: 'Systems ERP',
+  title: 'Systems ERP',
   enabled: true,
   bio: 'تشكيلة متنوعة من المنتجات المختارة بعناية، اطلب أونلاين بسهولة واستلم طلبك في أسرع وقت.',
   announcement: 'توصيل سريع لجميع المناطق • شحن مجاني للطلبات فوق 300 ج.م',

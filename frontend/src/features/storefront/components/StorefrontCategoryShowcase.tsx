@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useRef, useEffect } from 'react';
 import { StorefrontCategory } from '../types/storefront.types';
 import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
-import { IconFolder } from './StorefrontIcons';
+import { IconFolder, IconGrid, IconArrowUpRight } from './StorefrontIcons';
 
 interface StorefrontCategoryShowcaseProps {
   categories: StorefrontCategory[];
@@ -77,13 +77,13 @@ export function StorefrontCategoryShowcase({
       style={{
         background: '#ffffff',
         borderBottom: 'none',
-        borderRadius: '26px',
+        borderRadius: '18px',
         border: '1px solid #edf1f7',
         boxShadow: '0 4px 18px rgba(15, 23, 42, 0.03)',
         padding: '14px 14px',
         direction: 'rtl',
         maxWidth: 'var(--storefront-container, 1440px)',
-        margin: '24px auto 14px',
+        margin: '18px auto 12px',
         width: 'calc(100% - 32px)',
         boxSizing: 'border-box',
         display: 'flex',
@@ -93,6 +93,12 @@ export function StorefrontCategoryShowcase({
       }}
     >
       <style>{`
+        .sf-mobile-cat-header {
+          display: none;
+        }
+        .sf-mobile-cat-pills-row {
+          display: none;
+        }
         .storefront-cat-scroll-viewport {
           scrollbar-width: none !important;
           -ms-overflow-style: none !important;
@@ -103,9 +109,9 @@ export function StorefrontCategoryShowcase({
           height: 0 !important;
         }
         .storefront-cat-nav-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
           border: 1px solid #e2e8f0;
           background: #ffffff;
           color: #1e293b;
@@ -114,7 +120,7 @@ export function StorefrontCategoryShowcase({
           justify-content: center;
           cursor: pointer;
           flex-shrink: 0;
-          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+          box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
           transition: all 0.2s ease;
           padding: 0;
         }
@@ -122,53 +128,219 @@ export function StorefrontCategoryShowcase({
           background: var(--storefront-primary-color, #2d68c4);
           border-color: var(--storefront-primary-color, #2d68c4);
           color: #ffffff;
-          box-shadow: 0 6px 14px rgba(45, 104, 196, 0.22);
-          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(45, 104, 196, 0.2);
         }
         .storefront-cat-nav-btn:active {
           transform: scale(0.96);
         }
         @media (max-width: 920px) {
           .storefront-cat-showcase {
-            margin: 20px auto 12px !important;
+            margin: 14px auto 10px !important;
           }
         }
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .storefront-cat-showcase {
-            width: calc(100% - 16px) !important;
-            margin: 16px auto 10px !important;
-            border-radius: 18px !important;
-            padding: 10px 8px !important;
-            gap: 6px !important;
+            width: 100% !important;
+            margin: 6px auto 6px !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 4px 14px 2px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
             box-sizing: border-box !important;
           }
-          .storefront-cat-nav-btn {
-            width: 32px !important;
-            height: 32px !important;
+          .storefront-cat-nav-btn,
+          .storefront-cat-scroll-viewport {
+            display: none !important;
           }
-          .storefront-cat-showcase-inner {
+          .sf-mobile-cat-header {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 100% !important;
+            padding: 0 2px !important;
+            box-sizing: border-box !important;
+          }
+          .sf-mobile-cat-pills-row {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 14px !important;
+            overflow-x: auto !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+            -webkit-overflow-scrolling: touch !important;
+            scroll-snap-type: x proximity !important;
+            touch-action: pan-x pan-y !important;
+            padding: 2px 2px 6px !important;
+            margin: 0 -2px !important;
+          }
+          .sf-mobile-cat-pills-row::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+          }
+          .sf-mobile-cat-circle-item {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
             justify-content: flex-start !important;
-            gap: 12px !important;
-            width: max-content !important;
-            min-width: 100% !important;
-            padding-inline: 2px !important;
+            gap: 7px !important;
+            width: 68px !important;
+            min-width: 68px !important;
+            max-width: 72px !important;
+            flex-shrink: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            cursor: pointer !important;
+            scroll-snap-align: start !important;
+            font-family: inherit !important;
+            transition: transform 0.16s ease !important;
           }
-          .storefront-cat-item {
-            min-width: 60px !important;
+          .sf-mobile-cat-circle-item:active {
+            transform: scale(0.95) !important;
           }
-          .storefront-cat-avatar {
-            width: 52px !important;
-            height: 52px !important;
-            border-radius: 16px !important;
-            margin-bottom: 5px !important;
+          .sf-mobile-cat-circle-avatar {
+            width: 60px !important;
+            height: 60px !important;
+            border-radius: 50% !important;
+            background: #ffffff !important;
+            border: 1.5px solid #e8edf4 !important;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 10px !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+            transition: all 0.18s ease !important;
           }
-          .storefront-cat-label {
-            font-size: 11px !important;
+          .sf-mobile-cat-circle-item.is-active .sf-mobile-cat-circle-avatar {
+            border: 2px solid var(--storefront-primary-color, #2d68c4) !important;
+            background: var(--storefront-primary-subtle, #eff6ff) !important;
+            box-shadow: 0 6px 14px rgba(45, 104, 196, 0.18) !important;
+          }
+          .sf-mobile-cat-circle-label {
+            font-size: 11.5px !important;
+            font-weight: 600 !important;
+            color: #0f172a !important;
+            line-height: 1.25 !important;
+            text-align: center !important;
+            width: 100% !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: normal !important;
+            word-break: break-word !important;
+          }
+          .sf-mobile-cat-circle-item.is-active .sf-mobile-cat-circle-label {
+            color: var(--storefront-primary-color, #2d68c4) !important;
+            font-weight: 700 !important;
           }
         }
       `}</style>
 
-      {/* زر التمرير لليمين */}
+      {/* Mobile-Only Header Row ("الأقسام" + "عرض الكل") */}
+      <div className="sf-mobile-cat-header">
+        <span
+          style={{
+            fontSize: '14.5px',
+            fontWeight: 700,
+            color: '#0f172a',
+            letterSpacing: '-0.1px',
+          }}
+        >
+          الأقسام
+        </span>
+        <button
+          type="button"
+          className="storefront-view-all-btn"
+          onClick={onOpenCategoriesModal}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            fontSize: '12.5px',
+            fontWeight: 700,
+            color: 'var(--storefront-primary-color, #2d68c4)',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          <span>عرض الكل</span>
+          <IconArrowUpRight size={14} strokeWidth={2.2} />
+        </button>
+      </div>
+
+      {/* Mobile-Only Horizontal Swipeable Circular Categories Strip */}
+      <div className="sf-mobile-cat-pills-row">
+        <button
+          type="button"
+          className={`sf-mobile-cat-circle-item ${selectedCategoryId === 'all' ? 'is-active' : ''}`}
+          onClick={onOpenCategoriesModal}
+        >
+          <span
+            className="sf-mobile-cat-circle-avatar"
+            style={{
+              background: 'var(--storefront-primary-subtle, #eff6ff)',
+              color: 'var(--storefront-primary-color, #2d68c4)',
+            }}
+          >
+            <IconGrid size={22} />
+          </span>
+          <span className="sf-mobile-cat-circle-label">الكل</span>
+        </button>
+
+        {populatedCategories.slice(0, 14).map((cat) => {
+          const isSelected = selectedCategoryId === cat.id;
+          const photoUrl =
+            cat.imageUrl && !cat.imageUrl.startsWith('data:image/svg+xml')
+              ? cat.imageUrl
+              : generatePremiumProductSvg(cat.name, cat.name);
+
+          return (
+            <button
+              key={`mob-circle-${cat.id}`}
+              type="button"
+              className={`sf-mobile-cat-circle-item ${isSelected ? 'is-active' : ''}`}
+              onClick={() => onSelectCategory(isSelected ? 'all' : cat.id)}
+            >
+              <span className="sf-mobile-cat-circle-avatar">
+                <img
+                  src={photoUrl}
+                  alt={cat.name}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  onError={(e) => {
+                    e.currentTarget.src = generatePremiumProductSvg(cat.name, cat.name);
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    borderRadius: '50%',
+                  }}
+                />
+              </span>
+              <span className="sf-mobile-cat-circle-label">{formatSmartCategoryName(cat.name)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* زر التمرير لليمين (للديسكتوب فقط) */}
       <button
         type="button"
         aria-label="التمرير لليمين"
@@ -176,12 +348,12 @@ export function StorefrontCategoryShowcase({
         onClick={() => scrollByDirection('right')}
       >
         <svg
-          width="18"
-          height="18"
+          width="17"
+          height="17"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.4"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
@@ -198,7 +370,7 @@ export function StorefrontCategoryShowcase({
           minWidth: 0,
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
-          padding: '4px 2px',
+          padding: '2px',
         }}
       >
         <div
@@ -207,11 +379,63 @@ export function StorefrontCategoryShowcase({
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'flex-start',
-            gap: '28px',
+            gap: '22px',
             width: 'max-content',
             minWidth: '100%',
           }}
         >
+          {/* أول زر: كل الأقسام */}
+          <div
+            className="storefront-cat-item"
+            onClick={onOpenCategoriesModal}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              cursor: 'pointer',
+              minWidth: '78px',
+              flexShrink: 0,
+              transition: 'transform 0.18s ease',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-3px)')}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+          >
+            <div
+              className="storefront-cat-avatar"
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '14px',
+                background: 'var(--storefront-primary-subtle, #eff6ff)',
+                color: 'var(--storefront-primary-color, #2d68c4)',
+                border: '1.5px solid rgba(45, 104, 196, 0.22)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '6px',
+                boxSizing: 'border-box',
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <IconGrid size={22} />
+            </div>
+            <span
+              className="storefront-cat-label"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                lineHeight: 1.3,
+                color: 'var(--storefront-primary-color, #2d68c4)',
+                textAlign: 'center',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              كل الأقسام
+            </span>
+          </div>
+
           {/* Top 10 Curated Category Rounded-Square Cards */}
           {topCategories.map((cat) => {
             const isSelected = selectedCategoryId === cat.id;
@@ -232,7 +456,7 @@ export function StorefrontCategoryShowcase({
                   alignItems: 'center',
                   justifyContent: 'flex-start',
                   cursor: 'pointer',
-                  minWidth: '84px',
+                  minWidth: '78px',
                   flexShrink: 0,
                   transition: 'transform 0.18s ease',
                 }}
@@ -242,18 +466,18 @@ export function StorefrontCategoryShowcase({
                 <div
                   className="storefront-cat-avatar"
                   style={{
-                    width: '68px',
-                    height: '68px',
-                    borderRadius: '18px',
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '14px',
                     overflow: 'hidden',
-                    border: isSelected ? '2px solid var(--storefront-primary-color, #2d68c4)' : '1.5px solid #E0E3E7',
-                    marginBottom: '8px',
+                    border: isSelected ? '2px solid var(--storefront-primary-color, #2d68c4)' : '1px solid #e2e8f0',
+                    marginBottom: '6px',
                     boxShadow: isSelected
                       ? '0 6px 16px var(--storefront-primary-subtle, rgba(45, 104, 196, 0.22))'
                       : '0 2px 6px rgba(15, 23, 42, 0.04)',
                     position: 'relative',
-                    background: '#ffffff',
-                    padding: '4px',
+                    background: '#f8fafc',
+                    padding: '5px',
                     boxSizing: 'border-box',
                     transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                   }}
@@ -271,7 +495,7 @@ export function StorefrontCategoryShowcase({
                       width: '100%',
                       height: '100%',
                       objectFit: 'contain',
-                      borderRadius: '13px',
+                      borderRadius: '10px',
                       pointerEvents: 'none',
                       transition: 'transform 0.3s ease',
                     }}
@@ -282,9 +506,9 @@ export function StorefrontCategoryShowcase({
                 <span
                   className="storefront-cat-label"
                   style={{
-                    fontSize: '12.5px',
-                    fontWeight: 500,
-                    lineHeight: 1.35,
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    lineHeight: 1.3,
                     color: '#0f172a',
                     textAlign: 'center',
                     whiteSpace: 'nowrap',
@@ -308,7 +532,7 @@ export function StorefrontCategoryShowcase({
                 alignItems: 'center',
                 justifyContent: 'flex-start',
                 cursor: 'pointer',
-                minWidth: '84px',
+                minWidth: '78px',
                 flexShrink: 0,
                 transition: 'transform 0.18s ease',
               }}
@@ -318,29 +542,29 @@ export function StorefrontCategoryShowcase({
               <div
                 className="storefront-cat-avatar"
                 style={{
-                  width: '68px',
-                  height: '68px',
-                  borderRadius: '18px',
-                  background: '#ffffff',
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '14px',
+                  background: '#f8fafc',
                   color: '#0f172a',
                   border: '1.5px dashed #cbd5e1',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: '8px',
+                  marginBottom: '6px',
                   boxSizing: 'border-box',
                   boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
                   transition: 'all 0.2s ease',
                 }}
               >
-                <IconFolder size={22} color="#0f172a" strokeWidth={1.8} />
+                <IconFolder size={20} color="#0f172a" strokeWidth={1.8} />
               </div>
               <span
                 className="storefront-cat-label"
                 style={{
-                  fontSize: '12.5px',
-                  fontWeight: 500,
-                  lineHeight: 1.35,
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  lineHeight: 1.3,
                   color: '#0f172a',
                   textAlign: 'center',
                   whiteSpace: 'nowrap',
@@ -353,7 +577,7 @@ export function StorefrontCategoryShowcase({
         </div>
       </div>
 
-      {/* زر التمرير لليسار */}
+      {/* زر التمرير لليسار (للديسكتوب فقط) */}
       <button
         type="button"
         aria-label="التمرير لليسار"
@@ -361,12 +585,12 @@ export function StorefrontCategoryShowcase({
         onClick={() => scrollByDirection('left')}
       >
         <svg
-          width="18"
-          height="18"
+          width="17"
+          height="17"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.4"
+          strokeWidth="2.2"
           strokeLinecap="round"
           strokeLinejoin="round"
         >

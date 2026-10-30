@@ -208,13 +208,14 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
 
           <button
             type="button"
+            className="storefront-view-all-btn"
             onClick={onViewAll}
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--storefront-primary-color, #170e5e)',
+              color: 'var(--storefront-primary-color, #2d68c4)',
               fontSize: '12.5px',
-              fontWeight: 800,
+              fontWeight: 700,
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
@@ -222,6 +223,7 @@ export const StorefrontShelfSection = React.memo(function StorefrontShelfSection
               whiteSpace: 'nowrap',
               flexShrink: 0,
               padding: 0,
+              fontFamily: 'inherit',
             }}
           >
             <span className="storefront-shelf-viewall-label">{viewAllLabel}</span>

@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StorefrontInfo, StorefrontProduct } from '../types/storefront.types';
 import { PackageIcon } from '@/shared/components/icons/AppIcons';
-import { IconShoppingCart } from './StorefrontIcons';
+import { IconShoppingCart, IconSearch, IconClose } from './StorefrontIcons';
 import { StorefrontPredictiveSearch } from './StorefrontPredictiveSearch';
 import { getCurrencySymbol, isThreeDecimalCurrency } from '@/lib/currencies';
 
@@ -21,12 +21,12 @@ interface StorefrontHeaderProps {
 }
 
 export function resolveStorefrontBrand(info: { title?: string; businessName?: string; address?: string }) {
-  let business = String(info.businessName || '').trim();
-  let rawTitle = String(info.title || '').trim();
+  let business = String(info.businessName || '').trim().replace(/^Z-\s*/i, '');
+  let rawTitle = String(info.title || '').trim().replace(/^Z-\s*/i, '');
   const rawAddress = String(info.address || '').trim();
 
   if (business === 'متجرنا' || business === 'متجرنا الإلكتروني' || business === 'المتجر') {
-    business = 'Z-Systems ERP';
+    business = 'Systems ERP';
   }
 
   if (
@@ -36,12 +36,12 @@ export function resolveStorefrontBrand(info: { title?: string; businessName?: st
     rawTitle === 'متجرنا' ||
     rawTitle === 'المتجر'
   ) {
-    rawTitle = business || 'Z-Systems ERP';
+    rawTitle = business || 'Systems ERP';
   }
 
   if (rawAddress) {
     return {
-      title: rawTitle || business || 'Z-Systems ERP',
+      title: rawTitle || business || 'Systems ERP',
       address: rawAddress,
     };
   }
@@ -57,7 +57,7 @@ export function resolveStorefrontBrand(info: { title?: string; businessName?: st
   }
 
   return {
-    title: rawTitle || business || 'Z-Systems ERP',
+    title: rawTitle || business || 'Systems ERP',
     address: '',
   };
 }
@@ -300,6 +300,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
 }: StorefrontHeaderProps) {
   const { t } = useTranslation();
   const headerRef = React.useRef<HTMLElement | null>(null);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
     let rafId = 0;
@@ -308,7 +309,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
     const updateScrollState = () => {
       const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
       // Hysteresis prevents rapid toggling jitter near the scroll threshold
-      const nextScrolled = currentScrolled ? y > 8 : y > 24;
+      const nextScrolled = currentScrolled ? y > 8 : y > 18;
       if (nextScrolled !== currentScrolled) {
         currentScrolled = nextScrolled;
         if (headerRef.current) {
@@ -335,31 +336,29 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
     };
   }, []);
 
+  const handleToggleMobileSearch = () => {
+    setMobileSearchOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        window.requestAnimationFrame(() => {
+          const input = headerRef.current?.querySelector<HTMLInputElement>('.storefront-search-input');
+          input?.focus();
+        });
+      } else if (searchTerm) {
+        onSearchChange('');
+      }
+      return next;
+    });
+  };
+
   const brand = resolveStorefrontBrand(info);
   const storeCurr = info?.currency || 'EGP';
   const currSymbol = getCurrencySymbol(storeCurr);
+  const showMobileSearchRow = mobileSearchOpen || Boolean(searchTerm.trim());
 
   return (
     <>
-      {/* Top Announcement Bar — scrolls away naturally so sticky header stays sleek */}
-      {info.announcement && (
-        <div
-          style={{
-            background: 'linear-gradient(90deg, #2353a0 0%, #2d68c4 50%, #2353a0 100%)',
-            color: '#ffffff',
-            padding: '7px 16px',
-            fontSize: '12px',
-            fontWeight: 700,
-            textAlign: 'center',
-            letterSpacing: '0.2px',
-            borderBottom: '1px solid rgba(255,255,255,0.12)',
-          }}
-        >
-          <span>{info.announcement}</span>
-        </div>
-      )}
-
-      {/* Sticky Luxury Header — Zero-layout-shift 120Hz GPU composited sticky bar */}
+      {/* Storefront Header — Sticky on Desktop & Floating Search Bar on Mobile */}
       <header
         ref={headerRef}
         className="storefront-sticky-header"
@@ -383,6 +382,9 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
           .storefront-nav-bottom-row {
             display: contents;
           }
+          .storefront-mobile-search-trigger {
+            display: none !important;
+          }
           .storefront-navbar {
             pointer-events: auto;
             width: 100%;
@@ -402,129 +404,74 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             backface-visibility: hidden;
             transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
           }
-          .storefront-sticky-header.is-scrolled .storefront-navbar {
-            background: #ffffff !important;
-            border-color: #cbd5e1 !important;
-            box-shadow: 0 10px 28px -6px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.06) !important;
-          }
           @media (min-width: 769px) {
             .storefront-sticky-header.is-scrolled .storefront-navbar {
               max-width: 820px;
+              background: #ffffff !important;
+              border-color: #cbd5e1 !important;
+              box-shadow: 0 10px 28px -6px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.06) !important;
             }
           }
           @media (max-width: 768px) {
-            .storefront-sticky-header {
-              padding: 6px 10px !important;
+            .storefront-announcement-bar {
+              display: none !important;
             }
-            .storefront-navbar {
-              display: grid !important;
-              grid-template-columns: minmax(0, 1fr) auto !important;
-              justify-content: space-between !important;
-              grid-template-rows: auto auto !important;
-              gap: 8px 10px !important;
-              padding: 8px 12px 10px !important;
-              align-items: center !important;
-              border-radius: 14px !important;
-              background: #ffffff !important;
-              border: 1px solid #e2e8f0 !important;
-              box-shadow: 0 4px 18px -4px rgba(15, 23, 42, 0.09) !important;
+            .storefront-sticky-header,
+            .storefront-sticky-header.is-scrolled {
+              position: sticky !important;
+              top: 0 !important;
+              z-index: 120 !important;
+              padding: 8px 14px 6px !important;
+              pointer-events: none !important;
+              transform: translate3d(0, 0, 0) !important;
+              background: transparent !important;
             }
-            .storefront-sticky-header.is-scrolled .storefront-navbar {
-              padding: 7px 12px 9px !important;
-              gap: 6px 10px !important;
-              background: #ffffff !important;
-              border-color: #cbd5e1 !important;
-              box-shadow: 0 10px 26px -6px rgba(15, 23, 42, 0.14), 0 2px 8px -2px rgba(15, 23, 42, 0.05) !important;
-            }
-            .storefront-brand-btn {
-              grid-column: 1 / 2 !important;
-              grid-row: 1 !important;
-              gap: 8px !important;
-              min-width: 0 !important;
-              max-width: 100% !important;
-              overflow: hidden !important;
-              width: auto !important;
-              justify-content: flex-start !important;
-            }
-            .storefront-brand-avatar {
-              width: 32px !important;
-              height: 32px !important;
-              border-radius: 9px !important;
-              flex-shrink: 0 !important;
-            }
-            img.storefront-brand-avatar {
+            .storefront-navbar,
+            .storefront-sticky-header.is-scrolled .storefront-navbar,
+            .storefront-header-shell {
+              pointer-events: auto !important;
+              display: block !important;
+              padding: 0 !important;
+              margin: 0 !important;
               border-radius: 0 !important;
               background: transparent !important;
               border: none !important;
               box-shadow: none !important;
-              padding: 0 !important;
             }
-            .storefront-brand-title {
-              font-size: 14px !important;
-              font-weight: 800 !important;
-              white-space: nowrap !important;
-              overflow: hidden !important;
-              text-overflow: ellipsis !important;
-              max-width: calc(100vw - 165px) !important;
-            }
-            .storefront-nav-bottom-row {
-              display: contents !important;
-            }
-            .storefront-actions {
-              grid-column: 2 / 3 !important;
-              grid-row: 1 !important;
-              display: flex !important;
-              align-items: center !important;
-              gap: 6px !important;
-              flex-shrink: 0 !important;
-              margin: 0 !important;
-              justify-content: flex-end !important;
-            }
-            .storefront-action-label {
+            .storefront-brand-btn,
+            .storefront-actions,
+            .storefront-mobile-search-trigger {
               display: none !important;
             }
-            .storefront-action-btn,
-            .storefront-action-btn:not(.storefront-cart-btn) {
-              padding: 0 !important;
-              width: 32px !important;
-              min-width: 32px !important;
-              max-width: 32px !important;
-              height: 32px !important;
-              min-height: 32px !important;
-              border-radius: 10px !important;
-              background: #ffffff !important;
-              border: 1px solid #E0E3E7 !important;
-              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-              justify-content: center !important;
-              align-items: center !important;
-            }
-            .storefront-cart-btn {
-              padding: 0 10px !important;
-              min-width: 32px !important;
-              border-radius: 10px !important;
-              height: 32px !important;
-              min-height: 32px !important;
-              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-              justify-content: center !important;
-              gap: 4px !important;
+            .storefront-nav-bottom-row,
+            .storefront-nav-bottom-row.is-mobile-search-open {
+              display: block !important;
+              width: 100% !important;
             }
             .storefront-search-wrapper {
-              grid-column: 1 / -1 !important;
-              grid-row: 2 !important;
               width: 100% !important;
               max-width: 100% !important;
               margin: 0 !important;
               flex: none !important;
             }
             .storefront-search-box {
-              padding: 0 10px !important;
-              border-radius: 10px !important;
-              height: 36px !important;
-              border: 1px solid #E0E3E7 !important;
-              background: #f8fafc !important;
+              padding: 0 14px !important;
+              border-radius: 14px !important;
+              height: 44px !important;
+              border: 1px solid #e8edf4 !important;
+              background: rgba(255, 255, 255, 0.96) !important;
+              backdrop-filter: blur(14px);
+              -webkit-backdrop-filter: blur(14px);
+              box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03) !important;
+              transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease !important;
+            }
+            .storefront-sticky-header.is-scrolled .storefront-search-box {
+              background: rgba(255, 255, 255, 0.98) !important;
+              border-color: #dbe3ef !important;
+              box-shadow: 0 10px 26px -4px rgba(15, 23, 42, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05) !important;
             }
             .storefront-search-input {
-              font-size: 13px !important;
+              font-size: 13.5px !important;
               padding: 6px 4px !important;
             }
             .storefront-search-btn {
@@ -553,6 +500,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             style={{
               justifySelf: 'start',
               display: 'flex',
+              direction: 'ltr',
               alignItems: 'center',
               gap: '10px',
               cursor: onGoHome ? 'pointer' : 'default',
@@ -612,9 +560,8 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             </span>
           </div>
 
-          {/* Unified Search & Actions Bottom Row on Mobile / Inline on Desktop */}
-          <div className="storefront-nav-bottom-row">
-            {/* Center: Sleek Unified Predictive Search Bar */}
+          {/* Unified Search Bar — Inline on Desktop, Toggleable via Search Icon on Mobile */}
+          <div className={`storefront-nav-bottom-row${showMobileSearchRow ? ' is-mobile-search-open' : ''}`}>
             <StorefrontPredictiveSearch
               slug={info.slug}
               storeName={brand.title}
@@ -626,8 +573,34 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
             />
           </div>
 
-          {/* Quick Actions (Orders & Cart) — Left side in RTL */}
+          {/* Quick Actions (Search Icon on Mobile, Orders & Cart) — Left side in RTL */}
           <div className="storefront-actions" style={{ justifySelf: 'end', display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+            {/* Mobile Search Icon Button */}
+            <button
+              className="storefront-mobile-search-trigger"
+              type="button"
+              onClick={handleToggleMobileSearch}
+              title={t('storefront.storefront_header.search', 'بحث')}
+              aria-label={t('storefront.storefront_header.search', 'بحث')}
+              style={{
+                display: 'none',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '32px',
+                height: '32px',
+                borderRadius: '10px',
+                background: showMobileSearchRow ? '#f1f5f9' : '#ffffff',
+                border: '1px solid #E0E3E7',
+                color: '#1f1f1f',
+                cursor: 'pointer',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                boxSizing: 'border-box',
+                flexShrink: 0,
+              }}
+            >
+              {showMobileSearchRow ? <IconClose size={14} /> : <IconSearch size={15} />}
+            </button>
+
             {/* My Orders Trigger */}
             {onOpenOrders && (
               <button

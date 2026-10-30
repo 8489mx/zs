@@ -262,129 +262,147 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
         }
 
         @media (max-width: 640px) {
-          .sf-amz-vibrant-grid {
-            gap: 10px !important;
-          }
-          .sf-amz-left-stack {
-            gap: 10px !important;
+          .sf-amz-vibrant-section {
+            display: none !important;
           }
           .sf-amz-hero-orange-card {
-            min-height: 276px !important;
-            border-radius: 22px !important;
+            min-height: 224px !important;
+            border-radius: 14px !important;
           }
           .sf-amz-orange-copy {
-            padding: 18px 16px 0 !important;
+            padding: 14px 14px 4px !important;
             gap: 4px !important;
+            justify-content: flex-start !important;
           }
           .sf-amz-orange-kicker {
-            font-size: 12px !important;
+            font-size: 11px !important;
           }
           .sf-amz-orange-title {
-            font-size: 20px !important;
-            line-height: 1.35 !important;
+            font-size: 18px !important;
+            line-height: 1.3 !important;
           }
           .sf-amz-orange-pill {
-            font-size: 11.5px !important;
+            font-size: 11px !important;
             padding: 5px 12px !important;
             margin-top: 4px !important;
+            border-radius: 8px !important;
           }
           .sf-amz-orange-stage {
-            height: 168px !important;
+            height: 136px !important;
           }
           .sf-amz-orange-arch {
-            height: 152px !important;
+            height: 124px !important;
             width: 88% !important;
           }
           .sf-amz-orange-podiums {
-            height: 145px !important;
-            padding-bottom: 6px !important;
+            height: 120px !important;
+            padding-bottom: 4px !important;
           }
           .sf-amz-podium-side-img {
-            width: 68px !important;
-            height: 68px !important;
+            width: 56px !important;
+            height: 56px !important;
           }
           .sf-amz-podium-side-box {
-            width: 64px !important;
-            height: 42px !important;
+            width: 54px !important;
+            height: 34px !important;
           }
           .sf-amz-podium-center-img {
-            width: 86px !important;
-            height: 86px !important;
+            width: 72px !important;
+            height: 72px !important;
           }
           .sf-amz-podium-center-box {
-            width: 78px !important;
-            height: 56px !important;
+            width: 66px !important;
+            height: 44px !important;
           }
           .sf-amz-promo-cards-row {
             display: grid !important;
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 10px !important;
+            gap: 8px !important;
             overflow: visible !important;
             padding-bottom: 0 !important;
           }
           .sf-amz-promo-card {
             min-width: 0 !important;
             width: 100% !important;
-            height: 214px !important;
-            padding: 14px 12px 10px !important;
-            border-radius: 18px !important;
-          }
-          .sf-amz-promo-card h3 {
-            font-size: 14px !important;
-            line-height: 1.35 !important;
-          }
-          .sf-amz-promo-sub {
-            font-size: 11px !important;
-            line-height: 1.35 !important;
-          }
-          .sf-amz-promo-stage {
-            height: 104px !important;
-            padding: 6px !important;
-          }
-          .sf-amz-promo-stage img {
-            width: 90px !important;
-            height: 90px !important;
-          }
-          .sf-amz-coupon-badge {
-            padding: 4px 8px !important;
-            margin-top: 2px !important;
-          }
-          .sf-amz-coupon-badge span {
-            font-size: 10.5px !important;
-          }
-          .sf-amz-bundle-row {
-            padding: 6px 5px !important;
+            height: 184px !important;
+            padding: 11px 10px 8px !important;
             border-radius: 12px !important;
           }
+          .sf-amz-promo-card > div:first-child {
+            gap: 3px !important;
+            padding-bottom: 4px !important;
+            justify-content: flex-start !important;
+          }
+          .sf-amz-promo-card h3 {
+            font-size: 13px !important;
+            line-height: 1.3 !important;
+            font-weight: 700 !important;
+          }
+          .sf-amz-promo-sub {
+            font-size: 10.5px !important;
+            line-height: 1.3 !important;
+          }
+          .sf-amz-promo-stage {
+            height: 92px !important;
+            padding: 4px !important;
+            border-radius: 10px !important;
+          }
+          .sf-amz-promo-stage img {
+            width: 78px !important;
+            height: 78px !important;
+          }
+          .sf-amz-coupon-badge {
+            padding: 3px 8px !important;
+            margin-top: 2px !important;
+            border-radius: 7px !important;
+          }
+          .sf-amz-coupon-badge span {
+            font-size: 10px !important;
+          }
+          .sf-amz-bundle-row {
+            padding: 5px 4px !important;
+            border-radius: 10px !important;
+            gap: 4px !important;
+          }
           .sf-amz-bundle-item {
-            width: 44px !important;
-            height: 48px !important;
+            width: auto !important;
+            height: 46px !important;
             padding: 3px !important;
+            border-radius: 8px !important;
           }
           .sf-amz-quick-tiles-row {
             display: grid !important;
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-            gap: 8px !important;
+            gap: 7px !important;
             overflow: visible !important;
           }
           .sf-amz-quick-tile {
             min-width: 0 !important;
             width: 100% !important;
-            height: 148px !important;
-            padding: 10px 8px 8px !important;
-            gap: 6px !important;
-            border-radius: 18px !important;
+            height: 130px !important;
+            padding: 8px 6px 6px !important;
+            gap: 4px !important;
+            border-radius: 12px !important;
           }
           .sf-amz-quick-tile-title {
-            font-size: 11px !important;
+            font-size: 10.5px !important;
+            font-weight: 600 !important;
             text-align: center !important;
           }
+          .sf-amz-quick-tile-img-box {
+            padding: 4px !important;
+            border-radius: 9px !important;
+          }
           .sf-amz-quick-tile-img {
-            max-height: 58px !important;
+            max-height: 52px !important;
           }
           .sf-amz-quick-tile-badge {
-            font-size: 9.5px !important;
-            padding: 2px 6px !important;
+            font-size: 8.5px !important;
+            padding: 2px 5px !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            border-radius: 6px !important;
           }
           .sf-amz-floating-nav-btn {
             display: none !important;

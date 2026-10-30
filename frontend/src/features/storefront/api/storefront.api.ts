@@ -23,15 +23,8 @@ import {
 } from '../types/storefront.types';
 import type { CustomerOrderRef } from '../lib/customer-order-refs';
 import { resolveStorefrontMediaList, resolveStorefrontMediaUrl, withResolvedProductMedia } from '../lib/storefront-media-url';
-async function loadDemoCatalog() {
-  const { DEMO_STOREFRONT_CATALOG } = await import('../lib/storefront-demo-data');
-  return DEMO_STOREFRONT_CATALOG;
-}
-
-async function loadDemoInfo() {
-  const { DEMO_STOREFRONT_INFO } = await import('../lib/storefront-demo-data');
-  return DEMO_STOREFRONT_INFO;
-}
+import { DEMO_STOREFRONT_INFO, DEMO_STOREFRONT_CATALOG } from '../lib/storefront-demo-data';
+import { generatePremiumProductSvg } from '../lib/storefront-photo-matcher';
 
 /** Banner / logo fields of /info and /admin/settings → loadable URLs (SF-9). */
 function withResolvedInfoMedia<T extends StorefrontInfo>(info: T): T {
@@ -62,8 +55,7 @@ export const storefrontApi = {
       const res = await http<StorefrontInfo>(`/api/storefront/${encodeURIComponent(slug)}/info`);
       return withResolvedInfoMedia(res);
     } catch {
-      const demoInfo = await loadDemoInfo();
-      return withResolvedInfoMedia({ ...demoInfo, slug: slug || demoInfo.slug });
+      return withResolvedInfoMedia({ ...DEMO_STOREFRONT_INFO, slug: slug || DEMO_STOREFRONT_INFO.slug });
     }
   },
 
@@ -106,7 +98,7 @@ export const storefrontApi = {
       return {
         hasActiveBill: false,
         tableNumber,
-        currency: 'EGP',
+        currency: DEMO_STOREFRONT_INFO.currency || 'EGP',
         message: 'لا توجد فاتورة نشطة حالياً لهذه الطاولة',
       };
     }
@@ -145,7 +137,7 @@ export const storefrontApi = {
         totalPaid: tip,
         paymentReference: `REF-${Date.now().toString().slice(-6)}`,
         guestName: payload.guestName,
-        currency: 'EGP',
+        currency: DEMO_STOREFRONT_INFO.currency || 'EGP',
         paidAt: new Date().toISOString(),
         message: 'تم السداد بنجاح',
       };
@@ -166,7 +158,7 @@ export const storefrontApi = {
         provider: 'mock',
         orderNumber,
         amount: 0,
-        currency: 'EGP',
+        currency: DEMO_STOREFRONT_INFO.currency || 'EGP',
         testMode: true,
         paymentToken: `tok_${Date.now()}`,
       };
@@ -224,14 +216,13 @@ export const storefrontApi = {
     try {
       res = await http<StorefrontCatalogResponse>(`/api/storefront/${encodeURIComponent(slug)}/catalog`);
     } catch {
-      const demoCatalog = await loadDemoCatalog();
-      res = JSON.parse(JSON.stringify(demoCatalog));
+      res = JSON.parse(JSON.stringify(DEMO_STOREFRONT_CATALOG));
     }
     if (res?.categories) {
       res.categories = res.categories.map((c) => ({
         ...c,
         id: Number(c.id),
-        imageUrl: resolveStorefrontMediaUrl(c.imageUrl),
+        imageUrl: resolveStorefrontMediaUrl(c.imageUrl) || generatePremiumProductSvg(c.name, c.name),
       }));
     }
     if (res?.products) {
@@ -255,10 +246,9 @@ export const storefrontApi = {
         products: (res?.products || []).map((p) => withResolvedProductMedia(p)),
       };
     } catch {
-      const demoCatalog = await loadDemoCatalog();
       const cleanQ = (q || '').trim().toLowerCase();
-      const matchedCats = demoCatalog.categories.filter((c) => c.name.toLowerCase().includes(cleanQ));
-      const matchedProds = demoCatalog.products.filter((p) => p.name.toLowerCase().includes(cleanQ));
+      const matchedCats = DEMO_STOREFRONT_CATALOG.categories.filter((c) => c.name.toLowerCase().includes(cleanQ));
+      const matchedProds = DEMO_STOREFRONT_CATALOG.products.filter((p) => p.name.toLowerCase().includes(cleanQ));
       return {
         categories: matchedCats.map((c) => ({ id: c.id, name: c.name, imageUrl: c.imageUrl })),
         products: matchedProds.map((p) => ({ id: p.id, name: p.name, price: p.price, imageUrl: p.imageUrl, categoryName: p.categoryName, inStock: p.inStock })),
@@ -279,9 +269,8 @@ export const storefrontApi = {
         crossSell: (res?.crossSell || []).map((p) => withResolvedProductMedia(p)),
       };
     } catch {
-      const demoCatalog = await loadDemoCatalog();
-      const found = demoCatalog.products.find((p) => p.id === Number(productId)) || demoCatalog.products[0];
-      const related = demoCatalog.products.filter((p) => p.id !== found.id).slice(0, 4);
+      const found = DEMO_STOREFRONT_CATALOG.products.find((p) => p.id === Number(productId)) || DEMO_STOREFRONT_CATALOG.products[0];
+      const related = DEMO_STOREFRONT_CATALOG.products.filter((p) => p.id !== found.id).slice(0, 4);
       return {
         product: withResolvedProductMedia(found),
         related: related.map((p) => withResolvedProductMedia(p)),
@@ -297,9 +286,8 @@ export const storefrontApi = {
         body: JSON.stringify(payload),
       });
     } catch {
-      const [demoCatalog, demoInfo] = await Promise.all([loadDemoCatalog(), loadDemoInfo()]);
       const mappedItems = (payload.items || []).map((i: any) => {
-        const prod = demoCatalog.products.find((p) => p.id === Number(i.productId));
+        const prod = DEMO_STOREFRONT_CATALOG.products.find((p) => p.id === Number(i.productId));
         const unitPrice = Number(i.price ?? prod?.price ?? 0);
         const quantity = Number(i.quantity ?? i.qty ?? 1);
         return {
@@ -311,9 +299,9 @@ export const storefrontApi = {
         };
       });
       const subtotal = mappedItems.reduce((s, i) => s + i.total, 0);
-      const deliveryFee = payload.orderType === 'dine_in' ? 0 : (demoInfo.deliveryFee || 0);
-      const freeThreshold = demoInfo.freeShippingMinOrder || 0;
-      const effectiveDeliveryFee = demoInfo.freeShippingEnabled && freeThreshold > 0 && subtotal >= freeThreshold ? 0 : deliveryFee;
+      const deliveryFee = payload.orderType === 'dine_in' ? 0 : (DEMO_STOREFRONT_INFO.deliveryFee || 0);
+      const freeThreshold = DEMO_STOREFRONT_INFO.freeShippingMinOrder || 0;
+      const effectiveDeliveryFee = DEMO_STOREFRONT_INFO.freeShippingEnabled && freeThreshold > 0 && subtotal >= freeThreshold ? 0 : deliveryFee;
       const total = subtotal + effectiveDeliveryFee;
       const generatedOrderNumber = `ORD-${Date.now().toString().slice(-6)}`;
       return {
@@ -365,9 +353,8 @@ export const storefrontApi = {
         body: JSON.stringify(payload),
       });
     } catch {
-      const [demoCatalog, demoInfo] = await Promise.all([loadDemoCatalog(), loadDemoInfo()]);
       const items = (payload.items || []).map((item) => {
-        const prod = demoCatalog.products.find((p) => p.id === Number(item.productId));
+        const prod = DEMO_STOREFRONT_CATALOG.products.find((p) => p.id === Number(item.productId));
         const unitPrice = Number(prod?.price ?? 0);
         const baseUnitPrice = Number(prod?.originalPrice ?? prod?.price ?? 0);
         const quantity = Number(item.quantity || 1);
@@ -389,9 +376,9 @@ export const storefrontApi = {
       });
       const subtotal = items.reduce((sum, l) => sum + l.total, 0);
       const originalSubtotal = items.reduce((sum, l) => sum + l.originalTotal, 0);
-      const baseDeliveryFee = payload.orderType === 'dine_in' ? 0 : (demoInfo.deliveryFee || 0);
-      const freeThreshold = demoInfo.freeShippingMinOrder || null;
-      const freeDeliveryApplied = Boolean(demoInfo.freeShippingEnabled && freeThreshold && subtotal >= freeThreshold);
+      const baseDeliveryFee = payload.orderType === 'dine_in' ? 0 : (DEMO_STOREFRONT_INFO.deliveryFee || 0);
+      const freeThreshold = DEMO_STOREFRONT_INFO.freeShippingMinOrder || null;
+      const freeDeliveryApplied = Boolean(DEMO_STOREFRONT_INFO.freeShippingEnabled && freeThreshold && subtotal >= freeThreshold);
       const deliveryFee = freeDeliveryApplied ? 0 : baseDeliveryFee;
       return {
         ok: true,

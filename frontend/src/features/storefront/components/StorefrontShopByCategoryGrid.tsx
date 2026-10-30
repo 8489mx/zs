@@ -195,8 +195,8 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
         .sf-cat-tile {
           position: relative;
           overflow: hidden;
-          border-radius: 20px;
-          height: 118px;
+          border-radius: 14px;
+          height: 114px;
           padding: 12px 14px;
           display: flex;
           align-items: center;
@@ -228,9 +228,14 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
           line-height: 1.25 !important;
         }
 
+        .sf-cat-tile-img-wrap {
+          width: 70px;
+          height: 70px;
+        }
+
         .sf-cat-tile-img {
-          width: 72px;
-          height: 72px;
+          width: 66px;
+          height: 66px;
           object-fit: contain;
           transform: translate3d(0, 0, 0);
           transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
@@ -254,38 +259,88 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
             gap: 10px;
           }
           .sf-cat-tile {
-            height: 106px;
-            padding: 10px 12px;
-            border-radius: 18px;
+            height: 96px;
+            padding: 10px 11px;
+            border-radius: 12px;
+          }
+          .sf-cat-tile-img-wrap {
+            width: 54px !important;
+            height: 54px !important;
           }
           .sf-cat-tile-img {
-            width: 62px;
-            height: 62px;
+            width: 50px !important;
+            height: 50px !important;
           }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 640px) {
+          .storefront-shop-by-cat-section {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 4px 0 !important;
+            margin: 6px 0 !important;
+          }
+          .storefront-shop-by-cat-header {
+            margin-bottom: 10px !important;
+            padding-bottom: 0 !important;
+            border-bottom: none !important;
+          }
+          .storefront-shop-by-cat-title {
+            font-size: 14.5px !important;
+            font-weight: 700 !important;
+          }
           .sf-cat-tiles-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
           }
           .sf-cat-tile {
-            height: 98px;
-            padding: 9px 10px;
-            border-radius: 16px;
+            height: 76px !important;
+            padding: 10px 12px !important;
+            border-radius: 14px !important;
+            gap: 8px !important;
+            background: #ffffff !important;
+            border: 1px solid #edf1f7 !important;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03) !important;
+          }
+          .sf-cat-tile-img-wrap {
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 10px !important;
+            background: #f8fafc !important;
           }
           .sf-cat-tile-img {
-            width: 52px;
-            height: 52px;
+            width: 40px !important;
+            height: 40px !important;
+            filter: none !important;
           }
           .sf-cat-tile-title {
             font-size: 12px !important;
+            font-weight: 600 !important;
+            color: #0f172a !important;
+            line-height: 1.3 !important;
+            white-space: normal !important;
+            display: -webkit-box !important;
+            -webkit-line-clamp: 2 !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+          .sf-cat-tile-cta {
+            font-size: 10px !important;
+            font-weight: 500 !important;
+            color: #64748b !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
           }
         }
       `}</style>
 
       {/* Header Row: Shop By Category & View All */}
       <div
+        className="storefront-shop-by-cat-header"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -299,10 +354,11 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <h2
+            className="storefront-shop-by-cat-title"
             style={{
               margin: 0,
-              fontSize: '18px',
-              fontWeight: 800,
+              fontSize: '17px',
+              fontWeight: 700,
               color: '#0f172a',
               letterSpacing: '-0.2px',
               lineHeight: 1.25,
@@ -314,6 +370,7 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
 
         <button
           type="button"
+          className="storefront-view-all-btn"
           onClick={() => {
             if (onOpenCategoriesModal) {
               onOpenCategoriesModal();
@@ -324,9 +381,9 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
           style={{
             background: 'none',
             border: 'none',
-            color: '#f97316',
-            fontSize: '13px',
-            fontWeight: 800,
+            color: 'var(--storefront-primary-color, #2d68c4)',
+            fontSize: '12.5px',
+            fontWeight: 700,
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
@@ -334,23 +391,22 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
             whiteSpace: 'nowrap',
             flexShrink: 0,
             padding: 0,
+            fontFamily: 'inherit',
             transition: 'color 0.16s ease, transform 0.16s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#ea580c';
             e.currentTarget.style.transform = 'translateX(-2px)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#f97316';
             e.currentTarget.style.transform = 'translateX(0)';
           }}
         >
-          <span>{t('storefront.shop_by_cat.view_all', 'عرض كل الأقسام')}</span>
-          <IconArrowUpRight size={14} strokeWidth={2.4} />
+          <span className="storefront-shelf-viewall-label">{t('storefront.shop_by_cat.view_all', 'عرض كل الأقسام')}</span>
+          <IconArrowUpRight size={14} strokeWidth={2.2} />
         </button>
       </div>
 
-      {/* 8 Vibrant Blended Seamless Category Tiles Grid (Zero Line in Middle) */}
+      {/* 8 Vibrant Blended Seamless Category Tiles Grid */}
       <div className="sf-cat-tiles-grid">
         {tilesData.map((item, idx) => {
           const theme = TILE_THEMES[idx % TILE_THEMES.length];
@@ -383,8 +439,8 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   zIndex: 2,
                   minWidth: 0,
                   flex: '1 1 auto',
-                  gap: '6px',
-                  paddingInlineEnd: '6px',
+                  gap: '5px',
+                  paddingInlineEnd: '4px',
                 }}
               >
                 <h3
@@ -392,7 +448,7 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   style={{
                     margin: 0,
                     fontSize: '13.5px',
-                    fontWeight: 800,
+                    fontWeight: 700,
                     color: theme.textColor,
                     lineHeight: 1.25,
                     whiteSpace: 'nowrap',
@@ -406,28 +462,30 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                 </h3>
 
                 <span
+                  className="sf-cat-tile-cta"
                   style={{
-                    fontSize: '10.5px',
+                    fontSize: '10px',
                     fontWeight: 600,
                     color: theme.badgeColor,
                     background: theme.badgeBg,
-                    padding: '2.5px 8.5px',
-                    borderRadius: '8px',
+                    padding: '2px 7.5px',
+                    borderRadius: '7px',
                     whiteSpace: 'nowrap',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '3px',
                     border: '1px solid rgba(255, 255, 255, 0.65)',
-                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                   }}
                 >
                   <span>{t('storefront.shop_by_cat.explore', 'تسوق الآن')}</span>
-                  <span style={{ fontSize: '10px' }}>←</span>
+                  <span style={{ fontSize: '9.5px' }}>←</span>
                 </span>
               </div>
 
-              {/* Photo Showcase (Left in RTL) with 100% Feathered Radial Ambient Glow (Zero Hard Split Line) */}
+              {/* Photo Showcase (Left in RTL) */}
               <div
+                className="sf-cat-tile-img-wrap"
                 style={{
                   position: 'relative',
                   zIndex: 2,
@@ -435,8 +493,6 @@ export const StorefrontShopByCategoryGrid = React.memo(function StorefrontShopBy
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  width: '74px',
-                  height: '74px',
                   borderRadius: '50%',
                   background: 'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.46) 0%, rgba(255, 255, 255, 0) 72%)',
                 }}

@@ -180,6 +180,7 @@ export function StorefrontModals({
         info={info}
         onEditOrder={onEditOrder}
         onReorder={onReorder}
+        allProducts={allProducts}
       />
 
       {/* Product Quick View & Share Modal (Always mounted for iOS spring open/close transitions) */}

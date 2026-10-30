@@ -261,7 +261,7 @@ export const StorefrontInteractiveSpotlightBreak = React.memo(function Storefron
           )}
 
           {/* Pricing Row */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', gap: '12px', flexWrap: 'wrap', fontVariantNumeric: 'tabular-nums' }}>
             <div
               style={{
                 fontSize: '28px',

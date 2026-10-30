@@ -96,6 +96,39 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
         position: 'relative',
       }}
     >
+      <style>{`
+        .sf-mobile-search-sliders {
+          display: none;
+        }
+        @media (min-width: 769px) {
+          .storefront-search-input:not(:focus)::placeholder {
+            opacity: 0;
+          }
+        }
+        @media (max-width: 768px) {
+          .sf-search-idle-overlay {
+            display: none !important;
+          }
+          .sf-search-leading-icon {
+            opacity: 1 !important;
+            color: var(--storefront-primary-color, #2d68c4) !important;
+          }
+          .storefront-search-input::placeholder {
+            opacity: 1 !important;
+            color: #94a3b8 !important;
+            font-weight: 500 !important;
+          }
+          .sf-mobile-search-sliders {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--storefront-primary-color, #2d68c4);
+            flex-shrink: 0;
+            pointer-events: none;
+            opacity: 0.9;
+          }
+        }
+      `}</style>
       <div
         className="storefront-search-box"
         style={{
@@ -114,9 +147,10 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
           position: 'relative',
         }}
       >
-        {/* Centered Search Icon + "البحث في Z" exactly in the middle when idle */}
+        {/* Centered Search Icon + "البحث في Z" exactly in the middle when idle (Desktop only) */}
         {!searchTerm && !isFocused && (
           <div
+            className="sf-search-idle-overlay"
             style={{
               position: 'absolute',
               inset: 0,
@@ -137,6 +171,7 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
         )}
 
         <span
+          className="sf-search-leading-icon"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -160,7 +195,7 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
             }
           }}
           onBlur={() => setIsFocused(false)}
-          placeholder={isFocused ? placeholderText : ""}
+          placeholder={placeholderText}
           style={{
             flex: 1,
             border: 'none',
@@ -175,7 +210,7 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
           }}
         />
 
-        {searchTerm && (
+        {searchTerm ? (
           <button
             type="button"
             onClick={() => {
@@ -197,6 +232,15 @@ export const StorefrontPredictiveSearch = React.memo(function StorefrontPredicti
           >
             <XIcon size={15} />
           </button>
+        ) : (
+          <span className="sf-mobile-search-sliders" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+              <circle cx="9" cy="7" r="2.5" fill="#ffffff" />
+              <circle cx="15" cy="17" r="2.5" fill="#ffffff" />
+            </svg>
+          </span>
         )}
       </div>
 

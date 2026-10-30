@@ -231,6 +231,61 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
     }, 1200);
   };
 
+  // Build 4 curated mobile promo slides (only rendered on <= 640px)
+  const mobileHeroSlides = useMemo(() => {
+    const base = featuredProducts && featuredProducts.length > 0 ? featuredProducts.slice(0, 4) : [];
+    const slideThemes = [
+      {
+        kicker: 'وصل حديثاً',
+        headline: 'تشكيلة مختارة بأعلى جودة',
+        cta: 'تسوق الآن',
+        bg: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
+        border: '#e2e8f0',
+        textDark: true,
+        accentBg: 'var(--storefront-primary-color, #2d68c4)',
+        accentText: '#ffffff',
+        kickerBg: 'rgba(45, 104, 196, 0.1)',
+        kickerColor: 'var(--storefront-primary-color, #2d68c4)',
+      },
+      {
+        kicker: 'عروض حصرية',
+        headline: 'خصومات يومية على أفضل الأصناف',
+        cta: 'اكتشف العروض',
+        bg: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        border: '#1e293b',
+        textDark: false,
+        accentBg: '#ffffff',
+        accentText: '#0f172a',
+        kickerBg: 'rgba(255, 255, 255, 0.14)',
+        kickerColor: '#f8fafc',
+      },
+      {
+        kicker: 'الأكثر مبيعاً',
+        headline: 'منتجات أصلية بتوصيل سريع',
+        cta: 'تصفح الآن',
+        bg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+        border: '#bfdbfe',
+        textDark: true,
+        accentBg: '#0f172a',
+        accentText: '#ffffff',
+        kickerBg: '#ffffff',
+        kickerColor: '#1d4ed8',
+      },
+    ];
+
+    return slideThemes.map((theme, idx) => {
+      const prod = base[idx % Math.max(1, base.length)] || null;
+      const photoUrl = prod
+        ? prod.imageUrl || resolveProductPhoto(prod.name, prod.categoryName).url
+        : '';
+      return {
+        ...theme,
+        product: prod,
+        photoUrl,
+      };
+    });
+  }, [featuredProducts]);
+
   return (
     <section
       className="storefront-pallet-hero"
@@ -251,6 +306,9 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
       }}
     >
       <style>{`
+        .sf-mobile-editorial-carousel {
+          display: none;
+        }
         .storefront-coverflow-card {
           transform: translate3d(0, 0, 0);
           backface-visibility: hidden;
@@ -320,118 +378,192 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
         }
         @media (max-width: 768px) {
           .storefront-pallet-hero {
-            margin-top: -116px !important;
-            padding: 128px 12px 14px !important;
+            margin-top: 0 !important;
+            padding: 14px 12px 12px !important;
           }
         }
         @media (max-width: 640px) {
           .storefront-pallet-hero {
-            margin-top: -116px !important;
-            padding: 126px 10px 12px !important;
+            margin-top: 0 !important;
+            padding: 6px 0 4px !important;
+            background: transparent !important;
+            border-bottom: none !important;
           }
-          .sf-hero-headline-wrap {
-            margin-bottom: 6px !important;
-            padding: 0 8px !important;
-            box-sizing: border-box !important;
+          .sf-hero-headline-wrap,
+          .storefront-fanned-deck,
+          .sf-hero-cta-row,
+          .sf-hero-ticker-viewport {
+            display: none !important;
           }
-          .sf-hero-glass-headline {
-            font-size: clamp(18px, 5vw, 22px) !important;
-            white-space: normal !important;
-            line-height: 1.35 !important;
-            text-align: center !important;
-            max-width: 100% !important;
-          }
-          .storefront-fanned-deck {
+          .sf-mobile-editorial-carousel {
+            display: flex !important;
             direction: rtl !important;
-            overflow-x: auto !important;
-            height: auto !important;
-            min-height: 244px !important;
-            padding: 6px 12px 12px !important;
             width: 100% !important;
-            justify-content: flex-start !important;
+            overflow-x: auto !important;
             gap: 10px !important;
+            padding: 2px 14px 6px !important;
+            box-sizing: border-box !important;
+            scroll-snap-type: x mandatory !important;
             scrollbar-width: none !important;
             -webkit-overflow-scrolling: touch !important;
-            scroll-snap-type: x mandatory !important;
-            box-sizing: border-box !important;
           }
-          .storefront-fanned-deck::-webkit-scrollbar {
+          .sf-mobile-editorial-carousel::-webkit-scrollbar {
             display: none !important;
           }
-          .storefront-coverflow-card {
-            transform: none !important;
-            width: 158px !important;
-            min-width: 158px !important;
-            max-width: 158px !important;
-            height: 228px !important;
-            margin-top: 0 !important;
-            margin-inline: 0 !important;
-            padding: 10px !important;
-            background: #ffffff !important;
-            border: 1.5px solid #dce3ec !important;
+          .sf-mobile-editorial-slide {
+            flex: 0 0 88% !important;
+            max-width: 88% !important;
+            height: 148px !important;
             border-radius: 16px !important;
-            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
-            opacity: 1 !important;
-            flex-shrink: 0 !important;
-            scroll-snap-align: start !important;
-          }
-          .storefront-coverflow-card.is-highlighted {
-            border-color: #93c5fd !important;
-            box-shadow: 0 6px 16px rgba(45, 104, 196, 0.12) !important;
-          }
-          .storefront-coverflow-card > .sf-coverflow-svg {
-            display: none !important;
-          }
-          .sf-coverflow-badge {
-            margin-top: 0 !important;
-            font-size: 9.5px !important;
-            padding: 3px 7px !important;
-            border-radius: 6px !important;
-          }
-          .sf-coverflow-footer {
-            margin-bottom: 0 !important;
-            padding-top: 6px !important;
-            gap: 5px !important;
-          }
-          .sf-coverflow-title {
-            font-size: 11px !important;
-            line-height: 1.3 !important;
-          }
-          .sf-coverflow-price {
-            font-size: 12.5px !important;
-          }
-          .sf-coverflow-oldprice {
-            font-size: 10px !important;
-          }
-          .sf-coverflow-cart-btn {
-            width: 26px !important;
-            height: 26px !important;
-            border-radius: 8px !important;
-          }
-          .sf-hero-cta-row {
-            margin-top: 8px !important;
-            width: 100% !important;
-            max-width: 360px !important;
-            display: flex !important;
-            flex-wrap: nowrap !important;
-            gap: 8px !important;
-            padding: 0 4px !important;
+            padding: 14px 16px !important;
             box-sizing: border-box !important;
-          }
-          .sf-hero-cta-row button {
-            flex: 1 1 0% !important;
-            height: 38px !important;
-            padding: 0 10px !important;
-            font-size: 12.5px !important;
-            justify-content: center !important;
-            white-space: nowrap !important;
-          }
-          .sf-hero-ticker-viewport {
-            margin-top: 14px !important;
-            padding-top: 10px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 12px !important;
+            scroll-snap-align: center !important;
+            position: relative !important;
+            overflow: hidden !important;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05) !important;
+            cursor: pointer !important;
           }
         }
       `}</style>
+
+      {/* Mobile-Only Apple/Pinterest Swipeable Hero Promo Cards (0:00-0:03 of video) */}
+      <div className="sf-mobile-editorial-carousel" dir="rtl">
+        {mobileHeroSlides.map((slide, idx) => (
+          <div
+            key={idx}
+            className="sf-mobile-editorial-slide"
+            onClick={() => {
+              if (slide.product) {
+                onQuickView(slide.product);
+              } else {
+                onSelectDeals();
+              }
+            }}
+            style={{
+              background: slide.bg,
+              border: `1px solid ${slide.border}`,
+            }}
+          >
+            {/* Right Copy Column in RTL */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                height: '100%',
+                flex: '1 1 auto',
+                minWidth: 0,
+                textAlign: 'right',
+                zIndex: 2,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  background: slide.kickerBg,
+                  color: slide.kickerColor,
+                  lineHeight: 1.2,
+                }}
+              >
+                {slide.kicker}
+              </span>
+
+              <div style={{ margin: '4px 0' }}>
+                <div
+                  style={{
+                    fontSize: '14.5px',
+                    fontWeight: 700,
+                    color: slide.textDark ? '#0f172a' : '#ffffff',
+                    lineHeight: 1.32,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {slide.product ? slide.product.name : slide.headline}
+                </div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 400,
+                    color: slide.textDark ? '#64748b' : '#cbd5e1',
+                    marginTop: '2px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {slide.headline}
+                </div>
+              </div>
+
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  padding: '5px 12px',
+                  borderRadius: '8px',
+                  background: slide.accentBg,
+                  color: slide.accentText,
+                  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.08)',
+                }}
+              >
+                <span>{slide.cta}</span>
+                <span style={{ fontSize: '11px', lineHeight: 1 }}>←</span>
+              </span>
+            </div>
+
+            {/* Left Product Studio Image in RTL */}
+            {slide.photoUrl && (
+              <div
+                style={{
+                  width: '108px',
+                  height: '116px',
+                  flexShrink: 0,
+                  borderRadius: '12px',
+                  background: slide.textDark ? '#ffffff' : 'rgba(255, 255, 255, 0.95)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '8px',
+                  boxSizing: 'border-box',
+                  boxShadow: '0 4px 12px rgba(15, 23, 42, 0.06)',
+                }}
+              >
+                <img
+                  src={slide.photoUrl}
+                  alt={slide.product?.name || slide.headline}
+                  loading="eager"
+                  decoding="async"
+                  draggable={false}
+                  onError={(e) => {
+                    if (slide.product) {
+                      e.currentTarget.src = generatePremiumProductSvg(slide.product.name, slide.product.categoryName);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       {/* Top Main Headline */}
       <div className="sf-hero-headline-wrap" style={{ maxWidth: '100%', marginBottom: '12px', position: 'relative', zIndex: 5 }}>

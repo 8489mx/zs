@@ -216,7 +216,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </span>
           )}
 
-          {/* Top Right: Deal / Offer badge or Category capsule pill (Floating white capsule matching reference) */}
+          {/* Top Right: Deal / Offer / Low-Stock badge only (no duplicate category pill) */}
           {primaryBadge ? (
             <div
               className="storefront-product-badge-wrap"
@@ -224,46 +224,7 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 position: 'absolute',
                 top: '8px',
                 right: '8px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 2,
-                pointerEvents: 'none',
-              }}
-            >
-              <span
-                className="storefront-product-badge"
-                style={{
-                  fontSize: '10.5px',
-                  fontWeight: 500,
-                  color: primaryBadge.color,
-                  backgroundColor: primaryBadge.bg,
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-                  border: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontVariantNumeric: 'tabular-nums',
-                  lineHeight: '1.2',
-                  letterSpacing: '-0.01em',
-                  userSelect: 'none',
-                }}
-              >
-                {primaryBadge.isOut && <ClockIcon size={12} color="#ffffff" />}
-                <span>{primaryBadge.text}</span>
-              </span>
-            </div>
-          ) : product.categoryName ? (
-            <div
-              className="storefront-product-badge-wrap"
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                height: '32px',
+                height: '28px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -275,27 +236,28 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
                 className="storefront-product-badge"
                 style={{
                   fontSize: '10px',
-                  fontWeight: 500,
-                  color: '#475569',
-                  backgroundColor: '#ffffff',
-                  padding: '3px 9px',
-                  borderRadius: '8px',
-                  boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
-                  border: '1px solid rgba(226, 232, 240, 0.8)',
+                  fontWeight: 600,
+                  color: primaryBadge.color,
+                  backgroundColor: primaryBadge.bg,
+                  padding: '3px 8px',
+                  borderRadius: '7px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+                  border: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '4px',
+                  fontVariantNumeric: 'tabular-nums',
                   lineHeight: '1.2',
-                  letterSpacing: '0.02em',
                   userSelect: 'none',
                 }}
               >
-                <span>{formatSmartCategoryName(product.categoryName)}</span>
+                {primaryBadge.isOut && <ClockIcon size={11} color="#ffffff" />}
+                <span>{primaryBadge.text}</span>
               </span>
             </div>
           ) : null}
 
-          {/* Top Left: Interactive Wishlist Heart Button (Solid crisp circular surface) */}
+          {/* Top Left: Interactive Wishlist Heart Button */}
           <button
             className="storefront-product-fav-btn"
             type="button"
@@ -306,19 +268,19 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
               position: 'absolute',
               top: '8px',
               left: '8px',
-              width: '34px',
-              height: '34px',
-              minWidth: '34px',
-              minHeight: '34px',
-              maxWidth: '34px',
-              maxHeight: '34px',
+              width: '32px',
+              height: '32px',
+              minWidth: '32px',
+              minHeight: '32px',
+              maxWidth: '32px',
+              maxHeight: '32px',
               aspectRatio: '1 / 1',
               padding: 0,
               margin: 0,
               boxSizing: 'border-box',
               flexShrink: 0,
               background: '#ffffff',
-              borderRadius: '10px',
+              borderRadius: '9px',
               border: '1px solid #E0E3E7',
               boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)',
               outline: 'none',
@@ -331,12 +293,12 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             }}
           >
             <svg
-              width="16"
-              height="16"
+              width="15"
+              height="15"
               viewBox="0 0 24 24"
               fill={isFavorite ? '#e11d48' : 'none'}
               stroke={isFavorite ? '#e11d48' : '#475569'}
-              strokeWidth="2.2"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
               style={{ flexShrink: 0 }}
@@ -359,25 +321,25 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
         }}
       >
         <div>
-          {/* Unboxed Metadata Row: Category · Rating */}
+          {/* Unboxed Metadata Row: Category */}
           <div
             className="storefront-product-meta-row"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-start',
-              height: '20px',
-              minHeight: '20px',
-              maxHeight: '20px',
-              marginBottom: '5px',
+              height: '18px',
+              minHeight: '18px',
+              maxHeight: '18px',
+              marginBottom: '3px',
             }}
           >
             <span
               className="storefront-product-cat-tag"
               style={{
-                fontSize: '11px',
+                fontSize: '10.5px',
                 color: '#64748b',
-                fontWeight: 600,
+                fontWeight: 500,
                 maxWidth: '100%',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -390,124 +352,337 @@ export const StorefrontProductCard = React.memo(function StorefrontProductCard({
             </span>
           </div>
 
-        {/* Product Title - Clicking opens QuickView modal */}
-        <h3
-          className="storefront-product-title"
-          onClick={() => onQuickView?.(product)}
-          style={{
-            cursor: onQuickView ? 'pointer' : 'default',
-            margin: '0 0 6px',
-            fontSize: '12px',
-            fontWeight: 500,
-            color: '#0f172a',
-            lineHeight: '1.4',
-            height: '20px',
-            minHeight: '20px',
-            maxHeight: '20px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: 'block',
-          }}
-          title={product.name}
-        >
-          {product.name}
-        </h3>
-
-        {isWide && product.description && (
-          <p
-            className="storefront-product-wide-desc"
+          {/* Product Title - 2 clean lines so full product name is legible on mobile & desktop */}
+          <h3
+            className="storefront-product-title"
+            onClick={() => onQuickView?.(product)}
             style={{
-              fontSize: '12px',
-              color: '#64748b',
-              lineHeight: '1.45',
-              margin: '0 0 8px',
+              cursor: onQuickView ? 'pointer' : 'default',
+              margin: '0 0 6px',
+              fontSize: '12.5px',
+              fontWeight: 600,
+              color: '#0f172a',
+              lineHeight: '1.35',
+              height: '34px',
+              minHeight: '34px',
+              maxHeight: '34px',
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
+              whiteSpace: 'normal',
               overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
+            title={product.name}
           >
-            {product.description}
-          </p>
-        )}
+            {product.name}
+          </h3>
 
-        {/* Price Row with Tabular Numerals & Unboxed Savings */}
-        {isZeroPrice ? (
-          <div
-            className="storefront-product-price-row"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              minHeight: '28px',
-              margin: '2px 0 6px',
-            }}
-          >
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#64748b' }}>
-              {t('storefront.storefront_product_card.s12', 'السعر عند التواصل')}
-            </span>
-          </div>
-        ) : (
-          <div
-            className="storefront-product-price-row"
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'flex-start',
-              direction: 'ltr',
-              flexWrap: 'wrap',
-              gap: '6px',
-              margin: '2px 0 6px',
-              minHeight: '28px',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px' }}>
-              <span
-                className="storefront-product-price-curr"
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  color: '#0f172a',
-                }}
-              >
-                <CurrencySymbol />
+          {isWide && product.description && (
+            <p
+              className="storefront-product-wide-desc"
+              style={{
+                fontSize: '12px',
+                color: '#64748b',
+                lineHeight: '1.45',
+                margin: '0 0 8px',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+              }}
+            >
+              {product.description}
+            </p>
+          )}
+
+          {/* Price Row with Tabular Numerals & Left Alignment (Desktop > 640px) */}
+          {isZeroPrice ? (
+            <div
+              className="storefront-product-price-row sf-desktop-only-price"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                width: '100%',
+                textAlign: 'left',
+                minHeight: '24px',
+                margin: '2px 0 6px',
+              }}
+            >
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
+                {t('storefront.storefront_product_card.s12', 'السعر عند التواصل')}
               </span>
-              <span
-                className="storefront-product-price-main"
+            </div>
+          ) : (
+            <div
+              className="storefront-product-price-row sf-desktop-only-price"
+              style={{
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'flex-end',
+                width: '100%',
+                textAlign: 'left',
+                direction: 'rtl',
+                flexWrap: 'nowrap',
+                gap: '5px',
+                margin: '2px 0 6px',
+                minHeight: '24px',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '3px' }}>
+                <span
+                  className="storefront-product-price-main"
+                  style={{
+                    fontSize: '16.5px',
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    letterSpacing: '-0.2px',
+                    lineHeight: 1,
+                  }}
+                >
+                  {product.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </span>
+                <span
+                  className="storefront-product-price-curr"
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: '#475569',
+                  }}
+                >
+                  <CurrencySymbol />
+                </span>
+              </div>
+
+              {hasDiscount && (
+                <span
+                  className="storefront-product-price-old"
+                  style={{
+                    fontSize: '11.5px',
+                    fontWeight: 500,
+                    color: '#94a3b8',
+                    textDecoration: 'line-through',
+                  }}
+                >
+                  {oldPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+      {/* Mobile-Only Bottom Row: CTA on Right + Price on Left */}
+      <div
+        className="sf-product-mobile-bottom-bar"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Left Side in RTL (via row-reverse in CSS): Price & Old Price */}
+        <div className="sf-product-mobile-price-col">
+          {isZeroPrice ? (
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>
+              عند التواصل
+            </span>
+          ) : (
+            <>
+              <div style={{ display: 'inline-flex', alignItems: 'baseline', gap: '2px' }}>
+                <span
+                  style={{
+                    fontSize: '14.5px',
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    letterSpacing: '-0.2px',
+                    lineHeight: 1.1,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {product.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: '#475569' }}>
+                  <CurrencySymbol />
+                </span>
+              </div>
+              {hasDiscount && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 400,
+                    color: '#94a3b8',
+                    textDecoration: 'line-through',
+                    lineHeight: 1,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {oldPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                </span>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Right Side in RTL (via row-reverse in CSS): Compact [+] Icon Button or [ + ] qty [ - ] Stepper */}
+        <div className="sf-product-mobile-cta-col">
+          {isOutOfStock ? (
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 600,
+                color: '#94a3b8',
+                background: '#f1f5f9',
+                padding: '5px 8px',
+                borderRadius: '8px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              غير متوفر
+            </span>
+          ) : isZeroPrice ? (
+            <a
+              href={
+                whatsappPhone
+                  ? `https://wa.me/${whatsappPhone}?text=${encodeURIComponent(`مرحباً، أستفسر عن سعر صنف: ${product.name}`)}`
+                  : '#'
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                height: '30px',
+                padding: '0 10px',
+                borderRadius: '9px',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                color: '#0f172a',
+                fontSize: '10.5px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              استفسر
+            </a>
+          ) : cartQuantity > 0 ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                height: '30px',
+                background: 'var(--storefront-primary-color, #2d68c4)',
+                borderRadius: '9px',
+                padding: '2px',
+                gap: '2px',
+                fontVariantNumeric: 'tabular-nums',
+                boxShadow: '0 2px 6px rgba(45, 104, 196, 0.2)',
+              }}
+            >
+              {/* [+] on RIGHT in RTL */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateQuantity(product.id, cartQuantity + 1);
+                }}
+                aria-label="زيادة الكمية"
                 style={{
-                  fontSize: '19px',
-                  fontWeight: 900,
-                  color: '#0f172a',
-                  letterSpacing: '-0.3px',
+                  width: '24px',
+                  height: '26px',
+                  borderRadius: '7px',
+                  background: 'rgba(255,255,255,0.2)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
                   lineHeight: 1,
                 }}
               >
-                {product.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-
-            {hasDiscount && (
+                +
+              </button>
               <span
-                className="storefront-product-price-old"
                 style={{
-                  fontSize: '13px',
-                  fontWeight: 600,
-                  color: '#94a3b8',
-                  textDecoration: 'line-through',
-                  marginLeft: '2px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  minWidth: '18px',
+                  textAlign: 'center',
                 }}
               >
-                {oldPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                {cartQuantity}
               </span>
-            )}
-          </div>
-        )}
+              {/* [-] on LEFT in RTL */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateQuantity(product.id, cartQuantity - 1);
+                }}
+                aria-label="تقليل الكمية"
+                style={{
+                  width: '24px',
+                  height: '26px',
+                  borderRadius: '7px',
+                  background: 'rgba(255,255,255,0.2)',
+                  color: '#ffffff',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  lineHeight: 1,
+                }}
+              >
+                −
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAdd}
+              aria-label="أضف للسلة"
+              title="أضف للسلة"
+              style={{
+                width: '32px',
+                height: '32px',
+                minWidth: '32px',
+                minHeight: '32px',
+                borderRadius: '10px',
+                border: 'none',
+                background: justAdded ? '#16a34a' : 'var(--storefront-primary-color, #2d68c4)',
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                boxShadow: '0 2px 8px rgba(45, 104, 196, 0.22)',
+                transition: 'transform 0.15s ease, background-color 0.15s ease',
+              }}
+            >
+              {justAdded ? (
+                <IconCheckCircle size={15} strokeWidth={2.4} color="#ffffff" />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Action CTA Container */}
-      <div className="storefront-product-action-box" style={{ marginTop: 'auto', paddingTop: '6px', height: '46px', minHeight: '46px', boxSizing: 'border-box' }}>
+      {/* Desktop Action CTA Container (> 640px) */}
+      <div className="storefront-product-action-box sf-desktop-only-action" style={{ marginTop: 'auto', paddingTop: '6px', height: '46px', minHeight: '46px', boxSizing: 'border-box' }}>
         {isOutOfStock ? (
           <button
             className="storefront-product-action-btn"

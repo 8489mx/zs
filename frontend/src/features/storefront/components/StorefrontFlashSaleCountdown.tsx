@@ -514,12 +514,43 @@ export function StorefrontFlashSaleCountdown({
         @media (max-width: 860px) {
           .storefront-flash-banner-card {
             grid-template-columns: 1fr !important;
-            padding: 24px 20px !important;
+            padding: 20px 16px !important;
             text-align: right;
+            min-height: auto !important;
+            gap: 14px !important;
+          }
+          .storefront-flash-banner-card > div:first-of-type {
+            transform: none !important;
           }
           .storefront-flash-collage {
-            height: 220px !important;
-            margin-top: 8px;
+            height: 190px !important;
+            margin-top: 0 !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .storefront-deals-of-the-day-section {
+            margin: 14px 0 !important;
+            padding: 0 !important;
+          }
+          .storefront-deals-of-the-day-section > h2 {
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            margin: 0 0 10px 0 !important;
+          }
+          .storefront-flash-banner-card {
+            border-radius: 14px !important;
+            padding: 16px 12px 12px !important;
+            gap: 10px !important;
+          }
+          .storefront-flash-banner-card h3 {
+            font-size: 16.5px !important;
+            font-weight: 700 !important;
+            margin: 0 0 10px 0 !important;
+          }
+          .storefront-flash-collage {
+            height: 148px !important;
+            transform: scale(0.72) !important;
+            transform-origin: center center !important;
           }
         }
       `}</style>

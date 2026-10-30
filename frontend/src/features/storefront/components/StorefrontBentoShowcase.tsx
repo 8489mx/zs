@@ -253,9 +253,13 @@ export const StorefrontBentoShowcase = React.memo(function StorefrontBentoShowca
                     color: 'var(--storefront-primary-color, #170e5e)',
                     fontVariantNumeric: 'tabular-nums',
                     marginBottom: '10px',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    textAlign: 'left',
+                    gap: '4px',
                   }}
                 >
-                  {lookbookProduct.price.toLocaleString('en-US')} <CurrencySymbol />
+                  <span>{lookbookProduct.price.toLocaleString('en-US')}</span> <CurrencySymbol />
                 </div>
                 <button
                   type="button"

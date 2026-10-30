@@ -323,17 +323,18 @@ export function StorefrontCartDrawer({
                       {item.product.categoryName || 'منتج أصلي'}
                     </div>
 
-                    {/* Bottom Row: Price on Right + Circular Stepper on Left */}
+                    {/* Bottom Row: Circular Stepper on Right + Price on Left */}
                     <div
                       style={{
                         marginTop: '4px',
                         display: 'flex',
+                        flexDirection: 'row-reverse',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: '8px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap', letterSpacing: '0px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'flex-end', textAlign: 'left', gap: '6px', flexWrap: 'wrap', letterSpacing: '0px' }}>
                         <span style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', letterSpacing: '0px' }}>
                           {formatPriceNumber(linePricing.lineTotal)} {activeCurrencySymbol}
                         </span>

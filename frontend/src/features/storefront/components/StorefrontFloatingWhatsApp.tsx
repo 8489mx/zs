@@ -86,11 +86,11 @@ export function StorefrontFloatingWhatsApp({
         }
         @media (max-width: 640px) {
           .sf-floating-whatsapp {
-            bottom: ${hasFloatingCart ? '134px' : '68px'} !important;
-            left: 14px !important;
+            bottom: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+            left: 12px !important;
             right: auto !important;
-            width: 44px !important;
-            height: 44px !important;
+            width: 42px !important;
+            height: 42px !important;
             border-radius: 50% !important;
           }
         }
