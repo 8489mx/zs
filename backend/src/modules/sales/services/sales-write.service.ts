@@ -26,6 +26,7 @@ import { buildPreparedSaleItem, calculateAllowedSaleUnitPrice, calculateCollecti
 import { allocateSaleTenders, type SaleTenderChannel } from '../engines/sale-tender.engine';
 import { allocateInvoiceDiscount } from '../engines/invoice-discount.engine';
 import { assertSaleNotZatcaSigned } from '../../tax-integration/services/zatca/zatca-invoice-status';
+import { diffContributions, negateContribution, tripSaleContribution, type TripSaleContribution } from '../../delivery-reps/van-trip-counters.engine';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
 import { SalesAuthorizationService } from './sales-authorization.service';
 import { SalesFinanceService } from './sales-finance.service';
@@ -53,6 +54,53 @@ export interface SystemApprovedSaleTerms {
   approvedDiscount?: number;
   /** productId -> approved unit price; a line at exactly this price skips the price-edit gate. */
   approvedUnitPrices?: Record<number, number>;
+}
+
+/**
+ * Trip-counter maintenance for field (van) sales edited or cancelled
+ * through the generic writer. The field flow maintains four counters
+ * on van_sales_trips at creation time; the generic paths never did,
+ * so an edit or a cancellation left settleTrip expecting cash the
+ * books no longer showed. The lock is taken early (right after the
+ * locked sale row is read, before any stock work — the same order
+ * settleTrip uses) and held for the transaction; the counter delta
+ * is applied once the replacement rows exist. A settled trip's
+ * counters are history: they are never moved, in either method.
+ */
+async function lockOpenTripRow(
+  trx: any,
+  tenantId: string,
+  tripId: number,
+): Promise<boolean> {
+  const trip = await trx
+    .selectFrom('van_sales_trips')
+    .select(['id', 'status'])
+    .where('id', '=', tripId)
+    .where('tenant_id', '=', tenantId)
+    .forUpdate()
+    .executeTakeFirst();
+  return Boolean(trip) && trip.status !== 'settled';
+}
+
+async function applyTripCounterDelta(
+  trx: any,
+  tenantId: string,
+  tripId: number,
+  delta: TripSaleContribution,
+): Promise<void> {
+  if (!delta.salesAmount && !delta.cashCollected && !delta.creditSales && !delta.instapaySales) return;
+  await trx
+    .updateTable('van_sales_trips')
+    .set({
+      sales_amount: sql`sales_amount + ${delta.salesAmount}`,
+      cash_collected: sql`cash_collected + ${delta.cashCollected}`,
+      credit_sales: sql`credit_sales + ${delta.creditSales}`,
+      total_instapay_sales: sql`total_instapay_sales + ${delta.instapaySales}`,
+      updated_at: sql`NOW()`,
+    })
+    .where('id', '=', tripId)
+    .where('tenant_id', '=', tenantId)
+    .execute();
 }
 
 @Injectable()
@@ -2204,6 +2252,14 @@ export class SalesWriteService {
       // and burn a second ICV on the replacement. Correct via credit note.
       assertSaleNotZatcaSigned((sale as any).zatca_status);
 
+      // A field sale's trip counters were raised at creation time and
+      // must move with the edit. Lock the trip row now (before any
+      // stock work, the order settleTrip uses); the delta itself is
+      // applied below, once the replacement rows exist. A settled
+      // trip's counters are history and stay untouched.
+      const tripId = Number((sale as any).van_trip_id || 0) || null;
+      const tripOpen = tripId ? await lockOpenTripRow(trx, scope.tenantId, tripId) : false;
+
       // A cashier shift is a historical cash accountability period. A sale
       // belonging to a closed shift cannot be edited in place: doing so would
       // retroactively change that shift's computed totals and cash exposure.
@@ -2786,6 +2842,34 @@ export class SalesWriteService {
         await trx.insertInto('sale_payments').values({ sale_id: saleId, payment_channel: payment.paymentChannel, amount: payment.amount, applied_amount: payment.amount, tendered_amount: payment.tenderedAmount, change_amount: payment.changeAmount, tenant_id: scope.tenantId, account_id: scope.accountId }).execute();
       }
 
+      // The trip counters move with the edit: the old sale's
+      // contribution is reversed and the replacement's applied, as one
+      // delta, while the trip row is still locked by this transaction.
+      if (tripOpen && tripId) {
+        let oldLedgerCredit: number | null = null;
+        if (String((sale as any).payment_channel || '').toLowerCase() === 'mixed') {
+          const ledgerRow = await trx.selectFrom('customer_ledger').select('amount')
+            .where('reference_type', '=', 'sale').where('reference_id', '=', saleId)
+            .where('entry_type', '=', 'sale_credit').where('tenant_id', '=', scope.tenantId)
+            .orderBy('id', 'desc').executeTakeFirst();
+          oldLedgerCredit = ledgerRow ? Number((ledgerRow as any).amount || 0) : null;
+        }
+        const oldContribution = tripSaleContribution({
+          total: (sale as any).total,
+          paidAmount: (sale as any).paid_amount,
+          paymentChannel: (sale as any).payment_channel,
+          payments: currentPayments as any,
+          ledgerCreditAmount: oldLedgerCredit ?? undefined,
+        });
+        const newContribution = tripSaleContribution({
+          total,
+          paidAmount,
+          paymentChannel: resolvePostedSalePaymentChannel(effectivePaymentType, payments),
+          payments: payments.map((payment: any) => ({ amount: payment.amount, payment_channel: payment.paymentChannel })),
+        });
+        await applyTripCounterDelta(trx, scope.tenantId, tripId, diffContributions(newContribution, oldContribution));
+      }
+
       await this.lockSaleStockRows(trx, scope, preparedItems);
       await this.autoProduceShortfall(trx, autoProduceItems, saleId, normalized.branchId, normalized.locationId, scope, auth);
       await this.resolveSaleModifierCosts(trx, preparedItems, scope.tenantId,
@@ -3076,6 +3160,13 @@ export class SalesWriteService {
       // Same immutability as the edit path: cancelling a signed invoice
       // would reverse books the signed attestation still describes.
       assertSaleNotZatcaSigned((sale as any).zatca_status);
+      // A field sale's trip counters were raised at creation time and
+      // must be reversed with the cancellation. Lock the trip row now
+      // (before any stock work, the order settleTrip uses); the
+      // reversal itself runs below, after the cancellation guards. A
+      // settled trip's counters are history and stay untouched.
+      const tripId = Number((sale as any).van_trip_id || 0) || null;
+      const tripOpen = tripId ? await lockOpenTripRow(trx, scope.tenantId, tripId) : false;
       const existingReturn = await trx.selectFrom('return_documents').select('id')
         .where('return_type', '=', 'sale').where('invoice_id', '=', saleId)
         .where('tenant_id', '=', scope.tenantId).limit(1).executeTakeFirst();
@@ -3103,6 +3194,28 @@ export class SalesWriteService {
       // reverse historical COGS. After prep, require the financial-only return path.
       if (sale.delivery_status === 'settled') {
         throw new AppError('لا يمكن إلغاء طلب دليفري تمت تسوية عهدته؛ استخدم مرتجعاً مالياً', 'DELIVERY_SETTLED_CANCEL_USE_RETURN', 409);
+      }
+      // Reverse the cancelled sale's trip-counter contribution while
+      // the trip row is still locked by this transaction.
+      if (tripOpen && tripId) {
+        const paymentRows = await trx.selectFrom('sale_payments').select(['amount', 'payment_channel'])
+          .where('sale_id', '=', saleId).where('tenant_id', '=', scope.tenantId).execute();
+        let oldLedgerCredit: number | null = null;
+        if (String((sale as any).payment_channel || '').toLowerCase() === 'mixed') {
+          const ledgerRow = await trx.selectFrom('customer_ledger').select('amount')
+            .where('reference_type', '=', 'sale').where('reference_id', '=', saleId)
+            .where('entry_type', '=', 'sale_credit').where('tenant_id', '=', scope.tenantId)
+            .orderBy('id', 'desc').executeTakeFirst();
+          oldLedgerCredit = ledgerRow ? Number((ledgerRow as any).amount || 0) : null;
+        }
+        const oldContribution = tripSaleContribution({
+          total: (sale as any).total,
+          paidAmount: (sale as any).paid_amount,
+          paymentChannel: (sale as any).payment_channel,
+          payments: paymentRows as any,
+          ledgerCreditAmount: oldLedgerCredit ?? undefined,
+        });
+        await applyTripCounterDelta(trx, scope.tenantId, tripId, negateContribution(oldContribution));
       }
       let isPreparedWaste = false;
       if (['dine_in', 'takeaway', 'delivery'].includes(String(sale.order_type || ''))) {
