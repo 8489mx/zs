@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { StorefrontInfo } from '../types/storefront.types';
 import { resolveStorefrontBrand, StorefrontBrandLogo } from './StorefrontHeader';
 
 interface StorefrontFooterProps {
-  info: StorefrontInfo;
+  info?: StorefrontInfo | null;
   onOpenCart?: () => void;
   onOpenOrders?: () => void;
   onOpenCategories?: () => void;
@@ -13,13 +13,30 @@ interface StorefrontFooterProps {
 
 export function StorefrontFooter({
   info,
+  onOpenCart: _onOpenCart,
   onOpenOrders,
   onOpenCategories,
   onGoHome,
   onToggleDeals,
 }: StorefrontFooterProps) {
-  const brand = resolveStorefrontBrand(info);
-  const whatsappNumber = (info.whatsappPhone || '').replace(/[^0-9]/g, '');
+  const safeInfo: StorefrontInfo = info || {
+    tenantId: '',
+    slug: '',
+    businessName: '',
+    enabled: true,
+    title: '',
+    bio: '',
+    announcement: '',
+    bannerUrl: '',
+    deliveryFee: 0,
+    minOrder: 0,
+    whatsappPhone: '',
+    currency: 'EGP',
+    smartDealsEnabled: false,
+  };
+
+  const brand = resolveStorefrontBrand(safeInfo);
+  const whatsappNumber = (safeInfo.whatsappPhone || '').replace(/[^0-9]/g, '');
   const cleanPhone = whatsappNumber.startsWith('01') ? `2${whatsappNumber}` : whatsappNumber;
   const currentYear = new Date().getFullYear();
 
@@ -28,14 +45,14 @@ export function StorefrontFooter({
   const [activePolicy, setActivePolicy] = useState<{ title: string; content: string } | null>(null);
 
   const supportEmail =
-    ((info as unknown as Record<string, unknown>).email as string | undefined)?.trim() ||
+    ((safeInfo as unknown as Record<string, unknown>).email as string | undefined)?.trim() ||
     'support@stylehub.com';
 
   const policies = {
     contact: {
       title: 'تواصل معنا',
       content: cleanPhone
-        ? `يسعدنا تواصلك معنا مباشرة عبر واتساب أو الهاتف على الرقم ${info.whatsappPhone} أو عبر البريد الإلكتروني ${supportEmail} طوال أيام الأسبوع.`
+        ? `يسعدنا تواصلك معنا مباشرة عبر واتساب أو الهاتف على الرقم ${safeInfo.whatsappPhone} أو عبر البريد الإلكتروني ${supportEmail} طوال أيام الأسبوع.`
         : `يسعدنا تواصلك معنا عبر البريد الإلكتروني ${supportEmail} للرد على كافة استفساراتك وطلباتك في أسرع وقت.`,
     },
     faq: {
@@ -66,7 +83,7 @@ export function StorefrontFooter({
   };
 
   const storeDescription =
-    (info.bio || info.description || '').trim() ||
+    (safeInfo.bio || safeInfo.description || '').trim() ||
     'وجهتك المفضلة للأناقة المختارة بعناية وتجربة تسوق سلسة. اكتشف الجودة، الأناقة، والراحة في مكان واحد.';
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
@@ -84,321 +101,14 @@ export function StorefrontFooter({
 
   return (
     <footer className="sf-stylehub-footer-outer" dir="rtl">
-      <style>{`
-        .sf-stylehub-footer-outer {
-          width: 100%;
-          max-width: 100%;
-          margin: 18px 0 0;
-          padding: 0;
-          background: #ffffff;
-          border-top: 1px solid #e5e7eb;
-          box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.025);
-          box-sizing: border-box;
-          direction: rtl;
-          color: #111827;
-        }
-
-        .sf-stylehub-footer-card {
-          width: 100%;
-          max-width: 1200px;
-          margin: 0 auto;
-          background: transparent;
-          border: none;
-          border-radius: 0;
-          box-shadow: none;
-          padding: 24px 24px 14px;
-          box-sizing: border-box;
-        }
-
-        .sf-stylehub-footer-grid {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 28px;
-          width: 100%;
-        }
-
-        .sf-stylehub-col-brand {
-          flex: 0 1 280px;
-        }
-
-        .sf-stylehub-col-connect {
-          flex: 0 1 290px;
-        }
-
-        /* Column 1: Brand */
-        .sf-stylehub-brand-row {
-          display: inline-flex;
-          direction: ltr;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-
-        .sf-stylehub-cube-icon {
-          color: var(--storefront-primary-color, #e87a24);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .sf-stylehub-brand-name {
-          margin: 0;
-          font-size: 16.5px;
-          font-weight: 800;
-          color: #111827;
-          letter-spacing: -0.2px;
-          line-height: 1.2;
-        }
-
-        .sf-stylehub-brand-desc {
-          margin: 0 0 12px;
-          font-size: 12.5px;
-          color: #6b7280;
-          line-height: 1.55;
-          max-width: 265px;
-        }
-
-        .sf-stylehub-socials {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 14px;
-          width: 100%;
-          max-width: 265px;
-        }
-
-        .sf-stylehub-social-link {
-          color: #6b7280;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          text-decoration: none;
-          transition: color 0.16s ease, transform 0.16s ease;
-          padding: 2px;
-        }
-
-        .sf-stylehub-social-link:hover {
-          color: var(--storefront-primary-color, #e87a24);
-          transform: translateY(-1px);
-        }
-
-        /* Columns 2, 3, 4 Headings */
-        .sf-stylehub-col-heading {
-          margin: 0 0 9px;
-          font-size: 13.5px;
-          font-weight: 700;
-          color: #111827;
-          line-height: 1.35;
-        }
-
-        /* Link Lists */
-        .sf-stylehub-links-list {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .sf-stylehub-link-btn {
-          background: none;
-          border: none;
-          padding: 0;
-          font-family: inherit;
-          font-size: 12.5px;
-          font-weight: 400;
-          color: #6b7280;
-          cursor: pointer;
-          text-align: right;
-          transition: color 0.15s ease;
-          line-height: 1.35;
-        }
-
-        .sf-stylehub-link-btn:hover {
-          color: var(--storefront-primary-color, #e87a24);
-        }
-
-        /* Column 4: Stay Connected */
-        .sf-stylehub-newsletter-text {
-          margin: 0 0 9px;
-          font-size: 12.5px;
-          color: #6b7280;
-          line-height: 1.5;
-        }
-
-        .sf-stylehub-newsletter-form {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-bottom: 10px;
-        }
-
-        .sf-stylehub-newsletter-input {
-          flex: 1;
-          min-width: 0;
-          height: 34px;
-          padding: 0 10px;
-          border-radius: 6px;
-          border: 1px solid #e5e7eb;
-          background: #ffffff;
-          font-family: inherit;
-          font-size: 12px;
-          color: #111827;
-          outline: none;
-          transition: border-color 0.15s ease, box-shadow 0.15s ease;
-          box-sizing: border-box;
-        }
-
-        .sf-stylehub-newsletter-input::placeholder {
-          color: #9ca3af;
-        }
-
-        .sf-stylehub-newsletter-input:focus {
-          border-color: var(--storefront-primary-color, #e87a24);
-          box-shadow: 0 0 0 3px rgba(232, 122, 36, 0.1);
-        }
-
-        .sf-stylehub-newsletter-submit {
-          width: 36px;
-          height: 34px;
-          border-radius: 6px;
-          background: var(--storefront-primary-color, #e87a24);
-          border: none;
-          color: #ffffff;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          flex-shrink: 0;
-          transition: opacity 0.15s ease, transform 0.15s ease;
-        }
-
-        .sf-stylehub-newsletter-submit:hover {
-          opacity: 0.92;
-          transform: translateY(-1px);
-        }
-
-        .sf-stylehub-newsletter-submit:active {
-          transform: scale(0.97);
-        }
-
-        .sf-stylehub-support-mail {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          font-size: 12.5px;
-          color: #4b5563;
-          text-decoration: none;
-          transition: color 0.15s ease;
-        }
-
-        .sf-stylehub-support-mail:hover {
-          color: var(--storefront-primary-color, #e87a24);
-        }
-
-        .sf-stylehub-support-mail svg {
-          color: #6b7280;
-          flex-shrink: 0;
-        }
-
-        /* Divider & Centered Bottom Copyright */
-        .sf-stylehub-divider {
-          border: none;
-          border-top: 1px solid #f1f5f9;
-          margin: 16px 0 12px;
-        }
-
-        .sf-stylehub-bottom {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .sf-stylehub-copyright {
-          margin: 0;
-          font-size: 11.5px;
-          color: #9ca3af;
-          line-height: 1.4;
-          text-align: right;
-        }
-
-        .sf-stylehub-bottom-links {
-          display: inline-flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 8px;
-          font-size: 11.5px;
-          color: #9ca3af;
-        }
-
-        .sf-stylehub-bottom-link {
-          background: none;
-          border: none;
-          padding: 0;
-          font-family: inherit;
-          font-size: 11.5px;
-          color: #9ca3af;
-          cursor: pointer;
-          transition: color 0.15s ease;
-        }
-
-        .sf-stylehub-bottom-link:hover {
-          color: #4b5563;
-        }
-
-        @media (max-width: 1024px) {
-          .sf-stylehub-footer-card {
-            padding: 22px 20px 14px;
-          }
-          .sf-stylehub-footer-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px 20px;
-          }
-          .sf-stylehub-brand-desc {
-            max-width: 100%;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .sf-stylehub-footer-outer {
-            padding: 0 0 calc(84px + env(safe-area-inset-bottom, 0px)) !important;
-            margin-top: 12px !important;
-          }
-          .sf-stylehub-footer-card {
-            border-radius: 0 !important;
-            padding: 20px 16px 14px !important;
-          }
-          .sf-stylehub-footer-grid {
-            display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 18px 14px !important;
-          }
-          .sf-stylehub-col-brand,
-          .sf-stylehub-col-connect {
-            grid-column: 1 / -1 !important;
-          }
-          .sf-stylehub-divider {
-            margin: 14px 0 10px !important;
-          }
-        }
-      `}</style>
-
       <div className="sf-stylehub-footer-card">
         <div className="sf-stylehub-footer-grid">
           {/* Column 1: Brand + Description + Outline Social Icons */}
           <div className="sf-stylehub-col-brand">
             <div className="sf-stylehub-brand-row">
-              {info.logo_url || info.logoUrl ? (
+              {safeInfo.logo_url || safeInfo.logoUrl ? (
                 <StorefrontBrandLogo
-                  src={(info.logo_url || info.logoUrl)!}
+                  src={(safeInfo.logo_url || safeInfo.logoUrl)!}
                   alt={brand.title}
                   size={28}
                 />
@@ -496,15 +206,15 @@ export function StorefrontFooter({
                 </svg>
               </a>
 
-              {/* YouTube Play Screen Outline Icon */}
+              {/* WhatsApp / Support Contact */}
               <a
-                href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#youtube'}
+                href={cleanPhone ? `https://wa.me/${cleanPhone}` : '#whatsapp'}
                 onClick={!cleanPhone ? (e) => e.preventDefault() : undefined}
                 target={cleanPhone ? '_blank' : undefined}
                 rel={cleanPhone ? 'noopener noreferrer' : undefined}
                 className="sf-stylehub-social-link"
-                aria-label="يوتيوب"
-                title="يوتيوب"
+                aria-label="واتساب"
+                title="واتساب"
               >
                 <svg
                   width="17"
@@ -516,8 +226,7 @@ export function StorefrontFooter({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" />
-                  <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" />
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                 </svg>
               </a>
             </div>
@@ -562,19 +271,25 @@ export function StorefrontFooter({
             <h4 className="sf-stylehub-col-heading">خدمة العملاء</h4>
             <ul className="sf-stylehub-links-list">
               <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (cleanPhone) {
-                      window.open(`https://wa.me/${cleanPhone}`, '_blank', 'noopener,noreferrer');
-                    } else {
-                      setActivePolicy(policies.contact);
-                    }
-                  }}
-                  className="sf-stylehub-link-btn"
-                >
-                  تواصل معنا
-                </button>
+                {cleanPhone ? (
+                  <a
+                    href={`https://wa.me/${cleanPhone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="sf-stylehub-link-btn"
+                    style={{ textDecoration: 'none', display: 'inline-block' }}
+                  >
+                    تواصل معنا
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setActivePolicy(policies.contact)}
+                    className="sf-stylehub-link-btn"
+                  >
+                    تواصل معنا
+                  </button>
+                )}
               </li>
               <li>
                 <button
@@ -765,5 +480,3 @@ export function StorefrontFooter({
     </footer>
   );
 }
-
-
