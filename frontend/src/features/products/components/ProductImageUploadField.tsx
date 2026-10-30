@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { compressImage } from '@/shared/utils/image-compressor';
-import { knockoutWhiteStudioBackground } from '@/shared/utils/background-knockout';
+import { knockoutWhiteStudioBackground, trimCanvasTransparentBounds } from '@/shared/utils/background-knockout';
 import { toast } from '@/shared/components/system-alert';
 import { UploadIcon, Trash2Icon, RefreshCwIcon, LayersIcon, SlidersIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
 
@@ -100,7 +100,8 @@ export function ProductImageUploadField({
       const knocked = knockoutWhiteStudioBackground(ctx, canvas.width, canvas.height);
 
       if (knocked) {
-        const cutDataUrl = canvas.toDataURL('image/webp', 0.85);
+        const trimmed = trimCanvasTransparentBounds(canvas);
+        const cutDataUrl = trimmed.toDataURL('image/webp', 0.85);
         onChange(cutDataUrl);
         setCurrentCutMode('instant');
         const sizeKb = Math.round((cutDataUrl.length * 3) / 4 / 1024);

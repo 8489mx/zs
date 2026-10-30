@@ -544,7 +544,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     transform: 'translate3d(0, 4px, 0)',
                     position: 'relative',
                     zIndex: 2,
-                    filter: 'drop-shadow(0 12px 14px rgba(0, 0, 0, 0.36)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.22))',
+                    filter: 'drop-shadow(0 14px 16px rgba(0, 0, 0, 0.40))',
                   }}
                 />
                 <div
@@ -579,7 +579,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     transform: 'translate3d(0, 6px, 0)',
                     position: 'relative',
                     zIndex: 3,
-                    filter: 'drop-shadow(0 14px 18px rgba(0, 0, 0, 0.42)) drop-shadow(0 0 14px rgba(255, 255, 255, 0.26))',
+                    filter: 'drop-shadow(0 16px 20px rgba(0, 0, 0, 0.45))',
                   }}
                 />
                 <div
@@ -614,7 +614,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     transform: 'translate3d(0, 4px, 0)',
                     position: 'relative',
                     zIndex: 2,
-                    filter: 'drop-shadow(0 12px 14px rgba(0, 0, 0, 0.36)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.22))',
+                    filter: 'drop-shadow(0 14px 16px rgba(0, 0, 0, 0.40))',
                   }}
                 />
                 <div
@@ -712,7 +712,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     height: '168px',
                     objectFit: 'contain',
                     transform: 'translate3d(0, 0, 0)',
-                    filter: 'drop-shadow(0 16px 22px rgba(15, 23, 42, 0.36)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.22))',
+                    filter: 'drop-shadow(0 16px 22px rgba(15, 23, 42, 0.38))',
                   }}
                 />
               </div>
@@ -919,7 +919,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     height: '164px',
                     objectFit: 'contain',
                     transform: 'translate3d(0, 0, 0)',
-                    filter: 'drop-shadow(0 16px 22px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 18px rgba(255, 255, 255, 0.2))',
+                    filter: 'drop-shadow(0 16px 22px rgba(0, 0, 0, 0.45))',
                   }}
                 />
               </div>
@@ -1001,7 +1001,7 @@ export const StorefrontAmazonVibrantSection = React.memo(function StorefrontAmaz
                     height: '160px',
                     objectFit: 'contain',
                     transform: 'translate3d(0, 0, 0)',
-                    filter: 'drop-shadow(0 16px 22px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 18px rgba(254, 240, 138, 0.24))',
+                    filter: 'drop-shadow(0 16px 22px rgba(0, 0, 0, 0.45))',
                   }}
                 />
               </div>

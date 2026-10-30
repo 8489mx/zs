@@ -309,3 +309,65 @@ export function knockoutWhiteStudioBackground(
   ctx.putImageData(imgData, 0, 0);
   return true;
 }
+
+/**
+ * Auto-Trim Bounding Box: Crops away empty transparent borders around the product,
+ * adding a balanced breathing padding so the product fills 88-92% of the card.
+ */
+export function trimCanvasTransparentBounds(
+  canvas: HTMLCanvasElement,
+  alphaThreshold = 25,
+  paddingRatio = 0.04
+): HTMLCanvasElement {
+  const ctx = canvas.getContext('2d');
+  if (!ctx || canvas.width <= 0 || canvas.height <= 0) return canvas;
+
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imgData.data;
+  const width = canvas.width;
+  const height = canvas.height;
+
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const a = data[(y * width + x) * 4 + 3];
+      if (a >= alphaThreshold) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  // If no content found or invalid
+  if (maxX < minX || maxY < minY) return canvas;
+
+  const prodW = maxX - minX + 1;
+  const prodH = maxY - minY + 1;
+
+  // Add symmetrical breathing padding
+  const pad = Math.max(6, Math.round(Math.max(prodW, prodH) * paddingRatio));
+  const cropX = Math.max(0, minX - pad);
+  const cropY = Math.max(0, minY - pad);
+  const cropW = Math.min(width - cropX, prodW + pad * 2);
+  const cropH = Math.min(height - cropY, prodH + pad * 2);
+
+  // If already fills 95%+ of canvas, keep as is
+  if (cropW >= width * 0.95 && cropH >= height * 0.95) {
+    return canvas;
+  }
+
+  const trimmedCanvas = document.createElement('canvas');
+  trimmedCanvas.width = cropW;
+  trimmedCanvas.height = cropH;
+  const trimmedCtx = trimmedCanvas.getContext('2d');
+  if (!trimmedCtx) return canvas;
+
+  trimmedCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  return trimmedCanvas;
+}
