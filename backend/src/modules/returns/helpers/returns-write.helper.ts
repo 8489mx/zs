@@ -1,7 +1,16 @@
 import { AppError } from '../../../common/errors/app-error';
 import { type MoneyDigits, roundMoney as roundBookMoney } from '../../accounting/engines/money-minor-units.engine';
 
-function roundMoney(value: number, digits: MoneyDigits = 2): number {
+/**
+ * Book digits are REQUIRED everywhere in this helper
+ * (INV-RETURN-HELPER-DIGITS-REQUIRED): every rounding here feeds a
+ * stored return line, a document total, or a ledger balance, so a
+ * caller that forgets the tenant's digits must fail closed instead of
+ * silently falling back to 2 decimals on a 3-decimal tenant. The
+ * 2-decimal branch is kept only as the explicit digits === 2 case of
+ * the canonical engine's contract, never as a default.
+ */
+function roundMoney(value: number, digits: MoneyDigits): number {
   return digits === 2
     ? Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
     : roundBookMoney(value, digits);
@@ -40,7 +49,7 @@ export type PreparedReturnLine = {
   afterQty: number;
 };
 
-export function buildSaleReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem, history: { qty: number; amount: number; tax: number } = { qty: 0, amount: 0, tax: 0 }, digits: MoneyDigits = 2): PreparedReturnLine {
+export function buildSaleReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem, history: { qty: number; amount: number; tax: number } = { qty: 0, amount: 0, tax: 0 }, digits: MoneyDigits): PreparedReturnLine {
   const money = (value: number) => roundMoney(value, digits);
   const soldQty = Number(source.qty || 0);
   if (!(soldQty > 0) || history.qty + requestItem.qty > soldQty + 0.000001) {
@@ -77,7 +86,7 @@ export function buildSaleReturnLine(source: ReturnSourceLine, product: ReturnPro
   };
 }
 
-export function buildPurchaseReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem, history: { qty: number; amount: number; tax?: number } = { qty: 0, amount: 0 }, digits: MoneyDigits = 2): PreparedReturnLine {
+export function buildPurchaseReturnLine(source: ReturnSourceLine, product: ReturnProductRow, requestItem: ReturnRequestItem, history: { qty: number; amount: number; tax?: number } = { qty: 0, amount: 0 }, digits: MoneyDigits): PreparedReturnLine {
   const money = (value: number) => roundMoney(value, digits);
   const purchasedQty = Number(source.qty || 0);
   const sourceLineTotal = money(Number(source.line_total || 0));
@@ -180,10 +189,10 @@ export function originalPurchaseReturnUnitCost(args: {
   return { perSoldUnit, perBaseUnit };
 }
 
-export function calculateReturnDocumentTotal(lines: Array<{ lineTotal: number }>, digits: MoneyDigits = 2): number {
+export function calculateReturnDocumentTotal(lines: Array<{ lineTotal: number }>, digits: MoneyDigits): number {
   return roundMoney(lines.reduce((sum, line) => sum + Number(line.lineTotal || 0), 0), digits);
 }
 
-export function calculateNextLedgerBalance(currentBalance: number | string | null | undefined, amountDelta: number, digits: MoneyDigits = 2): number {
+export function calculateNextLedgerBalance(currentBalance: number | string | null | undefined, amountDelta: number, digits: MoneyDigits): number {
   return roundMoney(Number(currentBalance || 0) + Number(amountDelta || 0), digits);
 }
