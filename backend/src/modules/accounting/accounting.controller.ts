@@ -23,6 +23,7 @@ import {
   CreateBankStatementDto,
   ReconcileMatchDto,
   CreateBankFeeAdjustmentDto,
+  ApplySaleEditRemediationDto,
 } from './dto/accounting.dto';
 
 import { BalanceSheetService } from './services/balance-sheet.service';
@@ -41,6 +42,7 @@ import { CloseFiscalPeriodDto, ReopenFiscalPeriodDto } from './dto/fiscal-period
 import { FixedAssetsSchedulerService } from './services/fixed-assets-scheduler.service';
 import { CostCenterAllocationsService } from './services/cost-center-allocations.service';
 import { ForexRevaluationService, ExecuteForexRevaluationDto } from './services/forex-revaluation.service';
+import { SaleEditRemediationService } from './services/sale-edit-remediation.service';
 
 @Controller('api/accounting')
 // `AccountingAccessGuard` هو البوابة الحقيقية: `accounts` وحدها كانت تكفي، وهي في قالب كل
@@ -63,7 +65,21 @@ export class AccountingController {
     private readonly fixedAssetsScheduler: FixedAssetsSchedulerService,
     private readonly costCenterAllocations: CostCenterAllocationsService,
     private readonly forexRevaluation: ForexRevaluationService,
+    private readonly saleEditRemediation: SaleEditRemediationService,
   ) {}
+
+  // Sale-edit remediation (Rank 7d): discovery is a read-only dry run;
+  // apply posts reversal journals and requires a reviewed sale list
+  // plus an explicit confirmation. No scheduled or automatic apply.
+  @Get('sale-edit-remediation/discovery')
+  discoverSaleEditRemediation(@Req() req: RequestWithAuth) {
+    return this.saleEditRemediation.discover(req.authContext!);
+  }
+
+  @Post('sale-edit-remediation/apply')
+  applySaleEditRemediation(@Body() dto: ApplySaleEditRemediationDto, @Req() req: RequestWithAuth) {
+    return this.saleEditRemediation.apply(req.authContext!, dto);
+  }
 
   @Get('accounts')
   listAccounts(@Req() req: RequestWithAuth): Promise<Record<string, unknown>> {

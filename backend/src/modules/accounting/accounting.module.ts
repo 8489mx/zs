@@ -17,6 +17,7 @@ import { FixedAssetsSchedulerService } from './services/fixed-assets-scheduler.s
 import { AccountingRecoveryService } from './services/accounting-recovery.service';
 import { CostCenterAllocationsService } from './services/cost-center-allocations.service';
 import { ForexRevaluationService } from './services/forex-revaluation.service';
+import { SaleEditRemediationService } from './services/sale-edit-remediation.service';
 import { ArCollectionsController } from './ar-collections.controller';
 import { ArCollectionsService } from './services/ar-collections.service';
 
@@ -39,6 +40,7 @@ import { ArCollectionsService } from './services/ar-collections.service';
     AccountingRecoveryService,
     CostCenterAllocationsService,
     ForexRevaluationService,
+    SaleEditRemediationService,
     ArCollectionsService,
   ],
   exports: [
@@ -56,6 +58,7 @@ import { ArCollectionsService } from './services/ar-collections.service';
     AccountingRecoveryService,
     CostCenterAllocationsService,
     ForexRevaluationService,
+    SaleEditRemediationService,
     ArCollectionsService,
   ],
 })

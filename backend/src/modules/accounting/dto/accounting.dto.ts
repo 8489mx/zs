@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { ArrayMinSize, IsArray, IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class JournalEntriesQueryDto {
   @IsOptional()
@@ -393,3 +393,18 @@ export class CreateBankFeeAdjustmentDto {
 }
 
 
+
+export class ApplySaleEditRemediationDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  saleIds!: number[];
+
+  @IsOptional()
+  @IsString()
+  runId?: string;
+
+  @IsBoolean()
+  confirm!: boolean;
+}
