@@ -90,13 +90,11 @@ async function main() {
       CREATE TABLE customer_installment_plans (id bigint PRIMARY KEY, tenant_id text, plan_number text, customer_id bigint, financed_amount numeric, interest_amount numeric, branch_id bigint, created_by bigint, created_at timestamptz);
       INSERT INTO customer_installment_plans VALUES (1,'t1','P1',25,100,7.125,NULL,1,'2026-10-01');
       CREATE TABLE customer_installments (id bigint PRIMARY KEY, tenant_id text, plan_id bigint, installment_number int, amount numeric, due_date date);
-      -- Payments sum to principal + interest in cents (100 + 7.13), because
-      -- allocateInstallmentInterest itself is still cents-based (see the
-      -- scope note): it reconciles on Math.round(totalInterest * 100).
-      -- The journal gate below is unaffected: it asserts the posted
-      -- interest leg, not the allocation rows.
-      INSERT INTO customer_installments VALUES (1,'t1',1,1,53.565,'2026-11-01');
-      INSERT INTO customer_installments VALUES (2,'t1',1,2,53.565,'2026-12-01');
+      -- Payments sum to principal + interest at book precision
+      -- (100 + 7.125), as the installment-interest engine now reconciles
+      -- in the tenant's minor units (INV-INSTALLMENT-INTEREST-PRECISION).
+      INSERT INTO customer_installments VALUES (1,'t1',1,1,53.562,'2026-11-01');
+      INSERT INTO customer_installments VALUES (2,'t1',1,2,53.563,'2026-12-01');
       CREATE TABLE accounting_installment_interest (id bigserial PRIMARY KEY, tenant_id text, plan_id bigint, installment_id bigint, recognition_date date, amount numeric, account_id text, journal_entry_id bigint, UNIQUE(tenant_id, installment_id));
       INSERT INTO accounting_settings VALUES
         (1,'t1',1110,1120,1130,2110,1140,4100,4300,5100,2120,1150,NULL,NULL,NULL,NULL,NULL,NULL);
@@ -134,18 +132,14 @@ async function main() {
     assert.equal(await amount(trip.journalEntryId!, 7100, 'credit'), 0.005);
 
     // 5. Installment interest: 7.125 stays 7.125 (old: 7.13).
-    // SCOPE NOTE: allocateInstallmentInterest (the engine that splits the
-    // interest across installments into accounting_installment_interest)
-    // is still cents-based — it rounds 7.125 to 7.13 for the allocation
-    // rows. That engine needs its own minor-unit pass (the same shape as
-    // the supplier-schedule pass) and is deliberately NOT fixed here:
-    // this package is the posting-service boundary, and changing the
-    // allocation engine in the same patch would change recognition
-    // amounts for existing plans. The journal leg, which is what this
-    // package owns, is exact at 7.125.
+    // Since INV-INSTALLMENT-INTEREST-PRECISION, the allocation rows
+    // created here also sum to exactly 7.125 at book precision, so
+    // recognition can no longer over-release the 2155 deferred balance.
     const interest = await inTx(trx => posting.postCustomerInstallmentInterest(trx, 1, auth));
     assert.equal(await amount(interest.journalEntryId!, 1130, 'debit'), 7.125);
     assert.equal(await amount(interest.journalEntryId!, 2155, 'credit'), 7.125);
+    const allocated = await pg.query<{ total: string }>(`SELECT coalesce(sum(amount),0) AS total FROM accounting_installment_interest WHERE tenant_id='t1' AND plan_id=1`);
+    assert.equal(Number(allocated.rows[0].total), 7.125);
 
     console.log('Posting book precision tests passed');
   } finally {

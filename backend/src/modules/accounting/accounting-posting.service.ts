@@ -6078,7 +6078,7 @@ export class AccountingPostingService {
     });
     const installments = await queryable.selectFrom('customer_installments').select(['id', 'amount', 'due_date'])
       .where('tenant_id', '=', scope.tenantId).where('plan_id', '=', planId).orderBy('installment_number').execute();
-    const allocations = allocateInstallmentInterest(Number(plan.financed_amount), installments.map(item => Number(item.amount)), interest);
+    const allocations = allocateInstallmentInterest(Number(plan.financed_amount), installments.map(item => Number(item.amount)), interest, bookDigits);
     const createdDay = new Date(plan.created_at).toISOString().slice(0, 10);
     for (const [index, item] of installments.entries()) {
       const amount = allocations[index];

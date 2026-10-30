@@ -67,12 +67,12 @@ assert.equal(areOppositeJournalLines([...bounce, { accountId: 3, debit: 10, cred
 assert.equal(areOppositeJournalLines(bounce, [{ accountId: 5, debit: 100, credit: 0 }, restore[1]]), false);
 
 // Principal 100, two payments of 60: total interest 20 is earned over time.
-assert.deepEqual(allocateInstallmentInterest(100, [60, 60], 20), [13.07, 6.93]);
-assert.deepEqual(allocateInstallmentInterest(100, [50, 50], 0), [0, 0]);
-const fractional = allocateInstallmentInterest(1000, [366.67, 366.67, 366.66], 100);
+assert.deepEqual(allocateInstallmentInterest(100, [60, 60], 20, 2), [13.07, 6.93]);
+assert.deepEqual(allocateInstallmentInterest(100, [50, 50], 0, 2), [0, 0]);
+const fractional = allocateInstallmentInterest(1000, [366.67, 366.67, 366.66], 100, 2);
 assert.equal(Math.round(fractional.reduce((sum, amount) => sum + amount, 0) * 100), 10000);
 assert.ok(fractional[0] > fractional[1] && fractional[1] > fractional[2]);
-assert.throws(() => allocateInstallmentInterest(100, [60, 60], 30));
+assert.throws(() => allocateInstallmentInterest(100, [60, 60], 30, 2));
 
 // Neither non-cash purchases nor receipt of post-dated cheques create cash flow.
 assert.deepEqual(classifyCashFlow(0, 100, 0, -100), { operating: 0, investing: 0, financing: 0, unclassified: 0 });
