@@ -51,7 +51,15 @@ export interface LandedCostCalculationResult {
 }
 
 export function calculateLandedCostBreakdown(input: LandedCostCalculationInput): LandedCostCalculationResult {
-  const rate = Math.max(0.0001, Number(input.exchangeRate) || 1);
+  // INV-LANDED-COST-EXCHANGE-RATE-REQUIRED: a missing, zero,
+  // negative, or non-finite rate fails closed instead of silently
+  // costing at rate 1 (or clamping up to 0.0001). The service
+  // caller already requires the arrival rate; this guard protects
+  // every direct caller of the engine.
+  const rate = Number(input.exchangeRate);
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new Error('Invalid exchange rate for landed cost calculation');
+  }
   const method = input.allocationMethod || 'value';
 
   const shippingEgp = (Number(input.shippingCostUsd) || 0) * rate;
