@@ -485,7 +485,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               display: flex !important;
               flex-direction: column !important;
               align-items: center !important;
-              gap: 7px !important;
+              gap: 0 !important;
               padding: 0 !important;
               margin: 0 !important;
               border-radius: 0 !important;
@@ -497,21 +497,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               max-width: 100% !important;
             }
             .storefront-brand-btn {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              margin: 0 auto !important;
-              gap: 8px !important;
-            }
-            .storefront-brand-btn .storefront-brand-avatar {
-              width: 28px !important;
-              height: 28px !important;
-              border-radius: 8px !important;
-              font-size: 13px !important;
-            }
-            .storefront-brand-btn .storefront-brand-title {
-              font-size: 15px !important;
-              font-weight: 800 !important;
+              display: none !important;
             }
             .storefront-actions,
             .storefront-mobile-search-trigger {
@@ -533,7 +519,7 @@ export const StorefrontHeader = React.memo(function StorefrontHeader({
               border-radius: 11px !important;
               height: 38px !important;
               border: 1px solid #e2e8f0 !important;
-              background: #f8fafc !important;
+              background: #ffffff !important;
               box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02) !important;
               transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease !important;
             }
