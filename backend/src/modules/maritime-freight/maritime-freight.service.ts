@@ -4460,7 +4460,11 @@ export class MaritimeFreightService {
     }
 
     const exchangeRate = await this.resolveFreightExchangeRate(tenantId, params.currency, params.exchangeRate);
-    const baseTotalAmount = Math.round(totalAmount * exchangeRate * 100) / 100;
+    // INV-MARITIME-CARRIER-INVOICE-FX-CONVERSION: convert at the base
+    // currency's book digits through the shared engine; the rate
+    // already comes from the shared resolver above.
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(trx, tenantId));
+    const baseTotalAmount = convertFxAmount(totalAmount, exchangeRate, digits);
     const fxSuffix = exchangeRate !== 1 ? ` (${totalAmount} ${params.currency || 'USD'} @ ${exchangeRate})` : '';
 
     const costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
