@@ -5,6 +5,7 @@ import { Kysely, sql } from 'kysely';
 import { Database } from '../../../../database/database.types';
 import { TaxSettingsService } from '../tax-settings/tax-settings.service';
 import { buildDocumentTax } from '../../engines/document-tax.engine';
+import { resolveZatcaSellerIdentity } from '../../engines/zatca-seller-identity.engine';
 
 export interface ZatcaInvoiceData {
   invoiceNumber: string;
@@ -306,14 +307,43 @@ export class ZatcaPhase2Service {
       const calculatedVat = documentTax.vatTotal;
       const calculatedTotal = documentTax.totalWithVat;
 
+      // Seller identity from configuration (INV-ZATCA-SELLER-IDENTITY-AND-PROFILE):
+      // the VAT number from the active ZATCA tax-settings row, the name
+      // from companyName/storeName settings then the tenant business
+      // name. No hardcoded demo name, no fabricated VAT fallback.
+      // Deliberately unchanged: the structured seller address has no
+      // configured source (settings hold one free-text address only),
+      // so the address block below stays as-is until a structured
+      // address settings surface exists.
+      const identitySettings = await trx
+        .selectFrom('settings')
+        .select(['key', 'value'])
+        .where('tenant_id', '=', tenantId)
+        .where('key', 'in', ['companyName', 'storeName'])
+        .execute();
+      const identityRows = Array.isArray(identitySettings) ? identitySettings : [];
+      const identityByKey = new Map(identityRows.map((row: any) => [row.key, row.value]));
+      const tenantRow = await trx
+        .selectFrom('tenants')
+        .select(['business_name'])
+        .where('id', '=', tenantId)
+        .executeTakeFirst();
+      const sellerIdentity = resolveZatcaSellerIdentity({
+        taxId: (settings as any)?.tax_id,
+        isActive: (settings as any)?.is_active,
+        companyName: identityByKey.get('companyName'),
+        storeName: identityByKey.get('storeName'),
+        businessName: (tenantRow as any)?.business_name,
+      });
+
       const invoiceData: ZatcaInvoiceData = {
         invoiceNumber: sale.doc_no || `INV-${sale.id}`,
         uuid: invoiceUuid,
         issueDate,
         issueTime,
         invoiceType,
-        sellerName: 'مؤسسة التجارة والخدمات السحابية',
-        sellerVatNumber: settings?.tax_id || '300000000000003',
+        sellerName: sellerIdentity.sellerName,
+        sellerVatNumber: sellerIdentity.sellerVatNumber,
         sellerAddress: {
           street: 'شارع الملك فهد',
           buildingNumber: '1234',
@@ -450,7 +480,7 @@ export class ZatcaPhase2Service {
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
          xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
          xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
-    <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
+    <cbc:ProfileID>${data.invoiceType === 'standard' ? 'clearance:1.0' : 'reporting:1.0'}</cbc:ProfileID>
     <cbc:ID>${data.invoiceNumber}</cbc:ID>
     <cbc:UUID>${data.uuid}</cbc:UUID>
     <cbc:IssueDate>${data.issueDate}</cbc:IssueDate>

@@ -177,7 +177,8 @@ async function main(): Promise<void> {
       selectFrom: (table: string) => {
         if (table === 'sales') return chainable(sale);
         if (table === 'sale_items') return chainable(items);
-        if (table === 'tenants') return chainable({ id: 'tenant-1' });
+        if (table === 'tenants') return chainable({ id: 'tenant-1', business_name: 'Acme Trading Co' });
+        if (table === 'settings') return chainable([{ key: 'companyName', value: '"Acme Trading Co"' }]);
         return chainable(null);
       },
       insertInto: () => chainable(fakeUnit),
