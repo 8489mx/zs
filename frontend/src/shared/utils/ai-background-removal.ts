@@ -25,6 +25,7 @@ export type ProgressCallback = (progress: AiRemovalProgress) => void;
 
 export type MatteProvider = (input: {
   bitmap: ImageBitmap;
+  source: Blob;
   width: number;
   height: number;
   rgb: Uint8ClampedArray;
@@ -617,6 +618,7 @@ function isMobileLike(): boolean {
  */
 export async function imglyMaskMatte(input: {
   bitmap: ImageBitmap;
+  source: Blob;
   width: number;
   height: number;
   onProgress?: ProgressCallback;
@@ -624,18 +626,22 @@ export async function imglyMaskMatte(input: {
 }): Promise<Float32Array> {
   const mod = await getAiRemovalModule();
   const removeFn = (mod.imglyRemoveBackground ?? mod.removeBackground ?? mod.default) as
-    | ((source: ImageBitmap | Blob, config: Record<string, unknown>) => Promise<Blob>)
+    | ((source: Blob, config: Record<string, unknown>) => Promise<Blob>)
     | undefined;
   if (!removeFn) throw new Error('لم يتم العثور على دالة إزالة الخلفية في حزمة imgly');
 
   const modelChoice = input.model ?? 'medium';
 
-  const runAttempt = (model: 'medium' | 'small', device: 'gpu' | 'cpu'): Promise<Blob> => {
-    return removeFn(input.bitmap, {
+  const runAttempt = (
+    model: 'medium' | 'small',
+    device: 'gpu' | 'cpu',
+    proxyToWorker: boolean,
+  ): Promise<Blob> => {
+    return removeFn(input.source, {
       publicPath: IMGLY_ASSET_PUBLIC_PATH,
       model,
       device,
-      proxyToWorker: true,
+      proxyToWorker,
       output: { format: 'image/png', type: 'mask' },
       progress: (key: string, current: number, total: number) => {
         if (input.onProgress && total > 0) {
@@ -653,19 +659,19 @@ export async function imglyMaskMatte(input: {
   let maskBlob: Blob;
 
   try {
-    maskBlob = await runAttempt(modelChoice, 'gpu');
+    maskBlob = await runAttempt(modelChoice, 'gpu', true);
   } catch (err1) {
     if (modelChoice !== 'small') {
       console.warn(`Fallback: attempt 1 (model: ${modelChoice}, device: gpu) failed, trying model: small, device: gpu`, err1);
       try {
-        maskBlob = await runAttempt('small', 'gpu');
+        maskBlob = await runAttempt('small', 'gpu', true);
       } catch (err2) {
         console.warn('Fallback: attempt 2 (model: small, device: gpu) failed, trying model: small, device: cpu', err2);
-        maskBlob = await runAttempt('small', 'cpu');
+        maskBlob = await runAttempt('small', 'cpu', false);
       }
     } else {
       console.warn('Fallback: attempt 1 (model: small, device: gpu) failed, trying model: small, device: cpu', err1);
-      maskBlob = await runAttempt('small', 'cpu');
+      maskBlob = await runAttempt('small', 'cpu', false);
     }
   }
 
@@ -714,7 +720,9 @@ export async function processProductImage(
     const imageData = ctx.getImageData(0, 0, width, height);
     const rgb = new Uint8ClampedArray(imageData.data);
 
-    const matte = await getMatte({ bitmap, width, height, rgb, onProgress, model: options.model });
+    const sourceBlob = await canvasToBlob(canvas, 'image/png');
+
+    const matte = await getMatte({ bitmap, source: sourceBlob, width, height, rgb, onProgress, model: options.model });
     if (matte.length !== width * height) {
       throw new Error(`حجم القناع غير متطابق: ${matte.length} بدلا من ${width * height}`);
     }
