@@ -6,7 +6,7 @@ import { lockAccountingPeriod } from '../accounting/accounting-period-lock';
 import { resolveFxRate } from '../accounting/fx-rate-resolution';
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
 import { convertFxAmount } from '../accounting/engines/fx-conversion.engine';
-import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
+import { currencyMoneyDigits, roundMoney } from '../accounting/engines/money-minor-units.engine';
 import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Kysely, sql } from '../../database/kysely';
@@ -5551,12 +5551,17 @@ export class MaritimeFreightService {
     if (!job) throw new NotFoundException('Job not found');
 
     const quoteRoe = Number(job.quote_roe || 0);
-    const base = await this.db.selectFrom('currency_exchange_rates').select('currency_code')
-      .where('tenant_id', '=', tenantId).where('is_base', '=', true).executeTakeFirst();
+    // INV-MARITIME-FOREX-GAIN-LOSS-BOOK-DIGITS: the base currency
+    // comes strictly from tenantBaseCurrency (fail-closed on a
+    // settings/rate mismatch, no silent EGP fallback), and the
+    // stored spread rounds at the base currency's book digits
+    // through the canonical engine. convertFxAmount is not used:
+    // the spread can be negative or zero.
+    const baseCurrency = await tenantBaseCurrency(this.db, tenantId);
     const invoices = await this.db.selectFrom('maritime_carrier_invoices')
       .select(['currency', 'total_invoiced_amount']).where('tenant_id', '=', tenantId)
       .where('job_id', '=', String(jobId)).where('journal_entry_id', 'is not', null).execute();
-    const foreignInvoices = invoices.filter((invoice) => invoice.currency.toUpperCase() !== (base?.currency_code || 'EGP').toUpperCase());
+    const foreignInvoices = invoices.filter((invoice) => invoice.currency.toUpperCase() !== baseCurrency.toUpperCase());
     if (new Set(foreignInvoices.map((invoice) => invoice.currency.toUpperCase())).size > 1) {
       throw new BadRequestException('توجد أكثر من عملة ناقل؛ يلزم احتساب فروق الصرف لكل عملة على حدة');
     }
@@ -5564,7 +5569,7 @@ export class MaritimeFreightService {
       throw new BadRequestException('سعر الصرف التعاقدي غير متاح لحساب فرق العملة');
     }
     const foreignTotal = foreignInvoices.reduce((sum, invoice) => sum + Number(invoice.total_invoiced_amount || 0), 0);
-    const forexGainLoss = Math.round((quoteRoe - actualRoe) * foreignTotal * 100) / 100;
+    const forexGainLoss = roundMoney((quoteRoe - actualRoe) * foreignTotal, currencyMoneyDigits(baseCurrency));
 
     const [updated] = await this.db
       .updateTable('maritime_jobs')
