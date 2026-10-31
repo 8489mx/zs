@@ -4,6 +4,9 @@ import { AccountingPostingService } from '../accounting/accounting-posting.servi
 import { ensureDomainSupplier } from '../accounting/partner-subledger';
 import { lockAccountingPeriod } from '../accounting/accounting-period-lock';
 import { resolveFxRate } from '../accounting/fx-rate-resolution';
+import { tenantBaseCurrency } from '../accounting/accounting-currency';
+import { convertFxAmount } from '../accounting/engines/fx-conversion.engine';
+import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
 import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Kysely, sql } from '../../database/kysely';
@@ -153,12 +156,16 @@ export class MaritimeFreightService {
     if (!assetId || !otherId) throw new BadRequestException('حساب أمانات الحاويات أو الخزينة/المصروف غير متاح');
     let baseAmount: number;
     if (event === 'open') {
-      const rate = await trx.selectFrom('currency_exchange_rates').select(['exchange_rate', 'is_base'])
-        .where('tenant_id', '=', tenantId).where('currency_code', '=', currency.toUpperCase()).executeTakeFirst();
-      if (!rate || !Number.isFinite(Number(rate.exchange_rate)) || Number(rate.exchange_rate) <= 0) {
-        throw new BadRequestException(`سعر صرف تأمين الحاوية ${currency} غير متاح`);
-      }
-      baseAmount = Math.round(amount * (rate.is_base ? 1 : Number(rate.exchange_rate)) * 100) / 100;
+      // INV-MARITIME-DEPOSIT-FX-CONVERSION: resolve through the shared
+      // resolver on the same transaction and convert at the base
+      // currency's book digits. A settings/rate mismatch now fails
+      // closed through tenantBaseCurrency instead of silently using
+      // the row's is_base flag, and the missing-rate message is the
+      // resolver's. The refund/forfeit branches below are unchanged:
+      // they reuse the opening journal's stored debit.
+      const rate = await resolveFxRate(trx, tenantId, currency);
+      const digits = currencyMoneyDigits(await tenantBaseCurrency(trx, tenantId));
+      baseAmount = convertFxAmount(amount, rate, digits);
     } else {
       const opening = await trx.selectFrom('journal_entries as je')
         .innerJoin('journal_entry_lines as jl', (join: any) => join.onRef('jl.journal_entry_id', '=', 'je.id').onRef('jl.tenant_id', '=', 'je.tenant_id'))
