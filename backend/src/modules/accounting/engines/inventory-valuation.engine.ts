@@ -48,6 +48,35 @@ export function recoverWacBeforeQty(globalAfter: number, receivedQty: number): n
   return Number((globalAfter - receivedQty).toFixed(3));
 }
 
+/**
+ * Pool revaluation (INV-STOCK-POOL-REVALUATION): spread an additional
+ * value over the stock already on hand, without any incoming quantity.
+ * This is NOT a receipt blend: there is nothing to recover a prior
+ * quantity from and no negative-pool tolerance to apply. A late
+ * landed cost or a late shipment expense lands on the pool that
+ * exists, so the pool must exist (beforeQty > 0) and the additional
+ * value must be a genuine addition (additionalValue >= 0); anything
+ * else fails closed instead of writing a revaluation the books
+ * cannot explain. The result is the same identity both bump sites
+ * used inline: (beforeQty * beforeCost + additionalValue) / beforeQty,
+ * rounded once, to the same 6dp the receipt blend uses.
+ */
+export function revalueStockPool(beforeQty: number, beforeCost: number, additionalValue: number): number {
+  if (
+    ![beforeQty, beforeCost, additionalValue].every(Number.isFinite) ||
+    beforeQty <= 0 ||
+    beforeCost < 0 ||
+    additionalValue < 0
+  ) {
+    throw new Error('Invalid stock pool revaluation inputs');
+  }
+  const result = Number(((beforeQty * beforeCost + additionalValue) / beforeQty).toFixed(6));
+  if (result < 0) {
+    throw new Error('Invalid stock pool revaluation inputs');
+  }
+  return result;
+}
+
 export function weightedReceiptCost(beforeQty: number, beforeCost: number, receivedQty: number, receivedValue: number): number {
   if (![beforeQty, beforeCost, receivedQty, receivedValue].every(Number.isFinite) || beforeCost < 0 || receivedQty <= 0 || receivedValue < 0) {
     throw new Error('Invalid inventory valuation inputs');

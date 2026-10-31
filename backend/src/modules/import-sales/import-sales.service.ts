@@ -5,7 +5,7 @@ import { AccountingTenantFoundationService } from '../accounting/accounting-tena
 import { Kysely, sql, Transaction, Selectable, Updateable } from 'kysely';
 import { Database, ImportShipmentTable, ImportShipmentItemTable } from '../../database/database.types';
 import { calculateImportLandedCosts, groupImportReceipts, requireImportNumber } from './import-inventory-cost.engine';
-import { valueStockReceipt } from '../accounting/inventory-valuation';
+import { revalueStockCost, valueStockReceipt } from '../accounting/inventory-valuation';
 import { KYSELY_DB } from '../../database/database.constants';
 import {
   CreateShipmentDto,
@@ -2238,16 +2238,16 @@ export class ImportSalesService {
         const totalCompanyStock = Math.max(itemOnHandQty, Number(totalCompanyStockRow?.total_qty || 0));
         const wacUnitCostIncrease = totalCompanyStock > 0 ? itemInventoryAdj / totalCompanyStock : 0;
 
+        // INV-STOCK-POOL-REVALUATION: the pool revaluation writer
+        // spreads the inventory adjustment over the company-wide
+        // on-hand stock. The SQL-increment form is gone: under the
+        // product lock held above, read-primitive-write is equally
+        // safe, and the rounding policy is now the primitive's
+        // round-the-result instead of rounding the increase first.
+        // The lot and shipment-item increments below stay SQL-atomic
+        // deliberately: no lot lock is held in this flow.
         if (wacUnitCostIncrease > 0) {
-          await trx
-            .updateTable('products')
-            .set((eb) => ({
-              cost_price: sql`${eb.ref('cost_price')} + ${Number(wacUnitCostIncrease.toFixed(6))}`,
-              updated_at: sql`NOW()`,
-            }))
-            .where('tenant_id', '=', tenantId)
-            .where('id', '=', pId)
-            .execute();
+          await revalueStockCost(trx, tenantId, pId, totalCompanyStock, itemInventoryAdj);
         }
 
         if (lotUnitCostIncrease > 0) {

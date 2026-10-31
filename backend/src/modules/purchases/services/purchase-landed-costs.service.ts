@@ -9,6 +9,7 @@ import { allocateLandedCosts } from '../engines/landed-cost-allocation.engine';
 import { allocateReceiptCostByStockFlow, stockMovementGlobalDelta } from '../engines/landed-cost-wac.engine';
 import { lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { AccountingPostingService } from '../../accounting/accounting-posting.service';
+import { revalueStockCost } from '../../accounting/inventory-valuation';
 import { tenantBaseCurrency } from '../../accounting/accounting-currency';
 import { MoneyDigits, currencyMoneyDigits, toMinorUnits, fromMinorUnits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
@@ -393,9 +394,12 @@ export class PurchaseLandedCostsService {
         if (currentStock <= 0 || !Number.isFinite(currentCost) || currentCost < 0) {
           throw new BadRequestException('رصيد المخزون أو تكلفته غير صالح لتحميل التكلفة الإضافية.');
         }
-        const newCostPrice = Number((currentCost + capitalised / currentStock).toFixed(6));
-        await trx.updateTable('products').set({ cost_price: newCostPrice, updated_at: new Date() })
-          .where('tenant_id', '=', scope.tenantId).where('id', '=', productId).execute();
+        // INV-STOCK-POOL-REVALUATION: the pool revaluation writer
+        // spreads the capitalised cost over the stock on hand. The
+        // guard above keeps this site's fail-closed message; the
+        // writer re-checks the same inputs through the primitive.
+        // Products are locked by calculateStockFlowShares above.
+        await revalueStockCost(trx, scope.tenantId, productId, currentStock, capitalised);
       }
       if (toMinorUnits(roundMoney(totalCapitalisedLandedCost + totalCogsLandedCost, minorUnits), minorUnits) !== totalMinor) {
         throw new BadRequestException('توزيع التكلفة الإضافية بين المخزون والمباع غير متزن.');
