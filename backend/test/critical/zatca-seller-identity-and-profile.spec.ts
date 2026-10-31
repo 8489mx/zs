@@ -134,6 +134,12 @@ async function main(): Promise<void> {
         if (table === 'customers') return chainable(customer);
         if (table === 'tenants') return chainable({ id: 'tenant-1', business_name: 'Tenant Co' });
         if (table === 'settings') return chainable([{ key: 'companyName', value: '"Acme Trading Co"' }]);
+        if (table === 'tenant_tax_settings')
+          return chainable(
+            opts.taxId == null
+              ? []
+              : [{ provider: 'ZATCA_SAUDI', tax_id: opts.taxId, is_active: opts.isActive ?? true }],
+          );
         return chainable(null);
       },
       insertInto: () => chainable(fakeUnit),
@@ -145,7 +151,7 @@ async function main(): Promise<void> {
     const svc: any = Object.create(ZatcaPhase2Service.prototype);
     svc.db = { transaction: () => ({ execute: async (cb: any) => cb(trx) }) };
     svc.taxSettings = {
-      getSettings: async () => (opts.taxId == null ? null : { environment: 'sandbox', tax_id: opts.taxId, is_active: opts.isActive ?? true }),
+      getSettings: async () => ({ environment: 'sandbox' }),
     };
     return svc.buildZatcaInvoice('tenant-1', 7) as Promise<{ ublXml: string; icv: number }>;
   }

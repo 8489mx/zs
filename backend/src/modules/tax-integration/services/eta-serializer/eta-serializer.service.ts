@@ -4,6 +4,7 @@ import { Kysely } from 'kysely';
 import { Database } from '../../../../database/database.types';
 import { TaxSettingsService } from '../tax-settings/tax-settings.service';
 import { buildDocumentTax } from '../../engines/document-tax.engine';
+import { selectConfiguredTaxRow } from '../../engines/configured-tax-id.engine';
 import { roundMoney } from '../../../accounting/engines/money-minor-units.engine';
 
 @Injectable()
@@ -14,8 +15,21 @@ export class EtaSerializerService {
   ) {}
 
   async serializeSaleToEtaFormat(tenantId: string, saleId: number): Promise<any> {
-    const settings = await this.taxSettings.getSettings(tenantId, 'ETA_EGYPT');
-    if (!settings) throw new Error('ETA Settings not configured');
+    // INV-CONFIGURED-TAX-ID-SINGLE-SOURCE: the ETA row is picked by
+    // the shared selector (exact provider, no fallback). A matched
+    // row with a blank number keeps the legacy '100000'/'000000000'
+    // fallbacks below, exactly as before.
+    const configuredTaxRows = await this.db
+      .selectFrom('tenant_tax_settings')
+      .select(['provider', 'tax_id', 'is_active'])
+      .where('tenant_id', '=', tenantId)
+      .execute();
+    const configuredTax = selectConfiguredTaxRow(configuredTaxRows, {
+      provider: 'ETA_EGYPT',
+      allowFallback: false,
+    });
+    if (!configuredTax) throw new Error('ETA Settings not configured');
+    const settings = { tax_id: configuredTax.taxId };
 
     const sale = await this.db
       .selectFrom('sales')

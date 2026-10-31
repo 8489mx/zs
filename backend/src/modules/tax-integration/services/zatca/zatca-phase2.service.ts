@@ -6,6 +6,7 @@ import { Database } from '../../../../database/database.types';
 import { TaxSettingsService } from '../tax-settings/tax-settings.service';
 import { buildDocumentTax } from '../../engines/document-tax.engine';
 import { resolveZatcaSellerIdentity } from '../../engines/zatca-seller-identity.engine';
+import { selectConfiguredTaxRow } from '../../engines/configured-tax-id.engine';
 
 export interface ZatcaInvoiceData {
   invoiceNumber: string;
@@ -333,9 +334,22 @@ export class ZatcaPhase2Service {
         .select(['business_name'])
         .where('id', '=', tenantId)
         .executeTakeFirst();
+      // INV-CONFIGURED-TAX-ID-SINGLE-SOURCE: the ZATCA row is picked
+      // by the shared selector (exact provider, no fallback — another
+      // jurisdiction's registration must never sign). getSettings
+      // above still supplies the environment only.
+      const configuredTaxRows = await trx
+        .selectFrom('tenant_tax_settings')
+        .select(['provider', 'tax_id', 'is_active'])
+        .where('tenant_id', '=', tenantId)
+        .execute();
+      const configuredTax = selectConfiguredTaxRow(configuredTaxRows, {
+        provider: 'ZATCA_SAUDI',
+        allowFallback: false,
+      });
       const sellerIdentity = resolveZatcaSellerIdentity({
-        taxId: (settings as any)?.tax_id,
-        isActive: (settings as any)?.is_active,
+        taxId: configuredTax?.taxId,
+        isActive: configuredTax?.isActive,
         companyName: identityByKey.get('companyName'),
         storeName: identityByKey.get('storeName'),
         businessName: (tenantRow as any)?.business_name,

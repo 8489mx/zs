@@ -6,6 +6,7 @@ import { AuthContext } from '../../../../core/auth/interfaces/auth-context.inter
 import { requireTenantScope } from '../../../../core/auth/utils/tenant-boundary';
 import { KYSELY_DB } from '../../../../database/database.constants';
 import { Database } from '../../../../database/database.types';
+import { selectConfiguredTaxRow } from '../../engines/configured-tax-id.engine';
 
 export interface VatDeclarationQueryDto {
   from?: string;
@@ -192,10 +193,13 @@ export class VatDeclarationService {
       .where('is_active', '=', true)
       .execute();
     const expectedProvider = DECLARATION_TAX_PROVIDER[country];
-    const taxSettings =
-      taxSettingsRows.find((row) => row.provider === expectedProvider && String(row.tax_id || '').trim()) ||
-      taxSettingsRows.find((row) => String(row.tax_id || '').trim());
-    const taxId = String(taxSettings?.tax_id || '').trim();
+    // INV-CONFIGURED-TAX-ID-SINGLE-SOURCE: row selection is the
+    // shared pure rule; only the fail-closed error stays local.
+    const selected = selectConfiguredTaxRow(taxSettingsRows, {
+      provider: expectedProvider,
+      allowFallback: true,
+    });
+    const taxId = selected?.taxId ?? '';
     if (!taxId) {
       throw new AppError('لم يتم تسجيل رقم ضريبي لهذه المنشأة، لا يمكن إصدار الإقرار', 'VAT_DECLARATION_TAX_ID_MISSING', 409);
     }

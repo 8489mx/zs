@@ -179,6 +179,8 @@ async function main(): Promise<void> {
         if (table === 'sale_items') return chainable(items);
         if (table === 'tenants') return chainable({ id: 'tenant-1', business_name: 'Acme Trading Co' });
         if (table === 'settings') return chainable([{ key: 'companyName', value: '"Acme Trading Co"' }]);
+        if (table === 'tenant_tax_settings')
+          return chainable([{ provider: 'ZATCA_SAUDI', tax_id: '300000000000003', is_active: true }]);
         return chainable(null);
       },
       insertInto: () => chainable(fakeUnit),

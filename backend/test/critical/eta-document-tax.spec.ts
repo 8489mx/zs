@@ -47,6 +47,12 @@ async function main(): Promise<void> {
       selectFrom: (table: string) => {
         if (table === 'sales') return chainable(sale);
         if (table === 'sale_items') return chainable(items);
+        if (table === 'tenant_tax_settings')
+          return chainable(
+            settings == null
+              ? []
+              : [{ provider: 'ETA_EGYPT', tax_id: (settings as any).tax_id, is_active: true }],
+          );
         return chainable(null);
       },
     };
