@@ -38,7 +38,7 @@ export interface ProductCutoutOptions {
   maxLongEdge?: number;
   /** أطول ضلع لعمليات الشكل (LCC والهالة). الافتراضي 1024. */
   workLongEdge?: number;
-  /** منتج واحد أم عدة منتجات متباعدة؟ الافتراضي منتج واحد. */
+  /** Retained for compatibility (no longer gates anything; large components >1.5% area are always kept regardless of distance). */
   allowMultipleProducts?: boolean;
   /** حشوة حول المنتج بعد القص بالبكسل. الافتراضي 12. */
   trimPadding?: number;
@@ -473,7 +473,8 @@ export function refineProductMatte(
     const minNearArea = workW * workH * 0.0008;
     for (let i = 0; i < components.length; i++) {
       if (i === main) continue;
-      if (options.allowMultipleProducts && components[i].size > workW * workH * 0.015) {
+      // Components over 1.5% of work area are always kept (multi-product sets), near components by gap rule, rest deleted as mist.
+      if (components[i].size > workW * workH * 0.015) {
         keep[i] = 1;
       } else if (components[i].size >= minNearArea && bboxGap(components[i], components[main]) <= nearGap) {
         keep[i] = 1;
