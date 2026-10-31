@@ -5706,7 +5706,14 @@ export class MaritimeFreightService {
   async createAgentSettlement(auth: AuthContext, dto: CreateAgentSettlementDto) {
     const { tenantId } = requireTenantScope(auth);
     const amount = Number(dto.amount || 0);
-    const rate = Number(dto.exchangeRate || 1);
+    // INV-MARITIME-SETTLEMENT-RATE-RESOLVED: never assume parity. The
+    // settlement currency defaults to USD (freight's domain
+    // currency), so an omitted rate resolves through the same
+    // registered-rate resolver every other maritime path uses: 1
+    // only for the tenant base currency, a supplied positive rate,
+    // or the registered rate — fail closed when none exists.
+    const currency = dto.currency || 'USD';
+    const rate = await this.resolveFreightExchangeRate(tenantId, currency, dto.exchangeRate);
     const localEq = amount * rate;
 
     const refNum = dto.referenceNumber || formatDailyDocumentNumber(
@@ -5723,7 +5730,7 @@ export class MaritimeFreightService {
         job_id: dto.jobId ? String(dto.jobId) : null,
         job_number: dto.jobNumber || null,
         settlement_type: dto.settlementType,
-        currency: dto.currency || 'USD',
+        currency: currency,
         amount: amount,
         profit_share_percent: dto.profitSharePercent !== undefined ? Number(dto.profitSharePercent) : 50,
         local_equivalent_amount: localEq,
