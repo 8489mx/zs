@@ -61,6 +61,9 @@ export interface ProductCutoutResult {
   subjectWarning?: boolean;
 }
 
+const IMGLY_ASSET_PUBLIC_PATH =
+  'https://staticimgly.com/@imgly/background-removal-data/1.5.8/dist/';
+
 let aiModulePromise: Promise<any> | null = null;
 let isModelPreloaded = false;
 
@@ -78,6 +81,7 @@ export async function preloadAiModel(onProgress?: ProgressCallback): Promise<boo
     const mod = await getAiRemovalModule();
     if (mod.preload) {
       await mod.preload({
+        publicPath: IMGLY_ASSET_PUBLIC_PATH,
         model: 'medium',
         device: 'gpu',
         proxyToWorker: true,
@@ -628,6 +632,7 @@ export async function imglyMaskMatte(input: {
 
   const runAttempt = (model: 'medium' | 'small', device: 'gpu' | 'cpu'): Promise<Blob> => {
     return removeFn(input.bitmap, {
+      publicPath: IMGLY_ASSET_PUBLIC_PATH,
       model,
       device,
       proxyToWorker: true,
