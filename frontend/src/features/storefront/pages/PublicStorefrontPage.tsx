@@ -143,12 +143,7 @@ export function PublicStorefrontPage() {
   const handleOpenCategories = useCallback(() => setIsCategoriesModalOpen(true), [setIsCategoriesModalOpen]);
   const handleCloseCategories = useCallback(() => setIsCategoriesModalOpen(false), [setIsCategoriesModalOpen]);
 
-  const handleToggleDealsHeader = useCallback(() => {
-    setOnlyDeals((prev) => !prev);
-    setOnlyFavorites(false);
-  }, [setOnlyDeals, setOnlyFavorites]);
-
-  const handleToggleInStock = useCallback(() => {
+    const handleToggleInStock = useCallback(() => {
     setInStockOnly((prev) => !prev);
   }, [setInStockOnly]);
 
@@ -500,16 +495,6 @@ export function PublicStorefrontPage() {
         onSelectCategory={handleSelectCategory}
         onSelectProduct={openProduct}
         onAddToCart={handleAddToCart}
-        sortBy={sortBy}
-        onSortChange={setSortBy}
-        onlyDeals={onlyDeals}
-        onToggleDeals={handleToggleDealsHeader}
-        inStockOnly={inStockOnly}
-        onToggleInStock={handleToggleInStock}
-        onlyFavorites={onlyFavorites}
-        onToggleFavorites={handleToggleFavorites}
-        onOpenCategories={handleOpenCategories}
-        onResetFilters={handleCustomGoHome}
       />
 
       {/* Dine-In QR Table Banner */}
