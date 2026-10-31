@@ -47,13 +47,13 @@ export function ProductImageUploadField({
 
     try {
       setIsProcessing(true);
-      setCompressNote('جاري ضغط وحفظ الصورة الأصلية...');
+      setCompressNote('جاري حفظ الصورة الأصلية...');
 
       const result = await compressImage(file, {
-        maxWidth: 600,
-        maxHeight: 600,
-        initialQuality: 0.82,
-        maxSizeKb: 45,
+        maxWidth: 1000,
+        maxHeight: 1000,
+        initialQuality: 0.88,
+        maxSizeKb: 100,
         knockoutStudioBackground: false, // Strict: preserve original untouched photo!
       });
 

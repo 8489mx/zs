@@ -35,6 +35,331 @@ export interface BackgroundKnockoutOptions {
   decontaminateEdges?: boolean;
 }
 
+export interface LccFilterOptions {
+  /** Minimum alpha to consider a pixel as foreground (default: 30) */
+  minAlpha?: number;
+  /** Minimum ratio of largest component size to retain secondary components (default: 0.12 = 12%) */
+  minSecondaryRatio?: number;
+  /** Minimum absolute pixel count for a secondary component (default: 500) */
+  minSecondaryPixels?: number;
+  /** Minimum average alpha for a component to be considered a solid subject (default: 160) */
+  minSecondaryAvgAlpha?: number;
+  /** Prune secondary components that touch the canvas border (default: true) */
+  pruneBorderTouchingSecondary?: boolean;
+}
+
+export interface DefringeOptions {
+  sampledBgColor?: { r: number; g: number; b: number };
+  minFringeAlpha?: number;
+  maxFringeAlpha?: number;
+  tightenAlpha?: boolean;
+}
+
+/**
+ * Sever faint alpha dust (< 35) and semi-transparent neutral studio haze bridges.
+ * This disconnects false-positive glare/mist clusters from the main product body before CCA.
+ */
+export function severHazeBridgesAndFaintDust(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+): void {
+  const totalPixels = width * height;
+  for (let i = 0; i < totalPixels; i++) {
+    const p = i * 4;
+    const a = data[p + 3];
+    if (a === 0) continue;
+
+    // Faint alpha dust: clear immediately
+    if (a < 35) {
+      data[p + 3] = 0;
+      continue;
+    }
+
+    const r = data[p];
+    const g = data[p + 1];
+    const b = data[p + 2];
+    const chroma = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+    const lum = (r * 2 + g * 3 + b) / 6;
+
+    // Neutral studio background haze / glare bridge:
+    // Bright neutral white/grey (lum >= 185, chroma <= 16) and semi-transparent (a < 140)
+    if (a < 140 && lum >= 185 && chroma <= 16) {
+      data[p + 3] = 0;
+    }
+  }
+}
+
+/**
+ * Largest Connected Component (LCC) / Subject Isolation Filter
+ * Identifies all connected components of foreground pixels via 4-way BFS.
+ * Retains the largest component (the main product) and any substantial, solid secondary components
+ * (e.g. pair of shoes, bottle cap), while wiping out any floating mist, clouds, or corner glare.
+ */
+export function filterLargestConnectedComponents(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  options: LccFilterOptions = {}
+): { componentsFound: number; componentsKept: number; largestSize: number } {
+  const {
+    minAlpha = 30,
+    minSecondaryRatio = 0.12,
+    minSecondaryPixels = 500,
+    minSecondaryAvgAlpha = 160,
+    pruneBorderTouchingSecondary = true,
+  } = options;
+
+  const totalPixels = width * height;
+  if (totalPixels <= 0) return { componentsFound: 0, componentsKept: 0, largestSize: 0 };
+
+  const visited = new Uint8Array(totalPixels);
+  const queue = new Int32Array(totalPixels);
+  const compLabels = new Int32Array(totalPixels);
+
+  interface ComponentMeta {
+    id: number;
+    count: number;
+    touchesBorder: boolean;
+    sumAlpha: number;
+  }
+
+  const components: ComponentMeta[] = [];
+  let nextCompId = 1;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = y * width + x;
+      if (visited[idx] || data[idx * 4 + 3] < minAlpha) continue;
+
+      let qHead = 0;
+      let qTail = 0;
+      queue[qTail++] = idx;
+      visited[idx] = 1;
+      compLabels[idx] = nextCompId;
+
+      let count = 0;
+      let touchesBorder = (x === 0 || x === width - 1 || y === 0 || y === height - 1);
+      let sumAlpha = 0;
+
+      while (qHead < qTail) {
+        const curr = queue[qHead++];
+        count++;
+        const cx = curr % width;
+        const cy = (curr / width) | 0;
+
+        sumAlpha += data[curr * 4 + 3];
+
+        if (cx === 0 || cx === width - 1 || cy === 0 || cy === height - 1) {
+          touchesBorder = true;
+        }
+
+        const n1 = cx > 0 ? curr - 1 : -1;
+        const n2 = cx < width - 1 ? curr + 1 : -1;
+        const n3 = cy > 0 ? curr - width : -1;
+        const n4 = cy < height - 1 ? curr + width : -1;
+
+        if (n1 !== -1 && !visited[n1] && data[n1 * 4 + 3] >= minAlpha) {
+          visited[n1] = 1;
+          compLabels[n1] = nextCompId;
+          queue[qTail++] = n1;
+        }
+        if (n2 !== -1 && !visited[n2] && data[n2 * 4 + 3] >= minAlpha) {
+          visited[n2] = 1;
+          compLabels[n2] = nextCompId;
+          queue[qTail++] = n2;
+        }
+        if (n3 !== -1 && !visited[n3] && data[n3 * 4 + 3] >= minAlpha) {
+          visited[n3] = 1;
+          compLabels[n3] = nextCompId;
+          queue[qTail++] = n3;
+        }
+        if (n4 !== -1 && !visited[n4] && data[n4 * 4 + 3] >= minAlpha) {
+          visited[n4] = 1;
+          compLabels[n4] = nextCompId;
+          queue[qTail++] = n4;
+        }
+      }
+
+      components.push({
+        id: nextCompId,
+        count,
+        touchesBorder,
+        sumAlpha,
+      });
+
+      nextCompId++;
+    }
+  }
+
+  if (components.length === 0) {
+    return { componentsFound: 0, componentsKept: 0, largestSize: 0 };
+  }
+
+  let largest = components[0];
+  for (let i = 1; i < components.length; i++) {
+    if (components[i].count > largest.count) {
+      largest = components[i];
+    }
+  }
+
+  const keepSet = new Set<number>();
+  keepSet.add(largest.id);
+
+  const dynamicMinPixels = Math.min(minSecondaryPixels, Math.round(largest.count * 0.10));
+  const minCountToKeep = Math.max(dynamicMinPixels, Math.round(largest.count * minSecondaryRatio));
+
+  for (const comp of components) {
+    if (comp.id === largest.id) continue;
+
+    const avgAlpha = comp.count > 0 ? comp.sumAlpha / comp.count : 0;
+    const isSolid = avgAlpha >= minSecondaryAvgAlpha;
+    const isBigEnough = comp.count >= minCountToKeep;
+    const borderOk = !pruneBorderTouchingSecondary || !comp.touchesBorder || comp.count >= largest.count * 0.45;
+
+    if (isSolid && isBigEnough && borderOk) {
+      keepSet.add(comp.id);
+    }
+  }
+
+  // Clear unkept component pixels
+  for (let i = 0; i < totalPixels; i++) {
+    const compId = compLabels[i];
+    if (compId > 0 && !keepSet.has(compId)) {
+      data[i * 4 + 3] = 0;
+    }
+  }
+
+  return {
+    componentsFound: components.length,
+    componentsKept: keepSet.size,
+    largestSize: largest.count,
+  };
+}
+
+/**
+ * Sub-pixel Alpha Decontamination & Defringing (Anti-Halo Engine)
+ * Un-premultiplies edge pixels against the backdrop illumination model and
+ * inpaints high-luminance neutral spill using nearest solid product pixels.
+ */
+export function decontaminateAndDefringeEdges(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  options: DefringeOptions = {}
+): number {
+  const {
+    sampledBgColor = { r: 255, g: 255, b: 255 },
+    minFringeAlpha = 15,
+    maxFringeAlpha = 245,
+    tightenAlpha = true,
+  } = options;
+
+  const totalPixels = width * height;
+  if (totalPixels <= 0) return 0;
+
+  const originalAlpha = new Uint8Array(totalPixels);
+  for (let i = 0; i < totalPixels; i++) {
+    originalAlpha[i] = data[i * 4 + 3];
+  }
+
+  let defringedCount = 0;
+  const bgR = sampledBgColor.r;
+  const bgG = sampledBgColor.g;
+  const bgB = sampledBgColor.b;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = y * width + x;
+      const a = originalAlpha[idx];
+      if (a < minFringeAlpha || a > maxFringeAlpha) continue;
+
+      let hasTransparentNeighbor = false;
+      let solidNeighborIdx = -1;
+      let minSolidDist = 999;
+
+      // Scan 5x5 neighborhood (radius 2)
+      for (let dy = -2; dy <= 2; dy++) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= height) continue;
+        for (let dx = -2; dx <= 2; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = x + dx;
+          if (nx < 0 || nx >= width) continue;
+
+          const nIdx = ny * width + nx;
+          const na = originalAlpha[nIdx];
+          const distSq = dx * dx + dy * dy;
+
+          if (na < minFringeAlpha && distSq <= 2) {
+            hasTransparentNeighbor = true;
+          }
+
+          if (na >= 248 && distSq < minSolidDist) {
+            minSolidDist = distSq;
+            solidNeighborIdx = nIdx;
+          }
+        }
+      }
+
+      if (!hasTransparentNeighbor) continue;
+
+      const p = idx * 4;
+      const r = data[p];
+      const g = data[p + 1];
+      const b = data[p + 2];
+      const aNorm = a / 255;
+      const bgWeight = 1 - aNorm;
+
+      // 1. Un-premultiply against the background model
+      const unmixedR = Math.max(0, Math.min(255, (r - bgWeight * bgR) / aNorm));
+      const unmixedG = Math.max(0, Math.min(255, (g - bgWeight * bgG) / aNorm));
+      const unmixedB = Math.max(0, Math.min(255, (b - bgWeight * bgB) / aNorm));
+
+      // 2. Solid inner neighbor color inpainting for high-luminance neutral spill
+      const lum = (r * 2 + g * 3 + b) / 6;
+      const chroma = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+
+      if (solidNeighborIdx !== -1 && lum >= 165 && chroma <= 25) {
+        const sp = solidNeighborIdx * 4;
+        const sR = data[sp];
+        const sG = data[sp + 1];
+        const sB = data[sp + 2];
+        const sLum = (sR * 2 + sG * 3 + sB) / 6;
+
+        if (lum > sLum + 15) {
+          const spillWeight = Math.min(1, Math.max(0, (lum - sLum) / 75));
+          data[p] = Math.round(unmixedR * (1 - spillWeight) + sR * spillWeight);
+          data[p + 1] = Math.round(unmixedG * (1 - spillWeight) + sG * spillWeight);
+          data[p + 2] = Math.round(unmixedB * (1 - spillWeight) + sB * spillWeight);
+        } else {
+          data[p] = Math.round(unmixedR);
+          data[p + 1] = Math.round(unmixedG);
+          data[p + 2] = Math.round(unmixedB);
+        }
+      } else {
+        data[p] = Math.round(unmixedR);
+        data[p + 1] = Math.round(unmixedG);
+        data[p + 2] = Math.round(unmixedB);
+      }
+
+      // 3. Alpha tightening
+      if (tightenAlpha) {
+        if (a < 38) {
+          data[p + 3] = 0;
+        } else {
+          const norm = (a - 38) / 217;
+          data[p + 3] = Math.max(0, Math.min(255, Math.round(255 * Math.pow(norm, 1.1))));
+        }
+      }
+
+      defringedCount++;
+    }
+  }
+
+  return defringedCount;
+}
+
 export function knockoutWhiteStudioBackground(
   ctx: CanvasRenderingContext2D,
   width: number,
