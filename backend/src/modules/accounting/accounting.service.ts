@@ -2754,7 +2754,12 @@ export class AccountingService {
       amount,
       fromCurrency: fromCode,
       toCurrency: toCode,
-      convertedAmount: Number(convertedAmount.toFixed(4)),
+      // INV-CONVERT-CURRENCY-TARGET-DIGITS: round the displayed
+      // amount once, from the unrounded conversion, at the target
+      // currency's book digits. The rate read, the fail-closed
+      // checks, the base-leg math, and the 6-decimal effective
+      // rate are unchanged.
+      convertedAmount: roundMoney(convertedAmount, currencyMoneyDigits(toCode)),
       effectiveRate: toRate > 0 ? Number((fromRate / toRate).toFixed(6)) : 1,
     };
   }
