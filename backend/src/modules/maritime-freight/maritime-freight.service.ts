@@ -3390,7 +3390,11 @@ export class MaritimeFreightService {
     }
 
     const exchangeRate = await this.resolveFreightExchangeRate(tenantId, dto?.currency, dto?.exchangeRate);
-    const baseInvoiceAmount = Math.round(invoiceAmount * exchangeRate * 100) / 100;
+    // INV-MARITIME-JOB-JOURNAL-FX-CONVERSION: convert at the base
+    // currency's book digits through the shared engine; the rate
+    // already comes from the shared resolver above.
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId));
+    const baseInvoiceAmount = convertFxAmount(invoiceAmount, exchangeRate, digits);
 
     // Resolve accounts: Customer Receivable (1130), Service Revenue (4200 or 4100).
     // Previously "if (customerAccId && revenueAccId)" silently skipped the journal when either
@@ -3487,7 +3491,11 @@ export class MaritimeFreightService {
     }
 
     const exchangeRate = await this.resolveFreightExchangeRate(tenantId, dto.currency, dto.exchangeRate);
-    const baseExpenseAmount = Math.round(amount * exchangeRate * 100) / 100;
+    // INV-MARITIME-JOB-JOURNAL-FX-CONVERSION: convert at the base
+    // currency's book digits through the shared engine; the rate
+    // already comes from the shared resolver above.
+    const digits = currencyMoneyDigits(await tenantBaseCurrency(this.db, tenantId));
+    const baseExpenseAmount = convertFxAmount(amount, exchangeRate, digits);
 
     // 1. Ensure cost center exists
     let costCenterId = job.cost_center_id ? Number(job.cost_center_id) : null;
