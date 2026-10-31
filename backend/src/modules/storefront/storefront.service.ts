@@ -18,6 +18,7 @@ import { StorefrontMediaService } from './storefront-media.service';
 import { WhatsAppGatewayService } from '../settings/services/whatsapp-gateway.service';
 import { CustomerOrderRefDto } from './dto/customer-order-lookup.dto';
 import { resolveOrderLinePrice, formatVariantLineName } from './engines/online-order-pricing.engine';
+import { computeTableBillPaymentTotal, computeTableBillTotals } from './engines/table-bill.engine';
 import { maskGatewaySecret, isMaskedGatewaySecret } from './engines/gateway-secret-mask.engine';
 import { buildStorePublicBase, isReservedStoreSlug } from './engines/store-public-url.engine';
 import {
@@ -4552,16 +4553,23 @@ export class StorefrontService {
     const subtotal = formattedItems.reduce((acc, it) => acc + it.total, 0);
     const discount = Number(heldSale.discount || 0);
 
-    // Read settings to check service charge and tax
+    // Read settings to check service charge and tax. Rates arrive raw so
+    // the table-bill engine can tell "never set" from "garbled": only an
+    // absent rate falls back (0 tax, 12 service percent); a present but
+    // invalid rate fails closed inside the engine.
     const settings = await this.getTenantSettingsMap(tenant.id);
     const serviceChargeEnabled = settings.get('restaurant_service_charge_enabled') === 'true' || settings.get('restaurantServiceChargeEnabled') === 'true';
-    const serviceChargePercent = Number(settings.get('restaurant_service_charge_rate') || settings.get('restaurantServiceChargePercent') || 12);
-    const serviceCharge = serviceChargeEnabled ? Math.round(((subtotal - discount) * (serviceChargePercent / 100)) * 100) / 100 : 0;
-
-    const taxRate = Number(settings.get('tax_rate') || settings.get('taxRate') || 0);
-    const taxableBase = Math.max(0, subtotal - discount + serviceCharge);
-    const tax = taxRate > 0 ? Math.round((taxableBase * (taxRate / 100)) * 100) / 100 : 0;
-    const grandTotal = Math.round((taxableBase + tax) * 100) / 100;
+    const totals = computeTableBillTotals({
+      subtotal,
+      discount,
+      serviceChargeEnabled,
+      serviceChargePercent: settings.get('restaurant_service_charge_rate') ?? settings.get('restaurantServiceChargePercent'),
+      taxRate: settings.get('tax_rate') ?? settings.get('taxRate'),
+      digits: storefrontMoneyDigits(settings, tenant),
+    });
+    const serviceCharge = totals.serviceCharge;
+    const tax = totals.tax;
+    const grandTotal = totals.total;
 
     return {
       hasActiveBill: true,
@@ -4600,7 +4608,17 @@ export class StorefrontService {
 
     const tipAmount = Math.max(0, Number(dto?.tipAmount || 0));
     const billAmount = Number(bill.total || 0);
-    const totalWithTip = Math.round((billAmount + tipAmount) * 100) / 100;
+    // Book digits from the bill's own currency (the bill already carries
+    // the tenant currency; an unreadable code keeps the historical
+    // 2-decimal total instead of failing a public payment, mirroring
+    // storefrontMoneyDigits' lenient fallback).
+    let billDigits: MoneyDigits = 2;
+    try {
+      billDigits = currencyMoneyDigits(String(bill.currency || 'SAR'));
+    } catch {
+      billDigits = 2;
+    }
+    const totalWithTip = computeTableBillPaymentTotal(billAmount, tipAmount, billDigits);
     const paymentRef = `TAB-PAY-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     if (bill.source === 'held_draft' && bill.billId) {
