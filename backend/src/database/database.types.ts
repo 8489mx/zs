@@ -3287,6 +3287,8 @@ export interface AccountingChequeTable {
   base_currency: ColumnType<string | null, string | null | undefined, string | null | undefined>;
   exchange_rate: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
   settlement_base_amount: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
+  flagged_rate_variance: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  registered_exchange_rate: ColumnType<number | string | null, number | string | null | undefined, number | string | null | undefined>;
   last_action_date: ColumnType<Date | string | null, Date | string | null | undefined, Date | string | null | undefined>;
   amount: ColumnType<number | string, number | string | undefined, number | string | undefined>;
   currency: ColumnType<string, string | undefined, string | undefined>;

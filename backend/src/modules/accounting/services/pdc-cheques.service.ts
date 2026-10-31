@@ -33,6 +33,8 @@ export interface PdcChequeRecord {
   bounced_date: string | null;
   bounced_reason: string | null;
   bounced_fee: number;
+  flagged_rate_variance: boolean;
+  registered_exchange_rate: number | null;
   endorsed_to_supplier_id: number | null;
   endorsed_to_supplier_name: string | null;
   journal_entry_id: number | null;
@@ -227,6 +229,8 @@ export class PdcChequesService {
       bounced_date: r.bounced_date ? this.formatDate(r.bounced_date) : null,
       bounced_reason: r.bounced_reason,
       bounced_fee: this.toMoney(r.bounced_fee),
+      flagged_rate_variance: Boolean(r.flagged_rate_variance),
+      registered_exchange_rate: r.registered_exchange_rate == null ? null : Number(r.registered_exchange_rate),
       endorsed_to_supplier_id: r.endorsed_to_supplier_id,
       endorsed_to_supplier_name: r.endorsed_to_supplier_name,
       journal_entry_id: r.journal_entry_id,
@@ -509,6 +513,8 @@ export class PdcChequesService {
         bounced_fee: this.toMoney(inserted.bounced_fee),
         endorsed_to_supplier_id: inserted.endorsed_to_supplier_id,
         endorsed_to_supplier_name: inserted.endorsed_to_supplier_name,
+        flagged_rate_variance: Boolean(inserted.flagged_rate_variance),
+        registered_exchange_rate: inserted.registered_exchange_rate == null ? null : Number(inserted.registered_exchange_rate),
         journal_entry_id: journalEntryId,
         notes: inserted.notes,
         created_by: inserted.created_by,
@@ -573,11 +579,21 @@ export class PdcChequesService {
         try { toMinorUnits(Number(actionDto.bouncedFee), bookDigits); } catch { throw new BadRequestException('عمولة الارتداد يجب أن تطابق دقة العملة.'); }
       }
       let settlementBase = bookAmount;
+      let settlementSnapshot: { flagged_rate_variance: boolean; registered_exchange_rate: number | null } | null = null;
       if (['collect', 'clear'].includes(actionDto.action)) {
         const snapshot = await pdcCurrencySnapshot(trx, tenantId, existing.currency, Number(existing.amount), actionDto.settlementExchangeRate);
         settlementBase = snapshot.base_amount;
+        // A settlement re-rates the cheque, so the variance flag and
+        // its reference rate follow the settlement snapshot — a clean
+        // settlement rate clears a flag set at creation.
+        settlementSnapshot = { flagged_rate_variance: snapshot.flagged_rate_variance, registered_exchange_rate: snapshot.registered_exchange_rate };
       }
-      await trx.updateTable('accounting_cheques').set({ last_action_date: actionDate, settlement_base_amount: settlementBase, posting_sequence: sql`posting_sequence + 1` }).where('tenant_id', '=', tenantId).where('id', '=', id).execute();
+      const settlementUpdate: Record<string, any> = { last_action_date: actionDate, settlement_base_amount: settlementBase, posting_sequence: sql`posting_sequence + 1` };
+      if (settlementSnapshot) {
+        settlementUpdate.flagged_rate_variance = settlementSnapshot.flagged_rate_variance;
+        settlementUpdate.registered_exchange_rate = settlementSnapshot.registered_exchange_rate;
+      }
+      await trx.updateTable('accounting_cheques').set(settlementUpdate).where('tenant_id', '=', tenantId).where('id', '=', id).execute();
       let updateFields: Record<string, any> = {
         updated_at: sql`CURRENT_TIMESTAMP`,
       };
@@ -891,6 +907,8 @@ export class PdcChequesService {
         bounced_fee: this.toMoney(updated.bounced_fee),
         endorsed_to_supplier_id: updated.endorsed_to_supplier_id,
         endorsed_to_supplier_name: updated.endorsed_to_supplier_name,
+        flagged_rate_variance: Boolean(updated.flagged_rate_variance),
+        registered_exchange_rate: updated.registered_exchange_rate == null ? null : Number(updated.registered_exchange_rate),
         journal_entry_id: updated.journal_entry_id,
         notes: updated.notes,
         created_by: updated.created_by,
