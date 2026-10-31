@@ -11,7 +11,7 @@ import { UpsertSupplierDto } from './dto/upsert-supplier.dto';
 import { buildCustomerSearchPredicate, buildSupplierSearchPredicate, calculatePagination, mapCustomerRow, mapSupplierRow, parsePartnersListQuery } from './helpers/partners-listing.helper';
 import { generatePhoneSearchVariants } from '../../core/utils/phone-utils';
 import { tenantBaseCurrency } from '../accounting/accounting-currency';
-import { currencyMoneyDigits } from '../accounting/engines/money-minor-units.engine';
+import { currencyMoneyDigits, roundMoney } from '../accounting/engines/money-minor-units.engine';
 import { getCustomerRepBalancesMap } from '../delivery-reps/services/van-common.util';
 import { extractCustomerVisitDays } from '../delivery-reps/van-routes-schedule.util';
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
@@ -67,7 +67,8 @@ export class PartnersService {
   }
 
   private async addCustomerOpeningBalance(customerId: number, amount: number, actor: AuthContext, db: Kysely<Database>): Promise<void> {
-    const openingBalance = Number(Number(amount || 0).toFixed(2));
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(db, this.tenantId(actor)));
+    const openingBalance = roundMoney(Number(amount || 0), moneyDigits);
     if (Math.abs(openingBalance) <= 0.0001) return;
 
     await db.insertInto('customer_ledger').values({
@@ -90,7 +91,8 @@ export class PartnersService {
   }
 
   private async addSupplierOpeningBalance(supplierId: number, amount: number, actor: AuthContext, db: Kysely<Database>): Promise<void> {
-    const openingBalance = Number(Number(amount || 0).toFixed(2));
+    const moneyDigits = currencyMoneyDigits(await tenantBaseCurrency(db, this.tenantId(actor)));
+    const openingBalance = roundMoney(Number(amount || 0), moneyDigits);
     if (Math.abs(openingBalance) <= 0.0001) return;
 
     await db.insertInto('supplier_ledger').values({
