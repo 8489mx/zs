@@ -2784,6 +2784,7 @@ export interface Database {
   fixed_assets: FixedAssetTable;
   asset_depreciation_logs: AssetDepreciationLogTable;
   currency_exchange_rates: CurrencyExchangeRateTable;
+  currency_exchange_rate_history: CurrencyExchangeRateHistoryTable;
   customer_installment_plans: CustomerInstallmentPlanTable;
   customer_installments: CustomerInstallmentTable;
   saas_client_diagnostics: SaasClientDiagnosticTable;
@@ -3153,6 +3154,16 @@ export interface CurrencyExchangeRateTable {
   symbol: ColumnType<string, string | undefined, string | undefined>;
   created_at: ColumnType<Date, string | undefined, never>;
   updated_at: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+}
+
+export interface CurrencyExchangeRateHistoryTable {
+  id: Generated<number>;
+  tenant_id: ColumnType<string, string | undefined, string | undefined>;
+  currency_code: string;
+  exchange_rate: ColumnType<number | string, number | string | undefined, number | string | undefined>;
+  is_base: ColumnType<boolean, boolean | undefined, boolean | undefined>;
+  effective_from: ColumnType<Date, string | Date | undefined, string | Date | undefined>;
+  created_at: ColumnType<Date, string | undefined, never>;
 }
 
 export interface CustomerInstallmentPlanTable {
