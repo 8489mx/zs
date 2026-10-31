@@ -52,6 +52,7 @@ async function runZatcaTransmissionTests() {
       subtotal: 200,
       vatTotal: 30,
       totalWithVat: 230,
+      documentVatRate: 15,
       previousInvoiceHash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
       invoiceCounterValue: 1,
     };
@@ -122,6 +123,7 @@ async function runZatcaTransmissionTests() {
       subtotal: 10000,
       vatTotal: 1500,
       totalWithVat: 11500,
+      documentVatRate: 15,
       previousInvoiceHash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
       invoiceCounterValue: 2,
     };
@@ -169,6 +171,7 @@ async function runZatcaTransmissionTests() {
       subtotal: 50,
       vatTotal: 7.5,
       totalWithVat: 57.5,
+      documentVatRate: 15,
       previousInvoiceHash: initialPih,
       invoiceCounterValue: 1,
     };
@@ -192,6 +195,7 @@ async function runZatcaTransmissionTests() {
       subtotal: 60,
       vatTotal: 9,
       totalWithVat: 69,
+      documentVatRate: 15,
       previousInvoiceHash: pkg1.invoiceHash, // chained!
       invoiceCounterValue: 2,
     };

@@ -42,6 +42,11 @@ export interface ZatcaInvoiceData {
   subtotal: number;
   vatTotal: number;
   totalWithVat: number;
+  // INV-TAX-DOCUMENT-RATE-SINGLE-SOURCE: the document-level rate is
+  // stated once, by the attested source (buildDocumentTax for the
+  // database path, the explicit caller for the sync path). The
+  // renderer never derives it from the first line.
+  documentVatRate: number;
   previousInvoiceHash?: string;
   invoiceCounterValue?: number;
 }
@@ -362,6 +367,7 @@ export class ZatcaPhase2Service {
         subtotal: calculatedSubtotal,
         vatTotal: Number(calculatedVat.toFixed(2)),
         totalWithVat: calculatedTotal,
+        documentVatRate: documentTax.rate,
         previousInvoiceHash,
         invoiceCounterValue: nextIcv,
       };
@@ -436,10 +442,9 @@ export class ZatcaPhase2Service {
    */
   buildUblXml(data: ZatcaInvoiceData): string {
     const typeCode = data.invoiceType === 'simplified' ? '0200000' : '0100000';
-    // Document-level rate comes from the lines themselves (a single-rate
-    // invoice): the old hardcoded 15.00 lied on every exempt or non-15%
-    // document. A line-less document has no rate to attest.
-    const documentVatRate = data.lineItems[0]?.vatRate ?? 0;
+    // INV-TAX-DOCUMENT-RATE-SINGLE-SOURCE: the document-level rate is
+    // the stated attested rate, never re-derived from the first line.
+    const documentVatRate = data.documentVatRate;
 
     const linesXml = data.lineItems.map(item => `
     <cac:InvoiceLine>

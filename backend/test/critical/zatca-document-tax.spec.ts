@@ -255,6 +255,7 @@ async function main(): Promise<void> {
     subtotal: 100,
     vatTotal: 0,
     totalWithVat: 100,
+    documentVatRate: 0,
   });
   assert.match(syncPkg.ublXml, /<cbc:Percent>0\.00<\/cbc:Percent>/);
   assert.doesNotMatch(syncPkg.ublXml, /15\.00/);

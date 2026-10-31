@@ -53,6 +53,7 @@ async function runTests() {
     subtotal: 300,
     vatTotal: 45,
     totalWithVat: 345,
+    documentVatRate: 15,
     previousInvoiceHash: 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMjRiMWUxMDhkNDQ3ZjhlNzY1ZmVhNGU3NDkyNDQ1NQ==',
     invoiceCounterValue: 1
   };
