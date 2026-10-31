@@ -1,5 +1,6 @@
 import { nextAccountingDay } from '../../../accounting/engines/accounting-date.engine';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { AppError } from '../../../../common/errors/app-error';
 import { Kysely, sql } from '../../../../database/kysely';
 import { AuthContext } from '../../../../core/auth/interfaces/auth-context.interface';
 import { requireTenantScope } from '../../../../core/auth/utils/tenant-boundary';
@@ -11,6 +12,39 @@ export interface VatDeclarationQueryDto {
   to?: string;
   country?: 'EG' | 'SA';
 }
+
+/**
+ * INV-VAT-DECLARATION-TENANT-JURISDICTION: a declaration follows the
+ * tenant's own configured jurisdiction, never a caller-supplied
+ * country. Precedence mirrors the HR statutory inference (an explicit
+ * country setting wins, the base currency maps second), but unlike
+ * that inference this derivation FAILS CLOSED instead of defaulting:
+ * an unresolved jurisdiction, or a supported-currency tenant outside
+ * EG/SA (no declaration form exists for KW/QA/OM), is a 409, not a
+ * silently Egyptian declaration.
+ */
+export function deriveDeclarationCountry(
+  countrySetting: string | null | undefined,
+  currencySetting: string | null | undefined,
+): 'EG' | 'SA' {
+  const country = String(countrySetting || '').trim().toUpperCase();
+  if (country === 'EG' || country === 'SA') return country;
+  if (country === 'KW' || country === 'QA' || country === 'OM') {
+    throw new AppError('لا يوجد نموذج إقرار ضريبي مدعوم لهذه الدولة', 'VAT_DECLARATION_COUNTRY_UNSUPPORTED', 409);
+  }
+  const currency = String(currencySetting || '').trim().toUpperCase();
+  if (currency === 'EGP') return 'EG';
+  if (currency === 'SAR') return 'SA';
+  if (currency === 'KWD' || currency === 'QAR' || currency === 'OMR') {
+    throw new AppError('لا يوجد نموذج إقرار ضريبي مدعوم لهذه الدولة', 'VAT_DECLARATION_COUNTRY_UNSUPPORTED', 409);
+  }
+  throw new AppError('لم يتم تحديد بلد المنشأة أو عملتها، لا يمكن إصدار الإقرار', 'VAT_DECLARATION_COUNTRY_UNRESOLVED', 409);
+}
+
+const DECLARATION_TAX_PROVIDER: Record<'EG' | 'SA', string> = {
+  EG: 'ETA_EGYPT',
+  SA: 'ZATCA',
+};
 
 @Injectable()
 export class VatDeclarationService {
@@ -56,7 +90,19 @@ export class VatDeclarationService {
     const fromDate = query.from ? new Date(query.from) : defaultFrom;
     const toDate = query.to ? nextAccountingDay(query.to) : defaultTo;
     if (!Number.isFinite(fromDate.getTime()) || toDate <= fromDate) throw new BadRequestException('فترة الإقرار غير صالحة.');
-    const country = query.country || 'EG';
+    // The caller's country is deliberately ignored: the declaration
+    // follows the tenant's configured jurisdiction (see
+    // deriveDeclarationCountry). A request for another country's form
+    // is not an option the API offers.
+    const scope = this.tenantScope(auth);
+    const jurisdictionSettings = await this.db
+      .selectFrom('settings')
+      .select(['key', 'value'])
+      .where('tenant_id', '=', scope.tenantId)
+      .where('key', 'in', ['country', 'currency'])
+      .execute();
+    const settingByKey = new Map(jurisdictionSettings.map((row) => [row.key, row.value]));
+    const country = deriveDeclarationCountry(settingByKey.get('country'), settingByKey.get('currency'));
     const standardRate = country === 'SA' ? 15 : 14;
 
     // 1. Sales query
@@ -128,18 +174,31 @@ export class VatDeclarationService {
     const netVatDue = this.roundCurrency(totalOutputVat - totalInputVat);
 
     // Tenant info
-    const scope = this.tenantScope(auth);
     const tenant = await this.db
       .selectFrom('tenants')
       .select(['business_name', 'owner_name', 'owner_phone'])
       .where('id', '=', scope.tenantId)
       .executeTakeFirst();
 
-    const taxSettings = await this.db
+    // A tax declaration must carry the tenant's own registered tax
+    // number. There is no placeholder: a missing registration fails
+    // closed instead of printing a fabricated number on the form.
+    // The row matching this declaration's jurisdiction wins; any
+    // other active row with a registered number is the fallback.
+    const taxSettingsRows = await this.db
       .selectFrom('tenant_tax_settings')
       .select(['tax_id', 'provider'])
       .where('tenant_id', '=', scope.tenantId)
-      .executeTakeFirst();
+      .where('is_active', '=', true)
+      .execute();
+    const expectedProvider = DECLARATION_TAX_PROVIDER[country];
+    const taxSettings =
+      taxSettingsRows.find((row) => row.provider === expectedProvider && String(row.tax_id || '').trim()) ||
+      taxSettingsRows.find((row) => String(row.tax_id || '').trim());
+    const taxId = String(taxSettings?.tax_id || '').trim();
+    if (!taxId) {
+      throw new AppError('لم يتم تسجيل رقم ضريبي لهذه المنشأة، لا يمكن إصدار الإقرار', 'VAT_DECLARATION_TAX_ID_MISSING', 409);
+    }
 
     return {
       period: {
@@ -150,7 +209,7 @@ export class VatDeclarationService {
       },
       entity: {
         business_name: tenant?.business_name || 'شركة تجارية',
-        tax_id: taxSettings?.tax_id || '300000000000003',
+        tax_id: taxId,
         owner_name: tenant?.owner_name || '',
       },
       output_tax: {
