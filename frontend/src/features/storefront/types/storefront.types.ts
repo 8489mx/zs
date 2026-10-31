@@ -57,6 +57,16 @@ export interface StorefrontInfo {
   midBannersEnabled?: boolean;
   midBanners?: StorefrontMidBanner[];
   heroBannerFullBleed?: boolean;
+  heroHeadline?: string;
+  heroSubtitle?: string;
+  supportEmail?: string;
+  contactPhone?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  twitterUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  telegramUrl?: string;
 }
 
 export interface StorefrontMidBanner {
@@ -358,6 +368,16 @@ export interface StorefrontSettingsPayload {
   midBannersEnabled?: boolean;
   midBanners?: StorefrontMidBanner[];
   heroBannerFullBleed?: boolean;
+  heroHeadline?: string;
+  heroSubtitle?: string;
+  supportEmail?: string;
+  contactPhone?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  twitterUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  telegramUrl?: string;
 }
 
 export interface StorefrontPaymentSessionResponse {

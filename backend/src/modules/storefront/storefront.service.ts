@@ -586,6 +586,16 @@ export class StorefrontService {
       midBannersEnabled,
       midBanners,
       heroBannerFullBleed,
+      heroHeadline: settings.get('storefront_hero_headline') || '',
+      heroSubtitle: settings.get('storefront_hero_subtitle') || '',
+      supportEmail: settings.get('storefront_support_email') || settings.get('email') || '',
+      contactPhone: settings.get('storefront_contact_phone') || '',
+      facebookUrl: settings.get('storefront_facebook_url') || '',
+      instagramUrl: settings.get('storefront_instagram_url') || '',
+      twitterUrl: settings.get('storefront_twitter_url') || '',
+      tiktokUrl: settings.get('storefront_tiktok_url') || '',
+      youtubeUrl: settings.get('storefront_youtube_url') || '',
+      telegramUrl: settings.get('storefront_telegram_url') || '',
     };
   }
 
@@ -3503,6 +3513,16 @@ export class StorefrontService {
       ga4Id: settings.get('storefront_ga4_id') || '',
       tiktokPixelId: settings.get('storefront_tiktok_pixel_id') || '',
       pickupEnabled: settings.get('storefront_pickup_enabled') !== 'false',
+      heroHeadline: settings.get('storefront_hero_headline') || '',
+      heroSubtitle: settings.get('storefront_hero_subtitle') || '',
+      supportEmail: settings.get('storefront_support_email') || settings.get('email') || '',
+      contactPhone: settings.get('storefront_contact_phone') || '',
+      facebookUrl: settings.get('storefront_facebook_url') || '',
+      instagramUrl: settings.get('storefront_instagram_url') || '',
+      twitterUrl: settings.get('storefront_twitter_url') || '',
+      tiktokUrl: settings.get('storefront_tiktok_url') || '',
+      youtubeUrl: settings.get('storefront_youtube_url') || '',
+      telegramUrl: settings.get('storefront_telegram_url') || '',
       midBannersEnabled: settings.get('storefront_mid_banners_enabled') !== 'false',
       heroBannerFullBleed: settings.get('storefront_hero_full_bleed') !== 'false',
       midBanners: (() => {
@@ -3662,6 +3682,16 @@ export class StorefrontService {
     if (payload.tiktokPixelId !== undefined) entries.push({ key: 'storefront_tiktok_pixel_id', value: payload.tiktokPixelId });
     if (payload.snapchatPixelId !== undefined) entries.push({ key: 'storefront_snapchat_pixel_id', value: payload.snapchatPixelId });
     if (payload.pickupEnabled !== undefined) entries.push({ key: 'storefront_pickup_enabled', value: payload.pickupEnabled });
+    if (payload.heroHeadline !== undefined) entries.push({ key: 'storefront_hero_headline', value: payload.heroHeadline });
+    if (payload.heroSubtitle !== undefined) entries.push({ key: 'storefront_hero_subtitle', value: payload.heroSubtitle });
+    if (payload.supportEmail !== undefined) entries.push({ key: 'storefront_support_email', value: payload.supportEmail });
+    if (payload.contactPhone !== undefined) entries.push({ key: 'storefront_contact_phone', value: payload.contactPhone });
+    if (payload.facebookUrl !== undefined) entries.push({ key: 'storefront_facebook_url', value: payload.facebookUrl });
+    if (payload.instagramUrl !== undefined) entries.push({ key: 'storefront_instagram_url', value: payload.instagramUrl });
+    if (payload.twitterUrl !== undefined) entries.push({ key: 'storefront_twitter_url', value: payload.twitterUrl });
+    if (payload.tiktokUrl !== undefined) entries.push({ key: 'storefront_tiktok_url', value: payload.tiktokUrl });
+    if (payload.youtubeUrl !== undefined) entries.push({ key: 'storefront_youtube_url', value: payload.youtubeUrl });
+    if (payload.telegramUrl !== undefined) entries.push({ key: 'storefront_telegram_url', value: payload.telegramUrl });
     if (payload.allowOutOfStockOrders !== undefined) entries.push({ key: 'storefront_allow_out_of_stock', value: payload.allowOutOfStockOrders });
     if (payload.showOutOfStockProducts !== undefined) entries.push({ key: 'storefront_show_out_of_stock', value: payload.showOutOfStockProducts });
     if (payload.stockMode !== undefined) entries.push({ key: 'storefront_stock_mode', value: normalizeStorefrontStockMode(payload.stockMode) });

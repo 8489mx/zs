@@ -237,7 +237,7 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
     const slideThemes = [
       {
         kicker: 'وصل حديثاً',
-        headline: 'تشكيلة مختارة بأعلى جودة',
+        headline: info?.heroHeadline?.trim() || 'تشكيلة مختارة بأعلى جودة',
         cta: 'تسوق الآن',
         bg: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
         border: '#e2e8f0',
@@ -633,8 +633,22 @@ export const StorefrontHeroEditorial = React.memo(function StorefrontHeroEditori
           }
         `}</style>
         <h1 className="sf-hero-glass-headline" style={{ color: '#132032' }}>
-          أفضل المنتجات بأحسن سعر
+          {info?.heroHeadline?.trim() || 'أفضل المنتجات بأحسن سعر'}
         </h1>
+        {info?.heroSubtitle?.trim() && (
+          <p
+            style={{
+              margin: '6px auto 0',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: '#64748b',
+              lineHeight: 1.5,
+              maxWidth: '650px',
+            }}
+          >
+            {info.heroSubtitle.trim()}
+          </p>
+        )}
       </div>
 
       {/* Centerpiece: Crisp 2D Vector Perspective Coverflow Stage (Zero bitmap blur on cards, text, or images) */}

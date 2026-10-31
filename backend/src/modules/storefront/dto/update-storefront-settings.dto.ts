@@ -235,5 +235,48 @@ export class UpdateStorefrontSettingsDto {
   @IsOptional()
   @IsBoolean()
   heroBannerFullBleed?: boolean;
+
+  // Storefront Marketing Copy & Headlines
+  @IsOptional()
+  @IsString()
+  heroHeadline?: string;
+
+  @IsOptional()
+  @IsString()
+  heroSubtitle?: string;
+
+  // Contact & Support Information
+  @IsOptional()
+  @IsString()
+  supportEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  contactPhone?: string;
+
+  // Social Media Channels
+  @IsOptional()
+  @IsString()
+  facebookUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  instagramUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  twitterUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  tiktokUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  youtubeUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  telegramUrl?: string;
 }
 
