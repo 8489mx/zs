@@ -137,7 +137,54 @@ export function PublicStorefrontPage() {
   } = usePublicStorefront(cleanSlug);
 
   const handleOpenCart = useCallback(() => setIsCartOpen(true), [setIsCartOpen]);
+  const handleCloseCart = useCallback(() => setIsCartOpen(false), [setIsCartOpen]);
   const handleOpenOrders = useCallback(() => setIsMyOrdersOpen(true), [setIsMyOrdersOpen]);
+  const handleCloseOrders = useCallback(() => setIsMyOrdersOpen(false), [setIsMyOrdersOpen]);
+  const handleOpenCategories = useCallback(() => setIsCategoriesModalOpen(true), [setIsCategoriesModalOpen]);
+  const handleCloseCategories = useCallback(() => setIsCategoriesModalOpen(false), [setIsCategoriesModalOpen]);
+
+  const handleToggleDealsHeader = useCallback(() => {
+    setOnlyDeals((prev) => !prev);
+    setOnlyFavorites(false);
+  }, [setOnlyDeals, setOnlyFavorites]);
+
+  const handleToggleInStock = useCallback(() => {
+    setInStockOnly((prev) => !prev);
+  }, [setInStockOnly]);
+
+  const handleBannerClick = useCallback(() => {
+    const target = document.querySelector('.storefront-main-content') || document.querySelector('.storefront-subnav');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, []);
+
+  const handleHeroSelectDeals = useCallback(() => {
+    setOnlyDeals(true);
+    setOnlyFavorites(false);
+    setSelectedCategory('all');
+    handleBannerClick();
+  }, [setOnlyDeals, setOnlyFavorites, setSelectedCategory, handleBannerClick]);
+
+  const handleSubNavToggleDeals = useCallback(() => {
+    setOnlyDeals((prev) => !prev);
+    setOnlyFavorites(false);
+    setSelectedCategory('all');
+  }, [setOnlyDeals, setOnlyFavorites, setSelectedCategory]);
+
+  const handleSelectDealsSimple = useCallback(() => {
+    setOnlyDeals(true);
+  }, [setOnlyDeals]);
+
+  const handleFooterToggleDeals = useCallback(() => {
+    setOnlyDeals(true);
+    setSelectedCategory('all');
+  }, [setOnlyDeals, setSelectedCategory]);
+
+  const handleLoadMore = useCallback(() => {
+    setVisibleCount((prev) => prev + ITEMS_PER_PAGE);
+  }, [setVisibleCount]);
+
   // Handle Category Selection with full Browser History & URL sync (Amazon-grade UX)
   const handleSelectCategory = useCallback(
     (id: number | 'all') => {
@@ -158,8 +205,72 @@ export function PublicStorefrontPage() {
     setSearchTerm('');
     setOnlyDeals(false);
     setOnlyFavorites(false);
+    setInStockOnly(false);
+    setSortBy('featured');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [navigate, storeHomePath, setSearchTerm, setOnlyDeals, setOnlyFavorites]);
+  }, [navigate, storeHomePath, setSearchTerm, setOnlyDeals, setOnlyFavorites, setInStockOnly, setSortBy]);
+
+  const handleMobileToggleDeals = useCallback(() => {
+    setOnlyDeals((prev) => !prev);
+    setOnlyFavorites(false);
+    setSelectedCategory('all');
+    window.scrollTo({ top: 180, behavior: 'smooth' });
+  }, [setOnlyDeals, setOnlyFavorites, setSelectedCategory]);
+
+  const handleMobileToggleFavorites = useCallback(() => {
+    handleToggleFavorites();
+    window.scrollTo({ top: 180, behavior: 'smooth' });
+  }, [handleToggleFavorites]);
+
+  const handleProceedToCheckout = useCallback(() => {
+    setIsCartOpen(false);
+    setIsCheckoutOpen(true);
+  }, [setIsCartOpen, setIsCheckoutOpen]);
+
+  const handleCloseCheckout = useCallback(() => {
+    setIsCheckoutOpen(false);
+    setEditingOrderNumber(undefined);
+  }, [setIsCheckoutOpen, setEditingOrderNumber]);
+
+  const handleEditSuccess = useCallback(() => {
+    setIsCheckoutOpen(false);
+    setEditingOrderNumber(undefined);
+    handleClearCart();
+    setIsMyOrdersOpen(true);
+  }, [setIsCheckoutOpen, setEditingOrderNumber, handleClearCart, setIsMyOrdersOpen]);
+
+  const handleOrderSuccess = useCallback((orderData: any) => {
+    setConfirmedOrder(orderData);
+    setIsCheckoutOpen(false);
+    setEditingOrderNumber(undefined);
+    handleClearCart();
+  }, [setConfirmedOrder, setIsCheckoutOpen, setEditingOrderNumber, handleClearCart]);
+
+  const handleCloseSuccessModal = useCallback(() => {
+    setConfirmedOrder(null);
+  }, [setConfirmedOrder]);
+
+  const handleTrackOrder = useCallback(() => {
+    setConfirmedOrder(null);
+    setIsMyOrdersOpen(true);
+  }, [setConfirmedOrder, setIsMyOrdersOpen]);
+
+  const handleCloseReviewModal = useCallback(() => {
+    setIsReviewModalOpen(false);
+    setReviewProduct(null);
+  }, [setIsReviewModalOpen, setReviewProduct]);
+
+  const handleModalReorder = useCallback((order: any) => {
+    const { added, skipped } = handleReorder(order);
+    if (added === 0) {
+      toast.warning(t('storefront.public_storefront_page.s13', "أصناف هذا الطلب غير متاحة حالياً في المتجر."));
+      return;
+    }
+    setIsMyOrdersOpen(false);
+    if (skipped.length > 0) {
+      toast.info(`أضفنا ${added} صنف للسلة. غير متاح حالياً: ${skipped.join(t('storefront.public_storefront_page.s14', "، "))}`);
+    }
+  }, [handleReorder, setIsMyOrdersOpen, t]);
 
   // Sync Category from URL parameters into store state
   useEffect(() => {
@@ -198,13 +309,6 @@ export function PublicStorefrontPage() {
     }
   };
 
-  const handleBannerClick = () => {
-    const target = document.querySelector('.storefront-main-content') || document.querySelector('.storefront-subnav');
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   /*
    * رابط التتبع: يسجّل الطلب على هذا الجهاز (فيظهر في «طلباتي» هنا أيضاً) ثم يفتح «طلباتي»،
    * ويمسح التوكن من شريط العنوان فوراً حتى لا يُنسخ أو يُشارك بالخطأ مع رابط المتجر.
@@ -234,6 +338,45 @@ export function PublicStorefrontPage() {
       applyStorefrontThemeVariables(info);
     }
   }, [info]);
+
+  // SF-SCROLL: Unlock document body & html scrolling for customer storefront (overrides ERP overflow:hidden)
+  useEffect(() => {
+    document.body.classList.add('storefront-active-page');
+    document.documentElement.classList.add('storefront-active-page');
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const rootEl = document.getElementById('root');
+    const originalRootHeight = rootEl?.style.height;
+
+    // html is the single document scroller
+    document.documentElement.style.overflowY = 'auto';
+    document.documentElement.style.overflowX = 'hidden';
+    document.documentElement.style.height = 'auto';
+
+    // body and root must be visible to allow wheel and touch to scroll html
+    document.body.style.overflow = 'visible';
+    document.body.style.overflowY = 'visible';
+    document.body.style.overflowX = 'visible';
+    document.body.style.height = 'auto';
+
+    if (rootEl) {
+      rootEl.style.height = 'auto';
+      rootEl.style.minHeight = '100vh';
+      rootEl.style.overflow = 'visible';
+      rootEl.style.overflowY = 'visible';
+    }
+
+    return () => {
+      document.body.classList.remove('storefront-active-page');
+      document.documentElement.classList.remove('storefront-active-page');
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      if (rootEl) {
+        if (originalRootHeight) rootEl.style.height = originalRootHeight;
+        else rootEl.style.removeProperty('height');
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!catalogQuery.data?.products) return;
@@ -330,6 +473,7 @@ export function PublicStorefrontPage() {
   return (
     <div
       dir="rtl"
+      className="storefront-public-root storefront-page"
       style={{
         minHeight: '100vh',
         background: info?.brandSurfaceColor && info.brandSurfaceColor !== '#f8fafc' ? info.brandSurfaceColor : '#f4f6fa',
@@ -339,7 +483,7 @@ export function PublicStorefrontPage() {
         fontFamily: 'inherit',
         width: '100%',
         maxWidth: '100vw',
-        overflowX: 'clip',
+        overflow: 'visible',
         boxSizing: 'border-box',
       }}
     >
@@ -356,6 +500,16 @@ export function PublicStorefrontPage() {
         onSelectCategory={handleSelectCategory}
         onSelectProduct={openProduct}
         onAddToCart={handleAddToCart}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        onlyDeals={onlyDeals}
+        onToggleDeals={handleToggleDealsHeader}
+        inStockOnly={inStockOnly}
+        onToggleInStock={handleToggleInStock}
+        onlyFavorites={onlyFavorites}
+        onToggleFavorites={handleToggleFavorites}
+        onOpenCategories={handleOpenCategories}
+        onResetFilters={handleCustomGoHome}
       />
 
       {/* Dine-In QR Table Banner */}
@@ -481,14 +635,9 @@ export function PublicStorefrontPage() {
           onAddToCart={handleAddToCart}
           onUpdateQuantity={handleUpdateQuantity}
           onQuickView={openProduct}
-          onSelectDeals={() => {
-            setOnlyDeals(true);
-            setOnlyFavorites(false);
-            setSelectedCategory('all');
-            handleBannerClick();
-          }}
+          onSelectDeals={handleHeroSelectDeals}
           onSelectCategory={handleSelectCategory}
-          onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
+          onOpenCategoriesModal={handleOpenCategories}
         />
       )}
 
@@ -498,15 +647,11 @@ export function PublicStorefrontPage() {
           categories={categories}
           selectedCategoryId={selectedCategory}
           onSelectCategory={handleSelectCategory}
-          onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
+          onOpenCategoriesModal={handleOpenCategories}
           onlyDeals={onlyDeals}
-          onToggleDeals={() => {
-            setOnlyDeals(!onlyDeals);
-            setOnlyFavorites(false);
-            setSelectedCategory('all');
-          }}
+          onToggleDeals={handleSubNavToggleDeals}
           inStockOnly={inStockOnly}
-          onToggleInStock={() => setInStockOnly(!inStockOnly)}
+          onToggleInStock={handleToggleInStock}
           dealsCount={dealsProducts.length}
           onlyFavorites={onlyFavorites}
           onToggleFavorites={handleToggleFavorites}
@@ -521,7 +666,7 @@ export function PublicStorefrontPage() {
           categories={categories}
           selectedCategoryId={selectedCategory}
           onSelectCategory={handleSelectCategory}
-          onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
+          onOpenCategoriesModal={handleOpenCategories}
           categoryCounts={categoryCounts}
         />
       )}
@@ -551,9 +696,9 @@ export function PublicStorefrontPage() {
             onOpenReviewModal={handleOpenReviewModal}
             onToggleFavorite={handleToggleFavorite}
             onQuickView={openProduct}
-            onSelectDeals={() => setOnlyDeals(true)}
+            onSelectDeals={handleSelectDealsSimple}
             onSelectCategory={handleSelectCategory}
-            onOpenCategoriesModal={() => setIsCategoriesModalOpen(true)}
+            onOpenCategoriesModal={handleOpenCategories}
           />
         ) : (
           <StorefrontFilteredGrid
@@ -568,7 +713,7 @@ export function PublicStorefrontPage() {
             filteredProducts={filteredProducts}
             paginatedProducts={paginatedProducts}
             hasMore={hasMore}
-            onLoadMore={() => setVisibleCount((prev) => prev + ITEMS_PER_PAGE)}
+            onLoadMore={handleLoadMore}
             cartMap={cartMap}
             info={info}
             smartDealProductIds={smartDealProductIds}
@@ -588,14 +733,11 @@ export function PublicStorefrontPage() {
       {/* Corporate E-commerce Footer */}
       <StorefrontFooter
         info={info}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenOrders={() => setIsMyOrdersOpen(true)}
-        onOpenCategories={() => setIsCategoriesModalOpen(true)}
+        onOpenCart={handleOpenCart}
+        onOpenOrders={handleOpenOrders}
+        onOpenCategories={handleOpenCategories}
         onGoHome={handleCustomGoHome}
-        onToggleDeals={() => {
-          setOnlyDeals(true);
-          setSelectedCategory('all');
-        }}
+        onToggleDeals={handleFooterToggleDeals}
       />
 
       {/* Native-Grade Mobile Bottom Navigation Bar */}
@@ -614,22 +756,11 @@ export function PublicStorefrontPage() {
         cartCount={cartCount}
         favoritesCount={favoriteIds.size}
         dealsCount={dealsProducts.length}
-        onGoHome={() => {
-          handleCustomGoHome();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onOpenCategories={() => setIsCategoriesModalOpen(true)}
-        onToggleDeals={() => {
-          setOnlyDeals(!onlyDeals);
-          setOnlyFavorites(false);
-          setSelectedCategory('all');
-          window.scrollTo({ top: 180, behavior: 'smooth' });
-        }}
-        onToggleFavorites={() => {
-          handleToggleFavorites();
-          window.scrollTo({ top: 180, behavior: 'smooth' });
-        }}
-        onOpenCart={() => setIsCartOpen(true)}
+        onGoHome={handleCustomGoHome}
+        onOpenCategories={handleOpenCategories}
+        onToggleDeals={handleMobileToggleDeals}
+        onToggleFavorites={handleMobileToggleFavorites}
+        onOpenCart={handleOpenCart}
       />
 
       {/* Modals & Live Cart */}
@@ -643,7 +774,7 @@ export function PublicStorefrontPage() {
         onToggleFavorite={handleToggleFavorite}
         onOpenReviewModal={handleOpenReviewModal}
         isCategoriesModalOpen={isCategoriesModalOpen}
-        onCloseCategoriesModal={() => setIsCategoriesModalOpen(false)}
+        onCloseCategoriesModal={handleCloseCategories}
         categories={categories}
         categoryCounts={categoryCounts}
         selectedCategory={selectedCategory}
@@ -651,60 +782,28 @@ export function PublicStorefrontPage() {
         cartItems={cartItems}
         info={info}
         isCartOpen={isCartOpen}
-        onOpenCart={() => setIsCartOpen(true)}
-        onCloseCart={() => setIsCartOpen(false)}
+        onOpenCart={handleOpenCart}
+        onCloseCart={handleCloseCart}
         onUpdateQuantity={handleUpdateQuantity}
         onClearCart={handleClearCart}
-        onProceedToCheckout={() => {
-          setIsCartOpen(false);
-          setIsCheckoutOpen(true);
-        }}
+        onProceedToCheckout={handleProceedToCheckout}
         isCheckoutOpen={isCheckoutOpen}
-        onCloseCheckout={() => {
-          setIsCheckoutOpen(false);
-          setEditingOrderNumber(undefined);
-        }}
+        onCloseCheckout={handleCloseCheckout}
         cleanSlug={cleanSlug}
         editingOrderNumber={editingOrderNumber}
         tableParam={tableParam}
-        onEditSuccess={() => {
-          setIsCheckoutOpen(false);
-          setEditingOrderNumber(undefined);
-          handleClearCart();
-          setIsMyOrdersOpen(true);
-        }}
-        onOrderSuccess={(orderData) => {
-          setConfirmedOrder(orderData);
-          setIsCheckoutOpen(false);
-          setEditingOrderNumber(undefined);
-          handleClearCart();
-        }}
+        onEditSuccess={handleEditSuccess}
+        onOrderSuccess={handleOrderSuccess}
         confirmedOrder={confirmedOrder}
-        onCloseSuccessModal={() => setConfirmedOrder(null)}
-        onTrackOrder={() => {
-          setConfirmedOrder(null);
-          setIsMyOrdersOpen(true);
-        }}
+        onCloseSuccessModal={handleCloseSuccessModal}
+        onTrackOrder={handleTrackOrder}
         isMyOrdersOpen={isMyOrdersOpen}
-        onCloseMyOrders={() => setIsMyOrdersOpen(false)}
+        onCloseMyOrders={handleCloseOrders}
         onEditOrder={handleEditOrder}
-        onReorder={(order) => {
-          const { added, skipped } = handleReorder(order);
-          if (added === 0) {
-            toast.warning(t('storefront.public_storefront_page.s13', "أصناف هذا الطلب غير متاحة حالياً في المتجر."));
-            return;
-          }
-          setIsMyOrdersOpen(false);
-          if (skipped.length > 0) {
-            toast.info(`أضفنا ${added} صنف للسلة. غير متاح حالياً: ${skipped.join(t('storefront.public_storefront_page.s14', "، "))}`);
-          }
-        }}
+        onReorder={handleModalReorder}
         isReviewModalOpen={isReviewModalOpen}
         reviewProduct={reviewProduct}
-        onCloseReviewModal={() => {
-          setIsReviewModalOpen(false);
-          setReviewProduct(null);
-        }}
+        onCloseReviewModal={handleCloseReviewModal}
         onReviewSubmitted={handleReviewSubmitted}
       />
 
