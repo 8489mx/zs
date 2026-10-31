@@ -9,7 +9,7 @@
  * 3. Guided Edge Filtering: Aligns the alpha mask boundary with physical luminance contours of the source photo.
  * 4. Sub-pixel Edge Decontamination & Defringing (Un-premultiplication): Annihilates white studio halo.
  * 5. Smart Bounding Box Auto-Trim with protective padding.
- * 6. Crystal-clean Lossless Alpha Export (PNG / WebP 0.92).
+ * 6. Lossless PNG export; WebP 0.92 is a lossy derivative used only when PNG exceeds 350KB.
  */
 
 export interface AiRemovalProgress {
@@ -528,10 +528,16 @@ export function refineProductMatte(
       g = g + (fg - g) * strength;
       b = b + (fb - b) * strength;
     }
+    const alphaByte = clamp255(Math.round(a * 255));
+    if (alphaByte === 0) {
+      r = 0;
+      g = 0;
+      b = 0;
+    }
     rgba[i * 4] = clamp255(Math.round(r));
     rgba[i * 4 + 1] = clamp255(Math.round(g));
     rgba[i * 4 + 2] = clamp255(Math.round(b));
-    rgba[i * 4 + 3] = clamp255(Math.round(a * 255));
+    rgba[i * 4 + 3] = alphaByte;
   }
   return { rgba, backgroundColor: fullBg };
 }
@@ -614,12 +620,11 @@ export async function imglyMaskMatte(input: {
   if (!removeFn) throw new Error('لم يتم العثور على دالة إزالة الخلفية في حزمة imgly');
 
   const modelChoice = input.model ?? 'medium';
-  let maskBlob: Blob;
 
-  try {
-    maskBlob = await removeFn(input.bitmap, {
-      model: modelChoice,
-      device: 'gpu',
+  const runAttempt = (model: 'medium' | 'small', device: 'gpu' | 'cpu'): Promise<Blob> => {
+    return removeFn(input.bitmap, {
+      model,
+      device,
       proxyToWorker: true,
       output: { format: 'image/png', type: 'mask' },
       progress: (key: string, current: number, total: number) => {
@@ -633,27 +638,24 @@ export async function imglyMaskMatte(input: {
         }
       },
     });
-  } catch (err) {
-    if (modelChoice === 'medium') {
-      console.warn('Medium model fallback to small:', err);
-      maskBlob = await removeFn(input.bitmap, {
-        model: 'small',
-        device: 'gpu',
-        proxyToWorker: true,
-        output: { format: 'image/png', type: 'mask' },
-        progress: (key: string, current: number, total: number) => {
-          if (input.onProgress && total > 0) {
-            input.onProgress({
-              key,
-              current,
-              total,
-              percent: Math.round((current / total) * 100),
-            });
-          }
-        },
-      });
+  };
+
+  let maskBlob: Blob;
+
+  try {
+    maskBlob = await runAttempt(modelChoice, 'gpu');
+  } catch (err1) {
+    if (modelChoice !== 'small') {
+      console.warn(`Fallback: attempt 1 (model: ${modelChoice}, device: gpu) failed, trying model: small, device: gpu`, err1);
+      try {
+        maskBlob = await runAttempt('small', 'gpu');
+      } catch (err2) {
+        console.warn('Fallback: attempt 2 (model: small, device: gpu) failed, trying model: small, device: cpu', err2);
+        maskBlob = await runAttempt('small', 'cpu');
+      }
     } else {
-      throw err;
+      console.warn('Fallback: attempt 1 (model: small, device: gpu) failed, trying model: small, device: cpu', err1);
+      maskBlob = await runAttempt('small', 'cpu');
     }
   }
 
