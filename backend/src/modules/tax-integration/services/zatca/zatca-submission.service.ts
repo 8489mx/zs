@@ -244,37 +244,21 @@ export class ZatcaSubmissionService {
         message = `تم رفض الفاتورة من هيئة الزكاة (كود ${httpStatus})${errCount > 0 ? ` مع ${errCount} أخطاء امتثال` : ''}.`;
       }
     } catch (networkErr: any) {
+      // INV-ZATCA-NETWORK-FAILURE-NEVER-CLEARS: a network error means
+      // ZATCA was never reached, so nothing was cleared or reported —
+      // in EVERY environment, sandbox included. The old fallback
+      // marked the invoice 'cleared'/'reported' with a PASS
+      // validation on any fetch failure in non-production, which made
+      // an unsubmitted invoice look compliant, locked it against
+      // edits, and dropped it from the pending queue. A failed
+      // submission stays 'failed', keeps its built ICV/PIH package
+      // (buildZatcaInvoice reuses it on retry), and remains pending.
       this.logger.warn(`ZATCA live transmission network error for invoice ${saleId}: ${networkErr.message}`);
-
-      // Fallback in Sandbox/Simulation for automated offline tests and development
-      if (env !== 'production') {
-        httpStatus = 200;
-        if (isB2B) {
-          responseStatus = 'CLEARED';
-          finalStatus = 'cleared';
-          clearedXml = pkg.ublXml;
-          validationResults = {
-            status: 'PASS',
-            infoMessages: [{ code: 'XSD_ZATCA_SIMULATED', message: 'تم التحقق من مطابقة هيكل UBL 2.1 والهاش التشفيري في بيئة المحاكاة بنجاح.' }],
-          };
-          message = 'تم تخليص الفاتورة الضريبية بنجاح عبر محاكي ZATCA المعتمد.';
-        } else {
-          responseStatus = 'REPORTED';
-          finalStatus = 'reported';
-          validationResults = {
-            status: 'PASS',
-            infoMessages: [{ code: 'REPORTED_SIMULATED', message: 'تم إبلاغ وتخزين الفاتورة المبسطة في سجلات الهيئة التجريبية بنجاح.' }],
-          };
-          message = 'تم إبلاغ الفاتورة المبسطة بنجاح عبر محاكي ZATCA المعتمد.';
-        }
-        rawResponse = JSON.stringify({ simulated: true, responseStatus, validationResults });
-      } else {
-        httpStatus = 0;
-        responseStatus = 'FAILED';
-        finalStatus = 'failed';
-        message = `فشل الاتصال بخوادم هيئة الزكاة والضريبة والجمارك: ${networkErr.message}`;
-        rawResponse = networkErr.message;
-      }
+      httpStatus = 0;
+      responseStatus = 'FAILED';
+      finalStatus = 'failed';
+      message = `فشل الاتصال بخوادم هيئة الزكاة والضريبة والجمارك: ${networkErr.message}`;
+      rawResponse = networkErr.message;
     }
 
     // 6. Persist results in sales record
