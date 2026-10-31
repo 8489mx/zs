@@ -4,8 +4,8 @@ import { AccountingPostingService } from '../accounting/accounting-posting.servi
 import { AccountingTenantFoundationService } from '../accounting/accounting-tenant-foundation.service';
 import { Kysely, sql, Transaction, Selectable, Updateable } from 'kysely';
 import { Database, ImportShipmentTable, ImportShipmentItemTable } from '../../database/database.types';
-import { calculateImportLandedCosts, groupImportReceipts, importWeightedAverageCost, requireImportNumber } from './import-inventory-cost.engine';
-import { recoverWacBeforeQty } from '../accounting/engines/inventory-valuation.engine';
+import { calculateImportLandedCosts, groupImportReceipts, requireImportNumber } from './import-inventory-cost.engine';
+import { valueStockReceipt } from '../accounting/inventory-valuation';
 import { KYSELY_DB } from '../../database/database.constants';
 import {
   CreateShipmentDto,
@@ -1868,21 +1868,18 @@ export class ImportSalesService {
       const accountId = accountByProduct.get(group.productId);
       if (!accountId) throw new BadRequestException('حساب الصنف غير صالح');
       if (group.quantity > 0) {
-        const product = await trx.selectFrom('products').select('cost_price')
-          .where('tenant_id', '=', tenantId).where('account_id', '=', accountId)
-          .where('id', '=', group.productId).executeTakeFirstOrThrow();
         const stock = await applyStockDelta(trx, {
           tenantId, accountId, productId: group.productId, delta: group.quantity, allowNegative: true,
           locationId: Number(receiptLocationId), disableAutoDrain: true,
         });
         // globalBefore is a cached product counter. globalAfter is reconciled by the ledger
         // from locked location balances (including its legacy unassigned-stock policy).
-        // One WAC quantity source: the same recovery the purchase and
-        // goods-receipt paths use (identical math, canonical helper).
-        const oldQty = recoverWacBeforeQty(stock.globalAfter, group.quantity);
-        const cost = importWeightedAverageCost(oldQty, Number(product.cost_price ?? 0), group.quantity, group.value);
-        await trx.updateTable('products').set({ cost_price: cost, updated_at: sql`NOW()` })
-          .where('tenant_id', '=', tenantId).where('account_id', '=', accountId).where('id', '=', group.productId).execute();
+        // INV-WAC-SINGLE-WRITER: the one writer blends the receipt
+        // through the canonical engine. The product row is locked by
+        // lockStockProducts above, so the writer's read cannot miss
+        // it; id is the global primary key, so the old account_id
+        // predicate on the write was vestigial.
+        await valueStockReceipt(trx, tenantId, group.productId, stock.globalAfter, group.quantity, group.value);
         await trx.insertInto('stock_movements').values({
           tenant_id: tenantId, account_id: accountId, product_id: group.productId,
           movement_type: 'import_receipt', qty: group.quantity, before_qty: stock.scopeBefore, after_qty: stock.scopeAfter,

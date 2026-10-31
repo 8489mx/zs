@@ -10,7 +10,7 @@ import { CreateGoodsReceiptDto, CreateGrnBillDto, VerifyThreeWayMatchDto } from 
 import { computeThreeWayMatch, ThreeWayMatchInput } from '../three-way-match.engine';
 import { applyStockDelta, lockStockProducts } from '../../../common/utils/location-stock-ledger';
 import { allocateGrnAccrual, allocateGrniBillPortion } from '../engines/grni-settlement.engine';
-import { recoverWacBeforeQty, weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
+import { valueStockReceipt } from '../../accounting/inventory-valuation';
 import { tenantBaseCurrency } from '../../accounting/accounting-currency';
 import { currencyMoneyDigits, fromMinorUnits, roundMoney, toMinorUnits } from '../../accounting/engines/money-minor-units.engine';
 import { assertAutomatedJournalPeriodOpen } from '../../accounting/accounting-period-lock';
@@ -489,36 +489,13 @@ export class GoodsReceiptService {
 
           // Moving average cost on receipt. Without this, goods arriving at a new price never
           // updated products.cost_price, so COGS kept using a stale cost indefinitely.
-          const prod = await trx
-            .selectFrom('products')
-            .select(['stock_qty', 'cost_price'])
-            .where('id', '=', Number(line.productId))
-            .where('tenant_id', '=', scope.tenantId)
-            .executeTakeFirst();
-
-          if (prod && lineUnitCost > 0) {
-            // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
-            // true prior quantity from the corrected globalAfter, not the
-            // cached globalBefore (see recoverWacBeforeQty).
-            const qtyBefore = recoverWacBeforeQty(stockChange.globalAfter, accepted);
-            const costBefore = Number(prod.cost_price || 0);
-            // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
-            // balance algebraically instead of falling back to the incoming cost. The old
-            // comment's fear (a negative or absurd unit cost) only holds for a zero or
-            // negative algebraic result, which the engine guards by falling back instead of
-            // storing a negative unit cost. accepted > 0 and lineUnitCost > 0 are already
-            // enforced above, so the engine's received-quantity guard cannot trip here.
-            const newCost = weightedReceiptCost(qtyBefore, costBefore, accepted, accepted * lineUnitCost);
-
-            if (newCost >= 0) {
-              await trx
-                .updateTable('products')
-                .set({ cost_price: newCost, updated_at: new Date() })
-                .where('id', '=', Number(line.productId))
-                .where('tenant_id', '=', scope.tenantId)
-                .execute();
-            }
-          }
+          // INV-WAC-SINGLE-WRITER: the one writer blends the receipt
+          // through the canonical engine. accepted > 0 and lineUnitCost
+          // > 0 are enforced above; the engine never returns a negative
+          // cost, so the old non-negativity guard is subsumed. The
+          // product row is locked by the stock delta above, so the
+          // writer's read cannot miss it.
+          await valueStockReceipt(trx, scope.tenantId, Number(line.productId), stockChange.globalAfter, accepted, accepted * lineUnitCost);
 
           // Record formal stock movement with the real running balances.
           await trx

@@ -8,7 +8,7 @@ import { assertUntrackedStockMutation } from '../../inventory/helpers/inventory-
 import { reversePurchaseTrackedStock } from '../helpers/purchase-cancellation-trace.helper';
 import { computeInvoiceTotals } from '../../../common/utils/invoice-totals';
 import { purchaseReceiptBaseUnitCost } from '../engines/purchase-receipt-cost.engine';
-import { recoverWacBeforeQty, weightedReceiptCost } from '../../accounting/engines/inventory-valuation.engine';
+import { valueStockReceipt } from '../../accounting/inventory-valuation';
 import { ensureNonNegativeStock, ensureUniqueFlowItems } from '../../../common/utils/financial-integrity';
 import { applyStockDelta, lockStockProducts, previewConsumableStockQty } from '../../../common/utils/location-stock-ledger';
 import { KYSELY_DB } from '../../../database/database.constants';
@@ -482,27 +482,15 @@ export class PurchasesWriteService {
             accountId: scope.accountId,
           });
 
-          // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
-          // true prior quantity from the corrected globalAfter, not the
-          // cached globalBefore (see recoverWacBeforeQty).
-          const oldQty = recoverWacBeforeQty(stockChange.globalAfter, increasedQty);
-          const currentProduct = await trx.selectFrom('products').select('cost_price')
-            .where('id', '=', item.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
-          const oldCost = Number(currentProduct.cost_price || 0);
           // Inventory cost is per base stock unit, not per purchased carton.
           const baseUnitCost = netPurchaseUnitCost / item.unitMultiplier;
-          // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
-          // balance algebraically instead of clamping it to zero. The quantity input is the recovered true prior quantity
-          // (INV-WAC-QUANTITY-SOURCE), not the cached globalBefore.
-          const newCost = increasedQty > 0
-            ? weightedReceiptCost(oldQty, oldCost, increasedQty, increasedQty * baseUnitCost)
-            : oldCost;
-
-          await trx.updateTable('products')
-            .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
-            .where('id', '=', item.productId)
-            .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-            .execute();
+          // INV-WAC-SINGLE-WRITER: every receipt blends through the one
+          // writer (quantity recovery + algebraic blend + write). A
+          // zero-quantity line writes nothing: no receipt to blend and
+          // the stored cost is unchanged.
+          if (increasedQty > 0) {
+            await valueStockReceipt(trx, scope.tenantId, item.productId, stockChange.globalAfter, increasedQty, increasedQty * baseUnitCost);
+          }
           await trx.insertInto('stock_movements').values({
             product_id: item.productId,
             movement_type: 'purchase',
@@ -856,26 +844,14 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
         });
 
-        // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
-        // true prior quantity from the corrected globalAfter, not the
-        // cached globalBefore (see recoverWacBeforeQty).
-        const oldQty = recoverWacBeforeQty(stockChange.globalAfter, increaseQty);
-        const currentProduct = await trx.selectFrom('products').select('cost_price')
-          .where('id', '=', normalizedItem.productId).where('tenant_id', '=', scope.tenantId).executeTakeFirstOrThrow();
-        const oldCost = Number(currentProduct.cost_price || 0);
         const baseUnitCost = netRepricedCost / normalizedItem.unitMultiplier;
-        // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
-        // balance algebraically instead of clamping it to zero. The quantity input is the recovered true prior quantity
-        // (INV-WAC-QUANTITY-SOURCE), not the cached globalBefore.
-        const newCost = increaseQty > 0
-          ? weightedReceiptCost(oldQty, oldCost, increaseQty, increaseQty * baseUnitCost)
-          : oldCost;
-
-        await trx.updateTable('products')
-          .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
-          .where('id', '=', normalizedItem.productId)
-          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-          .execute();
+        // INV-WAC-SINGLE-WRITER: every receipt blends through the one
+        // writer (quantity recovery + algebraic blend + write). A
+        // zero-quantity line writes nothing: no receipt to blend and
+        // the stored cost is unchanged.
+        if (increaseQty > 0) {
+          await valueStockReceipt(trx, scope.tenantId, normalizedItem.productId, stockChange.globalAfter, increaseQty, increaseQty * baseUnitCost);
+        }
         await trx.insertInto('stock_movements').values({
           product_id: normalizedItem.productId,
           movement_type: 'purchase_edit_apply',
@@ -1658,30 +1634,14 @@ export class PurchasesWriteService {
           accountId: scope.accountId,
         });
 
-        // One WAC quantity source (INV-WAC-QUANTITY-SOURCE): recover the
-        // true prior quantity from the corrected globalAfter, not the
-        // cached globalBefore (see recoverWacBeforeQty).
-        const oldQty = recoverWacBeforeQty(stockChange.globalAfter, increasedQty);
-        const oldCostProduct = await trx
-          .selectFrom('products')
-          .select(['cost_price'])
-          .where('id', '=', item.product_id)
-          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-          .executeTakeFirst();
-        const oldCost = Number(oldCostProduct?.cost_price || 0);
-        // One WAC policy (INV-NEGATIVE-STOCK-WAC): the engine blends a negative prior
-        // balance algebraically instead of clamping it to zero. The quantity input is the recovered true prior quantity
-        // (INV-WAC-QUANTITY-SOURCE), not the cached globalBefore.
-        const newCost = increasedQty > 0
-          ? weightedReceiptCost(oldQty, oldCost, increasedQty, increasedQty * effectiveUnitCost)
-          : oldCost;
-
-        await trx
-          .updateTable('products')
-          .set({ cost_price: Number(newCost.toFixed(6)), updated_at: sql`NOW()` })
-          .where('id', '=', item.product_id)
-          .where(sql<boolean>`tenant_id = ${scope.tenantId}`)
-          .execute();
+        // INV-WAC-SINGLE-WRITER: every receipt blends through the one
+        // writer (quantity recovery + algebraic blend + write). A
+        // zero-quantity line writes nothing: no receipt to blend and
+        // the stored cost is unchanged. The product row is locked by
+        // the stock delta above, so the writer's read cannot miss it.
+        if (increasedQty > 0) {
+          await valueStockReceipt(trx, scope.tenantId, item.product_id, stockChange.globalAfter, increasedQty, increasedQty * effectiveUnitCost);
+        }
 
         await trx.insertInto('stock_movements').values({
           product_id: item.product_id,
