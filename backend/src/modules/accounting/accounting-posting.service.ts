@@ -83,13 +83,13 @@ export class AccountingPostingService {
     }
   }
 
-  private toMoney(value: unknown, digits: MoneyDigits = 2): number {
+  private toMoney(value: unknown, digits: MoneyDigits): number {
     const amount = Number(value ?? 0);
     if (!Number.isFinite(amount)) throw new AppError('Journal amount must be finite', 'INVALID_JOURNAL_AMOUNT', 400);
     return roundMoney(amount, digits);
   }
 
-  private maxAllowedDifference(bookDigits: MoneyDigits = 2): number {
+  private maxAllowedDifference(bookDigits: MoneyDigits): number {
     return 10 ** -bookDigits;
   }
 
@@ -261,7 +261,7 @@ export class AccountingPostingService {
     return new Map(rows.map((row) => [Number(row.id), Boolean(row.is_active)]));
   }
 
-  private addLine(lines: JournalLineDraft[], next: JournalLineDraft, digits: 2 | 3 = 2): void {
+  private addLine(lines: JournalLineDraft[], next: JournalLineDraft, digits: 2 | 3): void {
     const debit = this.toMoney(next.debit, digits);
     const credit = this.toMoney(next.credit, digits);
     if (Number(next.debit) < 0 || Number(next.credit) < 0) throw new AppError('Journal amounts cannot be negative', 'INVALID_JOURNAL_LINE', 400);
@@ -3230,11 +3230,11 @@ export class AccountingPostingService {
 
     const lines: JournalLineDraft[] = [];
     if (isCard) {
-      this.addLine(lines, { accountId: bankAccountId, description: `إيراد خدمة بنكي: ${service.name}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: bankAccountId, description: `إيراد خدمة بنكي: ${service.name}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId }, bookDigits);
     } else {
-      this.addLine(lines, { accountId: cashAccountId, description: `إيراد خدمة نقدي: ${service.name}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: cashAccountId, description: `إيراد خدمة نقدي: ${service.name}`, debit: amount, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId }, bookDigits);
     }
-    this.addLine(lines, { accountId: revenueAccountId, description: `إيراد خدمة: ${service.name}`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId });
+    this.addLine(lines, { accountId: revenueAccountId, description: `إيراد خدمة: ${service.name}`, debit: 0, credit: amount, partnerType: 'none', partnerId: null, branchId, locationId }, bookDigits);
 
     // Use composite source_id for idempotency on revisions
     const sourceIdComposite = Number(`${serviceId}000${revision}`);
@@ -4075,16 +4075,16 @@ export class AccountingPostingService {
     const locationId = wo.destination_location_id ? Number(wo.destination_location_id) : null;
 
     // 1. Debit FG (Inventory)
-    this.addLine(lines, { accountId: inventoryAccountId, description: `منتج تام إضافي - أمر #${workOrderId}`, debit: fgCost, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId });
+    this.addLine(lines, { accountId: inventoryAccountId, description: `منتج تام إضافي - أمر #${workOrderId}`, debit: fgCost, credit: 0, partnerType: 'none', partnerId: null, branchId, locationId }, bookDigits);
 
     // 2. Credit RM (Inventory)
     if (rmCost > 0) {
-      this.addLine(lines, { accountId: inventoryAccountId, description: `خامات مستهلكة - أمر #${workOrderId}`, debit: 0, credit: rmCost, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: inventoryAccountId, description: `خامات مستهلكة - أمر #${workOrderId}`, debit: 0, credit: rmCost, partnerType: 'none', partnerId: null, branchId, locationId }, bookDigits);
     }
 
     // 3. Credit Overhead
     if (overheadCost > 0) {
-      this.addLine(lines, { accountId: overheadAccountId, description: `مصاريف صناعية محملة - أمر #${workOrderId}`, debit: 0, credit: overheadCost, partnerType: 'none', partnerId: null, branchId, locationId });
+      this.addLine(lines, { accountId: overheadAccountId, description: `مصاريف صناعية محملة - أمر #${workOrderId}`, debit: 0, credit: overheadCost, partnerType: 'none', partnerId: null, branchId, locationId }, bookDigits);
     }
 
     try {
@@ -5477,22 +5477,22 @@ export class AccountingPostingService {
         debit: taxAmount, credit: 0,
         partnerType: partnerId ? 'supplier' : 'none', partnerId,
         branchId: null, locationId: null,
-      });
+      }, bookDigits);
       this.addLine(lines, {
         accountId: whtPayableId,
         description: `أمانات ضريبة خصم وإضافة نموذج 41 - فاتورة #${tx.invoice_number}`,
         debit: 0, credit: taxAmount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
-      });
+      }, bookDigits);
       this.addLine(lines, {
         accountId: whtPayableId,
         description: `سداد ضريبة خصم وإضافة نموذج 41 - فاتورة #${tx.invoice_number}`,
         debit: taxAmount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
-      });
+      }, bookDigits);
       this.addLine(lines, {
         accountId: paymentAccountId,
         description: `سداد وتوريد ضريبة الخصم والإضافة لمصلحة الضرائب (${paymentMethod === 'cash' ? 'نقداً' : 'بنكياً'})`,
         debit: 0, credit: taxAmount, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
-      });
+      }, bookDigits);
     } else {
       // Tax withheld by the customer is a credit against our income tax; it settles part of the customer's debt.
       let customerArId = Number(settings?.customer_receivable_account_id || 0);
@@ -5503,14 +5503,14 @@ export class AccountingPostingService {
         accountId: whtReceivableId,
         description: `ضريبة خصم وإضافة مخصومة لدى العميل - فاتورة #${tx.invoice_number}`,
         debit: taxAmount, credit: 0, partnerType: 'none', partnerId: null, branchId: null, locationId: null,
-      });
+      }, bookDigits);
       this.addLine(lines, {
         accountId: customerArId,
         description: `تسوية مديونية العميل ${tx.partner_name} بقيمة الضريبة المخصومة - فاتورة #${tx.invoice_number}`,
         debit: 0, credit: taxAmount,
         partnerType: partnerId ? 'customer' : 'none', partnerId,
         branchId: null, locationId: null,
-      });
+      }, bookDigits);
     }
 
     try {

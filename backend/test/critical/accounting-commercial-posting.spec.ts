@@ -405,11 +405,11 @@ async function main() {
     const aggregated: any[] = [];
     const addLine = (posting as any).addLine.bind(posting);
     const template = {accountId:9001,description:'same description',partnerType:'none',partnerId:null,branchId:null,locationId:null};
-    addLine(aggregated,{...template,costCenterId:7,debit:10,credit:0});
-    addLine(aggregated,{...template,costCenterId:8,debit:20,credit:0});
-    addLine(aggregated,{...template,costCenterId:7,debit:0,credit:10});
+    addLine(aggregated,{...template,costCenterId:7,debit:10,credit:0},2);
+    addLine(aggregated,{...template,costCenterId:8,debit:20,credit:0},2);
+    addLine(aggregated,{...template,costCenterId:7,debit:0,credit:10},2);
     assert.equal(aggregated.length,3,'different cost centers and opposite sides cannot merge');
-    assert.throws(() => addLine(aggregated,{...template,debit:-0.001,credit:1}));
+    assert.throws(() => addLine(aggregated,{...template,debit:-0.001,credit:1},2));
     const draftLines = [{accountId:1110,debit:14,credit:0},{accountId:2120,debit:0,credit:14}];
     const domain = (accountId: number, date = '2026-10-01') => posting.postDomainJournal(db, {
       sourceType:'audit',sourceId:1,tenantId:'t1',accountId:'a1',entryDate:new Date(date),description:'tax lock',createdBy:1,
