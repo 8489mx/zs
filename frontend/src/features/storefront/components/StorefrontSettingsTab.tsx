@@ -29,23 +29,6 @@ import {
 } from '@/shared/components/icons/AppIcons';
 import { TableQrPrintDialog } from '@/features/pos';
 
-function parsePosition(posStr?: string): { x: number; y: number } {
-  if (!posStr) return { x: 50, y: 50 };
-  if (posStr === 'top') return { x: 50, y: 0 };
-  if (posStr === 'bottom') return { x: 50, y: 100 };
-  if (posStr === 'center') return { x: 50, y: 50 };
-  const parts = posStr.trim().split(/\s+/);
-  if (parts.length === 2) {
-    const x = parseFloat(parts[0]);
-    const y = parseFloat(parts[1]);
-    return {
-      x: isNaN(x) ? 50 : x,
-      y: isNaN(y) ? 50 : y,
-    };
-  }
-  return { x: 50, y: 50 };
-}
-
 export function StorefrontSettingsTab() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -53,10 +36,7 @@ export function StorefrontSettingsTab() {
   const [activeTab, setActiveTab] = useState<'settings' | 'coupons' | 'zones' | 'payments' | 'images' | 'bosta' | 'gcc-shipping'>('settings');
   const [copySuccess, setCopySuccess] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [bannerCompressFeedback, setBannerCompressFeedback] = useState('');
-  const [isCompressingBanner, setIsCompressingBanner] = useState(false);
   const [isQrPrintOpen, setIsQrPrintOpen] = useState(false);
-  const [copiedPromptKey, setCopiedPromptKey] = useState<'ar' | 'en' | null>(null);
 
   const analyticsQuery = useQuery({
     queryKey: ['storefront-admin-analytics'],
@@ -64,22 +44,7 @@ export function StorefrontSettingsTab() {
     refetchInterval: 30 * 1000,
   });
 
-  const aiPromptTemplateAr =
-    'صمم بنر إعلاني سينمائي فائق العرض (Ultra-Wide Panoramic Store Banner) بنسبة 4:1 وأبعاد دقيقة 1920x480 بكسل (أو 1600x400 بكسل) لمتجر إلكتروني فاخر [اكتب اسم ونشاط متجرك هنا].\n' +
-    'شروط توزيع العناصر والتكوين البصري لملء المتجر دون أي قص:\n' +
-    '1. أبعاد التصميم: نسبة العرض إلى الارتفاع 4:1 شريطي بانورامي (مقاس 1920×480 بكسل للبنر كامل الشاشة، أو 1400×350 بكسل للبانرات الفاصلة بين الأقسام).\n' +
-    '2. منطقة الأمان المركزية (60%): ضع اسم المتجر، الشعار، عبارات العرض الترويجي، والمنتجات الرئيسية حصرياً في الـ 60% الوسطى من الكادر.\n' +
-    '3. امتداد الأطراف (20% يميناً و 20% يساراً): اجعل الحواف الجانبية مجرد خلفية ممتدة متجانسة بتدرج لوني وإضاءة استوديو ناعمة بدون أي نصوص أو منتجات مقطوعة لتملأ الشاشة بسلاسة وتتوافق تماماً مع الهواتف والشاشات العريضة دون أي قص.';
 
-  const aiPromptTemplateEn =
-    'Ultra-wide cinematic commercial e-commerce panoramic header banner, exact aspect ratio 4:1, 1920x480 resolution, for [Your Store Name / Business Type]. Luxury modern commercial branding, clean studio lighting, hyper-realistic, 8k render. CRITICAL COMPOSITION RULES: Place all hero products, promotional copy, branding, and logos strictly inside the central 60% horizontal safe zone. The left 20% and right 20% edges must be seamless ambient extending background gradient with atmospheric lighting and zero cut-off text or cropped objects at the borders. Works perfectly for full-bleed screens and responsive mobile viewports. --ar 4:1';
-
-  const handleCopyPrompt = (type: 'ar' | 'en') => {
-    const textToCopy = type === 'ar' ? aiPromptTemplateAr : aiPromptTemplateEn;
-    navigator.clipboard.writeText(textToCopy);
-    setCopiedPromptKey(type);
-    setTimeout(() => setCopiedPromptKey(null), 3000);
-  };
 
   const settingsQuery = useQuery({
     queryKey: ['storefront-admin-settings'],
@@ -133,37 +98,7 @@ export function StorefrontSettingsTab() {
     midBanners: [] as StorefrontMidBanner[],
   });
 
-  const [previewSlideIndex, setPreviewSlideIndex] = useState(0);
-  const [isPreviewHovered, setIsPreviewHovered] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartRef = useRef<{ clientX: number; clientY: number; initX: number; initY: number } | null>(null);
-  const previewContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Auto-cycle the settings preview carousel, pausing when hovered or dragging
-  useEffect(() => {
-    if (formState.bannerUrls.length <= 1 || isPreviewHovered || isDragging) return;
-    const intervalMs = Math.max(1500, (formState.bannerIntervalSeconds || 4) * 1000);
-    const interval = setInterval(() => {
-      setPreviewSlideIndex((prev) => (prev + 1) % formState.bannerUrls.length);
-    }, intervalMs);
-    return () => clearInterval(interval);
-  }, [formState.bannerUrls.length, formState.bannerIntervalSeconds, isPreviewHovered, isDragging]);
-
-  // Ensure dragging is released if pointer leaves window or gesture ends
-  useEffect(() => {
-    const handleGlobalPointerRelease = () => {
-      if (isDragging) {
-        setIsDragging(false);
-        dragStartRef.current = null;
-      }
-    };
-    window.addEventListener('pointerup', handleGlobalPointerRelease);
-    window.addEventListener('pointercancel', handleGlobalPointerRelease);
-    return () => {
-      window.removeEventListener('pointerup', handleGlobalPointerRelease);
-      window.removeEventListener('pointercancel', handleGlobalPointerRelease);
-    };
-  }, [isDragging]);
 
   useEffect(() => {
     if (settingsQuery.data) {
@@ -228,80 +163,7 @@ export function StorefrontSettingsTab() {
     }
   }, [settingsQuery.data]);
 
-  const currentSlidePosition =
-    formState.bannerPositions?.[previewSlideIndex] ||
-    formState.bannerPosition ||
-    '50% 50%';
 
-  const currentCoords = parsePosition(currentSlidePosition);
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    dragStartRef.current = {
-      clientX: e.clientX,
-      clientY: e.clientY,
-      initX: currentCoords.x,
-      initY: currentCoords.y,
-    };
-    try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {}
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isDragging || !dragStartRef.current) return;
-    const rect = previewContainerRef.current?.getBoundingClientRect();
-    const width = rect?.width || 400;
-    const height = rect?.height || 160;
-
-    const dx = e.clientX - dragStartRef.current.clientX;
-    const dy = e.clientY - dragStartRef.current.clientY;
-
-    const sensitivity = 1.15;
-    const nextX = Math.min(100, Math.max(0, dragStartRef.current.initX - ((dx / width) * 100 * sensitivity)));
-    const nextY = Math.min(100, Math.max(0, dragStartRef.current.initY - ((dy / height) * 100 * sensitivity)));
-
-    const newPos = `${Math.round(nextX)}% ${Math.round(nextY)}%`;
-
-    setFormState((prev) => {
-      const updatedPositions = [...(prev.bannerPositions || [])];
-      while (updatedPositions.length < prev.bannerUrls.length) {
-        updatedPositions.push('50% 50%');
-      }
-      updatedPositions[previewSlideIndex] = newPos;
-      return {
-        ...prev,
-        bannerPosition: newPos,
-        bannerPositions: updatedPositions,
-      };
-    });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (isDragging) {
-      setIsDragging(false);
-      dragStartRef.current = null;
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {}
-    }
-  };
-
-  const handleSetExactPosition = (posStr: string) => {
-    setFormState((prev) => {
-      const updatedPositions = [...(prev.bannerPositions || [])];
-      while (updatedPositions.length < prev.bannerUrls.length) {
-        updatedPositions.push('50% 50%');
-      }
-      updatedPositions[previewSlideIndex] = posStr;
-      return {
-        ...prev,
-        bannerPosition: posStr,
-        bannerPositions: updatedPositions,
-      };
-    });
-  };
 
   const updateMutation = useMutation({
     mutationFn: storefrontApi.updateSettings,
@@ -326,40 +188,7 @@ export function StorefrontSettingsTab() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
-  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    try {
-      setIsCompressingBanner(true);
-      setBannerCompressFeedback('جاري ضغط بنر المتجر بتقنية WebP السريعة...');
-
-      const res = await compressImage(file, {
-        maxWidth: 1600,
-        maxHeight: 480,
-        initialQuality: 0.82,
-        maxSizeKb: 65,
-      });
-
-      setFormState((prev) => {
-        const nextUrls = [...prev.bannerUrls, res.dataUrl];
-        return {
-          ...prev,
-          bannerUrls: nextUrls,
-          bannerUrl: nextUrls[0] || '',
-        };
-      });
-
-      setBannerCompressFeedback(
-        `تم إضافة البنر بنجاح (${res.originalSizeKb}KB → ${res.compressedSizeKb}KB، وفر ${res.compressionRatio}%)`
-      );
-      setIsCompressingBanner(false);
-      e.target.value = '';
-    } catch (err: any) {
-      setBannerCompressFeedback(`فشل ضغط البنر: ${err.message || 'خطأ غير متوقع'}`);
-      setIsCompressingBanner(false);
-    }
-  };
 
   const [isCompressingLogo, setIsCompressingLogo] = useState(false);
   const [logoCompressFeedback, setLogoCompressFeedback] = useState<string | null>(null);
@@ -401,46 +230,7 @@ export function StorefrontSettingsTab() {
     setLogoCompressFeedback(null);
   };
 
-  const handleRemoveBanner = (index: number) => {
-    setFormState((prev) => {
-      const nextUrls = prev.bannerUrls.filter((_, idx) => idx !== index);
-      const nextPositions = (prev.bannerPositions || []).filter((_, idx) => idx !== index);
-      return {
-        ...prev,
-        bannerUrls: nextUrls,
-        bannerPositions: nextPositions,
-        bannerUrl: nextUrls[0] || '',
-      };
-    });
-    setPreviewSlideIndex((prev) => Math.max(0, Math.min(prev, formState.bannerUrls.length - 2)));
-  };
 
-  const handleMoveBanner = (index: number, direction: 'up' | 'down') => {
-    setFormState((prev) => {
-      const nextUrls = [...prev.bannerUrls];
-      const nextPositions = [...(prev.bannerPositions || [])];
-      while (nextPositions.length < nextUrls.length) {
-        nextPositions.push('50% 50%');
-      }
-      const targetIndex = direction === 'up' ? index - 1 : index + 1;
-      if (targetIndex < 0 || targetIndex >= nextUrls.length) return prev;
-
-      const tempUrl = nextUrls[index];
-      nextUrls[index] = nextUrls[targetIndex];
-      nextUrls[targetIndex] = tempUrl;
-
-      const tempPos = nextPositions[index];
-      nextPositions[index] = nextPositions[targetIndex];
-      nextPositions[targetIndex] = tempPos;
-
-      return {
-        ...prev,
-        bannerUrls: nextUrls,
-        bannerPositions: nextPositions,
-        bannerUrl: nextUrls[0] || '',
-      };
-    });
-  };
 
   const catalogQuery = useQuery({
     queryKey: ['storefront-catalog', formState.slug || storeSlug],
@@ -1807,70 +1597,158 @@ export function StorefrontSettingsTab() {
                       background: formState.brandSurfaceColor || '#f8fafc',
                       border: '1px solid #cbd5e1',
                       borderRadius: '12px',
-                      padding: '12px',
+                      padding: '12px 14px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '8px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                      gap: '9px',
+                      boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
+                      position: 'relative',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '10.5px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        {t('storefront.storefront_settings_tab.s62', "معاينة المتجر الحية (Live Preview)")}
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>{t('storefront.storefront_settings_tab.s62', "معاينة المتجر الحية (Live Preview)")}</span>
+                        <span style={{ fontSize: '9.5px', background: '#ecfdf5', color: '#059669', padding: '1px 6px', borderRadius: '4px', border: '1px solid #a7f3d0' }}>
+                          مطابق للمتجر الحقيقي
+                        </span>
                       </span>
-                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 2px rgba(34, 197, 94, 0.2)' }} />
                     </div>
 
-                    {/* Mini Header Mockup */}
+                    {/* Mini Modern Header Mockup */}
                     <div
                       style={{
-                        background: formState.brandColor || '#170e5e',
-                        color: '#ffffff',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '9px',
                         padding: '6px 10px',
-                        borderRadius: '8px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        gap: '8px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
                       }}
                     >
-                      <span style={{ fontSize: '11.5px', fontWeight: 900 }}>
-                        {formState.title || t('storefront.storefront_settings_tab.s63', "متجري الإلكتروني")}
-                      </span>
-                      <span
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                        {formState.logoUrl ? (
+                          <img
+                            src={formState.logoUrl}
+                            alt="Logo"
+                            style={{ width: '20px', height: '20px', borderRadius: '5px', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '5px',
+                              background: formState.brandColor || '#170e5e',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '10.5px',
+                              fontWeight: 900,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {(formState.title || 'M').charAt(0)}
+                          </div>
+                        )}
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {formState.title || t('storefront.storefront_settings_tab.s63', "متجري الإلكتروني")}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <span
+                          style={{
+                            fontSize: '9.5px',
+                            fontWeight: 700,
+                            color: '#475569',
+                            background: '#f8fafc',
+                            padding: '2px 6px',
+                            borderRadius: '5px',
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          طلباتي
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '9.5px',
+                            fontWeight: 800,
+                            background: formState.brandColor || '#170e5e',
+                            color: '#ffffff',
+                            padding: '2px 8px',
+                            borderRadius: '5px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                          }}
+                        >
+                          السلة (2)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Mini Hero Editorial Mockup */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0.95), rgba(241,245,249,0.9))',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '9px',
+                        padding: '8px 10px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div
                         style={{
-                          fontSize: '10px',
+                          fontSize: '12px',
                           fontWeight: 800,
-                          background: formState.brandSecondaryColor || '#f59e0b',
-                          color: '#ffffff',
-                          padding: '2px 6px',
-                          borderRadius: '12px',
+                          color: '#0f172a',
+                          lineHeight: '1.3',
                         }}
                       >
-                        {t('storefront.storefront_settings_tab.s64', "السلة (1)")}
-                      </span>
+                        {formState.heroHeadline?.trim() || 'أفضل المنتجات بأحسن سعر'}
+                      </div>
+                      {formState.heroSubtitle?.trim() && (
+                        <div
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 500,
+                            color: '#64748b',
+                            marginTop: '2px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {formState.heroSubtitle.trim()}
+                        </div>
+                      )}
                     </div>
 
                     {/* Mini Product Card Mockup */}
                     <div
                       style={{
                         background: '#ffffff',
-                        borderRadius: '10px',
+                        borderRadius: '9px',
                         border: '1px solid #e2e8f0',
-                        padding: '8px 10px',
+                        padding: '7px 9px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         gap: '8px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                       }}
                     >
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a' }}>
                             {t('storefront.storefront_settings_tab.s65', "منتج تجريبي")}
                           </span>
                           <span
                             style={{
-                              fontSize: '9.5px',
+                              fontSize: '9px',
                               fontWeight: 800,
                               background: formState.brandSecondaryColor || '#f59e0b',
                               color: '#ffffff',
@@ -1881,11 +1759,11 @@ export function StorefrontSettingsTab() {
                             {t('storefront.storefront_settings_tab.s66', "خصم 20%")}
                           </span>
                         </div>
-                        <div style={{ fontSize: '11.5px', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', marginTop: '2px' }}>
                           <strong style={{ color: formState.brandColor || '#170e5e', fontWeight: 900 }}>
                             {t('storefront.storefront_settings_tab.s67', "160 ج")}
                           </strong>{' '}
-                          <span style={{ fontSize: '10px', color: '#94a3b8', textDecoration: 'line-through' }}>
+                          <span style={{ fontSize: '9.5px', color: '#94a3b8', textDecoration: 'line-through' }}>
                             {t('storefront.storefront_settings_tab.s68', "200 ج")}
                           </span>
                         </div>
@@ -1894,20 +1772,32 @@ export function StorefrontSettingsTab() {
                         style={{
                           background: formState.brandColor || '#170e5e',
                           color: '#ffffff',
-                          fontSize: '10.5px',
+                          fontSize: '10px',
                           fontWeight: 800,
                           padding: '4px 10px',
-                          borderRadius: '6px',
+                          borderRadius: '5px',
                         }}
                       >
                         {t('storefront.storefront_settings_tab.s69', "أضف للسلة")}
                       </span>
                     </div>
+
+                    {/* Color Spectrum Chips */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px', borderTop: '1px dashed #cbd5e1' }}>
+                      <span style={{ fontSize: '9.5px', color: '#64748b', fontWeight: 600 }}>القيم النشطة:</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', fontFamily: 'monospace', fontSize: '9px', direction: 'ltr' }}>
+                        <span style={{ color: formState.brandColor || '#170e5e', fontWeight: 700 }}>P: {formState.brandColor || '#170e5e'}</span>
+                        <span style={{ color: '#cbd5e1' }}>|</span>
+                        <span style={{ color: formState.brandSecondaryColor || '#f59e0b', fontWeight: 700 }}>A: {formState.brandSecondaryColor || '#f59e0b'}</span>
+                        <span style={{ color: '#cbd5e1' }}>|</span>
+                        <span style={{ color: '#475569', fontWeight: 700 }}>S: {formState.brandSurfaceColor || '#f8fafc'}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-            {/* Card 4: إعدادات التشغيل والتوصيل وبنر الواجهة */}
+            {/* Card 4: إعدادات التشغيل والتوصيل والخدمات */}
             <div
               style={{
                 gridColumn: '1 / -1',
@@ -1923,10 +1813,10 @@ export function StorefrontSettingsTab() {
             >
               <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
                 <h3 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: '#0f172a' }}>
-                  {t('storefront.storefront_settings_tab.s77', "التشغيل والتوصيل وبنر الواجهة")}
+                  {t('storefront.storefront_settings_tab.s77', "إعدادات التشغيل والتوصيل والخدمات")}
                 </h3>
                 <span style={{ fontSize: '11px', color: '#64748b' }}>
-                  {t('storefront.storefront_settings_tab.s78', "إعدادات التوصيل وتخصيص البنر")}
+                  {t('storefront.storefront_settings_tab.s78', "إعدادات التوصيل، الشحن المجاني، وتوافر المنتجات")}
                 </span>
               </div>
 
@@ -2212,776 +2102,6 @@ export function StorefrontSettingsTab() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Multi-Banner Carousel Manager (Slider / GIF-like Auto Rotation) */}
-              <div
-                style={{
-                  border: '1.5px dashed #cbd5e1',
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  background: '#f8fafc',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <div>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
-                      {t('storefront.storefront_settings_tab.s96', "سلايدر بنرات العروض (متحرك تلقائياً):")}
-                    </span>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>
-                      {t('storefront.storefront_settings_tab.s97', "أضف صورة أو أكثر لتقلب تلقائياً كـ GIF في واجهة المتجر")}
-                    </span>
-                  </div>
-                  {formState.bannerUrls.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setFormState((prev) => ({ ...prev, bannerUrls: [], bannerUrl: '' }))}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#ef4444',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        padding: '2px 6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <Trash2Icon size={12} color="#ef4444" />
-                      <span>{t('storefront.storefront_settings_tab.s98', "حذف الكل")}</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Multi-Slide Selector Bar (when multiple slides) */}
-                {formState.bannerUrls.length > 1 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
-                      {t('storefront.storefront_settings_tab.s99', "اختر الشريحة لتعديل موضعها:")}
-                    </span>
-                    {formState.bannerUrls.map((_, idx) => (
-                      <button
-                        key={`select-slide-${idx}`}
-                        type="button"
-                        onClick={() => setPreviewSlideIndex(idx)}
-                        style={{
-                          padding: '3px 9px',
-                          borderRadius: '5px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          border: previewSlideIndex === idx ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                          background: previewSlideIndex === idx ? '#170e5e' : '#ffffff',
-                          color: previewSlideIndex === idx ? '#ffffff' : '#475569',
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {t('storefront.storefront_settings_tab.s100', "شريحة #")}{idx + 1}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Interactive Facebook-Style Drag-to-Position Canvas */}
-                {formState.bannerUrls.length > 0 && (
-                  <div style={{ marginBottom: '10px' }}>
-                    <div
-                      ref={previewContainerRef}
-                      onMouseEnter={() => setIsPreviewHovered(true)}
-                      onMouseLeave={() => setIsPreviewHovered(false)}
-                      onPointerDown={handlePointerDown}
-                      onPointerMove={handlePointerMove}
-                      onPointerUp={handlePointerUp}
-                      onPointerCancel={handlePointerUp}
-                      style={{
-                        position: 'relative',
-                        width: '100%',
-                        aspectRatio: '4 / 1',
-                        minHeight: '130px',
-                        maxHeight: '200px',
-                        borderRadius: '10px',
-                        overflow: 'hidden',
-                        border: '2px dashed #2563eb', // Dashed guide frame
-                        background: '#0f172a',
-                        cursor: isDragging ? 'grabbing' : 'grab',
-                        touchAction: 'none',
-                        boxShadow: '0 2px 10px rgba(37, 99, 235, 0.14)',
-                        userSelect: 'none',
-                      }}
-                    >
-                      {/* Ambient Blurred Backdrop Layer */}
-                      {formState.bannerFit === 'contain' && (
-                        <div
-                          aria-hidden="true"
-                          style={{
-                            position: 'absolute',
-                            inset: '-20px',
-                            backgroundImage: `url(${formState.bannerUrls[previewSlideIndex] || formState.bannerUrls[0]})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: currentSlidePosition,
-                            filter: 'blur(28px) saturate(1.3) brightness(0.65)',
-                            transform: 'scale(1.2)',
-                            pointerEvents: 'none',
-                            zIndex: 1,
-                          }}
-                        />
-                      )}
-
-                      {/* Foreground Image Layer with Object Position */}
-                      <img
-                        src={formState.bannerUrls[previewSlideIndex] || formState.bannerUrls[0]}
-                        alt={t('storefront.storefront_settings_tab.s101', "معاينة حية للبنر")}
-                        draggable={false}
-                        style={{
-                          position: 'relative',
-                          zIndex: 2,
-                          width: '100%',
-                          height: '100%',
-                          objectFit: formState.bannerFit || 'cover',
-                          objectPosition: currentSlidePosition,
-                          display: 'block',
-                          pointerEvents: 'none',
-                          transition: isDragging ? 'none' : 'object-position 0.15s ease',
-                          filter: formState.bannerFit === 'contain' ? 'drop-shadow(0 4px 18px rgba(0,0,0,0.45))' : 'none',
-                        }}
-                      />
-
-                      {/* Viewport Boundary & Dashed Guidelines Overlay */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          pointerEvents: 'none',
-                          border: '1px solid rgba(255, 255, 255, 0.35)',
-                          borderRadius: '8px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between',
-                          padding: '8px',
-                        }}
-                      >
-                        {/* Top Overlay Badge */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div
-                            style={{
-                              background: 'rgba(15, 23, 42, 0.88)',
-                              color: '#ffffff',
-                              fontSize: '10.5px',
-                              fontWeight: 700,
-                              padding: '3px 10px',
-                              borderRadius: '6px',
-                              backdropFilter: 'blur(4px)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                            }}
-                          >
-                            <span>{t('storefront.storefront_settings_tab.s102', "اسحب الصورة بالماوس لضبط موضع الظهور")}</span>
-                          </div>
-
-                          <div
-                            style={{
-                              background: isDragging ? '#16a34a' : 'rgba(15, 23, 42, 0.88)',
-                              color: '#ffffff',
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '6px',
-                              backdropFilter: 'blur(4px)',
-                              transition: 'background 0.2s',
-                            }}
-                          >
-                            {isDragging ? t('storefront.storefront_settings_tab.s103', "جاري التحريك...") : (
-                              formState.bannerUrls.length > 1
-                                ? `شريحة ${previewSlideIndex + 1} من ${formState.bannerUrls.length}`
-                                : t('storefront.storefront_settings_tab.s104', "شريحة رئيسية")
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Bottom Overlay: Coordinate Readout */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                          <div
-                            style={{
-                              background: 'rgba(15, 23, 42, 0.82)',
-                              color: '#ffffff',
-                              fontSize: '10px',
-                              fontFamily: 'monospace',
-                              direction: 'ltr',
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              backdropFilter: 'blur(4px)',
-                            }}
-                          >
-                            {t('storefront.storefront_settings_tab.s105', "الموضع: أفقي")} {Math.round(currentCoords.x)}{t('storefront.storefront_settings_tab.s106', "% | رأسي")} {Math.round(currentCoords.y)}%
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quick Alignment Presets & Center Reset */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', padding: '6px 4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleSetExactPosition('50% 50%')}
-                          style={{
-                            padding: '3px 8px',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            background: '#ffffff',
-                            color: '#170e5e',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {t('storefront.storefront_settings_tab.s107', "⟲ توسيط للمنتصف (50% 50%)")}
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>{t('storefront.storefront_settings_tab.s108', "محاذاة سريعة:")}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleSetExactPosition('50% 0%')}
-                          style={{
-                            padding: '2px 6px',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            background: '#f8fafc',
-                            color: '#475569',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {t('storefront.storefront_settings_tab.s109', "أعلى")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetExactPosition('50% 100%')}
-                          style={{
-                            padding: '2px 6px',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            background: '#f8fafc',
-                            color: '#475569',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {t('storefront.storefront_settings_tab.s110', "أسفل")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetExactPosition('100% 50%')}
-                          style={{
-                            padding: '2px 6px',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            background: '#f8fafc',
-                            color: '#475569',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {t('storefront.storefront_settings_tab.s111', "يمين")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetExactPosition('0% 50%')}
-                          style={{
-                            padding: '2px 6px',
-                            fontSize: '10px',
-                            fontWeight: 700,
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e1',
-                            background: '#f8fafc',
-                            color: '#475569',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {t('storefront.storefront_settings_tab.s112', "يسار")}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Slide Auto-Slide Duration Setting */}
-                <div
-                  style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    marginBottom: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                  }}
-                >
-                  <div>
-                    <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#0f172a', display: 'block' }}>
-                      {t('storefront.storefront_settings_tab.s113', "سرعة تقليب الشرائح تلقائياً:")}
-                    </span>
-                    <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                      {t('storefront.storefront_settings_tab.s114', "يقف التقليب تلقائياً بمجرد وقوف الماوس فوق البنر")}
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', minWidth: 0 }}>
-                    {[2, 3, 4, 5, 7, 10].map((sec) => (
-                      <button
-                        key={sec}
-                        type="button"
-                        onClick={() => setFormState((prev) => ({ ...prev, bannerIntervalSeconds: sec }))}
-                        style={{
-                          padding: '3px 8px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          borderRadius: '5px',
-                          border: formState.bannerIntervalSeconds === sec ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                          background: formState.bannerIntervalSeconds === sec ? '#170e5e' : '#ffffff',
-                          color: formState.bannerIntervalSeconds === sec ? '#ffffff' : '#475569',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {sec} {t('storefront.storefront_settings_tab.s115', "ث")}
-                      </button>
-                    ))}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginInlineStart: '4px' }}>
-                      <input
-                        type="number"
-                        min="1"
-                        max="60"
-                        value={formState.bannerIntervalSeconds || 4}
-                        onChange={(e) =>
-                          setFormState((prev) => ({
-                            ...prev,
-                            bannerIntervalSeconds: Math.max(1, Number(e.target.value)),
-                          }))
-                        }
-                        style={{
-                          width: '42px',
-                          padding: '3px 4px',
-                          borderRadius: '5px',
-                          border: '1.5px solid #cbd5e1',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          textAlign: 'center',
-                          direction: 'ltr',
-                        }}
-                      />
-                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>{t('storefront.storefront_settings_tab.s116', "ث")}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Banner Fit Mode Setting */}
-                {formState.bannerUrls.length > 0 && (
-                  <div
-                    style={{
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      marginBottom: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                      minWidth: 0,
-                    }}
-                  >
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>
-                      {t('storefront.storefront_settings_tab.s117', "طريقة ملء إطار البنر:")}
-                    </span>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
-                      <button
-                        type="button"
-                        onClick={() => setFormState((prev) => ({ ...prev, bannerFit: 'cover' }))}
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          borderRadius: '5px',
-                          border: formState.bannerFit === 'cover' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                          background: formState.bannerFit === 'cover' ? '#eff6ff' : '#ffffff',
-                          color: formState.bannerFit === 'cover' ? '#170e5e' : '#64748b',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span className="banner-fit-full">{t('storefront.storefront_settings_tab.s118', "ملء كامل الإطار (Cover - مفضل للسحب)")}</span>
-                        <span className="banner-fit-short">{t('storefront.storefront_settings_tab.s119', "ملء الإطار (Cover)")}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormState((prev) => ({ ...prev, bannerFit: 'contain' }))}
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          borderRadius: '5px',
-                          border: formState.bannerFit === 'contain' ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                          background: formState.bannerFit === 'contain' ? '#eff6ff' : '#ffffff',
-                          color: formState.bannerFit === 'contain' ? '#170e5e' : '#64748b',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <span className="banner-fit-full">{t('storefront.storefront_settings_tab.s120', "احتواء كامل (Contain)")}</span>
-                        <span className="banner-fit-short">{t('storefront.storefront_settings_tab.s121', "احتواء (Contain)")}</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Hero Banner Width Mode Setting (Full-Bleed vs Contained) */}
-                {formState.bannerUrls.length > 0 && (
-                  <div
-                    style={{
-                      background: '#f8fafc',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      padding: '8px 12px',
-                      marginBottom: '10px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                      minWidth: 0,
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block' }}>
-                        عرض البنر العلوي في واجهة المتجر:
-                      </span>
-                      <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                        الامتداد السينمائي بكامل حواف الشاشة (Full-Bleed) يعطي فخامة المتاجر العالمية
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', minWidth: 0 }}>
-                      <button
-                        type="button"
-                        onClick={() => setFormState((prev) => ({ ...prev, heroBannerFullBleed: true }))}
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          borderRadius: '5px',
-                          border: formState.heroBannerFullBleed !== false ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                          background: formState.heroBannerFullBleed !== false ? '#eff6ff' : '#ffffff',
-                          color: formState.heroBannerFullBleed !== false ? '#170e5e' : '#64748b',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        عرض كامل بحواف الشاشة (Full-Bleed)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormState((prev) => ({ ...prev, heroBannerFullBleed: false }))}
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          borderRadius: '5px',
-                          border: formState.heroBannerFullBleed === false ? '1.5px solid #170e5e' : '1px solid #cbd5e1',
-                          background: formState.heroBannerFullBleed === false ? '#eff6ff' : '#ffffff',
-                          color: formState.heroBannerFullBleed === false ? '#170e5e' : '#64748b',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        داخل كادر مدمج (Contained)
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* List of Configured Slides */}
-                {formState.bannerUrls.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>
-                      {t('storefront.storefront_settings_tab.s122', "الشرائح المضافة (")}{formState.bannerUrls.length}):
-                    </span>
-                    {formState.bannerUrls.map((url, idx) => (
-                      <div
-                        key={`${url}-${idx}`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          background: '#ffffff',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '6px',
-                          padding: '6px 10px',
-                          gap: '10px',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <img
-                            src={url}
-                            alt={`شريحة ${idx + 1}`}
-                            style={{
-                              width: '50px',
-                              height: '28px',
-                              objectFit: 'cover',
-                              borderRadius: '4px',
-                              border: '1px solid #cbd5e1',
-                            }}
-                          />
-                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#0f172a' }}>
-                            {t('storefront.storefront_settings_tab.s123', "شريحة #")}{idx + 1} {idx === 0 ? t('storefront.storefront_settings_tab.s124', "(الرئيسية الأولى)") : ''}
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {idx > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => handleMoveBanner(idx, 'up')}
-                              title={t('storefront.storefront_settings_tab.s125', "نقل للأعلى")}
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: '11px',
-                                borderRadius: '4px',
-                                border: '1px solid #cbd5e1',
-                                background: '#f8fafc',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              ▲
-                            </button>
-                          )}
-                          {idx < formState.bannerUrls.length - 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleMoveBanner(idx, 'down')}
-                              title={t('storefront.storefront_settings_tab.s126', "نقل للأسفل")}
-                              style={{
-                                padding: '2px 6px',
-                                fontSize: '11px',
-                                borderRadius: '4px',
-                                border: '1px solid #cbd5e1',
-                                background: '#f8fafc',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              ▼
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveBanner(idx)}
-                            title={t('storefront.storefront_settings_tab.s127', "حذف هذه الشريحة")}
-                            style={{
-                              padding: '2px 6px',
-                              fontSize: '11px',
-                              borderRadius: '4px',
-                              border: '1px solid #fecaca',
-                              background: '#fef2f2',
-                              color: '#b91c1c',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              marginInlineStart: '4px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <XIcon size={12} color="#b91c1c" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* AI Design Guidelines Helper Box */}
-                <div style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '10px',
-                  padding: '12px 14px',
-                  marginBottom: '12px',
-                  fontSize: '11.5px',
-                  color: '#334155',
-                  lineHeight: '1.6',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: '#0f172a', marginBottom: '6px' }}>
-                    <LightbulbIcon size={14} color="#f59e0b" />
-                    <span>{t('storefront.storefront_settings_tab.s128', "دليل التصميم الاحترافي للبنر بالذكاء الاصطناعي (ChatGPT / Midjourney / DALL-E):")}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
-                    <div>
-                      • <strong>بنر الهيرو كامل الشاشة (Full-Bleed):</strong> المقاس الذهبي هو <strong>1920 × 480</strong> بكسل (أو <strong>1920 × 400</strong>) بنسبة <strong>4:1</strong>. هذا المقاس يملأ نافذة المتصفح بنقاء استثنائي وفخامة تضاهي كبرى المتاجر العالمية دون أي بكسلة على الشاشات الكبيرة.
-                    </div>
-                    <div>
-                      • <strong>بنر الهيرو المدمج (Contained):</strong> المقاس المعتمد <strong>1600 × 400</strong> أو <strong>1440 × 360</strong> بكسل بنسبة <strong>4:1</strong> ليطابق عرض كادر المتجر بدقة دون أي زوائد.
-                    </div>
-                    <div>
-                      • <strong>البانرات الفاصلة بين الأقسام (Mid-Page Promos):</strong> المقاس الموصى به <strong>1400 × 350</strong> بكسل (أو <strong>1200 × 300</strong>) بنسبة <strong>4:1</strong> لملء الفواصل الإعلانية بين صفوف المنتجات بوضوح وسرعة تحميل فائقة.
-                    </div>
-                    <div>
-                      • <strong>قاعدة منطقة الأمان (Safe Zone 60% بالمنتصف):</strong> احرص دائماً على حصر اسم المتجر، الشعار، عبارات العرض، والمنتجات في <strong>الـ 60% الوسطى فقط</strong>، مع ترك الـ 20% يميناً ويساراً كخلفية ممتدة وإضاءة ناعمة، لضمان ظهور البنر متجاوباً ومتكاملاً على شاشات الموبايل والحواسيب دون أي قص للحروف أو المنتجات.
-                    </div>
-                  </div>
-
-                  {/* Dual Prompt Cards (Arabic for ChatGPT & English for Midjourney) */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {/* Arabic Prompt Card (ChatGPT / DALL-E) */}
-                    <div style={{
-                      background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>{t('storefront.storefront_settings_tab.s140', "صيغة شات جي بي تي (ChatGPT / DALL-E بالعربية):")}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPrompt('ar')}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: copiedPromptKey === 'ar' ? '#ecfdf5' : '#f1f5f9',
-                            color: copiedPromptKey === 'ar' ? '#059669' : '#1e293b',
-                            border: copiedPromptKey === 'ar' ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
-                            borderRadius: '5px',
-                            padding: '3px 8px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {copiedPromptKey === 'ar' ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
-                          <span>{copiedPromptKey === 'ar' ? t('storefront.storefront_settings_tab.s141', "تم نسخ الصيغة العربية!") : t('storefront.storefront_settings_tab.s142', "نسخ برومبت ChatGPT")}</span>
-                        </button>
-                      </div>
-                      <div style={{
-                        fontSize: '11px',
-                        color: '#475569',
-                        background: '#f8fafc',
-                        padding: '6px 8px',
-                        borderRadius: '5px',
-                        border: '1px dashed #e2e8f0',
-                        userSelect: 'all',
-                        whiteSpace: 'pre-line',
-                        wordBreak: 'break-word',
-                      }}>
-                        {aiPromptTemplateAr}
-                      </div>
-                    </div>
-
-                    {/* English Prompt Card (Midjourney / FLUX / DALL-E) */}
-                    <div style={{
-                      background: '#ffffff',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '8px',
-                      padding: '8px 10px',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#170e5e' }}>{t('storefront.storefront_settings_tab.s143', "صيغة Midjourney / FLUX (باللغة الإنجليزية للأبعاد الدقيقة):")}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPrompt('en')}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            background: copiedPromptKey === 'en' ? '#ecfdf5' : '#f1f5f9',
-                            color: copiedPromptKey === 'en' ? '#059669' : '#1e293b',
-                            border: copiedPromptKey === 'en' ? '1px solid #a7f3d0' : '1px solid #cbd5e1',
-                            borderRadius: '5px',
-                            padding: '3px 8px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {copiedPromptKey === 'en' ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} color="#475569" />}
-                          <span>{copiedPromptKey === 'en' ? 'Copied Prompt!' : t('storefront.storefront_settings_tab.s144', "نسخ برومبت Midjourney")}</span>
-                        </button>
-                      </div>
-                      <div style={{
-                        fontSize: '10.5px',
-                        direction: 'ltr',
-                        fontFamily: 'monospace',
-                        color: '#334155',
-                        background: '#f8fafc',
-                        padding: '6px 8px',
-                        borderRadius: '5px',
-                        border: '1px dashed #e2e8f0',
-                        userSelect: 'all',
-                        wordBreak: 'break-word',
-                      }}>
-                        {aiPromptTemplateEn}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {bannerCompressFeedback && (
-                  <div
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#047857',
-                      background: '#ecfdf5',
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      marginBottom: '8px',
-                    }}
-                  >
-                    {bannerCompressFeedback}
-                  </div>
-                )}
-
-                {/* Add New Banner Button */}
-                <label
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 16px',
-                    borderRadius: '6px',
-                    background: '#170e5e',
-                    border: '1px solid #170e5e',
-                    color: '#ffffff',
-                    fontSize: '12px',
-                    fontWeight: 700,
-                    cursor: isCompressingBanner ? 'wait' : 'pointer',
-                    boxShadow: '0 1px 3px rgba(23, 14, 94, 0.2)',
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    disabled={isCompressingBanner}
-                    onChange={handleBannerFileChange}
-                  />
-                  <span>
-                    {isCompressingBanner
-                      ? t('storefront.storefront_settings_tab.s145', "جاري الضغط والمعالجة...")
-                      : formState.bannerUrls.length > 0
-                      ? t('storefront.storefront_settings_tab.s146', "إضافة صورة شريحة أخرى +")
-                      : t('storefront.storefront_settings_tab.s147', "رفع صورة بنر أولى +")}
-                  </span>
-                </label>
               </div>
             </div>
 

@@ -63,19 +63,15 @@ export function applyStorefrontThemeVariables(info?: {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
 
-  const rawBrand = (info?.brandColor || '').trim().toLowerCase();
-  const isLegacyDefault =
-    !rawBrand ||
-    rawBrand === '#170e5e' ||
-    rawBrand === '#0f172a' ||
-    rawBrand === '#588cb3' ||
-    rawBrand === '#2d6c97' ||
-    rawBrand === '#0066ff';
-  const primary = isLegacyDefault ? '#2d68c4' : info!.brandColor!;
+  const rawBrand = (info?.brandColor || '').trim();
+  const primary = rawBrand || '#170e5e';
   const primaryHover = darkenHexColor(primary, 0.82);
-  const rawSecondary = (info?.brandSecondaryColor || '').trim().toLowerCase();
-  const secondary = !rawSecondary || rawSecondary === '#2d6c97' || rawSecondary === '#0052cc' ? '#2353a0' : info!.brandSecondaryColor!;
-  const surface = info?.brandSurfaceColor || '#f8fafc';
+
+  const rawSecondary = (info?.brandSecondaryColor || '').trim();
+  const secondary = rawSecondary || '#f59e0b';
+
+  const rawSurface = (info?.brandSurfaceColor || '').trim();
+  const surface = rawSurface || '#f8fafc';
 
   const primaryContrast = getContrastTextColor(primary);
   const secondaryContrast = getContrastTextColor(secondary);
