@@ -390,7 +390,6 @@ export class InventoryCountService {
               .where('id', '=', item.product_id).where(this.tenantPredicate(auth)).executeTakeFirstOrThrow();
             const rawCost = Number(product.cost_price || 0);
             const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-            const totalCost = roundMoney(Math.abs(variance) * unitCost, moneyDigits);
             const stockChange = await setScopedStockQty(trx, {
               productId: Number(item.product_id), nextQty: Number(item.counted_qty || 0),
               branchId: session.branch_id, locationId: session.location_id,
@@ -398,24 +397,33 @@ export class InventoryCountService {
               errorCode: 'INSUFFICIENT_STOCK', errorMessage: 'Stock count posting cannot drive total stock below zero',
               disableAutoDrain: true,
             });
+            // INV-STOCK-COUNT-ACTUAL-DELTA: the counted quantity is the
+            // physical on-hand quantity (reservations included), so the
+            // posted quantity is the ACTUAL scoped delta -- what the
+            // stock write really moved -- not the frozen available-basis
+            // variance_qty. The stored variance stays the as-counted
+            // record; the movement, its cost, the lot deduction, the
+            // damage record, and the journal all follow the actual delta.
+            const actualDelta = Number((stockChange.scopeAfter - stockChange.scopeBefore).toFixed(3));
+            const totalCost = roundMoney(Math.abs(actualDelta) * unitCost, moneyDigits);
             await trx.insertInto('stock_movements').values({
-              ...buildStockCountPostingMovement(item, sessionId, auth.userId),
+              ...buildStockCountPostingMovement(item, sessionId, auth.userId, actualDelta),
               before_qty: stockChange.scopeBefore, after_qty: stockChange.scopeAfter,
               branch_id: session.branch_id, location_id: session.location_id,
               unit_cost: unitCost, total_cost: totalCost, ...this.tenantFields(auth),
             }).execute();
-            if (variance < -0.0001) {
+            if (actualDelta < -0.0001) {
               await syncImportLotsOnStockDeduction(trx, {
                 tenantId: tenantScope.tenantId,
                 productId: Number(item.product_id),
                 locationId: session.location_id,
-                qty: Math.abs(variance),
+                qty: Math.abs(actualDelta),
                 reason: item.reason || 'stock_count_shortage',
               });
             }
-            if (shouldCreateDamageRecordFromCount(item)) {
+            if (shouldCreateDamageRecordFromCount({ reason: item.reason, variance_qty: actualDelta })) {
               await trx.insertInto('damaged_stock_records').values({
-                ...buildDamageRecordFromCount(item, session, auth.userId),
+                ...buildDamageRecordFromCount(item, session, auth.userId, actualDelta),
                 unit_cost: unitCost, total_cost: totalCost, ...this.tenantFields(auth),
               }).execute();
             }

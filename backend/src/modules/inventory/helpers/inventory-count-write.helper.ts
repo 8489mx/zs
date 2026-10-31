@@ -76,15 +76,20 @@ export function buildStockCountItemValues(product: StockCountProductSnapshot, it
   };
 }
 
-export function buildStockCountPostingMovement(item: StockCountStoredItem, sessionId: number, userId: number) {
+export function buildStockCountPostingMovement(item: StockCountStoredItem, sessionId: number, userId: number, actualDelta?: number) {
   const expectedQty = Number(item.expected_qty || 0);
   const countedQty = Number(item.counted_qty || 0);
   const varianceQty = Number(item.variance_qty || 0);
+  // INV-STOCK-COUNT-ACTUAL-DELTA: the posted quantity is the actual
+  // scoped delta (scopeAfter - scopeBefore), not the frozen
+  // available-basis variance. Callers that do not pass it keep the
+  // old variance behaviour (helper-level default only).
+  const qty = actualDelta ?? varianceQty;
 
   return {
     product_id: item.product_id,
-    movement_type: varianceQty > 0 ? 'stock_count_gain' : 'stock_count_loss',
-    qty: varianceQty,
+    movement_type: qty > 0 || (qty === 0 && varianceQty > 0) ? 'stock_count_gain' : 'stock_count_loss',
+    qty,
     before_qty: expectedQty,
     after_qty: countedQty,
     reason: item.reason || 'inventory_count',
@@ -99,8 +104,8 @@ export function shouldCreateDamageRecordFromCount(item: Pick<StockCountStoredIte
   return String(item.reason || '').toLowerCase() === 'damage' && Number(item.variance_qty || 0) < -0.0001;
 }
 
-export function buildDamageRecordFromCount(item: StockCountStoredItem, session: StockCountSessionScope, userId: number) {
-  const varianceQty = Number(item.variance_qty || 0);
+export function buildDamageRecordFromCount(item: StockCountStoredItem, session: StockCountSessionScope, userId: number, actualDelta?: number) {
+  const varianceQty = actualDelta ?? Number(item.variance_qty || 0);
   return {
     product_id: item.product_id,
     branch_id: session.branch_id == null ? null : Number(session.branch_id),

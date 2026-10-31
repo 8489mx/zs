@@ -3131,19 +3131,25 @@ export class AccountingPostingService {
 
     for (const item of items) {
        const variance = Number(item.variance_qty || 0);
-       if (variance === 0) continue;
 
        const mov = movementByProduct.get(Number(item.product_id));
+       // INV-STOCK-COUNT-ACTUAL-DELTA: the movement row carries the
+       // actual scoped delta the stock write really moved. Value the
+       // journal on it, not on the frozen available-basis variance.
+       // Fall back to the stored variance only when no movement row
+       // exists (chunks posted before this fix, whose movements carry
+       // the frozen variance) -- prospective only, no history rewritten.
+       const delta = mov ? Number((mov as any).qty ?? 0) : variance;
+       if (delta === 0) continue;
 
        const rawCost = Number(mov?.unit_cost || 0);
        const unitCost = Number.isFinite(rawCost) && rawCost > 0 ? rawCost : 0;
-       const lineCost = roundMoney(Math.abs(variance) * unitCost, stockCountDigits);
+       const lineCost = roundMoney(Math.abs(delta) * unitCost, stockCountDigits);
        if (lineCost <= 0) continue;
 
-       if (variance > 0) {
+       if (delta > 0) {
           totalGain += lineCost;
-       } else if (variance < 0) {
-          const absVariance = Math.abs(variance);
+       } else if (delta < 0) {
           if (String(item.reason || '').toLowerCase() === 'damage') {
              totalDamageLoss += lineCost;
           } else {
