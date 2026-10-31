@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { buildStorePublicUrl, storePublicUrlParts } from '@/lib/store-public-url';
 import { getGlobalCurrencySymbol } from '@/lib/currencies';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { storefrontApi } from '../api/storefront.api';
 import { compressImage } from '@/shared/utils/image-compressor';
@@ -16,12 +16,10 @@ import { GccShippingSettingsCard } from './GccShippingSettingsCard';
 import type { StorefrontMidBanner } from '../types/storefront.types';
 import {
   CheckIcon,
-  XIcon,
   LightbulbIcon,
   TruckIcon,
   Trash2Icon,
   QrCodeIcon,
-  CopyIcon,
   PlusCircleIcon,
   LayersIcon,
   TrendingUpIcon,
