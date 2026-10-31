@@ -507,6 +507,15 @@ export function refineProductMatte(
     }
   }
 
+  // 3b) Snap decided foreground to fully opaque. The binary mask (> 0.32)
+  // is the foreground decision; fractional matte inside it is model
+  // uncertainty, not translucency. Step 3 already ran, so suppressed halo
+  // below 0.32 is not snapped back. The guided filter and feathering after
+  // this step re-soften only the edge band.
+  for (let i = 0; i < workMatte.length; i++) {
+    if (keptBinary[i] === 1 && workMatte[i] > 0.32) workMatte[i] = 1;
+  }
+
   // 4) إعادة القناع إلى الدقة الكاملة، ثم تطبيق الفلتر الموجَّه
   const fullMatte = scale < 1 ? resizeMatteViaCanvas(workMatte, workW, workH, width, height) : workMatte;
   const guide = new Float32Array(width * height);
