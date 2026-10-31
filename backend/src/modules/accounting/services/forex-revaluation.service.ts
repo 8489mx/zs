@@ -10,6 +10,7 @@ import { AccountingPostingService } from '../accounting-posting.service';
 import { lockAccountingPeriod } from '../accounting-period-lock';
 import { nextAccountingDay } from '../engines/accounting-date.engine';
 import { calculateForexDifference, forexOffsetCode } from '../engines/forex-difference.engine';
+import { currencyMoneyDigits, roundMoney } from '../engines/money-minor-units.engine';
 
 /** A string DTO body is not runtime validation; PostgreSQL numeric accepts 'NaN'. */
 export function validateForexClosingRate(raw: unknown): number {
@@ -74,7 +75,14 @@ export class ForexRevaluationService {
     const closingRate = validateForexClosingRate(dto.closingRate);
 
     if (!currencyCode) throw new BadRequestException('رمز العملة مطلوب.');
-    if (currencyCode === await tenantBaseCurrency(queryable, tenantId)) throw new BadRequestException('عملة الأساس لا يعاد تقييمها.');
+    const baseCurrency = await tenantBaseCurrency(queryable, tenantId);
+    if (currencyCode === baseCurrency) throw new BadRequestException('عملة الأساس لا يعاد تقييمها.');
+    // INV-FX-CONVERSION-SINGLE-ENGINE: foreign balances normalize at the
+    // foreign currency's digits, revalued amounts at the base digits, and
+    // every 0.01 gate below is one minor unit of the base currency.
+    const digits = currencyMoneyDigits(baseCurrency);
+    const foreignDigits = currencyMoneyDigits(currencyCode);
+    const minorUnit = 10 ** -digits;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dto.periodDate) ||
         Number.isNaN(new Date(dto.periodDate).getTime()) ||
         new Date(dto.periodDate).toISOString().slice(0, 10) !== dto.periodDate) {
@@ -142,14 +150,14 @@ export class ForexRevaluationService {
     for (const acc of accounts) {
       if (acc.is_control_account || acc.is_receivable || acc.is_payable || acc.is_inventory || ['1130', '1140', '2110'].includes(acc.code) || controlIds.has(Number(acc.id))) throw new BadRequestException('إعادة تقييم الحساب الرقابي تتطلب مراكز عملة مفصلة للشركاء؛ استخدم حساب فروق مستقل إلى حين توفيرها.');
       const localBalance = balanceByAccount.get(Number(acc.id)) || 0;
-      if (Math.abs(localBalance) > 0.01) {
+      if (Math.abs(localBalance) > minorUnit) {
         const userForeign = userItemMap.get(Number(acc.id));
         if (userForeign === undefined) {
           throw new BadRequestException(`يجب إدخال الرصيد الفعلي بالعملة الأجنبية للحساب [${acc.code}].`);
         }
         const signedForeign = localBalance < 0 && userForeign > 0 ? -userForeign : userForeign;
-        const foreignBalance = Math.round(signedForeign * 100) / 100;
-        const { revaluedLocal, difference: diff } = calculateForexDifference(localBalance, foreignBalance, closingRate);
+        const foreignBalance = roundMoney(signedForeign, foreignDigits);
+        const { revaluedLocal, difference: diff } = calculateForexDifference(localBalance, foreignBalance, closingRate, digits);
 
         lines.push({
           accountId: acc.id,
@@ -171,8 +179,9 @@ export class ForexRevaluationService {
       currencyCode,
       bookRate,
       closingRate,
-      totalForeignBalance: Math.round(totalForeign * 100) / 100,
-      netUnrealizedGainLoss: Math.round(totalUnrealizedGainLoss * 100) / 100,
+      bookDigits: digits,
+      totalForeignBalance: roundMoney(totalForeign, foreignDigits),
+      netUnrealizedGainLoss: roundMoney(totalUnrealizedGainLoss, digits),
       lines,
     };
   }
@@ -184,6 +193,7 @@ export class ForexRevaluationService {
       await lockAccountingPeriod(trx, tenantId);
       await sql`SELECT pg_advisory_xact_lock(hashtext(${tenantId} || ':forex:' || ${dto.periodDate} || ':' || ${dto.currencyCode}))`.execute(trx);
       const preview = await this.previewRevaluation(dto, auth, trx);
+      const minorUnit = 10 ** -preview.bookDigits;
 
     if (preview.lines.length === 0) {
       throw new BadRequestException('لا توجد أرصدة أو حسابات أجنبية تتطلب إعادة تقييم في هذا التاريخ.');
@@ -191,13 +201,13 @@ export class ForexRevaluationService {
 
     const isGain = preview.netUnrealizedGainLoss >= 0;
     const absDiff = Math.abs(preview.netUnrealizedGainLoss);
-    const hasRevaluation = preview.lines.some((line) => Math.abs(line.unrealizedDifference) >= 0.01);
+    const hasRevaluation = preview.lines.some((line) => Math.abs(line.unrealizedDifference) >= minorUnit);
     const gainLossCode = forexOffsetCode(preview.netUnrealizedGainLoss);
     const gainLossType = isGain ? 'revenue' : 'expense';
-    let gainLossAccount = absDiff >= 0.01 ? await trx.selectFrom('accounting_accounts')
+    let gainLossAccount = absDiff >= minorUnit ? await trx.selectFrom('accounting_accounts')
       .select(['id', 'is_active', 'account_type', 'name_en'])
       .where('tenant_id', '=', tenantId).where('code', '=', gainLossCode).executeTakeFirst() : null;
-    if (absDiff >= 0.01 && !gainLossAccount) {
+    if (absDiff >= minorUnit && !gainLossAccount) {
       const parent = await trx.selectFrom('accounting_accounts').select('id')
         .where('tenant_id', '=', tenantId).where('code', '=', isGain ? '7100' : '7200').executeTakeFirst();
       if (!parent) throw new BadRequestException('حساب الإيرادات أو المصروفات الأخرى غير موجود.');
@@ -226,7 +236,7 @@ export class ForexRevaluationService {
     let createdEntryId: number | null = null;
     let entryNo: string | null = null;
 
-    if (absDiff >= 0.01 && !gainLossAccount) {
+    if (absDiff >= minorUnit && !gainLossAccount) {
       throw new BadRequestException('حساب فروق العملة غير موجود؛ لا يمكن ترحيل إعادة التقييم.');
     }
 
@@ -249,7 +259,7 @@ export class ForexRevaluationService {
       const entryLines: any[] = [];
 
       for (const line of preview.lines) {
-        if (Math.abs(line.unrealizedDifference) >= 0.01) {
+        if (Math.abs(line.unrealizedDifference) >= minorUnit) {
           if (line.unrealizedDifference > 0) {
             // Asset increased in local currency value -> Debit Asset
             entryLines.push({
@@ -271,14 +281,14 @@ export class ForexRevaluationService {
       }
 
       // Offsetting Gain/Loss Line
-      if (absDiff >= 0.01 && isGain) {
+      if (absDiff >= minorUnit && isGain) {
         entryLines.push({
           account_id: gainLossAccount!.id,
           debit: 0,
           credit: absDiff,
           description: `إثبات أرباح فروق عملة غير محققة (${dto.currencyCode}) بنهاية فترة ${dto.periodDate}`,
         });
-      } else if (absDiff >= 0.01) {
+      } else if (absDiff >= minorUnit) {
         entryLines.push({
           account_id: gainLossAccount!.id,
           debit: absDiff,

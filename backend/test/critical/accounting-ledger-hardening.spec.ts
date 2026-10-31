@@ -22,9 +22,9 @@ assert.equal(calculateAssetDepreciation({ ...asset, salvage: 0, method: 'declini
   months: 1, postingDate: new Date('2026-10-31T00:00:00Z') }), 128.85, 'final month reaches the salvage floor');
 assert.throws(() => calculateAssetDepreciation({ ...asset, purchaseDate: new Date('2026-11-01T00:00:00Z') }));
 
-assert.deepEqual(calculateForexDifference(150, 10, 40), { revaluedLocal: 400, difference: 250 });
-assert.deepEqual(calculateForexDifference(-150, -10, 40), { revaluedLocal: -400, difference: -250 });
-assert.deepEqual(calculateForexDifference(150, 0, 40), { revaluedLocal: 0, difference: -150 });
+assert.deepEqual(calculateForexDifference(150, 10, 40, 2), { revaluedLocal: 400, difference: 250 });
+assert.deepEqual(calculateForexDifference(-150, -10, 40, 2), { revaluedLocal: -400, difference: -250 });
+assert.deepEqual(calculateForexDifference(150, 0, 40, 2), { revaluedLocal: 0, difference: -150 });
 assert.equal(forexOffsetCode(250), '7180');
 assert.equal(forexOffsetCode(-250), '7280');
 
