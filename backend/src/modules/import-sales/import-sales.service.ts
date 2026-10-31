@@ -4217,7 +4217,22 @@ export class ImportSalesService {
         throw new BadRequestException('دراسة الجدوى لا تحتوي على أصناف صالحة للتحويل.');
       }
 
-      const commRate = Number(feas.exchangeRateCommercial || 50);
+      // INV-FEASIBILITY-CONTRACT-RATE-REQUIRED: no invented rate.
+      // The old fallback of 50 lived only here, then was stored as
+      // the proforma's exchange_rate_contract, so the invented rate
+      // became the authoritative contract rate downstream. A
+      // non-EGP project without a usable commercial rate must not
+      // convert: the merchant sets the rate on the feasibility
+      // study and converts again. Mirrors the proforma gate
+      // (INV-IMPORT-PROFORMA-EXCHANGE-RATE): EGP budgets convert
+      // at rate 1. Checked before any write.
+      const budgetCurrency = (project.budget_currency || 'USD').toUpperCase();
+      const commRate = budgetCurrency === 'EGP' ? 1 : Number(feas.exchangeRateCommercial);
+      if (!Number.isFinite(commRate) || commRate <= 0) {
+        throw new BadRequestException(
+          `لا يمكن تحويل دراسة الجدوى ${project.project_no} بلا سعر صرف تجاري صالح؛ حدد سعر الصرف التجاري (${budgetCurrency}) على دراسة الجدوى قبل التحويل. [IMPORT_EXCHANGE_RATE_REQUIRED]`,
+        );
+      }
       const totalFactoryUsd = Number(feas.totalFactoryCostUsd || 0);
       const advPercent = dto.advancePaymentPercentage || 30;
       const balPercent = 100 - advPercent;
