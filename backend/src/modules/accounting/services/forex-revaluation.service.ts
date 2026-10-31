@@ -326,7 +326,13 @@ export class ForexRevaluationService {
         unrealized_gain_loss: preview.netUnrealizedGainLoss,
         journal_entry_id: createdEntryId,
         journal_entry_no: entryNo,
-        status: 'posted',
+        // INV-ZERO-DIFFERENCE-REVALUATION-NEVER-LOCKS: only a run
+        // that actually posted a journal locks the period/currency
+        // (the duplicate guard above matches status 'posted'). A
+        // zero-difference run posted nothing, so it is recorded as
+        // 'no_difference' for audit — and a later run with a
+        // corrected closing rate can still execute for the period.
+        status: createdEntryId ? 'posted' : 'no_difference',
         notes: dto.notes || `إعادة تقييم فروق عملة ${dto.currencyCode} بنهاية فترة ${dto.periodDate}`,
         created_by: auth.userId || 0,
       } as any)
