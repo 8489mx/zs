@@ -3,6 +3,7 @@ import { assertBusinessAccountingDate } from '../accounting/accounting-boundarie
 import { AccountingPostingService } from '../accounting/accounting-posting.service';
 import { ensureDomainSupplier } from '../accounting/partner-subledger';
 import { lockAccountingPeriod } from '../accounting/accounting-period-lock';
+import { resolveFxRate } from '../accounting/fx-rate-resolution';
 import { Inject, Injectable, Logger, NotFoundException, BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { KYSELY_DB } from '../../database/database.constants';
 import { Kysely, sql } from '../../database/kysely';
@@ -184,27 +185,13 @@ export class MaritimeFreightService {
   }
 
   private async resolveFreightExchangeRate(tenantId: string, currency: string | undefined, suppliedRate?: number): Promise<number> {
-    const setting = await this.db.selectFrom('settings').select('value')
-      .where('tenant_id', '=', tenantId).where('key', '=', 'currency').executeTakeFirst();
-    let baseCurrency = 'EGP';
-    if (setting?.value) {
-      try { baseCurrency = String(JSON.parse(setting.value)); }
-      catch { baseCurrency = String(setting.value); }
-    }
-    const sourceCurrency = (currency || baseCurrency).trim().toUpperCase();
-    if (sourceCurrency === baseCurrency.trim().toUpperCase()) return 1;
-    if (suppliedRate !== undefined) {
-      if (!Number.isFinite(Number(suppliedRate)) || Number(suppliedRate) <= 0) {
-        throw new BadRequestException('سعر الصرف يجب أن يكون موجباً وصالحاً');
-      }
-      return Number(suppliedRate);
-    }
-    const rate = await this.db.selectFrom('currency_exchange_rates').select('exchange_rate')
-      .where('tenant_id', '=', tenantId).where('currency_code', '=', sourceCurrency).executeTakeFirst();
-    if (!rate || !Number.isFinite(Number(rate.exchange_rate)) || Number(rate.exchange_rate) <= 0) {
-      throw new BadRequestException(`سعر صرف ${sourceCurrency} غير متاح؛ لا يمكن ترحيل قيمة بعملة خاطئة`);
-    }
-    return Number(rate.exchange_rate);
+    // INV-FX-RATE-RESOLUTION-SINGLE-RESOLVER: one shared resolver for
+    // every maritime path. The base currency is now derived strictly
+    // through tenantBaseCurrency: a settings/rate mismatch fails
+    // closed instead of silently defaulting to EGP. The read still
+    // uses this.db, exactly as before — callers inside a transaction
+    // see committed rates only.
+    return resolveFxRate(this.db, tenantId, currency, { suppliedRate });
   }
 
   /**
