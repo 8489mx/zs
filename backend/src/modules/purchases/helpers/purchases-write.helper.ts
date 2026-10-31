@@ -3,9 +3,12 @@ import { UpsertPurchaseDto } from '../dto/upsert-purchase.dto';
 import { type MoneyDigits, roundMoney } from '../../accounting/engines/money-minor-units.engine';
 
 function roundCurrency(value: number, digits: MoneyDigits = 2): number {
-  return digits === 2
-    ? Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
-    : roundMoney(value, digits);
+  // Canonical rounding at the tenant's book digits (INV-CANONICAL-ROUNDING-EVERYWHERE):
+  // no EPSILON bump. Binary half-cents just below the half (1.005) round down,
+  // as the canonical engine rounds them. The `= 2` default is unchanged by
+  // this package: normalizePositiveAmount relies on it and has no digits
+  // context; removing the default is a separate fail-closed package.
+  return roundMoney(Number(value || 0), digits);
 }
 
 export type PurchaseProductRow = {

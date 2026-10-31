@@ -6,14 +6,14 @@ import { type MoneyDigits, roundMoney as roundBookMoney } from '../../accounting
  * (INV-RETURN-HELPER-DIGITS-REQUIRED): every rounding here feeds a
  * stored return line, a document total, or a ledger balance, so a
  * caller that forgets the tenant's digits must fail closed instead of
- * silently falling back to 2 decimals on a 3-decimal tenant. The
- * 2-decimal branch is kept only as the explicit digits === 2 case of
- * the canonical engine's contract, never as a default.
+ * silently falling back to 2 decimals on a 3-decimal tenant. Rounding
+ * is the canonical engine's at the caller's digits
+ * (INV-CANONICAL-ROUNDING-EVERYWHERE): the former EPSILON half-up
+ * branch for digits === 2 is gone, so binary half-cents just below
+ * the half round as the canonical engine rounds them.
  */
 function roundMoney(value: number, digits: MoneyDigits): number {
-  return digits === 2
-    ? Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
-    : roundBookMoney(value, digits);
+  return roundBookMoney(Number(value || 0), digits);
 }
 
 export type ReturnSourceLine = {

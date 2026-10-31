@@ -7,13 +7,18 @@ export type GrnAccrualLine = { id: number; acceptedQty: number; unitCost: number
  * Minor-unit conversion for DERIVED amounts (qty x unit cost). Such products
  * legitimately carry sub-minor precision and must be ROUNDED to the tenant's
  * minor units — exactly what the old hard-coded cents() did, but at the
- * tenant's precision instead of 2 digits. This is deliberately NOT the
+ * tenant's precision instead of 2 digits. The rounding step is the
+ * canonical engine's (roundMoney in money-minor-units.engine.ts):
+ * plain Math.round at the tenant's digits, with no EPSILON bump, so a
+ * binary half-cent just below the half rounds down
+ * (INV-CANONICAL-ROUNDING-EVERYWHERE). This is deliberately NOT the
  * strict toMinorUnits() from the money engine, which throws on sub-minor
  * inputs: a 3-decimal-qty receipt at a 6-decimal unit cost is a valid input
- * that must round, not corrupt data.
+ * that must round, not corrupt data. The conversion stays local because
+ * its result is minor units; only the rounding formula is shared.
  */
 function toMinorUnitsRounded(value: number, digits: MoneyDigits): number {
-  const result = Math.round((value + Number.EPSILON) * 10 ** digits);
+  const result = Math.round(value * 10 ** digits);
   if (!Number.isSafeInteger(result) || result < 0) {
     throw new AppError('قيمة تسوية الاستلام غير صالحة', 'GRNI_AMOUNT_INVALID', 422);
   }

@@ -5,13 +5,13 @@ import { type MoneyDigits, roundMoney } from '../../accounting/engines/money-min
 // Book digits are REQUIRED (INV-POS-OFFER-DIGITS): this rounder is
 // used for every money amount the sale helper computes, so a silent
 // `= 2` default would cut a 3-decimal tenant's lines to cents
-// whenever a caller forgot the tenant's digits. The 2-decimal branch
-// keeps its exact historical formula (EPSILON half-up); only the
-// default is removed, so 2-decimal results are unchanged.
+// whenever a caller forgot the tenant's digits. Rounding is the
+// canonical engine's at the caller's digits
+// (INV-CANONICAL-ROUNDING-EVERYWHERE): the former EPSILON half-up
+// branch for digits === 2 is gone, so binary half-cents just below
+// the half round as the canonical engine rounds them.
 function roundCurrency(value: number, digits: MoneyDigits): number {
-  return digits === 2
-    ? Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100
-    : roundMoney(value, digits);
+  return roundMoney(Number(value || 0), digits);
 }
 
 export type SaleProductOfferRow = {
