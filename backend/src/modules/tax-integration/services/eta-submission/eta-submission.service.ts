@@ -100,7 +100,11 @@ export class EtaSubmissionService {
       throw new BadRequestException(`خطأ أثناء الاتصال بمصلحة الضرائب المصرية: ${error.message}`);
     }
 
-    const submissionId = submissionData?.submissionId || `SUB-${Date.now()}`;
+    // INV-ETA-EMPTY-RESPONSE-NEVER-SUBMITS: the submission id comes
+    // from ETA or not at all — never invented. A response with no
+    // submission id and no document arrays proves nothing about any
+    // invoice, so no status below may treat it as acceptance.
+    const submissionId: string | null = submissionData?.submissionId ?? null;
     const acceptedDocuments: Array<{ uuid?: string; internalId?: string }> = submissionData?.acceptedDocuments || [];
     const rejectedDocuments: Array<{ internalId?: string; error?: any }> = submissionData?.rejectedDocuments || [];
 
@@ -143,28 +147,26 @@ export class EtaSubmissionService {
       }
     }
 
-    // Fallback: If ETA returned submissionId without split arrays, mark all provided invoiceIds as submitted
-    if (acceptedDocuments.length === 0 && rejectedDocuments.length === 0) {
-      await this.db
-        .updateTable('sales')
-        .set({
-          eta_status: 'submitted',
-          eta_submission_id: submissionId
-        })
-        .where('tenant_id', '=', tenantId)
-        .where('id', 'in', invoiceIds.map(Number))
-        .execute();
-    }
+    // No fallback: when ETA returns neither array, no invoice is
+    // marked submitted — every invoice stays in its previous
+    // status (pending/failed) so it remains in the pending queue
+    // and can be retried or verified via checkSubmissionStatus.
+    // Invoices ETA never mentions stay pending the same way.
+    const unverifiedCount = Math.max(0, invoiceIds.length - acceptedDocuments.length - rejectedDocuments.length);
 
     return {
       success: true,
       submissionId,
-      acceptedCount: acceptedDocuments.length || invoiceIds.length,
+      acceptedCount: acceptedDocuments.length,
       rejectedCount: rejectedDocuments.length,
+      unverifiedCount,
       rejectedDocuments,
-      message: rejectedDocuments.length > 0
-        ? `تم إرسال ${acceptedDocuments.length} وثيقة ورفض ${rejectedDocuments.length}`
-        : 'تم إرسال الفواتير إلى منظومة الضرائب المصرية بنجاح'
+      message:
+        acceptedDocuments.length === 0 && rejectedDocuments.length === 0
+          ? 'لم تؤكد مصلحة الضرائب استلام أي وثيقة؛ بقيت الفواتير معلقة للتحقق أو إعادة الإرسال'
+          : rejectedDocuments.length > 0
+            ? `تم إرسال ${acceptedDocuments.length} وثيقة ورفض ${rejectedDocuments.length}`
+            : 'تم إرسال الفواتير إلى منظومة الضرائب المصرية بنجاح'
     };
   }
 
