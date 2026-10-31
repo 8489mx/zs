@@ -454,9 +454,44 @@ export function refineProductMatte(
   const workMatte =
     scale < 1 ? resizeMatteViaCanvas(rawMatte, width, height, workW, workH) : rawMatte.slice();
 
+  // Adaptive foreground-decision threshold. The model matte is not
+  // always near-binary: on some photos (measured 2026-10-31, Cherry
+  // Pop, all model/device configs) its alpha mean is ~0.15 with only
+  // ~16% of pixels above the historic 0.32, yet its shape traces the
+  // products. A fixed 0.32 then erases the subject. The threshold
+  // below is the median of the clearly-present matte values (> 0.08),
+  // clamped to [0.08, 0.32]: strong mattes keep exactly 0.32, soft
+  // mattes lower the decision point so the subject survives
+  // binarization, and faint haze (<= 0.08) can never become
+  // foreground by itself. LCC, edge suppression, and the snap in
+  // step 3b still decide what is finally kept.
+  const binaryThreshold = (() => {
+    const FLOOR = 0.08;
+    const CEIL = 0.32;
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < workMatte.length; i++) {
+      const b = Math.round(workMatte[i] * 255);
+      hist[b < 0 ? 0 : b > 255 ? 255 : b]++;
+    }
+    const floorBin = Math.floor(FLOOR * 255);
+    let present = 0;
+    for (let b = floorBin + 1; b < 256; b++) present += hist[b];
+    if (present === 0) return CEIL;
+    let acc = 0;
+    const half = present / 2;
+    for (let b = floorBin + 1; b < 256; b++) {
+      acc += hist[b];
+      if (acc >= half) {
+        const t = b / 255;
+        return t < FLOOR ? FLOOR : t > CEIL ? CEIL : t;
+      }
+    }
+    return CEIL;
+  })();
+
   // 1) قناع ثنائي ناعم العتبة، مع إغلاق الفجوات الدقيقة وملء الثقوب
   const binary = new Uint8Array(workW * workH);
-  for (let i = 0; i < binary.length; i++) binary[i] = workMatte[i] > 0.32 ? 1 : 0;
+  for (let i = 0; i < binary.length; i++) binary[i] = workMatte[i] > binaryThreshold ? 1 : 0;
   const closed = morphBinary(morphBinary(binary, workW, workH, 2, true), workW, workH, 2, false);
   const filled = fillHoles(closed, workW, workH);
 
@@ -488,7 +523,7 @@ export function refineProductMatte(
 
   // 3) كبح الضباب في شريط الحافة فقط (عزل قلب المنتج 100% عبر التآكل بـ 3 بكسل)
   const keptBinary = new Uint8Array(workW * workH);
-  for (let i = 0; i < keptBinary.length; i++) keptBinary[i] = workMatte[i] > 0.32 ? 1 : 0;
+  for (let i = 0; i < keptBinary.length; i++) keptBinary[i] = workMatte[i] > binaryThreshold ? 1 : 0;
   const core = morphBinary(keptBinary, workW, workH, 3, false);
   const outer = morphBinary(keptBinary, workW, workH, 5, true);
   const bg = estimateBackgroundColor(workRgb, workMatte, workW, workH);
@@ -507,13 +542,14 @@ export function refineProductMatte(
     }
   }
 
-  // 3b) Snap decided foreground to fully opaque. The binary mask (> 0.32)
-  // is the foreground decision; fractional matte inside it is model
-  // uncertainty, not translucency. Step 3 already ran, so suppressed halo
-  // below 0.32 is not snapped back. The guided filter and feathering after
-  // this step re-soften only the edge band.
+  // 3b) Snap decided foreground to fully opaque. The binary mask (> the
+  // adaptive decision threshold) is the foreground decision; fractional
+  // matte inside it is model uncertainty, not translucency. Step 3
+  // already ran, so suppressed halo below the threshold is not snapped
+  // back. The guided filter and feathering after this step re-soften
+  // only the edge band.
   for (let i = 0; i < workMatte.length; i++) {
-    if (keptBinary[i] === 1 && workMatte[i] > 0.32) workMatte[i] = 1;
+    if (keptBinary[i] === 1 && workMatte[i] > binaryThreshold) workMatte[i] = 1;
   }
 
   // 4) إعادة القناع إلى الدقة الكاملة، ثم تطبيق الفلتر الموجَّه
@@ -695,7 +731,27 @@ export async function imglyMaskMatte(input: {
     ctx.drawImage(maskBitmap, 0, 0);
     const pixels = ctx.getImageData(0, 0, maskBitmap.width, maskBitmap.height).data;
     const matte = new Float32Array(maskBitmap.width * maskBitmap.height);
-    for (let i = 0; i < matte.length; i++) matte[i] = pixels[i * 4] / 255;
+    // The imgly mask PNG carries the segmentation in its ALPHA channel:
+    // its RGB channels hold the source image colors, not a grayscale
+    // matte. Reading red (pixels[i * 4]) made every dark subject
+    // transparent — a black sprayer head has R = 0 — no matter how
+    // confident the model was. Proven 2026-10-31 by diagnosis v3
+    // (mask RGB equals photo RGB at nearly every grid point; two
+    // decode paths identical) and v4 (all model/device configs weak
+    // in alpha, yet the alpha shape traces the products; the
+    // 'foreground' output is byte-identical to 'mask'). Fall back to
+    // red only when alpha carries no information at all (constant
+    // alpha), which is the grayscale-mask shape other mask producers
+    // emit.
+    let minAlpha = 255;
+    let maxAlpha = 0;
+    for (let i = 0; i < matte.length; i++) {
+      const a = pixels[i * 4 + 3];
+      if (a < minAlpha) minAlpha = a;
+      if (a > maxAlpha) maxAlpha = a;
+    }
+    const matteOffset = maxAlpha > minAlpha ? 3 : 0;
+    for (let i = 0; i < matte.length; i++) matte[i] = pixels[i * 4 + matteOffset] / 255;
     if (matte.length === input.width * input.height) return matte;
     return resizeMatteViaCanvas(matte, maskBitmap.width, maskBitmap.height, input.width, input.height);
   } finally {
