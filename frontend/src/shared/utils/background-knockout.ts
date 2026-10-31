@@ -46,6 +46,10 @@ export interface LccFilterOptions {
   minSecondaryAvgAlpha?: number;
   /** Prune secondary components that touch the canvas border (default: true) */
   pruneBorderTouchingSecondary?: boolean;
+  /** Maximum Chebyshev bbox gap (px) for keeping a small solid secondary component near the largest one (default: 0 = disabled, current behavior). */
+  nearGapPx?: number;
+  /** Minimum size ratio to the largest component for a near-gap secondary component to be kept (default: 0 = disabled). */
+  nearGapMinRatio?: number;
 }
 
 export interface DefringeOptions {
@@ -108,6 +112,8 @@ export function filterLargestConnectedComponents(
     minSecondaryPixels = 500,
     minSecondaryAvgAlpha = 160,
     pruneBorderTouchingSecondary = true,
+    nearGapPx = 0,
+    nearGapMinRatio = 0,
   } = options;
 
   const totalPixels = width * height;
@@ -122,6 +128,10 @@ export function filterLargestConnectedComponents(
     count: number;
     touchesBorder: boolean;
     sumAlpha: number;
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
   }
 
   const components: ComponentMeta[] = [];
@@ -141,6 +151,10 @@ export function filterLargestConnectedComponents(
       let count = 0;
       let touchesBorder = (x === 0 || x === width - 1 || y === 0 || y === height - 1);
       let sumAlpha = 0;
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
 
       while (qHead < qTail) {
         const curr = queue[qHead++];
@@ -149,6 +163,11 @@ export function filterLargestConnectedComponents(
         const cy = (curr / width) | 0;
 
         sumAlpha += data[curr * 4 + 3];
+
+        if (cx < minX) minX = cx;
+        if (cx > maxX) maxX = cx;
+        if (cy < minY) minY = cy;
+        if (cy > maxY) maxY = cy;
 
         if (cx === 0 || cx === width - 1 || cy === 0 || cy === height - 1) {
           touchesBorder = true;
@@ -186,6 +205,10 @@ export function filterLargestConnectedComponents(
         count,
         touchesBorder,
         sumAlpha,
+        minX,
+        maxX,
+        minY,
+        maxY,
       });
 
       nextCompId++;
@@ -219,6 +242,29 @@ export function filterLargestConnectedComponents(
 
     if (isSolid && isBigEnough && borderOk) {
       keepSet.add(comp.id);
+    }
+  }
+
+  // Near-gap secondary component retention pass
+  if (nearGapPx > 0 && nearGapMinRatio > 0) {
+    for (const comp of components) {
+      if (keepSet.has(comp.id)) continue;
+
+      const gapX = Math.max(0, Math.max(largest.minX - comp.maxX, comp.minX - largest.maxX));
+      const gapY = Math.max(0, Math.max(largest.minY - comp.maxY, comp.minY - largest.maxY));
+      const gap = Math.max(gapX, gapY);
+
+      const avgAlpha = comp.count > 0 ? comp.sumAlpha / comp.count : 0;
+      const borderOk = !pruneBorderTouchingSecondary || !comp.touchesBorder || comp.count >= largest.count * 0.45;
+
+      if (
+        gap <= nearGapPx &&
+        comp.count >= largest.count * nearGapMinRatio &&
+        avgAlpha >= minSecondaryAvgAlpha &&
+        borderOk
+      ) {
+        keepSet.add(comp.id);
+      }
     }
   }
 
@@ -630,6 +676,19 @@ export function knockoutWhiteStudioBackground(
       }
     }
   }
+
+  // 5. Sever faint haze bridges so mist disconnects from the product before LCC.
+  severHazeBridgesAndFaintDust(data, width, height);
+  // 6. Keep the largest component plus solid near secondaries; delete far floating mist whatever its size.
+  filterLargestConnectedComponents(data, width, height, { nearGapPx: 6, nearGapMinRatio: 0.02 });
+  // 7. Defringe the surviving edges against the sampled studio background model.
+  decontaminateAndDefringeEdges(data, width, height, {
+    sampledBgColor: {
+      r: (topR + btmR) / 2,
+      g: (topG + btmG) / 2,
+      b: (topB + btmB) / 2,
+    },
+  });
 
   ctx.putImageData(imgData, 0, 0);
   return true;
