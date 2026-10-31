@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { compressImage } from '@/shared/utils/image-compressor';
+import { assertImageInputWithinLimits } from '@/shared/utils/image-input-guards';
 import { knockoutWhiteStudioBackground, trimCanvasTransparentBounds } from '@/shared/utils/background-knockout';
 import { toast } from '@/shared/components/system-alert';
 import { UploadIcon, Trash2Icon, RefreshCwIcon, LayersIcon, SlidersIcon, CheckCircleIcon } from '@/shared/components/icons/AppIcons';
@@ -40,6 +41,14 @@ export function ProductImageUploadField({
 
     if (!file.type.startsWith('image/')) {
       toast.warning('يرجى اختيار ملف صورة صالح (JPEG, PNG, WebP)');
+      return;
+    }
+
+    try {
+      await assertImageInputWithinLimits(file);
+    } catch (err: any) {
+      toast.warning(err?.message || 'تعذر التحقق من قيود الصورة');
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -130,10 +139,18 @@ export function ProductImageUploadField({
 
       // Always process from the untouched RAW original source!
       const sourceToProcess = originalFileRef.current || rawOriginalDataUrl || value;
-      const resultBlob = await removeBackgroundWithAi(sourceToProcess, (prog) => {
-        setAiProgress(prog.percent);
-        setCompressNote(`جاري المعالجة بالذكاء الاصطناعي... ${prog.percent}%`);
-      });
+      const resultBlob = await removeBackgroundWithAi(
+        sourceToProcess,
+        (prog) => {
+          setAiProgress(prog.percent);
+          setCompressNote(`جاري المعالجة بالذكاء الاصطناعي... ${prog.percent}%`);
+        },
+        {
+          onSubjectWarning: () => {
+            toast.warning('لم يتم العثور على منتج واضح في الصورة. يرجى مراجعة النتيجة قبل الحفظ.');
+          },
+        }
+      );
 
       const reader = new FileReader();
       reader.onload = (e) => {

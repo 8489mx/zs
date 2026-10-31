@@ -5,6 +5,7 @@
  */
 
 import { knockoutWhiteStudioBackground } from './background-knockout';
+import { assertImageInputWithinLimits } from './image-input-guards';
 
 export interface CompressionOptions {
   maxWidth?: number;
@@ -28,6 +29,8 @@ export async function compressImage(
   file: File | Blob,
   options: CompressionOptions = {}
 ): Promise<CompressionResult> {
+  await assertImageInputWithinLimits(file);
+
   const {
     maxWidth = 600,
     maxHeight = 600,

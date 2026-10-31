@@ -12,6 +12,8 @@
  * 6. Lossless PNG export; WebP 0.92 is a lossy derivative used only when PNG exceeds 350KB.
  */
 
+import { assertImageInputWithinLimits } from './image-input-guards';
+
 export interface AiRemovalProgress {
   key: string;
   current: number;
@@ -45,6 +47,7 @@ export interface ProductCutoutOptions {
   webpQuality?: number;
   /** موديل الذكاء الاصطناعي المطلوب: الافتراضي 'medium' */
   model?: 'medium' | 'small';
+  onSubjectWarning?: (coverage: number) => void;
 }
 
 export interface ProductCutoutResult {
@@ -54,6 +57,8 @@ export interface ProductCutoutResult {
   height: number;
   /** لون الخلفية المقدّر */
   backgroundColor: [number, number, number];
+  foregroundCoverage?: number;
+  subjectWarning?: boolean;
 }
 
 let aiModulePromise: Promise<any> | null = null;
@@ -686,6 +691,7 @@ export async function processProductImage(
   options: ProductCutoutOptions = {},
   onProgress?: ProgressCallback,
 ): Promise<ProductCutoutResult> {
+  await assertImageInputWithinLimits(file);
   const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   try {
     const maxLongEdge = options.maxLongEdge ?? (isMobileLike() ? 1536 : 2048);
@@ -709,6 +715,18 @@ export async function processProductImage(
     }
 
     const { rgba, backgroundColor } = refineProductMatte(rgb, width, height, matte, options);
+
+    // Foreground coverage check (one pass without allocating new array)
+    let foregroundPixels = 0;
+    const totalPixels = width * height;
+    for (let i = 0; i < totalPixels; i++) {
+      if (rgba[i * 4 + 3] >= 8) {
+        foregroundPixels++;
+      }
+    }
+    const foregroundCoverage = totalPixels > 0 ? foregroundPixels / totalPixels : 0;
+    const subjectWarning = foregroundCoverage < 0.02 || foregroundCoverage > 0.98;
+
     const trimmed = trimImageData(rgba, width, height, options.trimPadding ?? 12);
 
     const outCanvas = document.createElement('canvas');
@@ -717,7 +735,14 @@ export async function processProductImage(
     outCanvas.getContext('2d')!.putImageData(trimmed.data, 0, 0);
 
     const png = await canvasToBlob(outCanvas, 'image/png');
-    const result: ProductCutoutResult = { png, width: trimmed.width, height: trimmed.height, backgroundColor };
+    const result: ProductCutoutResult = {
+      png,
+      width: trimmed.width,
+      height: trimmed.height,
+      backgroundColor,
+      foregroundCoverage,
+      subjectWarning,
+    };
     if (options.alsoExportWebp) {
       result.webp = await canvasToBlob(outCanvas, 'image/webp', options.webpQuality ?? 0.92);
     }
@@ -801,6 +826,10 @@ export async function removeBackgroundWithAi(
     },
     onProgress,
   );
+
+  if (result.subjectWarning && options.onSubjectWarning) {
+    options.onSubjectWarning(result.foregroundCoverage ?? 0);
+  }
 
   // إذا كان حجم الـ PNG أقل من أو يساوي 350KB، نعتمد PNG للنقاء المطلق بدون فقدان
   if (result.png.size <= 350 * 1024 || !result.webp) {
