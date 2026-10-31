@@ -3695,7 +3695,13 @@ export class AccountingPostingService {
     }
 
     const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
-    const paymentAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, paymentChannel === 'cash' ? '1110' : '1120');
+    // INV-PAYROLL-PAYMENT-CHANNEL-ACCOUNTS: the channel-to-account
+    // map must match postPayrollItemPayment exactly — 'bank' pays
+    // from 1120, every other channel ('cash', 'drawer') from cash
+    // 1110. The old map sent 'drawer' to the bank although
+    // payPayrollRun takes the money out of the cashier drawer, so
+    // the journal credited a bank account that never paid.
+    const paymentAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, paymentChannel === 'bank' ? '1120' : '1110');
 
     const lines: JournalLineDraft[] = [];
 
@@ -3763,6 +3769,9 @@ export class AccountingPostingService {
     if (netPay <= 0) throw new AppError('صافي الأجر صفر أو سالب', 'HR_PAYROLL_PAYMENT_ZERO', 400);
 
     const payableAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, '2140'); // Payroll Payable
+    // INV-PAYROLL-PAYMENT-CHANNEL-ACCOUNTS: keep in sync with
+    // postPayrollPayment — 'bank' pays from 1120, all other
+    // channels ('cash', 'drawer') from cash 1110.
     const paymentAccountId = await this.resolveSystemAccountByCode(queryable, scope.tenantId, paymentChannel === 'bank' ? '1120' : '1110');
 
     const empLabel = options?.employeeName ? ` - ${options.employeeName}` : '';
